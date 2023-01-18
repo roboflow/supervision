@@ -95,7 +95,9 @@ class Color:
 @dataclass
 class ColorPalette:
     colors: List[Color] = field(
-        default_factory=lambda: [Color.from_hex(color_hex) for color_hex in DEFAULT_COLOR_PALETTE]
+        default_factory=lambda: [
+            Color.from_hex(color_hex) for color_hex in DEFAULT_COLOR_PALETTE
+        ]
     )
 
     @classmethod
