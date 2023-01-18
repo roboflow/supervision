@@ -177,15 +177,15 @@ class BoxAnnotator:
 
             cv2.rectangle(
                 img=frame,
-                start_point=(x1, y1),
-                end_point=(x2, y2),
+                pt1=(x1, y1),
+                pt2=(x2, y2),
                 color=color.as_bgr(),
                 thickness=self.thickness
             )
             cv2.rectangle(
                 img=frame,
-                start_point=(text_background_x1, text_background_y1),
-                end_point=(text_background_x2, text_background_y2),
+                pt1=(text_background_x1, text_background_y1),
+                pt2=(text_background_x2, text_background_y2),
                 color=color.as_bgr(),
                 thickness=cv2.FILLED,
             )
