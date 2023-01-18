@@ -176,21 +176,21 @@ class BoxAnnotator:
             text_background_y2 = y1
 
             cv2.rectangle(
-                image=frame,
+                img=frame,
                 start_point=(x1, y1),
                 end_point=(x2, y2),
                 color=color.as_bgr(),
                 thickness=self.thickness
             )
             cv2.rectangle(
-                image=frame,
+                img=frame,
                 start_point=(text_background_x1, text_background_y1),
                 end_point=(text_background_x2, text_background_y2),
                 color=color.as_bgr(),
                 thickness=cv2.FILLED,
             )
             cv2.putText(
-                image=frame,
+                img=frame,
                 text=text,
                 org=(text_x, text_y),
                 font=font,
