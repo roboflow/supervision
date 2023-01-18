@@ -24,8 +24,9 @@ class Vector:
     def is_in(self, point: Point) -> bool:
         v1 = Vector(self.start, self.end)
         v2 = Vector(self.start, point)
-        cross_product = (v1.end.x - v1.start.x) * (v2.end.y - v2.start.y) - \
-                        (v1.end.y - v1.start.y) * (v2.end.x - v2.start.x)
+        cross_product = (v1.end.x - v1.start.x) * (v2.end.y - v2.start.y) - (
+            v1.end.y - v1.start.y
+        ) * (v2.end.x - v2.start.x)
         return cross_product < 0
 
 

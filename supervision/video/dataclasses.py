@@ -16,6 +16,7 @@ class VideoInfo:
     :param fps: int : The frames per second of the video.
     :param total_frames: int : The total number of frames in the video.
     """
+
     width: int
     height: int
     fps: int

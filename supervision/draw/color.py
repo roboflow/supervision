@@ -1,20 +1,34 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Tuple, List
+from typing import List, Tuple
 
 DEFAULT_COLOR_PALETTE = [
-    "#e6194b", "#3cb44b", "#ffe119", "#0082c8", "#f58231", "#911eb4", "#46f0f0", "#f032e6",
-    "#d2f53c", "#fabebe", "#008080", "#e6beff", "#aa6e28", "#fffac8", "#800000", "#aaffc3"
+    "#e6194b",
+    "#3cb44b",
+    "#ffe119",
+    "#0082c8",
+    "#f58231",
+    "#911eb4",
+    "#46f0f0",
+    "#f032e6",
+    "#d2f53c",
+    "#fabebe",
+    "#008080",
+    "#e6beff",
+    "#aa6e28",
+    "#fffac8",
+    "#800000",
+    "#aaffc3",
 ]
 
 
 def _validate_color_hex(color_hex: str):
-    color_hex = color_hex.lstrip('#')
-    if not all(c in '0123456789abcdefABCDEF' for c in color_hex):
-        raise ValueError('Invalid characters in color hash')
+    color_hex = color_hex.lstrip("#")
+    if not all(c in "0123456789abcdefABCDEF" for c in color_hex):
+        raise ValueError("Invalid characters in color hash")
     if len(color_hex) not in (3, 6):
-        raise ValueError('Invalid length of color hash')
+        raise ValueError("Invalid length of color hash")
 
 
 @dataclass
@@ -35,10 +49,10 @@ class Color:
         color = Color.from_hex('#ff00ff')
         """
         _validate_color_hex(color_hex)
-        color_hex = color_hex.lstrip('#')
+        color_hex = color_hex.lstrip("#")
         if len(color_hex) == 3:
-            color_hex = ''.join(c * 2 for c in color_hex)
-        r, g, b = (int(color_hex[i:i + 2], 16) for i in range(0, 6, 2))
+            color_hex = "".join(c * 2 for c in color_hex)
+        r, g, b = (int(color_hex[i : i + 2], 16) for i in range(0, 6, 2))
         return cls(r, g, b)
 
     def as_rgb(self) -> Tuple[int, int, int]:
@@ -59,23 +73,23 @@ class Color:
 
     @classmethod
     def white(cls) -> Color:
-        return Color.from_hex(color_hex='#ffffff')
+        return Color.from_hex(color_hex="#ffffff")
 
     @classmethod
     def black(cls) -> Color:
-        return Color.from_hex(color_hex='#000000')
+        return Color.from_hex(color_hex="#000000")
 
     @classmethod
     def red(cls) -> Color:
-        return Color.from_hex(color_hex='#ff0000')
+        return Color.from_hex(color_hex="#ff0000")
 
     @classmethod
     def green(cls) -> Color:
-        return Color.from_hex(color_hex='#00ff00')
+        return Color.from_hex(color_hex="#00ff00")
 
     @classmethod
     def blue(cls) -> Color:
-        return Color.from_hex(color_hex='#0000ff')
+        return Color.from_hex(color_hex="#0000ff")
 
 
 @dataclass

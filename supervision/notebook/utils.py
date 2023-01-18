@@ -5,7 +5,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def show_frame_in_notebook(frame: np.ndarray, size: Tuple[int, int] = (10, 10), cmap: str = 'gray'):
+def show_frame_in_notebook(
+    frame: np.ndarray, size: Tuple[int, int] = (10, 10), cmap: str = "gray"
+):
     """
     Display a frame in Jupyter Notebook using Matplotlib
 
