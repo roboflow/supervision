@@ -1,35 +1,64 @@
 import setuptools
 from setuptools import find_packages
 import re
+from pathlib import Path
 
-with open("./src/__init__.py", 'r') as f:
-    content = f.read()
-    # from https://www.py4u.net/discuss/139845
-    version = re.search(r'__version__\s*=\s*[\'"]([^\'"]*)[\'"]', content).group(1)
+FILE = Path(__file__).resolve()
+PARENT = FILE.parent  # root directory
+README = (PARENT / "README.md").read_text(encoding="utf-8")
+
+
+def get_version():
+    file = PARENT / 'supervision/__init__.py'
+    return re.search(r'^__version__ = [\'"]([^\'"]*)[\'"]', file.read_text(encoding="utf-8"), re.M)[1]
     
-with open("README.md", "r") as fh:
-    long_description = fh.read()
 
 setuptools.setup(
-    name="template-python-zuppif#1",  
-    version=version,
-    author="zuppif",
-    author_email="francesco.zuppichini@gmail.com",
-    description="<INSERT_DESCRIPTION>",
-    long_description=long_description,
-    long_description_content_type="text/markdown",
-    url="https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    name='supervision',
+    version=get_version(),
+    author='Piotr Skalski',
+    author_email='piotr.skalski92@gmail.com',
+    license='MIT',
+    description='A set of easy-to-use utils that will come in handy in any Computer Vision project',
+    long_description=README,
+    long_description_content_type='text/markdown',
+    url='https://github.com/roboflow/supervision',
     install_requires=[
-      # list your requires
+            'numpy',
+            'opencv-python'
     ],
     packages=find_packages(exclude=("tests",)),
     extras_require={
-        "dev": ["flake8", "black==22.3.0", "isort", "twine", "pytest", "wheel"],
+        'dev': [
+            'flake8',
+            'black==22.3.0',
+            'isort',
+            'twine',
+            'pytest',
+            'wheel',
+            'notebook'
+        ],
     },
     classifiers=[
-        "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: MIT License",
-        "Operating System :: OS Independent",
+        'Intended Audience :: Developers',
+        'Intended Audience :: Science/Research',
+        'License :: OSI Approved :: BSD License',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3 :: Only',
+        'Topic :: Software Development',
+        'Topic :: Scientific/Engineering',
+        "Topic :: Scientific/Engineering :: Artificial Intelligence",
+        "Topic :: Scientific/Engineering :: Image Recognition",
+        'Typing :: Typed',
+        'Operating System :: Microsoft :: Windows',
+        'Operating System :: POSIX',
+        'Operating System :: Unix',
+        'Operating System :: MacOS'
     ],
-    python_requires=">=3.7",
+    keywords="machine-learning, deep-learning, vision, ML, DL, AI, YOLOv5, YOLOv8, Roboflow",
+    python_requires='>=3.7',
 )
