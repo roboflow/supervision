@@ -193,7 +193,7 @@ class BoxAnnotator:
                 img=frame,
                 text=text,
                 org=(text_x, text_y),
-                font=font,
+                fontFace=font,
                 fontScale=self.text_scale,
                 color=self.text_color.as_rgb(),
                 thickness=self.text_thickness,
