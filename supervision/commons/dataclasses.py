@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional, Tuple
-
-import numpy as np
+from typing import Tuple
 
 
 @dataclass
@@ -16,6 +14,19 @@ class Point:
 
     def as_xy_float_tuple(self) -> Tuple[float, float]:
         return self.x, self.y
+
+
+@dataclass
+class Vector:
+    start: Point
+    end: Point
+
+    def is_in(self, point: Point) -> bool:
+        v1 = Vector(self.start, self.end)
+        v2 = Vector(self.start, point)
+        cross_product = (v1.end.x - v1.start.x) * (v2.end.y - v2.start.y) - \
+                        (v1.end.y - v1.start.y) * (v2.end.x - v2.start.x)
+        return cross_product < 0
 
 
 @dataclass
@@ -33,19 +44,10 @@ class Rect:
     def bottom_right(self) -> Point:
         return Point(x=self.x + self.width, y=self.y + self.height)
 
-
-@dataclass
-class Detection:
-    x_min: float
-    x_max: float
-    y_min: float
-    y_max: float
-    class_id: int
-    class_name: Optional[str]
-    confidence: Optional[float]
-    mask: Optional[np.ndarray]
-    contour: Optional[np.ndarray]
-
-    @property
-    def rect(self) -> Rect:
-        return Rect(x=self.x_min, y=self.y_min, width=self.x_max - self.x_min, height=self.y_max - self.y_min)
+    def pad(self, padding) -> Rect:
+        return Rect(
+            x=self.x - padding,
+            y=self.y - padding,
+            width=self.width + 2 * padding,
+            height=self.height + 2 * padding,
+        )
