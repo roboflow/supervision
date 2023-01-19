@@ -163,7 +163,10 @@ class BoxAnnotator:
 
             x1, y1, x2, y2 = xyxy.astype(int)
             text_width, text_height = cv2.getTextSize(
-                text=text, fontFace=font, fontScale=self.text_scale, thickness=self.text_thickness
+                text=text,
+                fontFace=font,
+                fontScale=self.text_scale,
+                thickness=self.text_thickness,
             )[0]
 
             text_x = x1 + self.text_padding
@@ -180,7 +183,7 @@ class BoxAnnotator:
                 pt1=(x1, y1),
                 pt2=(x2, y2),
                 color=color.as_bgr(),
-                thickness=self.thickness
+                thickness=self.thickness,
             )
             cv2.rectangle(
                 img=frame,
