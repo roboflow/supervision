@@ -16,34 +16,34 @@
             width="3%"
           />
       </a>
-      <img src="https://github.com/SkalskiP/SkalskiP/blob/master/icons/transparent.png" width="3%"/>
+      <img src="https://raw.githubusercontent.com/ultralytics/assets/main/social/logo-transparent.png" width="3%"/>
       <a href="https://roboflow.com">
           <img
             src="https://media.roboflow.com/notebooks/template/icons/purple/roboflow-app.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949746649"
             width="3%"
           />
       </a>
-      <img src="https://github.com/SkalskiP/SkalskiP/blob/master/icons/transparent.png" width="3%"/>
+      <img src="https://raw.githubusercontent.com/ultralytics/assets/main/social/logo-transparent.png" width="3%"/>
       <a href="https://www.linkedin.com/company/roboflow-ai/">
           <img
             src="https://media.roboflow.com/notebooks/template/icons/purple/linkedin.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949633691"
             width="3%"
           />
       </a>
-      <img src="https://github.com/SkalskiP/SkalskiP/blob/master/icons/transparent.png" width="3%"/>
+      <img src="https://raw.githubusercontent.com/ultralytics/assets/main/social/logo-transparent.png" width="3%"/>
       <a href="https://docs.roboflow.com">
           <img
             src="https://media.roboflow.com/notebooks/template/icons/purple/knowledge.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949634511"
             width="3%"
           />
       </a>
-      <img src="https://github.com/SkalskiP/SkalskiP/blob/master/icons/transparent.png" width="3%"/>
+      <img src="https://raw.githubusercontent.com/ultralytics/assets/main/social/logo-transparent.png" width="3%"/>
       <a href="https://disuss.roboflow.com">
           <img
             src="https://media.roboflow.com/notebooks/template/icons/purple/forum.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949633584"
             width="3%"
           />
-      <img src="https://github.com/SkalskiP/SkalskiP/blob/master/icons/transparent.png" width="3%"/>
+      <img src="https://raw.githubusercontent.com/ultralytics/assets/main/social/logo-transparent.png" width="3%"/>
       <a href="https://blog.roboflow.com">
           <img
             src="https://media.roboflow.com/notebooks/template/icons/purple/blog.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949633605"
@@ -63,9 +63,19 @@ and may change.
 
 ## 💻 install
 
-```console
+Pip install the supervision package in a
+[**3.10>=Python>=3.7**](https://www.python.org/) environment.
+
+```bash
+pip install supervision
+```
+
+<details close>
+<summary>Install from source</summary>
+
+```bash
 # clone repository and navigate to root directory
-git clone git@github.com:roboflow/supervision.git
+git clone https://github.com/roboflow/supervision.git
 cd supervision
 
 # setup python environment and activate it
@@ -75,6 +85,10 @@ source venv/bin/activate
 # install
 pip install -e ".[dev]"
 ```
+
+</details>
+
+
 
 ## 🧹 Code Quality 
 
