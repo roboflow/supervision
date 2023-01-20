@@ -61,6 +61,18 @@ A set of easy-to-use utils that will come in handy in any Computer Vision projec
 pre-release stage. 🚧 Keep your eyes open for potential bugs and be aware that at this stage our API is still fluid 
 and may change.
 
+## 🎬 videos
+
+Learn how to use YOLOv8, ByteTrack and **Supervision** to detect, track and count objects. 🔥
+[Subscribe](https://www.youtube.com/@Roboflow), and stay up to date with our latest YouTube videos!
+
+<p align="center">
+    <a href="https://youtu.be/OS5qI9YBkfk">
+        <img src="https://user-images.githubusercontent.com/26109316/213702005-ddd568f0-b902-46c2-9af9-e6ff33db23bf.jpg" alt="latest-roboflow-tutorial">
+    </a>
+</p>
+
+
 ## 💻 install
 
 Pip install the supervision package in a
