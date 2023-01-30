@@ -1,0 +1,25 @@
+site_name: supervision
+site_url: https://roboflow.github.io/supervision
+site_author: Roboflow
+site_description: A set of easy-to-use utils that will come in handy in any Computer Vision project
+repo_name: roboflow/supervision
+repo_url: https://github.com/roboflow/supervision
+edit_uri: https://github.com/roboflow/supervision/tree/main/docs
+copyright: Roboflow 2023. All rights reserved.
+
+extra:
+  social:
+    - icon: fontawesome/brands/youtube
+      link: https://www.youtube.com/roboflow
+
+nav:
+  - Home: index.md
+
+theme:
+  name: 'material'
+  palette:
+    primary: 'deep purple'
+    accent: 'teal'
+  font:
+    text: Roboto
+    code: Roboto Mono
