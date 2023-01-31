@@ -26,7 +26,10 @@ class VideoInfo:
         VideoInfo(width=3840, height=2160, fps=25, total_frames=538)
         ```
     """
-    def __init__(self, width: int, height: int, fps: int, total_frames: Optional[int] = None):
+
+    def __init__(
+        self, width: int, height: int, fps: int, total_frames: Optional[int] = None
+    ):
         self.width = width
         self.height = height
         self.fps = fps
@@ -121,7 +124,11 @@ def get_video_frames_generator(source_path: str) -> Generator[np.ndarray, None, 
     video.release()
 
 
-def process_video(source_path: str, target_path: str, callback: Callable[[np.ndarray, int], np.ndarray]) -> None:
+def process_video(
+    source_path: str,
+    target_path: str,
+    callback: Callable[[np.ndarray, int], np.ndarray],
+) -> None:
     """
     Process a video file by applying a callback function on each frame and saving the result to a target video file.
 
@@ -146,6 +153,8 @@ def process_video(source_path: str, target_path: str, callback: Callable[[np.nda
     """
     source_video_info = VideoInfo.from_video_path(video_path=source_path)
     with VideoSink(target_path=target_path, video_info=source_video_info) as sink:
-        for index, frame in enumerate(get_video_frames_generator(source_path=source_path)):
+        for index, frame in enumerate(
+            get_video_frames_generator(source_path=source_path)
+        ):
             result_frame = callback(frame, index)
             sink.write_frame(frame=result_frame)
