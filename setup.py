@@ -36,7 +36,9 @@ setuptools.setup(
             'twine',
             'pytest',
             'wheel',
-            'notebook'
+            'notebook',
+            'mkdocs-material',
+            'mkdocstrings[python]'
         ],
     },
     classifiers=[

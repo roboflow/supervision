@@ -1,0 +1,43 @@
+site_name: Supervision
+site_url: https://roboflow.github.io/supervision
+site_author: Roboflow
+site_description: A set of easy-to-use utils that will come in handy in any Computer Vision project
+repo_name: roboflow/supervision
+repo_url: https://github.com/roboflow/supervision
+edit_uri: https://github.com/roboflow/supervision/tree/main/docs
+copyright: Roboflow 2023. All rights reserved.
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/roboflow
+    - icon: fontawesome/brands/youtube
+      link: https://www.youtube.com/roboflow
+    - icon: fontawesome/brands/linkedin
+      link: https://www.linkedin.com/company/roboflow-ai/mycompany/
+    - icon: fontawesome/brands/twitter
+      link: https://twitter.com/roboflow
+
+nav:
+  - Home: index.md
+  - Video: video.md
+
+theme:
+  name: 'material'
+  logo: https://raw.githubusercontent.com/roboflow/supervision/main/docs/assets/roboflow_logomark_white.svg
+  favicon: https://raw.githubusercontent.com/roboflow/supervision/main/docs/assets/roboflow_logomark_color.svg
+  palette:
+    primary: 'deep purple'
+    accent: 'teal'
+  font:
+    text: Roboto
+    code: Roboto Mono
+
+plugins:
+  - mkdocstrings
+  - search
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
