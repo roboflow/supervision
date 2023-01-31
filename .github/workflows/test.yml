@@ -22,7 +22,11 @@ jobs:
       - name: 🦾 Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install ".[dev]"
+          pip install -e .
+          pip install pytest
+          pip install isort
+          pip install flake8
+          pip install "black==22.3.0"
       - name: 🧹 Lint with flake8
         run: |
           make check_code_quality
