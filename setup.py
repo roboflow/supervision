@@ -37,7 +37,8 @@ setuptools.setup(
             'pytest',
             'wheel',
             'notebook',
-            'mkdocs-material'
+            'mkdocs-material',
+            'mkdocstrings[python]'
         ],
     },
     classifiers=[
