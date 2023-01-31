@@ -88,6 +88,10 @@ pip install -e ".[dev]"
 
 </details>
 
+## 📖 documentation
+
+Curious how Supervision can help you solve problems on your project? Visit our [documentation](https://roboflow.github.io/supervision) page!
+
 ## 🎬 videos
 
 Learn how to use YOLOv8, ByteTrack and **Supervision** to detect, track and count objects. 🔥
@@ -111,7 +115,3 @@ So far, **there is no types checking with mypy**. See [issue](https://github.com
 ## 🧪 tests 
 
 [`pytests`](https://docs.pytest.org/en/7.1.x/) is used to run our tests.
-
-## 🪪 
-
-Supervision is available under the MIT license - see the [LICENSE](https://github.com/roboflow/supervision/blob/main/LICENSE.md) file for details.
