@@ -22,7 +22,7 @@ jobs:
       - name: 🦾 Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -m ".[dev]"
+          pip install -e ".[dev]"
       - name: 🧹 Lint with flake8
         run: |
           make check_code_quality
