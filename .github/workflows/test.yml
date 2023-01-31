@@ -24,6 +24,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e .
           pip install pytest
+          pip install isort
           pip install "black==22.3.0"
       - name: 🧹 Lint with flake8
         run: |
