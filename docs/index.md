@@ -9,21 +9,22 @@
   </p>
 </div>
 
-## 👋 hello
+## 👋 Welcome
 
-A set of easy-to-use utils that will come in handy in any Computer Vision project. **Supervision** is still in 
-pre-release stage. 🚧 Keep your eyes open for potential bugs and be aware that at this stage our API is still fluid 
-and may change.
+Supervision is a set of easy-to-use utilities that will come in handy in any computer vision project. 
 
-## 💻 install
+**Supervision** is still in 
+pre-release stage 🚧 Keep your eyes open for potential bugs and be aware that at this stage our API is still fluid and may change.
 
-Pip install the supervision package in a
+## 💻 How to Install
+
+You can install `supervision` with pip in a 
 [**3.10>=Python>=3.7**](https://www.python.org/) environment.
 
 !!! example "Pip install method (recommended)"
 
     ```bash
-    pip install subervision
+    pip install supervision
     ```
 
 !!! example "Git clone method (for development)"

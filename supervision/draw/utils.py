@@ -11,12 +11,16 @@ def draw_line(
     """
     Draws a line on a given scene.
 
-    :param scene: np.ndarray : The scene on which the line will be drawn
-    :param start: Point : The starting point of the line
-    :param end: Point : The end point of the line
-    :param color: Color : The color of the line
-    :param thickness: int : The thickness of the line
-    :return: np.ndarray : The scene with the line drawn on it
+    Attributes:
+
+        scene (np.ndarray): The scene on which the line will be drawn
+        start (Point): The starting point of the line
+        end (Point): The end point of the line
+        color (Color): The color of the line
+        thickness (int): The thickness of the line
+
+    Returns:
+        np.ndarray: The scene with the line drawn on it
     """
     cv2.line(
         scene,
@@ -34,11 +38,19 @@ def draw_rectangle(
     """
     Draws a rectangle on an image.
 
-    :param scene: np.ndarray : The image on which to draw the rectangle.
-    :param rect: Rect : The rectangle to draw.
-    :param color: Color : The color of the rectangle.
-    :param thickness: int : The thickness of the rectangle border.
-    :return: np.ndarray : The image with the rectangle drawn on it.
+    Attributes:
+        scene (np.ndarray): The scene on which the rectangle will be drawn
+        rect (Rect): The rectangle to be drawn
+        color (Color): The color of the rectangle
+        thickness (int): The thickness of the rectangle border
+
+    Returns:
+        np.ndarray: The scene with the rectangle drawn on it
+
+    Example:
+        ```python
+        >>> # TODO: Add example
+        ```
     """
     cv2.rectangle(
         scene,
@@ -58,6 +70,20 @@ def draw_filled_rectangle(scene: np.ndarray, rect: Rect, color: Color) -> np.nda
     :param rect: Rect : The rectangle to be drawn.
     :param color: Color : The color of the rectangle.
     :return: np.ndarray : The updated scene with the filled rectangle drawn on it.
+
+    Attributes:
+        scene (np.ndarray): The scene on which the rectangle will be drawn
+        rect (Rect): The rectangle to be drawn
+        color (Color): The color of the rectangle
+
+    Returns:
+        np.ndarray: The scene with the rectangle drawn on it
+
+    Example:
+        ```python
+        >>> # TODO: Add example
+        ```
+    
     """
     cv2.rectangle(
         scene,

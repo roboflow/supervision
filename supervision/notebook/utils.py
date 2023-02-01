@@ -11,9 +11,16 @@ def show_frame_in_notebook(
     """
     Display a frame in Jupyter Notebook using Matplotlib
 
-    :param frame: np.ndarray : The frame to be displayed.
-    :param size: Tuple[int, int] : The size of the plot. default:(10,10)
-    :param cmap: str : the colormap to use for single channel images. default:gray
+    Attributes:
+        frame (np.ndarray): The frame to be displayed.
+        size (Tuple[int, int]): The size of the plot. default:(10,10)
+        cmap (str): the colormap to use for single channel images. default:gray
+
+    Examples:
+        ```python
+        >>> from supervision.notebook import show_frame_in_notebook
+
+        ```
     """
     if frame.ndim == 2:
         plt.figure(figsize=size)

@@ -19,8 +19,12 @@ extra:
       link: https://twitter.com/roboflow
 
 nav:
-  - Home: index.md
-  - Video: video.md
+  - Home 🏠: index.md
+  - Video 📷: video.md
+  - Notebook Helpers 📓: notebook.md
+  - Draw 🎨: draw.md
+  - Geometry 📐: geometry.md
+  - Tools 🛠: tools.md
 
 theme:
   name: 'material'
