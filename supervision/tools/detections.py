@@ -17,10 +17,11 @@ class Detections:
         """
         Data class containing information about the detections in a video frame.
 
-        :param xyxy: np.ndarray : An array of shape (n, 4) containing the bounding boxes coordinates in format [x1, y1, x2, y2]
-        :param confidence: np.ndarray : An array of shape (n,) containing the confidence scores of the detections.
-        :param class_id: np.ndarray : An array of shape (n,) containing the class ids of the detections.
-        :param tracker_id: Optional[np.ndarray] : An array of shape (n,) containing the tracker ids of the detections.
+        Attributes:
+            xyxy (np.ndarray): An array of shape (n, 4) containing the bounding boxes coordinates in format [x1, y1, x2, y2]
+            confidence (np.ndarray): An array of shape (n,) containing the confidence scores of the detections.
+            class_id (np.ndarray): An array of shape (n,) containing the class ids of the detections.
+            tracker_id (Optional[np.ndarray]): An array of shape (n,) containing the tracker ids of the detections.
         """
         self.xyxy: np.ndarray = xyxy
         self.confidence: np.ndarray = confidence
@@ -69,11 +70,17 @@ class Detections:
         """
         Creates a Detections instance from a YOLOv5 output tensor
 
-        :param yolov5_output: np.ndarray : The output tensor from YOLOv5
-        :return: Detections : A Detections instance representing the detections in the frame
+        Attributes:
+            yolov5_output (np.ndarray): The output tensor from YOLOv5
+
+        Returns:
 
         Example:
-        detections = Detections.from_yolov5(yolov5_output)
+            ```python
+            >>> from supervision.tools.detections import Detections
+
+            >>> detections = Detections.from_yolov5(yolov5_output)
+            ```
         """
         xyxy = yolov5_output[:, :4]
         confidence = yolov5_output[:, 4]
@@ -82,11 +89,14 @@ class Detections:
 
     def filter(self, mask: np.ndarray, inplace: bool = False) -> Optional[np.ndarray]:
         """
-        Filter the detections by applying a mask
+        Filter the detections by applying a mask.
 
-        :param mask: np.ndarray : A mask of shape (n,) containing a boolean value for each detection indicating if it should be included in the filtered detections
-        :param inplace: bool : If True, the original data will be modified and self will be returned.
-        :return: Optional[np.ndarray] : A new instance of Detections with the filtered detections, if inplace is set to False. None otherwise.
+        Attributes:
+            mask (np.ndarray): A mask of shape (n,) containing a boolean value for each detection indicating if it should be included in the filtered detections
+            inplace (bool): If True, the original data will be modified and self will be returned.
+
+        Returns:
+            Optional[np.ndarray]: A new instance of Detections with the filtered detections, if inplace is set to False. None otherwise.
         """
         if inplace:
             self.xyxy = self.xyxy[mask]
@@ -120,12 +130,14 @@ class BoxAnnotator:
         """
         A class for drawing bounding boxes on an image using detections provided.
 
-        :param color: Union[Color, ColorPalette] :  The color to draw the bounding box, can be a single color or a color palette
-        :param thickness: int :  The thickness of the bounding box lines, default is 2
-        :param text_color: Color :  The color of the text on the bounding box, default is white
-        :param text_scale: float :  The scale of the text on the bounding box, default is 0.5
-        :param text_thickness: int :  The thickness of the text on the bounding box, default is 1
-        :param text_padding: int :  The padding around the text on the bounding box, default is 5
+        Attributes:
+            color (Union[Color, ColorPalette]): The color to draw the bounding box, can be a single color or a color palette
+            thickness (int): The thickness of the bounding box lines, default is 2
+            text_color (Color): The color of the text on the bounding box, default is white
+            text_scale (float): The scale of the text on the bounding box, default is 0.5
+            text_thickness (int): The thickness of the text on the bounding box, default is 1
+            text_padding (int): The padding around the text on the bounding box, default is 5
+
         """
         self.color: Union[Color, ColorPalette] = color
         self.thickness: int = thickness
@@ -143,10 +155,13 @@ class BoxAnnotator:
         """
         Draws bounding boxes on the frame using the detections provided.
 
-        :param frame: np.ndarray : The image on which the bounding boxes will be drawn
-        :param detections: Detections : The detections for which the bounding boxes will be drawn
-        :param labels: Optional[List[str]] :  An optional list of labels corresponding to each detection. If labels is provided, the confidence score of the detection will be replaced with the label.
-        :return: np.ndarray : The image with the bounding boxes drawn on it
+        Attributes:
+            frame (np.ndarray): The image on which the bounding boxes will be drawn
+            detections (Detections): The detections for which the bounding boxes will be drawn
+            labels (Optional[List[str]]): An optional list of labels corresponding to each detection. If labels is provided, the confidence score of the detection will be replaced with the label.
+
+        Returns:
+            np.ndarray: The image with the bounding boxes drawn on it
         """
         font = cv2.FONT_HERSHEY_SIMPLEX
         for i, (xyxy, confidence, class_id, tracker_id) in enumerate(detections):

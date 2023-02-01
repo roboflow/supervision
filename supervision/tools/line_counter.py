@@ -9,12 +9,18 @@ from supervision.tools.detections import Detections
 
 
 class LineCounter:
+    """
+    Count the number of objects that cross a line.
+    """
+
     def __init__(self, start: Point, end: Point):
         """
         Initialize a LineCounter object.
 
-        :param start: Point : The starting point of the line.
-        :param end: Point : The ending point of the line.
+        Attributes:
+            start (Point): The starting point of the line.
+            end (Point): The ending point of the line.
+
         """
         self.vector = Vector(start=start, end=end)
         self.tracker_state: Dict[str, bool] = {}
@@ -25,7 +31,9 @@ class LineCounter:
         """
         Update the in_count and out_count for the detections that cross the line.
 
-        :param detections: Detections : The detections for which to update the counts.
+        Attributes:
+            detections (Detections): The detections for which to update the counts.
+
         """
         for xyxy, confidence, class_id, tracker_id in detections:
             # handle detections with no tracker_id
@@ -77,13 +85,15 @@ class LineCounterAnnotator:
         """
         Initialize the LineCounterAnnotator object with default values.
 
-        :param thickness: float : The thickness of the line that will be drawn.
-        :param color: Color : The color of the line that will be drawn.
-        :param text_thickness: float : The thickness of the text that will be drawn.
-        :param text_color: Color : The color of the text that will be drawn.
-        :param text_scale: float : The scale of the text that will be drawn.
-        :param text_offset: float : The offset of the text that will be drawn.
-        :param text_padding: int : The padding of the text that will be drawn.
+        Attributes:
+            thickness (float): The thickness of the line that will be drawn.
+            color (Color): The color of the line that will be drawn.
+            text_thickness (float): The thickness of the text that will be drawn.
+            text_color (Color): The color of the text that will be drawn.
+            text_scale (float): The scale of the text that will be drawn.
+            text_offset (float): The offset of the text that will be drawn.
+            text_padding (int): The padding of the text that will be drawn.
+
         """
         self.thickness: float = thickness
         self.color: Color = color
@@ -97,9 +107,13 @@ class LineCounterAnnotator:
         """
         Draws the line on the frame using the line_counter provided.
 
-        :param frame: np.ndarray : The image on which the line will be drawn
-        :param line_counter: LineCounter : The line counter that will be used to draw the line
-        :return: np.ndarray : The image with the line drawn on it
+        Attributes:
+            frame (np.ndarray): The image on which the line will be drawn.
+            line_counter (LineCounter): The line counter that will be used to draw the line.
+
+        Returns:
+            np.ndarray: The image with the line drawn on it.
+
         """
         cv2.line(
             frame,
