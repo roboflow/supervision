@@ -83,7 +83,7 @@ def draw_filled_rectangle(scene: np.ndarray, rect: Rect, color: Color) -> np.nda
         ```python
         >>> # TODO: Add example
         ```
-    
+
     """
     cv2.rectangle(
         scene,

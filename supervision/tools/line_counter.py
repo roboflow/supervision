@@ -12,6 +12,7 @@ class LineCounter:
     """
     Count the number of objects that cross a line.
     """
+
     def __init__(self, start: Point, end: Point):
         """
         Initialize a LineCounter object.
@@ -92,7 +93,7 @@ class LineCounterAnnotator:
             text_scale (float): The scale of the text that will be drawn.
             text_offset (float): The offset of the text that will be drawn.
             text_padding (int): The padding of the text that will be drawn.
-        
+
         """
         self.thickness: float = thickness
         self.color: Color = color
@@ -112,7 +113,7 @@ class LineCounterAnnotator:
 
         Returns:
             np.ndarray: The image with the line drawn on it.
-        
+
         """
         cv2.line(
             frame,

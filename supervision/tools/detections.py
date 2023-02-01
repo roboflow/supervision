@@ -72,13 +72,13 @@ class Detections:
 
         Attributes:
             yolov5_output (np.ndarray): The output tensor from YOLOv5
-        
+
         Returns:
 
         Example:
             ```python
             >>> from supervision.tools.detections import Detections
-            
+
             >>> detections = Detections.from_yolov5(yolov5_output)
             ```
         """
@@ -154,7 +154,7 @@ class BoxAnnotator:
     ) -> np.ndarray:
         """
         Draws bounding boxes on the frame using the detections provided.
-        
+
         Attributes:
             frame (np.ndarray): The image on which the bounding boxes will be drawn
             detections (Detections): The detections for which the bounding boxes will be drawn
