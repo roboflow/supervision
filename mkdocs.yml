@@ -28,6 +28,7 @@ nav:
   - Draw 🎨: draw.md
   - Geometry 📐: geometry.md
   - Tools 🛠: tools.md
+  - Changelog 📝: changelog.md
 
 theme:
   name: 'material'
