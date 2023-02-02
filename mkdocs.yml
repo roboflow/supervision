@@ -17,6 +17,9 @@ extra:
       link: https://www.linkedin.com/company/roboflow-ai/mycompany/
     - icon: fontawesome/brands/twitter
       link: https://twitter.com/roboflow
+  analytics:
+    provider: google
+    property: G-P7ZG0Y19G5
 
 nav:
   - Home 🏠: index.md
@@ -45,8 +48,3 @@ markdown_extensions:
   - admonition
   - pymdownx.details
   - pymdownx.superfences
-
-extra:
-  analytics:
-    provider: google
-    property: G-P7ZG0Y19G5
