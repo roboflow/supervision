@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+author: Roboflow
+message: If you use this software, please cite it as below.
+title: supervision
+version: 0.1.0
+date-released: 2023-01-19
+license: MIT
+repository-code: https://github.com/roboflow/supervision
+keywords:
+  - computer vision
+  - image processing
+  - video processing
