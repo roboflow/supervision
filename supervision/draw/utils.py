@@ -11,8 +11,7 @@ def draw_line(
     """
     Draws a line on a given scene.
 
-    Attributes:
-
+    Parameters:
         scene (np.ndarray): The scene on which the line will be drawn
         start (Point): The starting point of the line
         end (Point): The end point of the line

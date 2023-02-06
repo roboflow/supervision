@@ -1,9 +1,7 @@
-Utilities for drawing on images.
-
-## Draw Line
+## draw_line
 
 :::supervision.draw.utils.draw_line
 
-## Draw Rectangle
+## draw_rectangle
 
 :::supervision.draw.utils.draw_rectangle

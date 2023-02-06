@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import List, Optional, Union
 
 import cv2
@@ -7,28 +8,24 @@ from supervision.draw.color import Color, ColorPalette
 from supervision.geometry.core import Position
 
 
+@dataclass
 class Detections:
-    def __init__(
-        self,
-        xyxy: np.ndarray,
-        confidence: np.ndarray,
-        class_id: np.ndarray,
-        tracker_id: Optional[np.ndarray] = None,
-    ):
-        """
-        Data class containing information about the detections in a video frame.
+    """
+    Data class containing information about the detections in a video frame.
 
-        Attributes:
-            xyxy (np.ndarray): An array of shape (n, 4) containing the bounding boxes coordinates in format [x1, y1, x2, y2]
-            confidence (np.ndarray): An array of shape (n,) containing the confidence scores of the detections.
-            class_id (np.ndarray): An array of shape (n,) containing the class ids of the detections.
-            tracker_id (Optional[np.ndarray]): An array of shape (n,) containing the tracker ids of the detections.
-        """
-        self.xyxy: np.ndarray = xyxy
-        self.confidence: np.ndarray = confidence
-        self.class_id: np.ndarray = class_id
-        self.tracker_id: Optional[np.ndarray] = tracker_id
+    Attributes:
+        xyxy (np.ndarray): An array of shape `(n, 4)` containing the bounding boxes coordinates in format `[x1, y1, x2, y2]`
+        confidence (np.ndarray): An array of shape `(n,)` containing the confidence scores of the detections.
+        class_id (np.ndarray): An array of shape `(n,)` containing the class ids of the detections.
+        tracker_id (Optional[np.ndarray]): An array of shape `(n,)` containing the tracker ids of the detections.
+    """
 
+    xyxy: np.ndarray
+    confidence: np.ndarray
+    class_id: np.ndarray
+    tracker_id: Optional[np.ndarray] = None
+
+    def __post_init__(self):
         n = len(self.xyxy)
         validators = [
             (isinstance(self.xyxy, np.ndarray) and self.xyxy.shape == (n, 4)),
@@ -56,7 +53,7 @@ class Detections:
 
     def __iter__(self):
         """
-        Iterates over the Detections object and yield a tuple of (xyxy, confidence, class_id, tracker_id) for each detection.
+        Iterates over the Detections object and yield a tuple of `(xyxy, confidence, class_id, tracker_id)` for each detection.
         """
         for i in range(len(self.xyxy)):
             yield (
@@ -78,7 +75,7 @@ class Detections:
 
         Example:
             ```python
-            >>> from supervision.tools.detections import Detections
+            >>> from supervision.detection.core import Detections
 
             >>> detections = Detections.from_yolov5(yolov5_output)
             ```
@@ -93,11 +90,11 @@ class Detections:
         Filter the detections by applying a mask.
 
         Attributes:
-            mask (np.ndarray): A mask of shape (n,) containing a boolean value for each detection indicating if it should be included in the filtered detections
+            mask (np.ndarray): A mask of shape `(n,)` containing a boolean value for each detection indicating if it should be included in the filtered detections
             inplace (bool): If True, the original data will be modified and self will be returned.
 
         Returns:
-            Optional[np.ndarray]: A new instance of Detections with the filtered detections, if inplace is set to False. None otherwise.
+            Optional[np.ndarray]: A new instance of Detections with the filtered detections, if inplace is set to `False`. `None` otherwise.
         """
         if inplace:
             self.xyxy = self.xyxy[mask]
@@ -121,11 +118,11 @@ class Detections:
         """
         Returns the bounding box coordinates for a specific anchor.
 
-        Attributes:
+        Properties:
             anchor (Position): Position of bounding box anchor for which to return the coordinates.
 
         Returns:
-            np.ndarray: An array of shape (n, 2) containing the bounding box anchor coordinates in format [x, y].
+            np.ndarray: An array of shape `(n, 2)` containing the bounding box anchor coordinates in format `[x, y]`.
         """
         if anchor == Position.CENTER:
             return np.array(
