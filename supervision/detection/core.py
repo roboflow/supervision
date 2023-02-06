@@ -64,25 +64,29 @@ class Detections:
             )
 
     @classmethod
-    def from_yolov5(cls, yolov5_output: np.ndarray):
+    def from_yolov5(cls, yolov5_detections: "yolov5.models.common.Detections"):
         """
-        Creates a Detections instance from a YOLOv5 output tensor
+        Creates a Detections instance from a YOLOv5 output Detections
 
         Attributes:
-            yolov5_output (np.ndarray): The output tensor from YOLOv5
+            yolov5_detections (yolov5.models.common.Detections): The output Detections instance from YOLOv5
 
         Returns:
 
         Example:
             ```python
+            >>> import torch
             >>> from supervision.detection.core import Detections
 
-            >>> detections = Detections.from_yolov5(yolov5_output)
+            >>> model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
+            >>> results = model(frame)
+            >>> detections = Detections.from_yolov5(results)
             ```
         """
-        xyxy = yolov5_output[:, :4]
-        confidence = yolov5_output[:, 4]
-        class_id = yolov5_output[:, 5].astype(int)
+        yolov5_detections_predictions = yolov5_detections.pred[0].cpu().cpu().numpy()
+        xyxy = yolov5_detections_predictions[:, :4]
+        confidence = yolov5_detections_predictions[:, 4]
+        class_id = yolov5_detections_predictions[:, 5].astype(int)
         return cls(xyxy, confidence, class_id)
 
     def filter(self, mask: np.ndarray, inplace: bool = False) -> Optional[np.ndarray]:

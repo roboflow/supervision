@@ -25,7 +25,9 @@ nav:
   - Home: index.md
   - API reference:
     - Video: video.md
-    - Detection: detection.md
+    - Detection:
+        - Core: detection_core.md
+        - Utils: detection_utils.md
     - Draw: draw.md
     - Geometry: geometry.md
     - Notebook: notebook.md
