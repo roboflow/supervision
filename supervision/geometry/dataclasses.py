@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Tuple
 from enum import Enum
+from typing import Tuple
 
 
 class Position(Enum):
-    CENTER = 'CENTER'
-    BOTTOM_CENTER = 'BOTTOM_CENTER'
+    CENTER = "CENTER"
+    BOTTOM_CENTER = "BOTTOM_CENTER"
 
     @classmethod
     def list(cls):

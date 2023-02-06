@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Callable, Generator, Optional, Tuple
 
 import cv2
 import numpy as np
 
 
+@dataclass
 class VideoInfo:
     """
     A class to store video information, including width, height, fps and total number of frames.
@@ -24,16 +26,16 @@ class VideoInfo:
 
         >>> video_info
         VideoInfo(width=3840, height=2160, fps=25, total_frames=538)
+
+        >>> video_info.resolution_wh
+        (3840, 2160)
         ```
     """
 
-    def __init__(
-        self, width: int, height: int, fps: int, total_frames: Optional[int] = None
-    ):
-        self.width = width
-        self.height = height
-        self.fps = fps
-        self.total_frames = total_frames
+    width: int
+    height: int
+    fps: int
+    total_frames: Optional[int] = None
 
     @classmethod
     def from_video_path(cls, video_path: str) -> VideoInfo:
@@ -49,7 +51,7 @@ class VideoInfo:
         return VideoInfo(width, height, fps, total_frames)
 
     @property
-    def resolution(self) -> Tuple[int, int]:
+    def resolution_wh(self) -> Tuple[int, int]:
         return self.width, self.height
 
 

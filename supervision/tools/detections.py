@@ -128,15 +128,16 @@ class Detections:
             np.ndarray: An array of shape (n, 2) containing the bounding box anchor coordinates in format [x, y].
         """
         if anchor == Position.CENTER:
-            return np.array([
-                (self.xyxy[:, 0] + self.xyxy[:, 2]) / 2,
-                (self.xyxy[:, 1] + self.xyxy[:, 3]) / 2
-            ]).transpose()
+            return np.array(
+                [
+                    (self.xyxy[:, 0] + self.xyxy[:, 2]) / 2,
+                    (self.xyxy[:, 1] + self.xyxy[:, 3]) / 2,
+                ]
+            ).transpose()
         elif anchor == Position.BOTTOM_CENTER:
-            return np.array([
-                (self.xyxy[:, 0] + self.xyxy[:, 2]) / 2,
-                self.xyxy[:, 3]
-            ]).transpose()
+            return np.array(
+                [(self.xyxy[:, 0] + self.xyxy[:, 2]) / 2, self.xyxy[:, 3]]
+            ).transpose()
 
         raise ValueError(f"{anchor} is not supported.")
 
