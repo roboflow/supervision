@@ -4,8 +4,8 @@ import cv2
 import numpy as np
 
 from supervision.draw.color import Color
-from supervision.geometry.dataclasses import Point, Rect, Vector
-from supervision.tools.detections import Detections
+from supervision.geometry.core import Point, Rect, Vector
+from supervision.tools.core import Detections
 
 
 class LineCounter:

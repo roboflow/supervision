@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 
 from supervision.draw.color import Color, ColorPalette
-from supervision.geometry.dataclasses import Position
+from supervision.geometry.core import Position
 
 
 class Detections:

@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 from supervision.draw.color import Color
-from supervision.geometry.dataclasses import Point, Rect
+from supervision.geometry.core import Point, Rect
 
 
 def draw_line(
