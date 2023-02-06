@@ -2,6 +2,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Tuple
+from enum import Enum
+
+
+class Position(Enum):
+    CENTER = 'CENTER'
+    BOTTOM_CENTER = 'BOTTOM_CENTER'
+
+    @classmethod
+    def list(cls):
+        return list(map(lambda c: c.value, cls))
 
 
 @dataclass

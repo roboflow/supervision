@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-from supervision.commons.dataclasses import Point, Rect
+from supervision.geometry.dataclasses import Point, Rect
 from supervision.draw.color import Color
 
 
@@ -92,4 +92,20 @@ def draw_filled_rectangle(scene: np.ndarray, rect: Rect, color: Color) -> np.nda
         color.as_bgr(),
         -1,
     )
+    return scene
+
+
+def draw_polygon(scene: np.ndarray, polygon: np.ndarray, color: Color, thickness: int = 2) -> np.ndarray:
+    """Draw a polygon on a scene.
+
+    Attributes:
+        scene (np.ndarray): The scene to draw the polygon on.
+        polygon (np.ndarray): The polygon to be drawn, given as a list of vertices.
+        color (Color): The color of the polygon.
+        thickness (int, optional): The thickness of the polygon lines, by default 2.
+
+    Returns:
+        np.ndarray: The scene with the polygon drawn on it.
+    """
+    cv2.polylines(scene, [polygon], isClosed=True, color=color.as_bgr(), thickness=thickness)
     return scene

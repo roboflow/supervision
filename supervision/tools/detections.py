@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 
 from supervision.draw.color import Color, ColorPalette
+from supervision.geometry.dataclasses import Position
 
 
 class Detections:
@@ -115,6 +116,29 @@ class Detections:
                 if self.tracker_id is not None
                 else None,
             )
+
+    def get_anchor_coordinates(self, anchor: Position) -> np.ndarray:
+        """
+        Returns the bounding box coordinates for a specific anchor.
+
+        Attributes:
+            anchor (Position): Position of bounding box anchor for which to return the coordinates.
+
+        Returns:
+            np.ndarray: An array of shape (n, 2) containing the bounding box anchor coordinates in format [x, y].
+        """
+        if anchor == Position.CENTER:
+            return np.array([
+                (self.xyxy[:, 0] + self.xyxy[:, 2]) / 2,
+                (self.xyxy[:, 1] + self.xyxy[:, 3]) / 2
+            ]).transpose()
+        elif anchor == Position.BOTTOM_CENTER:
+            return np.array([
+                (self.xyxy[:, 0] + self.xyxy[:, 2]) / 2,
+                self.xyxy[:, 3]
+            ]).transpose()
+
+        raise ValueError(f"{anchor} is not supported.")
 
 
 class BoxAnnotator:

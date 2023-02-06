@@ -18,7 +18,7 @@ def show_frame_in_notebook(
 
     Examples:
         ```python
-        >>> from supervision.notebook import show_frame_in_notebook
+        >>> from supervision.notebook.utils import show_frame_in_notebook
 
         ```
     """
