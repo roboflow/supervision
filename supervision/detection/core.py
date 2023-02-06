@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import List, Optional, Union
 
@@ -76,7 +78,7 @@ class Detections:
         Example:
             ```python
             >>> import torch
-            >>> from supervision.detection.core import Detections
+            >>> from supervision import Detections
 
             >>> model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
             >>> results = model(frame)
@@ -89,7 +91,7 @@ class Detections:
         class_id = yolov5_detections_predictions[:, 5].astype(int)
         return cls(xyxy, confidence, class_id)
 
-    def filter(self, mask: np.ndarray, inplace: bool = False) -> Optional[np.ndarray]:
+    def filter(self, mask: np.ndarray, inplace: bool = False) -> Optional[Detections]:
         """
         Filter the detections by applying a mask.
 
@@ -142,11 +144,21 @@ class Detections:
 
         raise ValueError(f"{anchor} is not supported.")
 
+    def __getitem__(self, index: np.ndarray) -> Detections:
+        if isinstance(index, np.ndarray) and index.dtype == np.bool:
+            return Detections(
+                xyxy=self.xyxy[index],
+                confidence=self.confidence[index],
+                class_id=self.class_id[index],
+                tracker_id=self.tracker_id[index] if self.tracker_id is not None else None,
+            )
+        raise TypeError(f"Detections.__getitem__ not supported for index of type {type(index)}.")
+
 
 class BoxAnnotator:
     def __init__(
         self,
-        color: Union[Color, ColorPalette],
+        color: Union[Color, ColorPalette] = ColorPalette.default(),
         thickness: int = 2,
         text_color: Color = Color.black(),
         text_scale: float = 0.5,

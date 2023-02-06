@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import List, Tuple
 
 DEFAULT_COLOR_PALETTE = [
@@ -94,11 +94,11 @@ class Color:
 
 @dataclass
 class ColorPalette:
-    colors: List[Color] = field(
-        default_factory=lambda: [
-            Color.from_hex(color_hex) for color_hex in DEFAULT_COLOR_PALETTE
-        ]
-    )
+    colors: List[Color]
+
+    @classmethod
+    def default(cls) -> ColorPalette:
+        return ColorPalette.from_hex(color_hex_list=DEFAULT_COLOR_PALETTE)
 
     @classmethod
     def from_hex(cls, color_hex_list: List[str]):
