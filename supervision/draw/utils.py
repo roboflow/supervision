@@ -1,10 +1,10 @@
+from typing import Optional
+
 import cv2
 import numpy as np
 
 from supervision.draw.color import Color
 from supervision.geometry.core import Point, Rect
-
-from typing import Optional
 
 
 def draw_line(
@@ -152,11 +152,13 @@ def draw_text(
         x=text_anchor.x - text_width // 2,
         y=text_anchor.y - text_height // 2,
         width=text_width,
-        height=text_height
+        height=text_height,
     ).pad(text_padding)
 
     if background_color is not None:
-        scene = draw_filled_rectangle(scene=scene, rect=text_rect, color=background_color)
+        scene = draw_filled_rectangle(
+            scene=scene, rect=text_rect, color=background_color
+        )
 
     cv2.putText(
         img=scene,

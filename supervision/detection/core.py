@@ -150,9 +150,13 @@ class Detections:
                 xyxy=self.xyxy[index],
                 confidence=self.confidence[index],
                 class_id=self.class_id[index],
-                tracker_id=self.tracker_id[index] if self.tracker_id is not None else None,
+                tracker_id=self.tracker_id[index]
+                if self.tracker_id is not None
+                else None,
             )
-        raise TypeError(f"Detections.__getitem__ not supported for index of type {type(index)}.")
+        raise TypeError(
+            f"Detections.__getitem__ not supported for index of type {type(index)}."
+        )
 
 
 class BoxAnnotator:
