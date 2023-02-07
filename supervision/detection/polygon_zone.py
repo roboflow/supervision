@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Optional
 
 import cv2
 import numpy as np
@@ -57,7 +57,7 @@ class PolygonZoneAnnotator:
         self.font = cv2.FONT_HERSHEY_SIMPLEX
         self.center = get_polygon_center(polygon=zone.polygon)
 
-    def annotate(self, scene: np.ndarray) -> np.ndarray:
+    def annotate(self, scene: np.ndarray, label: Optional[str] = None) -> np.ndarray:
         annotated_frame = draw_polygon(
             scene=scene,
             polygon=self.zone.polygon,
@@ -67,7 +67,7 @@ class PolygonZoneAnnotator:
 
         annotated_frame = draw_text(
             scene=annotated_frame,
-            text=str(self.zone.current_count),
+            text=str(self.zone.current_count) if label is None else label,
             text_anchor=self.center,
             background_color=self.color,
             text_color=self.text_color,

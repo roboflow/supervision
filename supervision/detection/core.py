@@ -217,7 +217,7 @@ class BoxAnnotator:
 
     def annotate(
         self,
-        frame: np.ndarray,
+        scene: np.ndarray,
         detections: Detections,
         labels: Optional[List[str]] = None,
         skip_label: bool = False,
@@ -226,7 +226,7 @@ class BoxAnnotator:
         Draws bounding boxes on the frame using the detections provided.
 
         Parameters:
-            frame (np.ndarray): The image on which the bounding boxes will be drawn
+            scene (np.ndarray): The image on which the bounding boxes will be drawn
             detections (Detections): The detections for which the bounding boxes will be drawn
             labels (Optional[List[str]]): An optional list of labels corresponding to each detection. If labels is provided, the confidence score of the detection will be replaced with the label.
             skip_label (bool): Is set to True, skips bounding box label annotation.
@@ -242,14 +242,14 @@ class BoxAnnotator:
                 else self.color
             )
             cv2.rectangle(
-                img=frame,
+                img=scene,
                 pt1=(x1, y1),
                 pt2=(x2, y2),
                 color=color.as_bgr(),
                 thickness=self.thickness,
             )
             if skip_label:
-                return frame
+                return scene
 
             text = (
                 f"{confidence:0.2f}"
@@ -274,14 +274,14 @@ class BoxAnnotator:
             text_background_y2 = y1
 
             cv2.rectangle(
-                img=frame,
+                img=scene,
                 pt1=(text_background_x1, text_background_y1),
                 pt2=(text_background_x2, text_background_y2),
                 color=color.as_bgr(),
                 thickness=cv2.FILLED,
             )
             cv2.putText(
-                img=frame,
+                img=scene,
                 text=text,
                 org=(text_x, text_y),
                 fontFace=font,
@@ -290,4 +290,4 @@ class BoxAnnotator:
                 thickness=self.text_thickness,
                 lineType=cv2.LINE_AA,
             )
-        return frame
+        return scene
