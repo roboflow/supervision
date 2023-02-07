@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Callable, Generator, Optional, Tuple
 
 import cv2
 import numpy as np
 
 
+@dataclass
 class VideoInfo:
     """
     A class to store video information, including width, height, fps and total number of frames.
@@ -18,22 +20,22 @@ class VideoInfo:
 
     Examples:
         ```python
-        >>> from supervision.video import VideoInfo
+        >>> from supervision import VideoInfo
 
         >>> video_info = VideoInfo.from_video_path(video_path='video.mp4')
 
         >>> video_info
         VideoInfo(width=3840, height=2160, fps=25, total_frames=538)
+
+        >>> video_info.resolution_wh
+        (3840, 2160)
         ```
     """
 
-    def __init__(
-        self, width: int, height: int, fps: int, total_frames: Optional[int] = None
-    ):
-        self.width = width
-        self.height = height
-        self.fps = fps
-        self.total_frames = total_frames
+    width: int
+    height: int
+    fps: int
+    total_frames: Optional[int] = None
 
     @classmethod
     def from_video_path(cls, video_path: str) -> VideoInfo:
@@ -49,7 +51,7 @@ class VideoInfo:
         return VideoInfo(width, height, fps, total_frames)
 
     @property
-    def resolution(self) -> Tuple[int, int]:
+    def resolution_wh(self) -> Tuple[int, int]:
         return self.width, self.height
 
 
@@ -63,8 +65,7 @@ class VideoSink:
 
     Examples:
         ```python
-        >>> from supervision.video import VideoInfo
-        >>> from supervision.video import VideoSink
+        >>> from supervision import VideoInfo, VideoSink
 
         >>> video_info = VideoInfo.from_video_path(video_path='source_video.mp4')
 
@@ -85,7 +86,7 @@ class VideoSink:
             self.target_path,
             self.__fourcc,
             self.video_info.fps,
-            self.video_info.resolution,
+            self.video_info.resolution_wh,
         )
         return self
 
@@ -108,7 +109,7 @@ def get_video_frames_generator(source_path: str) -> Generator[np.ndarray, None, 
 
     Examples:
         ```python
-        >>> from supervision.video import get_video_frames_generator
+        >>> from supervision import get_video_frames_generator
 
         >>> for frame in get_video_frames_generator(source_path='source_video.mp4'):
         ...     ...
@@ -139,9 +140,9 @@ def process_video(
 
     Examples:
         ```python
-        >>> from supervision.video import process_video
+        >>> from supervision import process_video
 
-        >>> def process_frame(frame: np.ndarray) -> np.ndarray:
+        >>> def process_frame(scene: np.ndarray) -> np.ndarray:
         ...     ...
 
         >>> process_video(

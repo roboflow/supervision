@@ -22,12 +22,15 @@ extra:
     property: G-P7ZG0Y19G5
 
 nav:
-  - Home 🏠: index.md
-  - Video 📷: video.md
-  - Notebook Helpers 📓: notebook.md
-  - Draw 🎨: draw.md
-  - Geometry 📐: geometry.md
-  - Tools 🛠: tools.md
+  - Home: index.md
+  - API reference:
+    - Video: video.md
+    - Detection:
+        - Core: detection_core.md
+        - Utils: detection_utils.md
+    - Draw: draw.md
+    - Geometry: geometry.md
+    - Notebook: notebook.md
 
 theme:
   name: 'material'
