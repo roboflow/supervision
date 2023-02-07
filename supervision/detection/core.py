@@ -89,7 +89,7 @@ class Detections:
         return cls(
             xyxy=yolov5_detections_predictions[:, :4],
             confidence=yolov5_detections_predictions[:, 4],
-            class_id=yolov5_detections_predictions[:, 5].astype(int)
+            class_id=yolov5_detections_predictions[:, 5].astype(int),
         )
 
     @classmethod
@@ -115,7 +115,7 @@ class Detections:
         return cls(
             xyxy=yolov8_results.boxes.xyxy.cpu().numpy(),
             confidence=yolov8_results.boxes.conf.cpu().numpy(),
-            class_id=yolov8_results.boxes.cls.cpu().numpy().astype(int)
+            class_id=yolov8_results.boxes.cls.cpu().numpy().astype(int),
         )
 
     def filter(self, mask: np.ndarray, inplace: bool = False) -> Optional[Detections]:
@@ -220,7 +220,7 @@ class BoxAnnotator:
         frame: np.ndarray,
         detections: Detections,
         labels: Optional[List[str]] = None,
-        skip_label: bool = False
+        skip_label: bool = False,
     ) -> np.ndarray:
         """
         Draws bounding boxes on the frame using the detections provided.
