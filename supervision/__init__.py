@@ -8,4 +8,9 @@ from supervision.draw.utils import draw_filled_rectangle, draw_polygon, draw_tex
 from supervision.geometry.core import Point, Position, Rect
 from supervision.geometry.utils import get_polygon_center
 from supervision.notebook.utils import show_frame_in_notebook
-from supervision.video import VideoInfo, VideoSink, get_video_frames_generator, process_video
+from supervision.video import (
+    VideoInfo,
+    VideoSink,
+    get_video_frames_generator,
+    process_video,
+)
