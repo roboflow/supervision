@@ -16,7 +16,7 @@ class PolygonZone:
         self,
         polygon: np.ndarray,
         frame_resolution_wh: Tuple[int, int],
-        triggering_position: Position,
+        triggering_position: Position = Position.BOTTOM_CENTER,
     ):
         self.polygon = polygon
         self.frame_resolution_wh = frame_resolution_wh
