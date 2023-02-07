@@ -86,7 +86,7 @@ class VideoSink:
             self.target_path,
             self.__fourcc,
             self.video_info.fps,
-            self.video_info.resolution,
+            self.video_info.resolution_wh,
         )
         return self
 
