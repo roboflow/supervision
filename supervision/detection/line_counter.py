@@ -8,7 +8,7 @@ from supervision.draw.color import Color
 from supervision.geometry.core import Point, Rect, Vector
 
 
-class LineCounter:
+class LineZone:
     """
     Count the number of objects that cross a line.
     """
@@ -27,7 +27,7 @@ class LineCounter:
         self.in_count: int = 0
         self.out_count: int = 0
 
-    def update(self, detections: Detections):
+    def trigger(self, detections: Detections):
         """
         Update the in_count and out_count for the detections that cross the line.
 
@@ -71,7 +71,7 @@ class LineCounter:
                 self.out_count += 1
 
 
-class LineCounterAnnotator:
+class LineZoneAnnotator:
     def __init__(
         self,
         thickness: float = 2,
@@ -103,7 +103,7 @@ class LineCounterAnnotator:
         self.text_offset: float = text_offset
         self.text_padding: int = text_padding
 
-    def annotate(self, frame: np.ndarray, line_counter: LineCounter) -> np.ndarray:
+    def annotate(self, frame: np.ndarray, line_counter: LineZone) -> np.ndarray:
         """
         Draws the line on the frame using the line_counter provided.
 

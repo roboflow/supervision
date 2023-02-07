@@ -66,7 +66,7 @@ class Detections:
             )
 
     @classmethod
-    def from_yolov5(cls, yolov5_detections: "yolov5.models.common.Detections"):
+    def from_yolov5(cls, yolov5_detections):
         """
         Creates a Detections instance from a YOLOv5 output Detections
 
