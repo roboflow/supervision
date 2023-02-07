@@ -20,7 +20,7 @@ class VideoInfo:
 
     Examples:
         ```python
-        >>> from supervision.video import VideoInfo
+        >>> from supervision import VideoInfo
 
         >>> video_info = VideoInfo.from_video_path(video_path='video.mp4')
 
@@ -65,8 +65,7 @@ class VideoSink:
 
     Examples:
         ```python
-        >>> from supervision.video import VideoInfo
-        >>> from supervision.video import VideoSink
+        >>> from supervision import VideoInfo, VideoSink
 
         >>> video_info = VideoInfo.from_video_path(video_path='source_video.mp4')
 
@@ -110,7 +109,7 @@ def get_video_frames_generator(source_path: str) -> Generator[np.ndarray, None, 
 
     Examples:
         ```python
-        >>> from supervision.video import get_video_frames_generator
+        >>> from supervision import get_video_frames_generator
 
         >>> for frame in get_video_frames_generator(source_path='source_video.mp4'):
         ...     ...
@@ -141,9 +140,9 @@ def process_video(
 
     Examples:
         ```python
-        >>> from supervision.video import process_video
+        >>> from supervision import process_video
 
-        >>> def process_frame(frame: np.ndarray) -> np.ndarray:
+        >>> def process_frame(scene: np.ndarray) -> np.ndarray:
         ...     ...
 
         >>> process_video(
