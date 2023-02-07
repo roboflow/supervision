@@ -249,7 +249,7 @@ class BoxAnnotator:
                 thickness=self.thickness,
             )
             if skip_label:
-                return scene
+                continue
 
             text = (
                 f"{confidence:0.2f}"
