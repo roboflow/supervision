@@ -1,4 +1,4 @@
-__version__ = "0.2.0.dev0"
+__version__ = "0.2.0"
 
 from supervision.detection.core import BoxAnnotator, Detections
 from supervision.detection.polygon_zone import PolygonZone, PolygonZoneAnnotator
