@@ -236,6 +236,11 @@ class BoxAnnotator:
         font = cv2.FONT_HERSHEY_SIMPLEX
         for i, (xyxy, confidence, class_id, tracker_id) in enumerate(detections):
             x1, y1, x2, y2 = xyxy.astype(int)
+            color = (
+                self.color.by_idx(class_id)
+                if isinstance(self.color, ColorPalette)
+                else self.color
+            )
             cv2.rectangle(
                 img=frame,
                 pt1=(x1, y1),
@@ -246,11 +251,6 @@ class BoxAnnotator:
             if skip_label:
                 return frame
 
-            color = (
-                self.color.by_idx(class_id)
-                if isinstance(self.color, ColorPalette)
-                else self.color
-            )
             text = (
                 f"{confidence:0.2f}"
                 if (labels is None or len(detections) != len(labels))
