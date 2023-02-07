@@ -86,10 +86,37 @@ class Detections:
             ```
         """
         yolov5_detections_predictions = yolov5_detections.pred[0].cpu().cpu().numpy()
-        xyxy = yolov5_detections_predictions[:, :4]
-        confidence = yolov5_detections_predictions[:, 4]
-        class_id = yolov5_detections_predictions[:, 5].astype(int)
-        return cls(xyxy, confidence, class_id)
+        return cls(
+            xyxy=yolov5_detections_predictions[:, :4],
+            confidence=yolov5_detections_predictions[:, 4],
+            class_id=yolov5_detections_predictions[:, 5].astype(int)
+        )
+
+    @classmethod
+    def from_yolov8(cls, yolov8_results):
+        """
+        Creates a Detections instance from a YOLOv8 output Results
+
+        Attributes:
+            yolov8_results (ultralytics.yolo.engine.results.Results): The output Results instance from YOLOv8
+
+        Returns:
+
+        Example:
+            ```python
+            >>> from ultralytics import YOLO
+            >>> from supervision import Detections
+
+            >>> model = YOLO('yolov8s.pt')
+            >>> results = model(frame)
+            >>> detections = Detections.from_yolov8(results)
+            ```
+        """
+        return cls(
+            xyxy=yolov8_results.boxes.xyxy.cpu().numpy(),
+            confidence=yolov8_results.boxes.conf.cpu().numpy(),
+            class_id=yolov8_results.boxes.cls.cpu().numpy().astype(int)
+        )
 
     def filter(self, mask: np.ndarray, inplace: bool = False) -> Optional[Detections]:
         """
