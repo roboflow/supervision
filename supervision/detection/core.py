@@ -193,20 +193,32 @@ class BoxAnnotator:
         frame: np.ndarray,
         detections: Detections,
         labels: Optional[List[str]] = None,
+        skip_label: bool = False
     ) -> np.ndarray:
         """
         Draws bounding boxes on the frame using the detections provided.
 
-        Attributes:
+        Parameters:
             frame (np.ndarray): The image on which the bounding boxes will be drawn
             detections (Detections): The detections for which the bounding boxes will be drawn
             labels (Optional[List[str]]): An optional list of labels corresponding to each detection. If labels is provided, the confidence score of the detection will be replaced with the label.
-
+            skip_label (bool): Is set to True, skips bounding box label annotation.
         Returns:
             np.ndarray: The image with the bounding boxes drawn on it
         """
         font = cv2.FONT_HERSHEY_SIMPLEX
         for i, (xyxy, confidence, class_id, tracker_id) in enumerate(detections):
+            x1, y1, x2, y2 = xyxy.astype(int)
+            cv2.rectangle(
+                img=frame,
+                pt1=(x1, y1),
+                pt2=(x2, y2),
+                color=color.as_bgr(),
+                thickness=self.thickness,
+            )
+            if skip_label:
+                return frame
+
             color = (
                 self.color.by_idx(class_id)
                 if isinstance(self.color, ColorPalette)
@@ -218,7 +230,6 @@ class BoxAnnotator:
                 else labels[i]
             )
 
-            x1, y1, x2, y2 = xyxy.astype(int)
             text_width, text_height = cv2.getTextSize(
                 text=text,
                 fontFace=font,
@@ -235,13 +246,6 @@ class BoxAnnotator:
             text_background_x2 = x1 + 2 * self.text_padding + text_width
             text_background_y2 = y1
 
-            cv2.rectangle(
-                img=frame,
-                pt1=(x1, y1),
-                pt2=(x2, y2),
-                color=color.as_bgr(),
-                thickness=self.thickness,
-            )
             cv2.rectangle(
                 img=frame,
                 pt1=(text_background_x1, text_background_y1),
