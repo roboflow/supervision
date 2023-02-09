@@ -98,8 +98,14 @@ Learn how to use YOLOv8, ByteTrack and **Supervision** to detect, track and coun
 [Subscribe](https://www.youtube.com/@Roboflow), and stay up to date with our latest YouTube videos!
 
 <p align="center">
+    <a href="https://youtu.be/l_kf9CfZ_8M">
+        <img src="https://user-images.githubusercontent.com/26109316/217950212-311de186-1862-4b4c-a86e-89cafd68b233.jpg" alt="count-objects-in-zone">
+    </a>
+</p>
+
+<p align="center">
     <a href="https://youtu.be/OS5qI9YBkfk">
-        <img src="https://user-images.githubusercontent.com/26109316/213702005-ddd568f0-b902-46c2-9af9-e6ff33db23bf.jpg" alt="latest-roboflow-tutorial">
+        <img src="https://user-images.githubusercontent.com/26109316/213702005-ddd568f0-b902-46c2-9af9-e6ff33db23bf.jpg" alt="count-objects-crossing-line">
     </a>
 </p>
 
