@@ -66,15 +66,18 @@ class Detections:
             )
 
     def __eq__(self, other: Detections):
-        return all([
-            np.array_equal(self.xyxy, other.xyxy),
-            np.array_equal(self.confidence, other.confidence),
-            np.array_equal(self.class_id, other.class_id),
-            any([
-                self.tracker_id is None and other.tracker_id is None,
-
-            ])
-        ])
+        return all(
+            [
+                np.array_equal(self.xyxy, other.xyxy),
+                np.array_equal(self.confidence, other.confidence),
+                np.array_equal(self.class_id, other.class_id),
+                any(
+                    [
+                        self.tracker_id is None and other.tracker_id is None,
+                    ]
+                ),
+            ]
+        )
 
     @classmethod
     def from_yolov5(cls, yolov5_detections):
