@@ -24,7 +24,7 @@ setuptools.setup(
     long_description_content_type='text/markdown',
     url='https://github.com/roboflow/supervision',
     install_requires=[
-        'numpy',
+        'numpy>=1.20.0',
         'opencv-python',
         'matplotlib'
     ],
