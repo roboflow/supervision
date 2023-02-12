@@ -65,6 +65,17 @@ class Detections:
                 self.tracker_id[i] if self.tracker_id is not None else None,
             )
 
+    def __eq__(self, other: Detections):
+        return all([
+            np.array_equal(self.xyxy, other.xyxy),
+            np.array_equal(self.confidence, other.confidence),
+            np.array_equal(self.class_id, other.class_id),
+            any([
+                self.tracker_id is None and other.tracker_id is None,
+
+            ])
+        ])
+
     @classmethod
     def from_yolov5(cls, yolov5_detections):
         """
@@ -172,7 +183,7 @@ class Detections:
         raise ValueError(f"{anchor} is not supported.")
 
     def __getitem__(self, index: np.ndarray) -> Detections:
-        if isinstance(index, np.ndarray) and index.dtype == np.bool:
+        if isinstance(index, np.ndarray) and index.dtype == bool:
             return Detections(
                 xyxy=self.xyxy[index],
                 confidence=self.confidence[index],
