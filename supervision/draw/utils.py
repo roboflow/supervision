@@ -3,6 +3,7 @@ from typing import Optional
 import cv2
 import numpy as np
 
+from supervision.detection.utils import generate_2d_mask
 from supervision.draw.color import Color
 from supervision.geometry.core import Point, Rect
 
@@ -163,7 +164,8 @@ def draw_text(
     cv2.putText(
         img=scene,
         text=text,
-        org=(text_anchor.x - text_width // 2, text_anchor.y + text_height // 2),
+        org=(text_anchor.x - text_width // 2,
+             text_anchor.y + text_height // 2),
         fontFace=text_font,
         fontScale=text_scale,
         color=text_color.as_bgr(),
@@ -171,3 +173,31 @@ def draw_text(
         lineType=cv2.LINE_AA,
     )
     return scene
+
+
+def copy_paste(source_image: np.ndarray, source_polygon: np.ndarray, target_image: np.ndarray):
+    """
+    Copy and paste a region from a source image into a target image.
+
+    Attributes:
+        source_image (np.ndarray): The image to be copied.
+        source_polygon (np.ndarray): The polygon to be copied.
+        target_image (np.ndarray): The image to be pasted into.
+
+
+    Returns:
+        np.ndarray: The target image with the source image pasted into it.
+    """
+    cv2.imshow('source', source_image)
+    cv2.imshow('target', target_image)
+    # print(source_image.shape)
+
+    width, height, depth = source_image.shape
+    mask = generate_2d_mask(source_polygon, (width, height))
+    cv2.imshow('mask', mask)
+
+    cutout = cv2.copyTo(source_image, mask, target_image)
+    cv2.imshow('cutout', cutout)
+
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
