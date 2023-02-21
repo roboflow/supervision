@@ -175,29 +175,49 @@ def draw_text(
     return scene
 
 
-def copy_paste(source_image: np.ndarray, source_polygon: np.ndarray, target_image: np.ndarray):
+def copy_paste(source_image: np.ndarray, source_polygon: np.ndarray, target_image: np.ndarray, scale: float = 1.0, x: int = 0, y: int = 0):
     """
     Copy and paste a region from a source image into a target image.
 
     Attributes:
         source_image (np.ndarray): The image to be copied.
-        source_polygon (np.ndarray): The polygon to be copied.
+        source_polygon (np.ndarray): The polygon area to be copied.
         target_image (np.ndarray): The image to be pasted into.
+        scale: scale factor to apply to the source image
+        x: x offset to paste into the target image at
+        y: y offset to paste into the target image at
 
 
     Returns:
         np.ndarray: The target image with the source image pasted into it.
     """
-    cv2.imshow('source', source_image)
-    cv2.imshow('target', target_image)
-    # print(source_image.shape)
+    # cv2.imshow('source', source_image)
+    # cv2.imshow('target', target_image)
+    # # print(source_image.shape)
 
-    width, height, depth = source_image.shape
-    mask = generate_2d_mask(source_polygon, (width, height))
-    cv2.imshow('mask', mask)
+    output = target_image.copy()
 
-    cutout = cv2.copyTo(source_image, mask, target_image)
-    cv2.imshow('cutout', cutout)
+    # generate mask image based on polygon
+    source_width = source_image.shape[0]
+    source_height = source_image.shape[1]
+    mask = generate_2d_mask(source_polygon, (source_width, source_height))
 
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    # cutout = cv2.bitwise_and(self.crop, self.crop, mask=self.mask)
+
+    # scale the source and mask
+    scaled_source = cv2.resize(source_image, None, fx=scale, fy=scale)
+    scaled_mask = cv2.resize(mask, None, fx=scale, fy=scale)
+    scaled_with = scaled_source.shape[0]
+    scaled_height = scaled_source.shape[1]
+
+    # generate a patch from the source image  / with background from target image where we are pasting
+    patch = np.where(
+        np.expand_dims(scaled_mask, axis=2),
+        scaled_source,
+        target_image[y:y+scaled_height, x:x+scaled_with, :]
+    )
+
+    # paste the patch area into the output image
+    output[y:y+scaled_height, x:x+scaled_with, :] = patch
+
+    return output
