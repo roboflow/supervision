@@ -164,8 +164,7 @@ def draw_text(
     cv2.putText(
         img=scene,
         text=text,
-        org=(text_anchor.x - text_width // 2,
-             text_anchor.y + text_height // 2),
+        org=(text_anchor.x - text_width // 2, text_anchor.y + text_height // 2),
         fontFace=text_font,
         fontScale=text_scale,
         color=text_color.as_bgr(),
@@ -175,7 +174,14 @@ def draw_text(
     return scene
 
 
-def copy_paste(source_image: np.ndarray, source_polygon: np.ndarray, target_image: np.ndarray, scale: float = 1.0, x: int = 0, y: int = 0):
+def copy_paste(
+    source_image: np.ndarray,
+    source_polygon: np.ndarray,
+    target_image: np.ndarray,
+    scale: float = 1.0,
+    x: int = 0,
+    y: int = 0,
+):
     """
     Copy and paste a region from a source image into a target image.
 
@@ -214,10 +220,10 @@ def copy_paste(source_image: np.ndarray, source_polygon: np.ndarray, target_imag
     patch = np.where(
         np.expand_dims(scaled_mask, axis=2),
         scaled_source,
-        target_image[y:y+scaled_height, x:x+scaled_with, :]
+        target_image[y : y + scaled_height, x : x + scaled_with, :],
     )
 
     # paste the patch area into the output image
-    output[y:y+scaled_height, x:x+scaled_with, :] = patch
+    output[y : y + scaled_height, x : x + scaled_with, :] = patch
 
     return output
