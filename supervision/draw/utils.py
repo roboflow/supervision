@@ -197,31 +197,24 @@ def copy_paste(
     Returns:
         np.ndarray: The target image with the source image pasted into it.
     """
-    # cv2.imshow('source', source_image)
-    # cv2.imshow('target', target_image)
-    # # print(source_image.shape)
 
     # generate mask image based on polygon
-    source_width = source_image.shape[0]
-    source_height = source_image.shape[1]
+    source_width, source_height = source_image.shape[0:2]
     mask = generate_2d_mask(source_polygon, (source_width, source_height))
-
-    # cutout = cv2.bitwise_and(self.crop, self.crop, mask=self.mask)
 
     # scale the source and mask
     scaled_source = cv2.resize(source_image, None, fx=scale, fy=scale)
     scaled_mask = cv2.resize(mask, None, fx=scale, fy=scale)
-    scaled_with = scaled_source.shape[0]
-    scaled_height = scaled_source.shape[1]
+    scaled_width, scaled_height = scaled_source.shape[0:2]
 
     # generate a patch from the source image  / with background from target image where we are pasting
     patch = np.where(
         np.expand_dims(scaled_mask, axis=2),
         scaled_source,
-        target_image[y : y + scaled_height, x : x + scaled_with, :],
+        target_image[y : y + scaled_height, x : x + scaled_width, :],
     )
 
     # paste the patch area into the output image
-    target_image[y : y + scaled_height, x : x + scaled_with, :] = patch
+    target_image[y : y + scaled_height, x : x + scaled_width, :] = patch
 
     return target_image
