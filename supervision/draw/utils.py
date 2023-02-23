@@ -181,7 +181,7 @@ def copy_paste(
     scale: float = 1.0,
     x: int = 0,
     y: int = 0,
-):
+) -> np.ndarray:
     """
     Copy and paste a region from a source image into a target image.
 
@@ -200,8 +200,6 @@ def copy_paste(
     # cv2.imshow('source', source_image)
     # cv2.imshow('target', target_image)
     # # print(source_image.shape)
-
-    output = target_image.copy()
 
     # generate mask image based on polygon
     source_width = source_image.shape[0]
@@ -224,6 +222,6 @@ def copy_paste(
     )
 
     # paste the patch area into the output image
-    output[y : y + scaled_height, x : x + scaled_with, :] = patch
+    target_image[y : y + scaled_height, x : x + scaled_with, :] = patch
 
-    return output
+    return target_image
