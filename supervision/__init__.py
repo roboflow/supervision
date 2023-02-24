@@ -2,6 +2,7 @@ __version__ = "0.2.1"
 
 from supervision.detection.core import BoxAnnotator, Detections
 from supervision.detection.polygon_zone import PolygonZone, PolygonZoneAnnotator
+from supervision.detection.line_counter import LineZone, LineZoneAnnotator
 from supervision.detection.utils import generate_2d_mask
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import draw_filled_rectangle, draw_polygon, draw_text
