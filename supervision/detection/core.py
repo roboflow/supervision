@@ -157,6 +157,17 @@ class Detections:
             class_id=detectron2_results["instances"].pred_classes.cpu().numpy().astype(int)
         )
 
+    @classmethod
+    def from_coco_annotations(cls, coco_annotation: dict):
+        xyxy, class_id = [], []
+
+        for annotation in coco_annotation:
+            x_min, y_min, width, height = annotation['bbox']
+            xyxy.append([x_min, y_min, x_min + width, y_min + height])
+            class_id.append(annotation['category_id'])
+
+        return cls(xyxy=np.array(xyxy), class_id=np.array(class_id))
+
     def filter(self, mask: np.ndarray, inplace: bool = False) -> Optional[Detections]:
         """
         Filter the detections by applying a mask.
@@ -225,6 +236,7 @@ class Detections:
         )
 
     def with_nms(self, threshold: float = 0.5) -> Detections:
+        assert (self.confidence is not None, f"Detections confidence must be given for NMS to be executed.")
         indices = non_max_suppression(self.xyxy, self.confidence, threshold=threshold)
         return self[indices]
 
