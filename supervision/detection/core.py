@@ -6,6 +6,7 @@ from typing import List, Optional, Union
 import cv2
 import numpy as np
 
+from supervision.detection.utils import non_max_suppression
 from supervision.draw.color import Color, ColorPalette
 from supervision.geometry.core import Position
 
@@ -214,6 +215,10 @@ class Detections:
         raise TypeError(
             f"Detections.__getitem__ not supported for index of type {type(index)}."
         )
+
+    def with_nms(self, threshold: float = 0.5) -> Detections:
+        indices = non_max_suppression(self.xyxy, self.confidence, threshold=threshold)
+        return self[indices]
 
 
 class BoxAnnotator:
