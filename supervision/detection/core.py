@@ -132,6 +132,22 @@ class Detections:
             class_id=yolov8_results.boxes.cls.cpu().numpy().astype(int),
         )
 
+    @classmethod
+    def from_transformers(cls, transformers_results: dict):
+        return cls(
+            xyxy=transformers_results['boxes'].cpu().numpy(),
+            confidence=transformers_results['scores'].cpu().numpy(),
+            class_id=transformers_results['labels'].cpu().numpy().astype(int),
+        )
+
+    @classmethod
+    def from_detectron2(cls, detectron2_results):
+        return cls(
+            xyxy=detectron2_results["instances"].pred_boxes.tensor.cpu().numpy(),
+            confidence=detectron2_results["instances"].scores.cpu().numpy(),
+            class_id=detectron2_results["instances"].pred_classes.cpu().numpy().astype(int)
+        )
+
     def filter(self, mask: np.ndarray, inplace: bool = False) -> Optional[Detections]:
         """
         Filter the detections by applying a mask.
