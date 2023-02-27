@@ -186,7 +186,7 @@ class Detections:
         raise ValueError(f"{anchor} is not supported.")
 
     def __getitem__(self, index: np.ndarray) -> Detections:
-        if isinstance(index, np.ndarray) and index.dtype == bool:
+        if isinstance(index, np.ndarray) and (index.dtype == bool or index.dtype == int):
             return Detections(
                 xyxy=self.xyxy[index],
                 confidence=self.confidence[index],
