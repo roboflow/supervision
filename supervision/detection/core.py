@@ -236,7 +236,7 @@ class Detections:
         )
 
     def with_nms(self, threshold: float = 0.5) -> Detections:
-        assert (self.confidence is not None, f"Detections confidence must be given for NMS to be executed.")
+        assert self.confidence is not None, f"Detections confidence must be given for NMS to be executed."
         indices = non_max_suppression(self.xyxy, self.confidence, threshold=threshold)
         return self[indices]
 
