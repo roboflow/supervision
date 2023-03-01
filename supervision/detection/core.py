@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Optional, Union
+from typing import Iterator, List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
 
+from supervision.detection.utils import non_max_suppression
 from supervision.draw.color import Color, ColorPalette
 from supervision.geometry.core import Position
 
@@ -17,22 +18,26 @@ class Detections:
 
     Attributes:
         xyxy (np.ndarray): An array of shape `(n, 4)` containing the bounding boxes coordinates in format `[x1, y1, x2, y2]`
-        confidence (np.ndarray): An array of shape `(n,)` containing the confidence scores of the detections.
+        confidence (Optional[np.ndarray]): An array of shape `(n,)` containing the confidence scores of the detections.
         class_id (np.ndarray): An array of shape `(n,)` containing the class ids of the detections.
         tracker_id (Optional[np.ndarray]): An array of shape `(n,)` containing the tracker ids of the detections.
     """
 
     xyxy: np.ndarray
-    confidence: np.ndarray
     class_id: np.ndarray
+    confidence: Optional[np.ndarray] = None
     tracker_id: Optional[np.ndarray] = None
 
     def __post_init__(self):
         n = len(self.xyxy)
         validators = [
             (isinstance(self.xyxy, np.ndarray) and self.xyxy.shape == (n, 4)),
-            (isinstance(self.confidence, np.ndarray) and self.confidence.shape == (n,)),
             (isinstance(self.class_id, np.ndarray) and self.class_id.shape == (n,)),
+            self.confidence is None
+            or (
+                isinstance(self.confidence, np.ndarray)
+                and self.confidence.shape == (n,)
+            ),
             self.tracker_id is None
             or (
                 isinstance(self.tracker_id, np.ndarray)
@@ -42,7 +47,7 @@ class Detections:
         if not all(validators):
             raise ValueError(
                 "xyxy must be 2d np.ndarray with (n, 4) shape, "
-                "confidence must be 1d np.ndarray with (n,) shape, "
+                "confidence must be None or 1d np.ndarray with (n,) shape, "
                 "class_id must be 1d np.ndarray with (n,) shape, "
                 "tracker_id must be None or 1d np.ndarray with (n,) shape"
             )
@@ -53,14 +58,16 @@ class Detections:
         """
         return len(self.xyxy)
 
-    def __iter__(self):
+    def __iter__(
+        self,
+    ) -> Iterator[Tuple[np.ndarray, Optional[float], int, Optional[Union[str, int]]]]:
         """
         Iterates over the Detections object and yield a tuple of `(xyxy, confidence, class_id, tracker_id)` for each detection.
         """
         for i in range(len(self.xyxy)):
             yield (
                 self.xyxy[i],
-                self.confidence[i],
+                self.confidence[i] if self.confidence is not None else None,
                 self.class_id[i],
                 self.tracker_id[i] if self.tracker_id is not None else None,
             )
@@ -69,11 +76,17 @@ class Detections:
         return all(
             [
                 np.array_equal(self.xyxy, other.xyxy),
-                np.array_equal(self.confidence, other.confidence),
+                any(
+                    [
+                        self.confidence is None and other.confidence is None,
+                        np.array_equal(self.confidence, other.confidence),
+                    ]
+                ),
                 np.array_equal(self.class_id, other.class_id),
                 any(
                     [
                         self.tracker_id is None and other.tracker_id is None,
+                        np.array_equal(self.tracker_id, other.tracker_id),
                     ]
                 ),
             ]
@@ -122,7 +135,7 @@ class Detections:
             >>> from supervision import Detections
 
             >>> model = YOLO('yolov8s.pt')
-            >>> results = model(frame)
+            >>> results = model(frame)[0]
             >>> detections = Detections.from_yolov8(results)
             ```
         """
@@ -131,6 +144,36 @@ class Detections:
             confidence=yolov8_results.boxes.conf.cpu().numpy(),
             class_id=yolov8_results.boxes.cls.cpu().numpy().astype(int),
         )
+
+    @classmethod
+    def from_transformers(cls, transformers_results: dict):
+        return cls(
+            xyxy=transformers_results["boxes"].cpu().numpy(),
+            confidence=transformers_results["scores"].cpu().numpy(),
+            class_id=transformers_results["labels"].cpu().numpy().astype(int),
+        )
+
+    @classmethod
+    def from_detectron2(cls, detectron2_results):
+        return cls(
+            xyxy=detectron2_results["instances"].pred_boxes.tensor.cpu().numpy(),
+            confidence=detectron2_results["instances"].scores.cpu().numpy(),
+            class_id=detectron2_results["instances"]
+            .pred_classes.cpu()
+            .numpy()
+            .astype(int),
+        )
+
+    @classmethod
+    def from_coco_annotations(cls, coco_annotation: dict):
+        xyxy, class_id = [], []
+
+        for annotation in coco_annotation:
+            x_min, y_min, width, height = annotation["bbox"]
+            xyxy.append([x_min, y_min, x_min + width, y_min + height])
+            class_id.append(annotation["category_id"])
+
+        return cls(xyxy=np.array(xyxy), class_id=np.array(class_id))
 
     def filter(self, mask: np.ndarray, inplace: bool = False) -> Optional[Detections]:
         """
@@ -186,7 +229,9 @@ class Detections:
         raise ValueError(f"{anchor} is not supported.")
 
     def __getitem__(self, index: np.ndarray) -> Detections:
-        if isinstance(index, np.ndarray) and index.dtype == bool:
+        if isinstance(index, np.ndarray) and (
+            index.dtype == bool or index.dtype == int
+        ):
             return Detections(
                 xyxy=self.xyxy[index],
                 confidence=self.confidence[index],
@@ -198,6 +243,17 @@ class Detections:
         raise TypeError(
             f"Detections.__getitem__ not supported for index of type {type(index)}."
         )
+
+    @property
+    def area(self) -> np.ndarray:
+        return (self.xyxy[:, 3] - self.xyxy[:, 1]) * (self.xyxy[:, 2] - self.xyxy[:, 0])
+
+    def with_nms(self, threshold: float = 0.5) -> Detections:
+        assert (
+            self.confidence is not None
+        ), f"Detections confidence must be given for NMS to be executed."
+        indices = non_max_suppression(self.xyxy, self.confidence, threshold=threshold)
+        return self[indices]
 
 
 class BoxAnnotator:
@@ -266,7 +322,7 @@ class BoxAnnotator:
                 continue
 
             text = (
-                f"{confidence:0.2f}"
+                f"{class_id}"
                 if (labels is None or len(detections) != len(labels))
                 else labels[i]
             )
