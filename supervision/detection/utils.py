@@ -35,12 +35,12 @@ def non_max_suppression(boxes: np.ndarray, scores: np.ndarray, threshold: float)
         boxes_keep_index.append(index)
         if not len(scores_indexes):
             break
-        iou = compute_iou(boxes[index], boxes[scores_indexes], areas[index],
-                           areas[scores_indexes])
+        iou = compute_iou(
+            boxes[index], boxes[scores_indexes], areas[index], areas[scores_indexes]
+        )
         filtered_indexes = set((iou > threshold).nonzero()[0])
         scores_indexes = [
-            v for (i, v) in enumerate(scores_indexes)
-            if i not in filtered_indexes
+            v for (i, v) in enumerate(scores_indexes) if i not in filtered_indexes
         ]
     return np.array(boxes_keep_index)
 

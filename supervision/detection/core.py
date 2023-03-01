@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Optional, Union, Iterator, Tuple
+from typing import Iterator, List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
@@ -33,11 +33,13 @@ class Detections:
         validators = [
             (isinstance(self.xyxy, np.ndarray) and self.xyxy.shape == (n, 4)),
             (isinstance(self.class_id, np.ndarray) and self.class_id.shape == (n,)),
-            self.confidence is None or (
-                    isinstance(self.confidence, np.ndarray)
-                    and self.confidence.shape == (n,)
+            self.confidence is None
+            or (
+                isinstance(self.confidence, np.ndarray)
+                and self.confidence.shape == (n,)
             ),
-            self.tracker_id is None or (
+            self.tracker_id is None
+            or (
                 isinstance(self.tracker_id, np.ndarray)
                 and self.tracker_id.shape == (n,)
             ),
@@ -56,7 +58,9 @@ class Detections:
         """
         return len(self.xyxy)
 
-    def __iter__(self) -> Iterator[Tuple[np.ndarray, Optional[float], int, Optional[Union[str, int]]]]:
+    def __iter__(
+        self,
+    ) -> Iterator[Tuple[np.ndarray, Optional[float], int, Optional[Union[str, int]]]]:
         """
         Iterates over the Detections object and yield a tuple of `(xyxy, confidence, class_id, tracker_id)` for each detection.
         """
@@ -75,14 +79,14 @@ class Detections:
                 any(
                     [
                         self.confidence is None and other.confidence is None,
-                        np.array_equal(self.confidence, other.confidence)
+                        np.array_equal(self.confidence, other.confidence),
                     ]
                 ),
                 np.array_equal(self.class_id, other.class_id),
                 any(
                     [
                         self.tracker_id is None and other.tracker_id is None,
-                        np.array_equal(self.tracker_id, other.tracker_id)
+                        np.array_equal(self.tracker_id, other.tracker_id),
                     ]
                 ),
             ]
@@ -144,9 +148,9 @@ class Detections:
     @classmethod
     def from_transformers(cls, transformers_results: dict):
         return cls(
-            xyxy=transformers_results['boxes'].cpu().numpy(),
-            confidence=transformers_results['scores'].cpu().numpy(),
-            class_id=transformers_results['labels'].cpu().numpy().astype(int),
+            xyxy=transformers_results["boxes"].cpu().numpy(),
+            confidence=transformers_results["scores"].cpu().numpy(),
+            class_id=transformers_results["labels"].cpu().numpy().astype(int),
         )
 
     @classmethod
@@ -154,7 +158,10 @@ class Detections:
         return cls(
             xyxy=detectron2_results["instances"].pred_boxes.tensor.cpu().numpy(),
             confidence=detectron2_results["instances"].scores.cpu().numpy(),
-            class_id=detectron2_results["instances"].pred_classes.cpu().numpy().astype(int)
+            class_id=detectron2_results["instances"]
+            .pred_classes.cpu()
+            .numpy()
+            .astype(int),
         )
 
     @classmethod
@@ -162,9 +169,9 @@ class Detections:
         xyxy, class_id = [], []
 
         for annotation in coco_annotation:
-            x_min, y_min, width, height = annotation['bbox']
+            x_min, y_min, width, height = annotation["bbox"]
             xyxy.append([x_min, y_min, x_min + width, y_min + height])
-            class_id.append(annotation['category_id'])
+            class_id.append(annotation["category_id"])
 
         return cls(xyxy=np.array(xyxy), class_id=np.array(class_id))
 
@@ -222,7 +229,9 @@ class Detections:
         raise ValueError(f"{anchor} is not supported.")
 
     def __getitem__(self, index: np.ndarray) -> Detections:
-        if isinstance(index, np.ndarray) and (index.dtype == bool or index.dtype == int):
+        if isinstance(index, np.ndarray) and (
+            index.dtype == bool or index.dtype == int
+        ):
             return Detections(
                 xyxy=self.xyxy[index],
                 confidence=self.confidence[index],
@@ -240,7 +249,9 @@ class Detections:
         return (self.xyxy[:, 3] - self.xyxy[:, 1]) * (self.xyxy[:, 2] - self.xyxy[:, 0])
 
     def with_nms(self, threshold: float = 0.5) -> Detections:
-        assert self.confidence is not None, f"Detections confidence must be given for NMS to be executed."
+        assert (
+            self.confidence is not None
+        ), f"Detections confidence must be given for NMS to be executed."
         indices = non_max_suppression(self.xyxy, self.confidence, threshold=threshold)
         return self[indices]
 
