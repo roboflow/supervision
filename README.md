@@ -114,6 +114,12 @@ Learn how to use YOLOv8, ByteTrack and **Supervision** to detect, track and coun
     </a>
 </p>
 
+## 📝 find pixel coordinates easily with PolygonZone
+
+Tired of reopening your image to find the right pixel coordinates for your lines, boxes, and polygons? Use [PolygonZone](https://roboflow.github.io/polygonzone/) to easily find your anchors! Learn more about [easily creating shapes on our PolygonZone blog](https://blog.roboflow.com/polygonzone/).
+
+![image](https://user-images.githubusercontent.com/48257497/222596657-d9e664b1-d5d1-439d-8eed-09f8f36e0a7e.png)
+
 ## 🧹 code quality 
 
 We provide two handy commands inside the `Makefile`, namely:
