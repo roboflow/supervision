@@ -46,7 +46,9 @@ def box_iou_batch(boxes_true: np.ndarray, boxes_detection: np.ndarray) -> np.nda
     return area_inter / (area_true[:, None] + area_detection - area_inter)
 
 
-def non_max_suppression(predictions: np.ndarray, iou_threshold: float = 0.5) -> np.ndarray:
+def non_max_suppression(
+    predictions: np.ndarray, iou_threshold: float = 0.5
+) -> np.ndarray:
     """
     Perform Non-Maximum Suppression (NMS) on object detection predictions.
 
