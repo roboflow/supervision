@@ -93,7 +93,7 @@ class Detections:
         )
 
     @classmethod
-    def from_yolov5(cls, yolov5_results):
+    def from_yolov5(cls, yolov5_results) -> Detections:
         """
         Creates a Detections instance from a YOLOv5 output Detections
 
@@ -121,7 +121,7 @@ class Detections:
         )
 
     @classmethod
-    def from_yolov8(cls, yolov8_results):
+    def from_yolov8(cls, yolov8_results) -> Detections:
         """
         Creates a Detections instance from a YOLOv8 output Results
 
@@ -148,7 +148,7 @@ class Detections:
         )
 
     @classmethod
-    def from_transformers(cls, transformers_results: dict):
+    def from_transformers(cls, transformers_results: dict) -> Detections:
         """
         Creates a Detections instance from Object Detection Transformer output Results
 
@@ -162,7 +162,7 @@ class Detections:
         )
 
     @classmethod
-    def from_detectron2(cls, detectron2_results):
+    def from_detectron2(cls, detectron2_results) -> Detections:
         return cls(
             xyxy=detectron2_results["instances"].pred_boxes.tensor.cpu().numpy(),
             confidence=detectron2_results["instances"].scores.cpu().numpy(),
@@ -173,7 +173,7 @@ class Detections:
         )
 
     @classmethod
-    def from_coco_annotations(cls, coco_annotation: dict):
+    def from_coco_annotations(cls, coco_annotation: dict) -> Detections:
         xyxy, class_id = [], []
 
         for annotation in coco_annotation:

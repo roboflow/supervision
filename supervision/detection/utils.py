@@ -7,7 +7,7 @@ import numpy as np
 def generate_2d_mask(polygon: np.ndarray, resolution_wh: Tuple[int, int]) -> np.ndarray:
     """Generate a 2D mask from a polygon.
 
-    Properties:
+    Args:
         polygon (np.ndarray): The polygon for which the mask should be generated, given as a list of vertices.
         resolution_wh (Tuple[int, int]): The width and height of the desired resolution.
 
@@ -22,15 +22,15 @@ def generate_2d_mask(polygon: np.ndarray, resolution_wh: Tuple[int, int]) -> np.
 
 def box_iou_batch(boxes_true: np.ndarray, boxes_detection: np.ndarray) -> np.ndarray:
     """
-    Compute Intersection over Union of two sets of bounding boxes - `boxes_true` and `boxes_detection`. Both sets of
-    boxes are expected to be in `(x_min, y_min, x_max, y_max)` format.
+    Compute Intersection over Union (IoU) of two sets of bounding boxes - `boxes_true` and `boxes_detection`. Both sets
+    of boxes are expected to be in `(x_min, y_min, x_max, y_max)` format.
 
-    Properties:
-        boxes_true (np.ndarray): 2D `np.ndarray` representing ground-truth boxes. `shape = (N, 4)` where N is number of true objects.
-        boxes_detection (np.ndarray): 2D `np.ndarray` representing detection boxes. `shape = (M, 4)` where M is number of detected objects.
+    Args:
+        boxes_true (np.ndarray): 2D `np.ndarray` representing ground-truth boxes. `shape = (N, 4)` where `N` is number of true objects.
+        boxes_detection (np.ndarray): 2D `np.ndarray` representing detection boxes. `shape = (M, 4)` where `M` is number of detected objects.
 
     Returns:
-        np.ndarray: Pairwise IoU of boxes from `boxes_true` and `boxes_detection`. `shape = (N, M)` where N is number of true objects and M is number of detected objects.
+        np.ndarray: Pairwise IoU of boxes from `boxes_true` and `boxes_detection`. `shape = (N, M)` where `N` is number of true objects and `M` is number of detected objects.
     """
 
     def box_area(box):
@@ -46,21 +46,19 @@ def box_iou_batch(boxes_true: np.ndarray, boxes_detection: np.ndarray) -> np.nda
     return area_inter / (area_true[:, None] + area_detection - area_inter)
 
 
-def non_max_suppression(
-    predictions: np.ndarray, iou_threshold: float = 0.5
-) -> np.ndarray:
+def non_max_suppression(predictions: np.ndarray, iou_threshold: float = 0.5) -> np.ndarray:
     """
-    Perform non-maximum suppression on object detection predictions.
+    Perform Non-Maximum Suppression (NMS) on object detection predictions.
 
     Args:
-        predictions (np.ndarray): An array of object detection predictions in the format of (x_min, y_min, x_max, y_max, score) or (x_min, y_min, x_max, y_max, score, class).
-        iou_threshold (float, optional): The intersection-over-union threshold to use for non-maximum suppression. Defaults to 0.5.
+        predictions (np.ndarray): An array of object detection predictions in the format of `(x_min, y_min, x_max, y_max, score)` or `(x_min, y_min, x_max, y_max, score, class)`.
+        iou_threshold (float, optional): The intersection-over-union threshold to use for non-maximum suppression.
 
     Returns:
         np.ndarray: A boolean array indicating which predictions to keep after non-maximum suppression.
 
     Raises:
-        AssertionError: If `iou_threshold` is not within the closed range from 0 to 1.
+        AssertionError: If `iou_threshold` is not within the closed range from `0` to `1`.
     """
     assert 0 <= iou_threshold <= 1, (
         f"Value of `iou_threshold` must be in the closed range from 0 to 1, "
