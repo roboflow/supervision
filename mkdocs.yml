@@ -28,8 +28,8 @@ nav:
     - Detection:
         - Core: detection_core.md
         - Utils: detection_utils.md
-    - Draw: draw.md
-    - Geometry: geometry.md
+    - Draw:
+        - Utils: draw_utils.md
     - Notebook: notebook.md
 
 theme:
