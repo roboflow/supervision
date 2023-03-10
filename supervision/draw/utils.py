@@ -39,7 +39,7 @@ def draw_rectangle(
     """
     Draws a rectangle on an image.
 
-    Attributes:
+    Parameters:
         scene (np.ndarray): The scene on which the rectangle will be drawn
         rect (Rect): The rectangle to be drawn
         color (Color): The color of the rectangle
@@ -60,14 +60,9 @@ def draw_rectangle(
 
 def draw_filled_rectangle(scene: np.ndarray, rect: Rect, color: Color) -> np.ndarray:
     """
-    Draws a filled rectangle on the given scene.
+    Draws a filled rectangle on an image.
 
-    :param scene: np.ndarray : The scene on which to draw the rectangle.
-    :param rect: Rect : The rectangle to be drawn.
-    :param color: Color : The color of the rectangle.
-    :return: np.ndarray : The updated scene with the filled rectangle drawn on it.
-
-    Attributes:
+    Parameters:
         scene (np.ndarray): The scene on which the rectangle will be drawn
         rect (Rect): The rectangle to be drawn
         color (Color): The color of the rectangle
@@ -90,7 +85,7 @@ def draw_polygon(
 ) -> np.ndarray:
     """Draw a polygon on a scene.
 
-    Attributes:
+    Parameters:
         scene (np.ndarray): The scene to draw the polygon on.
         polygon (np.ndarray): The polygon to be drawn, given as a list of vertices.
         color (Color): The color of the polygon.
@@ -117,9 +112,7 @@ def draw_text(
     background_color: Optional[Color] = None,
 ) -> np.ndarray:
     """
-    Draw text on a scene.
-
-    This function takes in a 2-dimensional numpy ndarray representing an image or scene, and draws text on it using OpenCV's putText function. The text is anchored at a specified Point, and its appearance can be customized using arguments such as color, scale, and font. An optional background color and padding can be specified to draw a rectangle behind the text.
+    Draw text with background on a scene.
 
     Parameters:
         scene (np.ndarray): A 2-dimensional numpy ndarray representing an image or scene.

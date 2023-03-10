@@ -93,14 +93,15 @@ class Detections:
         )
 
     @classmethod
-    def from_yolov5(cls, yolov5_detections):
+    def from_yolov5(cls, yolov5_results) -> Detections:
         """
         Creates a Detections instance from a YOLOv5 output Detections
 
-        Attributes:
-            yolov5_detections (yolov5.models.common.Detections): The output Detections instance from YOLOv5
+        Args:
+            yolov5_results (yolov5.models.common.Detections): The output Detections instance from YOLOv5
 
         Returns:
+            Detections: A new Detections object.
 
         Example:
             ```python
@@ -112,7 +113,7 @@ class Detections:
             >>> detections = Detections.from_yolov5(results)
             ```
         """
-        yolov5_detections_predictions = yolov5_detections.pred[0].cpu().cpu().numpy()
+        yolov5_detections_predictions = yolov5_results.pred[0].cpu().cpu().numpy()
         return cls(
             xyxy=yolov5_detections_predictions[:, :4],
             confidence=yolov5_detections_predictions[:, 4],
@@ -120,14 +121,15 @@ class Detections:
         )
 
     @classmethod
-    def from_yolov8(cls, yolov8_results):
+    def from_yolov8(cls, yolov8_results) -> Detections:
         """
         Creates a Detections instance from a YOLOv8 output Results
 
-        Attributes:
+        Args:
             yolov8_results (ultralytics.yolo.engine.results.Results): The output Results instance from YOLOv8
 
         Returns:
+            Detections: A new Detections object.
 
         Example:
             ```python
@@ -146,7 +148,13 @@ class Detections:
         )
 
     @classmethod
-    def from_transformers(cls, transformers_results: dict):
+    def from_transformers(cls, transformers_results: dict) -> Detections:
+        """
+        Creates a Detections instance from Object Detection Transformer output Results
+
+        Returns:
+            Detections: A new Detections object.
+        """
         return cls(
             xyxy=transformers_results["boxes"].cpu().numpy(),
             confidence=transformers_results["scores"].cpu().numpy(),
@@ -154,7 +162,7 @@ class Detections:
         )
 
     @classmethod
-    def from_detectron2(cls, detectron2_results):
+    def from_detectron2(cls, detectron2_results) -> Detections:
         return cls(
             xyxy=detectron2_results["instances"].pred_boxes.tensor.cpu().numpy(),
             confidence=detectron2_results["instances"].scores.cpu().numpy(),
@@ -165,7 +173,7 @@ class Detections:
         )
 
     @classmethod
-    def from_coco_annotations(cls, coco_annotation: dict):
+    def from_coco_annotations(cls, coco_annotation: dict) -> Detections:
         xyxy, class_id = [], []
 
         for annotation in coco_annotation:
@@ -175,40 +183,11 @@ class Detections:
 
         return cls(xyxy=np.array(xyxy), class_id=np.array(class_id))
 
-    def filter(self, mask: np.ndarray, inplace: bool = False) -> Optional[Detections]:
-        """
-        Filter the detections by applying a mask.
-
-        Attributes:
-            mask (np.ndarray): A mask of shape `(n,)` containing a boolean value for each detection indicating if it should be included in the filtered detections
-            inplace (bool): If True, the original data will be modified and self will be returned.
-
-        Returns:
-            Optional[np.ndarray]: A new instance of Detections with the filtered detections, if inplace is set to `False`. `None` otherwise.
-        """
-        if inplace:
-            self.xyxy = self.xyxy[mask]
-            self.confidence = self.confidence[mask]
-            self.class_id = self.class_id[mask]
-            self.tracker_id = (
-                self.tracker_id[mask] if self.tracker_id is not None else None
-            )
-            return self
-        else:
-            return Detections(
-                xyxy=self.xyxy[mask],
-                confidence=self.confidence[mask],
-                class_id=self.class_id[mask],
-                tracker_id=self.tracker_id[mask]
-                if self.tracker_id is not None
-                else None,
-            )
-
     def get_anchor_coordinates(self, anchor: Position) -> np.ndarray:
         """
         Returns the bounding box coordinates for a specific anchor.
 
-        Properties:
+        Args:
             anchor (Position): Position of bounding box anchor for which to return the coordinates.
 
         Returns:
@@ -246,13 +225,50 @@ class Detections:
 
     @property
     def area(self) -> np.ndarray:
+        """
+        Calculate the area of each bounding box in the set of object detections.
+
+        Returns:
+            np.ndarray: An array of floats containing the area of each bounding box in the format of (area_1, area_2, ..., area_n), where n is the number of detections.
+        """
         return (self.xyxy[:, 3] - self.xyxy[:, 1]) * (self.xyxy[:, 2] - self.xyxy[:, 0])
 
-    def with_nms(self, threshold: float = 0.5) -> Detections:
+    def with_nms(
+        self, threshold: float = 0.5, class_agnostic: bool = False
+    ) -> Detections:
+        """
+        Perform non-maximum suppression on the current set of object detections.
+
+        Args:
+            threshold (float, optional): The intersection-over-union threshold to use for non-maximum suppression. Defaults to 0.5.
+            class_agnostic (bool, optional): Whether to perform class-agnostic non-maximum suppression. If True, the class_id of each detection will be ignored. Defaults to False.
+
+        Returns:
+            Detections: A new Detections object containing the subset of detections after non-maximum suppression.
+
+        Raises:
+            AssertionError: If `confidence` is None and class_agnostic is False. If `class_id` is None and class_agnostic is False.
+        """
         assert (
             self.confidence is not None
         ), f"Detections confidence must be given for NMS to be executed."
-        indices = non_max_suppression(self.xyxy, self.confidence, threshold=threshold)
+
+        if class_agnostic:
+            predictions = np.hstack((self.xyxy, self.confidence.reshape(-1, 1)))
+            indices = non_max_suppression(
+                predictions=predictions, iou_threshold=threshold
+            )
+            return self[indices]
+
+        assert self.class_id is not None, (
+            f"Detections class_id must be given for NMS to be executed. If you intended to perform class agnostic "
+            f"NMS set class_agnostic=True."
+        )
+
+        predictions = np.hstack(
+            (self.xyxy, self.confidence.reshape(-1, 1), self.class_id.reshape(-1, 1))
+        )
+        indices = non_max_suppression(predictions=predictions, iou_threshold=threshold)
         return self[indices]
 
 
