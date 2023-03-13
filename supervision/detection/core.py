@@ -249,6 +249,9 @@ class Detections:
         Raises:
             AssertionError: If `confidence` is None and class_agnostic is False. If `class_id` is None and class_agnostic is False.
         """
+        if len(self) == 0:
+            return self
+
         assert (
             self.confidence is not None
         ), f"Detections confidence must be given for NMS to be executed."

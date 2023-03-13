@@ -12,6 +12,12 @@ from supervision.detection.utils import non_max_suppression
     "predictions, iou_threshold, expected_result, exception",
     [
         (
+            np.empty(shape=(0, 5)),
+            0.5,
+            np.array([]),
+            DoesNotRaise()
+        ),  # single box with no category
+        (
             np.array([
                 [10.0, 10.0, 40.0, 40.0, 0.8]
             ]),
