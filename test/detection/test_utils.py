@@ -1,11 +1,11 @@
 from contextlib import ExitStack as DoesNotRaise
-from typing import Optional
+from typing import Optional, Tuple
 
 import pytest
 
 import numpy as np
 
-from supervision.detection.utils import non_max_suppression
+from supervision.detection.utils import non_max_suppression, clip_boxes
 
 
 @pytest.mark.parametrize(
@@ -61,14 +61,14 @@ from supervision.detection.utils import non_max_suppression
             ]),
             DoesNotRaise()
         ),  # two boxes with different category
-(
+        (
             np.array([
                 [10.0, 10.0, 40.0, 40.0, 0.8, 0],
                 [15.0, 15.0, 40.0, 40.0, 0.9, 0],
             ]),
             0.5,
             np.array([
-                True,
+                False,
                 True
             ]),
             DoesNotRaise()
@@ -125,4 +125,64 @@ def test_non_max_suppression(
 ) -> None:
     with exception:
         result = non_max_suppression(predictions=predictions, iou_threshold=iou_threshold)
-        np.array_equal(result, expected_result)
+        assert np.array_equal(result, expected_result)
+
+
+@pytest.mark.parametrize(
+    "boxes_xyxy, frame_resolution_wh, expected_result",
+    [
+        (
+            np.empty(shape=(0, 4)),
+            (1280, 720),
+            np.empty(shape=(0, 4)),
+        ),
+        (
+            np.array([
+                [1.0, 1.0, 1279.0, 719.0]
+            ]),
+            (1280, 720),
+            np.array([
+                [1.0, 1.0, 1279.0, 719.0]
+            ]),
+        ),
+        (
+            np.array([
+                [-1.0, 1.0, 1279.0, 719.0]
+            ]),
+            (1280, 720),
+            np.array([
+                [0.0, 1.0, 1279.0, 719.0]
+            ]),
+        ),
+        (
+            np.array([
+                [1.0, -1.0, 1279.0, 719.0]
+            ]),
+            (1280, 720),
+            np.array([
+                [1.0, 0.0, 1279.0, 719.0]
+            ]),
+        ),
+        (
+            np.array([
+                [1.0, 1.0, 1281.0, 719.0]
+            ]),
+            (1280, 720),
+            np.array([
+                [1.0, 1.0, 1280.0, 719.0]
+            ]),
+        ),
+        (
+            np.array([
+                [1.0, 1.0, 1279.0, 721.0]
+            ]),
+            (1280, 720),
+            np.array([
+                [1.0, 1.0, 1279.0, 720.0]
+            ]),
+        ),
+    ]
+)
+def test_clip_boxes(boxes_xyxy: np.ndarray, frame_resolution_wh: Tuple[int, int], expected_result: np.ndarray) -> None:
+    result = clip_boxes(boxes_xyxy=boxes_xyxy, frame_resolution_wh=frame_resolution_wh)
+    assert np.array_equal(result, expected_result)
