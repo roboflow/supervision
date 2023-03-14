@@ -1,4 +1,4 @@
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 from supervision.detection.core import BoxAnnotator, Detections
 from supervision.detection.line_counter import LineZone, LineZoneAnnotator
