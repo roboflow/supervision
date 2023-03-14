@@ -1,10 +1,11 @@
+from dataclasses import replace
 from typing import Optional, Tuple
 
 import cv2
 import numpy as np
 
 from supervision import Detections
-from supervision.detection.utils import generate_2d_mask
+from supervision.detection.utils import clip_boxes, generate_2d_mask
 from supervision.draw.color import Color
 from supervision.draw.utils import draw_polygon, draw_text
 from supervision.geometry.core import Position
@@ -21,17 +22,22 @@ class PolygonZone:
         self.polygon = polygon
         self.frame_resolution_wh = frame_resolution_wh
         self.triggering_position = triggering_position
-        self.mask = generate_2d_mask(polygon=polygon, resolution_wh=frame_resolution_wh)
         self.current_count = 0
 
-    def trigger(self, detections: Detections) -> np.ndarray:
-        anchors = (
-            np.ceil(
-                detections.get_anchor_coordinates(anchor=self.triggering_position)
-            ).astype(int)
-            - 1
+        width, height = frame_resolution_wh
+        self.mask = generate_2d_mask(
+            polygon=polygon, resolution_wh=(width + 1, height + 1)
         )
-        is_in_zone = self.mask[anchors[:, 1], anchors[:, 0]]
+
+    def trigger(self, detections: Detections) -> np.ndarray:
+        clipped_xyxy = clip_boxes(
+            boxes_xyxy=detections.xyxy, frame_resolution_wh=self.frame_resolution_wh
+        )
+        clipped_detections = replace(detections, xyxy=clipped_xyxy)
+        clipped_anchors = np.ceil(
+            clipped_detections.get_anchor_coordinates(anchor=self.triggering_position)
+        ).astype(int)
+        is_in_zone = self.mask[clipped_anchors[:, 1], clipped_anchors[:, 0]]
         self.current_count = np.sum(is_in_zone)
         return is_in_zone.astype(bool)
 
