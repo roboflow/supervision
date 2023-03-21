@@ -36,3 +36,16 @@ When creating new functions, please ensure you have the following:
 All pull requests will be reviewed by the maintainers of the project. We will provide feedback and ask for changes if necessary.
 
 PRs must pass all tests and linting requirements before they can be merged.
+
+## 🧹 code quality 
+
+We provide two handy commands inside the `Makefile`, namely:
+
+- `make style` to format the code
+- `make check_code_quality` to check code quality (PEP8 basically)
+
+So far, **there is no types checking with mypy**. See [issue](https://github.com/roboflow-ai/template-python/issues/4). 
+
+## 🧪 tests 
+
+[`pytests`](https://docs.pytest.org/en/7.1.x/) is used to run our tests.

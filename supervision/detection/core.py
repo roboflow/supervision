@@ -229,7 +229,7 @@ class Detections:
         Calculate the area of each bounding box in the set of object detections.
 
         Returns:
-            np.ndarray: An array of floats containing the area of each bounding box in the format of (area_1, area_2, ..., area_n), where n is the number of detections.
+            np.ndarray: An array of floats containing the area of each bounding box in the format of `(area_1, area_2, ..., area_n)`, where n is the number of detections.
         """
         return (self.xyxy[:, 3] - self.xyxy[:, 1]) * (self.xyxy[:, 2] - self.xyxy[:, 0])
 
