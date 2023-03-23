@@ -26,8 +26,9 @@ nav:
   - API reference:
     - Video: video.md
     - Detection:
-        - Core: detection_core.md
-        - Utils: detection_utils.md
+        - Core: detection/core.md
+        - Annotate: detection/annotate.md
+        - Utils: detection/utils.md
     - Draw:
         - Utils: draw_utils.md
     - Notebook: notebook.md
