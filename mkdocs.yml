@@ -26,16 +26,17 @@ nav:
   - API reference:
     - Video: video.md
     - Detection:
-        - Core: detection_core.md
-        - Utils: detection_utils.md
+        - Core: detection/core.md
+        - Annotate: detection/annotate.md
+        - Utils: detection/utils.md
     - Draw:
         - Utils: draw_utils.md
     - Notebook: notebook.md
 
 theme:
   name: 'material'
-  logo: https://raw.githubusercontent.com/roboflow/supervision/main/docs/assets/roboflow_logomark_white.svg
-  favicon: https://raw.githubusercontent.com/roboflow/supervision/main/docs/assets/roboflow_logomark_color.svg
+  logo: https://media.roboflow.com/open-source/supervision/supervision-lenny.png?updatedAt=1678995918671
+  favicon: https://media.roboflow.com/open-source/supervision/supervision-lenny.png?updatedAt=1678995918671
   palette:
     primary: 'deep purple'
     accent: 'teal'
