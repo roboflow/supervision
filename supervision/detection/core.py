@@ -31,10 +31,7 @@ class Detections:
         validators = [
             (isinstance(self.xyxy, np.ndarray) and self.xyxy.shape == (n, 4)),
             self.class_id is None
-            or (
-                    isinstance(self.class_id, np.ndarray)
-                    and self.class_id.shape == (n,)
-            ),
+            or (isinstance(self.class_id, np.ndarray) and self.class_id.shape == (n,)),
             self.confidence is None
             or (
                 isinstance(self.confidence, np.ndarray)
@@ -223,9 +220,7 @@ class Detections:
                 confidence=self.confidence[index]
                 if self.confidence is not None
                 else None,
-                class_id=self.class_id[index]
-                if self.class_id is not None
-                else None,
+                class_id=self.class_id[index] if self.class_id is not None else None,
                 tracker_id=self.tracker_id[index]
                 if self.tracker_id is not None
                 else None,

@@ -34,8 +34,8 @@ nav:
 
 theme:
   name: 'material'
-  logo: https://raw.githubusercontent.com/roboflow/supervision/main/docs/assets/roboflow_logomark_white.svg
-  favicon: https://raw.githubusercontent.com/roboflow/supervision/main/docs/assets/roboflow_logomark_color.svg
+  logo: https://media.roboflow.com/open-source/supervision/supervision-lenny.png?updatedAt=1678995918671
+  favicon: https://media.roboflow.com/open-source/supervision/supervision-lenny.png?updatedAt=1678995918671
   palette:
     primary: 'deep purple'
     accent: 'teal'
