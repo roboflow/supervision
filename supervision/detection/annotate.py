@@ -3,7 +3,8 @@ from typing import Union, Optional, List
 import cv2
 import numpy as np
 
-from supervision import Color, ColorPalette, Detections
+from supervision.draw.color import Color, ColorPalette
+from supervision.detection.core import Detections
 
 
 class BoxAnnotator:
