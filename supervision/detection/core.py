@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterator, List, Optional, Tuple, Union
+from typing import Iterator, Optional, Tuple, Union
 
-import cv2
 import numpy as np
 
 from supervision.detection.utils import non_max_suppression
-from supervision.draw.color import Color, ColorPalette
 from supervision.geometry.core import Position
 
 
@@ -18,13 +16,13 @@ class Detections:
 
     Attributes:
         xyxy (np.ndarray): An array of shape `(n, 4)` containing the bounding boxes coordinates in format `[x1, y1, x2, y2]`
+        class_id (Optional[np.ndarray]): An array of shape `(n,)` containing the class ids of the detections.
         confidence (Optional[np.ndarray]): An array of shape `(n,)` containing the confidence scores of the detections.
-        class_id (np.ndarray): An array of shape `(n,)` containing the class ids of the detections.
         tracker_id (Optional[np.ndarray]): An array of shape `(n,)` containing the tracker ids of the detections.
     """
 
     xyxy: np.ndarray
-    class_id: np.ndarray
+    class_id: Optional[np.ndarray] = None
     confidence: Optional[np.ndarray] = None
     tracker_id: Optional[np.ndarray] = None
 
@@ -32,7 +30,11 @@ class Detections:
         n = len(self.xyxy)
         validators = [
             (isinstance(self.xyxy, np.ndarray) and self.xyxy.shape == (n, 4)),
-            (isinstance(self.class_id, np.ndarray) and self.class_id.shape == (n,)),
+            self.class_id is None
+            or (
+                    isinstance(self.class_id, np.ndarray)
+                    and self.class_id.shape == (n,)
+            ),
             self.confidence is None
             or (
                 isinstance(self.confidence, np.ndarray)
@@ -47,8 +49,8 @@ class Detections:
         if not all(validators):
             raise ValueError(
                 "xyxy must be 2d np.ndarray with (n, 4) shape, "
+                "class_id must be None or 1d np.ndarray with (n,) shape, "
                 "confidence must be None or 1d np.ndarray with (n,) shape, "
-                "class_id must be 1d np.ndarray with (n,) shape, "
                 "tracker_id must be None or 1d np.ndarray with (n,) shape"
             )
 
@@ -68,7 +70,7 @@ class Detections:
             yield (
                 self.xyxy[i],
                 self.confidence[i] if self.confidence is not None else None,
-                self.class_id[i],
+                self.class_id[i] if self.class_id is not None else None,
                 self.tracker_id[i] if self.tracker_id is not None else None,
             )
 
@@ -78,11 +80,16 @@ class Detections:
                 np.array_equal(self.xyxy, other.xyxy),
                 any(
                     [
+                        self.class_id is None and other.class_id is None,
+                        np.array_equal(self.class_id, other.class_id),
+                    ]
+                ),
+                any(
+                    [
                         self.confidence is None and other.confidence is None,
                         np.array_equal(self.confidence, other.confidence),
                     ]
                 ),
-                np.array_equal(self.class_id, other.class_id),
                 any(
                     [
                         self.tracker_id is None and other.tracker_id is None,
@@ -213,8 +220,12 @@ class Detections:
         ):
             return Detections(
                 xyxy=self.xyxy[index],
-                confidence=self.confidence[index],
-                class_id=self.class_id[index],
+                confidence=self.confidence[index]
+                if self.confidence is not None
+                else None,
+                class_id=self.class_id[index]
+                if self.class_id is not None
+                else None,
                 tracker_id=self.tracker_id[index]
                 if self.tracker_id is not None
                 else None,
@@ -273,110 +284,3 @@ class Detections:
         )
         indices = non_max_suppression(predictions=predictions, iou_threshold=threshold)
         return self[indices]
-
-
-class BoxAnnotator:
-    def __init__(
-        self,
-        color: Union[Color, ColorPalette] = ColorPalette.default(),
-        thickness: int = 2,
-        text_color: Color = Color.black(),
-        text_scale: float = 0.5,
-        text_thickness: int = 1,
-        text_padding: int = 10,
-    ):
-        """
-        A class for drawing bounding boxes on an image using detections provided.
-
-        Attributes:
-            color (Union[Color, ColorPalette]): The color to draw the bounding box, can be a single color or a color palette
-            thickness (int): The thickness of the bounding box lines, default is 2
-            text_color (Color): The color of the text on the bounding box, default is white
-            text_scale (float): The scale of the text on the bounding box, default is 0.5
-            text_thickness (int): The thickness of the text on the bounding box, default is 1
-            text_padding (int): The padding around the text on the bounding box, default is 5
-
-        """
-        self.color: Union[Color, ColorPalette] = color
-        self.thickness: int = thickness
-        self.text_color: Color = text_color
-        self.text_scale: float = text_scale
-        self.text_thickness: int = text_thickness
-        self.text_padding: int = text_padding
-
-    def annotate(
-        self,
-        scene: np.ndarray,
-        detections: Detections,
-        labels: Optional[List[str]] = None,
-        skip_label: bool = False,
-    ) -> np.ndarray:
-        """
-        Draws bounding boxes on the frame using the detections provided.
-
-        Parameters:
-            scene (np.ndarray): The image on which the bounding boxes will be drawn
-            detections (Detections): The detections for which the bounding boxes will be drawn
-            labels (Optional[List[str]]): An optional list of labels corresponding to each detection. If labels is provided, the confidence score of the detection will be replaced with the label.
-            skip_label (bool): Is set to True, skips bounding box label annotation.
-        Returns:
-            np.ndarray: The image with the bounding boxes drawn on it
-        """
-        font = cv2.FONT_HERSHEY_SIMPLEX
-        for i, (xyxy, confidence, class_id, tracker_id) in enumerate(detections):
-            x1, y1, x2, y2 = xyxy.astype(int)
-            color = (
-                self.color.by_idx(class_id)
-                if isinstance(self.color, ColorPalette)
-                else self.color
-            )
-            cv2.rectangle(
-                img=scene,
-                pt1=(x1, y1),
-                pt2=(x2, y2),
-                color=color.as_bgr(),
-                thickness=self.thickness,
-            )
-            if skip_label:
-                continue
-
-            text = (
-                f"{class_id}"
-                if (labels is None or len(detections) != len(labels))
-                else labels[i]
-            )
-
-            text_width, text_height = cv2.getTextSize(
-                text=text,
-                fontFace=font,
-                fontScale=self.text_scale,
-                thickness=self.text_thickness,
-            )[0]
-
-            text_x = x1 + self.text_padding
-            text_y = y1 - self.text_padding
-
-            text_background_x1 = x1
-            text_background_y1 = y1 - 2 * self.text_padding - text_height
-
-            text_background_x2 = x1 + 2 * self.text_padding + text_width
-            text_background_y2 = y1
-
-            cv2.rectangle(
-                img=scene,
-                pt1=(text_background_x1, text_background_y1),
-                pt2=(text_background_x2, text_background_y2),
-                color=color.as_bgr(),
-                thickness=cv2.FILLED,
-            )
-            cv2.putText(
-                img=scene,
-                text=text,
-                org=(text_x, text_y),
-                fontFace=font,
-                fontScale=self.text_scale,
-                color=self.text_color.as_rgb(),
-                thickness=self.text_thickness,
-                lineType=cv2.LINE_AA,
-            )
-        return scene
