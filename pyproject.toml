@@ -1,0 +1,85 @@
+[tool.poetry]
+name = "supervision"
+version = "0.3.2"
+description = "A set of easy-to-use utils that will come in handy in any Computer Vision project"
+authors = ["Piotr Skalski <piotr.skalski92@gmail.com>"]
+maintainers = ["Piotr Skalski <piotr.skalski92@gmail.com>"]
+readme = "README.md"
+packages = [{include = "supervision"}]
+homepage = "https://github.com/roboflow/supervision"
+repository = "https://github.com/roboflow/supervision"
+documentation = "https://github.com/roboflow/supervision/blob/main/README.md"
+keywords = ["machine-learning", "deep-learning", "vision", "ML", "DL", "AI", "YOLOv5", "YOLOv8", "Roboflow"]
+
+classifiers=[
+    'Intended Audience :: Developers',
+    'Intended Audience :: Science/Research',
+    'License :: OSI Approved :: BSD License',
+    'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: 3.7',
+    'Programming Language :: Python :: 3.8',
+    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3 :: Only',
+    'Topic :: Software Development',
+    'Topic :: Scientific/Engineering',
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Image Recognition",
+    'Typing :: Typed',
+    'Operating System :: Microsoft :: Windows',
+    'Operating System :: POSIX',
+    'Operating System :: Unix',
+    'Operating System :: MacOS'
+]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+numpy = "^1.20.0"
+matplotlib = "^3.7.1"
+opencv-python = "^4.7.0.72"
+
+[tool.poetry.group.dev.dependencies]
+flake8 = "^6.0.0"
+isort = "^5.12.0"
+black = "^23.1.0"
+twine = "^4.0.2"
+pytest = "^7.2.2"
+wheel = "^0.40.0"
+notebook = "^6.5.3"
+mkdocs-material = "^9.1.4"
+mkdocstrings = {extras = ["python"], version = "^0.20.0"}
+pre-commit = "^3.2.1"
+
+
+[tool.isort]
+line_length = 88
+profile = "black"
+
+
+[tool.black]
+line-length = 88
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+'''
+
+
+[tool.setuptools]
+include-package-data = false
+
+[tool.setuptools.packages.find]
+exclude = ["docs*", "test*"]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
