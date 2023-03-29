@@ -30,13 +30,15 @@ nav:
         - Annotate: detection/annotate.md
         - Utils: detection/utils.md
     - Draw:
-        - Utils: draw_utils.md
-    - Notebook: notebook.md
+        - Utils: draw/utils.md
+    - Notebook:
+        - Utils: notebook/utils.md
+  - Changelog: changelog.md
 
 theme:
   name: 'material'
-  logo: https://media.roboflow.com/open-source/supervision/supervision-lenny.png?updatedAt=1678995918671
-  favicon: https://media.roboflow.com/open-source/supervision/supervision-lenny.png?updatedAt=1678995918671
+  logo: https://media.roboflow.com/open-source/supervision/supervision-lenny.png
+  favicon: https://media.roboflow.com/open-source/supervision/supervision-lenny.png
   palette:
     primary: 'deep purple'
     accent: 'teal'
@@ -52,3 +54,5 @@ markdown_extensions:
   - admonition
   - pymdownx.details
   - pymdownx.superfences
+  - toc:
+      permalink: true

@@ -18,10 +18,10 @@ def show_frame_in_notebook(
 
     Examples:
         ```python
-        >>> from supervision.notebook.utils import show_frame_in_notebook
+        >>> import supervision as sv
 
         %matplotlib inline
-        show_frame_in_notebook(frame, (16, 16))
+        >>> sv.show_frame_in_notebook(frame, (16, 16))
         ```
     """
     if frame.ndim == 2:
