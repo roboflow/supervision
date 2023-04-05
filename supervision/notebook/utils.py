@@ -1,4 +1,4 @@
-from typing import Tuple, List, Optional
+from typing import List, Optional, Tuple
 
 import cv2
 import matplotlib.pyplot as plt
@@ -40,7 +40,7 @@ def plot_images_grid(
     images: List[np.ndarray],
     grid_size: Tuple[int, int],
     titles: Optional[List[str]] = None,
-    size: Tuple[int, int] = (12, 12)
+    size: Tuple[int, int] = (12, 12),
 ) -> None:
     """
     Plots images in a grid using matplotlib.
@@ -75,7 +75,8 @@ def plot_images_grid(
 
     if len(images) > nrows * ncols:
         raise ValueError(
-            "The number of images exceeds the grid size. Please increase the grid size or reduce the number of images.")
+            "The number of images exceeds the grid size. Please increase the grid size or reduce the number of images."
+        )
 
     fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=size)
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterator, Optional, Tuple, Union, List
+from typing import Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -198,7 +198,7 @@ class Detections:
         return Detections(
             xyxy=np.array(xyxy),
             confidence=np.array(confidence),
-            class_id=np.array(class_id).astype(int)
+            class_id=np.array(class_id).astype(int),
         )
 
     @classmethod
@@ -217,7 +217,7 @@ class Detections:
         return cls(
             xyxy=np.empty((0, 4), dtype=np.float32),
             confidence=np.array([], dtype=np.float32),
-            class_id=np.array([], dtype=int)
+            class_id=np.array([], dtype=int),
         )
 
     def get_anchor_coordinates(self, anchor: Position) -> np.ndarray:
