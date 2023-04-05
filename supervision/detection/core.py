@@ -187,6 +187,14 @@ class Detections:
 
         return cls(xyxy=np.array(xyxy), class_id=np.array(class_id))
 
+    @classmethod
+    def empty(cls) -> Detections:
+        return cls(
+            xyxy=np.empty((0, 4), dtype=np.float32),
+            confidence=np.array([], dtype=np.float32),
+            class_id=np.array([], dtype=int)
+        )
+
     def get_anchor_coordinates(self, anchor: Position) -> np.ndarray:
         """
         Returns the bounding box coordinates for a specific anchor.

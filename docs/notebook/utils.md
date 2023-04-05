@@ -1,3 +1,7 @@
-## show_frame_in_notebook
+## plot_image
 
-:::supervision.notebook.utils.show_frame_in_notebook
+:::supervision.notebook.utils.plot_image
+
+## plot_images_grid
+
+:::supervision.notebook.utils.plot_images_grid
