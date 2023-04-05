@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterator, Optional, Tuple, Union
+from typing import Iterator, Optional, Tuple, Union, List
 
 import numpy as np
 
@@ -174,6 +174,31 @@ class Detections:
             .pred_classes.cpu()
             .numpy()
             .astype(int),
+        )
+
+    @classmethod
+    def from_roboflow(cls, roboflow_result: dict, class_list: List[str]) -> Detections:
+        xyxy = []
+        confidence = []
+        class_id = []
+
+        for prediction in roboflow_result["predictions"]:
+            x = prediction["x"]
+            y = prediction["y"]
+            width = prediction["width"]
+            height = prediction["height"]
+            x_min = x - width / 2
+            y_min = y - height / 2
+            x_max = x_min + width
+            y_max = y_min + height
+            xyxy.append([x_min, y_min, x_max, y_max])
+            class_id.append(class_list.index(prediction["class"]))
+            confidence.append(prediction["confidence"])
+
+        return Detections(
+            xyxy=np.array(xyxy),
+            confidence=np.array(confidence),
+            class_id=np.array(class_id).astype(int)
         )
 
     @classmethod
