@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterator, Optional, Tuple, Union
+from typing import Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -177,6 +177,31 @@ class Detections:
         )
 
     @classmethod
+    def from_roboflow(cls, roboflow_result: dict, class_list: List[str]) -> Detections:
+        xyxy = []
+        confidence = []
+        class_id = []
+
+        for prediction in roboflow_result["predictions"]:
+            x = prediction["x"]
+            y = prediction["y"]
+            width = prediction["width"]
+            height = prediction["height"]
+            x_min = x - width / 2
+            y_min = y - height / 2
+            x_max = x_min + width
+            y_max = y_min + height
+            xyxy.append([x_min, y_min, x_max, y_max])
+            class_id.append(class_list.index(prediction["class"]))
+            confidence.append(prediction["confidence"])
+
+        return Detections(
+            xyxy=np.array(xyxy),
+            confidence=np.array(confidence),
+            class_id=np.array(class_id).astype(int),
+        )
+
+    @classmethod
     def from_coco_annotations(cls, coco_annotation: dict) -> Detections:
         xyxy, class_id = [], []
 
@@ -186,6 +211,14 @@ class Detections:
             class_id.append(annotation["category_id"])
 
         return cls(xyxy=np.array(xyxy), class_id=np.array(class_id))
+
+    @classmethod
+    def empty(cls) -> Detections:
+        return cls(
+            xyxy=np.empty((0, 4), dtype=np.float32),
+            confidence=np.array([], dtype=np.float32),
+            class_id=np.array([], dtype=int),
+        )
 
     def get_anchor_coordinates(self, anchor: Position) -> np.ndarray:
         """

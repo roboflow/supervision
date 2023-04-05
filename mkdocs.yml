@@ -31,6 +31,8 @@ nav:
         - Utils: detection/utils.md
     - Draw:
         - Utils: draw/utils.md
+    - Annotations:
+        - Pascal VOC XML: annotation/voc.md
     - Notebook:
         - Utils: notebook/utils.md
   - Changelog: changelog.md
