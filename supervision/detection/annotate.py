@@ -56,8 +56,9 @@ class BoxAnnotator:
             np.ndarray: The image with the bounding boxes drawn on it
         """
         font = cv2.FONT_HERSHEY_SIMPLEX
-        for i, (xyxy, confidence, class_id, tracker_id) in enumerate(detections):
-            x1, y1, x2, y2 = xyxy.astype(int)
+        for i in range(len(detections)):
+            x1, y1, x2, y2 = detections.xyxy[i].astype(int)
+            class_id = detections.class_id[i] if detections.class_id is not None else None
             idx = class_id if class_id is not None else i
             color = (
                 self.color.by_idx(idx)
