@@ -6,9 +6,7 @@ import numpy as np
 
 
 def plot_image(
-    image: np.ndarray,
-    size: Tuple[int, int] = (12, 12),
-    cmap: Optional[str] = "gray"
+    image: np.ndarray, size: Tuple[int, int] = (12, 12), cmap: Optional[str] = "gray"
 ) -> None:
     """
     Plots image using matplotlib.
@@ -36,7 +34,7 @@ def plot_image(
     else:
         plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
 
-    plt.axis('off')
+    plt.axis("off")
     plt.show()
 
 
@@ -45,7 +43,7 @@ def plot_images_grid(
     grid_size: Tuple[int, int],
     titles: Optional[List[str]] = None,
     size: Tuple[int, int] = (12, 12),
-    cmap: Optional[str] = "gray"
+    cmap: Optional[str] = "gray",
 ) -> None:
     """
     Plots images in a grid using matplotlib.

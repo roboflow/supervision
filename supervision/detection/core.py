@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterator, List, Optional, Tuple, Union, Any
+from typing import Any, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -17,8 +17,7 @@ def _validate_xyxy(xyxy: Any, n: int) -> None:
 
 def _validate_mask(mask: Any, n: int) -> None:
     is_valid = mask is None or (
-        isinstance(mask, np.ndarray)
-        and len(mask.shape) == 3 and mask[0] == n
+        isinstance(mask, np.ndarray) and len(mask.shape) == 3 and mask[0] == n
     )
     if not is_valid:
         raise ValueError("mask must be 3d np.ndarray with (n, W, H) shape")
@@ -26,8 +25,7 @@ def _validate_mask(mask: Any, n: int) -> None:
 
 def _validate_class_id(class_id: Any, n: int) -> None:
     is_valid = class_id is None or (
-        isinstance(class_id, np.ndarray)
-        and class_id.shape == (n,)
+        isinstance(class_id, np.ndarray) and class_id.shape == (n,)
     )
     if not is_valid:
         raise ValueError("class_id must be None or 1d np.ndarray with (n,) shape")
@@ -35,8 +33,7 @@ def _validate_class_id(class_id: Any, n: int) -> None:
 
 def _validate_confidence(confidence: Any, n: int) -> None:
     is_valid = confidence is None or (
-        isinstance(confidence, np.ndarray)
-        and confidence.shape == (n,)
+        isinstance(confidence, np.ndarray) and confidence.shape == (n,)
     )
     if not is_valid:
         raise ValueError("confidence must be None or 1d np.ndarray with (n,) shape")
@@ -44,8 +41,7 @@ def _validate_confidence(confidence: Any, n: int) -> None:
 
 def _validate_tracker_id(tracker_id: Any, n: int) -> None:
     is_valid = tracker_id is None or (
-        isinstance(tracker_id, np.ndarray)
-        and tracker_id.shape == (n,)
+        isinstance(tracker_id, np.ndarray) and tracker_id.shape == (n,)
     )
     if not is_valid:
         raise ValueError("tracker_id must be None or 1d np.ndarray with (n,) shape")
@@ -86,7 +82,15 @@ class Detections:
 
     def __iter__(
         self,
-    ) -> Iterator[Tuple[np.ndarray, Optional[np.ndarray], Optional[float], Optional[int], Optional[int]]]:
+    ) -> Iterator[
+        Tuple[
+            np.ndarray,
+            Optional[np.ndarray],
+            Optional[float],
+            Optional[int],
+            Optional[int],
+        ]
+    ]:
         """
         Iterates over the Detections object and yield a tuple of `(xyxy, confidence, class_id, tracker_id)` for each detection.
         """
