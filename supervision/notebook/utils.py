@@ -6,7 +6,9 @@ import numpy as np
 
 
 def plot_image(
-    image: np.ndarray, size: Tuple[int, int] = (10, 10), cmap: Optional[str] = "gray"
+    image: np.ndarray,
+    size: Tuple[int, int] = (12, 12),
+    cmap: Optional[str] = "gray"
 ) -> None:
     """
     Plots image using matplotlib.
@@ -27,12 +29,14 @@ def plot_image(
         >>> sv.plot_image(image, (16, 16))
         ```
     """
+    plt.figure(figsize=size)
+
     if image.ndim == 2:
-        plt.figure(figsize=size)
         plt.imshow(image, cmap=cmap)
     else:
-        plt.figure(figsize=size)
         plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+
+    plt.axis('off')
     plt.show()
 
 
@@ -41,6 +45,7 @@ def plot_images_grid(
     grid_size: Tuple[int, int],
     titles: Optional[List[str]] = None,
     size: Tuple[int, int] = (12, 12),
+    cmap: Optional[str] = "gray"
 ) -> None:
     """
     Plots images in a grid using matplotlib.
@@ -50,6 +55,7 @@ def plot_images_grid(
        grid_size (Tuple[int, int]): A tuple specifying the number of rows and columns for the grid.
        titles (Optional[List[str]]): A list of titles for each image. Defaults to None.
        size (Tuple[int, int]): A tuple specifying the width and height of the entire plot in inches.
+       cmap (str): the colormap to use for single channel images.
 
     Raises:
        ValueError: If the number of images exceeds the grid size.
@@ -70,7 +76,6 @@ def plot_images_grid(
         >>> plot_images_grid(images, grid_size=(2, 2), titles=titles, figsize=(16, 16))
         ```
     """
-
     nrows, ncols = grid_size
 
     if len(images) > nrows * ncols:
@@ -82,11 +87,13 @@ def plot_images_grid(
 
     for idx, ax in enumerate(axes.flat):
         if idx < len(images):
-            ax.imshow(cv2.cvtColor(images[idx], cv2.COLOR_BGR2RGB))
+            if images[idx].ndim == 2:
+                ax.imshow(images[idx], cmap=cmap)
+            else:
+                ax.imshow(cv2.cvtColor(images[idx], cv2.COLOR_BGR2RGB))
+
             if titles is not None and idx < len(titles):
                 ax.set_title(titles[idx])
-            ax.axis("off")
-        else:
-            ax.axis("off")
 
+        ax.axis("off")
     plt.show()
