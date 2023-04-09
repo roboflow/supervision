@@ -17,7 +17,7 @@ def _validate_xyxy(xyxy: Any, n: int) -> None:
 
 def _validate_mask(mask: Any, n: int) -> None:
     is_valid = mask is None or (
-        isinstance(mask, np.ndarray) and len(mask.shape) == 3 and mask[0] == n
+        isinstance(mask, np.ndarray) and len(mask.shape) == 3 and mask.shape[0] == n
     )
     if not is_valid:
         raise ValueError("mask must be 3d np.ndarray with (n, W, H) shape")
@@ -238,6 +238,10 @@ class Detections:
             confidence=np.array(confidence),
             class_id=np.array(class_id).astype(int),
         )
+
+    @classmethod
+    def from_segment_anything_model(cls, segment_anything_model_result: List[dict]) -> Detections:
+        pass
 
     @classmethod
     def from_coco_annotations(cls, coco_annotation: dict) -> Detections:
