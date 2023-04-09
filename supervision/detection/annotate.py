@@ -117,3 +117,44 @@ class BoxAnnotator:
                 lineType=cv2.LINE_AA,
             )
         return scene
+
+
+class MaskAnnotator:
+    def __init__(
+        self,
+        color: Union[Color, ColorPalette] = ColorPalette.default(),
+    ):
+        self.color: Union[Color, ColorPalette] = color
+
+    def annotate(
+        self,
+        scene: np.ndarray,
+        detections: Detections,
+        opacity: float = 0.5
+    ) -> np.ndarray:
+
+        for i in range(len(detections.xyxy)):
+            if detections.mask is None:
+                continue
+
+            class_id = (
+                detections.class_id[i] if detections.class_id is not None else None
+            )
+            idx = class_id if class_id is not None else i
+            color = (
+                self.color.by_idx(idx)
+                if isinstance(self.color, ColorPalette)
+                else self.color
+            )
+
+            mask = detections.mask[i]
+            colored_mask = np.zeros_like(scene, dtype=np.uint8)
+            colored_mask[:] = color.as_rgb()
+
+            scene = np.where(
+                np.expand_dims(mask, axis=-1),
+                np.uint8(opacity * colored_mask + (1 - opacity) * scene),
+                scene
+            )
+
+        return scene
