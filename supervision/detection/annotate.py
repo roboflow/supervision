@@ -127,10 +127,7 @@ class MaskAnnotator:
         self.color: Union[Color, ColorPalette] = color
 
     def annotate(
-        self,
-        scene: np.ndarray,
-        detections: Detections,
-        opacity: float = 0.5
+        self, scene: np.ndarray, detections: Detections, opacity: float = 0.5
     ) -> np.ndarray:
 
         for i in range(len(detections.xyxy)):
@@ -154,7 +151,7 @@ class MaskAnnotator:
             scene = np.where(
                 np.expand_dims(mask, axis=-1),
                 np.uint8(opacity * colored_mask + (1 - opacity) * scene),
-                scene
+                scene,
             )
 
         return scene

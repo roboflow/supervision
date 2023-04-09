@@ -5,7 +5,7 @@ from typing import Any, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 
-from supervision.detection.utils import non_max_suppression
+from supervision.detection.utils import non_max_suppression, xywh_to_xyxy
 from supervision.geometry.core import Position
 
 
@@ -240,8 +240,18 @@ class Detections:
         )
 
     @classmethod
-    def from_segment_anything_model(cls, segment_anything_model_result: List[dict]) -> Detections:
-        pass
+    def from_segment_anything_model(
+        cls, segment_anything_model_result: List[dict]
+    ) -> Detections:
+        sorted_generated_masks = sorted(
+            segment_anything_model_result, key=lambda x: x["area"], reverse=True
+        )
+
+        xywh = np.array([mask["bbox"] for mask in sorted_generated_masks])
+
+        mask = np.array([mask["segmentation"] for mask in sorted_generated_masks])
+
+        return Detections(xyxy=xywh_to_xyxy(boxes_xywh=xywh), mask=mask)
 
     @classmethod
     def from_coco_annotations(cls, coco_annotation: dict) -> Detections:

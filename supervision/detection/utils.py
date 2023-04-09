@@ -115,3 +115,10 @@ def clip_boxes(
     result[:, [0, 2]] = result[:, [0, 2]].clip(0, width)
     result[:, [1, 3]] = result[:, [1, 3]].clip(0, height)
     return result
+
+
+def xywh_to_xyxy(boxes_xywh: np.ndarray) -> np.ndarray:
+    xyxy = boxes_xywh.copy()
+    xyxy[:, 2] = boxes_xywh[:, 0] + boxes_xywh[:, 2]
+    xyxy[:, 3] = boxes_xywh[:, 1] + boxes_xywh[:, 3]
+    return xyxy
