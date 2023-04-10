@@ -120,16 +120,16 @@ class BoxAnnotator:
 
 
 class MaskAnnotator:
+    """
+   A class for overlaying masks on an image using detections provided.
+
+   Attributes:
+       color (Union[Color, ColorPalette]): The color to fill the mask, can be a single color or a color palette
+   """
     def __init__(
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
     ):
-        """
-        A class for overlaying masks on an image using detections provided.
-
-        Attributes:
-            color (Union[Color, ColorPalette]): The color to fill the mask, can be a single color or a color palette
-        """
         self.color: Union[Color, ColorPalette] = color
 
     def annotate(
