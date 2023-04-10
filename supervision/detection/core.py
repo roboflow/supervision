@@ -242,25 +242,25 @@ class Detections:
     @classmethod
     def from_sam(cls, sam_result: List[dict]) -> Detections:
         """
-       Creates a Detections instance from Segment Anything Model (SAM) by Meta AI.
+        Creates a Detections instance from Segment Anything Model (SAM) by Meta AI.
 
-       Args:
-           sam_result (List[dict]): The output Results instance from SAM
+        Args:
+            sam_result (List[dict]): The output Results instance from SAM
 
-       Returns:
-           Detections: A new Detections object.
+        Returns:
+            Detections: A new Detections object.
 
-       Example:
-           ```python
-           >>> from segment_anything import sam_model_registry, SamAutomaticMaskGenerator
-           >>> import supervision as sv
+        Example:
+            ```python
+            >>> from segment_anything import sam_model_registry, SamAutomaticMaskGenerator
+            >>> import supervision as sv
 
-           >>> sam = sam_model_registry[MODEL_TYPE](checkpoint=CHECKPOINT_PATH).to(device=DEVICE)
-           >>> mask_generator = SamAutomaticMaskGenerator(sam)
-           >>> sam_result = mask_generator.generate(IMAGE)
-           >>> detections = sv.Detections.from_sam(sam_result=sam_result)
-           ```
-       """
+            >>> sam = sam_model_registry[MODEL_TYPE](checkpoint=CHECKPOINT_PATH).to(device=DEVICE)
+            >>> mask_generator = SamAutomaticMaskGenerator(sam)
+            >>> sam_result = mask_generator.generate(IMAGE)
+            >>> detections = sv.Detections.from_sam(sam_result=sam_result)
+            ```
+        """
         sorted_generated_masks = sorted(
             sam_result, key=lambda x: x["area"], reverse=True
         )
