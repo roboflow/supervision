@@ -334,6 +334,20 @@ class Detections:
     @property
     def area(self) -> np.ndarray:
         """
+        Calculate the area of each detection in the set of object detections. If masks field is defined property
+        returns are of each mask. If only box is given property return area of each box.
+
+        Returns:
+          np.ndarray: An array of floats containing the area of each detection in the format of `(area_1, area_2, ..., area_n)`, where n is the number of detections.
+        """
+        if self.mask is not None:
+            return np.ndarray([np.sum(mask) for mask in self.mask])
+        else:
+            return self.box_area
+
+    @property
+    def box_area(self) -> np.ndarray:
+        """
         Calculate the area of each bounding box in the set of object detections.
 
         Returns:
