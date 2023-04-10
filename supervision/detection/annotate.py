@@ -146,7 +146,7 @@ class MaskAnnotator:
 
             mask = detections.mask[i]
             colored_mask = np.zeros_like(scene, dtype=np.uint8)
-            colored_mask[:] = color.as_rgb()
+            colored_mask[:] = color.as_bgr()
 
             scene = np.where(
                 np.expand_dims(mask, axis=-1),
