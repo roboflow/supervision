@@ -23,6 +23,7 @@ class PolygonZone:
         current_count (int): The current count of detected objects within the zone
         mask (np.ndarray): The 2D bool mask for the polygon zone
     """
+
     def __init__(
         self,
         polygon: np.ndarray,
@@ -77,6 +78,7 @@ class PolygonZoneAnnotator:
         font (int): The font type for the text on the polygon, default is cv2.FONT_HERSHEY_SIMPLEX
         center (Tuple[int, int]): The center of the polygon for text placement
     """
+
     def __init__(
         self,
         zone: PolygonZone,
