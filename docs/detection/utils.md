@@ -9,3 +9,7 @@
 ## non_max_suppression
 
 :::supervision.detection.utils.non_max_suppression
+
+## mask_to_xyxy
+
+:::supervision.detection.utils.mask_to_xyxy

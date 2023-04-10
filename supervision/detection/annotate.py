@@ -124,12 +124,28 @@ class MaskAnnotator:
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
     ):
+        """
+        A class for overlaying masks on an image using detections provided.
+
+        Attributes:
+            color (Union[Color, ColorPalette]): The color to fill the mask, can be a single color or a color palette
+        """
         self.color: Union[Color, ColorPalette] = color
 
     def annotate(
         self, scene: np.ndarray, detections: Detections, opacity: float = 0.5
     ) -> np.ndarray:
+        """
+        Overlays the masks on the given image based on the provided detections, with a specified opacity.
 
+        Parameters:
+            scene (np.ndarray): The image on which the masks will be overlaid
+            detections (Detections): The detections for which the masks will be overlaid
+            opacity (float): The opacity of the masks, between 0 and 1, default is 0.5
+
+        Returns:
+            np.ndarray: The image with the masks overlaid
+        """
         for i in range(len(detections.xyxy)):
             if detections.mask is None:
                 continue

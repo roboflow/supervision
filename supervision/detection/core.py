@@ -92,7 +92,7 @@ class Detections:
         ]
     ]:
         """
-        Iterates over the Detections object and yield a tuple of `(xyxy, confidence, class_id, tracker_id)` for each detection.
+        Iterates over the Detections object and yield a tuple of `(xyxy, mask, confidence, class_id, tracker_id)` for each detection.
         """
         for i in range(len(self.xyxy)):
             yield (
