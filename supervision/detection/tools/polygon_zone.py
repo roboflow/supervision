@@ -13,6 +13,17 @@ from supervision.geometry.utils import get_polygon_center
 
 
 class PolygonZone:
+    """
+    A class for defining a polygon-shaped zone within a frame for detecting objects.
+
+    Attributes:
+        polygon (np.ndarray): A numpy array defining the polygon vertices
+        frame_resolution_wh (Tuple[int, int]): The frame resolution (width, height)
+        triggering_position (Position): The position within the bounding box that triggers the zone (default: Position.BOTTOM_CENTER)
+        current_count (int): The current count of detected objects within the zone
+        mask (np.ndarray): The 2D bool mask for the polygon zone
+    """
+
     def __init__(
         self,
         polygon: np.ndarray,
@@ -30,6 +41,16 @@ class PolygonZone:
         )
 
     def trigger(self, detections: Detections) -> np.ndarray:
+        """
+        Determines if the detections are within the polygon zone.
+
+        Parameters:
+            detections (Detections): The detections to be checked against the polygon zone
+
+        Returns:
+            np.ndarray: A boolean numpy array indicating if each detection is within the polygon zone
+        """
+
         clipped_xyxy = clip_boxes(
             boxes_xyxy=detections.xyxy, frame_resolution_wh=self.frame_resolution_wh
         )
@@ -43,6 +64,21 @@ class PolygonZone:
 
 
 class PolygonZoneAnnotator:
+    """
+    A class for annotating a polygon-shaped zone within a frame with a count of detected objects.
+
+    Attributes:
+        zone (PolygonZone): The polygon zone to be annotated
+        color (Color): The color to draw the polygon lines
+        thickness (int): The thickness of the polygon lines, default is 2
+        text_color (Color): The color of the text on the polygon, default is black
+        text_scale (float): The scale of the text on the polygon, default is 0.5
+        text_thickness (int): The thickness of the text on the polygon, default is 1
+        text_padding (int): The padding around the text on the polygon, default is 10
+        font (int): The font type for the text on the polygon, default is cv2.FONT_HERSHEY_SIMPLEX
+        center (Tuple[int, int]): The center of the polygon for text placement
+    """
+
     def __init__(
         self,
         zone: PolygonZone,
@@ -64,6 +100,16 @@ class PolygonZoneAnnotator:
         self.center = get_polygon_center(polygon=zone.polygon)
 
     def annotate(self, scene: np.ndarray, label: Optional[str] = None) -> np.ndarray:
+        """
+        Annotates the polygon zone within a frame with a count of detected objects.
+
+        Parameters:
+            scene (np.ndarray): The image on which the polygon zone will be annotated
+            label (Optional[str]): An optional label for the count of detected objects within the polygon zone (default: None)
+
+        Returns:
+            np.ndarray: The image with the polygon zone and count of detected objects
+        """
         annotated_frame = draw_polygon(
             scene=scene,
             polygon=self.zone.polygon,

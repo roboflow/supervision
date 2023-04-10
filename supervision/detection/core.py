@@ -1,12 +1,50 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterator, List, Optional, Tuple, Union
+from typing import Any, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 
-from supervision.detection.utils import non_max_suppression
+from supervision.detection.utils import non_max_suppression, xywh_to_xyxy
 from supervision.geometry.core import Position
+
+
+def _validate_xyxy(xyxy: Any, n: int) -> None:
+    is_valid = isinstance(xyxy, np.ndarray) and xyxy.shape == (n, 4)
+    if not is_valid:
+        raise ValueError("xyxy must be 2d np.ndarray with (n, 4) shape")
+
+
+def _validate_mask(mask: Any, n: int) -> None:
+    is_valid = mask is None or (
+        isinstance(mask, np.ndarray) and len(mask.shape) == 3 and mask.shape[0] == n
+    )
+    if not is_valid:
+        raise ValueError("mask must be 3d np.ndarray with (n, W, H) shape")
+
+
+def _validate_class_id(class_id: Any, n: int) -> None:
+    is_valid = class_id is None or (
+        isinstance(class_id, np.ndarray) and class_id.shape == (n,)
+    )
+    if not is_valid:
+        raise ValueError("class_id must be None or 1d np.ndarray with (n,) shape")
+
+
+def _validate_confidence(confidence: Any, n: int) -> None:
+    is_valid = confidence is None or (
+        isinstance(confidence, np.ndarray) and confidence.shape == (n,)
+    )
+    if not is_valid:
+        raise ValueError("confidence must be None or 1d np.ndarray with (n,) shape")
+
+
+def _validate_tracker_id(tracker_id: Any, n: int) -> None:
+    is_valid = tracker_id is None or (
+        isinstance(tracker_id, np.ndarray) and tracker_id.shape == (n,)
+    )
+    if not is_valid:
+        raise ValueError("tracker_id must be None or 1d np.ndarray with (n,) shape")
 
 
 @dataclass
@@ -16,40 +54,25 @@ class Detections:
 
     Attributes:
         xyxy (np.ndarray): An array of shape `(n, 4)` containing the bounding boxes coordinates in format `[x1, y1, x2, y2]`
+        mask: (Optional[np.ndarray]): An array of shape `(n, W, H)` containing the segmentation masks.
         class_id (Optional[np.ndarray]): An array of shape `(n,)` containing the class ids of the detections.
         confidence (Optional[np.ndarray]): An array of shape `(n,)` containing the confidence scores of the detections.
         tracker_id (Optional[np.ndarray]): An array of shape `(n,)` containing the tracker ids of the detections.
     """
 
     xyxy: np.ndarray
+    mask: np.Optional[np.ndarray] = None
     class_id: Optional[np.ndarray] = None
     confidence: Optional[np.ndarray] = None
     tracker_id: Optional[np.ndarray] = None
 
     def __post_init__(self):
         n = len(self.xyxy)
-        validators = [
-            (isinstance(self.xyxy, np.ndarray) and self.xyxy.shape == (n, 4)),
-            self.class_id is None
-            or (isinstance(self.class_id, np.ndarray) and self.class_id.shape == (n,)),
-            self.confidence is None
-            or (
-                isinstance(self.confidence, np.ndarray)
-                and self.confidence.shape == (n,)
-            ),
-            self.tracker_id is None
-            or (
-                isinstance(self.tracker_id, np.ndarray)
-                and self.tracker_id.shape == (n,)
-            ),
-        ]
-        if not all(validators):
-            raise ValueError(
-                "xyxy must be 2d np.ndarray with (n, 4) shape, "
-                "class_id must be None or 1d np.ndarray with (n,) shape, "
-                "confidence must be None or 1d np.ndarray with (n,) shape, "
-                "tracker_id must be None or 1d np.ndarray with (n,) shape"
-            )
+        _validate_xyxy(xyxy=self.xyxy, n=n)
+        _validate_mask(mask=self.mask, n=n)
+        _validate_class_id(class_id=self.class_id, n=n)
+        _validate_confidence(confidence=self.confidence, n=n)
+        _validate_tracker_id(tracker_id=self.tracker_id, n=n)
 
     def __len__(self):
         """
@@ -59,13 +82,22 @@ class Detections:
 
     def __iter__(
         self,
-    ) -> Iterator[Tuple[np.ndarray, Optional[float], int, Optional[Union[str, int]]]]:
+    ) -> Iterator[
+        Tuple[
+            np.ndarray,
+            Optional[np.ndarray],
+            Optional[float],
+            Optional[int],
+            Optional[int],
+        ]
+    ]:
         """
-        Iterates over the Detections object and yield a tuple of `(xyxy, confidence, class_id, tracker_id)` for each detection.
+        Iterates over the Detections object and yield a tuple of `(xyxy, mask, confidence, class_id, tracker_id)` for each detection.
         """
         for i in range(len(self.xyxy)):
             yield (
                 self.xyxy[i],
+                self.mask[i] if self.mask is not None else None,
                 self.confidence[i] if self.confidence is not None else None,
                 self.class_id[i] if self.class_id is not None else None,
                 self.tracker_id[i] if self.tracker_id is not None else None,
@@ -75,6 +107,12 @@ class Detections:
         return all(
             [
                 np.array_equal(self.xyxy, other.xyxy),
+                any(
+                    [
+                        self.mask is None and other.mask is None,
+                        np.array_equal(self.mask, other.mask),
+                    ]
+                ),
                 any(
                     [
                         self.class_id is None and other.class_id is None,
@@ -113,7 +151,7 @@ class Detections:
             >>> from supervision import Detections
 
             >>> model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
-            >>> results = model(frame)
+            >>> results = model(IMAGE)
             >>> detections = Detections.from_yolov5(results)
             ```
         """
@@ -141,8 +179,8 @@ class Detections:
             >>> from supervision import Detections
 
             >>> model = YOLO('yolov8s.pt')
-            >>> results = model(frame)[0]
-            >>> detections = Detections.from_yolov8(results)
+            >>> yolov8_results = model(IMAGE)[0]
+            >>> detections = Detections.from_yolov8(yolov8_results)
             ```
         """
         return cls(
@@ -200,6 +238,37 @@ class Detections:
             confidence=np.array(confidence),
             class_id=np.array(class_id).astype(int),
         )
+
+    @classmethod
+    def from_sam(cls, sam_result: List[dict]) -> Detections:
+        """
+        Creates a Detections instance from Segment Anything Model (SAM) by Meta AI.
+
+        Args:
+            sam_result (List[dict]): The output Results instance from SAM
+
+        Returns:
+            Detections: A new Detections object.
+
+        Example:
+            ```python
+            >>> from segment_anything import sam_model_registry, SamAutomaticMaskGenerator
+            >>> import supervision as sv
+
+            >>> sam = sam_model_registry[MODEL_TYPE](checkpoint=CHECKPOINT_PATH).to(device=DEVICE)
+            >>> mask_generator = SamAutomaticMaskGenerator(sam)
+            >>> sam_result = mask_generator.generate(IMAGE)
+            >>> detections = sv.Detections.from_sam(sam_result=sam_result)
+            ```
+        """
+        sorted_generated_masks = sorted(
+            sam_result, key=lambda x: x["area"], reverse=True
+        )
+
+        xywh = np.array([mask["bbox"] for mask in sorted_generated_masks])
+        mask = np.array([mask["segmentation"] for mask in sorted_generated_masks])
+
+        return Detections(xyxy=xywh_to_xyxy(boxes_xywh=xywh), mask=mask)
 
     @classmethod
     def from_coco_annotations(cls, coco_annotation: dict) -> Detections:
@@ -264,6 +333,20 @@ class Detections:
 
     @property
     def area(self) -> np.ndarray:
+        """
+        Calculate the area of each detection in the set of object detections. If masks field is defined property
+        returns are of each mask. If only box is given property return area of each box.
+
+        Returns:
+          np.ndarray: An array of floats containing the area of each detection in the format of `(area_1, area_2, ..., area_n)`, where n is the number of detections.
+        """
+        if self.mask is not None:
+            return np.ndarray([np.sum(mask) for mask in self.mask])
+        else:
+            return self.box_area
+
+    @property
+    def box_area(self) -> np.ndarray:
         """
         Calculate the area of each bounding box in the set of object detections.
 

@@ -29,6 +29,8 @@ nav:
         - Core: detection/core.md
         - Annotate: detection/annotate.md
         - Utils: detection/utils.md
+        - Tools:
+            - Polygon Zone: detection/tools/polygon_zone.md
     - Draw:
         - Utils: draw/utils.md
     - Annotations:

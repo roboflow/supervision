@@ -115,3 +115,34 @@ def clip_boxes(
     result[:, [0, 2]] = result[:, [0, 2]].clip(0, width)
     result[:, [1, 3]] = result[:, [1, 3]].clip(0, height)
     return result
+
+
+def xywh_to_xyxy(boxes_xywh: np.ndarray) -> np.ndarray:
+    xyxy = boxes_xywh.copy()
+    xyxy[:, 2] = boxes_xywh[:, 0] + boxes_xywh[:, 2]
+    xyxy[:, 3] = boxes_xywh[:, 1] + boxes_xywh[:, 3]
+    return xyxy
+
+
+def mask_to_xyxy(masks: np.ndarray) -> np.ndarray:
+    """
+    Converts a 3D `np.array` of 2D bool masks into a 2D `np.array` of bounding boxes.
+
+    Parameters:
+        masks (np.ndarray): A 3D `np.array` of shape `(N, W, H)` containing 2D bool masks
+
+    Returns:
+        np.ndarray: A 2D `np.array` of shape `(N, 4)` containing the bounding boxes `(x_min, y_min, x_max, y_max)` for each mask
+    """
+    n = masks.shape[0]
+    bboxes = np.zeros((n, 4), dtype=int)
+
+    for i, mask in enumerate(masks):
+        rows, cols = np.where(mask)
+
+        if len(rows) > 0 and len(cols) > 0:
+            x_min, x_max = np.min(cols), np.max(cols)
+            y_min, y_max = np.min(rows), np.max(rows)
+            bboxes[i, :] = [x_min, y_min, x_max, y_max]
+
+    return bboxes
