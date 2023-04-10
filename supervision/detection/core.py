@@ -151,7 +151,7 @@ class Detections:
             >>> from supervision import Detections
 
             >>> model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
-            >>> results = model(frame)
+            >>> results = model(IMAGE)
             >>> detections = Detections.from_yolov5(results)
             ```
         """
@@ -179,8 +179,8 @@ class Detections:
             >>> from supervision import Detections
 
             >>> model = YOLO('yolov8s.pt')
-            >>> results = model(frame)[0]
-            >>> detections = Detections.from_yolov8(results)
+            >>> yolov8_results = model(IMAGE)[0]
+            >>> detections = Detections.from_yolov8(yolov8_results)
             ```
         """
         return cls(
@@ -240,15 +240,32 @@ class Detections:
         )
 
     @classmethod
-    def from_segment_anything_model(
-        cls, segment_anything_model_result: List[dict]
-    ) -> Detections:
+    def from_sam(cls, sam_result: List[dict]) -> Detections:
+        """
+       Creates a Detections instance from Segment Anything Model (SAM) by Meta AI.
+
+       Args:
+           sam_result (List[dict]): The output Results instance from SAM
+
+       Returns:
+           Detections: A new Detections object.
+
+       Example:
+           ```python
+           >>> from segment_anything import sam_model_registry, SamAutomaticMaskGenerator
+           >>> import supervision as sv
+
+           >>> sam = sam_model_registry[MODEL_TYPE](checkpoint=CHECKPOINT_PATH).to(device=DEVICE)
+           >>> mask_generator = SamAutomaticMaskGenerator(sam)
+           >>> sam_result = mask_generator.generate(IMAGE)
+           >>> detections = sv.Detections.from_sam(sam_result=sam_result)
+           ```
+       """
         sorted_generated_masks = sorted(
-            segment_anything_model_result, key=lambda x: x["area"], reverse=True
+            sam_result, key=lambda x: x["area"], reverse=True
         )
 
         xywh = np.array([mask["bbox"] for mask in sorted_generated_masks])
-
         mask = np.array([mask["segmentation"] for mask in sorted_generated_masks])
 
         return Detections(xyxy=xywh_to_xyxy(boxes_xywh=xywh), mask=mask)
