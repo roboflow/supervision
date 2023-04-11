@@ -319,6 +319,9 @@ class Detections:
         ):
             return Detections(
                 xyxy=self.xyxy[index],
+                mask=self.mask[index]
+                if self.mask is not None
+                else None,
                 confidence=self.confidence[index]
                 if self.confidence is not None
                 else None,
@@ -341,7 +344,7 @@ class Detections:
           np.ndarray: An array of floats containing the area of each detection in the format of `(area_1, area_2, ..., area_n)`, where n is the number of detections.
         """
         if self.mask is not None:
-            return np.ndarray([np.sum(mask) for mask in self.mask])
+            return np.array([np.sum(mask) for mask in self.mask])
         else:
             return self.box_area
 
