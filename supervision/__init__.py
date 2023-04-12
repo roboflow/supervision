@@ -1,4 +1,4 @@
-__version__ = "0.5.0"
+__version__ = "0.5.1"
 
 from supervision.annotation.voc import detections_to_voc_xml
 from supervision.detection.annotate import BoxAnnotator, MaskAnnotator

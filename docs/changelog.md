@@ -1,3 +1,8 @@
+### 0.5.1 <small>April 12, 2023</small>
+
+- Fixed `Detections.__getitem__` method did not return mask for selected item.
+- Fixed `Detections.area` crashed for mask detections.
+
 ### 0.5.0 <small>April 10, 2023</small>
 
 - Added [[#58](https://github.com/roboflow/supervision/pull/58)]: `Detections.mask` to enable segmentation support.
