@@ -1,3 +1,7 @@
+### 0.5.2 <small>April 13, 2023</small>
+
+- Fixed [[#63](https://github.com/roboflow/supervision/pull/63)]: `LineZone.trigger` function expects 4 values instead of 5.
+
 ### 0.5.1 <small>April 12, 2023</small>
 
 - Fixed `Detections.__getitem__` method did not return mask for selected item.

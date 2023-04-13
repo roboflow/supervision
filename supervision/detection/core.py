@@ -319,9 +319,7 @@ class Detections:
         ):
             return Detections(
                 xyxy=self.xyxy[index],
-                mask=self.mask[index]
-                if self.mask is not None
-                else None,
+                mask=self.mask[index] if self.mask is not None else None,
                 confidence=self.confidence[index]
                 if self.confidence is not None
                 else None,
