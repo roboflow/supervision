@@ -35,7 +35,7 @@ class LineZone:
             detections (Detections): The detections for which to update the counts.
 
         """
-        for xyxy, confidence, class_id, tracker_id in detections:
+        for xyxy, _, confidence, class_id, tracker_id in detections:
             # handle detections with no tracker_id
             if tracker_id is None:
                 continue
