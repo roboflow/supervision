@@ -150,7 +150,7 @@ class MaskAnnotator:
         if detections.mask is None:
             return scene
 
-        for i in np.argsort(detections.area):
+        for i in np.flip(np.argsort(detections.area)):
             class_id = (
                 detections.class_id[i] if detections.class_id is not None else None
             )
