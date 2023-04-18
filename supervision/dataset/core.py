@@ -3,7 +3,7 @@ from typing import Dict, List, Optional
 
 import numpy as np
 
-from supervision import Detections
+from supervision.detection.core import Detections
 from supervision.dataset.formats.pascal_voc import dataset_to_pascal_voc
 
 
