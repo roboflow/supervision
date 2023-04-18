@@ -1,7 +1,10 @@
-from typing import Tuple
+from typing import Tuple, List, Optional
 
 import cv2
 import numpy as np
+
+
+MIN_POLYGON_POINT_COUNT = 3
 
 
 def generate_2d_mask(polygon: np.ndarray, resolution_wh: Tuple[int, int]) -> np.ndarray:
@@ -146,3 +149,43 @@ def mask_to_xyxy(masks: np.ndarray) -> np.ndarray:
             bboxes[i, :] = [x_min, y_min, x_max, y_max]
 
     return bboxes
+
+
+def mask_to_polygons(mask: np.ndarray) -> List[np.ndarray]:
+    contours, _ = cv2.findContours(mask.astype(np.uint8), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    return [
+        np.squeeze(contour, axis=1)
+        for contour
+        in contours
+        if contour.shape[0] >= MIN_POLYGON_POINT_COUNT
+    ]
+
+
+def filter_polygons_by_area(polygons: List[np.ndarray], min_area: Optional[float], max_area: Optional[float]) -> List[np.ndarray]:
+    """
+    Filters a list of polygons based on their area.
+
+    Parameters:
+        polygons (List[np.ndarray]): A list of polygons, where each polygon is represented by a NumPy array of shape (N, 2),
+            containing the x, y coordinates of the points.
+        min_area (Optional[float]): The minimum area threshold. Only polygons with an area greater than or equal to this value
+            will be included in the output. If set to None, no minimum area constraint will be applied.
+        max_area (Optional[float]): The maximum area threshold. Only polygons with an area less than or equal to this value
+            will be included in the output. If set to None, no maximum area constraint will be applied.
+
+    Returns:
+        List[np.ndarray]: A new list of polygons containing only those with areas within the specified thresholds.
+    """
+    if min_area is None and max_area is None:
+        return polygons
+    ares = [
+        cv2.contourArea(polygon)
+        for polygon
+        in polygons
+    ]
+    return [
+        polygon
+        for polygon, area
+        in zip(polygons, ares)
+        if (min_area is None or area>= min_area) and (max_area is None or area<= max_area)
+    ]

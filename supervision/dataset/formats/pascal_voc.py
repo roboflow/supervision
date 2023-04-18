@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 from xml.dom.minidom import parseString
 from xml.etree.ElementTree import Element, SubElement, tostring
 
@@ -9,9 +9,7 @@ def detections_to_pascal_voc(
         detections: Detections,
         classes: List[str],
         filename: str,
-        width: int,
-        height: int,
-        depth: int = 3,
+        image_shape: Tuple[int, int, int]
 ) -> str:
     """
     Converts Detections object to Pascal VOC XML format.
@@ -20,12 +18,11 @@ def detections_to_pascal_voc(
         detections (Detections): A Detections object containing bounding boxes, class ids, and other relevant information.
         classes (List[str]): A list of class names corresponding to the class ids in the Detections object.
         filename (str): The name of the image file associated with the detections.
-        width (int): The width of the image in pixels.
-        height (int): The height of the image in pixels.
-        depth (int, optional): The number of color channels in the image. Defaults to 3 for RGB images.
+        image_shape (Tuple[int, int, int]): The shape of the image file associated with the detections.
     Returns:
         str: An XML string in Pascal VOC format representing the detections.
     """
+    height, width, depth = image_shape
 
     # Create root element
     annotation = Element("annotation")
@@ -35,8 +32,8 @@ def detections_to_pascal_voc(
     folder.text = "VOC"
 
     # Add filename element
-    fname = SubElement(annotation, "filename")
-    fname.text = filename
+    file_name = SubElement(annotation, "filename")
+    file_name.text = filename
 
     # Add source element
     source = SubElement(annotation, "source")
