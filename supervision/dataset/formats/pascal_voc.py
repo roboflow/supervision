@@ -1,9 +1,24 @@
 import os
 import xml.etree.ElementTree as ET
-from typing import Optional
+from typing import Optional, List
+
+import cv2
+
+from supervision import Dataset, Detections
 
 
 def detections_to_pascal_voc(
+        detections: Detections,
+        classes: List[str],
+        filename: str,
+        width: int,
+        height: int,
+        depth: int = 3,
+) -> str:
+    pass
+
+
+def dataset_to_pascal_voc(
         detections: Dataset,
         images_directory_path: Optional[str],
         annotations_directory_path: Optional[str]

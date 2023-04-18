@@ -1,7 +1,6 @@
 __version__ = "0.6.0"
 
 from supervision.dataset.core import Dataset
-from supervision.dataset.formats.pascal_voc import detections_to_voc_xml
 from supervision.detection.annotate import BoxAnnotator, MaskAnnotator
 from supervision.detection.core import Detections
 from supervision.detection.line_counter import LineZone, LineZoneAnnotator

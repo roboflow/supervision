@@ -4,7 +4,7 @@ from typing import Dict, List, Optional
 import numpy as np
 
 from supervision import Detections
-from supervision.dataset.formats.pascal_voc import detections_to_pascal_voc
+from supervision.dataset.formats.pascal_voc import dataset_to_pascal_voc
 
 
 @dataclass
@@ -26,7 +26,7 @@ class Dataset:
             images_directory_path: Optional[str],
             annotations_directory_path: Optional[str]
     ) -> None:
-        detections_to_pascal_voc(
+        dataset_to_pascal_voc(
             detections=self,
             images_directory_path=images_directory_path,
             annotations_directory_path=annotations_directory_path
