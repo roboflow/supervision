@@ -1,9 +1,37 @@
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 from xml.dom.minidom import parseString
 from xml.etree.ElementTree import Element, SubElement, tostring
 
 from supervision.detection.core import Detections
 
+import numpy as np
+
+
+def object_to_pascal_voc(xyxy: np.ndarray, name: str, polygon: Optional[np.ndarray] = None) -> Element:
+    root = Element("object")
+
+    object_name = SubElement(root, "name")
+    object_name.text = name
+
+    bndbox = SubElement(root, "bndbox")
+    xmin = SubElement(bndbox, "xmin")
+    xmin.text = str(int(xyxy[0]))
+    ymin = SubElement(bndbox, "ymin")
+    ymin.text = str(int(xyxy[1]))
+    xmax = SubElement(bndbox, "xmax")
+    xmax.text = str(int(xyxy[2]))
+    ymax = SubElement(bndbox, "ymax")
+    ymax.text = str(int(xyxy[3]))
+
+    object_polygon = SubElement(root, "polygon")
+    for index, point in enumerate(polygon, start=1):
+        x_coordinate, y_coordinate = point
+        x = SubElement(object_polygon, f"x{index}")
+        x.text = str(x_coordinate)
+        y = SubElement(object_polygon, f"y{index}")
+        y.text = str(y_coordinate)
+
+    return root
 
 def detections_to_pascal_voc(
         detections: Detections,

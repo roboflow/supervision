@@ -161,7 +161,7 @@ def mask_to_polygons(mask: np.ndarray) -> List[np.ndarray]:
     ]
 
 
-def filter_polygons_by_area(polygons: List[np.ndarray], min_area: Optional[float], max_area: Optional[float]) -> List[np.ndarray]:
+def filter_polygons_by_area(polygons: List[np.ndarray], min_area: Optional[float] = None, max_area: Optional[float] = None) -> List[np.ndarray]:
     """
     Filters a list of polygons based on their area.
 
@@ -189,3 +189,19 @@ def filter_polygons_by_area(polygons: List[np.ndarray], min_area: Optional[float
         in zip(polygons, ares)
         if (min_area is None or area>= min_area) and (max_area is None or area<= max_area)
     ]
+
+
+def polygon_to_xyxy(polygon: np.ndarray) -> np.ndarray:
+    """
+    Converts a polygon represented by a NumPy array into a bounding box.
+
+    Parameters:
+        polygon (np.ndarray): A polygon represented by a NumPy array of shape (N, 2),
+            containing the x, y coordinates of the points.
+
+    Returns:
+        np.ndarray: A 1D NumPy array containing the bounding box (x_min, y_min, x_max, y_max) of the input polygon.
+    """
+    x_min, y_min = np.min(polygon, axis=0)
+    x_max, y_max = np.max(polygon, axis=0)
+    return np.array([x_min, y_min, x_max, y_max])
