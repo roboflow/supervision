@@ -13,6 +13,9 @@ from supervision.detection.utils import (
 )
 
 
+EPSILON = 0.05
+
+
 def object_to_pascal_voc(
     xyxy: np.ndarray, name: str, polygon: Optional[np.ndarray] = None
 ) -> Element:
@@ -68,6 +71,7 @@ def detections_to_pascal_voc(
     image_area = height * width
     minimum_detection_area = minimum_detection_area_percentage * image_area
     maximum_detection_area = maximum_detection_area_percentage * image_area
+    epsilon = max(min(height, width) * EPSILON, 1.0)
 
     # Create root element
     annotation = Element("annotation")
@@ -114,7 +118,7 @@ def detections_to_pascal_voc(
                     max_area=maximum_detection_area,
                 )
             for polygon in polygons:
-                approx_polygon = cv2.approxPolyDP(polygon, 1.0, True)
+                approx_polygon = cv2.approxPolyDP(polygon, epsilon, True)
                 approx_polygon = np.squeeze(approx_polygon, axis=1)
                 xyxy = polygon_to_xyxy(polygon=approx_polygon)
                 next_object = object_to_pascal_voc(
