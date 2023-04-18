@@ -26,8 +26,8 @@ class Dataset:
 
     def as_pascal_voc(
         self,
-        images_directory_path: Optional[str],
-        annotations_directory_path: Optional[str],
+        images_directory_path: Optional[str] = None,
+        annotations_directory_path: Optional[str] = None,
         minimum_detection_area_percentage: float = 0.0,
         maximum_detection_area_percentage: float = 1.0,
     ) -> None:

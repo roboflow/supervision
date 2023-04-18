@@ -8,6 +8,7 @@ from supervision.detection.tools.polygon_zone import PolygonZone, PolygonZoneAnn
 from supervision.detection.utils import generate_2d_mask, mask_to_xyxy
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import draw_filled_rectangle, draw_polygon, draw_text
+from supervision.file import list_files_with_extensions
 from supervision.geometry.core import Point, Position, Rect
 from supervision.geometry.utils import get_polygon_center
 from supervision.notebook.utils import plot_image, plot_images_grid
