@@ -4,7 +4,8 @@ from typing import Optional, List
 
 import cv2
 
-from supervision import Dataset, Detections
+from supervision.dataset.core import Dataset
+from supervision.detection.core import Detections
 
 
 def detections_to_pascal_voc(
