@@ -15,6 +15,7 @@ def detections_to_pascal_voc(
 ) -> str:
     """
     Converts Detections object to Pascal VOC XML format.
+
     Args:
         detections (Detections): A Detections object containing bounding boxes, class ids, and other relevant information.
         classes (List[str]): A list of class names corresponding to the class ids in the Detections object.
