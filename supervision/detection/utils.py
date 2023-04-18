@@ -1,8 +1,7 @@
-from typing import Tuple, List, Optional
+from typing import List, Optional, Tuple
 
 import cv2
 import numpy as np
-
 
 MIN_POLYGON_POINT_COUNT = 3
 
@@ -152,16 +151,21 @@ def mask_to_xyxy(masks: np.ndarray) -> np.ndarray:
 
 
 def mask_to_polygons(mask: np.ndarray) -> List[np.ndarray]:
-    contours, _ = cv2.findContours(mask.astype(np.uint8), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    contours, _ = cv2.findContours(
+        mask.astype(np.uint8), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
+    )
     return [
         np.squeeze(contour, axis=1)
-        for contour
-        in contours
+        for contour in contours
         if contour.shape[0] >= MIN_POLYGON_POINT_COUNT
     ]
 
 
-def filter_polygons_by_area(polygons: List[np.ndarray], min_area: Optional[float] = None, max_area: Optional[float] = None) -> List[np.ndarray]:
+def filter_polygons_by_area(
+    polygons: List[np.ndarray],
+    min_area: Optional[float] = None,
+    max_area: Optional[float] = None,
+) -> List[np.ndarray]:
     """
     Filters a list of polygons based on their area.
 
@@ -178,16 +182,12 @@ def filter_polygons_by_area(polygons: List[np.ndarray], min_area: Optional[float
     """
     if min_area is None and max_area is None:
         return polygons
-    ares = [
-        cv2.contourArea(polygon)
-        for polygon
-        in polygons
-    ]
+    ares = [cv2.contourArea(polygon) for polygon in polygons]
     return [
         polygon
-        for polygon, area
-        in zip(polygons, ares)
-        if (min_area is None or area>= min_area) and (max_area is None or area<= max_area)
+        for polygon, area in zip(polygons, ares)
+        if (min_area is None or area >= min_area)
+        and (max_area is None or area <= max_area)
     ]
 
 
