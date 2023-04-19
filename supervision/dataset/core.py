@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -5,6 +7,7 @@ from typing import Dict, List, Optional
 import cv2
 import numpy as np
 
+from supervision import list_files_with_extensions
 from supervision.dataset.formats.pascal_voc import detections_to_pascal_voc
 from supervision.detection.core import Detections
 
@@ -77,3 +80,12 @@ class Dataset:
                 with open(annotations_path / f"{annotation_name}.xml", "w") as f:
                     f.write(pascal_voc_xml)
 
+    @classmethod
+    def from_pascal_voc(cls, images_directory_path: str, annotations_directory_path: str) -> Dataset:
+        image_paths = list_files_with_extensions(
+            directory=images_directory_path,
+            extensions=['jpg', 'jpeg', 'png'])
+        annotation_paths = list_files_with_extensions(
+            directory=annotations_directory_path,
+            extensions=['xml'])
+        return image_paths, annotation_paths
