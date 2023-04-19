@@ -28,8 +28,9 @@ class Dataset:
         self,
         images_directory_path: Optional[str] = None,
         annotations_directory_path: Optional[str] = None,
-        minimum_detection_area_percentage: float = 0.0,
-        maximum_detection_area_percentage: float = 1.0,
+        min_image_area_percentage: float = 0.0,
+        max_image_area_percentage: float = 1.0,
+        max_polygon_points: int = 30,
     ) -> None:
         """
         Exports the dataset to PASCAL VOC format. This method saves the images and their corresponding annotations in
@@ -41,10 +42,11 @@ class Dataset:
                 If not provided, images will not be saved.
             annotations_directory_path (Optional[str]): The path to the directory where the annotations in
                 PASCAL VOC format should be saved. If not provided, annotations will not be saved.
-            minimum_detection_area_percentage (float): The minimum percentage of detection area relative to
+            min_image_area_percentage (float): The minimum percentage of detection area relative to
                 the image area for a detection to be included.
-            maximum_detection_area_percentage (float): The maximum percentage of detection area relative to
+            max_image_area_percentage (float): The maximum percentage of detection area relative to
                 the image area for a detection to be included.
+            max_polygon_points (int): Maximum count of points in polygon.
         """
         if images_directory_path:
             images_path = Path(images_directory_path)
@@ -67,8 +69,9 @@ class Dataset:
                     classes=self.classes,
                     filename=image_name,
                     image_shape=image.shape,
-                    minimum_detection_area_percentage=minimum_detection_area_percentage,
-                    maximum_detection_area_percentage=maximum_detection_area_percentage,
+                    min_image_area_percentage=min_image_area_percentage,
+                    max_image_area_percentage=max_image_area_percentage,
+                    max_polygon_points=max_polygon_points,
                 )
 
                 with open(annotations_path / f"{annotation_name}.xml", "w") as f:

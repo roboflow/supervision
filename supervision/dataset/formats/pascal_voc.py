@@ -2,17 +2,15 @@ from typing import List, Optional, Tuple
 from xml.dom.minidom import parseString
 from xml.etree.ElementTree import Element, SubElement, tostring
 
-import cv2
 import numpy as np
 
 from supervision.detection.core import Detections
 from supervision.detection.utils import (
+    approximate_polygon,
     filter_polygons_by_area,
     mask_to_polygons,
     polygon_to_xyxy,
 )
-
-EPSILON = 0.05
 
 
 def object_to_pascal_voc(
@@ -50,8 +48,9 @@ def detections_to_pascal_voc(
     classes: List[str],
     filename: str,
     image_shape: Tuple[int, int, int],
-    minimum_detection_area_percentage: float = 0.0,
-    maximum_detection_area_percentage: float = 1.0,
+    min_image_area_percentage: float = 0.0,
+    max_image_area_percentage: float = 1.0,
+    max_polygon_points: int = 30,
 ) -> str:
     """
     Converts Detections object to Pascal VOC XML format.
@@ -61,16 +60,16 @@ def detections_to_pascal_voc(
         classes (List[str]): A list of class names corresponding to the class ids in the Detections object.
         filename (str): The name of the image file associated with the detections.
         image_shape (Tuple[int, int, int]): The shape of the image file associated with the detections.
-        minimum_detection_area_percentage (float): Minimum detection area relative to area of image associated with it.
-        maximum_detection_area_percentage (float): Maximum detection area relative to area of image associated with it.
+        min_image_area_percentage (float): Minimum detection area relative to area of image associated with it.
+        max_image_area_percentage (float): Maximum detection area relative to area of image associated with it.
+        max_polygon_points (int): Maximum count of points in polygon.
     Returns:
         str: An XML string in Pascal VOC format representing the detections.
     """
     height, width, depth = image_shape
     image_area = height * width
-    minimum_detection_area = minimum_detection_area_percentage * image_area
-    maximum_detection_area = maximum_detection_area_percentage * image_area
-    epsilon = max(min(height, width) * EPSILON, 1.0)
+    minimum_detection_area = min_image_area_percentage * image_area
+    maximum_detection_area = max_image_area_percentage * image_area
 
     # Create root element
     annotation = Element("annotation")
@@ -117,7 +116,9 @@ def detections_to_pascal_voc(
                     max_area=maximum_detection_area,
                 )
             for polygon in polygons:
-                approx_polygon = cv2.approxPolyDP(polygon, epsilon, True)
+                approx_polygon = approximate_polygon(
+                    polygon=polygon, max_points=max_polygon_points
+                )
                 approx_polygon = np.squeeze(approx_polygon, axis=1)
                 xyxy = polygon_to_xyxy(polygon=approx_polygon)
                 next_object = object_to_pascal_voc(

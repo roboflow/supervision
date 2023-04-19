@@ -218,3 +218,31 @@ def polygon_to_xyxy(polygon: np.ndarray) -> np.ndarray:
     x_min, y_min = np.min(polygon, axis=0)
     x_max, y_max = np.max(polygon, axis=0)
     return np.array([x_min, y_min, x_max, y_max])
+
+
+def approximate_polygon(polygon: np.ndarray, max_points: int) -> np.ndarray:
+    """
+    Approximates a given polygon with a limited number of points.
+
+    This function uses the Ramer-Douglas-Peucker algorithm to simplify the input polygon by reducing the number of points
+    while preserving the general shape.
+
+    Parameters:
+        polygon (np.ndarray): A 2D NumPy array of shape (N, 2) containing the x, y coordinates of the input polygon's points.
+        max_points (int): The maximum number of points allowed in the output polygon.
+
+    Returns:
+        np.ndarray: A new 2D NumPy array of shape (M, 2), where M <= max_points, containing the x, y coordinates of the
+            approximated polygon's points.
+    """
+
+    if len(polygon) <= max_points:
+        return polygon
+
+    epsilon = 0
+    approximated_points = polygon
+    while len(approximated_points) > max_points:
+        epsilon += 0.1
+        approximated_points = cv2.approxPolyDP(polygon, epsilon, closed=True)
+
+    return approximated_points
