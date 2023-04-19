@@ -6,8 +6,8 @@ import numpy as np
 MIN_POLYGON_POINT_COUNT = 3
 
 
-def generate_2d_mask(polygon: np.ndarray, resolution_wh: Tuple[int, int]) -> np.ndarray:
-    """Generate a 2D mask from a polygon.
+def polygon_to_mask(polygon: np.ndarray, resolution_wh: Tuple[int, int]) -> np.ndarray:
+    """Generate a mask from a polygon.
 
     Args:
         polygon (np.ndarray): The polygon for which the mask should be generated, given as a list of vertices.
@@ -151,6 +151,19 @@ def mask_to_xyxy(masks: np.ndarray) -> np.ndarray:
 
 
 def mask_to_polygons(mask: np.ndarray) -> List[np.ndarray]:
+    """
+    Converts a binary mask to a list of polygons.
+
+    Parameters:
+        mask (np.ndarray): A binary mask represented as a 2D NumPy array of shape `(H, W)`,
+            where H and W are the height and width of the mask, respectively.
+
+    Returns:
+        List[np.ndarray]: A list of polygons, where each polygon is represented by a NumPy array of shape `(N, 2)`,
+            containing the `x`, `y` coordinates of the points. Polygons with fewer points than `MIN_POLYGON_POINT_COUNT = 3`
+            are excluded from the output.
+    """
+
     contours, _ = cv2.findContours(
         mask.astype(np.uint8), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
     )
@@ -170,8 +183,8 @@ def filter_polygons_by_area(
     Filters a list of polygons based on their area.
 
     Parameters:
-        polygons (List[np.ndarray]): A list of polygons, where each polygon is represented by a NumPy array of shape (N, 2),
-            containing the x, y coordinates of the points.
+        polygons (List[np.ndarray]): A list of polygons, where each polygon is represented by a NumPy array of shape `(N, 2)`,
+            containing the `x`, `y` coordinates of the points.
         min_area (Optional[float]): The minimum area threshold. Only polygons with an area greater than or equal to this value
             will be included in the output. If set to None, no minimum area constraint will be applied.
         max_area (Optional[float]): The maximum area threshold. Only polygons with an area less than or equal to this value
@@ -196,11 +209,11 @@ def polygon_to_xyxy(polygon: np.ndarray) -> np.ndarray:
     Converts a polygon represented by a NumPy array into a bounding box.
 
     Parameters:
-        polygon (np.ndarray): A polygon represented by a NumPy array of shape (N, 2),
-            containing the x, y coordinates of the points.
+        polygon (np.ndarray): A polygon represented by a NumPy array of shape `(N, 2)`,
+            containing the `x`, `y` coordinates of the points.
 
     Returns:
-        np.ndarray: A 1D NumPy array containing the bounding box (x_min, y_min, x_max, y_max) of the input polygon.
+        np.ndarray: A 1D NumPy array containing the bounding box `(x_min, y_min, x_max, y_max)` of the input polygon.
     """
     x_min, y_min = np.min(polygon, axis=0)
     x_max, y_max = np.max(polygon, axis=0)

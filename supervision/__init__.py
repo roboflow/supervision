@@ -5,7 +5,15 @@ from supervision.detection.annotate import BoxAnnotator, MaskAnnotator
 from supervision.detection.core import Detections
 from supervision.detection.line_counter import LineZone, LineZoneAnnotator
 from supervision.detection.tools.polygon_zone import PolygonZone, PolygonZoneAnnotator
-from supervision.detection.utils import generate_2d_mask, mask_to_xyxy
+from supervision.detection.utils import (
+    box_iou_batch,
+    filter_polygons_by_area,
+    mask_to_polygons,
+    mask_to_xyxy,
+    non_max_suppression,
+    polygon_to_mask,
+    polygon_to_xyxy,
+)
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import draw_filled_rectangle, draw_polygon, draw_text
 from supervision.file import list_files_with_extensions
