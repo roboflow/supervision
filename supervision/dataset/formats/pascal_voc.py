@@ -134,17 +134,17 @@ def detections_to_pascal_voc(
     return xml_string
 
 
-def load_pascal_voc_annotations(xml_path: str) -> Tuple[str, Detections, List[str]]:
+def load_pascal_voc_annotations(annotation_path: str) -> Tuple[str, Detections, List[str]]:
     """
     Loads PASCAL VOC XML annotations and returns the image name, a Detections instance, and a list of class names.
 
     Args:
-        xml_path (str): The path to the PASCAL VOC XML annotations file.
+        annotation_path (str): The path to the PASCAL VOC XML annotations file.
 
     Returns:
         Tuple[str, Detections, List[str]]: A tuple containing the image name, a Detections instance, and a list of class names of objects in the detections.
     """
-    tree = parse(xml_path)
+    tree = parse(annotation_path)
     root = tree.getroot()
 
     image_name = root.find("filename").text
