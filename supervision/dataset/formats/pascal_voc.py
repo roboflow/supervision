@@ -50,7 +50,7 @@ def detections_to_pascal_voc(
     image_shape: Tuple[int, int, int],
     min_image_area_percentage: float = 0.0,
     max_image_area_percentage: float = 1.0,
-    max_polygon_points: int = 30,
+    approximation_percentage: float = 0.75,
 ) -> str:
     """
     Converts Detections object to Pascal VOC XML format.
@@ -62,7 +62,7 @@ def detections_to_pascal_voc(
         image_shape (Tuple[int, int, int]): The shape of the image file associated with the detections.
         min_image_area_percentage (float): Minimum detection area relative to area of image associated with it.
         max_image_area_percentage (float): Maximum detection area relative to area of image associated with it.
-        max_polygon_points (int): Maximum count of points in polygon.
+        approximation_percentage (float): The percentage of polygon points to be removed from the input polygon, in the range [0, 1).
     Returns:
         str: An XML string in Pascal VOC format representing the detections.
     """
@@ -117,7 +117,7 @@ def detections_to_pascal_voc(
                 )
             for polygon in polygons:
                 approx_polygon = approximate_polygon(
-                    polygon=polygon, max_points=max_polygon_points
+                    polygon=polygon, percentage=approximation_percentage
                 )
                 xyxy = polygon_to_xyxy(polygon=approx_polygon)
                 next_object = object_to_pascal_voc(

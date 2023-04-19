@@ -220,28 +220,33 @@ def polygon_to_xyxy(polygon: np.ndarray) -> np.ndarray:
     return np.array([x_min, y_min, x_max, y_max])
 
 
-def approximate_polygon(polygon: np.ndarray, max_points: int) -> np.ndarray:
+def approximate_polygon(polygon: np.ndarray, percentage: float) -> np.ndarray:
     """
-    Approximates a given polygon with a limited number of points.
+    Approximates a given polygon by reducing a certain percentage of points.
 
     This function uses the Ramer-Douglas-Peucker algorithm to simplify the input polygon by reducing the number of points
     while preserving the general shape.
 
     Parameters:
         polygon (np.ndarray): A 2D NumPy array of shape (N, 2) containing the x, y coordinates of the input polygon's points.
-        max_points (int): The maximum number of points allowed in the output polygon.
+        percentage (float): The percentage of points to be removed from the input polygon, in the range [0, 1).
 
     Returns:
-        np.ndarray: A new 2D NumPy array of shape (M, 2), where M <= max_points, containing the x, y coordinates of the
+        np.ndarray: A new 2D NumPy array of shape (M, 2), where M <= N * (1 - percentage), containing the x, y coordinates of the
             approximated polygon's points.
     """
 
-    if len(polygon) <= max_points:
+    if percentage < 0 or percentage >= 1:
+        raise ValueError("Percentage must be in the range [0, 1).")
+
+    target_points = max(int(len(polygon) * (1 - percentage)), 3)
+
+    if len(polygon) <= target_points:
         return polygon
 
     epsilon = 0
     approximated_points = polygon
-    while len(approximated_points) > max_points:
+    while len(approximated_points) > target_points:
         epsilon += 0.1
         approximated_points = cv2.approxPolyDP(polygon, epsilon, closed=True)
 

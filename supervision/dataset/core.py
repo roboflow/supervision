@@ -30,7 +30,7 @@ class Dataset:
         annotations_directory_path: Optional[str] = None,
         min_image_area_percentage: float = 0.0,
         max_image_area_percentage: float = 1.0,
-        max_polygon_points: int = 30,
+        approximation_percentage: float = 0.75,
     ) -> None:
         """
         Exports the dataset to PASCAL VOC format. This method saves the images and their corresponding annotations in
@@ -46,7 +46,7 @@ class Dataset:
                 the image area for a detection to be included.
             max_image_area_percentage (float): The maximum percentage of detection area relative to
                 the image area for a detection to be included.
-            max_polygon_points (int): Maximum count of points in polygon.
+            approximation_percentage (float): The percentage of polygon points to be removed from the input polygon, in the range [0, 1).
         """
         if images_directory_path:
             images_path = Path(images_directory_path)
@@ -71,7 +71,7 @@ class Dataset:
                     image_shape=image.shape,
                     min_image_area_percentage=min_image_area_percentage,
                     max_image_area_percentage=max_image_area_percentage,
-                    max_polygon_points=max_polygon_points,
+                    approximation_percentage=approximation_percentage,
                 )
 
                 with open(annotations_path / f"{annotation_name}.xml", "w") as f:
