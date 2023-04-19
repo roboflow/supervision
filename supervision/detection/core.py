@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Iterator, List, Optional, Tuple, Union
+from typing import Any, Iterator, List, Optional, Tuple
 
 import numpy as np
 
@@ -51,7 +51,6 @@ def _validate_tracker_id(tracker_id: Any, n: int) -> None:
 class Detections:
     """
     Data class containing information about the detections in a video frame.
-
     Attributes:
         xyxy (np.ndarray): An array of shape `(n, 4)` containing the bounding boxes coordinates in format `[x1, y1, x2, y2]`
         mask: (Optional[np.ndarray]): An array of shape `(n, W, H)` containing the segmentation masks.

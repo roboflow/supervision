@@ -147,10 +147,10 @@ class MaskAnnotator:
         Returns:
             np.ndarray: The image with the masks overlaid
         """
-        for i in range(len(detections.xyxy)):
-            if detections.mask is None:
-                continue
+        if detections.mask is None:
+            return scene
 
+        for i in np.flip(np.argsort(detections.area)):
             class_id = (
                 detections.class_id[i] if detections.class_id is not None else None
             )
