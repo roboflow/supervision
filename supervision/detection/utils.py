@@ -245,4 +245,4 @@ def approximate_polygon(polygon: np.ndarray, max_points: int) -> np.ndarray:
         epsilon += 0.1
         approximated_points = cv2.approxPolyDP(polygon, epsilon, closed=True)
 
-    return approximated_points
+    return np.squeeze(approximated_points, axis=1)

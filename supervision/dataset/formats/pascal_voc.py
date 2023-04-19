@@ -119,7 +119,6 @@ def detections_to_pascal_voc(
                 approx_polygon = approximate_polygon(
                     polygon=polygon, max_points=max_polygon_points
                 )
-                approx_polygon = np.squeeze(approx_polygon, axis=1)
                 xyxy = polygon_to_xyxy(polygon=approx_polygon)
                 next_object = object_to_pascal_voc(
                     xyxy=xyxy, name=name, polygon=polygon
