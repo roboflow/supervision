@@ -121,7 +121,7 @@ def detections_to_pascal_voc(
                 )
                 xyxy = polygon_to_xyxy(polygon=approx_polygon)
                 next_object = object_to_pascal_voc(
-                    xyxy=xyxy, name=name, polygon=polygon
+                    xyxy=xyxy, name=name, polygon=approx_polygon
                 )
                 annotation.append(next_object)
         else:
