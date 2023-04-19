@@ -1,3 +1,11 @@
+### 0.6.0 <small>April 19, 2023</small>
+
+- Added [[#71](https://github.com/roboflow/supervision/pull/71)]: initial `Dataset` support and ability to save `Detections` in Pascal VOC XML format. 
+- Added [[#71](https://github.com/roboflow/supervision/pull/71)]: new `mask_to_polygons`, `filter_polygons_by_area`, `polygon_to_xyxy` and `approximate_polygon` utilities.
+- Added [[#72](https://github.com/roboflow/supervision/pull/72)]: ability to load Pascal VOC XML **object detections** dataset as `Dataset`.
+- Changed [[#70](https://github.com/roboflow/supervision/pull/70)]: order of `Detections` attributes to make it consistent with order of objects in `__iter__` tuple.
+- Changed [[#71](https://github.com/roboflow/supervision/pull/71)]: `generate_2d_mask` to `polygon_to_mask`.
+
 ### 0.5.2 <small>April 13, 2023</small>
 
 - Fixed [[#63](https://github.com/roboflow/supervision/pull/63)]: `LineZone.trigger` function expects 4 values instead of 5.

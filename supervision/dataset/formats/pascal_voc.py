@@ -1,6 +1,6 @@
 from typing import List, Optional, Tuple
 from xml.dom.minidom import parseString
-from xml.etree.ElementTree import Element, SubElement, tostring
+from xml.etree.ElementTree import Element, SubElement, parse, tostring
 
 import numpy as np
 
@@ -132,3 +132,40 @@ def detections_to_pascal_voc(
     xml_string = parseString(tostring(annotation)).toprettyxml(indent="  ")
 
     return xml_string
+
+
+def load_pascal_voc_annotations(
+    annotation_path: str,
+) -> Tuple[str, Detections, List[str]]:
+    """
+    Loads PASCAL VOC XML annotations and returns the image name, a Detections instance, and a list of class names.
+
+    Args:
+        annotation_path (str): The path to the PASCAL VOC XML annotations file.
+
+    Returns:
+        Tuple[str, Detections, List[str]]: A tuple containing the image name, a Detections instance, and a list of class names of objects in the detections.
+    """
+    tree = parse(annotation_path)
+    root = tree.getroot()
+
+    image_name = root.find("filename").text
+
+    xyxy = []
+    class_names = []
+    for obj in root.findall("object"):
+        class_name = obj.find("name").text
+        class_names.append(class_name)
+
+        bbox = obj.find("bndbox")
+        x1 = int(bbox.find("xmin").text)
+        y1 = int(bbox.find("ymin").text)
+        x2 = int(bbox.find("xmax").text)
+        y2 = int(bbox.find("ymax").text)
+
+        xyxy.append([x1, y1, x2, y2])
+
+    xyxy = np.array(xyxy)
+    detections = Detections(xyxy=xyxy)
+
+    return image_name, detections, class_names

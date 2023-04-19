@@ -1,12 +1,18 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 import cv2
 import numpy as np
 
-from supervision.dataset.formats.pascal_voc import detections_to_pascal_voc
+from supervision.dataset.formats.pascal_voc import (
+    detections_to_pascal_voc,
+    load_pascal_voc_annotations,
+)
 from supervision.detection.core import Detections
+from supervision.file import list_files_with_extensions
 
 
 @dataclass
@@ -76,3 +82,47 @@ class Dataset:
 
                 with open(annotations_path / f"{annotation_name}.xml", "w") as f:
                     f.write(pascal_voc_xml)
+
+    @classmethod
+    def from_pascal_voc(
+        cls, images_directory_path: str, annotations_directory_path: str
+    ) -> Dataset:
+        """
+        Creates a Dataset instance from PASCAL VOC formatted data.
+
+        Args:
+            images_directory_path (str): The path to the directory containing the images.
+            annotations_directory_path (str): The path to the directory containing the PASCAL VOC XML annotations.
+
+        Returns:
+            Dataset: A Dataset instance containing the loaded images and annotations.
+        """
+        image_paths = list_files_with_extensions(
+            directory=images_directory_path, extensions=["jpg", "jpeg", "png"]
+        )
+        annotation_paths = list_files_with_extensions(
+            directory=annotations_directory_path, extensions=["xml"]
+        )
+
+        raw_annotations: List[Tuple[str, Detections, List[str]]] = [
+            load_pascal_voc_annotations(annotation_path=str(annotation_path))
+            for annotation_path in annotation_paths
+        ]
+
+        classes = []
+        for annotation in raw_annotations:
+            classes.extend(annotation[2])
+        classes = list(set(classes))
+
+        for annotation in raw_annotations:
+            class_id = [classes.index(class_name) for class_name in annotation[2]]
+            annotation[1].class_id = np.array(class_id)
+
+        images = {
+            image_path.name: cv2.imread(str(image_path)) for image_path in image_paths
+        }
+
+        annotations = {
+            image_name: detections for image_name, detections, _ in raw_annotations
+        }
+        return Dataset(classes=classes, images=images, annotations=annotations)
