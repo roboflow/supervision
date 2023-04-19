@@ -7,7 +7,7 @@ from typing import Dict, List, Optional
 import cv2
 import numpy as np
 
-from supervision import list_files_with_extensions
+from supervision.file import list_files_with_extensions
 from supervision.dataset.formats.pascal_voc import detections_to_pascal_voc
 from supervision.detection.core import Detections
 
