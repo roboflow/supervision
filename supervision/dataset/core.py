@@ -31,6 +31,21 @@ class Dataset:
         minimum_detection_area_percentage: float = 0.0,
         maximum_detection_area_percentage: float = 1.0,
     ) -> None:
+        """
+        Exports the dataset to PASCAL VOC format. This method saves the images and their corresponding annotations in
+        PASCAL VOC format, which consists of XML files. The method allows filtering the detections based on their area
+        percentage.
+
+        Args:
+            images_directory_path (Optional[str]): The path to the directory where the images should be saved.
+                If not provided, images will not be saved.
+            annotations_directory_path (Optional[str]): The path to the directory where the annotations in
+                PASCAL VOC format should be saved. If not provided, annotations will not be saved.
+            minimum_detection_area_percentage (float): The minimum percentage of detection area relative to
+                the image area for a detection to be included.
+            maximum_detection_area_percentage (float): The maximum percentage of detection area relative to
+                the image area for a detection to be included.
+        """
         if images_directory_path:
             images_path = Path(images_directory_path)
             images_path.mkdir(parents=True, exist_ok=True)

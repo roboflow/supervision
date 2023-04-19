@@ -12,7 +12,6 @@ from supervision.detection.utils import (
     polygon_to_xyxy,
 )
 
-
 EPSILON = 0.05
 
 

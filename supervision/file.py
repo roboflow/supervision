@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Union, Optional, List
+from typing import List, Optional, Union
 
 
 def write_text_to_file(content: str, output_path: str) -> None:

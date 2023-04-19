@@ -24,19 +24,19 @@ extra:
 nav:
   - Home: index.md
   - API reference:
-    - Video: video.md
     - Detection:
         - Core: detection/core.md
         - Annotate: detection/annotate.md
         - Utils: detection/utils.md
         - Tools:
             - Polygon Zone: detection/tools/polygon_zone.md
+    - Dataset:
+        - Core: dataset/core.md
     - Draw:
         - Utils: draw/utils.md
-    - Annotations:
-        - Pascal VOC XML: annotation/voc.md
     - Notebook:
         - Utils: notebook/utils.md
+    - Video: video.md
   - Changelog: changelog.md
 
 theme:
