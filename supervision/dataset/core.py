@@ -76,3 +76,4 @@ class Dataset:
 
                 with open(annotations_path / f"{annotation_name}.xml", "w") as f:
                     f.write(pascal_voc_xml)
+
