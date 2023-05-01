@@ -219,3 +219,4 @@ class LineZoneAnnotator:
             self.text_thickness,
             cv2.LINE_AA,
         )
+        return frame
