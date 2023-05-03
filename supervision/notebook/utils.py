@@ -24,7 +24,7 @@ def plot_image(
         >>> image = cv2.imread("path/to/image.jpg")
 
         %matplotlib inline
-        >>> sv.plot_image(image, (16, 16))
+        >>> sv.plot_image(image=image, size=(16, 16))
         ```
     """
     plt.figure(figsize=size)
@@ -71,7 +71,7 @@ def plot_images_grid(
         >>> titles = ["Image 1", "Image 2", "Image 3"]
 
         %matplotlib inline
-        >>> plot_images_grid(images, grid_size=(2, 2), titles=titles, figsize=(16, 16))
+        >>> plot_images_grid(images, grid_size=(2, 2), titles=titles, size=(16, 16))
         ```
     """
     nrows, ncols = grid_size
