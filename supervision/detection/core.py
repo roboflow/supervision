@@ -7,6 +7,7 @@ import numpy as np
 
 from supervision.detection.utils import non_max_suppression, xywh_to_xyxy
 from supervision.geometry.core import Position
+from supervision.internal import deprecated
 
 
 def _validate_xyxy(xyxy: Any, n: int) -> None:
@@ -136,7 +137,7 @@ class Detections:
     @classmethod
     def from_yolov5(cls, yolov5_results) -> Detections:
         """
-        Creates a Detections instance from a YOLOv5 output Detections
+        Creates a Detections instance from a [YOLOv5](https://github.com/ultralytics/yolov5) inference result.
 
         Args:
             yolov5_results (yolov5.models.common.Detections): The output Detections instance from YOLOv5
@@ -164,7 +165,7 @@ class Detections:
     @classmethod
     def from_yolov8(cls, yolov8_results) -> Detections:
         """
-        Creates a Detections instance from a YOLOv8 output Results
+        Creates a Detections instance from a [YOLOv8](https://github.com/ultralytics/ultralytics) inference result.
 
         Args:
             yolov8_results (ultralytics.yolo.engine.results.Results): The output Results instance from YOLOv8
@@ -191,7 +192,7 @@ class Detections:
     @classmethod
     def from_transformers(cls, transformers_results: dict) -> Detections:
         """
-        Creates a Detections instance from Object Detection Transformer output Results
+        Creates a Detections instance from object detection [transformer](https://github.com/huggingface/transformers) inference result.
 
         Returns:
             Detections: A new Detections object.
@@ -204,6 +205,32 @@ class Detections:
 
     @classmethod
     def from_detectron2(cls, detectron2_results) -> Detections:
+        """
+        Create a Detections object from the [Detectron2](https://github.com/facebookresearch/detectron2) inference result.
+
+        Args:
+            detectron2_results: The output of a Detectron2 model containing instances with prediction data.
+
+        Returns:
+            (Detections): A Detections object containing the bounding boxes, class IDs, and confidences of the predictions.
+
+        Example:
+            ```python
+            >>> from supervision import Detections
+            >>> from detectron2.engine import DefaultPredictor
+            >>> from detectron2.config import get_cfg
+
+            >>> cfg = get_cfg()
+            >>> cfg.merge_from_file("path/to/config.yaml")
+            >>> cfg.MODEL.WEIGHTS = "path/to/model_weights.pth"
+            >>> predictor = DefaultPredictor(cfg)
+
+            >>> image = ...
+            >>> detectron2_results = predictor(image)
+
+            >>> detections = Detections.from_detectron2(detectron2_results)
+            ```
+        """
         return cls(
             xyxy=detectron2_results["instances"].pred_boxes.tensor.cpu().numpy(),
             confidence=detectron2_results["instances"].scores.cpu().numpy(),
@@ -215,6 +242,38 @@ class Detections:
 
     @classmethod
     def from_roboflow(cls, roboflow_result: dict, class_list: List[str]) -> Detections:
+        """
+        Create a Detections object from the [Roboflow](https://roboflow.com/) API inference result.
+
+        Args:
+            roboflow_result (dict): The result from the Roboflow API containing predictions.
+            class_list (List[str]): A list of class names corresponding to the class IDs in the API result.
+
+        Returns:
+            (Detections): A Detections object containing the bounding boxes, class IDs, and confidences of the predictions.
+
+        Example:
+            ```python
+            >>> from supervision import Detections
+
+            >>> roboflow_result = {
+            ...     "predictions": [
+            ...         {
+            ...             "x": 0.5,
+            ...             "y": 0.5,
+            ...             "width": 0.2,
+            ...             "height": 0.3,
+            ...             "class": "person",
+            ...             "confidence": 0.9
+            ...         },
+            ...         # ... more predictions ...
+            ...     ]
+            ... }
+            >>> class_list = ["person", "car", "dog"]
+
+            >>> detections = Detections.from_roboflow(roboflow_result, class_list)
+            ```
+        """
         xyxy = []
         confidence = []
         class_id = []
@@ -241,7 +300,7 @@ class Detections:
     @classmethod
     def from_sam(cls, sam_result: List[dict]) -> Detections:
         """
-        Creates a Detections instance from Segment Anything Model (SAM) by Meta AI.
+        Creates a Detections instance from [Segment Anything Model](https://github.com/facebookresearch/segment-anything) inference result.
 
         Args:
             sam_result (List[dict]): The output Results instance from SAM
@@ -251,8 +310,8 @@ class Detections:
 
         Example:
             ```python
-            >>> from segment_anything import sam_model_registry, SamAutomaticMaskGenerator
             >>> import supervision as sv
+            >>> from segment_anything import sam_model_registry, SamAutomaticMaskGenerator
 
             >>> sam = sam_model_registry[MODEL_TYPE](checkpoint=CHECKPOINT_PATH).to(device=DEVICE)
             >>> mask_generator = SamAutomaticMaskGenerator(sam)
@@ -270,6 +329,9 @@ class Detections:
         return Detections(xyxy=xywh_to_xyxy(boxes_xywh=xywh), mask=mask)
 
     @classmethod
+    @deprecated(
+        "Dataset loading and saving is going to be executed by supervision.dataset.core.Dataset"
+    )
     def from_coco_annotations(cls, coco_annotation: dict) -> Detections:
         xyxy, class_id = [], []
 
@@ -282,6 +344,19 @@ class Detections:
 
     @classmethod
     def empty(cls) -> Detections:
+        """
+        Create an empty Detections object with no bounding boxes, confidences, or class IDs.
+
+        Returns:
+            (Detections): An empty Detections object.
+
+        Example:
+            ```python
+            >>> from supervision import Detections
+
+            >>> empty_detections = Detections.empty()
+            ```
+        """
         return cls(
             xyxy=np.empty((0, 4), dtype=np.float32),
             confidence=np.array([], dtype=np.float32),
