@@ -26,8 +26,10 @@ extra_css:
 
 nav:
   - Home: index.md
+  - Quickstart:
+    - Detections: quickstart/detections.md
   - API reference:
-    - Detection:
+    - Detections:
         - Core: detection/core.md
         - Annotate: detection/annotate.md
         - Utils: detection/utils.md
@@ -73,5 +75,9 @@ markdown_extensions:
   - admonition
   - pymdownx.details
   - pymdownx.superfences
+  - attr_list
+  - md_in_html
+  - pymdownx.tabbed:
+      alternate_style: true
   - toc:
       permalink: true
