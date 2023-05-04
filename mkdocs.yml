@@ -21,6 +21,9 @@ extra:
     provider: google
     property: G-P7ZG0Y19G5
 
+extra_css:
+  - stylesheets/extra.css
+
 nav:
   - Home: index.md
   - API reference:
@@ -36,7 +39,8 @@ nav:
         - Utils: draw/utils.md
     - Notebook:
         - Utils: notebook/utils.md
-    - Video: video.md
+    - Video:
+        - Utils: video.md
   - Changelog: changelog.md
 
 theme:
@@ -44,8 +48,19 @@ theme:
   logo: https://media.roboflow.com/open-source/supervision/supervision-lenny.png
   favicon: https://media.roboflow.com/open-source/supervision/supervision-lenny.png
   palette:
-    primary: 'deep purple'
-    accent: 'teal'
+    # Palette for light mode
+    - scheme: default
+      primary: 'custom'
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - scheme: slate
+      primary: 'custom'
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
   font:
     text: Roboto
     code: Roboto Mono
