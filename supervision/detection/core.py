@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import astuple, dataclass
 from typing import Any, Iterator, List, Optional, Tuple
 
 import numpy as np
@@ -361,6 +361,55 @@ class Detections:
             xyxy=np.empty((0, 4), dtype=np.float32),
             confidence=np.array([], dtype=np.float32),
             class_id=np.array([], dtype=int),
+        )
+
+    @classmethod
+    def merge(cls, detections_list: List[Detections]) -> Detections:
+        """
+        Merge a list of Detections objects into a single Detections object.
+
+        This method takes a list of Detections objects and combines their respective fields (`xyxy`, `mask`,
+        `confidence`, `class_id`, and `tracker_id`) into a single Detections object. If all elements in a field are not
+        `None`, the corresponding field will be stacked. Otherwise, the field will be set to `None`.
+
+        Args:
+            detections_list (List[Detections]): A list of Detections objects to merge.
+
+        Returns:
+            (Detections): A single Detections object containing the merged data from the input list.
+
+        Example:
+            ```python
+            >>> from supervision import Detections
+
+            >>> detections_1 = Detections(...)
+            >>> detections_2 = Detections(...)
+
+            >>> merged_detections = Detections.merge([detections_1, detections_2])
+            ```
+        """
+        if len(detections_list) == 0:
+            return Detections.empty()
+
+        detections_tuples_list = [astuple(detection) for detection in detections_list]
+        xyxy, mask, confidence, class_id, tracker_id = [
+            list(field) for field in zip(*detections_tuples_list)
+        ]
+
+        all_not_none = lambda l: all(x is not None for x in l)
+
+        xyxy = np.vstack(xyxy)
+        mask = np.vstack(mask) if all_not_none(mask) else None
+        confidence = np.hstack(confidence) if all_not_none(confidence) else None
+        class_id = np.hstack(class_id) if all_not_none(class_id) else None
+        tracker_id = np.hstack(tracker_id) if all_not_none(tracker_id) else None
+
+        return cls(
+            xyxy=xyxy,
+            mask=mask,
+            confidence=confidence,
+            class_id=class_id,
+            tracker_id=tracker_id,
         )
 
     def get_anchor_coordinates(self, anchor: Position) -> np.ndarray:
