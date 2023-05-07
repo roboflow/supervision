@@ -4,13 +4,9 @@ from xml.etree.ElementTree import Element, SubElement, parse, tostring
 
 import numpy as np
 
+from supervision.dataset.ultils import approximate_mask_with_polygons
 from supervision.detection.core import Detections
-from supervision.detection.utils import (
-    approximate_polygon,
-    filter_polygons_by_area,
-    mask_to_polygons,
-    polygon_to_xyxy,
-)
+from supervision.detection.utils import polygon_to_xyxy
 
 
 def object_to_pascal_voc(
@@ -104,24 +100,16 @@ def detections_to_pascal_voc(
     for xyxy, mask, _, class_id, _ in detections:
         name = classes[class_id]
         if mask is not None:
-            polygons = mask_to_polygons(mask=mask)
-            if len(polygons) == 1:
-                polygons = filter_polygons_by_area(
-                    polygons=polygons, min_area=None, max_area=maximum_detection_area
-                )
-            else:
-                polygons = filter_polygons_by_area(
-                    polygons=polygons,
-                    min_area=minimum_detection_area,
-                    max_area=maximum_detection_area,
-                )
+            polygons = approximate_mask_with_polygons(
+                mask=mask,
+                min_image_area_percentage=min_image_area_percentage,
+                max_image_area_percentage=max_image_area_percentage,
+                approximation_percentage=approximation_percentage
+            )
             for polygon in polygons:
-                approx_polygon = approximate_polygon(
-                    polygon=polygon, percentage=approximation_percentage
-                )
-                xyxy = polygon_to_xyxy(polygon=approx_polygon)
+                xyxy = polygon_to_xyxy(polygon=polygon)
                 next_object = object_to_pascal_voc(
-                    xyxy=xyxy, name=name, polygon=approx_polygon
+                    xyxy=xyxy, name=name, polygon=polygon
                 )
                 annotation.append(next_object)
         else:
