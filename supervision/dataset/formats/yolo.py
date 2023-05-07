@@ -2,6 +2,7 @@ import numpy as np
 
 from typing import List, Tuple
 
+from supervision import polygon_to_mask
 from supervision.detection.core import Detections
 
 
@@ -15,7 +16,16 @@ def parse_box(values: List[str]) -> np.ndarray:
     ], dtype=np.float32)
 
 
-def parse_segments(values: List[str]) -> np.ndarray:
+def box_to_polygon(box: np.ndarray) -> np.ndarray:
+    return np.array([
+        [box[0], box[1]],
+        [box[2], box[1]],
+        [box[2], box[3]],
+        [box[0], box[3]]
+    ], dtype=int)
+
+
+def parse_polygon(values: List[str]) -> np.ndarray:
     pass
 
 
@@ -32,9 +42,14 @@ def yolo_annotations_to_detections(
         values = line.split()
         class_id.append(int(values[0]))
         if len(values) == 5 and not force_segmentations:
-            xyxy.append(parse_box(values=values[1:]))
+            box = parse_box(values=values[1:])
+            xyxy.append(box)
         elif len(values) == 5 and force_segmentations:
-            pass
+            box = parse_box(values=values[1:])
+            xyxy.append(box)
+            box_polygon = box_to_polygon(box=box)
+            box_mask = polygon_to_mask(polygon=box_polygon, resolution_wh=resolution_wh)
+            mask.append(box_mask)
         elif len(values) > 5 and not force_segmentations:
             pass
         elif len(values) > 5 and force_segmentations:
@@ -45,7 +60,8 @@ def yolo_annotations_to_detections(
     xyxy = xyxy * np.array([w, h, w, h], dtype=np.float32)
     return Detections(
         class_id=class_id,
-        xyxy=xyxy
+        xyxy=xyxy,
+        mask=np.array(mask, dtype=bool) if force_segmentations else None
     )
 
 
