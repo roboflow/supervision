@@ -145,7 +145,7 @@ def load_yolo_annotations(
         )
 
         images[str(image_path)] = image
-        annotations[str(annotation_path)] = annotation
+        annotations[str(image_path)] = annotation
     return classes, images, annotations
 
 
