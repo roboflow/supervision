@@ -135,7 +135,7 @@ def load_yolo_annotations(
     for image_path, annotation_path in path_pairs:
         image = cv2.imread(str(image_path))
         lines = read_txt_file(str(annotation_path))
-        w, h, _ = image.shape
+        h, w, _ = image.shape
         resolution_wh = (w, h)
 
         with_masks = _with_mask(lines=lines)
