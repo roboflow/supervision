@@ -120,6 +120,18 @@ def load_yolo_annotations(
     data_yaml_path: str,
     force_masks: bool = False,
 ) -> Tuple[List[str], Dict[str, np.ndarray], Dict[str, Detections]]:
+    """
+    Loads YOLO annotations and returns class names, images, and their corresponding detections.
+
+    Args:
+        images_directory_path (str): The path to the directory containing the images.
+        annotations_directory_path (str): The path to the directory containing the YOLO annotation files.
+        data_yaml_path (str): The path to the data YAML file containing class information.
+        force_masks (bool, optional): If True, forces masks to be loaded for all annotations, regardless of whether they are present.
+
+    Returns:
+        Tuple[List[str], Dict[str, np.ndarray], Dict[str, Detections]]: A tuple containing a list of class names, a dictionary with image paths as keys and images as values, and a dictionary with image paths as keys and corresponding Detections instances as values.
+    """
     image_paths = list_files_with_extensions(
         directory=images_directory_path, extensions=["jpg", "jpeg", "png"]
     )
@@ -147,14 +159,3 @@ def load_yolo_annotations(
         images[str(image_path)] = image
         annotations[str(image_path)] = annotation
     return classes, images, annotations
-
-
-# TODO
-def detections_to_yolo_annotations(
-    detections: Detections, resolution_wh: Tuple[int, int]
-) -> List[str]:
-    if len(detections):
-        return []
-
-    for xyxy, mask, _, class_id, _ in detections:
-        pass
