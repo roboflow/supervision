@@ -104,7 +104,7 @@ def detections_to_pascal_voc(
                 mask=mask,
                 min_image_area_percentage=min_image_area_percentage,
                 max_image_area_percentage=max_image_area_percentage,
-                approximation_percentage=approximation_percentage
+                approximation_percentage=approximation_percentage,
             )
             for polygon in polygons:
                 xyxy = polygon_to_xyxy(polygon=polygon)

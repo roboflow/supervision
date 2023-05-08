@@ -9,7 +9,7 @@ from supervision.dataset.formats.yolo import yolo_annotations_to_detections
 
 
 @pytest.mark.parametrize(
-    'lines, resolution_wh, force_segmentations, expected_result, exception',
+    'lines, resolution_wh, with_masks, expected_result, exception',
     [
         (
             [],
@@ -53,7 +53,7 @@ from supervision.dataset.formats.yolo import yolo_annotations_to_detections
 def test_yolo_annotations_to_detections(
     lines: List[str],
     resolution_wh: Tuple[int, int],
-    force_segmentations: bool,
+    with_masks: bool,
     expected_result: Optional[Detections],
     exception: Exception
 ) -> None:
@@ -61,6 +61,5 @@ def test_yolo_annotations_to_detections(
         result = yolo_annotations_to_detections(
             lines=lines,
             resolution_wh=resolution_wh,
-            force_segmentations=force_segmentations)
-        print(result)
+            with_masks=with_masks)
         assert result == expected_result

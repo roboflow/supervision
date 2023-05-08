@@ -11,6 +11,7 @@ from supervision.dataset.formats.pascal_voc import (
     detections_to_pascal_voc,
     load_pascal_voc_annotations,
 )
+from supervision.dataset.formats.yolo import load_yolo_annotations
 from supervision.detection.core import Detections
 from supervision.file import list_files_with_extensions
 
@@ -125,4 +126,20 @@ class Dataset:
         annotations = {
             image_name: detections for image_name, detections, _ in raw_annotations
         }
+        return Dataset(classes=classes, images=images, annotations=annotations)
+
+    @classmethod
+    def from_yolo(
+        cls,
+        images_directory_path: str,
+        annotations_directory_path: str,
+        data_yaml_path: str,
+        force_masks: bool = False,
+    ) -> Dataset:
+        classes, images, annotations = load_yolo_annotations(
+            images_directory_path=images_directory_path,
+            annotations_directory_path=annotations_directory_path,
+            data_yaml_path=data_yaml_path,
+            force_masks=force_masks,
+        )
         return Dataset(classes=classes, images=images, annotations=annotations)

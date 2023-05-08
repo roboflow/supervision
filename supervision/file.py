@@ -48,8 +48,8 @@ def read_txt_file(file_path: str) -> List[str]:
     Returns:
         List[str]: A list of strings representing the lines in the text file.
     """
-    with open(file_path, 'r') as file:
+    with open(file_path, "r") as file:
         lines = file.readlines()
-        lines = [line.rstrip('\n') for line in lines]
+        lines = [line.rstrip("\n") for line in lines]
 
     return lines

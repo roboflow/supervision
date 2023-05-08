@@ -2,8 +2,11 @@ from typing import List
 
 import numpy as np
 
-from supervision.detection.utils import mask_to_polygons, filter_polygons_by_area
-from supervision.detection.utils import approximate_polygon
+from supervision.detection.utils import (
+    approximate_polygon,
+    filter_polygons_by_area,
+    mask_to_polygons,
+)
 
 
 def approximate_mask_with_polygons(
@@ -29,9 +32,6 @@ def approximate_mask_with_polygons(
             max_area=maximum_detection_area,
         )
     return [
-        approximate_polygon(
-            polygon=polygon, percentage=approximation_percentage
-        )
-        for polygon
-        in polygons
+        approximate_polygon(polygon=polygon, percentage=approximation_percentage)
+        for polygon in polygons
     ]
