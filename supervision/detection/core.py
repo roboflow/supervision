@@ -147,12 +147,14 @@ class Detections:
 
         Example:
             ```python
+            >>> import cv2
             >>> import torch
-            >>> from supervision import Detections
+            >>> import supervision as sv
 
+            >>> image = cv2.imread(SOURCE_IMAGE_PATH)
             >>> model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
-            >>> results = model(IMAGE)
-            >>> detections = Detections.from_yolov5(results)
+            >>> result = model(image)
+            >>> detections = sv.Detections.from_yolov5(result)
             ```
         """
         yolov5_detections_predictions = yolov5_results.pred[0].cpu().cpu().numpy()
@@ -175,18 +177,49 @@ class Detections:
 
         Example:
             ```python
+            >>> import cv2
             >>> from ultralytics import YOLO
-            >>> from supervision import Detections
+            >>> import supervision as sv
 
+            >>> image = cv2.imread(SOURCE_IMAGE_PATH)
             >>> model = YOLO('yolov8s.pt')
-            >>> yolov8_results = model(IMAGE)[0]
-            >>> detections = Detections.from_yolov8(yolov8_results)
+            >>> result = model(image)[0]
+            >>> detections = sv.Detections.from_yolov8(result)
             ```
         """
         return cls(
             xyxy=yolov8_results.boxes.xyxy.cpu().numpy(),
             confidence=yolov8_results.boxes.conf.cpu().numpy(),
             class_id=yolov8_results.boxes.cls.cpu().numpy().astype(int),
+        )
+
+    @classmethod
+    def from_yolo_nas(cls, yolo_nas_results) -> Detections:
+        """
+        Creates a Detections instance from a [YOLO-NAS](https://github.com/Deci-AI/super-gradients/blob/master/YOLONAS.md) inference result.
+
+        Args:
+            yolo_nas_results (super_gradients.training.models.prediction_results.ImageDetectionPrediction): The output Results instance from YOLO-NAS
+
+        Returns:
+            Detections: A new Detections object.
+
+        Example:
+            ```python
+            >>> import cv2
+            >>> from super_gradients.training import models
+            >>> import supervision as sv
+
+            >>> image = cv2.imread(SOURCE_IMAGE_PATH)
+            >>> model = models.get('yolo_nas_l', pretrained_weights="coco")
+            >>> result = list(model.predict(image, conf=0.35))[0]
+            >>> detections = sv.Detections.from_yolo_nas(result)
+            ```
+        """
+        return cls(
+            xyxy=yolo_nas_results.prediction.bboxes_xyxy,
+            confidence=yolo_nas_results.prediction.confidence,
+            class_id=yolo_nas_results.prediction.labels.astype(int),
         )
 
     @classmethod
@@ -216,19 +249,19 @@ class Detections:
 
         Example:
             ```python
-            >>> from supervision import Detections
+            >>> import cv2
             >>> from detectron2.engine import DefaultPredictor
             >>> from detectron2.config import get_cfg
+            >>> import supervision as sv
 
+            >>> image = cv2.imread(SOURCE_IMAGE_PATH)
             >>> cfg = get_cfg()
             >>> cfg.merge_from_file("path/to/config.yaml")
             >>> cfg.MODEL.WEIGHTS = "path/to/model_weights.pth"
             >>> predictor = DefaultPredictor(cfg)
+            >>> result = predictor(image)
 
-            >>> image = ...
-            >>> detectron2_results = predictor(image)
-
-            >>> detections = Detections.from_detectron2(detectron2_results)
+            >>> detections = sv.Detections.from_detectron2(result)
             ```
         """
         return cls(
@@ -254,7 +287,7 @@ class Detections:
 
         Example:
             ```python
-            >>> from supervision import Detections
+            >>> import supervision as sv
 
             >>> roboflow_result = {
             ...     "predictions": [
@@ -271,7 +304,7 @@ class Detections:
             ... }
             >>> class_list = ["person", "car", "dog"]
 
-            >>> detections = Detections.from_roboflow(roboflow_result, class_list)
+            >>> detections = sv.Detections.from_roboflow(roboflow_result, class_list)
             ```
         """
         xyxy = []
