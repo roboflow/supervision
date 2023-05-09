@@ -36,3 +36,20 @@ def list_files_with_extensions(
         files_with_extensions.extend(directory.glob("*"))
 
     return files_with_extensions
+
+
+def read_txt_file(file_path: str) -> List[str]:
+    """
+    Read a text file and return a list of strings without newline characters.
+
+    Args:
+        file_path (str): The path to the text file.
+
+    Returns:
+        List[str]: A list of strings representing the lines in the text file.
+    """
+    with open(file_path, "r") as file:
+        lines = file.readlines()
+        lines = [line.rstrip("\n") for line in lines]
+
+    return lines

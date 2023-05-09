@@ -11,6 +11,7 @@ from supervision.dataset.formats.pascal_voc import (
     detections_to_pascal_voc,
     load_pascal_voc_annotations,
 )
+from supervision.dataset.formats.yolo import load_yolo_annotations
 from supervision.detection.core import Detections
 from supervision.file import list_files_with_extensions
 
@@ -96,6 +97,28 @@ class Dataset:
 
         Returns:
             Dataset: A Dataset instance containing the loaded images and annotations.
+
+        Example:
+            ```python
+            >>> import roboflow
+            >>> from roboflow import Roboflow
+            >>> import supervision as sv
+
+            >>> roboflow.login()
+
+            >>> rf = Roboflow()
+
+            >>> project = rf.workspace(WORKSPACE_ID).project(PROJECT_ID)
+            >>> dataset = project.version(PROJECT_VERSION).download("voc")
+
+            >>> train_dataset = sv.Dataset.from_yolo(
+            ...     images_directory_path=f"{dataset.location}/train/images",
+            ...     annotations_directory_path=f"{dataset.location}/train/labels"
+            ... )
+
+            >>> dataset.classes
+            ['dog', 'person']
+            ```
         """
         image_paths = list_files_with_extensions(
             directory=images_directory_path, extensions=["jpg", "jpeg", "png"]
@@ -125,4 +148,55 @@ class Dataset:
         annotations = {
             image_name: detections for image_name, detections, _ in raw_annotations
         }
+        return Dataset(classes=classes, images=images, annotations=annotations)
+
+    @classmethod
+    def from_yolo(
+        cls,
+        images_directory_path: str,
+        annotations_directory_path: str,
+        data_yaml_path: str,
+        force_masks: bool = False,
+    ) -> Dataset:
+        """
+        Creates a Dataset instance from YOLO formatted data.
+
+        Args:
+            images_directory_path (str): The path to the directory containing the images.
+            annotations_directory_path (str): The path to the directory containing the YOLO annotation files.
+            data_yaml_path (str): The path to the data YAML file containing class information.
+            force_masks (bool, optional): If True, forces masks to be loaded for all annotations, regardless of whether they are present.
+
+        Returns:
+            Dataset: A Dataset instance containing the loaded images and annotations.
+
+        Example:
+            ```python
+            >>> import roboflow
+            >>> from roboflow import Roboflow
+            >>> import supervision as sv
+
+            >>> roboflow.login()
+
+            >>> rf = Roboflow()
+
+            >>> project = rf.workspace(WORKSPACE_ID).project(PROJECT_ID)
+            >>> dataset = project.version(PROJECT_VERSION).download("yolov5")
+
+            >>> train_dataset = sv.Dataset.from_yolo(
+            ...     images_directory_path=f"{dataset.location}/train/images",
+            ...     annotations_directory_path=f"{dataset.location}/train/labels",
+            ...     data_yaml_path=f"{dataset.location}/data.yaml"
+            ... )
+
+            >>> dataset.classes
+            ['dog', 'person']
+            ```
+        """
+        classes, images, annotations = load_yolo_annotations(
+            images_directory_path=images_directory_path,
+            annotations_directory_path=annotations_directory_path,
+            data_yaml_path=data_yaml_path,
+            force_masks=force_masks,
+        )
         return Dataset(classes=classes, images=images, annotations=annotations)
