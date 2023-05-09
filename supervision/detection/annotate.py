@@ -47,13 +47,34 @@ class BoxAnnotator:
         """
         Draws bounding boxes on the frame using the detections provided.
 
-        Parameters:
+        Args:
             scene (np.ndarray): The image on which the bounding boxes will be drawn
             detections (Detections): The detections for which the bounding boxes will be drawn
-            labels (Optional[List[str]]): An optional list of labels corresponding to each detection. If labels is provided, the confidence score of the detection will be replaced with the label.
-            skip_label (bool): Is set to True, skips bounding box label annotation.
+            labels (Optional[List[str]]): An optional list of labels corresponding to each detection. If `labels` are not provided, corresponding `class_id` will be used as label.
+            skip_label (bool): Is set to `True`, skips bounding box label annotation.
         Returns:
             np.ndarray: The image with the bounding boxes drawn on it
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> classes = ['person', ...]
+            >>> image = ...
+            >>> detections = sv.Detections(...)
+
+            >>> box_annotator = sv.BoxAnnotator()
+            >>> labels = [
+            ...     f"{classes[class_id]} {confidence:0.2f}"
+            ...     for _, _, confidence, class_id, _
+            ...     in detections
+            ... ]
+            >>> annotated_frame = box_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections,
+            ...     labels=labels
+            ... )
+            ```
         """
         font = cv2.FONT_HERSHEY_SIMPLEX
         for i in range(len(detections)):
@@ -139,7 +160,7 @@ class MaskAnnotator:
         """
         Overlays the masks on the given image based on the provided detections, with a specified opacity.
 
-        Parameters:
+        Args:
             scene (np.ndarray): The image on which the masks will be overlaid
             detections (Detections): The detections for which the masks will be overlaid
             opacity (float): The opacity of the masks, between 0 and 1, default is 0.5
