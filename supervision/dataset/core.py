@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Iterator
 
 import cv2
 import numpy as np
@@ -30,6 +30,26 @@ class Dataset:
     classes: List[str]
     images: Dict[str, np.ndarray]
     annotations: Dict[str, Detections]
+
+    def __len__(self) -> int:
+        """
+        Return the number of images in the dataset.
+
+        Returns:
+            int: The number of images.
+        """
+        return len(self.images)
+
+    def __iter__(self) -> Iterator[Tuple[str, np.ndarray, Detections]]:
+        """
+        Iterate over the images and annotations in the dataset.
+
+        Yields:
+            Iterator[Tuple[str, np.ndarray, Detections]]: An iterator that yields tuples containing the image name,
+                                                          the image data, and its corresponding annotation.
+        """
+        for image_name, image in self.images.items():
+            yield image_name, image, self.annotations.get(image_name, None)
 
     def as_pascal_voc(
         self,
