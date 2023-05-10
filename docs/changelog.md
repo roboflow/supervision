@@ -4,6 +4,7 @@
 - Added [[#86](https://github.com/roboflow/supervision/pull/86)]: ability to load datasets in YOLO format using `Dataset.from_yolo`. 
 - Added [[#84](https://github.com/roboflow/supervision/pull/84)]: `Detections.merge` to merge multiple `Detections` objects together.
 - Fixed [[#81](https://github.com/roboflow/supervision/pull/81)]: `LineZoneAnnotator.annotate` does not return annotated frame.
+- Changed [[#44](https://github.com/roboflow/supervision/pull/44)]: `LineZoneAnnotator.annotate` to allow for custom text for the in and out tags.
 
 ### 0.6.0 <small>April 19, 2023</small>
 
