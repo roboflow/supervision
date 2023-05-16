@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Union, Optional
 
 import cv2
+import yaml
 import numpy as np
 
 from supervision.dataset.ultils import approximate_mask_with_polygons
@@ -168,7 +169,7 @@ def object_to_pascal_voc(
     image_shape: Tuple[int, int, int],
     polygon: Optional[np.ndarray] = None
 ) -> str:
-    pass
+    height, width, _ = image_shape
 
 
 def detections_to_yolo_annotations(
@@ -199,5 +200,22 @@ def detections_to_yolo_annotations(
     return "\n".join(annotation)
 
 
-def save_yolo_annotations():
+def save_yolo_annotations(
+    annotations_directory_path: str,
+    images: Dict[str, np.ndarray],
+    annotations: Dict[str, Detections],
+    min_image_area_percentage: float = 0.0,
+    max_image_area_percentage: float = 1.0,
+    approximation_percentage: float = 0.75,
+) -> None:
     pass
+
+
+def save_data_yaml(data_yaml_path: str, classes: List[str]) -> None:
+    data = {
+        'nc': len(classes),
+        'names': classes
+    }
+    Path(data_yaml_path).parent.mkdir(parents=True, exist_ok=True)
+    with open(data_yaml_path, 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)

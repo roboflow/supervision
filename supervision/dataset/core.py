@@ -11,7 +11,7 @@ from supervision.dataset.formats.pascal_voc import (
     detections_to_pascal_voc,
     load_pascal_voc_annotations,
 )
-from supervision.dataset.formats.yolo import load_yolo_annotations
+from supervision.dataset.formats.yolo import load_yolo_annotations, save_yolo_annotations, save_data_yaml
 from supervision.dataset.ultils import save_dataset_images
 from supervision.detection.core import Detections
 from supervision.file import list_files_with_extensions
@@ -236,4 +236,16 @@ class DetectionDataset(BaseDataset):
         max_image_area_percentage: float = 1.0,
         approximation_percentage: float = 0.75,
     ) -> None:
-        save_dataset_images(images=self.images, images_directory_path=images_directory_path)
+        if images_directory_path is not None:
+            save_dataset_images(images_directory_path=images_directory_path, images=self.images)
+        if annotations_directory_path is not None:
+            save_yolo_annotations(
+                annotations_directory_path=annotations_directory_path,
+                images=self.images,
+                annotations=self.annotations,
+                min_image_area_percentage=min_image_area_percentage,
+                max_image_area_percentage=max_image_area_percentage,
+                approximation_percentage=approximation_percentage
+            )
+        if data_yaml_path is not None:
+            save_data_yaml(data_yaml_path=data_yaml_path, classes=self.classes)

@@ -40,7 +40,7 @@ def approximate_mask_with_polygons(
     ]
 
 
-def save_dataset_images(images: Dict[str, np.ndarray], images_directory_path: Optional[str] = None) -> None:
+def save_dataset_images(images_directory_path: str, images: Dict[str, np.ndarray]) -> None:
     Path(images_directory_path).mkdir(parents=True, exist_ok=True)
 
     for image_name, image in images.items():
