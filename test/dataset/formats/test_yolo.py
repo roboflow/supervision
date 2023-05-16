@@ -5,7 +5,8 @@ import pytest
 import numpy as np
 
 from supervision.detection.core import Detections
-from supervision.dataset.formats.yolo import yolo_annotations_to_detections, _with_mask, _image_name_to_annotation_name
+from supervision.dataset.formats.yolo import yolo_annotations_to_detections, _with_mask, _image_name_to_annotation_name, \
+    object_to_yolo
 
 
 def _mock_simple_mask(resolution_wh: Tuple[int, int], box: List[int]) -> np.array:
@@ -236,4 +237,55 @@ def test_image_name_to_annotation_name(
 ) -> None:
     with exception:
         result = _image_name_to_annotation_name(image_name=image_name)
+        assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    'xyxy, class_id, image_shape, polygon, expected_result, exception',
+    [
+        (
+            np.array([100, 100, 200, 200], dtype=np.float32),
+            1,
+            (1000, 1000, 3),
+            None,
+            '1 0.15000 0.15000 0.10000 0.10000',
+            DoesNotRaise()
+        ),  # square bounding box on square image
+        (
+            np.array([100, 100, 200, 200], dtype=np.float32),
+            1,
+            (800, 1000, 3),
+            None,
+            '1 0.15000 0.18750 0.10000 0.12500',
+            DoesNotRaise()
+        ),  # square bounding box on horizontal image
+        (
+            np.array([100, 100, 200, 200], dtype=np.float32),
+            1,
+            (1000, 800, 3),
+            None,
+            '1 0.18750 0.15000 0.12500 0.10000',
+            DoesNotRaise()
+        ),  # square bounding box on vertical image
+        (
+            np.array([100, 200, 200, 400], dtype=np.float32),
+            1,
+            (1000, 1000, 3),
+            None,
+            '1 0.15000 0.30000 0.10000 0.20000',
+            DoesNotRaise()
+        ),  # horizontal bounding box on square image
+        (
+            np.array([200, 100, 400, 200], dtype=np.float32),
+            1,
+            (1000, 1000, 3),
+            None,
+            '1 0.30000 0.15000 0.20000 0.10000',
+            DoesNotRaise()
+        ),  # vertical bounding box on square image
+    ]
+)
+def test_object_to_yolo(xyxy: np.ndarray, class_id: int, image_shape: Tuple[int, int, int], polygon: Optional[np.ndarray], expected_result: Optional[str], exception: Exception) -> None:
+    with exception:
+        result = object_to_yolo(xyxy=xyxy, class_id=class_id, image_shape=image_shape, polygon=polygon)
         assert result == expected_result

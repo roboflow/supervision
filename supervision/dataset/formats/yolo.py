@@ -169,13 +169,23 @@ def load_yolo_annotations(
     return classes, images, annotations
 
 
-def object_to_pascal_voc(
+def object_to_yolo(
     xyxy: np.ndarray,
     class_id: int,
     image_shape: Tuple[int, int, int],
     polygon: Optional[np.ndarray] = None,
 ) -> str:
-    height, width, _ = image_shape
+    h, w, _ = image_shape
+    if polygon is None:
+        xyxy_relative = xyxy / np.array([w, h, w, h], dtype=np.float32)
+        x_min, y_min, x_max, y_max = xyxy_relative
+        x_center = (x_min + x_max) / 2
+        y_center = (y_min + y_max) / 2
+        width = x_max - x_min
+        height = y_max - y_min
+        return f"{int(class_id)} {x_center:.5f} {y_center:.5f} {width:.5f} {height:.5f}"
+    else:
+        pass
 
 
 def detections_to_yolo_annotations(
@@ -196,7 +206,7 @@ def detections_to_yolo_annotations(
             )
             for polygon in polygons:
                 xyxy = polygon_to_xyxy(polygon=polygon)
-                next_object = object_to_pascal_voc(
+                next_object = object_to_yolo(
                     xyxy=xyxy,
                     class_id=class_id,
                     image_shape=image_shape,
@@ -204,7 +214,7 @@ def detections_to_yolo_annotations(
                 )
                 annotation.append(next_object)
         else:
-            next_object = object_to_pascal_voc(
+            next_object = object_to_yolo(
                 xyxy=xyxy, class_id=class_id, image_shape=image_shape
             )
             annotation.append(next_object)
@@ -223,7 +233,9 @@ def save_yolo_annotations(
     for image_name, image in images:
         detections = annotations[image_name]
         yolo_annotations_name = _image_name_to_annotation_name(image_name=image_name)
-        yolo_annotations_path = os.path.join(annotations_directory_path, yolo_annotations_name)
+        yolo_annotations_path = os.path.join(
+            annotations_directory_path, yolo_annotations_name
+        )
         lines = detections_to_yolo_annotations(
             detections=detections,
             image_shape=image.shape,
