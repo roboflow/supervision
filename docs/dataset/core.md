@@ -5,4 +5,4 @@
 
 ## Dataset
 
-:::supervision.dataset.core.Dataset
+:::supervision.dataset.core.DetectionDataset

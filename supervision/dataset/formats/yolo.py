@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict, List, Tuple, Union, Optional
+from typing import Dict, List, Tuple, Union
 
 import cv2
 import numpy as np
@@ -159,11 +159,6 @@ def load_yolo_annotations(
         images[image_path.name] = image
         annotations[image_path.name] = annotation
     return classes, images, annotations
-
-
-def save_dataset_images(images: Dict[str, np.ndarray], images_directory_path: Optional[str] = None) -> None:
-    if images_directory_path is None:
-        return
 
 
 def save_yolo_annotations():

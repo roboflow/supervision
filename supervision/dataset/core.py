@@ -12,12 +12,18 @@ from supervision.dataset.formats.pascal_voc import (
     load_pascal_voc_annotations,
 )
 from supervision.dataset.formats.yolo import load_yolo_annotations
+from supervision.dataset.ultils import save_dataset_images
 from supervision.detection.core import Detections
 from supervision.file import list_files_with_extensions
 
 
 @dataclass
-class Dataset:
+class BaseDataset:
+    pass
+
+
+@dataclass
+class DetectionDataset(BaseDataset):
     """
     Dataclass containing information about the dataset.
 
@@ -107,7 +113,7 @@ class Dataset:
     @classmethod
     def from_pascal_voc(
         cls, images_directory_path: str, annotations_directory_path: str
-    ) -> Dataset:
+    ) -> DetectionDataset:
         """
         Creates a Dataset instance from PASCAL VOC formatted data.
 
@@ -116,7 +122,7 @@ class Dataset:
             annotations_directory_path (str): The path to the directory containing the PASCAL VOC XML annotations.
 
         Returns:
-            Dataset: A Dataset instance containing the loaded images and annotations.
+            DetectionDataset: A DetectionDataset instance containing the loaded images and annotations.
 
         Example:
             ```python
@@ -168,7 +174,7 @@ class Dataset:
         annotations = {
             image_name: detections for image_name, detections, _ in raw_annotations
         }
-        return Dataset(classes=classes, images=images, annotations=annotations)
+        return DetectionDataset(classes=classes, images=images, annotations=annotations)
 
     @classmethod
     def from_yolo(
@@ -177,7 +183,7 @@ class Dataset:
         annotations_directory_path: str,
         data_yaml_path: str,
         force_masks: bool = False,
-    ) -> Dataset:
+    ) -> DetectionDataset:
         """
         Creates a Dataset instance from YOLO formatted data.
 
@@ -188,7 +194,7 @@ class Dataset:
             force_masks (bool, optional): If True, forces masks to be loaded for all annotations, regardless of whether they are present.
 
         Returns:
-            Dataset: A Dataset instance containing the loaded images and annotations.
+            DetectionDataset: A DetectionDataset instance containing the loaded images and annotations.
 
         Example:
             ```python
@@ -219,11 +225,10 @@ class Dataset:
             data_yaml_path=data_yaml_path,
             force_masks=force_masks,
         )
-        return Dataset(classes=classes, images=images, annotations=annotations)
+        return DetectionDataset(classes=classes, images=images, annotations=annotations)
 
-    @classmethod
     def as_yolo(
-        cls,
+        self,
         images_directory_path: Optional[str] = None,
         annotations_directory_path: Optional[str] = None,
         data_yaml_path: Optional[str] = None,
@@ -231,4 +236,4 @@ class Dataset:
         max_image_area_percentage: float = 1.0,
         approximation_percentage: float = 0.75,
     ) -> None:
-        pass
+        save_dataset_images(images=self.images, images_directory_path=images_directory_path)
