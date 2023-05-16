@@ -230,7 +230,7 @@ def save_yolo_annotations(
     approximation_percentage: float = 0.75,
 ) -> None:
     Path(annotations_directory_path).mkdir(parents=True, exist_ok=True)
-    for image_name, image in images:
+    for image_name, image in images.items():
         detections = annotations[image_name]
         yolo_annotations_name = _image_name_to_annotation_name(image_name=image_name)
         yolo_annotations_path = os.path.join(
