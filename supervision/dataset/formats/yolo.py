@@ -1,9 +1,10 @@
 from pathlib import Path
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Tuple, Union, Optional
 
 import cv2
 import numpy as np
 
+from supervision.dataset.ultils import approximate_mask_with_polygons
 from supervision.detection.core import Detections
 from supervision.detection.utils import polygon_to_mask, polygon_to_xyxy
 from supervision.file import list_files_with_extensions, read_txt_file
@@ -159,6 +160,43 @@ def load_yolo_annotations(
         images[image_path.name] = image
         annotations[image_path.name] = annotation
     return classes, images, annotations
+
+
+def object_to_pascal_voc(
+    xyxy: np.ndarray,
+    class_id: int,
+    image_shape: Tuple[int, int, int],
+    polygon: Optional[np.ndarray] = None
+) -> str:
+    pass
+
+
+def detections_to_yolo_annotations(
+    detections: Detections,
+    image_shape: Tuple[int, int, int],
+    min_image_area_percentage: float = 0.0,
+    max_image_area_percentage: float = 1.0,
+    approximation_percentage: float = 0.75,
+) -> str:
+    annotation = []
+    for xyxy, mask, _, class_id, _ in detections:
+        if mask is not None:
+            polygons = approximate_mask_with_polygons(
+                mask=mask,
+                min_image_area_percentage=min_image_area_percentage,
+                max_image_area_percentage=max_image_area_percentage,
+                approximation_percentage=approximation_percentage,
+            )
+            for polygon in polygons:
+                xyxy = polygon_to_xyxy(polygon=polygon)
+                next_object = object_to_pascal_voc(
+                    xyxy=xyxy, class_id=class_id, image_shape=image_shape, polygon=polygon
+                )
+                annotation.append(next_object)
+        else:
+            next_object = object_to_pascal_voc(xyxy=xyxy, class_id=class_id, image_shape=image_shape)
+            annotation.append(next_object)
+    return "\n".join(annotation)
 
 
 def save_yolo_annotations():
