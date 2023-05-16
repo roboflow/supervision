@@ -220,3 +220,15 @@ class Dataset:
             force_masks=force_masks,
         )
         return Dataset(classes=classes, images=images, annotations=annotations)
+
+    @classmethod
+    def as_yolo(
+        cls,
+        images_directory_path: Optional[str] = None,
+        annotations_directory_path: Optional[str] = None,
+        data_yaml_path: Optional[str] = None,
+        min_image_area_percentage: float = 0.0,
+        max_image_area_percentage: float = 1.0,
+        approximation_percentage: float = 0.75,
+    ) -> None:
+        pass

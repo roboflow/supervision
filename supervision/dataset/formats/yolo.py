@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Tuple, Union, Optional
 
 import cv2
 import numpy as np
@@ -130,7 +130,7 @@ def load_yolo_annotations(
         force_masks (bool, optional): If True, forces masks to be loaded for all annotations, regardless of whether they are present.
 
     Returns:
-        Tuple[List[str], Dict[str, np.ndarray], Dict[str, Detections]]: A tuple containing a list of class names, a dictionary with image paths as keys and images as values, and a dictionary with image paths as keys and corresponding Detections instances as values.
+        Tuple[List[str], Dict[str, np.ndarray], Dict[str, Detections]]: A tuple containing a list of class names, a dictionary with image names as keys and images as values, and a dictionary with image names as keys and corresponding Detections instances as values.
     """
     image_paths = list_files_with_extensions(
         directory=images_directory_path, extensions=["jpg", "jpeg", "png"]
@@ -156,6 +156,15 @@ def load_yolo_annotations(
             lines=lines, resolution_wh=resolution_wh, with_masks=with_masks
         )
 
-        images[str(image_path)] = image
-        annotations[str(image_path)] = annotation
+        images[image_path.name] = image
+        annotations[image_path.name] = annotation
     return classes, images, annotations
+
+
+def save_dataset_images(images: Dict[str, np.ndarray], images_directory_path: Optional[str] = None) -> None:
+    if images_directory_path is None:
+        return
+
+
+def save_yolo_annotations():
+    pass
