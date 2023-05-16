@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Iterator
+from typing import Dict, Iterator, List, Optional, Tuple
 
 import cv2
 import numpy as np
@@ -11,7 +11,11 @@ from supervision.dataset.formats.pascal_voc import (
     detections_to_pascal_voc,
     load_pascal_voc_annotations,
 )
-from supervision.dataset.formats.yolo import load_yolo_annotations, save_yolo_annotations, save_data_yaml
+from supervision.dataset.formats.yolo import (
+    load_yolo_annotations,
+    save_data_yaml,
+    save_yolo_annotations,
+)
 from supervision.dataset.ultils import save_dataset_images
 from supervision.detection.core import Detections
 from supervision.file import list_files_with_extensions
@@ -237,7 +241,9 @@ class DetectionDataset(BaseDataset):
         approximation_percentage: float = 0.75,
     ) -> None:
         if images_directory_path is not None:
-            save_dataset_images(images_directory_path=images_directory_path, images=self.images)
+            save_dataset_images(
+                images_directory_path=images_directory_path, images=self.images
+            )
         if annotations_directory_path is not None:
             save_yolo_annotations(
                 annotations_directory_path=annotations_directory_path,
@@ -245,7 +251,7 @@ class DetectionDataset(BaseDataset):
                 annotations=self.annotations,
                 min_image_area_percentage=min_image_area_percentage,
                 max_image_area_percentage=max_image_area_percentage,
-                approximation_percentage=approximation_percentage
+                approximation_percentage=approximation_percentage,
             )
         if data_yaml_path is not None:
             save_data_yaml(data_yaml_path=data_yaml_path, classes=self.classes)

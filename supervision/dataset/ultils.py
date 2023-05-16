@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import List, Dict, Optional
+from typing import Dict, List
 
 import cv2
 import numpy as np
@@ -40,7 +40,9 @@ def approximate_mask_with_polygons(
     ]
 
 
-def save_dataset_images(images_directory_path: str, images: Dict[str, np.ndarray]) -> None:
+def save_dataset_images(
+    images_directory_path: str, images: Dict[str, np.ndarray]
+) -> None:
     Path(images_directory_path).mkdir(parents=True, exist_ok=True)
 
     for image_name, image in images.items():

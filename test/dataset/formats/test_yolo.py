@@ -5,7 +5,7 @@ import pytest
 import numpy as np
 
 from supervision.detection.core import Detections
-from supervision.dataset.formats.yolo import yolo_annotations_to_detections, _with_mask
+from supervision.dataset.formats.yolo import yolo_annotations_to_detections, _with_mask, _image_name_to_annotation_name
 
 
 def _mock_simple_mask(resolution_wh: Tuple[int, int], box: List[int]) -> np.array:
@@ -202,3 +202,38 @@ def test_yolo_annotations_to_detections(
         assert np.array_equal(result.xyxy, expected_result.xyxy)
         assert np.array_equal(result.class_id, expected_result.class_id)
         assert (result.mask is None and expected_result.mask is None) or _arrays_almost_equal(result.mask, expected_result.mask)
+
+
+@pytest.mark.parametrize(
+    'image_name, expected_result, exception',
+    [
+        (
+            'image.png',
+            'image.txt',
+            DoesNotRaise()
+        ),  # simple png image
+        (
+            'image.jpeg',
+            'image.txt',
+            DoesNotRaise()
+        ),  # simple jpeg image
+        (
+            'image.jpg',
+            'image.txt',
+            DoesNotRaise()
+        ),  # simple jpg image
+        (
+            'image.000.jpg',
+            'image.000.txt',
+            DoesNotRaise()
+        ),  # jpg image with multiple dots in name
+    ]
+)
+def test_image_name_to_annotation_name(
+    image_name: str,
+    expected_result: Optional[str],
+    exception: Exception
+) -> None:
+    with exception:
+        result = _image_name_to_annotation_name(image_name=image_name)
+        assert result == expected_result

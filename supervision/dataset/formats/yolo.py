@@ -1,14 +1,15 @@
+import os
 from pathlib import Path
-from typing import Dict, List, Tuple, Union, Optional
+from typing import Dict, List, Optional, Tuple, Union
 
 import cv2
-import yaml
 import numpy as np
+import yaml
 
 from supervision.dataset.ultils import approximate_mask_with_polygons
 from supervision.detection.core import Detections
 from supervision.detection.utils import polygon_to_mask, polygon_to_xyxy
-from supervision.file import list_files_with_extensions, read_txt_file
+from supervision.file import list_files_with_extensions, read_txt_file, save_text_file
 
 
 def _parse_box(values: List[str]) -> np.ndarray:
@@ -78,6 +79,11 @@ def _extract_class_names(file_path: str) -> List[str]:
                 break
 
     return names
+
+
+def _image_name_to_annotation_name(image_name: str) -> str:
+    base_name, _ = os.path.splitext(image_name)
+    return base_name + ".txt"
 
 
 def yolo_annotations_to_detections(
@@ -167,7 +173,7 @@ def object_to_pascal_voc(
     xyxy: np.ndarray,
     class_id: int,
     image_shape: Tuple[int, int, int],
-    polygon: Optional[np.ndarray] = None
+    polygon: Optional[np.ndarray] = None,
 ) -> str:
     height, width, _ = image_shape
 
@@ -178,7 +184,7 @@ def detections_to_yolo_annotations(
     min_image_area_percentage: float = 0.0,
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.75,
-) -> str:
+) -> List[str]:
     annotation = []
     for xyxy, mask, _, class_id, _ in detections:
         if mask is not None:
@@ -191,13 +197,18 @@ def detections_to_yolo_annotations(
             for polygon in polygons:
                 xyxy = polygon_to_xyxy(polygon=polygon)
                 next_object = object_to_pascal_voc(
-                    xyxy=xyxy, class_id=class_id, image_shape=image_shape, polygon=polygon
+                    xyxy=xyxy,
+                    class_id=class_id,
+                    image_shape=image_shape,
+                    polygon=polygon,
                 )
                 annotation.append(next_object)
         else:
-            next_object = object_to_pascal_voc(xyxy=xyxy, class_id=class_id, image_shape=image_shape)
+            next_object = object_to_pascal_voc(
+                xyxy=xyxy, class_id=class_id, image_shape=image_shape
+            )
             annotation.append(next_object)
-    return "\n".join(annotation)
+    return annotation
 
 
 def save_yolo_annotations(
@@ -208,14 +219,23 @@ def save_yolo_annotations(
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.75,
 ) -> None:
-    pass
+    Path(annotations_directory_path).mkdir(parents=True, exist_ok=True)
+    for image_name, image in images:
+        detections = annotations[image_name]
+        yolo_annotations_name = _image_name_to_annotation_name(image_name=image_name)
+        yolo_annotations_path = os.path.join(annotations_directory_path, yolo_annotations_name)
+        lines = detections_to_yolo_annotations(
+            detections=detections,
+            image_shape=image.shape,
+            min_image_area_percentage=min_image_area_percentage,
+            max_image_area_percentage=max_image_area_percentage,
+            approximation_percentage=approximation_percentage,
+        )
+        save_text_file(lines=lines, file_path=yolo_annotations_path)
 
 
 def save_data_yaml(data_yaml_path: str, classes: List[str]) -> None:
-    data = {
-        'nc': len(classes),
-        'names': classes
-    }
+    data = {"nc": len(classes), "names": classes}
     Path(data_yaml_path).parent.mkdir(parents=True, exist_ok=True)
-    with open(data_yaml_path, 'w') as outfile:
+    with open(data_yaml_path, "w") as outfile:
         yaml.dump(data, outfile, default_flow_style=False)

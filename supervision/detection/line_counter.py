@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Optional
 
 import cv2
 import numpy as np
@@ -6,7 +6,6 @@ import numpy as np
 from supervision.detection.core import Detections
 from supervision.draw.color import Color
 from supervision.geometry.core import Point, Rect, Vector
-from typing import Optional
 
 
 class LineZone:
@@ -70,6 +69,7 @@ class LineZone:
                 self.in_count += 1
             else:
                 self.out_count += 1
+
 
 class LineZoneAnnotator:
     def __init__(
@@ -145,9 +145,16 @@ class LineZoneAnnotator:
             lineType=cv2.LINE_AA,
         )
 
-        in_text = f"{self.custom_in_text}: {line_counter.in_count}" if self.custom_in_text is not None else f"in: {line_counter.in_count}"
-        out_text = f"{self.custom_out_text}: {line_counter.out_count}" if self.custom_out_text is not None else f"out: {line_counter.out_count}"
-
+        in_text = (
+            f"{self.custom_in_text}: {line_counter.in_count}"
+            if self.custom_in_text is not None
+            else f"in: {line_counter.in_count}"
+        )
+        out_text = (
+            f"{self.custom_out_text}: {line_counter.out_count}"
+            if self.custom_out_text is not None
+            else f"out: {line_counter.out_count}"
+        )
 
         (in_text_width, in_text_height), _ = cv2.getTextSize(
             in_text, cv2.FONT_HERSHEY_SIMPLEX, self.text_scale, self.text_thickness
