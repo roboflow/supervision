@@ -26,7 +26,8 @@ setuptools.setup(
     install_requires=[
         'numpy>=1.20.0',
         'opencv-python',
-        'matplotlib'
+        'matplotlib',
+        'pyyaml'
     ],
     packages=find_packages(exclude=("tests",)),
     extras_require={

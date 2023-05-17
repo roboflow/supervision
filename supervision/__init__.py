@@ -1,6 +1,6 @@
-__version__ = "0.7.0"
+__version__ = "0.8.0"
 
-from supervision.dataset.core import Dataset
+from supervision.dataset.core import BaseDataset, DetectionDataset
 from supervision.detection.annotate import BoxAnnotator, MaskAnnotator
 from supervision.detection.core import Detections
 from supervision.detection.line_counter import LineZone, LineZoneAnnotator

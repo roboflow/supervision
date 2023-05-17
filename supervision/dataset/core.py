@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Iterator
+from typing import Dict, Iterator, List, Optional, Tuple
 
 import cv2
 import numpy as np
@@ -11,15 +11,25 @@ from supervision.dataset.formats.pascal_voc import (
     detections_to_pascal_voc,
     load_pascal_voc_annotations,
 )
-from supervision.dataset.formats.yolo import load_yolo_annotations
+from supervision.dataset.formats.yolo import (
+    load_yolo_annotations,
+    save_data_yaml,
+    save_yolo_annotations,
+)
+from supervision.dataset.ultils import save_dataset_images
 from supervision.detection.core import Detections
 from supervision.file import list_files_with_extensions
 
 
 @dataclass
-class Dataset:
+class BaseDataset:
+    pass
+
+
+@dataclass
+class DetectionDataset(BaseDataset):
     """
-    Dataclass containing information about the dataset.
+    Dataclass containing information about object detection dataset.
 
     Attributes:
         classes (List[str]): List containing dataset class names.
@@ -57,7 +67,7 @@ class Dataset:
         annotations_directory_path: Optional[str] = None,
         min_image_area_percentage: float = 0.0,
         max_image_area_percentage: float = 1.0,
-        approximation_percentage: float = 0.75,
+        approximation_percentage: float = 0.0,
     ) -> None:
         """
         Exports the dataset to PASCAL VOC format. This method saves the images and their corresponding annotations in
@@ -107,7 +117,7 @@ class Dataset:
     @classmethod
     def from_pascal_voc(
         cls, images_directory_path: str, annotations_directory_path: str
-    ) -> Dataset:
+    ) -> DetectionDataset:
         """
         Creates a Dataset instance from PASCAL VOC formatted data.
 
@@ -116,7 +126,7 @@ class Dataset:
             annotations_directory_path (str): The path to the directory containing the PASCAL VOC XML annotations.
 
         Returns:
-            Dataset: A Dataset instance containing the loaded images and annotations.
+            DetectionDataset: A DetectionDataset instance containing the loaded images and annotations.
 
         Example:
             ```python
@@ -168,7 +178,7 @@ class Dataset:
         annotations = {
             image_name: detections for image_name, detections, _ in raw_annotations
         }
-        return Dataset(classes=classes, images=images, annotations=annotations)
+        return DetectionDataset(classes=classes, images=images, annotations=annotations)
 
     @classmethod
     def from_yolo(
@@ -177,7 +187,7 @@ class Dataset:
         annotations_directory_path: str,
         data_yaml_path: str,
         force_masks: bool = False,
-    ) -> Dataset:
+    ) -> DetectionDataset:
         """
         Creates a Dataset instance from YOLO formatted data.
 
@@ -188,7 +198,7 @@ class Dataset:
             force_masks (bool, optional): If True, forces masks to be loaded for all annotations, regardless of whether they are present.
 
         Returns:
-            Dataset: A Dataset instance containing the loaded images and annotations.
+            DetectionDataset: A DetectionDataset instance containing the loaded images and annotations.
 
         Example:
             ```python
@@ -219,4 +229,50 @@ class Dataset:
             data_yaml_path=data_yaml_path,
             force_masks=force_masks,
         )
-        return Dataset(classes=classes, images=images, annotations=annotations)
+        return DetectionDataset(classes=classes, images=images, annotations=annotations)
+
+    def as_yolo(
+        self,
+        images_directory_path: Optional[str] = None,
+        annotations_directory_path: Optional[str] = None,
+        data_yaml_path: Optional[str] = None,
+        min_image_area_percentage: float = 0.0,
+        max_image_area_percentage: float = 1.0,
+        approximation_percentage: float = 0.0,
+    ) -> None:
+        """
+        Exports the dataset to YOLO (You Only Look Once) format. This method saves the images and their corresponding
+        annotations in YOLO format, which is a simple text file that describes an object in the image. It also allows
+        for the optional saving of a data.yaml file, used in YOLOv5, that contains metadata about the dataset.
+
+        The method allows filtering the detections based on their area percentage and offers an option for polygon approximation.
+
+        Args:
+            images_directory_path (Optional[str]): The path to the directory where the images should be saved.
+                If not provided, images will not be saved.
+            annotations_directory_path (Optional[str]): The path to the directory where the annotations in
+                YOLO format should be saved. If not provided, annotations will not be saved.
+            data_yaml_path (Optional[str]): The path where the data.yaml file should be saved.
+                If not provided, the file will not be saved.
+            min_image_area_percentage (float): The minimum percentage of detection area relative to
+                the image area for a detection to be included.
+            max_image_area_percentage (float): The maximum percentage of detection area relative to
+                the image area for a detection to be included.
+            approximation_percentage (float): The percentage of polygon points to be removed from the input polygon,
+                in the range [0, 1). This is useful for simplifying the annotations.
+        """
+        if images_directory_path is not None:
+            save_dataset_images(
+                images_directory_path=images_directory_path, images=self.images
+            )
+        if annotations_directory_path is not None:
+            save_yolo_annotations(
+                annotations_directory_path=annotations_directory_path,
+                images=self.images,
+                annotations=self.annotations,
+                min_image_area_percentage=min_image_area_percentage,
+                max_image_area_percentage=max_image_area_percentage,
+                approximation_percentage=approximation_percentage,
+            )
+        if data_yaml_path is not None:
+            save_data_yaml(data_yaml_path=data_yaml_path, classes=self.classes)

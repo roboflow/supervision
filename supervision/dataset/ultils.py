@@ -1,5 +1,8 @@
-from typing import List
+import os
+from pathlib import Path
+from typing import Dict, List
 
+import cv2
 import numpy as np
 
 from supervision.detection.utils import (
@@ -15,7 +18,7 @@ def approximate_mask_with_polygons(
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.75,
 ) -> List[np.ndarray]:
-    height, width = mask
+    height, width = mask.shape
     image_area = height * width
     minimum_detection_area = min_image_area_percentage * image_area
     maximum_detection_area = max_image_area_percentage * image_area
@@ -35,3 +38,13 @@ def approximate_mask_with_polygons(
         approximate_polygon(polygon=polygon, percentage=approximation_percentage)
         for polygon in polygons
     ]
+
+
+def save_dataset_images(
+    images_directory_path: str, images: Dict[str, np.ndarray]
+) -> None:
+    Path(images_directory_path).mkdir(parents=True, exist_ok=True)
+
+    for image_name, image in images.items():
+        target_image_path = os.path.join(images_directory_path, image_name)
+        cv2.imwrite(target_image_path, image)

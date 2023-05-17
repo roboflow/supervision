@@ -63,9 +63,6 @@ def detections_to_pascal_voc(
         str: An XML string in Pascal VOC format representing the detections.
     """
     height, width, depth = image_shape
-    image_area = height * width
-    minimum_detection_area = min_image_area_percentage * image_area
-    maximum_detection_area = max_image_area_percentage * image_area
 
     # Create root element
     annotation = Element("annotation")

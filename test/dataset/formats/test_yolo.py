@@ -5,7 +5,8 @@ import pytest
 import numpy as np
 
 from supervision.detection.core import Detections
-from supervision.dataset.formats.yolo import yolo_annotations_to_detections, _with_mask
+from supervision.dataset.formats.yolo import yolo_annotations_to_detections, _with_mask, _image_name_to_annotation_name, \
+    object_to_yolo
 
 
 def _mock_simple_mask(resolution_wh: Tuple[int, int], box: List[int]) -> np.array:
@@ -202,3 +203,102 @@ def test_yolo_annotations_to_detections(
         assert np.array_equal(result.xyxy, expected_result.xyxy)
         assert np.array_equal(result.class_id, expected_result.class_id)
         assert (result.mask is None and expected_result.mask is None) or _arrays_almost_equal(result.mask, expected_result.mask)
+
+
+@pytest.mark.parametrize(
+    'image_name, expected_result, exception',
+    [
+        (
+            'image.png',
+            'image.txt',
+            DoesNotRaise()
+        ),  # simple png image
+        (
+            'image.jpeg',
+            'image.txt',
+            DoesNotRaise()
+        ),  # simple jpeg image
+        (
+            'image.jpg',
+            'image.txt',
+            DoesNotRaise()
+        ),  # simple jpg image
+        (
+            'image.000.jpg',
+            'image.000.txt',
+            DoesNotRaise()
+        ),  # jpg image with multiple dots in name
+    ]
+)
+def test_image_name_to_annotation_name(
+    image_name: str,
+    expected_result: Optional[str],
+    exception: Exception
+) -> None:
+    with exception:
+        result = _image_name_to_annotation_name(image_name=image_name)
+        assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    'xyxy, class_id, image_shape, polygon, expected_result, exception',
+    [
+        (
+            np.array([100, 100, 200, 200], dtype=np.float32),
+            1,
+            (1000, 1000, 3),
+            None,
+            '1 0.15000 0.15000 0.10000 0.10000',
+            DoesNotRaise()
+        ),  # square bounding box on square image
+        (
+            np.array([100, 100, 200, 200], dtype=np.float32),
+            1,
+            (800, 1000, 3),
+            None,
+            '1 0.15000 0.18750 0.10000 0.12500',
+            DoesNotRaise()
+        ),  # square bounding box on horizontal image
+        (
+            np.array([100, 100, 200, 200], dtype=np.float32),
+            1,
+            (1000, 800, 3),
+            None,
+            '1 0.18750 0.15000 0.12500 0.10000',
+            DoesNotRaise()
+        ),  # square bounding box on vertical image
+        (
+            np.array([100, 200, 200, 400], dtype=np.float32),
+            1,
+            (1000, 1000, 3),
+            None,
+            '1 0.15000 0.30000 0.10000 0.20000',
+            DoesNotRaise()
+        ),  # horizontal bounding box on square image
+        (
+            np.array([200, 100, 400, 200], dtype=np.float32),
+            1,
+            (1000, 1000, 3),
+            None,
+            '1 0.30000 0.15000 0.20000 0.10000',
+            DoesNotRaise()
+        ),  # vertical bounding box on square image
+        (
+            np.array([100, 100, 200, 200], dtype=np.float32),
+            1,
+            (1000, 1000, 3),
+            np.array([
+                [100, 100],
+                [200, 100],
+                [200, 200],
+                [100, 100]
+            ], dtype=np.float32),
+            '1 0.10000 0.10000 0.20000 0.10000 0.20000 0.20000 0.10000 0.10000',
+            DoesNotRaise()
+        ),  # square mask on square image
+    ]
+)
+def test_object_to_yolo(xyxy: np.ndarray, class_id: int, image_shape: Tuple[int, int, int], polygon: Optional[np.ndarray], expected_result: Optional[str], exception: Exception) -> None:
+    with exception:
+        result = object_to_yolo(xyxy=xyxy, class_id=class_id, image_shape=image_shape, polygon=polygon)
+        assert result == expected_result

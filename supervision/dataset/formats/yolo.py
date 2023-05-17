@@ -1,12 +1,15 @@
+import os
 from pathlib import Path
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
+import yaml
 
+from supervision.dataset.ultils import approximate_mask_with_polygons
 from supervision.detection.core import Detections
 from supervision.detection.utils import polygon_to_mask, polygon_to_xyxy
-from supervision.file import list_files_with_extensions, read_txt_file
+from supervision.file import list_files_with_extensions, read_txt_file, save_text_file
 
 
 def _parse_box(values: List[str]) -> np.ndarray:
@@ -78,6 +81,11 @@ def _extract_class_names(file_path: str) -> List[str]:
     return names
 
 
+def _image_name_to_annotation_name(image_name: str) -> str:
+    base_name, _ = os.path.splitext(image_name)
+    return base_name + ".txt"
+
+
 def yolo_annotations_to_detections(
     lines: List[str], resolution_wh: Tuple[int, int], with_masks: bool
 ) -> Detections:
@@ -130,7 +138,7 @@ def load_yolo_annotations(
         force_masks (bool, optional): If True, forces masks to be loaded for all annotations, regardless of whether they are present.
 
     Returns:
-        Tuple[List[str], Dict[str, np.ndarray], Dict[str, Detections]]: A tuple containing a list of class names, a dictionary with image paths as keys and images as values, and a dictionary with image paths as keys and corresponding Detections instances as values.
+        Tuple[List[str], Dict[str, np.ndarray], Dict[str, Detections]]: A tuple containing a list of class names, a dictionary with image names as keys and images as values, and a dictionary with image names as keys and corresponding Detections instances as values.
     """
     image_paths = list_files_with_extensions(
         directory=images_directory_path, extensions=["jpg", "jpeg", "png"]
@@ -156,6 +164,93 @@ def load_yolo_annotations(
             lines=lines, resolution_wh=resolution_wh, with_masks=with_masks
         )
 
-        images[str(image_path)] = image
-        annotations[str(image_path)] = annotation
+        images[image_path.name] = image
+        annotations[image_path.name] = annotation
     return classes, images, annotations
+
+
+def object_to_yolo(
+    xyxy: np.ndarray,
+    class_id: int,
+    image_shape: Tuple[int, int, int],
+    polygon: Optional[np.ndarray] = None,
+) -> str:
+    h, w, _ = image_shape
+    if polygon is None:
+        xyxy_relative = xyxy / np.array([w, h, w, h], dtype=np.float32)
+        x_min, y_min, x_max, y_max = xyxy_relative
+        x_center = (x_min + x_max) / 2
+        y_center = (y_min + y_max) / 2
+        width = x_max - x_min
+        height = y_max - y_min
+        return f"{int(class_id)} {x_center:.5f} {y_center:.5f} {width:.5f} {height:.5f}"
+    else:
+        polygon_relative = polygon / np.array([w, h], dtype=np.float32)
+        polygon_relative = polygon_relative.reshape(-1)
+        polygon_parsed = " ".join([f"{value:.5f}" for value in polygon_relative])
+        return f"{int(class_id)} {polygon_parsed}"
+
+
+def detections_to_yolo_annotations(
+    detections: Detections,
+    image_shape: Tuple[int, int, int],
+    min_image_area_percentage: float = 0.0,
+    max_image_area_percentage: float = 1.0,
+    approximation_percentage: float = 0.75,
+) -> List[str]:
+    annotation = []
+    for xyxy, mask, _, class_id, _ in detections:
+        if mask is not None:
+            polygons = approximate_mask_with_polygons(
+                mask=mask,
+                min_image_area_percentage=min_image_area_percentage,
+                max_image_area_percentage=max_image_area_percentage,
+                approximation_percentage=approximation_percentage,
+            )
+            for polygon in polygons:
+                xyxy = polygon_to_xyxy(polygon=polygon)
+                next_object = object_to_yolo(
+                    xyxy=xyxy,
+                    class_id=class_id,
+                    image_shape=image_shape,
+                    polygon=polygon,
+                )
+                annotation.append(next_object)
+        else:
+            next_object = object_to_yolo(
+                xyxy=xyxy, class_id=class_id, image_shape=image_shape
+            )
+            annotation.append(next_object)
+    return annotation
+
+
+def save_yolo_annotations(
+    annotations_directory_path: str,
+    images: Dict[str, np.ndarray],
+    annotations: Dict[str, Detections],
+    min_image_area_percentage: float = 0.0,
+    max_image_area_percentage: float = 1.0,
+    approximation_percentage: float = 0.75,
+) -> None:
+    Path(annotations_directory_path).mkdir(parents=True, exist_ok=True)
+    for image_name, image in images.items():
+        detections = annotations[image_name]
+        yolo_annotations_name = _image_name_to_annotation_name(image_name=image_name)
+        yolo_annotations_path = os.path.join(
+            annotations_directory_path, yolo_annotations_name
+        )
+        lines = detections_to_yolo_annotations(
+            detections=detections,
+            image_shape=image.shape,
+            min_image_area_percentage=min_image_area_percentage,
+            max_image_area_percentage=max_image_area_percentage,
+            approximation_percentage=approximation_percentage,
+        )
+        save_text_file(lines=lines, file_path=yolo_annotations_path)
+
+
+def save_data_yaml(data_yaml_path: str, classes: List[str]) -> None:
+    data = {"nc": len(classes), "names": classes}
+    Path(data_yaml_path).parent.mkdir(parents=True, exist_ok=True)
+    with open(data_yaml_path, "w") as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)

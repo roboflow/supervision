@@ -53,3 +53,16 @@ def read_txt_file(file_path: str) -> List[str]:
         lines = [line.rstrip("\n") for line in lines]
 
     return lines
+
+
+def save_text_file(lines: List[str], file_path: str):
+    """
+    Write a list of strings to a text file, each string on a new line.
+
+    Args:
+        lines (List[str]): The list of strings to be written to the file.
+        file_path (str): The path to the text file.
+    """
+    with open(file_path, "w") as file:
+        for line in lines:
+            file.write(line + "\n")
