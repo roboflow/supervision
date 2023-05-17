@@ -1,7 +1,8 @@
 ### 0.8.0 <small>May 17, 2023</small>
 
-- Added [[#100](https://github.com/roboflow/supervision/pull/100)]: ability to save datasets in YOLO format using `Dataset.as_yolo`.
-- Added [[#100](https://github.com/roboflow/supervision/pull/100)]: support for Dataset inheritance. Current `Dataset` got renamed to `DetectionDataset` and make it inherit from `BaseDataset`.   
+- Added [[#100](https://github.com/roboflow/supervision/pull/100)]: support for Dataset inheritance. Current `Dataset` got renamed to `DetectionDataset` and make it inherit from `BaseDataset`.
+- Added [[#100](https://github.com/roboflow/supervision/pull/100)]: ability to save datasets in YOLO format using `DetectionDataset.as_yolo`.
+- Changed [[#100](https://github.com/roboflow/supervision/pull/100)]: default value of `approximation_percentage` parameter from `0.75` to `0.0` in `DetectionDataset.as_yolo` and `DetectionDataset.as_pascal_voc`.
 
 ### 0.7.0 <small>May 11, 2023</small>
 

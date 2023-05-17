@@ -67,7 +67,7 @@ class DetectionDataset(BaseDataset):
         annotations_directory_path: Optional[str] = None,
         min_image_area_percentage: float = 0.0,
         max_image_area_percentage: float = 1.0,
-        approximation_percentage: float = 0.75,
+        approximation_percentage: float = 0.0,
     ) -> None:
         """
         Exports the dataset to PASCAL VOC format. This method saves the images and their corresponding annotations in
@@ -238,7 +238,7 @@ class DetectionDataset(BaseDataset):
         data_yaml_path: Optional[str] = None,
         min_image_area_percentage: float = 0.0,
         max_image_area_percentage: float = 1.0,
-        approximation_percentage: float = 0.75,
+        approximation_percentage: float = 0.0,
     ) -> None:
         """
         Exports the dataset to YOLO (You Only Look Once) format. This method saves the images and their corresponding
