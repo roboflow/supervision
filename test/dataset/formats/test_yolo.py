@@ -283,6 +283,19 @@ def test_image_name_to_annotation_name(
             '1 0.30000 0.15000 0.20000 0.10000',
             DoesNotRaise()
         ),  # vertical bounding box on square image
+        (
+            np.array([100, 100, 200, 200], dtype=np.float32),
+            1,
+            (1000, 1000, 3),
+            np.array([
+                [100, 100],
+                [200, 100],
+                [200, 200],
+                [100, 100]
+            ], dtype=np.float32),
+            '1 0.10000 0.10000 0.20000 0.10000 0.20000 0.20000 0.10000 0.10000',
+            DoesNotRaise()
+        ),  # square mask on square image
     ]
 )
 def test_object_to_yolo(xyxy: np.ndarray, class_id: int, image_shape: Tuple[int, int, int], polygon: Optional[np.ndarray], expected_result: Optional[str], exception: Exception) -> None:

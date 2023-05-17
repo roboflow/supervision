@@ -185,7 +185,10 @@ def object_to_yolo(
         height = y_max - y_min
         return f"{int(class_id)} {x_center:.5f} {y_center:.5f} {width:.5f} {height:.5f}"
     else:
-        pass
+        polygon_relative = polygon / np.array([w, h], dtype=np.float32)
+        polygon_relative = polygon_relative.reshape(-1)
+        polygon_parsed = " ".join([f"{value:.5f}" for value in polygon_relative])
+        return f"{int(class_id)} {polygon_parsed}"
 
 
 def detections_to_yolo_annotations(
