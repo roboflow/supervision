@@ -240,6 +240,27 @@ class DetectionDataset(BaseDataset):
         max_image_area_percentage: float = 1.0,
         approximation_percentage: float = 0.75,
     ) -> None:
+        """
+        Exports the dataset to YOLO (You Only Look Once) format. This method saves the images and their corresponding
+        annotations in YOLO format, which is a simple text file that describes an object in the image. It also allows
+        for the optional saving of a data.yaml file, used in YOLOv5, that contains metadata about the dataset.
+
+        The method allows filtering the detections based on their area percentage and offers an option for polygon approximation.
+
+        Args:
+            images_directory_path (Optional[str]): The path to the directory where the images should be saved.
+                If not provided, images will not be saved.
+            annotations_directory_path (Optional[str]): The path to the directory where the annotations in
+                YOLO format should be saved. If not provided, annotations will not be saved.
+            data_yaml_path (Optional[str]): The path where the data.yaml file should be saved.
+                If not provided, the file will not be saved.
+            min_image_area_percentage (float): The minimum percentage of detection area relative to
+                the image area for a detection to be included.
+            max_image_area_percentage (float): The maximum percentage of detection area relative to
+                the image area for a detection to be included.
+            approximation_percentage (float): The percentage of polygon points to be removed from the input polygon,
+                in the range [0, 1). This is useful for simplifying the annotations.
+        """
         if images_directory_path is not None:
             save_dataset_images(
                 images_directory_path=images_directory_path, images=self.images
