@@ -1,3 +1,8 @@
+### 0.8.0 <small>May 17, 2023</small>
+
+- Added [[#100](https://github.com/roboflow/supervision/pull/100)]: ability to save datasets in YOLO format using `Dataset.as_yolo`.
+- Added [[#100](https://github.com/roboflow/supervision/pull/100)]: support for Dataset inheritance. Current `Dataset` got renamed to `DetectionDataset` and make it inherit from `BaseDataset`.   
+
 ### 0.7.0 <small>May 11, 2023</small>
 
 - Added [[#91](https://github.com/roboflow/supervision/pull/91)]: `Detections.from_yolo_nas` to enable seamless integration with [YOLO-NAS](https://github.com/Deci-AI/super-gradients/blob/master/YOLONAS.md) model.
