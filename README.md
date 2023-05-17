@@ -32,7 +32,7 @@ pip install supervision
 ```
 
 <details close>
-<summary>install from source</summary>
+<summary>👉 install from source</summary>
 
 ```bash
 # clone repository and navigate to root directory
