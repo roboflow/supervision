@@ -18,7 +18,7 @@ def approximate_mask_with_polygons(
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.75,
 ) -> List[np.ndarray]:
-    height, width = mask
+    height, width = mask.shape
     image_area = height * width
     minimum_detection_area = min_image_area_percentage * image_area
     maximum_detection_area = max_image_area_percentage * image_area
