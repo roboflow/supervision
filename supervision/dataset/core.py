@@ -29,7 +29,7 @@ class BaseDataset:
 @dataclass
 class DetectionDataset(BaseDataset):
     """
-    Dataclass containing information about the dataset.
+    Dataclass containing information about object detection dataset.
 
     Attributes:
         classes (List[str]): List containing dataset class names.
