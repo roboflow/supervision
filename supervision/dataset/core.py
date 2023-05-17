@@ -71,11 +71,8 @@ class DetectionDataset(BaseDataset):
             yield image_name, image, self.annotations.get(image_name, None)
 
     def split(
-        self,
-        split_ratio=0.8,
-        random_state=None,
-        shuffle: bool = True
-    ) -> Tuple['DetectionDataset', 'DetectionDataset']:
+        self, split_ratio=0.8, random_state=None, shuffle: bool = True
+    ) -> Tuple[DetectionDataset, DetectionDataset]:
         """
         Splits the dataset into two parts using the provided split_ratio.
 
@@ -88,17 +85,18 @@ class DetectionDataset(BaseDataset):
             data=image_names,
             train_ratio=split_ratio,
             random_state=random_state,
-            shuffle=shuffle)
+            shuffle=shuffle,
+        )
 
         train_dataset = DetectionDataset(
             classes=self.classes,
             images={name: self.images[name] for name in train_names},
-            annotations={name: self.annotations[name] for name in train_names}
+            annotations={name: self.annotations[name] for name in train_names},
         )
         test_dataset = DetectionDataset(
             classes=self.classes,
             images={name: self.images[name] for name in test_names},
-            annotations={name: self.annotations[name] for name in test_names}
+            annotations={name: self.annotations[name] for name in test_names},
         )
         return train_dataset, test_dataset
 

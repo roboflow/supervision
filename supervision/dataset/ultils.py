@@ -1,7 +1,7 @@
 import os
 import random
 from pathlib import Path
-from typing import Dict, List, Tuple, TypeVar
+from typing import Dict, List, Optional, Tuple, TypeVar
 
 import cv2
 import numpy as np
@@ -56,7 +56,7 @@ def save_dataset_images(
 def train_test_split(
     data: List[T],
     train_ratio: float = 0.8,
-    random_state: int = None,
+    random_state: Optional[int] = None,
     shuffle: bool = True,
 ) -> Tuple[List[T], List[T]]:
     """
@@ -65,7 +65,7 @@ def train_test_split(
     Args:
         data (List[T]): The data to split.
         train_ratio (float): The ratio of the training set to the entire dataset.
-        random_state (int): The seed for the random number generator.
+        random_state (Optional[int]): The seed for the random number generator.
         shuffle (bool): Whether to shuffle the data before splitting.
 
     Returns:
