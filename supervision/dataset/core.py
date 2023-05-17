@@ -88,9 +88,9 @@ class DetectionDataset(BaseDataset):
             ```python
             >>> import supervision as sv
 
-            >>> dataset = sv.DetectionDataset(...)
-            >>> train_dataset, test_dataset = dataset.split(split_ratio=0.7, random_state=42, shuffle=True)
-            >>> len(train_dataset), len(test_dataset)
+            >>> ds = sv.DetectionDataset(...)
+            >>> train_ds, test_ds = ds.split(split_ratio=0.7, random_state=42, shuffle=True)
+            >>> len(train_ds), len(test_ds)
             (700, 300)
             ```
         """
@@ -195,12 +195,12 @@ class DetectionDataset(BaseDataset):
             >>> project = rf.workspace(WORKSPACE_ID).project(PROJECT_ID)
             >>> dataset = project.version(PROJECT_VERSION).download("voc")
 
-            >>> train_dataset = sv.Dataset.from_yolo(
+            >>> ds = sv.DetectionDataset.from_yolo(
             ...     images_directory_path=f"{dataset.location}/train/images",
             ...     annotations_directory_path=f"{dataset.location}/train/labels"
             ... )
 
-            >>> dataset.classes
+            >>> ds.classes
             ['dog', 'person']
             ```
         """
@@ -267,13 +267,13 @@ class DetectionDataset(BaseDataset):
             >>> project = rf.workspace(WORKSPACE_ID).project(PROJECT_ID)
             >>> dataset = project.version(PROJECT_VERSION).download("yolov5")
 
-            >>> train_dataset = sv.Dataset.from_yolo(
+            >>> ds = sv.DetectionDataset.from_yolo(
             ...     images_directory_path=f"{dataset.location}/train/images",
             ...     annotations_directory_path=f"{dataset.location}/train/labels",
             ...     data_yaml_path=f"{dataset.location}/data.yaml"
             ... )
 
-            >>> dataset.classes
+            >>> ds.classes
             ['dog', 'person']
             ```
         """
@@ -295,7 +295,7 @@ class DetectionDataset(BaseDataset):
         approximation_percentage: float = 0.0,
     ) -> None:
         """
-        Exports the dataset to YOLO (You Only Look Once) format. This method saves the images and their corresponding
+        Exports the dataset to YOLO format. This method saves the images and their corresponding
         annotations in YOLO format, which is a simple text file that describes an object in the image. It also allows
         for the optional saving of a data.yaml file, used in YOLOv5, that contains metadata about the dataset.
 
