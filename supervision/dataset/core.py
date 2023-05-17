@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterator, List, Optional, Tuple
@@ -16,14 +17,22 @@ from supervision.dataset.formats.yolo import (
     save_data_yaml,
     save_yolo_annotations,
 )
-from supervision.dataset.ultils import save_dataset_images
+from supervision.dataset.ultils import save_dataset_images, train_test_split
 from supervision.detection.core import Detections
 from supervision.file import list_files_with_extensions
 
 
 @dataclass
-class BaseDataset:
-    pass
+class BaseDataset(ABC):
+    @abstractmethod
+    def __len__(self) -> int:
+        pass
+
+    @abstractmethod
+    def split(
+        self, split_ratio=0.8, random_state=None, shuffle: bool = True
+    ) -> Tuple[BaseDataset, BaseDataset]:
+        pass
 
 
 @dataclass
@@ -60,6 +69,38 @@ class DetectionDataset(BaseDataset):
         """
         for image_name, image in self.images.items():
             yield image_name, image, self.annotations.get(image_name, None)
+
+    def split(
+        self,
+        split_ratio=0.8,
+        random_state=None,
+        shuffle: bool = True
+    ) -> Tuple['DetectionDataset', 'DetectionDataset']:
+        """
+        Splits the dataset into two parts using the provided split_ratio.
+
+        Returns:
+            Tuple[DetectionDataset, DetectionDataset]: The split datasets.
+        """
+
+        image_names = list(self.images.keys())
+        train_names, test_names = train_test_split(
+            data=image_names,
+            train_ratio=split_ratio,
+            random_state=random_state,
+            shuffle=shuffle)
+
+        train_dataset = DetectionDataset(
+            classes=self.classes,
+            images={name: self.images[name] for name in train_names},
+            annotations={name: self.annotations[name] for name in train_names}
+        )
+        test_dataset = DetectionDataset(
+            classes=self.classes,
+            images={name: self.images[name] for name in test_names},
+            annotations={name: self.annotations[name] for name in test_names}
+        )
+        return train_dataset, test_dataset
 
     def as_pascal_voc(
         self,

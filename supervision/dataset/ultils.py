@@ -1,6 +1,7 @@
 import os
+import random
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Tuple, TypeVar
 
 import cv2
 import numpy as np
@@ -10,6 +11,8 @@ from supervision.detection.utils import (
     filter_polygons_by_area,
     mask_to_polygons,
 )
+
+T = TypeVar("T")
 
 
 def approximate_mask_with_polygons(
@@ -48,3 +51,31 @@ def save_dataset_images(
     for image_name, image in images.items():
         target_image_path = os.path.join(images_directory_path, image_name)
         cv2.imwrite(target_image_path, image)
+
+
+def train_test_split(
+    data: List[T],
+    train_ratio: float = 0.8,
+    random_state: int = None,
+    shuffle: bool = True,
+) -> Tuple[List[T], List[T]]:
+    """
+    Splits the data into two parts using the provided train_ratio.
+
+    Args:
+        data (List[T]): The data to split.
+        train_ratio (float): The ratio of the training set to the entire dataset.
+        random_state (int): The seed for the random number generator.
+        shuffle (bool): Whether to shuffle the data before splitting.
+
+    Returns:
+        Tuple[List[T], List[T]]: The split data.
+    """
+    if random_state is not None:
+        random.seed(random_state)
+
+    if shuffle:
+        random.shuffle(data)
+
+    split_index = int(len(data) * train_ratio)
+    return data[:split_index], data[split_index:]
