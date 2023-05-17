@@ -66,7 +66,7 @@
 
 ## 👋 hello
 
-We write your reusable computer vision tools. Whether you need to load your dataset from your hard drive, draw detections on an image or video, or count how many detections are in a zone. You can count on `supervision`! 🤝
+**We write your reusable computer vision tools.** Whether you need to load your dataset from your hard drive, draw detections on an image or video, or count how many detections are in a zone. You can count on us! 🤝
 
 ## 💻 install
 
@@ -237,27 +237,17 @@ pip install -e ".[dev]"
 
 ## 🎬 tutorials
 
-🔥 [Subscribe](https://www.youtube.com/@Roboflow) and stay up to date with the latest changes to the Supervision library. 
+<p align="left">
+<a href="https://youtu.be/oEQYStnF2l8" title="Accelerate Image Annotation with SAM and Grounding DINO"><img src="https://github.com/SkalskiP/SkalskiP/assets/26109316/ae1ca38e-40b7-4b35-8582-e8ea5de3806e" alt="Accelerate Image Annotation with SAM and Grounding DINO" width="300px" align="left" /></a>
+<a href="https://youtu.be/oEQYStnF2l8" title="Accelerate Image Annotation with SAM and Grounding DINO"><strong>Accelerate Image Annotation with SAM and Grounding DINO</strong></a>
+<div><strong>Created: 20 Apr 2023</strong> | <strong>Updated: 20 Apr 2023</strong></div>
+<br/> Discover how to speed up your image annotation process using Grounding DINO and Segment Anything Model (SAM). Learn how to convert object detection datasets into instance segmentation datasets, and see the potential of using these models to automatically annotate your datasets for real-time detectors like YOLOv8... </p> <br/> 
 
-<p align="center">
-    <a href="https://youtu.be/l_kf9CfZ_8M">
-        <img 
-            width="90%"
-            src="https://user-images.githubusercontent.com/26109316/217950212-311de186-1862-4b4c-a86e-89cafd68b233.jpg" 
-            alt="count-objects-in-zone"
-        >
-    </a>
-</p>
-
-<p align="center">
-    <a href="https://youtu.be/OS5qI9YBkfk">
-        <img
-            width="90%"
-            src="https://user-images.githubusercontent.com/26109316/213702005-ddd568f0-b902-46c2-9af9-e6ff33db23bf.jpg" 
-            alt="count-objects-crossing-line"
-        >
-    </a>
-</p>
+<p align="left">
+<a href="https://youtu.be/oEQYStnF2l8" title="SAM - Segment Anything Model by Meta AI: Complete Guide"><img src="https://github.com/SkalskiP/SkalskiP/assets/26109316/6913ff11-53c6-4341-8d90-eaff3023c3fd" alt="SAM - Segment Anything Model by Meta AI: Complete Guide" width="300px" align="left" /></a>
+<a href="https://youtu.be/oEQYStnF2l8" title="SAM - Segment Anything Model by Meta AI: Complete Guide"><strong>SAM - Segment Anything Model by Meta AI: Complete Guide</strong></a>
+<div><strong>Created: 11 Apr 2023</strong> | <strong>Updated: 11 Apr 2023</strong></div>
+<br/> Discover the incredible potential of Meta AI's Segment Anything Model (SAM)! We dive into SAM, an efficient and promptable model for image segmentation, which has revolutionized computer vision tasks. With over 1 billion masks on 11M licensed and privacy-respecting images, SAM's zero-shot performance is often competitive with or even superior to prior fully supervised results... </p> <br/> 
 
 ## 📚 documentation
 
