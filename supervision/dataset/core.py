@@ -74,10 +74,25 @@ class DetectionDataset(BaseDataset):
         self, split_ratio=0.8, random_state=None, shuffle: bool = True
     ) -> Tuple[DetectionDataset, DetectionDataset]:
         """
-        Splits the dataset into two parts using the provided split_ratio.
+        Splits the dataset into two parts (training and testing) using the provided split_ratio.
+
+        Args:
+            split_ratio (float, optional): The ratio of the training set to the entire dataset. Default is 0.8.
+            random_state (int, optional): The seed for the random number generator. This is used for reproducibility. Default is None.
+            shuffle (bool, optional): Whether to shuffle the data before splitting. Default is True.
 
         Returns:
-            Tuple[DetectionDataset, DetectionDataset]: The split datasets.
+            Tuple[DetectionDataset, DetectionDataset]: A tuple containing the training and testing datasets.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> dataset = sv.DetectionDataset(...)
+            >>> train_dataset, test_dataset = dataset.split(split_ratio=0.7, random_state=42, shuffle=True)
+            >>> len(train_dataset), len(test_dataset)
+            (700, 300)
+            ```
         """
 
         image_names = list(self.images.keys())
