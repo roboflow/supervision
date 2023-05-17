@@ -220,7 +220,9 @@ def polygon_to_xyxy(polygon: np.ndarray) -> np.ndarray:
     return np.array([x_min, y_min, x_max, y_max])
 
 
-def approximate_polygon(polygon: np.ndarray, percentage: float) -> np.ndarray:
+def approximate_polygon(
+    polygon: np.ndarray, percentage: float, epsilon_step: float = 0.05
+) -> np.ndarray:
     """
     Approximates a given polygon by reducing a certain percentage of points.
 
@@ -228,11 +230,12 @@ def approximate_polygon(polygon: np.ndarray, percentage: float) -> np.ndarray:
     while preserving the general shape.
 
     Parameters:
-        polygon (np.ndarray): A 2D NumPy array of shape (N, 2) containing the x, y coordinates of the input polygon's points.
-        percentage (float): The percentage of points to be removed from the input polygon, in the range [0, 1).
+        polygon (np.ndarray): A 2D NumPy array of shape `(N, 2)` containing the `x`, `y` coordinates of the input polygon's points.
+        percentage (float): The percentage of points to be removed from the input polygon, in the range `[0, 1)`.
+        epsilon_step (float): Approximation accuracy step. Epsilon is the maximum distance between the original curve and its approximation.
 
     Returns:
-        np.ndarray: A new 2D NumPy array of shape (M, 2), where M <= N * (1 - percentage), containing the x, y coordinates of the
+        np.ndarray: A new 2D NumPy array of shape `(M, 2)`, where `M <= N * (1 - percentage)`, containing the `x`, `y` coordinates of the
             approximated polygon's points.
     """
 
@@ -246,8 +249,12 @@ def approximate_polygon(polygon: np.ndarray, percentage: float) -> np.ndarray:
 
     epsilon = 0
     approximated_points = polygon
-    while len(approximated_points) > target_points:
-        epsilon += 0.1
-        approximated_points = cv2.approxPolyDP(polygon, epsilon, closed=True)
+    while True:
+        epsilon += epsilon_step
+        new_approximated_points = cv2.approxPolyDP(polygon, epsilon, closed=True)
+        if len(new_approximated_points) > target_points:
+            approximated_points = new_approximated_points
+        else:
+            break
 
     return np.squeeze(approximated_points, axis=1)
