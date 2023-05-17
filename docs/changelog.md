@@ -1,8 +1,42 @@
 ### 0.8.0 <small>May 17, 2023</small>
 
-- Added [[#100](https://github.com/roboflow/supervision/pull/100)]: support for Dataset inheritance. Current `Dataset` got renamed to `DetectionDataset` and make it inherit from `BaseDataset`.
-- Added [[#100](https://github.com/roboflow/supervision/pull/100)]: ability to save datasets in YOLO format using `DetectionDataset.as_yolo`.
-- Added [[#102](https://github.com/roboflow/supervision/pull/103)]: support for splitting `DetectionDataset`.
+- Added [[#100](https://github.com/roboflow/supervision/pull/100)]: support for dataset inheritance. The current `Dataset` got renamed to `DetectionDataset`. Now [`DetectionDataset`](https://roboflow.github.io/supervision/dataset/core/#detectiondataset) inherits from `BaseDataset`. This change was made to enforce the future consistency of APIs of different types of computer vision datasets.
+- Added [[#100](https://github.com/roboflow/supervision/pull/100)]: ability to save datasets in YOLO format using [`DetectionDataset.as_yolo`](https://roboflow.github.io/supervision/dataset/core/#supervision.dataset.core.DetectionDataset.as_yolo). 
+
+```python
+>>> import roboflow
+>>> from roboflow import Roboflow
+>>> import supervision as sv
+
+>>> roboflow.login()
+
+>>> rf = Roboflow()
+
+>>> project = rf.workspace(WORKSPACE_ID).project(PROJECT_ID)
+>>> dataset = project.version(PROJECT_VERSION).download("yolov5")
+
+>>> ds = sv.DetectionDataset.from_yolo(
+...     images_directory_path=f"{dataset.location}/train/images",
+...     annotations_directory_path=f"{dataset.location}/train/labels",
+...     data_yaml_path=f"{dataset.location}/data.yaml"
+... )
+
+>>> ds.classes
+['dog', 'person']
+```
+
+- Added [[#102](https://github.com/roboflow/supervision/pull/103)]: support for [`DetectionDataset.split`](https://roboflow.github.io/supervision/dataset/core/#supervision.dataset.core.DetectionDataset.split) allowing to divide `DetectionDataset` into two parts. 
+
+```python
+>>> import supervision as sv
+
+>>> ds = sv.DetectionDataset(...)
+>>> train_ds, test_ds = ds.split(split_ratio=0.7, random_state=42, shuffle=True)
+
+>>> len(train_ds), len(test_ds)
+(700, 300)
+```
+
 - Changed [[#100](https://github.com/roboflow/supervision/pull/100)]: default value of `approximation_percentage` parameter from `0.75` to `0.0` in `DetectionDataset.as_yolo` and `DetectionDataset.as_pascal_voc`.
 
 ### 0.7.0 <small>May 11, 2023</small>
