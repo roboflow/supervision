@@ -187,10 +187,18 @@ class Detections:
             >>> detections = sv.Detections.from_yolov8(result)
             ```
         """
+        masks = None
+        if yolov8_results.masks:
+            from ultralytics.yolo.utils.ops import scale_image
+            masks = yolov8_results.masks.masks.cpu().numpy()  # masks, (N, H, W)
+            masks = np.moveaxis(masks, 0, -1)  # masks, (H, W, N)
+            masks = scale_image(masks, yolov8_results.masks.orig_shape)
+            masks = np.moveaxis(masks, -1, 0)  # masks, (N, H, W)
         return cls(
             xyxy=yolov8_results.boxes.xyxy.cpu().numpy(),
             confidence=yolov8_results.boxes.conf.cpu().numpy(),
             class_id=yolov8_results.boxes.cls.cpu().numpy().astype(int),
+            mask=masks
         )
 
     @classmethod
