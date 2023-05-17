@@ -66,9 +66,7 @@
 
 ## 👋 hello
 
-A set of easy-to-use utils that will come in handy in any computer vision project. **Supervision is still in 
-pre-release stage. 🚧 Keep your eyes open for potential bugs and be aware that at this stage our API is still fluid 
-and may change.**
+We write your reusable computer vision tools. Whether you need to load your dataset from your hard drive, draw detections on an image or video, or count how many detections are in a zone. You can count on `supervision`! 🤝
 
 ## 💻 install
 
