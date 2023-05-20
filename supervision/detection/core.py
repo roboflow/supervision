@@ -189,10 +189,9 @@ class Detections:
         """
         masks = None
         if yolov8_results.masks:
-            from ultralytics.yolo.utils.ops import scale_image
             masks = yolov8_results.masks.masks.cpu().numpy()  # masks, (N, H, W)
             masks = np.moveaxis(masks, 0, -1)  # masks, (H, W, N)
-            masks = scale_image(masks, yolov8_results.masks.orig_shape)
+            masks = cv2.resize(masks, (yolov8_results.masks.orig_shape[1], yolov8_results.masks.orig_shape[0]))
             masks = np.moveaxis(masks, -1, 0)  # masks, (N, H, W)
         return cls(
             xyxy=yolov8_results.boxes.xyxy.cpu().numpy(),
