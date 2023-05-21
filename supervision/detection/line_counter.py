@@ -26,6 +26,8 @@ class LineZone:
         self.tracker_state: Dict[str, bool] = {}
         self.in_count: int = 0
         self.out_count: int = 0
+        self.in_flag: bool = False
+        self.out_flag: bool = False
 
     def trigger(self, detections: Detections):
         """
@@ -35,6 +37,7 @@ class LineZone:
             detections (Detections): The detections for which to update the counts.
 
         """
+        self.in_flag, self.out_flag = False, False
         for xyxy, _, confidence, class_id, tracker_id in detections:
             # handle detections with no tracker_id
             if tracker_id is None:
@@ -59,7 +62,7 @@ class LineZone:
             if tracker_id not in self.tracker_state:
                 self.tracker_state[tracker_id] = tracker_state
                 continue
-
+                
             # handle detection on the same side of the line
             if self.tracker_state.get(tracker_id) == tracker_state:
                 continue
@@ -67,8 +70,13 @@ class LineZone:
             self.tracker_state[tracker_id] = tracker_state
             if tracker_state:
                 self.in_count += 1
+                self.in_flag = True
+                return self.in_flag, self.out_flag, class_id
             else:
                 self.out_count += 1
+                self.out_flag = True
+                return self.in_flag, self.out_flag, class_id
+        return None, None, None
 
 
 class LineZoneAnnotator:
