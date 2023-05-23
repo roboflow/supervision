@@ -6,7 +6,7 @@ from typing import Any, Iterator, List, Optional, Tuple
 import cv2
 import numpy as np
 
-from supervision.detection.utils import non_max_suppression, xywh_to_xyxy
+from supervision.detection.utils import non_max_suppression, xywh_to_xyxy, polygon_to_mask
 from supervision.geometry.core import Position
 from supervision.internal import deprecated
 
@@ -326,32 +326,26 @@ class Detections:
             class_id.append(class_list.index(prediction["class"]))
             confidence.append(prediction["confidence"])
 
-            if prediction.get("points"):
-                points = prediction["points"]
+            if "points" not in prediction:
+                continue
 
-                mask = np.zeros((int(height), int(width)), dtype=np.uint8)
-                points = np.array(
-                    [(p["x"], p["y"]) for p in points], dtype=np.int32
-                ).reshape((-1, 1, 2))
+            points = prediction["points"]
 
-                cv2.fillPoly(mask, [points], 1)
+            polygon = np.array(
+                [(p["x"], p["y"]) for p in points], dtype=np.int32
+            ).reshape((-1, 1, 2))
 
-                mask = mask.astype(bool)
+            mask = polygon_to_mask(polygon, resolution_wh=(width, height))
 
-                masks.append(mask)
+            mask = mask.astype(bool)
 
-        if len(mask) > 0:
-            return Detections(
-                xyxy=np.array(xyxy),
-                confidence=np.array(confidence),
-                class_id=np.array(class_id).astype(int),
-                mask=np.array(mask),
-            )
+            masks.append(mask)
 
         return Detections(
             xyxy=np.array(xyxy),
             confidence=np.array(confidence),
             class_id=np.array(class_id).astype(int),
+            mask=mask if mask else None
         )
 
     @classmethod
