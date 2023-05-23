@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import astuple, dataclass
 from typing import Any, Iterator, List, Optional, Tuple
 
+import cv2
 import numpy as np
 
 from supervision.detection.utils import non_max_suppression, xywh_to_xyxy
@@ -310,6 +311,7 @@ class Detections:
         xyxy = []
         confidence = []
         class_id = []
+        masks = []
 
         for prediction in roboflow_result["predictions"]:
             x = prediction["x"]
@@ -323,6 +325,28 @@ class Detections:
             xyxy.append([x_min, y_min, x_max, y_max])
             class_id.append(class_list.index(prediction["class"]))
             confidence.append(prediction["confidence"])
+
+            if prediction.get("points"):
+                points = prediction["points"]
+
+                mask = np.zeros((int(height), int(width)), dtype=np.uint8)
+                points = np.array(
+                    [(p["x"], p["y"]) for p in points], dtype=np.int32
+                ).reshape((-1, 1, 2))
+
+                cv2.fillPoly(mask, [points], 1)
+
+                mask = mask.astype(bool)
+
+                masks.append(mask)
+
+        if len(mask) > 0:
+            return Detections(
+                xyxy=np.array(xyxy),
+                confidence=np.array(confidence),
+                class_id=np.array(class_id).astype(int),
+                mask=np.array(mask),
+            )
 
         return Detections(
             xyxy=np.array(xyxy),
