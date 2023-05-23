@@ -4,7 +4,7 @@ from dataclasses import astuple, dataclass
 from typing import Any, Iterator, List, Optional, Tuple
 
 import numpy as np
-
+import cv2
 from supervision.detection.utils import non_max_suppression, xywh_to_xyxy
 from supervision.geometry.core import Position
 from supervision.internal import deprecated
