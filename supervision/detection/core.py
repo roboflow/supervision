@@ -193,6 +193,8 @@ class Detections:
             inference_shape = tuple(yolov8_results.masks.data.shape[1:])
             masks = yolov8_results.masks.data.cpu().numpy()
             # calculate pad and gain
+            pad = (0, 0)
+            gain = 0
             if inference_shape != orig_shape:
                 gain = min(inference_shape[0] / orig_shape[0], inference_shape[1] / orig_shape[1])  # gain  = old / new
                 pad = (inference_shape[1] - orig_shape[1] * gain) / 2, (inference_shape[0] - orig_shape[0] * gain) / 2
