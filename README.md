@@ -141,7 +141,7 @@ pip install -e ".[dev]"
 - Loop over dataset entries
 
     ```python
-    >>> for image, labels in dataset:
+    >>> for name, image, labels in dataset:
     ...     print(labels.xyxy)
 
     array([[404.      , 719.      , 538.      , 884.5     ],
