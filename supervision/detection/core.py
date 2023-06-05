@@ -469,7 +469,35 @@ class Detections:
 
         raise ValueError(f"{anchor} is not supported.")
 
-    def __getitem__(self, index: Union[int, slice, List[int], np.ndarray]) -> Detections:
+    def __getitem__(
+        self, index: Union[int, slice, List[int], np.ndarray]
+    ) -> Detections:
+        """
+        Get a subset of the Detections object.
+
+        Args:
+            index (Union[int, slice, List[int], np.ndarray]): The index or indices of the subset of the Detections
+
+        Returns:
+            (Detections): A subset of the Detections object.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> detections = sv.Detections(...)
+
+            >>> first_detection = detections[0]
+
+            >>> first_10_detections = detections[0:10]
+
+            >>> some_detections = detections[[0, 2, 4]]
+
+            >>> class_0_detections = detections[detections.class_id == 0]
+
+            >>> high_confidence_detections = detections[detections.confidence > 0.5]
+            ```
+        """
         if isinstance(index, int):
             index = [index]
         return Detections(
