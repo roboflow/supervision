@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import astuple, dataclass
-from typing import Any, Iterator, List, Optional, Tuple
+from typing import Any, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -469,23 +469,15 @@ class Detections:
 
         raise ValueError(f"{anchor} is not supported.")
 
-    def __getitem__(self, index: np.ndarray) -> Detections:
-        if isinstance(index, np.ndarray) and (
-            index.dtype == bool or index.dtype == int
-        ):
-            return Detections(
-                xyxy=self.xyxy[index],
-                mask=self.mask[index] if self.mask is not None else None,
-                confidence=self.confidence[index]
-                if self.confidence is not None
-                else None,
-                class_id=self.class_id[index] if self.class_id is not None else None,
-                tracker_id=self.tracker_id[index]
-                if self.tracker_id is not None
-                else None,
-            )
-        raise TypeError(
-            f"Detections.__getitem__ not supported for index of type {type(index)}."
+    def __getitem__(self, index: Union[int, slice, List[int], np.ndarray]) -> Detections:
+        if isinstance(index, int):
+            index = [index]
+        return Detections(
+            xyxy=self.xyxy[index],
+            mask=self.mask[index] if self.mask is not None else None,
+            confidence=self.confidence[index] if self.confidence is not None else None,
+            class_id=self.class_id[index] if self.class_id is not None else None,
+            tracker_id=self.tracker_id[index] if self.tracker_id is not None else None,
         )
 
     @property
