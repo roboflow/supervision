@@ -28,13 +28,6 @@ DETECTIONS = Detections(
 )
 
 
-PREDICTIONS = np.array([
-        [       2254,         906,        2447,        1353,     0.90538,           0],
-        [       2049,        1133,        2226,        1371,     0.59002,          56],
-        [        727,        1224,         838,        1601,     0.51119,          39],
-    ], dtype=np.float32)
-
-
 def mock_detections(xyxy, confidence = None, class_id = None, tracker_id = None) -> Detections:
     return Detections(
         xyxy = np.array(xyxy, dtype=np.float32),
@@ -101,11 +94,108 @@ def mock_detections(xyxy, confidence = None, class_id = None, tracker_id = None)
             ),
             DoesNotRaise()
         ),  # take no detections
+        (
+            DETECTIONS,
+            [0, 2],
+            Detections(
+                xyxy=np.array([
+                    [       2254,         906,        2447,        1353],
+                    [        727,        1224,         838,        1601]
+                ], dtype=np.float32),
+                confidence=np.array([
+                    0.90538,
+                    0.51119
+                ], dtype=np.float32),
+                class_id=np.array([
+                    0,
+                    39
+                ], dtype=int)
+            ),
+            DoesNotRaise()
+        ),  # take only first and third detection using List[int] index
+        (
+            DETECTIONS,
+            np.array([0, 2]),
+            Detections(
+                xyxy=np.array([
+                    [       2254,         906,        2447,        1353],
+                    [        727,        1224,         838,        1601]
+                ], dtype=np.float32),
+                confidence=np.array([
+                    0.90538,
+                    0.51119
+                ], dtype=np.float32),
+                class_id=np.array([
+                    0,
+                    39
+                ], dtype=int)
+            ),
+            DoesNotRaise()
+        ),  # take only first and third detection using np.ndarray index
+        (
+            DETECTIONS,
+            0,
+            Detections(
+                xyxy=np.array([
+                    [       2254,         906,        2447,        1353]
+                ], dtype=np.float32),
+                confidence=np.array([
+                    0.90538
+                ], dtype=np.float32),
+                class_id=np.array([
+                    0
+                ], dtype=int)
+            ),
+            DoesNotRaise()
+        ),  # take only first detection by index
+        (
+            DETECTIONS,
+            slice(1, 3),
+            Detections(
+                xyxy=np.array([
+                    [       2049,        1133,        2226,        1371],
+                    [        727,        1224,         838,        1601]
+                ], dtype=np.float32),
+                confidence=np.array([
+                    0.59002,
+                    0.51119
+                ], dtype=np.float32),
+                class_id=np.array([
+                    56,
+                    39
+                ], dtype=int)
+            ),
+            DoesNotRaise()
+        ),  # take only first detection by index slice (1, 3)
+        (
+            DETECTIONS,
+            10,
+            None,
+            pytest.raises(IndexError)
+        ),  # index out of range
+        (
+            DETECTIONS,
+            [0, 2, 10],
+            None,
+            pytest.raises(IndexError)
+        ),  # index out of range
+        (
+            DETECTIONS,
+            np.array([0, 2, 10]),
+            None,
+            pytest.raises(IndexError)
+        ),
+        (
+            DETECTIONS,
+            np.array([True, True, True, True, True, True, True, True, True, True, True]),
+            None,
+            pytest.raises(IndexError)
+        )
     ]
 )
 def test_getitem(
         detections: Detections,
-        index: Union[int, slice, np.ndarray],
+        index:  Union[int, slice, List[int], np.ndarray],
         expected_result: Optional[Detections],
         exception: Exception
 ) -> None:
