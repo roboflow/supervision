@@ -20,6 +20,15 @@ class ImageSink:
             target_dir_path (str): The target directory where images will be saved.
             overwrite (bool, optional): Whether to overwrite the existing directory. Defaults to False.
             image_name_pattern (str, optional): The image file name pattern. Defaults to "image_{:05d}.png".
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> with sv.ImageSink(target_dir_path='target/directory/path', overwrite=True) as sink:
+            ...     for image in sv.get_video_frames_generator(source_path='source_video.mp4', stride=2):
+            ...         sink.save_image(image=image)
+            ```
         """
         self.target_dir_path = target_dir_path
         self.overwrite = overwrite

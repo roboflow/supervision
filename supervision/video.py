@@ -63,15 +63,15 @@ class VideoSink:
         target_path (str): The path to the output file where the video will be saved.
         video_info (VideoInfo): Information about the video resolution, fps, and total frame count.
 
-    Examples:
+    Example:
         ```python
         >>> import supervision as sv
 
         >>> video_info = sv.VideoInfo.from_video_path(video_path='source_video.mp4')
 
         >>> with sv.VideoSink(target_path='target_video.mp4', video_info=video_info) as sink:
-        ...     frame = ...
-        ...     sink.write_frame(frame=frame)
+        ...     for frame in get_video_frames_generator(source_path='source_video.mp4', stride=2):
+        ...         sink.write_frame(frame=frame)
         ```
     """
 
