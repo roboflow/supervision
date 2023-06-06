@@ -20,9 +20,9 @@ class VideoInfo:
 
     Examples:
         ```python
-        >>> from supervision import VideoInfo
+        >>> import supervision as sv
 
-        >>> video_info = VideoInfo.from_video_path(video_path='video.mp4')
+        >>> video_info = sv.VideoInfo.from_video_path(video_path='video.mp4')
 
         >>> video_info
         VideoInfo(width=3840, height=2160, fps=25, total_frames=538)
@@ -63,15 +63,15 @@ class VideoSink:
         target_path (str): The path to the output file where the video will be saved.
         video_info (VideoInfo): Information about the video resolution, fps, and total frame count.
 
-    Examples:
+    Example:
         ```python
-        >>> from supervision import VideoInfo, VideoSink
+        >>> import supervision as sv
 
-        >>> video_info = VideoInfo.from_video_path(video_path='source_video.mp4')
+        >>> video_info = sv.VideoInfo.from_video_path(video_path='source_video.mp4')
 
-        >>> with VideoSink(target_path='target_video.mp4', video_info=video_info) as s:
-        ...     frame = ...
-        ...     s.write_frame(frame=frame)
+        >>> with sv.VideoSink(target_path='target_video.mp4', video_info=video_info) as sink:
+        ...     for frame in get_video_frames_generator(source_path='source_video.mp4', stride=2):
+        ...         sink.write_frame(frame=frame)
         ```
     """
 
@@ -93,35 +93,43 @@ class VideoSink:
     def write_frame(self, frame: np.ndarray):
         self.__writer.write(frame)
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, exc_value, exc_traceback):
         self.__writer.release()
 
 
-def get_video_frames_generator(source_path: str) -> Generator[np.ndarray, None, None]:
+def get_video_frames_generator(
+    source_path: str, stride: int = 1
+) -> Generator[np.ndarray, None, None]:
     """
     Get a generator that yields the frames of the video.
 
     Args:
         source_path (str): The path of the video file.
+        stride (int): The number of frames to skip before returning the next one.
 
     Returns:
         (Generator[np.ndarray, None, None]): A generator that yields the frames of the video.
 
     Examples:
         ```python
-        >>> from supervision import get_video_frames_generator
+        >>> import supervision as sv
 
-        >>> for frame in get_video_frames_generator(source_path='source_video.mp4'):
+        >>> for frame in sv.get_video_frames_generator(source_path='source_video.mp4', stride=2):
         ...     ...
         ```
     """
     video = cv2.VideoCapture(source_path)
     if not video.isOpened():
         raise Exception(f"Could not open video at {source_path}")
+
+    frame_count = 0
     success, frame = video.read()
     while success:
-        yield frame
+        if frame_count % stride == 0:
+            yield frame
         success, frame = video.read()
+        frame_count += 1
+
     video.release()
 
 
