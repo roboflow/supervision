@@ -6,7 +6,11 @@ from typing import Any, Iterator, List, Optional, Tuple, Union
 import cv2
 import numpy as np
 
-from supervision.detection.utils import non_max_suppression, xywh_to_xyxy, extract_yolov8_masks
+from supervision.detection.utils import (
+    extract_yolov8_masks,
+    non_max_suppression,
+    xywh_to_xyxy,
+)
 from supervision.geometry.core import Position
 from supervision.internal import deprecated
 
