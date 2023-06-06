@@ -6,7 +6,7 @@ from typing import Any, Iterator, List, Optional, Tuple, Union
 import cv2
 import numpy as np
 
-from supervision.detection.utils import non_max_suppression, xywh_to_xyxy
+from supervision.detection.utils import non_max_suppression, xywh_to_xyxy, extract_yolov8_masks
 from supervision.geometry.core import Position
 from supervision.internal import deprecated
 
@@ -188,40 +188,11 @@ class Detections:
             >>> detections = sv.Detections.from_yolov8(result)
             ```
         """
-        mask_maps = None
-        if yolov8_results.masks:
-            orig_shape = yolov8_results.orig_shape
-            inference_shape = tuple(yolov8_results.masks.data.shape[1:])
-            masks = yolov8_results.masks.data.cpu().numpy()
-            # calculate pad and gain
-            pad = (0, 0)
-            gain = 0
-            if inference_shape != orig_shape:
-                gain = min(
-                    inference_shape[0] / orig_shape[0],
-                    inference_shape[1] / orig_shape[1],
-                )  # gain  = old / new
-                pad = (inference_shape[1] - orig_shape[1] * gain) / 2, (
-                    inference_shape[0] - orig_shape[0] * gain
-                ) / 2
-
-            top, left = int(pad[1]), int(pad[0])  # y, x
-            bottom, right = int(inference_shape[0] - pad[1]), int(
-                inference_shape[1] - pad[0]
-            )
-
-            mask_maps = []
-            for i in range(masks.shape[0]):
-                mask = masks[i]
-                mask = mask[top:bottom, left:right]
-                mask = cv2.resize(mask, (orig_shape[1], orig_shape[0]))
-                mask_maps.append(mask)
-            mask_maps = np.asarray(mask_maps)
         return cls(
             xyxy=yolov8_results.boxes.xyxy.cpu().numpy(),
             confidence=yolov8_results.boxes.conf.cpu().numpy(),
             class_id=yolov8_results.boxes.cls.cpu().numpy().astype(int),
-            mask=mask_maps,
+            mask=extract_yolov8_masks(yolov8_results),
         )
 
     @classmethod

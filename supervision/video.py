@@ -98,8 +98,7 @@ class VideoSink:
 
 
 def get_video_frames_generator(
-    source_path: str,
-    stride: int = 1
+    source_path: str, stride: int = 1
 ) -> Generator[np.ndarray, None, None]:
     """
     Get a generator that yields the frames of the video.
