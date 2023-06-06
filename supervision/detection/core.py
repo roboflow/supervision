@@ -3,8 +3,9 @@ from __future__ import annotations
 from dataclasses import astuple, dataclass
 from typing import Any, Iterator, List, Optional, Tuple, Union
 
-import numpy as np
 import cv2
+import numpy as np
+
 from supervision.detection.utils import non_max_suppression, xywh_to_xyxy
 from supervision.geometry.core import Position
 from supervision.internal import deprecated
@@ -196,11 +197,18 @@ class Detections:
             pad = (0, 0)
             gain = 0
             if inference_shape != orig_shape:
-                gain = min(inference_shape[0] / orig_shape[0], inference_shape[1] / orig_shape[1])  # gain  = old / new
-                pad = (inference_shape[1] - orig_shape[1] * gain) / 2, (inference_shape[0] - orig_shape[0] * gain) / 2
+                gain = min(
+                    inference_shape[0] / orig_shape[0],
+                    inference_shape[1] / orig_shape[1],
+                )  # gain  = old / new
+                pad = (inference_shape[1] - orig_shape[1] * gain) / 2, (
+                    inference_shape[0] - orig_shape[0] * gain
+                ) / 2
 
             top, left = int(pad[1]), int(pad[0])  # y, x
-            bottom, right = int(inference_shape[0] - pad[1]), int(inference_shape[1] - pad[0])
+            bottom, right = int(inference_shape[0] - pad[1]), int(
+                inference_shape[1] - pad[0]
+            )
 
             mask_maps = []
             for i in range(masks.shape[0]):
@@ -213,7 +221,7 @@ class Detections:
             xyxy=yolov8_results.boxes.xyxy.cpu().numpy(),
             confidence=yolov8_results.boxes.conf.cpu().numpy(),
             class_id=yolov8_results.boxes.cls.cpu().numpy().astype(int),
-            mask=mask_maps
+            mask=mask_maps,
         )
 
     @classmethod
