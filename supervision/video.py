@@ -20,9 +20,9 @@ class VideoInfo:
 
     Examples:
         ```python
-        >>> from supervision import VideoInfo
+        >>> import supervision as sv
 
-        >>> video_info = VideoInfo.from_video_path(video_path='video.mp4')
+        >>> video_info = sv.VideoInfo.from_video_path(video_path='video.mp4')
 
         >>> video_info
         VideoInfo(width=3840, height=2160, fps=25, total_frames=538)
@@ -65,13 +65,13 @@ class VideoSink:
 
     Examples:
         ```python
-        >>> from supervision import VideoInfo, VideoSink
+        >>> import supervision as sv
 
-        >>> video_info = VideoInfo.from_video_path(video_path='source_video.mp4')
+        >>> video_info = sv.VideoInfo.from_video_path(video_path='source_video.mp4')
 
-        >>> with VideoSink(target_path='target_video.mp4', video_info=video_info) as s:
+        >>> with sv.VideoSink(target_path='target_video.mp4', video_info=video_info) as sink:
         ...     frame = ...
-        ...     s.write_frame(frame=frame)
+        ...     sink.write_frame(frame=frame)
         ```
     """
 
@@ -93,7 +93,7 @@ class VideoSink:
     def write_frame(self, frame: np.ndarray):
         self.__writer.write(frame)
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, exc_value, exc_traceback):
         self.__writer.release()
 
 
