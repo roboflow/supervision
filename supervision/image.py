@@ -40,10 +40,6 @@ class ImageSink:
             if self.overwrite:
                 shutil.rmtree(self.target_dir_path)
                 os.makedirs(self.target_dir_path)
-            else:
-                raise Exception(
-                    f"Directory {self.target_dir_path} already exists and overwrite is set to False."
-                )
         else:
             os.makedirs(self.target_dir_path)
 
