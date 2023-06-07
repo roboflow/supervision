@@ -1,5 +1,6 @@
 __version__ = "0.9.0"
 
+from supervision.classification.core import ClassificationDataset, Classifications
 from supervision.dataset.core import BaseDataset, DetectionDataset
 from supervision.detection.annotate import BoxAnnotator, MaskAnnotator
 from supervision.detection.core import Detections
