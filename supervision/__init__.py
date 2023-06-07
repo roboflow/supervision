@@ -19,7 +19,7 @@ from supervision.draw.utils import draw_filled_rectangle, draw_polygon, draw_tex
 from supervision.geometry.core import Point, Position, Rect
 from supervision.geometry.utils import get_polygon_center
 from supervision.utils.file import list_files_with_extensions
-from supervision.utils.image import ImageSink
+from supervision.utils.image import ImageSink, crop
 from supervision.utils.notebook import plot_image, plot_images_grid
 from supervision.utils.video import (
     VideoInfo,
