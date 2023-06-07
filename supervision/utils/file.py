@@ -17,13 +17,13 @@ def list_files_with_extensions(
 
     Examples:
         ```python
-        >>> from supervision import list_files_with_extensions
+        >>> import supervision as sv
 
         >>> # List all files in the directory
-        >>> files = list_files_with_extensions(directory='my_directory')
+        >>> files = sv.list_files_with_extensions(directory='my_directory')
 
         >>> # List only files with '.txt' and '.md' extensions
-        >>> files = list_files_with_extensions(directory='my_directory', extensions=['txt', 'md'])
+        >>> files = sv.list_files_with_extensions(directory='my_directory', extensions=['txt', 'md'])
         ```
     """
     directory = Path(directory)

@@ -19,7 +19,7 @@ from supervision.dataset.formats.yolo import (
 )
 from supervision.dataset.ultils import save_dataset_images, train_test_split
 from supervision.detection.core import Detections
-from supervision.file import list_files_with_extensions
+from supervision.utils.file import list_files_with_extensions
 
 
 @dataclass

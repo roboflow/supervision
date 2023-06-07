@@ -1,4 +1,4 @@
-__version__ = "0.8.0"
+__version__ = "0.9.0"
 
 from supervision.dataset.core import BaseDataset, DetectionDataset
 from supervision.detection.annotate import BoxAnnotator, MaskAnnotator
@@ -16,12 +16,12 @@ from supervision.detection.utils import (
 )
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import draw_filled_rectangle, draw_polygon, draw_text
-from supervision.file import list_files_with_extensions
 from supervision.geometry.core import Point, Position, Rect
 from supervision.geometry.utils import get_polygon_center
-from supervision.image import ImageSink
-from supervision.notebook.utils import plot_image, plot_images_grid
-from supervision.video import (
+from supervision.utils.file import list_files_with_extensions
+from supervision.utils.image import ImageSink
+from supervision.utils.notebook import plot_image, plot_images_grid
+from supervision.utils.video import (
     VideoInfo,
     VideoSink,
     get_video_frames_generator,

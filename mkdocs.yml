@@ -39,12 +39,11 @@ nav:
         - Core: dataset/core.md
     - Draw:
         - Utils: draw/utils.md
-    - Notebook:
-        - Utils: notebook/utils.md
-    - Video:
-        - Utils: video.md
-    - Image:
-        - Utils: image.md
+    - Utils:
+        - Video: utils/video.md
+        - Image: utils/image.md
+        - Notebook: utils/notebook.md
+        - File: utils/file.md
   - Changelog: changelog.md
 
 theme:

@@ -1,3 +1,0 @@
-## ImageSink
-
-:::supervision.image.ImageSink

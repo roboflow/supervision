@@ -12,7 +12,7 @@ from supervision.detection.utils import (
     xywh_to_xyxy,
 )
 from supervision.geometry.core import Position
-from supervision.internal import deprecated
+from supervision.utils.internal import deprecated
 
 
 def _validate_xyxy(xyxy: Any, n: int) -> None:
