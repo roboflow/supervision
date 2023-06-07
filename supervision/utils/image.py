@@ -22,7 +22,7 @@ def crop(image: np.ndarray, xyxy: np.ndarray) -> np.ndarray:
         >>> import supervision as sv
 
         >>> detection = sv.Detections(...)
-        >>> with sv.ImageSink(target_dir_path='target/directory/path', overwrite=True) as sink:
+        >>> with sv.ImageSink(target_dir_path='target/directory/path') as sink:
         ...     for xyxy in detection.xyxy:
         ...         cropped_image = sv.crop(image=image, xyxy=xyxy)
         ...         sink.save_image(image=image)
