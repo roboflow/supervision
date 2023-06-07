@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import cv2
 import numpy as np
+
 from supervision.dataset.core import BaseDataset
 from supervision.dataset.ultils import train_test_split
 
@@ -29,9 +30,7 @@ def _validate_confidence(confidence: Any, n: int) -> None:
 @dataclass
 class Classifications:
     class_id: np.ndarray
-    confidence: Optional[
-        np.ndarray
-    ] = None
+    confidence: Optional[np.ndarray] = None
 
     def __post_init__(self) -> None:
         """
@@ -88,6 +87,7 @@ class ClassificationDataset(BaseDataset):
         images (Dict[str, np.ndarray]): Dictionary mapping image name to image.
         annotations (Dict[str, Detections]): Dictionary mapping image name to annotations.
     """
+
     classes: List[str]
     images: Dict[str, np.ndarray]
     annotations: Dict[str, Classifications]
