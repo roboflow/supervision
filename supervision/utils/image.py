@@ -6,6 +6,35 @@ import cv2
 import numpy as np
 
 
+def crop(image: np.ndarray, xyxy: np.ndarray) -> np.ndarray:
+    """
+    Crops the given image based on the given bounding box.
+
+    Args:
+        image (np.ndarray): The image to be cropped, represented as a numpy array.
+        xyxy (np.ndarray): A numpy array containing the bounding box coordinates in the format (x1, y1, x2, y2).
+
+    Returns:
+        (np.ndarray): The cropped image as a numpy array.
+
+    Examples:
+        ```python
+        >>> import supervision as sv
+
+        >>> detection = sv.Detections(...)
+        >>> with sv.ImageSink(target_dir_path='target/directory/path', overwrite=True) as sink:
+        ...     for xyxy in detection.xyxy:
+        ...         cropped_image = sv.crop(image=image, xyxy=xyxy)
+        ...         sink.save_image(image=image)
+        ```
+    """
+
+    xyxy = np.round(xyxy).astype(int)
+    x1, y1, x2, y2 = xyxy
+    cropped_img = image[y1:y2, x1:x2]
+    return cropped_img
+
+
 class ImageSink:
     def __init__(
         self,
@@ -21,7 +50,7 @@ class ImageSink:
             overwrite (bool, optional): Whether to overwrite the existing directory. Defaults to False.
             image_name_pattern (str, optional): The image file name pattern. Defaults to "image_{:05d}.png".
 
-        Example:
+        Examples:
             ```python
             >>> import supervision as sv
 
