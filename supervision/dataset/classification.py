@@ -163,14 +163,14 @@ class ClassificationDataset(BaseDataset):
         if not os.path.exists(output_directory_path):
             os.makedirs(output_directory_path)
 
-        for split in ["train", "test", "val"]:
+        for split in ["train", "test", "valid"]:
             if not os.path.exists(output_directory_path + "/" + split):
                 os.makedirs(output_directory_path + "/" + split)
 
         train, test = self.split(split_ratio=0.8)
         train, val = train.split(split_ratio=0.8)
 
-        for split, dataset in zip(["train", "test", "val"], [train, test, val]):
+        for split, dataset in zip(["train", "test", "valid"], [train, test, val]):
             for class_name in self.classes:
                 if not os.path.exists(
                     output_directory_path + "/" + split + "/" + class_name
@@ -237,16 +237,3 @@ class ClassificationDataset(BaseDataset):
             annotations=annotations,
         )
 
-
-dataset = ClassificationDataset(
-    classes=["cat", "dog", "bird"],
-    images={
-        "cat1.jpg": np.array([[[0, 0, 0]]]),
-    },
-    annotations={
-        "cat1.jpg": Classifications(
-            class_id=np.array([0, 1]),
-            confidence=np.array([0.3, 0.9]),
-        ),
-    },
-)
