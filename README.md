@@ -209,6 +209,10 @@ pip install -e ".[dev]"
 
 Curious how Supervision can help you solve problems on your project? Visit our [documentation](https://roboflow.github.io/supervision) page!
 
+## 💜 built with supervision
+
+You built something cool using supervision? [Let us know!](https://github.com/roboflow/supervision/discussions/categories/built-with-supervision)
+
 ## 🏆 contribution
 
 We love your input! Please see our [contributing guide](https://github.com/roboflow/supervision/blob/main/CONTRIBUTING.md) to get started. Thank you 🙏 to all our contributors!
