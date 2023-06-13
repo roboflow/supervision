@@ -156,39 +156,31 @@ class ClassificationDataset(BaseDataset):
             >>> cd = sv.ClassificationDataset(...)
 
             >>> cd.as_multiclass_folder_structure(
-            ...     root_directory_path="./images",
+            ...     root_directory_path="./images/valid/",
             ...     output_directory_path="./out",
             ... )
         """
         if not os.path.exists(output_directory_path):
             os.makedirs(output_directory_path)
 
-        for split in ["train", "test", "valid"]:
-            if not os.path.exists(os.path.join(output_directory_path, split)):
-                os.makedirs(os.path.join(output_directory_path, split))
+        for class_name in self.classes:
+            if not os.path.exists(
+                os.path.join(output_directory_path, class_name)
+            ):
+                os.makedirs(os.path.join(output_directory_path, class_name))
 
-        train, test = self.split(split_ratio=0.8)
-        train, val = train.split(split_ratio=0.8)
-
-        for split, dataset in zip(["train", "test", "valid"], [train, test, val]):
-            for class_name in self.classes:
-                if not os.path.exists(
-                    os.path.join(output_directory_path, split, class_name)
+            for image in self.annotations:
+                if self.annotations[image].class_id[0] == self.classes.index(
+                    class_name
                 ):
-                    os.makedirs(os.path.join(output_directory_path, split, class_name))
+                    full_dir = os.path.join(root_directory_path, image)
 
-                for image in dataset.images:
-                    if dataset.annotations[image].class_id[0] == self.classes.index(
-                        class_name
-                    ):
-                        full_dir = os.path.join(root_directory_path, image)
-
-                        cv2.imwrite(
-                            os.path.join(
-                                output_directory_path, split, class_name, image
-                            ),
-                            cv2.imread(full_dir),
-                        )
+                    cv2.imwrite(
+                        os.path.join(
+                            output_directory_path, class_name, image
+                        ),
+                        cv2.imread(full_dir),
+                    )
 
     @classmethod
     def from_multiclass_folder_structure(
