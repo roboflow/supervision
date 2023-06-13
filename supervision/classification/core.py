@@ -171,7 +171,7 @@ class ClassificationDataset(BaseDataset):
                 if self.annotations[image].class_id[0] == self.classes.index(
                     class_name
                 ):
-                    full_dir = os.path.join(root_directory_path, image)
+                    full_dir = os.path.join(root_directory_path, class_name, image)
 
                     cv2.imwrite(
                         os.path.join(output_directory_path, class_name, image),
@@ -199,13 +199,18 @@ class ClassificationDataset(BaseDataset):
             ...     root_directory_path="./dataset",
             ... )
         """
-        classes = os.listdir(os.path.join(root_directory_path, "train"))
+        classes = os.listdir(root_directory_path)
+
+        classes = list(set(classes))
         classes.sort()
 
         images = {}
         annotations = {}
 
         for class_name in classes:
+            if not os.path.exists(os.path.join(root_directory_path, class_name)):
+                continue
+
             for image in os.listdir(os.path.join(root_directory_path, class_name)):
                 images[image] = cv2.imread(
                     os.path.join(root_directory_path, class_name, image)
