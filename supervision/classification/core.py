@@ -1,12 +1,7 @@
-import os
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional, Tuple
 
-import cv2
 import numpy as np
-
-from supervision.dataset.core import BaseDataset
-from supervision.dataset.ultils import train_test_split
 
 
 def _validate_class_ids(class_id: Any, n: int) -> None:
@@ -68,7 +63,7 @@ class Classifications:
 
         order = np.argsort(self.confidence.copy())[::-1]
         top_k_order = order[:k]
-        top_k_class_id = self.class_ids[top_k_order]
+        top_k_class_id = self.class_id[top_k_order]
         top_k_confidence = self.confidence[top_k_order]
 
         return top_k_class_id, top_k_confidence

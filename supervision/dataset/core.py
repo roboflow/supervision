@@ -9,7 +9,7 @@ import cv2
 import numpy as np
 
 import os
-from supervision.classification.core import Classifications
+from classification.core import Classifications
 
 from supervision.dataset.formats.pascal_voc import (
     detections_to_pascal_voc,
