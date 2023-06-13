@@ -8,6 +8,9 @@ from typing import Dict, Iterator, List, Optional, Tuple
 import cv2
 import numpy as np
 
+import os
+from supervision.classification.core import Classifications
+
 from supervision.dataset.formats.pascal_voc import (
     detections_to_pascal_voc,
     load_pascal_voc_annotations,
@@ -330,3 +333,145 @@ class DetectionDataset(BaseDataset):
             )
         if data_yaml_path is not None:
             save_data_yaml(data_yaml_path=data_yaml_path, classes=self.classes)
+
+
+@dataclass
+class ClassificationDataset(BaseDataset):
+    """
+    Dataclass containing information about a classification dataset.
+
+    Attributes:
+        classes (List[str]): List containing dataset class names.
+        images (Dict[str, np.ndarray]): Dictionary mapping image name to image.
+        annotations (Dict[str, Detections]): Dictionary mapping image name to annotations.
+    """
+
+    classes: List[str]
+    images: Dict[str, np.ndarray]
+    annotations: Dict[str, Classifications]
+
+    def __len__(self) -> int:
+        return len(self.images)
+
+    def split(
+        self, split_ratio=0.8, random_state=None, shuffle: bool = True
+    ) -> Tuple["ClassificationDataset", "ClassificationDataset"]:
+        """
+        Splits the dataset into two parts (training and testing) using the provided split_ratio.
+
+        Args:
+            split_ratio (float, optional): The ratio of the training set to the entire dataset. Default is 0.8.
+            random_state (int, optional): The seed for the random number generator. This is used for reproducibility. Default is None.
+            shuffle (bool, optional): Whether to shuffle the data before splitting. Default is True.
+
+        Returns:
+            Tuple[ClassificationDataset, ClassificationDataset]: A tuple containing the training and testing datasets.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> cd = sv.ClassificationDataset(...)
+            >>> train_cd, test_cd = cd.split(split_ratio=0.7, random_state=42, shuffle=True)
+            >>> len(train_cd), len(test_cd)
+            (700, 300)
+            ```
+        """
+        image_names = list(self.images.keys())
+        train_names, test_names = train_test_split(
+            data=image_names,
+            train_ratio=split_ratio,
+            random_state=random_state,
+            shuffle=shuffle,
+        )
+
+        train_dataset = ClassificationDataset(
+            classes=self.classes,
+            images={name: self.images[name] for name in train_names},
+            annotations={name: self.annotations[name] for name in train_names},
+        )
+        test_dataset = ClassificationDataset(
+            classes=self.classes,
+            images={name: self.images[name] for name in test_names},
+            annotations={name: self.annotations[name] for name in test_names},
+        )
+        return train_dataset, test_dataset
+
+    def as_multiclass_folder_structure(
+        self, output_directory_path: str
+    ) -> None:
+        """
+        Saves the dataset as a multi-class folder structure.
+
+        Args:
+            output_directory_path (str): The path to the directory where the dataset will be saved.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> cd = sv.ClassificationDataset(...)
+
+            >>> cd.as_multiclass_folder_structure(
+            ...     root_directory_path="./images/valid/",
+            ...     output_directory_path="./out",
+            ... )
+        """
+        os.makedirs(output_directory_path, exist_ok=True)
+
+        for class_name in self.classes:
+            os.makedirs(os.path.join(output_directory_path, class_name), exist_ok=True)
+
+            for image in self.annotations:
+                # sort class_ids
+                if self.annotations[image].class_id[0] == self.classes.index(
+                    class_name
+                ):
+                    cv2.imwrite(
+                        os.path.join(output_directory_path, class_name, image),
+                        self.images[image],
+                    )
+
+    @classmethod
+    def from_multiclass_folder_structure(
+        cls, root_directory_path: str
+    ) -> "ClassificationDataset":
+        """
+        Load data from a multiclass folder structure into a ClassificationDataset.
+
+        Args:
+            root_directory_path (str): The path to the dataset directory.
+
+        Returns:
+            ClassificationDataset: The dataset.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> cd = sv.ClassificationDataset.from_multiclass_folder_structure(
+            ...     root_directory_path="./dataset",
+            ... )
+        """
+        classes = os.listdir(root_directory_path)
+
+        classes = sorted(set(classes))
+
+        images = {}
+        annotations = {}
+
+        for class_name in classes:
+            class_id = classes.index(class_name)
+
+            for image in os.listdir(os.path.join(root_directory_path, class_name)):
+                image_dir = os.path.join(root_directory_path, class_name, image)
+                images[image] = cv2.imread(image_dir)
+                annotations[image] = Classifications(
+                    class_id=np.array([class_id]),
+                )
+
+        return cls(
+            classes=classes,
+            images=images,
+            annotations=annotations,
+        )
