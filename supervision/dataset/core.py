@@ -397,9 +397,7 @@ class ClassificationDataset(BaseDataset):
         )
         return train_dataset, test_dataset
 
-    def as_multiclass_folder_structure(
-        self, output_directory_path: str
-    ) -> None:
+    def as_multiclass_folder_structure(self, output_directory_path: str) -> None:
         """
         Saves the dataset as a multi-class folder structure.
 

@@ -22,7 +22,7 @@ def _validate_confidence(confidence: Any, n: int) -> None:
     """
     Ensure that confidence is a 1d np.ndarray with (n, ) shape.
     """
-    if confidence is not None:        
+    if confidence is not None:
         is_valid = isinstance(confidence, np.ndarray) and confidence.shape == (n,)
         if not is_valid:
             raise ValueError("confidence must be 1d np.ndarray with (n, ) shape")
