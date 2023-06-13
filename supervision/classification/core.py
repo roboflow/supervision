@@ -164,9 +164,7 @@ class ClassificationDataset(BaseDataset):
             os.makedirs(output_directory_path)
 
         for class_name in self.classes:
-            if not os.path.exists(
-                os.path.join(output_directory_path, class_name)
-            ):
+            if not os.path.exists(os.path.join(output_directory_path, class_name)):
                 os.makedirs(os.path.join(output_directory_path, class_name))
 
             for image in self.annotations:
@@ -176,9 +174,7 @@ class ClassificationDataset(BaseDataset):
                     full_dir = os.path.join(root_directory_path, image)
 
                     cv2.imwrite(
-                        os.path.join(
-                            output_directory_path, class_name, image
-                        ),
+                        os.path.join(output_directory_path, class_name, image),
                         cv2.imread(full_dir),
                     )
 
