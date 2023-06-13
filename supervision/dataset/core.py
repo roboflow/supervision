@@ -420,14 +420,12 @@ class ClassificationDataset(BaseDataset):
             os.makedirs(os.path.join(output_directory_path, class_name), exist_ok=True)
 
             for image in self.annotations:
-                # sort class_ids
-                if self.annotations[image].class_id[0] == self.classes.index(
-                    class_name
-                ):
-                    cv2.imwrite(
-                        os.path.join(output_directory_path, class_name, image),
-                        self.images[image],
-                    )
+                for class_id in self.annotations[image].class_id:
+                    if class_id == self.classes.index(class_name):
+                        cv2.imwrite(
+                            os.path.join(output_directory_path, class_name, image),
+                            self.images[image],
+                        )
 
     @classmethod
     def from_multiclass_folder_structure(
