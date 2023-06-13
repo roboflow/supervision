@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
@@ -8,9 +9,7 @@ from typing import Dict, Iterator, List, Optional, Tuple
 import cv2
 import numpy as np
 
-import os
 from supervision.classification.core import Classifications
-
 from supervision.dataset.formats.pascal_voc import (
     detections_to_pascal_voc,
     load_pascal_voc_annotations,
