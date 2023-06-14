@@ -435,15 +435,23 @@ class ClassificationDataset(BaseDataset):
 
         Example:
             ```python
+            >>> import roboflow
+            >>> from roboflow import Roboflow
             >>> import supervision as sv
 
+            >>> roboflow.login()
+
+            >>> rf = Roboflow()
+
+            >>> project = rf.workspace(WORKSPACE_ID).project(PROJECT_ID)
+            >>> dataset = project.version(PROJECT_VERSION).download("folder")
+
             >>> cd = sv.ClassificationDataset.from_multiclass_folder_structure(
-            ...     root_directory_path="./dataset",
+            ...     root_directory_path=f"{dataset.location}/train"
             ... )
             ```
         """
         classes = os.listdir(root_directory_path)
-
         classes = sorted(set(classes))
 
         images = {}

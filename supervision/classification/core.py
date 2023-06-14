@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Any, Optional, Tuple
 
@@ -36,6 +38,32 @@ class Classifications:
 
         _validate_class_ids(self.class_id, n)
         _validate_confidence(self.confidence, n)
+
+    @classmethod
+    def from_yolov8(cls, yolov8_results) -> Classifications:
+        """
+        Creates a Classifications instance from a [YOLOv8](https://github.com/ultralytics/ultralytics) inference result.
+
+        Args:
+            yolov8_results (ultralytics.yolo.engine.results.Results): The output Results instance from YOLOv8
+
+        Returns:
+            Detections: A new Classifications object.
+
+        Example:
+            ```python
+            >>> import cv2
+            >>> from ultralytics import YOLO
+            >>> import supervision as sv
+
+            >>> image = cv2.imread(SOURCE_IMAGE_PATH)
+            >>> model = YOLO('yolov8s-cls.pt')
+            >>> result = model(image)[0]
+            >>> classifications = sv.Classifications.from_yolov8(result)
+            ```
+        """
+        confidence = yolov8_results.probs.data.cpu().numpy()
+        return cls(class_id=np.arange(confidence.shape[0]), confidence=confidence)
 
     def get_top_k(self, k: int) -> Tuple[np.ndarray, np.ndarray]:
         """
