@@ -64,6 +64,6 @@ setuptools.setup(
         'Operating System :: Unix',
         'Operating System :: MacOS'
     ],
-    keywords="machine-learning, deep-learning, vision, ML, DL, AI, YOLOv5, YOLOv8, Roboflow",
+    keywords="machine-learning, deep-learning, vision, ML, DL, AI, YOLOv5, YOLOv8, SAM, Roboflow",
     python_requires='>=3.7',
 )

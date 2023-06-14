@@ -396,7 +396,7 @@ class ClassificationDataset(BaseDataset):
         )
         return train_dataset, test_dataset
 
-    def as_multiclass_folder_structure(self, root_directory_path: str) -> None:
+    def as_folder_structure(self, root_directory_path: str) -> None:
         """
         Saves the dataset as a multi-class folder structure.
 
@@ -421,7 +421,7 @@ class ClassificationDataset(BaseDataset):
             cv2.imwrite(image_path, image)
 
     @classmethod
-    def from_multiclass_folder_structure(
+    def from_folder_structure(
         cls, root_directory_path: str
     ) -> ClassificationDataset:
         """
@@ -446,7 +446,7 @@ class ClassificationDataset(BaseDataset):
             >>> project = rf.workspace(WORKSPACE_ID).project(PROJECT_ID)
             >>> dataset = project.version(PROJECT_VERSION).download("folder")
 
-            >>> cd = sv.ClassificationDataset.from_multiclass_folder_structure(
+            >>> cd = sv.ClassificationDataset.from_folder_structure(
             ...     root_directory_path=f"{dataset.location}/train"
             ... )
             ```

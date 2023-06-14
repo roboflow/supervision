@@ -186,6 +186,22 @@ pip install -e ".[dev]"
     ...     annotations_directory_path='...'
     ... )
     ```
+  
+- Load classification datasets in one of supported formats
+
+    ```python
+    >>> cs = sv.ClassificationDataset.from_folder_structure(
+    ...     root_directory_path='...'
+    ... )
+    ```
+
+- Save classification datasets in one of supported formats
+
+    ```python
+    >>> cs.as_folder_structure(
+    ...     root_directory_path='...'
+    ... )
+    ```
 
 </details>
 
