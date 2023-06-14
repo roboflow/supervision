@@ -9,6 +9,7 @@ import numpy as np
 from supervision.detection.utils import (
     extract_yolov8_masks,
     non_max_suppression,
+    polygon_to_mask,
     xywh_to_xyxy,
 )
 from supervision.geometry.core import Position
