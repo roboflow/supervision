@@ -35,7 +35,6 @@ class Classifications:
         n = len(self.class_id)
 
         _validate_class_ids(self.class_id, n)
-
         _validate_confidence(self.confidence, n)
 
     def get_top_k(self, k: int) -> Tuple[np.ndarray, np.ndarray]:
@@ -52,17 +51,17 @@ class Classifications:
             ```python
             >>> import supervision as sv
 
-            >>> cd = sv.ClassificationDataset(...)
+            >>> classifications = sv.Classifications(...)
 
-            >>> cd.annotations["image.png"].get_top_k(1)
+            >>> classifications.get_top_k(1)
 
             (array([1]), array([0.9]))
             ```
         """
         if self.confidence is None:
-            raise ValueError("confidence is None")
+            raise ValueError("top_k could not be calculated, confidence is None")
 
-        order = np.argsort(self.confidence.copy())[::-1]
+        order = np.argsort(self.confidence)[::-1]
         top_k_order = order[:k]
         top_k_class_id = self.class_id[top_k_order]
         top_k_confidence = self.confidence[top_k_order]

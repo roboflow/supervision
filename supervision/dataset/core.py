@@ -79,9 +79,9 @@ class DetectionDataset(BaseDataset):
         Splits the dataset into two parts (training and testing) using the provided split_ratio.
 
         Args:
-            split_ratio (float, optional): The ratio of the training set to the entire dataset. Default is 0.8.
-            random_state (int, optional): The seed for the random number generator. This is used for reproducibility. Default is None.
-            shuffle (bool, optional): Whether to shuffle the data before splitting. Default is True.
+            split_ratio (float, optional): The ratio of the training set to the entire dataset.
+            random_state (int, optional): The seed for the random number generator. This is used for reproducibility.
+            shuffle (bool, optional): Whether to shuffle the data before splitting.
 
         Returns:
             Tuple[DetectionDataset, DetectionDataset]: A tuple containing the training and testing datasets.
@@ -359,9 +359,9 @@ class ClassificationDataset(BaseDataset):
         Splits the dataset into two parts (training and testing) using the provided split_ratio.
 
         Args:
-            split_ratio (float, optional): The ratio of the training set to the entire dataset. Default is 0.8.
-            random_state (int, optional): The seed for the random number generator. This is used for reproducibility. Default is None.
-            shuffle (bool, optional): Whether to shuffle the data before splitting. Default is True.
+            split_ratio (float, optional): The ratio of the training set to the entire dataset.
+            random_state (int, optional): The seed for the random number generator. This is used for reproducibility.
+            shuffle (bool, optional): Whether to shuffle the data before splitting.
 
         Returns:
             Tuple[ClassificationDataset, ClassificationDataset]: A tuple containing the training and testing datasets.
@@ -402,31 +402,23 @@ class ClassificationDataset(BaseDataset):
 
         Args:
             root_directory_path (str): The path to the directory where the dataset will be saved.
-
-        Example:
-            ```python
-            >>> import supervision as sv
-
-            >>> cd = sv.ClassificationDataset(...)
-
-            >>> cd.as_multiclass_folder_structure(
-            ...     root_directory_path="./images/valid/",
-            ...     root_directory_path="./out",
-            ... )
-            ```
         """
         os.makedirs(root_directory_path, exist_ok=True)
 
         for class_name in self.classes:
             os.makedirs(os.path.join(root_directory_path, class_name), exist_ok=True)
 
-            for image in self.annotations:
-                for class_id in self.annotations[image].class_id:
-                    if class_id == self.classes.index(class_name):
-                        cv2.imwrite(
-                            os.pafth.join(root_directory_path, class_name, image),
-                            self.images[image],
-                        )
+        for image_name in self.images:
+            classification = self.annotations[image_name]
+            image = self.images[image_name]
+            class_id = (
+                classification.class_id[0]
+                if classification.confidence is None
+                else classification.get_top_k(1)[0]
+            )
+            class_name = self.classes[class_id]
+            image_path = os.path.join(root_directory_path, class_name, image_name)
+            cv2.imwrite(image_path, image)
 
     @classmethod
     def from_multiclass_folder_structure(
