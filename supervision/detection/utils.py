@@ -292,3 +292,49 @@ def extract_yolov8_masks(yolov8_results) -> Optional[np.ndarray]:
         mask_maps.append(mask)
 
     return np.asarray(mask_maps, dtype=bool)
+
+
+def process_roboflow_result(
+    roboflow_result: dict, class_list: List[str]
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, Optional[np.ndarray]]:
+    if not roboflow_result["predictions"]:
+        return np.empty((0, 4)), np.empty(0), np.empty(0), None
+
+    xyxy = []
+    confidence = []
+    class_id = []
+    masks = []
+
+    image_width = int(roboflow_result["image"]["width"])
+    image_height = int(roboflow_result["image"]["height"])
+
+    for prediction in roboflow_result["predictions"]:
+        x = prediction["x"]
+        y = prediction["y"]
+        width = prediction["width"]
+        height = prediction["height"]
+        x_min = x - width / 2
+        y_min = y - height / 2
+        x_max = x_min + width
+        y_max = y_min + height
+
+        xyxy.append([x_min, y_min, x_max, y_max])
+        class_id.append(class_list.index(prediction["class"]))
+        confidence.append(prediction["confidence"])
+
+        if "points" not in prediction:
+            continue
+
+        polygon = np.array(
+            [[point["x"], point["y"]] for point in prediction["points"]], dtype=int
+        )
+
+        mask = polygon_to_mask(polygon, resolution_wh=(image_width, image_height))
+        masks.append(mask)
+
+    xyxy = np.array(xyxy)
+    confidence = np.array(confidence)
+    class_id = np.array(class_id).astype(int)
+    masks = np.array(masks, dtype=bool) if len(masks) > 0 else None
+
+    return xyxy, confidence, class_id, masks
