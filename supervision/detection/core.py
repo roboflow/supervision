@@ -9,7 +9,7 @@ import numpy as np
 from supervision.detection.utils import (
     extract_yolov8_masks,
     non_max_suppression,
-    polygon_to_mask,
+    process_roboflow_result,
     xywh_to_xyxy,
 )
 from supervision.geometry.core import Position
@@ -314,46 +314,13 @@ class Detections:
             >>> detections = sv.Detections.from_roboflow(roboflow_result, class_list)
             ```
         """
-        xyxy = []
-        confidence = []
-        class_id = []
-        masks = []
-
-        img_width = int(roboflow_result["image"]["width"])
-        img_height = int(roboflow_result["image"]["height"])
-
-        for prediction in roboflow_result["predictions"]:
-            x = prediction["x"]
-            y = prediction["y"]
-            width = prediction["width"]
-            height = prediction["height"]
-            x_min = x - width / 2
-            y_min = y - height / 2
-            x_max = x_min + width
-            y_max = y_min + height
-            xyxy.append([x_min, y_min, x_max, y_max])
-            class_id.append(class_list.index(prediction["class"]))
-            confidence.append(prediction["confidence"])
-
-            if "points" not in prediction:
-                continue
-
-            points = prediction["points"]
-
-            polygon = np.array(
-                [(p["x"], p["y"]) for p in points], dtype=np.int32
-            ).reshape((-1, 1, 2))
-
-            mask = polygon_to_mask(polygon, resolution_wh=(img_width, img_height))
-
-            masks.append(mask)
-
-        masks = np.array(masks) if len(masks) > 0 else None
-
+        xyxy, confidence, class_id, masks = process_roboflow_result(
+            roboflow_result=roboflow_result, class_list=class_list
+        )
         return Detections(
-            xyxy=np.array(xyxy),
-            confidence=np.array(confidence),
-            class_id=np.array(class_id).astype(int),
+            xyxy=xyxy,
+            confidence=confidence,
+            class_id=class_id,
             mask=masks,
         )
 

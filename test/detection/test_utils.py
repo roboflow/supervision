@@ -5,7 +5,8 @@ import pytest
 
 import numpy as np
 
-from supervision.detection.utils import non_max_suppression, clip_boxes, filter_polygons_by_area
+from supervision.detection.utils import non_max_suppression, clip_boxes, filter_polygons_by_area, \
+    process_roboflow_result
 
 
 @pytest.mark.parametrize(
@@ -276,3 +277,61 @@ def test_filter_polygons_by_area(
         assert len(result) == len(expected_result)
         for result_polygon, expected_result_polygon in zip(result, expected_result):
             assert np.array_equal(result_polygon, expected_result_polygon)
+
+
+@pytest.mark.parametrize(
+    "roboflow_result, class_list, expected_result, exception",
+    [
+        (
+            {
+                "predictions": [],
+                "image": {"width": 1000, "height": 1000}
+            },
+            ["person", "car", "truck"],
+            (
+                np.empty((0, 4)),
+                np.empty(0),
+                np.empty(0),
+                None
+             ),
+            DoesNotRaise()
+        ),  # empty result
+        (
+            {
+                "predictions": [
+                    {
+                        "x": 200.0,
+                        "y": 300.0,
+                        "width": 50.0,
+                        "height": 50.0,
+                        "confidence": 0.9,
+                        "class": "person"
+                    }
+                ],
+                "image": {"width": 1000, "height": 1000}
+            },
+            ["person", "car", "truck"],
+            (
+                np.array([
+                    [175.0, 275.0, 225.0, 325.0]
+                ]),
+                np.array([0.9]),
+                np.array([0]),
+                None
+             ),
+            DoesNotRaise()
+        ),  # single bounding box
+    ]
+)
+def test_process_roboflow_result(
+        roboflow_result: dict,
+        class_list: List[str],
+        expected_result: Tuple[np.ndarray, np.ndarray, np.ndarray, Optional[np.ndarray]],
+        exception: Exception
+) -> None:
+    with exception:
+        result = process_roboflow_result(roboflow_result=roboflow_result, class_list=class_list)
+        assert np.array_equal(result[0], expected_result[0])
+        assert np.array_equal(result[1], expected_result[1])
+        assert np.array_equal(result[2], expected_result[2])
+        assert (result[3] is None and expected_result[3] is None) or (np.array_equal(result[3], expected_result[3]))
