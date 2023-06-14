@@ -57,6 +57,7 @@ class Classifications:
             >>> cd.annotations["image.png"].get_top_k(1)
 
             (array([1]), array([0.9]))
+            ```
         """
         if self.confidence is None:
             raise ValueError("confidence is None")

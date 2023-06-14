@@ -354,7 +354,7 @@ class ClassificationDataset(BaseDataset):
 
     def split(
         self, split_ratio=0.8, random_state=None, shuffle: bool = True
-    ) -> Tuple["ClassificationDataset", "ClassificationDataset"]:
+    ) -> Tuple[ClassificationDataset, ClassificationDataset]:
         """
         Splits the dataset into two parts (training and testing) using the provided split_ratio.
 
@@ -396,12 +396,12 @@ class ClassificationDataset(BaseDataset):
         )
         return train_dataset, test_dataset
 
-    def as_multiclass_folder_structure(self, output_directory_path: str) -> None:
+    def as_multiclass_folder_structure(self, root_directory_path: str) -> None:
         """
         Saves the dataset as a multi-class folder structure.
 
         Args:
-            output_directory_path (str): The path to the directory where the dataset will be saved.
+            root_directory_path (str): The path to the directory where the dataset will be saved.
 
         Example:
             ```python
@@ -411,26 +411,27 @@ class ClassificationDataset(BaseDataset):
 
             >>> cd.as_multiclass_folder_structure(
             ...     root_directory_path="./images/valid/",
-            ...     output_directory_path="./out",
+            ...     root_directory_path="./out",
             ... )
+            ```
         """
-        os.makedirs(output_directory_path, exist_ok=True)
+        os.makedirs(root_directory_path, exist_ok=True)
 
         for class_name in self.classes:
-            os.makedirs(os.path.join(output_directory_path, class_name), exist_ok=True)
+            os.makedirs(os.path.join(root_directory_path, class_name), exist_ok=True)
 
             for image in self.annotations:
                 for class_id in self.annotations[image].class_id:
                     if class_id == self.classes.index(class_name):
                         cv2.imwrite(
-                            os.path.join(output_directory_path, class_name, image),
+                            os.pafth.join(root_directory_path, class_name, image),
                             self.images[image],
                         )
 
     @classmethod
     def from_multiclass_folder_structure(
         cls, root_directory_path: str
-    ) -> "ClassificationDataset":
+    ) -> ClassificationDataset:
         """
         Load data from a multiclass folder structure into a ClassificationDataset.
 
@@ -447,6 +448,7 @@ class ClassificationDataset(BaseDataset):
             >>> cd = sv.ClassificationDataset.from_multiclass_folder_structure(
             ...     root_directory_path="./dataset",
             ... )
+            ```
         """
         classes = os.listdir(root_directory_path)
 
