@@ -421,9 +421,7 @@ class ClassificationDataset(BaseDataset):
             cv2.imwrite(image_path, image)
 
     @classmethod
-    def from_folder_structure(
-        cls, root_directory_path: str
-    ) -> ClassificationDataset:
+    def from_folder_structure(cls, root_directory_path: str) -> ClassificationDataset:
         """
         Load data from a multiclass folder structure into a ClassificationDataset.
 
