@@ -105,7 +105,7 @@ def get_video_frames_generator(
 
     Args:
         source_path (str): The path of the video file.
-        stride (int): The number of frames to skip before returning the next one.
+        stride (int): Indicates the interval at which frames are returned, skipping stride - 1 frames between each.
 
     Returns:
         (Generator[np.ndarray, None, None]): A generator that yields the frames of the video.
