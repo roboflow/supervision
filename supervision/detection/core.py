@@ -313,6 +313,9 @@ class Detections:
         class_id = []
         masks = []
 
+        img_width = int(roboflow_result["image"]["width"])
+        img_height = int(roboflow_result["image"]["height"])
+
         for prediction in roboflow_result["predictions"]:
             x = prediction["x"]
             y = prediction["y"]
@@ -335,17 +338,17 @@ class Detections:
                 [(p["x"], p["y"]) for p in points], dtype=np.int32
             ).reshape((-1, 1, 2))
 
-            mask = polygon_to_mask(polygon, resolution_wh=(width, height))
-
-            mask = mask.astype(bool)
+            mask = polygon_to_mask(polygon, resolution_wh=(img_width, img_height))
 
             masks.append(mask)
+
+        masks = np.array(masks) if len(masks) > 0 else None
 
         return Detections(
             xyxy=np.array(xyxy),
             confidence=np.array(confidence),
             class_id=np.array(class_id).astype(int),
-            mask=mask if mask else None
+            mask=masks,
         )
 
     @classmethod
