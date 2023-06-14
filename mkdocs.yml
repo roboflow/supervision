@@ -29,6 +29,8 @@ nav:
   - Quickstart:
     - Detections: quickstart/detections.md
   - API reference:
+    - Classifications:
+        - Core: classification/core.md
     - Detections:
         - Core: detection/core.md
         - Annotate: detection/annotate.md

@@ -6,3 +6,7 @@
 ## DetectionDataset
 
 :::supervision.dataset.core.DetectionDataset
+
+## ClassificationDataset
+
+:::supervision.dataset.core.ClassificationDataset
