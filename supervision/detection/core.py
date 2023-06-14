@@ -1,14 +1,18 @@
 from __future__ import annotations
 
 from dataclasses import astuple, dataclass
-from typing import Any, Iterator, List, Optional, Tuple
+from typing import Any, Iterator, List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
 
-from supervision.detection.utils import non_max_suppression, xywh_to_xyxy, polygon_to_mask
+from supervision.detection.utils import (
+    extract_yolov8_masks,
+    non_max_suppression,
+    xywh_to_xyxy,
+)
 from supervision.geometry.core import Position
-from supervision.internal import deprecated
+from supervision.utils.internal import deprecated
 
 
 def _validate_xyxy(xyxy: Any, n: int) -> None:
@@ -192,6 +196,7 @@ class Detections:
             xyxy=yolov8_results.boxes.xyxy.cpu().numpy(),
             confidence=yolov8_results.boxes.conf.cpu().numpy(),
             class_id=yolov8_results.boxes.cls.cpu().numpy().astype(int),
+            mask=extract_yolov8_masks(yolov8_results),
         )
 
     @classmethod
@@ -490,23 +495,43 @@ class Detections:
 
         raise ValueError(f"{anchor} is not supported.")
 
-    def __getitem__(self, index: np.ndarray) -> Detections:
-        if isinstance(index, np.ndarray) and (
-            index.dtype == bool or index.dtype == int
-        ):
-            return Detections(
-                xyxy=self.xyxy[index],
-                mask=self.mask[index] if self.mask is not None else None,
-                confidence=self.confidence[index]
-                if self.confidence is not None
-                else None,
-                class_id=self.class_id[index] if self.class_id is not None else None,
-                tracker_id=self.tracker_id[index]
-                if self.tracker_id is not None
-                else None,
-            )
-        raise TypeError(
-            f"Detections.__getitem__ not supported for index of type {type(index)}."
+    def __getitem__(
+        self, index: Union[int, slice, List[int], np.ndarray]
+    ) -> Detections:
+        """
+        Get a subset of the Detections object.
+
+        Args:
+            index (Union[int, slice, List[int], np.ndarray]): The index or indices of the subset of the Detections
+
+        Returns:
+            (Detections): A subset of the Detections object.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> detections = sv.Detections(...)
+
+            >>> first_detection = detections[0]
+
+            >>> first_10_detections = detections[0:10]
+
+            >>> some_detections = detections[[0, 2, 4]]
+
+            >>> class_0_detections = detections[detections.class_id == 0]
+
+            >>> high_confidence_detections = detections[detections.confidence > 0.5]
+            ```
+        """
+        if isinstance(index, int):
+            index = [index]
+        return Detections(
+            xyxy=self.xyxy[index],
+            mask=self.mask[index] if self.mask is not None else None,
+            confidence=self.confidence[index] if self.confidence is not None else None,
+            class_id=self.class_id[index] if self.class_id is not None else None,
+            tracker_id=self.tracker_id[index] if self.tracker_id is not None else None,
         )
 
     @property

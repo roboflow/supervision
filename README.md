@@ -14,7 +14,7 @@
 [![downloads](https://img.shields.io/pypi/dm/supervision)](https://pypistats.org/packages/supervision)
 [![license](https://img.shields.io/pypi/l/supervision)](https://github.com/roboflow/supervision/blob/main/LICENSE.md)
 [![python-version](https://img.shields.io/pypi/pyversions/supervision)](https://badge.fury.io/py/supervision)
-[![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/roboflow-ai/notebooks/blob/main/notebooks/how-to-detect-and-count-objects-in-polygon-zone.ipynb)
+[![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/roboflow/supervision/blob/main/demo.ipynb)
 
 </div>
 
@@ -25,7 +25,7 @@
 ## 💻 install
 
 Pip install the supervision package in a
-[**3.10>=Python>=3.7**](https://www.python.org/) environment.
+[**3.11>=Python>=3.7**](https://www.python.org/) environment.
 
 ```bash
 pip install supervision
@@ -141,7 +141,7 @@ pip install -e ".[dev]"
 - Loop over dataset entries
 
     ```python
-    >>> for image, labels in dataset:
+    >>> for name, image, labels in dataset:
     ...     print(labels.xyxy)
 
     array([[404.      , 719.      , 538.      , 884.5     ],
@@ -208,6 +208,10 @@ pip install -e ".[dev]"
 ## 📚 documentation
 
 Curious how Supervision can help you solve problems on your project? Visit our [documentation](https://roboflow.github.io/supervision) page!
+
+## 💜 built with supervision
+
+You built something cool using supervision? [Let us know!](https://github.com/roboflow/supervision/discussions/categories/built-with-supervision)
 
 ## 🏆 contribution
 

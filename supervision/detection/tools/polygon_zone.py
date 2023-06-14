@@ -17,7 +17,7 @@ class PolygonZone:
     A class for defining a polygon-shaped zone within a frame for detecting objects.
 
     Attributes:
-        polygon (np.ndarray): A numpy array defining the polygon vertices
+        polygon (np.ndarray): A polygon represented by a numpy array of shape `(N, 2)`, containing the `x`, `y` coordinates of the points.
         frame_resolution_wh (Tuple[int, int]): The frame resolution (width, height)
         triggering_position (Position): The position within the bounding box that triggers the zone (default: Position.BOTTOM_CENTER)
         current_count (int): The current count of detected objects within the zone
@@ -30,7 +30,7 @@ class PolygonZone:
         frame_resolution_wh: Tuple[int, int],
         triggering_position: Position = Position.BOTTOM_CENTER,
     ):
-        self.polygon = polygon
+        self.polygon = polygon.astype(int)
         self.frame_resolution_wh = frame_resolution_wh
         self.triggering_position = triggering_position
         self.current_count = 0

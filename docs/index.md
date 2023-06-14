@@ -19,7 +19,7 @@ pre-release stage 🚧 Keep your eyes open for potential bugs and be aware that 
 ## 💻 How to Install
 
 You can install `supervision` with pip in a 
-[**3.10>=Python>=3.7**](https://www.python.org/) environment.
+[**3.11>=Python>=3.7**](https://www.python.org/) environment.
 
 !!! example "Pip install method (recommended)"
 

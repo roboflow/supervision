@@ -29,6 +29,8 @@ nav:
   - Quickstart:
     - Detections: quickstart/detections.md
   - API reference:
+    - Classifications:
+        - Core: classification/core.md
     - Detections:
         - Core: detection/core.md
         - Annotate: detection/annotate.md
@@ -39,10 +41,11 @@ nav:
         - Core: dataset/core.md
     - Draw:
         - Utils: draw/utils.md
-    - Notebook:
-        - Utils: notebook/utils.md
-    - Video:
-        - Utils: video.md
+    - Utils:
+        - Video: utils/video.md
+        - Image: utils/image.md
+        - Notebook: utils/notebook.md
+        - File: utils/file.md
   - Changelog: changelog.md
 
 theme:

@@ -9,7 +9,11 @@ import yaml
 from supervision.dataset.ultils import approximate_mask_with_polygons
 from supervision.detection.core import Detections
 from supervision.detection.utils import polygon_to_mask, polygon_to_xyxy
-from supervision.file import list_files_with_extensions, read_txt_file, save_text_file
+from supervision.utils.file import (
+    list_files_with_extensions,
+    read_txt_file,
+    save_text_file,
+)
 
 
 def _parse_box(values: List[str]) -> np.ndarray:

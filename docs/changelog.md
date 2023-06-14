@@ -1,3 +1,68 @@
+### 0.9.0 <small>June 7, 2023</small>
+
+- Added [[#118](https://github.com/roboflow/supervision/pull/118)]: ability to select [`sv.Detections`](https://roboflow.github.io/supervision/detection/core/#supervision.detection.core.Detections.__getitem__) by index, list of indexes or slice. Here is an example illustrating the new selection methods.
+
+```python
+>>> import supervision as sv
+
+>>> detections = sv.Detections(...)
+>>> len(detections[0])
+1
+>>> len(detections[[0, 1]])
+2
+>>> len(detections[0:2])
+2
+```
+
+- Added [[#101](https://github.com/roboflow/supervision/pull/101)]: ability to extract masks from YOLOv8 result using [`sv.Detections.from_yolov8`](https://roboflow.github.io/supervision/detection/core/#supervision.detection.core.Detections.from_yolov8). Here is an example illustrating how to extract boolean masks from the result of the YOLOv8 model inference.
+
+```python
+>>> import cv2
+>>> from ultralytics import YOLO
+>>> import supervision as sv
+
+>>> image = cv2.imread(...)
+>>> image.shape
+(640, 640, 3)
+
+>>> model = YOLO('yolov8s-seg.pt')
+>>> result = model(image)[0]
+>>> detections = sv.Detections.from_yolov8(result)
+>>> detections.mask.shape
+(2, 640, 640)
+```
+
+- Added [[#122](https://github.com/roboflow/supervision/pull/122)]: ability to crop image using [`sv.crop`](https://roboflow.github.io/supervision/utils/image/#crop). Here is an example showing how to get a separate crop for each detection in `sv.Detections`.
+
+```python
+>>> import cv2
+>>> import supervision as sv
+
+>>> image = cv2.imread(...)
+>>> detections = sv.Detections(...)
+>>> len(detections)
+2
+>>> crops = [
+...     sv.crop(image=image, xyxy=xyxy) 
+...     for xyxy 
+...     in detections.xyxy
+... ]
+>>> len(crops)
+2
+```
+
+- Added [[#120](https://github.com/roboflow/supervision/pull/120)]: ability to conveniently save multiple images into directory using [`sv.ImageSink`](https://roboflow.github.io/supervision/utils/image/#imagesink). Here is an example showing how to save every tenth video frame as a separate image.
+
+```python
+>>> import supervision as sv
+
+>>> with sv.ImageSink(target_dir_path='target/directory/path') as sink:
+...     for image in sv.get_video_frames_generator(source_path='source_video.mp4', stride=10):
+...         sink.save_image(image=image)
+```
+
+- Fixed [[#106](https://github.com/roboflow/supervision/issues/106)]: inconvenient handling of [`sv.PolygonZone`](https://roboflow.github.io/supervision/detection/tools/polygon_zone/#polygonzone) coordinates. Now `sv.PolygonZone` accepts coordinates in the form of `[[x1, y1], [x2, y2], ...]` that can be both integers and floats.
+
 ### 0.8.0 <small>May 17, 2023</small>
 
 - Added [[#100](https://github.com/roboflow/supervision/pull/100)]: support for dataset inheritance. The current `Dataset` got renamed to `DetectionDataset`. Now [`DetectionDataset`](https://roboflow.github.io/supervision/dataset/core/#detectiondataset) inherits from `BaseDataset`. This change was made to enforce the future consistency of APIs of different types of computer vision datasets.
