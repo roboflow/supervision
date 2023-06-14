@@ -18,11 +18,11 @@
 
 </div>
 
-## 👋 hello
+## 👋 Hello
 
 **We write your reusable computer vision tools.** Whether you need to load your dataset from your hard drive, draw detections on an image or video, or count how many detections are in a zone. You can count on us! 🤝
 
-## 💻 install
+## 💻 Install
 
 Pip install the supervision package in a
 [**3.11>=Python>=3.7**](https://www.python.org/) environment.
@@ -49,7 +49,7 @@ pip install -e ".[dev]"
 
 </details>
 
-## 🔥 quickstart
+## 🔥 Quickstart
 
 ### [detections processing](https://roboflow.github.io/supervision/detection/core/)
 
@@ -189,7 +189,7 @@ pip install -e ".[dev]"
 
 </details>
 
-## 🎬 tutorials
+## 🎬 Tutorials
 
 <p align="left">
 <a href="https://youtu.be/oEQYStnF2l8" title="Accelerate Image Annotation with SAM and Grounding DINO"><img src="https://github.com/SkalskiP/SkalskiP/assets/26109316/ae1ca38e-40b7-4b35-8582-e8ea5de3806e" alt="Accelerate Image Annotation with SAM and Grounding DINO" width="300px" align="left" /></a>
@@ -205,15 +205,15 @@ pip install -e ".[dev]"
 <div><strong>Created: 11 Apr 2023</strong> | <strong>Updated: 11 Apr 2023</strong></div>
 <br/> Discover the incredible potential of Meta AI's Segment Anything Model (SAM)! We dive into SAM, an efficient and promptable model for image segmentation, which has revolutionized computer vision tasks. With over 1 billion masks on 11M licensed and privacy-respecting images, SAM's zero-shot performance is often competitive with or even superior to prior fully supervised results... </p>
 
-## 📚 documentation
+## 📚 Documentation
 
 Curious how Supervision can help you solve problems on your project? Visit our [documentation](https://roboflow.github.io/supervision) page!
 
-## 💜 built with supervision
+## 💜 Built with supervision
 
 You built something cool using supervision? [Let us know!](https://github.com/roboflow/supervision/discussions/categories/built-with-supervision)
 
-## 🏆 contribution
+## 🏆 Contribution
 
 We love your input! Please see our [contributing guide](https://github.com/roboflow/supervision/blob/main/CONTRIBUTING.md) to get started. Thank you 🙏 to all our contributors!
 
