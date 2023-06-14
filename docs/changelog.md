@@ -14,7 +14,9 @@
 ... )
 ```
 
-- Added [[#125](https://github.com/roboflow/supervision/pull/125)]: support for [`sv.ClassificationDataset.split`](https://roboflow.github.io/supervision/dataset/core/#supervision.dataset.core.ClassificationDataset.split) allowing to divide `ClassificationDataset` into two parts.
+- Added [[#125](https://github.com/roboflow/supervision/pull/125)]: support for [`sv.ClassificationDataset.split`](https://roboflow.github.io/supervision/dataset/core/#supervision.dataset.core.ClassificationDataset.split) allowing to divide `sv.ClassificationDataset` into two parts.
+
+- Added [[#110](https://github.com/roboflow/supervision/pull/110)]: ability to extract masks from Roboflow API results using [`sv.Detections.from_roboflow`](https://roboflow.github.io/supervision/detection/core/#supervision.detection.core.Detections.from_roboflow). 
 
 - Added [[commit hash](https://github.com/roboflow/supervision/commit/d000292eb2f2342544e0947b65528082e60fb8d6)]: Supervision Quickstart [notebook](https://colab.research.google.com/github/roboflow/supervision/blob/main/demo.ipynb) where you can learn more about Detection, Dataset and Video APIs.
 
