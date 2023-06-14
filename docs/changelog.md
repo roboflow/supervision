@@ -1,3 +1,27 @@
+### 0.10.0 <small>June 14, 2023</small>
+
+- Added [[#125](https://github.com/roboflow/supervision/pull/125)]: ability to load and save [`sv.ClassificationDataset`](https://roboflow.github.io/supervision/dataset/core/#classificationdataset) in a folder structure format.
+
+```python
+>>> import supervision as sv
+
+>>> cs = sv.ClassificationDataset.from_folder_structure(
+...     root_directory_path='...'
+... )
+
+>>> cs.as_folder_structure(
+...     root_directory_path='...'
+... )
+```
+
+- Added [[#125](https://github.com/roboflow/supervision/pull/125)]: support for [`sv.ClassificationDataset.split`](https://roboflow.github.io/supervision/dataset/core/#supervision.dataset.core.ClassificationDataset.split) allowing to divide `sv.ClassificationDataset` into two parts.
+
+- Added [[#110](https://github.com/roboflow/supervision/pull/110)]: ability to extract masks from Roboflow API results using [`sv.Detections.from_roboflow`](https://roboflow.github.io/supervision/detection/core/#supervision.detection.core.Detections.from_roboflow). 
+
+- Added [[commit hash](https://github.com/roboflow/supervision/commit/d000292eb2f2342544e0947b65528082e60fb8d6)]: Supervision Quickstart [notebook](https://colab.research.google.com/github/roboflow/supervision/blob/main/demo.ipynb) where you can learn more about Detection, Dataset and Video APIs.
+
+- Changed [[#135](https://github.com/roboflow/supervision/pull/135)]: `sv.get_video_frames_generator` documentation to better describe actual behavior.  
+
 ### 0.9.0 <small>June 7, 2023</small>
 
 - Added [[#118](https://github.com/roboflow/supervision/pull/118)]: ability to select [`sv.Detections`](https://roboflow.github.io/supervision/detection/core/#supervision.detection.core.Detections.__getitem__) by index, list of indexes or slice. Here is an example illustrating the new selection methods.
@@ -15,41 +39,8 @@
 ```
 
 - Added [[#101](https://github.com/roboflow/supervision/pull/101)]: ability to extract masks from YOLOv8 result using [`sv.Detections.from_yolov8`](https://roboflow.github.io/supervision/detection/core/#supervision.detection.core.Detections.from_yolov8). Here is an example illustrating how to extract boolean masks from the result of the YOLOv8 model inference.
-
-```python
->>> import cv2
->>> from ultralytics import YOLO
->>> import supervision as sv
-
->>> image = cv2.imread(...)
->>> image.shape
-(640, 640, 3)
-
->>> model = YOLO('yolov8s-seg.pt')
->>> result = model(image)[0]
->>> detections = sv.Detections.from_yolov8(result)
->>> detections.mask.shape
-(2, 640, 640)
-```
-
+ 
 - Added [[#122](https://github.com/roboflow/supervision/pull/122)]: ability to crop image using [`sv.crop`](https://roboflow.github.io/supervision/utils/image/#crop). Here is an example showing how to get a separate crop for each detection in `sv.Detections`.
-
-```python
->>> import cv2
->>> import supervision as sv
-
->>> image = cv2.imread(...)
->>> detections = sv.Detections(...)
->>> len(detections)
-2
->>> crops = [
-...     sv.crop(image=image, xyxy=xyxy) 
-...     for xyxy 
-...     in detections.xyxy
-... ]
->>> len(crops)
-2
-```
 
 - Added [[#120](https://github.com/roboflow/supervision/pull/120)]: ability to conveniently save multiple images into directory using [`sv.ImageSink`](https://roboflow.github.io/supervision/utils/image/#imagesink). Here is an example showing how to save every tenth video frame as a separate image.
 
