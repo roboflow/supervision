@@ -566,3 +566,12 @@ class Detections:
         )
         indices = non_max_suppression(predictions=predictions, iou_threshold=threshold)
         return self[indices]
+        
+    def to_json(self) -> dict:
+        class NumpyEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if isinstance(obj, np.ndarray):
+                    return obj.tolist()
+                return json.JSONEncoder.default(self, obj)
+        detection_dict = {'xyxy': self.xyxy, 'class_id': self.class_id, 'tracker_id': self.tracker_id}
+        return json.dumps(detection_dict, cls=NumpyEncoder)
