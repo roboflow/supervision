@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import astuple, dataclass
 from typing import Any, Iterator, List, Optional, Tuple, Union
+import json
 
 import cv2
 import numpy as np
