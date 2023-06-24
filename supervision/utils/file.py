@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from typing import List, Optional, Union
 
@@ -66,3 +67,31 @@ def save_text_file(lines: List[str], file_path: str):
     with open(file_path, "w") as file:
         for line in lines:
             file.write(line + "\n")
+
+
+def read_json_file(file_path: str) -> dict:
+    """
+    Read a json file and return a dict.
+
+    Args:
+        file_path (str): The path to the json file.
+
+    Returns:
+        dict: A dict of annotations information
+    """
+    with open(file_path, "r") as file:
+        data = json.load(file)
+    return data
+
+
+def save_json_file(data: dict, file_path: str, indent=3):
+    """
+    Write a dict to a json file.
+
+    Args:
+        data (dict): dict with unique keys and value as pair.
+        file_path (str): The path to the json file.
+    """
+    with open(file_path, 'w') as fp:
+        json.dump(data, fp, indent=indent)
+

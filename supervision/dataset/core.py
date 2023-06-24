@@ -19,6 +19,12 @@ from supervision.dataset.formats.yolo import (
     save_data_yaml,
     save_yolo_annotations,
 )
+
+from supervision.dataset.formats.coco import (
+    load_coco_annotations,
+    save_coco_annotations
+)
+
 from supervision.dataset.ultils import save_dataset_images, train_test_split
 from supervision.detection.core import Detections
 from supervision.utils.file import list_files_with_extensions
@@ -332,6 +338,97 @@ class DetectionDataset(BaseDataset):
             )
         if data_yaml_path is not None:
             save_data_yaml(data_yaml_path=data_yaml_path, classes=self.classes)
+
+    @classmethod
+    def from_coco(
+            cls,
+            images_directory_path: str,
+            annotations_path: str,
+            force_masks: bool = False,
+    ) -> DetectionDataset:
+        """
+        Creates a Dataset instance from YOLO formatted data.
+
+        Args:
+            images_directory_path (str): The path to the directory containing the images.
+            annotations_directory_path (str): The path to the directory containing the YOLO annotation files.
+            data_yaml_path (str): The path to the data YAML file containing class information.
+            force_masks (bool, optional): If True, forces masks to be loaded for all annotations, regardless of whether they are present.
+
+        Returns:
+            DetectionDataset: A DetectionDataset instance containing the loaded images and annotations.
+
+        Example:
+            ```python
+            >>> import roboflow
+            >>> from roboflow import Roboflow
+            >>> import supervision as sv
+
+            >>> roboflow.login()
+
+            >>> rf = Roboflow()
+
+            >>> project = rf.workspace(WORKSPACE_ID).project(PROJECT_ID)
+            >>> dataset = project.version(PROJECT_VERSION).download("yolov5")
+
+            >>> ds = sv.DetectionDataset.from_coco(
+            ...     images_directory_path=f"{dataset.location}/train/images",
+            ...     annotations_directory_path=f"{dataset.location}/train/labels",
+            ...     data_yaml_path=f"{dataset.location}/data.yaml"
+            ... )
+
+            >>> ds.classes
+            ['dog', 'person']
+            ```
+        """
+        classes, images, annotations = load_coco_annotations(
+            images_directory_path=images_directory_path,
+            annotations_path=annotations_path,
+            force_masks=force_masks,
+        )
+        return DetectionDataset(classes=classes, images=images, annotations=annotations)
+
+    def as_coco(
+            self,
+            images_directory_path: Optional[str] = None,
+            annotations_path: Optional[str] = None,
+            min_image_area_percentage: float = 0.0,
+            max_image_area_percentage: float = 1.0,
+            approximation_percentage: float = 0.0,
+    ) -> None:
+        """
+        Exports the dataset to COCO format. This method saves the images and their corresponding
+        annotations in COCO format, which is a simple json file that describes an object in the image.
+        Annotation json file also include category maps.
+
+        The method allows filtering the detections based on their area percentage and offers an option for polygon approximation.
+
+        Args:
+            images_directory_path (Optional[str]): The path to the directory where the images should be saved.
+                If not provided, images will not be saved.
+            annotations_directory_path (Optional[str]): The path to the directory where the annotations in
+                YOLO format should be saved. If not provided, annotations will not be saved.
+            min_image_area_percentage (float): The minimum percentage of detection area relative to
+                the image area for a detection to be included.
+            max_image_area_percentage (float): The maximum percentage of detection area relative to
+                the image area for a detection to be included.
+            approximation_percentage (float): The percentage of polygon points to be removed from the input polygon,
+                in the range [0, 1). This is useful for simplifying the annotations.
+        """
+        if images_directory_path is not None:
+            save_dataset_images(
+                images_directory_path=images_directory_path, images=self.images
+            )
+        if annotations_path is not None:
+            save_coco_annotations(
+                annotation_path=annotations_path,
+                images=self.images,
+                annotations=self.annotations,
+                classes=self.classes,
+                min_image_area_percentage=min_image_area_percentage,
+                max_image_area_percentage=max_image_area_percentage,
+                approximation_percentage=approximation_percentage,
+            )
 
 
 @dataclass
