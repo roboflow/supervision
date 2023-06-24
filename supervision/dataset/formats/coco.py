@@ -1,11 +1,14 @@
 import os
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, List, Tuple
 
 import cv2
 import numpy as np
 
+from supervision.dataset.ultils import approximate_mask_with_polygons
 from supervision.detection.core import Detections
+from supervision.detection.utils import polygon_to_mask
 from supervision.utils.file import (
     save_json_file,
     read_json_file
@@ -44,32 +47,61 @@ def _extract_image_names(image_infos: dict) -> List[dict]:
     return image_names
 
 
-def _annotations_dict_to_numpy(annotation_data: dict) -> np.ndarray:
+def _annotations_dict(annotation_data: dict, with_masks: bool) -> Tuple[np.ndarray, dict]:
     annotations_infos = annotation_data.get("annotations", None)
-    # TODO: Add segmentation parser
     # image id, label-id, category_id, bbox[0], bbox[1], bbox[2], bbox[3], segmentaions
-    annotations = np.zeros((0, 7))
+    image_id_label_id_pair = np.zeros((0, 2))
+    annotations = {}
     for anno in annotations_infos:
-        _info = np.array([[anno["image_id"], anno["id"], anno["category_id"],
-                           anno["bbox"][0], anno["bbox"][1], anno["bbox"][2], anno["bbox"][3]]])
-        annotations = np.append(annotations, _info, axis=0)
-    return annotations
+        _annotations = {}
+        for key, item in anno.items():
+            _annotations[key] = anno[key]
+        id_pair = np.array([[anno["image_id"], anno["id"]]])
+        image_id_label_id_pair = np.append(image_id_label_id_pair, id_pair, axis=0)
+        annotations[anno['id']] = _annotations
+
+    return image_id_label_id_pair, annotations
 
 
-def coco_annotations_to_detections(coco_annotations: np.ndarray, with_masks: bool) -> Detections:
+def _polygons_to_masks(
+        polygons: List[np.ndarray], resolution_wh: Tuple[int, int]
+) -> np.ndarray:
+    return np.array(
+        [
+            polygon_to_mask(polygon=polygon, resolution_wh=resolution_wh)
+            for polygon in polygons
+        ],
+        dtype=bool,
+    )
+
+
+def coco_annotations_to_detections(image_annotations: List[dict], with_masks: bool) -> Detections:
     """
     Returns:
         object: detections
     """
-    detections = Detections.empty()
-    if coco_annotations.shape[0] > 0:
-        coco_annotations[:, 5] += coco_annotations[:, 3]
-        coco_annotations[:, 6] += coco_annotations[:, 4]
-        detections = Detections(xyxy=coco_annotations[:, 3:], class_id=coco_annotations[:, 2].astype(int))
-    return detections
+    masks = [] if with_masks else None
+    class_ids = []
+    xyxy = []
+    polygons = []
+    for image_annotation in image_annotations:
+        bbox = image_annotation['bbox']
+        xyxy.append(bbox)
+        class_ids.append(image_annotation['category_id'])
+        _polygons = image_annotation['segmentation']
+        if len(_polygons) > 0 and with_masks:
+            _polygon = np.asarray(_polygons[0]).reshape((-1, 2)).astype(int)
+            polygons.append(_polygon)
 
+    xyxy = np.array(xyxy)
+    xyxy[:, 2] += xyxy[:, 0]
+    xyxy[:, 3] += xyxy[:, 1]
+    class_ids = np.asarray(class_ids, dtype=int)
 
+    if len(polygons) > 0:
+        masks = _polygons_to_masks(polygons=polygons, resolution_wh=(640, 640))
 
+    return Detections(xyxy=xyxy, class_id=class_ids, mask=masks)
 
 
 def load_coco_annotations(
@@ -82,7 +114,7 @@ def load_coco_annotations(
 
     Args:
         images_directory_path (str): The path to the directory containing the images.
-        annotations__path (str): The path to the coco json annotation file.
+        annotations_path (str): The path to the coco json annotation file.
         force_masks (bool, optional): If True, forces masks to be loaded for all annotations, regardless of whether they are present.
 
     Returns:
@@ -92,7 +124,7 @@ def load_coco_annotations(
 
     classes = _extract_class_names(annotation_data=annotation_data)
     images_infos = _extract_image_info(annotation_data=annotation_data)
-    annotations_np = _annotations_dict_to_numpy(annotation_data=annotation_data)
+    image_id_label_id_pair, annotation_dict = _annotations_dict(annotation_data=annotation_data, with_masks=force_masks)
 
     images = {}
     annotations = {}
@@ -102,9 +134,14 @@ def load_coco_annotations(
         image = cv2.imread(str(image_path))
 
         # Filter annotations based on image id
-        image_annotations = annotations_np[annotations_np[:, 0] == images_info["id"]]
+        per_image_label_ids = image_id_label_id_pair[image_id_label_id_pair[:, 0] == images_info["id"]][:, 1]
 
-        annotation = coco_annotations_to_detections(coco_annotations=image_annotations, with_masks=False)
+        image_annotations = []
+        for per_image_label_id in per_image_label_ids:
+            image_annotations.append(annotation_dict[int(per_image_label_id)])
+
+        annotation = coco_annotations_to_detections(image_annotations=image_annotations, with_masks=force_masks)
+
         images[images_info["file_name"]] = image
         annotations[images_info["file_name"]] = annotation
     return classes, images, annotations
@@ -118,17 +155,19 @@ def save_coco_annotations(
         min_image_area_percentage: float = 0.0,
         max_image_area_percentage: float = 1.0,
         approximation_percentage: float = 0.75,
+        licenses: List[dict] = None,
+        info: dict = None
 ) -> None:
-    # Path(annotation_path).mkdir(parents=True, exist_ok=True)
-
-    license = {'id': 1, 'url': 'https://creativecommons.org/licenses/by/4.0/', 'name': 'CC BY 4.0'}
-    licenses = [license]  # TODO: accept as optional parameter
+    Path(annotation_path).parents[2].mkdir(parents=True, exist_ok=True)
+    if not info:
+        info = {}
+    if not licenses:
+        licenses = [{'id': 1, 'url': 'https://creativecommons.org/licenses/by/4.0/', 'name': 'CC BY 4.0'}]
 
     annotations_data = []
     image_infos = []
-    infos = {}  # TODO: accept as optional parameter
-
     categories = []
+
     for class_id, class_name in enumerate(classes):
         cate_dict = {'id': class_id, 'name': class_name, "supercategory": "common-objects"}
         categories.append(cate_dict)
@@ -147,25 +186,31 @@ def save_coco_annotations(
         image_infos.append(image_info)
         detections = annotations[image_name]
         for xyxy, mask, confidence, class_id, tracker_id in detections:
-        # for class_id, x1, y1, x2, y2 in detections.class_id, detections.xyxy:
+            polygons = []
+            if mask is not None:
+                polygons = approximate_mask_with_polygons(
+                    mask=mask,
+                    min_image_area_percentage=min_image_area_percentage,
+                    max_image_area_percentage=max_image_area_percentage,
+                    approximation_percentage=approximation_percentage,
+                )
+
             per_label_dict = {}
             per_label_dict['id'] = label_id
             per_label_dict['image_id'] = image_id
             per_label_dict['category_id'] = int(class_id)
-            w, h = xyxy[2]-xyxy[0], xyxy[3]-xyxy[1]
+            w, h = xyxy[2] - xyxy[0], xyxy[3] - xyxy[1]
             per_label_dict['bbox'] = [xyxy[0], xyxy[1], w, h]
             per_label_dict['area'] = w * h  # width x height
-            per_label_dict['segmentation'] = []
+            per_label_dict['segmentation'] = polygons
             per_label_dict['iscrowd'] = 0
-            print(per_label_dict)
             annotations_data.append(per_label_dict)
             label_id += 1
 
         image_id += 1
 
-
     annotation_dict = {
-        'info': infos,
+        'info': info,
         'licenses': licenses,
         'categories': categories,
         'images': image_infos,

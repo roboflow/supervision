@@ -416,10 +416,12 @@ class DetectionDataset(BaseDataset):
                 in the range [0, 1). This is useful for simplifying the annotations.
         """
         if images_directory_path is not None:
+            Path(images_directory_path).mkdir(parents=True, exist_ok=True)
             save_dataset_images(
                 images_directory_path=images_directory_path, images=self.images
             )
         if annotations_path is not None:
+            # Path(annotations_path).mkdir(parents=True, exist_ok=True)
             save_coco_annotations(
                 annotation_path=annotations_path,
                 images=self.images,
