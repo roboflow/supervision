@@ -2,6 +2,20 @@ import json
 from pathlib import Path
 from typing import List, Optional, Union
 
+import numpy as np
+
+
+class NpEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        if isinstance(obj, np.floating):
+            return float(obj)
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return super(NpEncoder, self).default(obj)
+
+
 
 def list_files_with_extensions(
     directory: Union[str, Path], extensions: Optional[List[str]] = None
@@ -93,5 +107,5 @@ def save_json_file(data: dict, file_path: str, indent=3):
         file_path (str): The path to the json file.
     """
     with open(file_path, 'w') as fp:
-        json.dump(data, fp, indent=indent)
+        json.dump(data, fp, cls=NpEncoder, indent=indent)
 

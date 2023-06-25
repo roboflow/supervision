@@ -80,28 +80,22 @@ def coco_annotations_to_detections(image_annotations: List[dict], with_masks: bo
     Returns:
         object: detections
     """
+    detection = Detections.empty()
     masks = [] if with_masks else None
     class_ids = []
     xyxy = []
-    polygons = []
     for image_annotation in image_annotations:
         bbox = image_annotation['bbox']
         xyxy.append(bbox)
         class_ids.append(image_annotation['category_id'])
-        _polygons = image_annotation['segmentation']
-        if len(_polygons) > 0 and with_masks:
-            _polygon = np.asarray(_polygons[0]).reshape((-1, 2)).astype(int)
-            polygons.append(_polygon)
-
-    xyxy = np.array(xyxy)
-    xyxy[:, 2] += xyxy[:, 0]
-    xyxy[:, 3] += xyxy[:, 1]
-    class_ids = np.asarray(class_ids, dtype=int)
-
-    if len(polygons) > 0:
-        masks = _polygons_to_masks(polygons=polygons, resolution_wh=(640, 640))
-
-    return Detections(xyxy=xyxy, class_id=class_ids, mask=masks)
+        # _polygons = image_annotation['segmentation']
+    xyxy = np.asarray(xyxy)
+    if xyxy.shape[0] > 0:
+        xyxy[:, 2] += xyxy[:, 0]
+        xyxy[:, 3] += xyxy[:, 1]
+        class_ids = np.asarray(class_ids, dtype=int)
+        detection = Detections(xyxy=xyxy, class_id=class_ids)
+    return detection
 
 
 def load_coco_annotations(
