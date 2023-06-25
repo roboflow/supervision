@@ -369,12 +369,11 @@ class DetectionDataset(BaseDataset):
             >>> rf = Roboflow()
 
             >>> project = rf.workspace(WORKSPACE_ID).project(PROJECT_ID)
-            >>> dataset = project.version(PROJECT_VERSION).download("yolov5")
+            >>> dataset = project.version(PROJECT_VERSION).download("coco")
 
             >>> ds = sv.DetectionDataset.from_coco(
             ...     images_directory_path=f"{dataset.location}/train/images",
-            ...     annotations_directory_path=f"{dataset.location}/train/labels",
-            ...     data_yaml_path=f"{dataset.location}/data.yaml"
+            ...     annotations_directory_path=f"{dataset.location}/train/annotations.json",
             ... )
 
             >>> ds.classes
