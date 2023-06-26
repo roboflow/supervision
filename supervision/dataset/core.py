@@ -10,6 +10,10 @@ import cv2
 import numpy as np
 
 from supervision.classification.core import Classifications
+from supervision.dataset.formats.coco import (
+    load_coco_annotations,
+    save_coco_annotations,
+)
 from supervision.dataset.formats.pascal_voc import (
     detections_to_pascal_voc,
     load_pascal_voc_annotations,
@@ -19,12 +23,6 @@ from supervision.dataset.formats.yolo import (
     save_data_yaml,
     save_yolo_annotations,
 )
-
-from supervision.dataset.formats.coco import (
-    load_coco_annotations,
-    save_coco_annotations
-)
-
 from supervision.dataset.ultils import save_dataset_images, train_test_split
 from supervision.detection.core import Detections
 from supervision.utils.file import list_files_with_extensions
@@ -341,10 +339,10 @@ class DetectionDataset(BaseDataset):
 
     @classmethod
     def from_coco(
-            cls,
-            images_directory_path: str,
-            annotations_path: str,
-            force_masks: bool = False,
+        cls,
+        images_directory_path: str,
+        annotations_path: str,
+        force_masks: bool = False,
     ) -> DetectionDataset:
         """
         Creates a Dataset instance from YOLO formatted data.
@@ -372,7 +370,7 @@ class DetectionDataset(BaseDataset):
 
             >>> ds = sv.DetectionDataset.from_coco(
             ...     images_directory_path=f"{dataset.location}/train/images",
-            ...     annotations_directory_path=f"{dataset.location}/train/annotations.json",
+            ...     annotations_path=f"{dataset.location}/train/_annotations.coco.json",
             ... )
 
             >>> ds.classes
@@ -387,14 +385,14 @@ class DetectionDataset(BaseDataset):
         return DetectionDataset(classes=classes, images=images, annotations=annotations)
 
     def as_coco(
-            self,
-            images_directory_path: Optional[str] = None,
-            annotations_path: Optional[str] = None,
-            min_image_area_percentage: float = 0.0,
-            max_image_area_percentage: float = 1.0,
-            approximation_percentage: float = 0.0,
-            licenses: Optional[list] = None,
-            info: Optional[dict] = None
+        self,
+        images_directory_path: Optional[str] = None,
+        annotations_path: Optional[str] = None,
+        min_image_area_percentage: float = 0.0,
+        max_image_area_percentage: float = 1.0,
+        approximation_percentage: float = 0.0,
+        licenses: Optional[list] = None,
+        info: Optional[dict] = None,
     ) -> None:
         """
         Exports the dataset to COCO format. This method saves the images and their corresponding
@@ -432,7 +430,7 @@ class DetectionDataset(BaseDataset):
                 max_image_area_percentage=max_image_area_percentage,
                 approximation_percentage=approximation_percentage,
                 licenses=licenses,
-                info=info
+                info=info,
             )
 
 

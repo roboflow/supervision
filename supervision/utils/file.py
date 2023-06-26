@@ -5,7 +5,7 @@ from typing import List, Optional, Union
 import numpy as np
 
 
-class NpEncoder(json.JSONEncoder):
+class NumpyJsonEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, np.integer):
             return int(obj)
@@ -13,8 +13,7 @@ class NpEncoder(json.JSONEncoder):
             return float(obj)
         if isinstance(obj, np.ndarray):
             return obj.tolist()
-        return super(NpEncoder, self).default(obj)
-
+        return super(NumpyJsonEncoder, self).default(obj)
 
 
 def list_files_with_extensions(
@@ -98,7 +97,7 @@ def read_json_file(file_path: str) -> dict:
     return data
 
 
-def save_json_file(data: dict, file_path: str, indent=3):
+def save_json_file(data: dict, file_path: str, indent: int = 3) -> None:
     """
     Write a dict to a json file.
 
@@ -106,6 +105,5 @@ def save_json_file(data: dict, file_path: str, indent=3):
         data (dict): dict with unique keys and value as pair.
         file_path (str): The path to the json file.
     """
-    with open(file_path, 'w') as fp:
-        json.dump(data, fp, cls=NpEncoder, indent=indent)
-
+    with open(file_path, "w") as fp:
+        json.dump(data, fp, cls=NumpyJsonEncoder, indent=indent)
