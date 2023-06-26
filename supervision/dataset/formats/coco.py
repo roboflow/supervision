@@ -14,17 +14,6 @@ from supervision.utils.file import (
     read_json_file
 )
 
-"""
-COCO Format Information:
-coco: dict[info, licenses, categories, images, annotations]
-info: dict []
-licenses: dict['id', 'url', 'name']
-categories: dict['id', 'name', 'supercategory']
-images: dict['id', 'license', 'file_name', 'height', 'width', 'date_captured']
-annotations: dict['id', 'image_id', 'category_id', 'bbox', 'area', 'segmentation', 'iscrowd']
-bbox are in [x1, y1, w, h] in original scale
-"""
-
 
 def _extract_class_names(annotation_data: dict) -> List[str]:
     names = []
@@ -47,7 +36,7 @@ def _extract_image_names(image_infos: dict) -> List[dict]:
     return image_names
 
 
-def _annotations_dict(annotation_data: dict, with_masks: bool) -> Tuple[np.ndarray, dict]:
+def _annotations_dict(annotation_data: dict) -> Tuple[np.ndarray, dict]:
     annotations_infos = annotation_data.get("annotations", None)
     # image id, label-id, category_id, bbox[0], bbox[1], bbox[2], bbox[3], segmentaions
     image_id_label_id_pair = np.zeros((0, 2))
@@ -75,26 +64,39 @@ def _polygons_to_masks(
     )
 
 
-def coco_annotations_to_detections(image_annotations: List[dict], with_masks: bool) -> Detections:
+def coco_annotations_to_detections(image_annotations: List[dict], resolution_wh: Tuple[int, int], with_masks: bool) \
+        -> Detections:
     """
     Returns:
         object: detections
     """
     detection = Detections.empty()
-    masks = [] if with_masks else None
     class_ids = []
     xyxy = []
+    polygons = []
+
     for image_annotation in image_annotations:
         bbox = image_annotation['bbox']
         xyxy.append(bbox)
         class_ids.append(image_annotation['category_id'])
-        # _polygons = image_annotation['segmentation']
+        if with_masks:
+            _polygons = image_annotation['segmentation']
+            _polygons = np.asarray(_polygons, dtype=np.int32)
+            _polygons = np.reshape(_polygons, (-1, 2))
+            polygons.append(_polygons)
+
     xyxy = np.asarray(xyxy)
     if xyxy.shape[0] > 0:
         xyxy[:, 2] += xyxy[:, 0]
         xyxy[:, 3] += xyxy[:, 1]
         class_ids = np.asarray(class_ids, dtype=int)
-        detection = Detections(xyxy=xyxy, class_id=class_ids)
+
+        if with_masks:
+            mask = _polygons_to_masks(polygons=polygons, resolution_wh=resolution_wh)
+            detection = Detections(class_id=class_ids, xyxy=xyxy, mask=mask)
+        else:
+            detection = Detections(xyxy=xyxy, class_id=class_ids)
+
     return detection
 
 
@@ -118,12 +120,13 @@ def load_coco_annotations(
 
     classes = _extract_class_names(annotation_data=annotation_data)
     images_infos = _extract_image_info(annotation_data=annotation_data)
-    image_id_label_id_pair, annotation_dict = _annotations_dict(annotation_data=annotation_data, with_masks=force_masks)
+    image_id_label_id_pair, annotation_dict = _annotations_dict(annotation_data=annotation_data)
 
     images = {}
     annotations = {}
 
     for images_info in images_infos:
+
         image_path = os.path.join(images_directory_path, images_info["file_name"])
         image = cv2.imread(str(image_path))
 
@@ -134,10 +137,14 @@ def load_coco_annotations(
         for per_image_label_id in per_image_label_ids:
             image_annotations.append(annotation_dict[int(per_image_label_id)])
 
-        annotation = coco_annotations_to_detections(image_annotations=image_annotations, with_masks=force_masks)
+        w, h = images_info["width"], images_info["height"]
+
+        annotation = coco_annotations_to_detections(image_annotations=image_annotations, resolution_wh=(w, h),
+                                                    with_masks=force_masks)
 
         images[images_info["file_name"]] = image
         annotations[images_info["file_name"]] = annotation
+
     return classes, images, annotations
 
 
@@ -171,23 +178,23 @@ def save_coco_annotations(
     for image_name, image in images.items():
         image_height, image_width, _ = image.shape
 
-        # TODO: Modify datetime format
         image_info = {'id': image_id, 'license': 1, 'file_name': image_name,
                       'height': image_height, 'width': image_width,
-                      'date_captured': datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
+                      'date_captured': datetime.now().strftime("%m/%d/%Y,%H:%M:%S")
                       }
 
         image_infos.append(image_info)
         detections = annotations[image_name]
+
         for xyxy, mask, confidence, class_id, tracker_id in detections:
-            polygons = []
+            polygon = []
             if mask is not None:
-                polygons = approximate_mask_with_polygons(
+                polygon = list(approximate_mask_with_polygons(
                     mask=mask,
                     min_image_area_percentage=min_image_area_percentage,
                     max_image_area_percentage=max_image_area_percentage,
                     approximation_percentage=approximation_percentage,
-                )
+                )[0].flatten())
 
             per_label_dict = {}
             per_label_dict['id'] = label_id
@@ -196,7 +203,8 @@ def save_coco_annotations(
             w, h = xyxy[2] - xyxy[0], xyxy[3] - xyxy[1]
             per_label_dict['bbox'] = [xyxy[0], xyxy[1], w, h]
             per_label_dict['area'] = w * h  # width x height
-            per_label_dict['segmentation'] = polygons
+
+            per_label_dict['segmentation'] = polygon
             per_label_dict['iscrowd'] = 0
             annotations_data.append(per_label_dict)
             label_id += 1

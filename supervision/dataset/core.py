@@ -351,8 +351,7 @@ class DetectionDataset(BaseDataset):
 
         Args:
             images_directory_path (str): The path to the directory containing the images.
-            annotations_directory_path (str): The path to the directory containing the YOLO annotation files.
-            data_yaml_path (str): The path to the data YAML file containing class information.
+            annotations_path (str): The path to the json annotation files.
             force_masks (bool, optional): If True, forces masks to be loaded for all annotations, regardless of whether they are present.
 
         Returns:
@@ -394,6 +393,8 @@ class DetectionDataset(BaseDataset):
             min_image_area_percentage: float = 0.0,
             max_image_area_percentage: float = 1.0,
             approximation_percentage: float = 0.0,
+            licenses: Optional[list] = None,
+            info: Optional[dict] = None
     ) -> None:
         """
         Exports the dataset to COCO format. This method saves the images and their corresponding
@@ -413,6 +414,8 @@ class DetectionDataset(BaseDataset):
                 the image area for a detection to be included.
             approximation_percentage (float): The percentage of polygon points to be removed from the input polygon,
                 in the range [0, 1). This is useful for simplifying the annotations.
+            licenses (Optional[str]): List of licenses for images
+            info (Optional[dict]): Information of Dataset as dictionary
         """
         if images_directory_path is not None:
             Path(images_directory_path).mkdir(parents=True, exist_ok=True)
@@ -428,6 +431,8 @@ class DetectionDataset(BaseDataset):
                 min_image_area_percentage=min_image_area_percentage,
                 max_image_area_percentage=max_image_area_percentage,
                 approximation_percentage=approximation_percentage,
+                licenses=licenses,
+                info=info
             )
 
 
