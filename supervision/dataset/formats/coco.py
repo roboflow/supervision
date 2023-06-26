@@ -12,25 +12,28 @@ from supervision.detection.utils import polygon_to_mask
 from supervision.utils.file import read_json_file, save_json_file
 
 
-def _extract_class_names(annotation_data: dict) -> List[str]:
-    names = []
-    categories = annotation_data.get("categories", None)
-    if categories:
-        for cat in categories:
-            names.append(cat["name"])
-    return names
+def coco_categories_to_classes(coco_categories: List[dict]) -> List[str]:
+    return [
+        category["name"]
+        for category in sorted(coco_categories, key=lambda category: category["id"])
+        if category["supercategory"] != "none"
+    ]
+
+
+def classes_to_coco_categories(classes: List[str]) -> List[dict]:
+    return [
+        {
+            "id": class_id,
+            "name": class_name,
+            "supercategory": "common-objects",
+        }
+        for class_id, class_name in enumerate(classes)
+    ]
 
 
 def _extract_image_info(annotation_data: dict) -> List[dict]:
     image_infos = annotation_data.get("images", None)
     return image_infos
-
-
-def _extract_image_names(image_infos: dict) -> List[dict]:
-    image_names = []
-    for image_info in image_infos:
-        image_names.append(image_info["file_name"])
-    return image_names
 
 
 def _annotations_dict(annotation_data: dict) -> Tuple[np.ndarray, dict]:
@@ -128,18 +131,6 @@ def detections_to_coco_annotations(
     return annotations_data, label_id
 
 
-def classes_to_coco_category_map(classes: List[str]) -> List[Dict]:
-    categories = []
-    for class_id, class_name in enumerate(classes):
-        cate_dict = {
-            "id": class_id,
-            "name": class_name,
-            "supercategory": "common-objects",
-        }
-        categories.append(cate_dict)
-    return categories
-
-
 def load_coco_annotations(
     images_directory_path: str,
     annotations_path: str,
@@ -158,7 +149,7 @@ def load_coco_annotations(
     """
     annotation_data = read_json_file(file_path=annotations_path)
 
-    classes = _extract_class_names(annotation_data=annotation_data)
+    classes = coco_categories_to_classes(coco_categories=annotation_data["categories"])
     images_infos = _extract_image_info(annotation_data=annotation_data)
     image_id_label_id_pair, annotation_dict = _annotations_dict(
         annotation_data=annotation_data
@@ -168,7 +159,8 @@ def load_coco_annotations(
     annotations = {}
 
     for images_info in images_infos:
-        image_path = os.path.join(images_directory_path, images_info["file_name"])
+        image_name = images_info["file_name"]
+        image_path = os.path.join(images_directory_path, image_name)
         image = cv2.imread(str(image_path))
 
         # Filter annotations based on image id
@@ -188,8 +180,8 @@ def load_coco_annotations(
             with_masks=force_masks,
         )
 
-        images[images_info["file_name"]] = image
-        annotations[images_info["file_name"]] = annotation
+        images[image_name] = image
+        annotations[image_name] = annotation
 
     return classes, images, annotations
 
@@ -219,7 +211,7 @@ def save_coco_annotations(
 
     annotations_data = []
     image_infos = []
-    categories = classes_to_coco_category_map(classes=classes)
+    categories = classes_to_coco_categories(classes=classes)
 
     image_id = 0
     label_id = 0
