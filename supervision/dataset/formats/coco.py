@@ -155,7 +155,7 @@ def load_coco_annotations(
             coco_image["width"],
             coco_image["height"],
         )
-        image_annotations = coco_annotations_groups.get(coco_image["id"])
+        image_annotations = coco_annotations_groups.get(coco_image["id"], [])
         image_path = os.path.join(images_directory_path, image_name)
 
         image = cv2.imread(str(image_path))
