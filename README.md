@@ -136,6 +136,11 @@ pip install -e ".[dev]"
     ...     images_directory_path='...',
     ...     annotations_directory_path='...'
     ... )
+
+    >>> dataset = sv.DetectionDataset.from_coco(
+    ...     images_directory_path='...',
+    ...     annotations_path='...'
+    ... )
     ```
   
 - Loop over dataset entries
@@ -171,6 +176,11 @@ pip install -e ".[dev]"
     >>> dataset.as_pascal_voc(
     ...     images_directory_path='...',
     ...     annotations_directory_path='...'
+    ... )
+
+    >>> dataset.as_coco(
+    ...     images_directory_path='...',
+    ...     annotations_path='...'
     ... )
     ```
   
