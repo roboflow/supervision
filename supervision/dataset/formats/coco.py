@@ -58,34 +58,29 @@ def _polygons_to_masks(
 def coco_annotations_to_detections(
     image_annotations: List[dict], resolution_wh: Tuple[int, int], with_masks: bool
 ) -> Detections:
-    detection = Detections.empty()
-    class_ids = []
-    xyxy = []
-    polygons = []
+    if not image_annotations:
+        return Detections.empty()
 
-    for image_annotation in image_annotations:
-        bbox = image_annotation["bbox"]
-        xyxy.append(bbox)
-        class_ids.append(image_annotation["category_id"])
-        if with_masks:
-            _polygons = image_annotation["segmentation"]
-            _polygons = np.asarray(_polygons, dtype=np.int32)
-            _polygons = np.reshape(_polygons, (-1, 2))
-            polygons.append(_polygons)
-
+    class_ids = [
+        image_annotation["category_id"] for image_annotation in image_annotations
+    ]
+    xyxy = [image_annotation["bbox"] for image_annotation in image_annotations]
     xyxy = np.asarray(xyxy)
-    if xyxy.shape[0] > 0:
-        xyxy[:, 2] += xyxy[:, 0]
-        xyxy[:, 3] += xyxy[:, 1]
-        class_ids = np.asarray(class_ids, dtype=int)
+    xyxy[:, 2:4] += xyxy[:, 0:2]
 
-        if with_masks:
-            mask = _polygons_to_masks(polygons=polygons, resolution_wh=resolution_wh)
-            detection = Detections(class_id=class_ids, xyxy=xyxy, mask=mask)
-        else:
-            detection = Detections(xyxy=xyxy, class_id=class_ids)
+    if with_masks:
+        polygons = [
+            np.reshape(
+                np.asarray(image_annotation["segmentation"], dtype=np.int32), (-1, 2)
+            )
+            for image_annotation in image_annotations
+        ]
+        mask = _polygons_to_masks(polygons=polygons, resolution_wh=resolution_wh)
+        return Detections(
+            class_id=np.asarray(class_ids, dtype=int), xyxy=xyxy, mask=mask
+        )
 
-    return detection
+    return Detections(xyxy=xyxy, class_id=np.asarray(class_ids, dtype=int))
 
 
 def detections_to_coco_annotations(
@@ -97,7 +92,8 @@ def detections_to_coco_annotations(
     approximation_percentage: float = 0.75,
 ) -> Tuple[List[Dict], int]:
     coco_annotations = []
-    for xyxy, mask, confidence, class_id, tracker_id in detections:
+    for xyxy, mask, _, class_id, _ in detections:
+        box_width, box_height = xyxy[2] - xyxy[0], xyxy[3] - xyxy[1]
         polygon = []
         if mask is not None:
             polygon = list(
@@ -108,16 +104,15 @@ def detections_to_coco_annotations(
                     approximation_percentage=approximation_percentage,
                 )[0].flatten()
             )
-
-        coco_annotation = {}
-        coco_annotation["id"] = annotation_id
-        coco_annotation["image_id"] = image_id
-        coco_annotation["category_id"] = int(class_id)
-        box_width, box_height = xyxy[2] - xyxy[0], xyxy[3] - xyxy[1]
-        coco_annotation["bbox"] = [xyxy[0], xyxy[1], box_width, box_height]
-        coco_annotation["area"] = box_width * box_height
-        coco_annotation["segmentation"] = polygon
-        coco_annotation["iscrowd"] = 0
+        coco_annotation = {
+            "id": annotation_id,
+            "image_id": image_id,
+            "category_id": int(class_id),
+            "bbox": [xyxy[0], xyxy[1], box_width, box_height],
+            "area": box_width * box_height,
+            "segmentation": polygon,
+            "iscrowd": 0,
+        }
         coco_annotations.append(coco_annotation)
         annotation_id += 1
     return coco_annotations, annotation_id
@@ -128,17 +123,6 @@ def load_coco_annotations(
     annotations_path: str,
     force_masks: bool = False,
 ) -> Tuple[List[str], Dict[str, np.ndarray], Dict[str, Detections]]:
-    """
-    Loads COCO annotations and returns class names, images, and their corresponding detections.
-
-    Args:
-        images_directory_path (str): The path to the directory containing the images.
-        annotations_path (str): The path to the coco json annotation file.
-        force_masks (bool, optional): If True, forces masks to be loaded for all annotations, regardless of whether they are present.
-
-    Returns:
-        Tuple[List[str], Dict[str, np.ndarray], Dict[str, Detections]]: A tuple containing a list of class names, a dictionary with image names as keys and images as values, and a dictionary with image names as keys and corresponding Detections instances as values.
-    """
     coco_data = read_json_file(file_path=annotations_path)
     classes = coco_categories_to_classes(coco_categories=coco_data["categories"])
     coco_images = coco_data["images"]

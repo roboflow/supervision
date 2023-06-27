@@ -3,8 +3,11 @@ from typing import List, Tuple
 
 import pytest
 
+from supervision import Detections
 from supervision.dataset.formats.coco import classes_to_coco_categories, coco_categories_to_classes, \
-    group_coco_annotations_by_image_id
+    group_coco_annotations_by_image_id, coco_annotations_to_detections
+
+import numpy as np
 
 
 def generate_cock_coco_annotation(
@@ -222,4 +225,66 @@ def test_group_coco_annotations_by_image_id(
 ) -> None:
     with exception:
         result = group_coco_annotations_by_image_id(coco_annotations=coco_annotations)
+        assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    "image_annotations, resolution_wh, with_masks, expected_result, exception",
+    [
+        (
+            [],
+            (1000, 1000),
+            False,
+            Detections.empty(),
+            DoesNotRaise()
+        ),  # empty image annotations
+        (
+            [
+                generate_cock_coco_annotation(category_id=0, bbox=(0, 0, 100, 100), area=100 * 100)
+            ],
+            (1000, 1000),
+            False,
+            Detections(
+                xyxy=np.array([
+                    [          0,           0,         100,         100]
+                ], dtype=np.float32),
+                class_id=np.array([
+                    0
+                ], dtype=int)
+            ),
+            DoesNotRaise()
+        ),  # single image annotations
+        (
+            [
+                generate_cock_coco_annotation(category_id=0, bbox=(0, 0, 100, 100), area=100 * 100),
+                generate_cock_coco_annotation(category_id=0, bbox=(100, 100, 100, 100), area=100 * 100),
+            ],
+            (1000, 1000),
+            False,
+            Detections(
+                xyxy=np.array([
+                    [          0,           0,         100,         100],
+                    [        100,         100,         200,         200]
+                ], dtype=np.float32),
+                class_id=np.array([
+                    0, 0
+                ], dtype=int)
+            ),
+            DoesNotRaise()
+        ),  # two image annotations
+    ]
+)
+def test_coco_annotations_to_detections(
+    image_annotations: List[dict],
+    resolution_wh: Tuple[int, int],
+    with_masks: bool,
+    expected_result: Detections,
+    exception: Exception
+) -> None:
+    with exception:
+        result = coco_annotations_to_detections(
+            image_annotations=image_annotations,
+            resolution_wh=resolution_wh,
+            with_masks=with_masks
+        )
         assert result == expected_result
