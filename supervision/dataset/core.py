@@ -369,7 +369,7 @@ class DetectionDataset(BaseDataset):
             >>> dataset = project.version(PROJECT_VERSION).download("coco")
 
             >>> ds = sv.DetectionDataset.from_coco(
-            ...     images_directory_path=f"{dataset.location}/train/images",
+            ...     images_directory_path=f"{dataset.location}/train",
             ...     annotations_path=f"{dataset.location}/train/_annotations.coco.json",
             ... )
 
@@ -416,7 +416,6 @@ class DetectionDataset(BaseDataset):
             info (Optional[dict]): Information of Dataset as dictionary
         """
         if images_directory_path is not None:
-            Path(images_directory_path).mkdir(parents=True, exist_ok=True)
             save_dataset_images(
                 images_directory_path=images_directory_path, images=self.images
             )

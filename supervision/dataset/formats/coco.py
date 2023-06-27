@@ -150,7 +150,7 @@ def load_coco_annotations(
     annotation_data = read_json_file(file_path=annotations_path)
 
     classes = coco_categories_to_classes(coco_categories=annotation_data["categories"])
-    images_infos = _extract_image_info(annotation_data=annotation_data)
+    coco_images = annotation_data["images"]
     image_id_label_id_pair, annotation_dict = _annotations_dict(
         annotation_data=annotation_data
     )
@@ -158,21 +158,21 @@ def load_coco_annotations(
     images = {}
     annotations = {}
 
-    for images_info in images_infos:
-        image_name = images_info["file_name"]
+    for coco_image in coco_images:
+        image_name = coco_image["file_name"]
         image_path = os.path.join(images_directory_path, image_name)
         image = cv2.imread(str(image_path))
 
         # Filter annotations based on image id
         per_image_label_ids = image_id_label_id_pair[
-            image_id_label_id_pair[:, 0] == images_info["id"]
+            image_id_label_id_pair[:, 0] == coco_image["id"]
         ][:, 1]
 
         image_annotations = []
         for per_image_label_id in per_image_label_ids:
             image_annotations.append(annotation_dict[int(per_image_label_id)])
 
-        w, h = images_info["width"], images_info["height"]
+        w, h = coco_image["width"], coco_image["height"]
 
         annotation = coco_annotations_to_detections(
             image_annotations=image_annotations,
@@ -197,7 +197,7 @@ def save_coco_annotations(
     licenses: List[dict] = None,
     info: dict = None,
 ) -> None:
-    Path(annotation_path).parents[2].mkdir(parents=True, exist_ok=True)
+    Path(annotation_path).parent.mkdir(parents=True, exist_ok=True)
     if not info:
         info = {}
     if not licenses:
@@ -209,16 +209,16 @@ def save_coco_annotations(
             }
         ]
 
-    annotations_data = []
-    image_infos = []
-    categories = classes_to_coco_categories(classes=classes)
+    coco_annotations = []
+    coco_images = []
+    coco_categories = classes_to_coco_categories(classes=classes)
 
     image_id = 0
-    label_id = 0
+    annotation_id = 0
     for image_name, image in images.items():
         image_height, image_width, _ = image.shape
 
-        image_info = {
+        coco_image = {
             "id": image_id,
             "license": 1,
             "file_name": image_name,
@@ -227,26 +227,26 @@ def save_coco_annotations(
             "date_captured": datetime.now().strftime("%m/%d/%Y,%H:%M:%S"),
         }
 
-        image_infos.append(image_info)
+        coco_images.append(coco_image)
         detections = annotations[image_name]
 
-        per_image_labels, label_id = detections_to_coco_annotations(
+        coco_annotation, label_id = detections_to_coco_annotations(
             detections=detections,
             image_id=image_id,
-            label_id=label_id,
+            label_id=annotation_id,
             min_image_area_percentage=min_image_area_percentage,
             max_image_area_percentage=max_image_area_percentage,
             approximation_percentage=approximation_percentage,
         )
 
-        annotations_data.extend(per_image_labels)
+        coco_annotations.extend(coco_annotation)
         image_id += 1
 
     annotation_dict = {
         "info": info,
         "licenses": licenses,
-        "categories": categories,
-        "images": image_infos,
-        "annotations": annotations_data,
+        "categories": coco_categories,
+        "images": coco_images,
+        "annotations": coco_annotations,
     }
     save_json_file(annotation_dict, file_path=annotation_path)
