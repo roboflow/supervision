@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 import yaml
 
-from supervision.dataset.ultils import approximate_mask_with_polygons
+from supervision.dataset.utils import approximate_mask_with_polygons
 from supervision.detection.core import Detections
 from supervision.detection.utils import polygon_to_mask, polygon_to_xyxy
 from supervision.utils.file import (
