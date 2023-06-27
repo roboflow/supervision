@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import List, Optional, Union
 
 import numpy as np
+import yaml
 
 
 class NumpyJsonEncoder(json.JSONEncoder):
@@ -107,3 +108,18 @@ def save_json_file(data: dict, file_path: str, indent: int = 3) -> None:
     """
     with open(file_path, "w") as fp:
         json.dump(data, fp, cls=NumpyJsonEncoder, indent=indent)
+
+
+def read_yaml_file(file_path: str) -> dict:
+    """
+    Read a json file and return a dict.
+
+    Args:
+        file_path (str): The path to the json file.
+
+    Returns:
+        dict: A dict of annotations information
+    """
+    with open(file_path, "r") as file:
+        data = yaml.safe_load(file)
+    return data

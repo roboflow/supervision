@@ -13,6 +13,7 @@ from supervision.utils.file import (
     list_files_with_extensions,
     read_txt_file,
     save_text_file,
+    read_yaml_file
 )
 
 
@@ -67,21 +68,8 @@ def _with_mask(lines: List[str]) -> bool:
 
 
 def _extract_class_names(file_path: str) -> List[str]:
-    names = []
-
-    with open(file_path, "r") as file:
-        lines = file.readlines()
-        for line in lines:
-            if line.strip().startswith("names:"):
-                start_index = lines.index(line) + 1
-                break
-
-        for line in lines[start_index:]:
-            if line.strip().startswith("-"):
-                names.append(line.strip().replace("-", "").strip())
-            else:
-                break
-
+    data = read_yaml_file(file_path=file_path)
+    names = data.get("names", [])
     return names
 
 
