@@ -12,8 +12,9 @@ from supervision.detection.utils import polygon_to_mask, polygon_to_xyxy
 from supervision.utils.file import (
     list_files_with_extensions,
     read_txt_file,
+    read_yaml_file,
     save_text_file,
-    read_yaml_file
+    save_yaml_file,
 )
 
 
@@ -244,5 +245,4 @@ def save_yolo_annotations(
 def save_data_yaml(data_yaml_path: str, classes: List[str]) -> None:
     data = {"nc": len(classes), "names": classes}
     Path(data_yaml_path).parent.mkdir(parents=True, exist_ok=True)
-    with open(data_yaml_path, "w") as outfile:
-        yaml.dump(data, outfile, default_flow_style=False)
+    save_yaml_file(data=data, file_path=data_yaml_path)
