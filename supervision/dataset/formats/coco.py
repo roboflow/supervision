@@ -31,24 +31,16 @@ def classes_to_coco_categories(classes: List[str]) -> List[dict]:
     ]
 
 
-def _extract_image_info(annotation_data: dict) -> List[dict]:
-    image_infos = annotation_data.get("images", None)
-    return image_infos
-
-
-def _annotations_dict(annotation_data: dict) -> Tuple[np.ndarray, dict]:
-    annotations_infos = annotation_data.get("annotations", None)
-    image_id_label_id_pair = np.zeros((0, 2))
+def group_coco_annotations_by_image_id(
+    coco_annotations: List[dict],
+) -> Dict[int, List[dict]]:
     annotations = {}
-    for anno in annotations_infos:
-        _annotations = {}
-        for key, item in anno.items():
-            _annotations[key] = anno[key]
-        id_pair = np.array([[anno["image_id"], anno["id"]]])
-        image_id_label_id_pair = np.append(image_id_label_id_pair, id_pair, axis=0)
-        annotations[anno["id"]] = _annotations
-
-    return image_id_label_id_pair, annotations
+    for annotation in coco_annotations:
+        image_id = annotation["image_id"]
+        if image_id not in annotations:
+            annotations[image_id] = []
+        annotations[image_id].append(annotation)
+    return annotations
 
 
 def _polygons_to_masks(
@@ -147,36 +139,29 @@ def load_coco_annotations(
     Returns:
         Tuple[List[str], Dict[str, np.ndarray], Dict[str, Detections]]: A tuple containing a list of class names, a dictionary with image names as keys and images as values, and a dictionary with image names as keys and corresponding Detections instances as values.
     """
-    annotation_data = read_json_file(file_path=annotations_path)
-
-    classes = coco_categories_to_classes(coco_categories=annotation_data["categories"])
-    coco_images = annotation_data["images"]
-    image_id_label_id_pair, annotation_dict = _annotations_dict(
-        annotation_data=annotation_data
+    coco_data = read_json_file(file_path=annotations_path)
+    classes = coco_categories_to_classes(coco_categories=coco_data["categories"])
+    coco_images = coco_data["images"]
+    coco_annotations_groups = group_coco_annotations_by_image_id(
+        coco_annotations=coco_data["annotations"]
     )
 
     images = {}
     annotations = {}
 
     for coco_image in coco_images:
-        image_name = coco_image["file_name"]
+        image_name, image_width, image_height = (
+            coco_image["file_name"],
+            coco_image["width"],
+            coco_image["height"],
+        )
+        image_annotations = coco_annotations_groups.get(coco_image["id"])
         image_path = os.path.join(images_directory_path, image_name)
+
         image = cv2.imread(str(image_path))
-
-        # Filter annotations based on image id
-        per_image_label_ids = image_id_label_id_pair[
-            image_id_label_id_pair[:, 0] == coco_image["id"]
-        ][:, 1]
-
-        image_annotations = []
-        for per_image_label_id in per_image_label_ids:
-            image_annotations.append(annotation_dict[int(per_image_label_id)])
-
-        w, h = coco_image["width"], coco_image["height"]
-
         annotation = coco_annotations_to_detections(
             image_annotations=image_annotations,
-            resolution_wh=(w, h),
+            resolution_wh=(image_width, image_height),
             with_masks=force_masks,
         )
 
