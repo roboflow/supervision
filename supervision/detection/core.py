@@ -356,20 +356,6 @@ class Detections:
         return Detections(xyxy=xywh_to_xyxy(boxes_xywh=xywh), mask=mask)
 
     @classmethod
-    @deprecated(
-        "Dataset loading and saving is going to be executed by supervision.dataset.core.Dataset"
-    )
-    def from_coco_annotations(cls, coco_annotation: dict) -> Detections:
-        xyxy, class_id = [], []
-
-        for annotation in coco_annotation:
-            x_min, y_min, width, height = annotation["bbox"]
-            xyxy.append([x_min, y_min, x_min + width, y_min + height])
-            class_id.append(annotation["category_id"])
-
-        return cls(xyxy=np.array(xyxy), class_id=np.array(class_id))
-
-    @classmethod
     def empty(cls) -> Detections:
         """
         Create an empty Detections object with no bounding boxes, confidences, or class IDs.

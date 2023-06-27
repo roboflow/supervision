@@ -91,12 +91,12 @@ def coco_annotations_to_detections(
 def detections_to_coco_annotations(
     detections: Detections,
     image_id: int,
-    label_id: int,
+    annotation_id: int,
     min_image_area_percentage: float = 0.0,
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.75,
 ) -> Tuple[List[Dict], int]:
-    annotations_data = []
+    coco_annotations = []
     for xyxy, mask, confidence, class_id, tracker_id in detections:
         polygon = []
         if mask is not None:
@@ -109,18 +109,18 @@ def detections_to_coco_annotations(
                 )[0].flatten()
             )
 
-        per_label_dict = {}
-        per_label_dict["id"] = label_id
-        per_label_dict["image_id"] = image_id
-        per_label_dict["category_id"] = int(class_id)
+        coco_annotation = {}
+        coco_annotation["id"] = annotation_id
+        coco_annotation["image_id"] = image_id
+        coco_annotation["category_id"] = int(class_id)
         box_width, box_height = xyxy[2] - xyxy[0], xyxy[3] - xyxy[1]
-        per_label_dict["bbox"] = [xyxy[0], xyxy[1], box_width, box_height]
-        per_label_dict["area"] = box_width * box_height
-        per_label_dict["segmentation"] = polygon
-        per_label_dict["iscrowd"] = 0
-        annotations_data.append(per_label_dict)
-        label_id += 1
-    return annotations_data, label_id
+        coco_annotation["bbox"] = [xyxy[0], xyxy[1], box_width, box_height]
+        coco_annotation["area"] = box_width * box_height
+        coco_annotation["segmentation"] = polygon
+        coco_annotation["iscrowd"] = 0
+        coco_annotations.append(coco_annotation)
+        annotation_id += 1
+    return coco_annotations, annotation_id
 
 
 def load_coco_annotations(
@@ -218,7 +218,7 @@ def save_coco_annotations(
         coco_annotation, label_id = detections_to_coco_annotations(
             detections=detections,
             image_id=image_id,
-            label_id=annotation_id,
+            annotation_id=annotation_id,
             min_image_area_percentage=min_image_area_percentage,
             max_image_area_percentage=max_image_area_percentage,
             approximation_percentage=approximation_percentage,
