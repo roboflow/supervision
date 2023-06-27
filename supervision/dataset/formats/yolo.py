@@ -4,7 +4,6 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
-import yaml
 
 from supervision.dataset.utils import approximate_mask_with_polygons
 from supervision.detection.core import Detections
@@ -12,7 +11,9 @@ from supervision.detection.utils import polygon_to_mask, polygon_to_xyxy
 from supervision.utils.file import (
     list_files_with_extensions,
     read_txt_file,
+    read_yaml_file,
     save_text_file,
+    save_yaml_file,
 )
 
 
@@ -67,22 +68,8 @@ def _with_mask(lines: List[str]) -> bool:
 
 
 def _extract_class_names(file_path: str) -> List[str]:
-    names = []
-
-    with open(file_path, "r") as file:
-        lines = file.readlines()
-        for line in lines:
-            if line.strip().startswith("names:"):
-                start_index = lines.index(line) + 1
-                break
-
-        for line in lines[start_index:]:
-            if line.strip().startswith("-"):
-                names.append(line.strip().replace("-", "").strip())
-            else:
-                break
-
-    return names
+    data = read_yaml_file(file_path=file_path)
+    return data["names"]
 
 
 def _image_name_to_annotation_name(image_name: str) -> str:
@@ -256,5 +243,4 @@ def save_yolo_annotations(
 def save_data_yaml(data_yaml_path: str, classes: List[str]) -> None:
     data = {"nc": len(classes), "names": classes}
     Path(data_yaml_path).parent.mkdir(parents=True, exist_ok=True)
-    with open(data_yaml_path, "w") as outfile:
-        yaml.dump(data, outfile, default_flow_style=False)
+    save_yaml_file(data=data, file_path=data_yaml_path)
