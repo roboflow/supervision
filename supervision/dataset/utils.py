@@ -6,6 +6,7 @@ from typing import Dict, List, Optional, Tuple, TypeVar
 import cv2
 import numpy as np
 
+from supervision.detection.core import Detections
 from supervision.detection.utils import (
     approximate_polygon,
     filter_polygons_by_area,
@@ -41,6 +42,23 @@ def approximate_mask_with_polygons(
         approximate_polygon(polygon=polygon, percentage=approximation_percentage)
         for polygon in polygons
     ]
+
+
+def generate_unique_class_map(class_lists: List[str]) -> List[str]:
+    class_lists = [x.lower() for x in class_lists]
+    class_lists_set = set(class_lists)
+    return list(class_lists_set)
+
+
+def remapped_detections(
+    old_class_list: List[str], new_class_list: List[str], detections: Detections
+) -> Detections:
+    class_ids = detections.class_id
+    for class_id, old_class_name in enumerate(old_class_list):
+        new_id = new_class_list.index(old_class_name)
+        class_ids[class_ids == class_id] = new_id
+    detections.class_id = class_ids
+    return detections
 
 
 def save_dataset_images(

@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterator, List, Optional, Tuple
+from uuid import uuid4
 
 import cv2
 import numpy as np
@@ -23,7 +24,12 @@ from supervision.dataset.formats.yolo import (
     save_data_yaml,
     save_yolo_annotations,
 )
-from supervision.dataset.utils import save_dataset_images, train_test_split
+from supervision.dataset.utils import (
+    generate_unique_class_map,
+    remapped_detections,
+    save_dataset_images,
+    train_test_split,
+)
 from supervision.detection.core import Detections
 from supervision.utils.file import list_files_with_extensions
 
@@ -431,6 +437,76 @@ class DetectionDataset(BaseDataset):
                 licenses=licenses,
                 info=info,
             )
+
+    @classmethod
+    def merge(cls, dataset_list: List[DetectionDataset]) -> DetectionDataset:
+        """
+        Merge a list of DetectionDataset objects into a single DetectionDataset object.
+
+        This method takes a list of DetectionDataset objects and combines their respective fields (`classes`, `mask`,
+        `confidence`, `class_id`, and `tracker_id`) into a single Detections object. If all elements in a field are not
+        `None`, the corresponding field will be stacked. Otherwise, the field will be set to `None`.
+
+        Args:
+            dataset_list (List[DetectionDataset]): A list of DetectionDataset objects to merge.
+
+        Returns:
+            (DetectionDataset): A single DetectionDataset object containing the merged data from the input list.
+
+        Example:
+            ```python
+            >>> from supervision import DetectionDataset
+
+            >>> ds_1 = DetectionDataset(...)
+            >>> ds_2 = DetectionDataset(...)
+
+            >>> merged_detections = Detections.merge([ds_1, ds_2])
+            ```
+        """
+        if len(dataset_list) == 0:
+            return DetectionDataset.empty()
+
+        images = {}
+        annotations = {}
+        all_classes = []
+        for dataset in dataset_list:
+            all_classes.extend(dataset.classes)
+        classes = generate_unique_class_map(all_classes)
+
+        for dataset in dataset_list:
+            for image_name, image in dataset.images.items():
+                detections = dataset.annotations.get(image_name, None)
+
+                # TODO: Piotr check here: in case of renaming
+                if image_name in annotations:
+                    image_name = f"{image_name}_{str(uuid4())}.jpg"
+
+                images[image_name] = image
+                # TODO: Piotr check here: Class Remap
+                annotations[image_name] = remapped_detections(
+                    old_class_list=dataset.classes,
+                    new_class_list=classes,
+                    detections=detections,
+                )
+
+        return cls(classes=classes, images=images, annotations=annotations)
+
+    @classmethod
+    def empty(cls) -> DetectionDataset:
+        """
+        Create an empty Detections object with no bounding boxes, confidences, or class IDs.
+
+        Returns:
+            (Detections): An empty DetectionDataset object.
+
+        Example:
+            ```python
+            >>> from supervision import DetectionDataset
+
+            >>> empty_detection_dataset = DetectionDataset.empty()
+            ```
+        """
+        return cls(classes=[], images={}, annotations={})
 
 
 @dataclass
