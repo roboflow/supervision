@@ -129,7 +129,7 @@ def load_coco_annotations(
     force_masks: bool = False,
 ) -> Tuple[List[str], Dict[str, np.ndarray], Dict[str, Detections]]:
     """
-    Loads YOLO annotations and returns class names, images, and their corresponding detections.
+    Loads COCO annotations and returns class names, images, and their corresponding detections.
 
     Args:
         images_directory_path (str): The path to the directory containing the images.
