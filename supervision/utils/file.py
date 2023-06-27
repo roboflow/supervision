@@ -128,13 +128,12 @@ def read_yaml_file(file_path: str) -> dict:
 
 def save_yaml_file(data: dict, file_path: str) -> None:
     """
-    Read a yaml file and return a dict.
+    Save a dict to a json file.
 
     Args:
-        file_path (str): The path to the yaml file.
-
-    Returns:
-        dict: A dict of content information
+        indent:
+        data (dict): dict with unique keys and value as pair.
+        file_path (str): The path to the json file.
     """
 
     with open(file_path, "w") as outfile:
