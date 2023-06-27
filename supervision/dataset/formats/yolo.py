@@ -4,7 +4,6 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
-import yaml
 
 from supervision.dataset.utils import approximate_mask_with_polygons
 from supervision.detection.core import Detections
@@ -70,8 +69,7 @@ def _with_mask(lines: List[str]) -> bool:
 
 def _extract_class_names(file_path: str) -> List[str]:
     data = read_yaml_file(file_path=file_path)
-    names = data.get("names", [])
-    return names
+    return data["names"]
 
 
 def _image_name_to_annotation_name(image_name: str) -> str:
