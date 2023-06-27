@@ -443,9 +443,8 @@ class DetectionDataset(BaseDataset):
         """
         Merge a list of DetectionDataset objects into a single DetectionDataset object.
 
-        This method takes a list of DetectionDataset objects and combines their respective fields (`classes`, `mask`,
-        `confidence`, `class_id`, and `tracker_id`) into a single Detections object. If all elements in a field are not
-        `None`, the corresponding field will be stacked. Otherwise, the field will be set to `None`.
+        This method takes a list of DetectionDataset objects and combines their respective fields (`classes`, `images`,
+        `annotations`) into a single DetectionDataset object.
 
         Args:
             dataset_list (List[DetectionDataset]): A list of DetectionDataset objects to merge.
@@ -460,7 +459,7 @@ class DetectionDataset(BaseDataset):
             >>> ds_1 = DetectionDataset(...)
             >>> ds_2 = DetectionDataset(...)
 
-            >>> merged_detections = Detections.merge([ds_1, ds_2])
+            >>> merged_detection_dataset = DetectionDataset.merge([ds_1, ds_2])
             ```
         """
         if len(dataset_list) == 0:
@@ -477,12 +476,10 @@ class DetectionDataset(BaseDataset):
             for image_name, image in dataset.images.items():
                 detections = dataset.annotations.get(image_name, None)
 
-                # TODO: Piotr check here: in case of renaming
                 if image_name in annotations:
                     image_name = f"{image_name}_{str(uuid4())}.jpg"
 
                 images[image_name] = image
-                # TODO: Piotr check here: Class Remap
                 annotations[image_name] = remapped_detections(
                     old_class_list=dataset.classes,
                     new_class_list=classes,
@@ -494,10 +491,10 @@ class DetectionDataset(BaseDataset):
     @classmethod
     def empty(cls) -> DetectionDataset:
         """
-        Create an empty Detections object with no bounding boxes, confidences, or class IDs.
+        Create an empty DetectionDataset object with no classes, images, or detections.
 
         Returns:
-            (Detections): An empty DetectionDataset object.
+            (DetectionDataset): An empty DetectionDataset object.
 
         Example:
             ```python
