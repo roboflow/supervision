@@ -23,7 +23,7 @@ from supervision.dataset.formats.yolo import (
     save_data_yaml,
     save_yolo_annotations,
 )
-from supervision.dataset.ultils import save_dataset_images, train_test_split
+from supervision.dataset.utils import save_dataset_images, train_test_split
 from supervision.detection.core import Detections
 from supervision.utils.file import list_files_with_extensions
 

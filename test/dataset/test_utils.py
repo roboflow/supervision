@@ -3,7 +3,7 @@ from contextlib import ExitStack as DoesNotRaise
 
 import pytest
 
-from supervision.dataset.ultils import train_test_split
+from supervision.dataset.utils import train_test_split
 
 T = TypeVar("T")
 

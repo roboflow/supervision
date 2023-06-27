@@ -6,7 +6,7 @@ from typing import Dict, List, Tuple
 import cv2
 import numpy as np
 
-from supervision.dataset.ultils import approximate_mask_with_polygons
+from supervision.dataset.utils import approximate_mask_with_polygons
 from supervision.detection.core import Detections
 from supervision.detection.utils import polygon_to_mask
 from supervision.utils.file import read_json_file, save_json_file
