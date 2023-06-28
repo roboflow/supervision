@@ -139,9 +139,12 @@ def get_video_frames_generator(
         success, frame = video.read()
         if not success or frame_position >= end:
             break
-        frame_position += stride
-        video.set(cv2.CAP_PROP_POS_FRAMES, frame_position)
         yield frame
+        for _ in range(stride - 1):
+            success = video.grab()
+            if not success:
+                break
+        frame_position += stride
     video.release()
 
 
