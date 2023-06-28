@@ -409,7 +409,7 @@ class DetectionDataset(BaseDataset):
         annotations_path: Optional[str] = None,
         min_image_area_percentage: float = 0.0,
         max_image_area_percentage: float = 1.0,
-        approximation_percentage: float = 0.0
+        approximation_percentage: float = 0.0,
     ) -> None:
         """
         Exports the dataset to COCO format. This method saves the images and their corresponding
@@ -439,7 +439,7 @@ class DetectionDataset(BaseDataset):
                 classes=self.classes,
                 min_image_area_percentage=min_image_area_percentage,
                 max_image_area_percentage=max_image_area_percentage,
-                approximation_percentage=approximation_percentage
+                approximation_percentage=approximation_percentage,
             )
 
     @classmethod

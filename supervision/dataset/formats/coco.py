@@ -161,7 +161,7 @@ def save_coco_annotations(
     classes: List[str],
     min_image_area_percentage: float = 0.0,
     max_image_area_percentage: float = 1.0,
-    approximation_percentage: float = 0.75
+    approximation_percentage: float = 0.75,
 ) -> None:
     Path(annotation_path).parent.mkdir(parents=True, exist_ok=True)
     info = {}
