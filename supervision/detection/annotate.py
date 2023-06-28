@@ -2,6 +2,7 @@ from typing import List, Optional, Union
 
 import cv2
 import numpy as np
+from PIL import Image, ImageDraw, ImageFont
 
 from supervision.detection.core import Detections
 from supervision.draw.color import Color, ColorPalette
@@ -137,6 +138,94 @@ class BoxAnnotator:
                 thickness=self.text_thickness,
                 lineType=cv2.LINE_AA,
             )
+        return scene
+
+    # Why a font file is needed?
+    # Non-ascii characters are not rendered properly with cv2.putText, so we need to use PIL
+    # PIL uses truetype fonts, so we need to provide a true type font file.
+
+    # Why not embed the font file in the package?
+    # The font file is not a part of the package because of licensing issues.
+
+    # Why not use a default font file?
+    # The default font file is not provided because of licensing issues. And the default font file may not be available on all systems or not suitable for all languages.
+
+    # Why a font size is needed?
+    # As for unicode support, different characters have different best visual sizes. So, we need to provide a font size to render the text properly.
+    def annotation_pil(
+        self,
+        scene: Image.Image,
+        detections: Detections,
+        font_file: str,
+        labels: Optional[List[str]] = None,
+        font_size: int = 15,
+        skip_label: bool = False,
+    ) -> Image.Image:
+        """
+        Draws bounding boxes on the frame using the detections provided with **PIL**. If non-ascii labels are provided, you should use this method.
+        For rendering non-ascii labels, you should provide a true type font file path to `font_file` argument.
+
+        Args:
+            scene (Image.Image): The image on which the bounding boxes will be drawn
+            detections (Detections): The detections for which the bounding boxes will be drawn
+            font_file (str): The true type font file path
+            font_size (int): The font size of the label.
+            labels (Optional[List[str]]): An optional list of labels corresponding to each detection. If `labels` are not provided, corresponding `class_id` will be used as label.
+        Returns:
+            Image.Image: The image with the bounding boxes drawn on it
+
+        Example:
+            ```python
+            >>> import supervision as sv
+            >>> from PIL import Image
+
+            >>> classes = ['person', ...]
+            >>> image = Image.open(...)
+            >>> font_file = Path('path/to/font/file').as_posix()
+            >>> detections = sv.Detections(...)
+
+            >>> box_annotator = sv.BoxAnnotator()
+            >>> labels = [
+            ...     '世界', '你好', 'hello', 'world'
+            ... ]
+            >>> annotated_frame = box_annotator.annotate_pil(
+            ...     scene=image,
+            ...     detections=detections,
+            ...     font_file=font_file,
+            ...     labels=labels
+            ... )
+            ```
+        """
+        color = ColorPalette.default()
+        padding_size = 3
+        text_color = "#fff"
+        draw = ImageDraw.Draw(scene)
+        font = ImageFont.truetype(font_file, font_size)
+        for i in range(len(detections)):
+            outline_color = color.by_idx(detections.class_id[i]).as_rgb()
+            x1, y1, x2, y2 = detections.xyxy[i].astype(int)
+            draw.rectangle((x1, y1, x2, y2), fill=None, outline=outline_color)
+            if skip_label:
+                continue
+            if labels:
+                text = str(labels[i])
+            else:
+                text = str(detections.class_id[i])
+            text_bbox = draw.textbbox((x1, y1), text, font=font)
+            text_height = text_bbox[3] - text_bbox[1]
+            text_x, text_y = x1, y1 - text_height - padding_size
+            text_bg_y = text_y + padding_size
+            draw.rectangle(
+                (
+                    text_x,
+                    text_bg_y,
+                    text_x + text_bbox[2] - text_bbox[0],
+                    text_bg_y + text_bbox[3] - text_bbox[1],
+                ),
+                fill=outline_color,
+            )
+            draw.text((text_x, text_y), text, font=font, fill=text_color)
+
         return scene
 
 
