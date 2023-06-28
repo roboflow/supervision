@@ -1,3 +1,47 @@
+### 0.10.0 <small>June 28, 2023</small>
+
+- Added [[#150](https://github.com/roboflow/supervision/pull/150)]: ability to load and save [`sv.DetectionDataset`](https://roboflow.github.io/supervision/dataset/core/#detectiondataset) in COCO format using [`as_coco`](https://roboflow.github.io/supervision/dataset/core/#supervision.dataset.core.DetectionDataset.as_coco) and [`from_coco`](https://roboflow.github.io/supervision/dataset/core/#supervision.dataset.core.DetectionDataset.from_coco) methods. 
+
+```python
+>>> import supervision as sv
+
+>>> ds = sv.DetectionDataset.from_coco(
+...     images_directory_path='...',
+...     annotations_path='...'
+... )
+
+>>> ds.as_coco(
+...     images_directory_path='...',
+...     annotations_path='...'
+... )
+```
+
+- Added [[#158](https://github.com/roboflow/supervision/pull/158)]: ability to marge multiple [`sv.DetectionDataset`](https://roboflow.github.io/supervision/dataset/core/#detectiondataset) together using [`merge`](https://roboflow.github.io/supervision/dataset/core/#supervision.dataset.core.DetectionDataset.merge) method. 
+
+```python
+>>> import supervision as sv
+
+>>> ds_1 = sv.DetectionDataset(...)
+>>> len(ds_1)
+100
+>>> ds_1.classes
+['dog', 'person']
+
+>>> ds_2 = sv.DetectionDataset(...)
+>>> len(ds_2)
+200
+>>> ds_2.classes
+['cat']
+
+>>> ds_merged = sv.DetectionDataset.merge([ds_1, ds_2])
+>>> len(ds_merged)
+300
+>>> ds_merged.classes
+['cat', 'dog', 'person']
+```
+
+- Fix [[#157](https://github.com/roboflow/supervision/pull/157)]: incorrect loading of YOLO dataset class names from `data.yaml`.
+
 ### 0.10.0 <small>June 14, 2023</small>
 
 - Added [[#125](https://github.com/roboflow/supervision/pull/125)]: ability to load and save [`sv.ClassificationDataset`](https://roboflow.github.io/supervision/dataset/core/#classificationdataset) in a folder structure format.
