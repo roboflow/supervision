@@ -123,6 +123,14 @@ def get_video_frames_generator(
         end (int): Indicates the ending position at which video should stop generating frames
     Returns:
         (Generator[np.ndarray, None, None]): A generator that yields the frames of the video.
+
+    Examples:
+        ```python
+        >>> import supervision as sv
+
+        >>> for frame in sv.get_video_frames_generator(source_path='source_video.mp4'):
+        ...     ...
+        ```
     """
     video, start, end = _validate_and_setup_video(source_path, start, end)
     frame_position = start
