@@ -23,7 +23,13 @@ from supervision.dataset.formats.yolo import (
     save_data_yaml,
     save_yolo_annotations,
 )
-from supervision.dataset.utils import save_dataset_images, train_test_split
+from supervision.dataset.utils import (
+    build_class_index_mapping,
+    map_detections_class_id,
+    merge_class_lists,
+    save_dataset_images,
+    train_test_split,
+)
 from supervision.detection.core import Detections
 from supervision.utils.file import list_files_with_extensions
 
@@ -75,6 +81,21 @@ class DetectionDataset(BaseDataset):
         """
         for image_name, image in self.images.items():
             yield image_name, image, self.annotations.get(image_name, None)
+
+    def __eq__(self, other):
+        if not isinstance(other, DetectionDataset):
+            return False
+
+        if set(self.classes) != set(other.classes):
+            return False
+
+        for key in self.images:
+            if not np.array_equal(self.images[key], other.images[key]):
+                return False
+            if not self.annotations[key] == other.annotations[key]:
+                return False
+
+        return True
 
     def split(
         self, split_ratio=0.8, random_state=None, shuffle: bool = True
@@ -431,6 +452,54 @@ class DetectionDataset(BaseDataset):
                 licenses=licenses,
                 info=info,
             )
+
+    @classmethod
+    def merge(cls, dataset_list: List[DetectionDataset]) -> DetectionDataset:
+        """
+        Merge a list of DetectionDataset objects into a single DetectionDataset object.
+
+        This method takes a list of DetectionDataset objects and combines their respective fields (`classes`, `images`,
+        `annotations`) into a single DetectionDataset object.
+
+        Args:
+            dataset_list (List[DetectionDataset]): A list of DetectionDataset objects to merge.
+
+        Returns:
+            (DetectionDataset): A single DetectionDataset object containing the merged data from the input list.
+
+        Example:
+            ```python
+            >>> from supervision import DetectionDataset
+
+            >>> ds_1 = DetectionDataset(...)
+            >>> ds_2 = DetectionDataset(...)
+
+            >>> merged_detection_dataset = DetectionDataset.merge([ds_1, ds_2])
+            ```
+        """
+        merged_images, merged_annotations = {}, {}
+        class_lists = [dataset.classes for dataset in dataset_list]
+        merged_classes = merge_class_lists(class_lists=class_lists)
+
+        for dataset in dataset_list:
+            class_index_mapping = build_class_index_mapping(
+                source_classes=dataset.classes, target_classes=merged_classes
+            )
+            for image_name, image, detections in dataset:
+                if image_name in merged_annotations:
+                    raise ValueError(
+                        f"Image name {image_name} is not unique across datasets."
+                    )
+
+                merged_images[image_name] = image
+                merged_annotations[image_name] = map_detections_class_id(
+                    source_to_target_mapping=class_index_mapping,
+                    detections=detections,
+                )
+
+        return cls(
+            classes=merged_classes, images=merged_images, annotations=merged_annotations
+        )
 
 
 @dataclass
