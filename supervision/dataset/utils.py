@@ -1,3 +1,4 @@
+import copy
 import os
 import random
 from pathlib import Path
@@ -44,21 +45,49 @@ def approximate_mask_with_polygons(
     ]
 
 
-def generate_unique_class_map(class_lists: List[str]) -> List[str]:
-    class_lists = [x.lower() for x in class_lists]
-    class_lists_set = set(class_lists)
-    return list(class_lists_set)
+def merge_class_lists(class_lists: List[List[str]]) -> List[str]:
+    unique_classes = set()
+
+    for class_list in class_lists:
+        for class_name in class_list:
+            unique_classes.add(class_name.lower())
+
+    return sorted(list(unique_classes))
 
 
-def remapped_detections(
-    old_class_list: List[str], new_class_list: List[str], detections: Detections
+def build_class_index_mapping(
+    source_classes: List[str], target_classes: List[str]
+) -> Dict[int, int]:
+    index_mapping = {}
+
+    for i, class_name in enumerate(source_classes):
+        if class_name not in target_classes:
+            raise ValueError(
+                f"Class {class_name} not found in target classes. "
+                f"source_classes must be a subset of target_classes."
+            )
+        corresponding_index = target_classes.index(class_name)
+        index_mapping[i] = corresponding_index
+
+    return index_mapping
+
+
+def map_detections_class_id(
+    source_to_target_mapping: Dict[int, int], detections: Detections
 ) -> Detections:
-    class_ids = detections.class_id
-    for class_id, old_class_name in enumerate(old_class_list):
-        new_id = new_class_list.index(old_class_name)
-        class_ids[class_ids == class_id] = new_id
-    detections.class_id = class_ids
-    return detections
+    if detections.class_id is None:
+        raise ValueError("Detections must have class_id attribute.")
+    if set(np.unique(detections.class_id)) - set(source_to_target_mapping.keys()):
+        raise ValueError(
+            "Detections class_id must be a subset of source_to_target_mapping keys."
+        )
+
+    detections_copy = copy.deepcopy(detections)
+    detections_copy.class_id = np.vectorize(source_to_target_mapping.get)(
+        detections_copy.class_id
+    )
+
+    return detections_copy
 
 
 def save_dataset_images(

@@ -5,7 +5,6 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterator, List, Optional, Tuple
-from uuid import uuid4
 
 import cv2
 import numpy as np
@@ -25,8 +24,9 @@ from supervision.dataset.formats.yolo import (
     save_yolo_annotations,
 )
 from supervision.dataset.utils import (
-    generate_unique_class_map,
-    remapped_detections,
+    build_class_index_mapping,
+    map_detections_class_id,
+    merge_class_lists,
     save_dataset_images,
     train_test_split,
 )
@@ -81,6 +81,21 @@ class DetectionDataset(BaseDataset):
         """
         for image_name, image in self.images.items():
             yield image_name, image, self.annotations.get(image_name, None)
+
+    def __eq__(self, other):
+        if not isinstance(other, DetectionDataset):
+            return False
+
+        if set(self.classes) != set(other.classes):
+            return False
+
+        for key in self.images:
+            if not np.array_equal(self.images[key], other.images[key]):
+                return False
+            if not self.annotations[key] == other.annotations[key]:
+                return False
+
+        return True
 
     def split(
         self, split_ratio=0.8, random_state=None, shuffle: bool = True
@@ -462,48 +477,29 @@ class DetectionDataset(BaseDataset):
             >>> merged_detection_dataset = DetectionDataset.merge([ds_1, ds_2])
             ```
         """
-        if len(dataset_list) == 0:
-            return DetectionDataset.empty()
-
-        images = {}
-        annotations = {}
-        all_classes = []
-        for dataset in dataset_list:
-            all_classes.extend(dataset.classes)
-        classes = generate_unique_class_map(all_classes)
+        merged_images, merged_annotations = {}, {}
+        class_lists = [dataset.classes for dataset in dataset_list]
+        merged_classes = merge_class_lists(class_lists=class_lists)
 
         for dataset in dataset_list:
-            for image_name, image in dataset.images.items():
-                detections = dataset.annotations.get(image_name, None)
+            class_index_mapping = build_class_index_mapping(
+                source_classes=dataset.classes, target_classes=merged_classes
+            )
+            for image_name, image, detections in dataset:
+                if image_name in merged_annotations:
+                    raise ValueError(
+                        f"Image name {image_name} is not unique across datasets."
+                    )
 
-                if image_name in annotations:
-                    image_name = f"{image_name}_{str(uuid4())}.jpg"
-
-                images[image_name] = image
-                annotations[image_name] = remapped_detections(
-                    old_class_list=dataset.classes,
-                    new_class_list=classes,
+                merged_images[image_name] = image
+                merged_annotations[image_name] = map_detections_class_id(
+                    source_to_target_mapping=class_index_mapping,
                     detections=detections,
                 )
 
-        return cls(classes=classes, images=images, annotations=annotations)
-
-    @classmethod
-    def empty(cls) -> DetectionDataset:
-        """
-        Create an empty DetectionDataset object with no classes, images, or detections.
-
-        Returns:
-            (DetectionDataset): An empty DetectionDataset object.
-
-        Example:
-            ```python
-            >>> from supervision import DetectionDataset
-
-            >>> empty_detection_dataset = DetectionDataset.empty()
-            ```
-        """
-        return cls(classes=[], images={}, annotations={})
+        return cls(
+            classes=merged_classes, images=merged_images, annotations=merged_annotations
+        )
 
 
 @dataclass

@@ -10,7 +10,7 @@ from supervision.dataset.formats.coco import classes_to_coco_categories, coco_ca
 import numpy as np
 
 
-def generate_cock_coco_annotation(
+def mock_cock_coco_annotation(
     annotation_id: int = 0,
     image_id: int = 0,
     category_id: int = 0,
@@ -163,55 +163,55 @@ def test_classes_to_coco_categories_and_back_to_classes(classes: List[str], exce
         ),  # empty coco annotations
         (
             [
-                generate_cock_coco_annotation(annotation_id=0, image_id=0, category_id=0)
+                mock_cock_coco_annotation(annotation_id=0, image_id=0, category_id=0)
             ],
             {
                 0: [
-                    generate_cock_coco_annotation(annotation_id=0, image_id=0, category_id=0)
+                    mock_cock_coco_annotation(annotation_id=0, image_id=0, category_id=0)
                 ]
             },
             DoesNotRaise()
         ),  # single coco annotation
         (
             [
-                generate_cock_coco_annotation(annotation_id=0, image_id=0, category_id=0),
-                generate_cock_coco_annotation(annotation_id=1, image_id=1, category_id=0)
+                mock_cock_coco_annotation(annotation_id=0, image_id=0, category_id=0),
+                mock_cock_coco_annotation(annotation_id=1, image_id=1, category_id=0)
             ],
             {
                 0: [
-                    generate_cock_coco_annotation(annotation_id=0, image_id=0, category_id=0)
+                    mock_cock_coco_annotation(annotation_id=0, image_id=0, category_id=0)
                 ],
                 1: [
-                    generate_cock_coco_annotation(annotation_id=1, image_id=1, category_id=0)
+                    mock_cock_coco_annotation(annotation_id=1, image_id=1, category_id=0)
                 ]
             },
             DoesNotRaise()
         ),  # two coco annotations
         (
             [
-                generate_cock_coco_annotation(annotation_id=0, image_id=0, category_id=0),
-                generate_cock_coco_annotation(annotation_id=1, image_id=1, category_id=1),
-                generate_cock_coco_annotation(annotation_id=2, image_id=1, category_id=2),
-                generate_cock_coco_annotation(annotation_id=3, image_id=2, category_id=3),
-                generate_cock_coco_annotation(annotation_id=4, image_id=3, category_id=1),
-                generate_cock_coco_annotation(annotation_id=5, image_id=3, category_id=2),
-                generate_cock_coco_annotation(annotation_id=5, image_id=3, category_id=3),
+                mock_cock_coco_annotation(annotation_id=0, image_id=0, category_id=0),
+                mock_cock_coco_annotation(annotation_id=1, image_id=1, category_id=1),
+                mock_cock_coco_annotation(annotation_id=2, image_id=1, category_id=2),
+                mock_cock_coco_annotation(annotation_id=3, image_id=2, category_id=3),
+                mock_cock_coco_annotation(annotation_id=4, image_id=3, category_id=1),
+                mock_cock_coco_annotation(annotation_id=5, image_id=3, category_id=2),
+                mock_cock_coco_annotation(annotation_id=5, image_id=3, category_id=3),
             ],
             {
                 0: [
-                    generate_cock_coco_annotation(annotation_id=0, image_id=0, category_id=0),
+                    mock_cock_coco_annotation(annotation_id=0, image_id=0, category_id=0),
                 ],
                 1: [
-                    generate_cock_coco_annotation(annotation_id=1, image_id=1, category_id=1),
-                    generate_cock_coco_annotation(annotation_id=2, image_id=1, category_id=2),
+                    mock_cock_coco_annotation(annotation_id=1, image_id=1, category_id=1),
+                    mock_cock_coco_annotation(annotation_id=2, image_id=1, category_id=2),
                 ],
                 2: [
-                    generate_cock_coco_annotation(annotation_id=3, image_id=2, category_id=3),
+                    mock_cock_coco_annotation(annotation_id=3, image_id=2, category_id=3),
                 ],
                 3: [
-                    generate_cock_coco_annotation(annotation_id=4, image_id=3, category_id=1),
-                    generate_cock_coco_annotation(annotation_id=5, image_id=3, category_id=2),
-                    generate_cock_coco_annotation(annotation_id=5, image_id=3, category_id=3),
+                    mock_cock_coco_annotation(annotation_id=4, image_id=3, category_id=1),
+                    mock_cock_coco_annotation(annotation_id=5, image_id=3, category_id=2),
+                    mock_cock_coco_annotation(annotation_id=5, image_id=3, category_id=3),
                 ]
             },
             DoesNotRaise()
@@ -240,7 +240,7 @@ def test_group_coco_annotations_by_image_id(
         ),  # empty image annotations
         (
             [
-                generate_cock_coco_annotation(category_id=0, bbox=(0, 0, 100, 100), area=100 * 100)
+                mock_cock_coco_annotation(category_id=0, bbox=(0, 0, 100, 100), area=100 * 100)
             ],
             (1000, 1000),
             False,
@@ -256,8 +256,8 @@ def test_group_coco_annotations_by_image_id(
         ),  # single image annotations
         (
             [
-                generate_cock_coco_annotation(category_id=0, bbox=(0, 0, 100, 100), area=100 * 100),
-                generate_cock_coco_annotation(category_id=0, bbox=(100, 100, 100, 100), area=100 * 100),
+                mock_cock_coco_annotation(category_id=0, bbox=(0, 0, 100, 100), area=100 * 100),
+                mock_cock_coco_annotation(category_id=0, bbox=(100, 100, 100, 100), area=100 * 100),
             ],
             (1000, 1000),
             False,
