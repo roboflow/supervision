@@ -119,7 +119,7 @@ def get_video_frames_generator(
     Args:
         source_path (str): The path of the video file.
         stride (int): Indicates the interval at which frames are returned, skipping stride - 1 frames between each.
-        start (int) : Indicates the starting position from which video should generate frames
+        start (int): Indicates the starting position from which video should generate frames
         end (Optional[int]): Indicates the ending position at which video should stop generating frames. If None, video will be read to the end.
 
     Returns:
