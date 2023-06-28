@@ -43,7 +43,7 @@ def mock_cock_coco_annotation(
                     "supercategory": "none"
                 }
             ],
-            [],
+            ["fashion-assistant"],
             DoesNotRaise()
         ),  # single coco category with supercategory == "none"
         (
@@ -60,7 +60,7 @@ def mock_cock_coco_annotation(
                 }
             ],
             [
-                "baseball cap"
+                "fashion-assistant", "baseball cap"
             ],
             DoesNotRaise()
         ),  # two coco categories; one with supercategory == "none" and one with supercategory != "none"
@@ -83,6 +83,7 @@ def mock_cock_coco_annotation(
                 }
             ],
             [
+                "fashion-assistant",
                 "baseball cap",
                 "hoodie"
             ],
@@ -107,6 +108,7 @@ def mock_cock_coco_annotation(
                 }
             ],
             [
+                "fashion-assistant",
                 "baseball cap",
                 "hoodie"
             ],
