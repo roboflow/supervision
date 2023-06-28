@@ -152,8 +152,7 @@ class DetectionDataset(BaseDataset):
     ) -> None:
         """
         Exports the dataset to PASCAL VOC format. This method saves the images and their corresponding annotations in
-        PASCAL VOC format, which consists of XML files. The method allows filtering the detections based on their area
-        percentage.
+        PASCAL VOC format.
 
         Args:
             images_directory_path (Optional[str]): The path to the directory where the images should be saved.
@@ -161,10 +160,11 @@ class DetectionDataset(BaseDataset):
             annotations_directory_path (Optional[str]): The path to the directory where the annotations in
                 PASCAL VOC format should be saved. If not provided, annotations will not be saved.
             min_image_area_percentage (float): The minimum percentage of detection area relative to
-                the image area for a detection to be included.
+                the image area for a detection to be included. Argument is used only for segmentation datasets.
             max_image_area_percentage (float): The maximum percentage of detection area relative to
-                the image area for a detection to be included.
-            approximation_percentage (float): The percentage of polygon points to be removed from the input polygon, in the range [0, 1).
+                the image area for a detection to be included. Argument is used only for segmentation datasets.
+            approximation_percentage (float): The percentage of polygon points to be removed from the input polygon,
+            in the range [0, 1). Argument is used only for segmentation datasets.
         """
         if images_directory_path:
             images_path = Path(images_directory_path)
@@ -323,10 +323,7 @@ class DetectionDataset(BaseDataset):
     ) -> None:
         """
         Exports the dataset to YOLO format. This method saves the images and their corresponding
-        annotations in YOLO format, which is a simple text file that describes an object in the image. It also allows
-        for the optional saving of a data.yaml file, used in YOLOv5, that contains metadata about the dataset.
-
-        The method allows filtering the detections based on their area percentage and offers an option for polygon approximation.
+        annotations in YOLO format.
 
         Args:
             images_directory_path (Optional[str]): The path to the directory where the images should be saved.
@@ -336,11 +333,12 @@ class DetectionDataset(BaseDataset):
             data_yaml_path (Optional[str]): The path where the data.yaml file should be saved.
                 If not provided, the file will not be saved.
             min_image_area_percentage (float): The minimum percentage of detection area relative to
-                the image area for a detection to be included.
+                the image area for a detection to be included. Argument is used only for segmentation datasets.
             max_image_area_percentage (float): The maximum percentage of detection area relative to
-                the image area for a detection to be included.
+                the image area for a detection to be included. Argument is used only for segmentation datasets.
             approximation_percentage (float): The percentage of polygon points to be removed from the input polygon,
-                in the range [0, 1). This is useful for simplifying the annotations.
+                in the range [0, 1). This is useful for simplifying the annotations. Argument is used only for
+                segmentation datasets.
         """
         if images_directory_path is not None:
             save_dataset_images(
@@ -366,7 +364,7 @@ class DetectionDataset(BaseDataset):
         force_masks: bool = False,
     ) -> DetectionDataset:
         """
-        Creates a Dataset instance from YOLO formatted data.
+        Creates a Dataset instance from COCO formatted data.
 
         Args:
             images_directory_path (str): The path to the directory containing the images.
@@ -411,30 +409,23 @@ class DetectionDataset(BaseDataset):
         annotations_path: Optional[str] = None,
         min_image_area_percentage: float = 0.0,
         max_image_area_percentage: float = 1.0,
-        approximation_percentage: float = 0.0,
-        licenses: Optional[list] = None,
-        info: Optional[dict] = None,
+        approximation_percentage: float = 0.0
     ) -> None:
         """
         Exports the dataset to COCO format. This method saves the images and their corresponding
-        annotations in COCO format, which is a simple json file that describes an object in the image.
-        Annotation json file also include category maps.
-
-        The method allows filtering the detections based on their area percentage and offers an option for polygon approximation.
+        annotations in COCO format.
 
         Args:
             images_directory_path (Optional[str]): The path to the directory where the images should be saved.
                 If not provided, images will not be saved.
-            annotations_directory_path (Optional[str]): The path to the directory where the annotations in
-                YOLO format should be saved. If not provided, annotations will not be saved.
+            annotations_path (Optional[str]): The path to COCO annotation file.
             min_image_area_percentage (float): The minimum percentage of detection area relative to
-                the image area for a detection to be included.
+                the image area for a detection to be included. Argument is used only for segmentation datasets.
             max_image_area_percentage (float): The maximum percentage of detection area relative to
-                the image area for a detection to be included.
+                the image area for a detection to be included. Argument is used only for segmentation datasets.
             approximation_percentage (float): The percentage of polygon points to be removed from the input polygon,
-                in the range [0, 1). This is useful for simplifying the annotations.
-            licenses (Optional[str]): List of licenses for images
-            info (Optional[dict]): Information of Dataset as dictionary
+                in the range [0, 1). This is useful for simplifying the annotations. Argument is used only for
+                segmentation datasets.
         """
         if images_directory_path is not None:
             save_dataset_images(
@@ -448,33 +439,44 @@ class DetectionDataset(BaseDataset):
                 classes=self.classes,
                 min_image_area_percentage=min_image_area_percentage,
                 max_image_area_percentage=max_image_area_percentage,
-                approximation_percentage=approximation_percentage,
-                licenses=licenses,
-                info=info,
+                approximation_percentage=approximation_percentage
             )
 
     @classmethod
     def merge(cls, dataset_list: List[DetectionDataset]) -> DetectionDataset:
         """
-        Merge a list of DetectionDataset objects into a single DetectionDataset object.
+        Merge a list of `DetectionDataset` objects into a single `DetectionDataset` object.
 
-        This method takes a list of DetectionDataset objects and combines their respective fields (`classes`, `images`,
-        `annotations`) into a single DetectionDataset object.
+        This method takes a list of `DetectionDataset` objects and combines their respective fields (`classes`, `images`,
+        `annotations`) into a single `DetectionDataset` object.
 
         Args:
-            dataset_list (List[DetectionDataset]): A list of DetectionDataset objects to merge.
+            dataset_list (List[DetectionDataset]): A list of `DetectionDataset` objects to merge.
 
         Returns:
-            (DetectionDataset): A single DetectionDataset object containing the merged data from the input list.
+            (DetectionDataset): A single `DetectionDataset` object containing the merged data from the input list.
 
         Example:
             ```python
-            >>> from supervision import DetectionDataset
+            >>> import supervision as sv
 
-            >>> ds_1 = DetectionDataset(...)
-            >>> ds_2 = DetectionDataset(...)
+            >>> ds_1 = sv.DetectionDataset(...)
+            >>> len(ds_1)
+            100
+            >>> ds_1.classes
+            ['dog', 'person']
 
-            >>> merged_detection_dataset = DetectionDataset.merge([ds_1, ds_2])
+            >>> ds_2 = sv.DetectionDataset(...)
+            >>> len(ds_2)
+            200
+            >>> ds_2.classes
+            ['cat']
+
+            >>> ds_merged = sv.DetectionDataset.merge([ds_1, ds_2])
+            >>> len(ds_merged)
+            300
+            >>> ds_merged.classes
+            ['cat', 'dog', 'person']
             ```
         """
         merged_images, merged_annotations = {}, {}

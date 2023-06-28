@@ -161,21 +161,17 @@ def save_coco_annotations(
     classes: List[str],
     min_image_area_percentage: float = 0.0,
     max_image_area_percentage: float = 1.0,
-    approximation_percentage: float = 0.75,
-    licenses: List[dict] = None,
-    info: dict = None,
+    approximation_percentage: float = 0.75
 ) -> None:
     Path(annotation_path).parent.mkdir(parents=True, exist_ok=True)
-    if not info:
-        info = {}
-    if not licenses:
-        licenses = [
-            {
-                "id": 1,
-                "url": "https://creativecommons.org/licenses/by/4.0/",
-                "name": "CC BY 4.0",
-            }
-        ]
+    info = {}
+    licenses = [
+        {
+            "id": 1,
+            "url": "https://creativecommons.org/licenses/by/4.0/",
+            "name": "CC BY 4.0",
+        }
+    ]
 
     coco_annotations = []
     coco_images = []
