@@ -164,6 +164,28 @@ pip install -e ".[dev]"
     (700, 150, 150)
     ```
   
+- Merge multiple datasets together
+
+    ```python
+    >>> ds_1 = sv.DetectionDataset(...)
+    >>> len(ds_1)
+    100
+    >>> ds_1.classes
+    ['dog', 'person']
+  
+    >>> ds_2 = sv.DetectionDataset(...)
+    >>> len(ds_2)
+    200
+    >>> ds_2.classes
+    ['cat']
+  
+    >>> ds_merged = sv.DetectionDataset.merge([ds_1, ds_2])
+    >>> len(ds_merged)
+    300
+    >>> ds_merged.classes
+    ['cat', 'dog', 'person']
+    ```
+  
 - Save object detection / instance segmentation datasets in one of supported formats
   
     ```python
@@ -184,7 +206,7 @@ pip install -e ".[dev]"
     ... )
     ```
   
-- Convert labels between suppoted formats
+- Convert labels between supported formats
   
     ```python
     >>> sv.DetectionDataset.from_yolo(
