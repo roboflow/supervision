@@ -1,4 +1,4 @@
-### 0.10.0 <small>June 28, 2023</small>
+### 0.11.0 <small>June 28, 2023</small>
 
 - Added [[#150](https://github.com/roboflow/supervision/pull/150)]: ability to load and save [`sv.DetectionDataset`](https://roboflow.github.io/supervision/dataset/core/#detectiondataset) in COCO format using [`as_coco`](https://roboflow.github.io/supervision/dataset/core/#supervision.dataset.core.DetectionDataset.as_coco) and [`from_coco`](https://roboflow.github.io/supervision/dataset/core/#supervision.dataset.core.DetectionDataset.from_coco) methods. 
 
@@ -39,6 +39,8 @@
 >>> ds_merged.classes
 ['cat', 'dog', 'person']
 ```
+
+- Added [[#162](https://github.com/roboflow/supervision/pull/162)]: additional `start` and `end` arguments to [`sv.get_video_frames_generator`](https://roboflow.github.io/supervision/utils/video/#get_video_frames_generator) allowing to generate frames only for a selected part of the video.
 
 - Fix [[#157](https://github.com/roboflow/supervision/pull/157)]: incorrect loading of YOLO dataset class names from `data.yaml`.
 
