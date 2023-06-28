@@ -97,6 +97,19 @@ class VideoSink:
         self.__writer.release()
 
 
+def _validate_and_setup_video(source_path: str, start: int, end: int):
+    video = cv2.VideoCapture(source_path)
+    if not video.isOpened():
+        raise Exception(f"Could not open video at {source_path}")
+    total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+    if end > total_frames:
+        raise Exception(f"Requested frames are outbound")
+    start = max(start, 0)
+    end = min(end, total_frames)
+    video.set(cv2.CAP_PROP_POS_FRAMES, start)
+    return video, start, end
+
+
 def get_video_frames_generator(
     source_path: str, stride: int = 1, start: int = 0, end: int = None
 ) -> Generator[np.ndarray, None, None]:
@@ -110,35 +123,15 @@ def get_video_frames_generator(
         end (int): Indicates the ending position at which video should stop generating frames
     Returns:
         (Generator[np.ndarray, None, None]): A generator that yields the frames of the video.
-
-    Examples:
-        ```python
-        >>> import supervision as sv
-
-        >>> for frame in sv.get_video_frames_generator(source_path='source_video.mp4', stride=2, start=1, end=1000):
-        ...     ...
-        ```
     """
-    video = cv2.VideoCapture(source_path)
-    if not video.isOpened():
-        raise Exception(f"Could not open video at {source_path}")
-    total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
-    if end > total_frames:
-        raise Exception(f"Requested frames are outbound")
-    start = max(start, 0)
-    end = min(end, total_frames)
-    frame_count = 0
+    video, start, end = _validate_and_setup_video(source_path, start, end)
     frame_position = start
-    video.set(cv2.CAP_PROP_POS_FRAMES, frame_position)
     while True:
         success, frame = video.read()
-        if not success:
+        if not success or frame_position >= end:
             break
         frame_position += stride
-        if frame_position >= end:
-            break
         video.set(cv2.CAP_PROP_POS_FRAMES, frame_position)
-        frame_count += 1
         yield frame
     video.release()
 
