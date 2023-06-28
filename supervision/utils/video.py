@@ -97,21 +97,21 @@ class VideoSink:
         self.__writer.release()
 
 
-def _validate_and_setup_video(source_path: str, start: int, end: int):
+def _validate_and_setup_video(source_path: str, start: int, end: Optional[int]):
     video = cv2.VideoCapture(source_path)
     if not video.isOpened():
         raise Exception(f"Could not open video at {source_path}")
     total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
-    if end > total_frames:
+    if end is not None and end > total_frames:
         raise Exception(f"Requested frames are outbound")
     start = max(start, 0)
-    end = min(end, total_frames)
+    end = min(end, total_frames) if end is not None else total_frames
     video.set(cv2.CAP_PROP_POS_FRAMES, start)
     return video, start, end
 
 
 def get_video_frames_generator(
-    source_path: str, stride: int = 1, start: int = 0, end: int = None
+    source_path: str, stride: int = 1, start: int = 0, end: Optional[int] = None
 ) -> Generator[np.ndarray, None, None]:
     """
     Get a generator that yields the frames of the video.
@@ -120,7 +120,8 @@ def get_video_frames_generator(
         source_path (str): The path of the video file.
         stride (int): Indicates the interval at which frames are returned, skipping stride - 1 frames between each.
         start (int) : Indicates the starting position from which video should generate frames
-        end (int): Indicates the ending position at which video should stop generating frames
+        end (Optional[int]): Indicates the ending position at which video should stop generating frames. If None, video will be read to the end.
+
     Returns:
         (Generator[np.ndarray, None, None]): A generator that yields the frames of the video.
 
