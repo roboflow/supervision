@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import astuple, dataclass
 from typing import Any, Iterator, List, Optional, Tuple, Union
+import json
 
 import cv2
 import numpy as np
@@ -13,6 +14,7 @@ from supervision.detection.utils import (
     xywh_to_xyxy,
 )
 from supervision.geometry.core import Position
+from supervision.utils.file import NumpyJsonEncoder
 
 
 def _validate_xyxy(xyxy: Any, n: int) -> None:
@@ -353,6 +355,20 @@ class Detections:
         mask = np.array([mask["segmentation"] for mask in sorted_generated_masks])
 
         return Detections(xyxy=xywh_to_xyxy(boxes_xywh=xywh), mask=mask)
+
+    def to_encoded_string(self) -> str:
+        detections_dict = {'xyxy': self.xyxy, 'class_id': self.class_id,
+                           'confidence': self.confidence, 'tracker_id': self.tracker_id}
+        return json.dumps(detections_dict, cls=NumpyJsonEncoder)
+
+    @classmethod
+    def from_encoded_string(cls, encoded_detections: str) -> Detections:
+        detections_dict = json.loads(encoded_detections)
+        xyxy = np.asarray(detections_dict['xyxy'])
+        class_id = np.asarray(detections_dict['class_id']) if detections_dict['class_id'] else None
+        tracker_id = np.asarray(detections_dict['tracker_id']) if detections_dict['tracker_id'] else None
+        confidence = np.asarray(detections_dict['confidence']) if detections_dict['confidence'] else None
+        return cls(xyxy=xyxy, class_id=class_id, tracker_id=tracker_id, confidence=confidence)
 
     @classmethod
     def empty(cls) -> Detections:
