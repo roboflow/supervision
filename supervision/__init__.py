@@ -1,4 +1,4 @@
-__version__ = "0.11.0"
+__version__ = "0.11.1"
 
 from supervision.classification.core import Classifications
 from supervision.dataset.core import (

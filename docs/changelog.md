@@ -1,3 +1,7 @@
+### 0.11.1 <small>June 29, 2023</small>
+
+- Fix [[#165](https://github.com/roboflow/supervision/pull/165)]: [`as_folder_structure`](https://roboflow.github.io/supervision/dataset/core/#supervision.dataset.core.ClassificationDataset.as_folder_structure) fails to save [`sv.ClassificationDataset`](https://roboflow.github.io/supervision/dataset/core/#classificationdataset) when it is result of inference.
+
 ### 0.11.0 <small>June 28, 2023</small>
 
 - Added [[#150](https://github.com/roboflow/supervision/pull/150)]: ability to load and save [`sv.DetectionDataset`](https://roboflow.github.io/supervision/dataset/core/#detectiondataset) in COCO format using [`as_coco`](https://roboflow.github.io/supervision/dataset/core/#supervision.dataset.core.DetectionDataset.as_coco) and [`from_coco`](https://roboflow.github.io/supervision/dataset/core/#supervision.dataset.core.DetectionDataset.from_coco) methods. 
