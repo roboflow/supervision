@@ -357,14 +357,26 @@ class Detections:
         return Detections(xyxy=xywh_to_xyxy(boxes_xywh=xywh), mask=mask)
 
     def to_encoded_string(self) -> str:
+        """
+        Returns: detections as encoded string for communication protocol
+        """
         detections_dict = {'xyxy': self.xyxy, 'class_id': self.class_id,
                            'confidence': self.confidence, 'tracker_id': self.tracker_id}
         return json.dumps(detections_dict, cls=NumpyJsonEncoder)
 
     @classmethod
     def from_encoded_string(cls, encoded_detections: str) -> Detections:
+        """
+        Args:
+            encoded_detections: Recieved encoded detections via communication protocol
+
+        Returns: deocded Detections
+
+        """
         detections_dict = json.loads(encoded_detections)
-        xyxy = np.asarray(detections_dict['xyxy'])
+        xyxy = np.asarray(detections_dict['xyxy']) if detections_dict['xyxy'] else None
+        if not xyxy:
+            return cls.empty()
         class_id = np.asarray(detections_dict['class_id']) if detections_dict['class_id'] else None
         tracker_id = np.asarray(detections_dict['tracker_id']) if detections_dict['tracker_id'] else None
         confidence = np.asarray(detections_dict['confidence']) if detections_dict['confidence'] else None
