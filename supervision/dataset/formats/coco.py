@@ -68,6 +68,10 @@ def coco_annotations_to_detections(
     xyxy[:, 2:4] += xyxy[:, 0:2]
 
     if with_masks:
+
+        if isinstance(image_annotations[0]["segmentation"], dict):
+            raise NotImplementedError
+
         polygons = [
             np.reshape(
                 np.asarray(image_annotation["segmentation"], dtype=np.int32), (-1, 2)
