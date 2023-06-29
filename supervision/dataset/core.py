@@ -584,7 +584,7 @@ class ClassificationDataset(BaseDataset):
             class_id = (
                 classification.class_id[0]
                 if classification.confidence is None
-                else classification.get_top_k(1)[0]
+                else classification.get_top_k(1)[0][0]
             )
             class_name = self.classes[class_id]
             image_path = os.path.join(root_directory_path, class_name, image_name)
