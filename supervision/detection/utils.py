@@ -338,3 +338,20 @@ def process_roboflow_result(
     masks = np.array(masks, dtype=bool) if len(masks) > 0 else None
 
     return xyxy, confidence, class_id, masks
+
+
+def polygons_to_masks(polygons: List, resolution_wh: Tuple[int, int]) -> np.ndarray:
+    """
+
+    Returns:
+        object: 
+    """
+    n_polygons = len(polygons)
+    masks = None
+    if n_polygons > 0 and resolution_wh:
+        masks = []
+        for polygon in polygons:
+            polygon = np.asarray(polygon[0], dtype=np.int32)
+            masks.append(polygon_to_mask(polygon=polygon, resolution_wh=resolution_wh))
+        masks = np.asarray(masks)
+    return masks

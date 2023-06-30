@@ -11,7 +11,7 @@ from supervision.detection.utils import (
     extract_yolov8_masks,
     mask_to_polygons,
     non_max_suppression,
-    polygon_to_mask,
+    polygons_to_masks,
     process_roboflow_result,
     xywh_to_xyxy,
 )
@@ -409,17 +409,9 @@ class Detections:
             if detections_dict["confidence"]
             else None
         )
-        masks = None
-        polygons = detections_dict["polygons"] if detections_dict["polygons"] else None
-        n_polygons = len(polygons)
-        if n_polygons > 0 and resolution_wh:
-            masks = []
-            for polygon in polygons:
-                polygon = np.asarray(polygon[0], dtype=np.int32)
-                masks.append(
-                    polygon_to_mask(polygon=polygon, resolution_wh=resolution_wh)
-                )
-            masks = np.asarray(masks)
+        masks = polygons_to_masks(
+            detections_dict["polygons"], resolution_wh=resolution_wh
+        )
         return cls(
             xyxy=xyxy,
             class_id=class_id,
