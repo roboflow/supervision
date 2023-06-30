@@ -82,8 +82,8 @@ def coco_annotations_to_detections(
         return Detections(
             class_id=np.asarray(class_ids, dtype=int), xyxy=xyxy, mask=mask
         )
-
-    return Detections(xyxy=xyxy, class_id=np.asarray(class_ids, dtype=int))
+    class_ids = np.asarray(class_ids, dtype=int)-1
+    return Detections(xyxy=xyxy, class_id=class_ids)
 
 
 def detections_to_coco_annotations(
