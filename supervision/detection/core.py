@@ -1,15 +1,17 @@
 from __future__ import annotations
 
+import json
 from dataclasses import astuple, dataclass
 from typing import Any, Iterator, List, Optional, Tuple, Union
-import json
 
 import cv2
 import numpy as np
 
 from supervision.detection.utils import (
     extract_yolov8_masks,
+    mask_to_polygons,
     non_max_suppression,
+    polygon_to_mask,
     process_roboflow_result,
     xywh_to_xyxy,
 )
@@ -360,27 +362,70 @@ class Detections:
         """
         Returns: detections as encoded string for communication protocol
         """
-        detections_dict = {'xyxy': self.xyxy, 'class_id': self.class_id,
-                           'confidence': self.confidence, 'tracker_id': self.tracker_id}
+        detections_dict = {
+            "xyxy": self.xyxy,
+            "class_id": self.class_id,
+            "confidence": self.confidence,
+            "tracker_id": self.tracker_id,
+        }
+        polygons = []
+        if self.mask is not None:
+            for mask in self.mask:
+                _polygon = mask_to_polygons(mask)
+                polygons.append(_polygon)
+            detections_dict["polygons"] = polygons
         return json.dumps(detections_dict, cls=NumpyJsonEncoder)
 
     @classmethod
-    def from_encoded_string(cls, encoded_detections: str) -> Detections:
+    def from_encoded_string(
+        cls, encoded_detections: str, resolution_wh: Optional[Tuple[int, int]] = None
+    ) -> Detections:
         """
         Args:
             encoded_detections: Recieved encoded detections via communication protocol
+            resolution_wh: Required (image width, image height) to convert polygons to masks
 
-        Returns: deocded Detections
-
+        Returns: Decoded detections as Detection objects
         """
         detections_dict = json.loads(encoded_detections)
-        xyxy = np.asarray(detections_dict['xyxy']) if detections_dict['xyxy'] else None
-        if not xyxy:
+        n = len(detections_dict["xyxy"])
+
+        if n == 0:
             return cls.empty()
-        class_id = np.asarray(detections_dict['class_id']) if detections_dict['class_id'] else None
-        tracker_id = np.asarray(detections_dict['tracker_id']) if detections_dict['tracker_id'] else None
-        confidence = np.asarray(detections_dict['confidence']) if detections_dict['confidence'] else None
-        return cls(xyxy=xyxy, class_id=class_id, tracker_id=tracker_id, confidence=confidence)
+        xyxy = np.asarray(detections_dict["xyxy"])
+        class_id = (
+            np.asarray(detections_dict["class_id"])
+            if detections_dict["class_id"]
+            else None
+        )
+        tracker_id = (
+            np.asarray(detections_dict["tracker_id"])
+            if detections_dict["tracker_id"]
+            else None
+        )
+        confidence = (
+            np.asarray(detections_dict["confidence"])
+            if detections_dict["confidence"]
+            else None
+        )
+        masks = None
+        polygons = detections_dict["polygons"] if detections_dict["polygons"] else None
+        n_polygons = len(polygons)
+        if n_polygons > 0 and resolution_wh:
+            masks = []
+            for polygon in polygons:
+                polygon = np.asarray(polygon[0], dtype=np.int32)
+                masks.append(
+                    polygon_to_mask(polygon=polygon, resolution_wh=resolution_wh)
+                )
+            masks = np.asarray(masks)
+        return cls(
+            xyxy=xyxy,
+            class_id=class_id,
+            tracker_id=tracker_id,
+            confidence=confidence,
+            mask=masks,
+        )
 
     @classmethod
     def empty(cls) -> Detections:
