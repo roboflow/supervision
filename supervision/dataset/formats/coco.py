@@ -82,8 +82,7 @@ def coco_annotations_to_detections(
         return Detections(
             class_id=np.asarray(class_ids, dtype=int), xyxy=xyxy, mask=mask
         )
-    class_ids = np.asarray(class_ids, dtype=int)-1
-    return Detections(xyxy=xyxy, class_id=class_ids)
+    return Detections(xyxy=xyxy, class_id=np.asarray(class_ids, dtype=int) - 1)
 
 
 def detections_to_coco_annotations(
@@ -110,7 +109,7 @@ def detections_to_coco_annotations(
         coco_annotation = {
             "id": annotation_id,
             "image_id": image_id,
-            "category_id": int(class_id),
+            "category_id": int(class_id)+1,
             "bbox": [xyxy[0], xyxy[1], box_width, box_height],
             "area": box_width * box_height,
             "segmentation": polygon,
