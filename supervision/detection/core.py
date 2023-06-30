@@ -384,6 +384,7 @@ class Detections:
         Args:
             encoded_detections: Recieved encoded detections via communication protocol
             resolution_wh: Required (image width, image height) to convert polygons to masks
+                           Optional for only boxes
 
         Returns: Decoded detections as Detection objects
         """
