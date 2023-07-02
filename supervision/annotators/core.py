@@ -3,8 +3,8 @@ from typing import Union
 
 import numpy as np
 
-from supervision.draw.color import Color, ColorPalette
 from supervision.detection.core import Detections
+from supervision.draw.color import Color, ColorPalette
 
 
 class BaseAnnotator(ABC):
@@ -14,7 +14,6 @@ class BaseAnnotator(ABC):
 
 
 class BoxAnnotator(BaseAnnotator):
-
     def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
         pass
 
@@ -27,10 +26,11 @@ class MaskAnnotator(BaseAnnotator):
         color (Union[Color, ColorPalette]): The color to fill the mask, can be a single color or a color palette
         opacity (float): The opacity of the masks, between 0 and 1.
     """
+
     def __init__(
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
-        opacity: float = 0.5
+        opacity: float = 0.5,
     ):
         self.color: Union[Color, ColorPalette] = color
         self.opacity = opacity
@@ -74,24 +74,20 @@ class MaskAnnotator(BaseAnnotator):
 
 
 class LabelAnnotator(BaseAnnotator):
-
     def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
         pass
 
 
 class PillowLabelAnnotator(BaseAnnotator):
-
     def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
         pass
 
 
 class TrackAnnotator(BaseAnnotator):
-
     def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
         pass
 
 
 class BoxMaskAnnotator(BaseAnnotator):
-
     def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
         pass
