@@ -229,7 +229,7 @@ class Detections:
         )
 
     @classmethod
-    def from_mmdet(cls, mmdet_results) -> Detections:
+    def from_mmdetection(cls, mmdet_results) -> Detections:
         """
         Creates a Detections instance from a [mmdetection](https://github.com/open-mmlab/mmdetection) inference result.
         Also supported for [mmyolo](https://github.com/open-mmlab/mmyolo)
@@ -258,7 +258,7 @@ class Detections:
         return cls(
             xyxy=mmdet_results.pred_instances.bboxes.xyxy.cpu().numpy(),
             confidence=mmdet_results.pred_instances.scores.cpu().numpy(),
-            class_id=mmdet_results.pred_instances.labels.cpu().numpy().astype(int)
+            class_id=mmdet_results.pred_instances.labels.cpu().numpy().astype(int),
         )
 
     @classmethod
