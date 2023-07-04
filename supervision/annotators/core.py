@@ -15,6 +15,9 @@ class BaseAnnotator(ABC):
 
 
 class BoxAnnotator(BaseAnnotator):
+    """
+    Basic bounding box annotation class
+    """
     def __init__(
             self,
             color: Union[Color, ColorPalette] = ColorPalette.default(),
@@ -146,6 +149,12 @@ class MaskAnnotator(BaseAnnotator):
 
 
 class LabelAnnotator(BaseAnnotator):
+    """
+    A class for putting text on an image using provided detections.
+
+    Attributes:
+        color (Union[Color, ColorPalette]): The color to text on the image, can be a single color or a color palette
+    """
 
     def __init__(self, color: Union[Color, ColorPalette] = ColorPalette.default(),
         thickness: int = 2,
@@ -173,6 +182,7 @@ class LabelAnnotator(BaseAnnotator):
              detections (Detections): The detections for which the bounding boxes will be drawn
              labels (Optional[List[str]]): An optional list of labels corresponding to each detection. If `labels` are not provided, corresponding `class_id` will be used as label.
              skip_label (bool): Is set to `True`, skips bounding box label annotation.
+             color_by_track (bool): If set then color will be chosen by tracker id if provided
          Returns:
              np.ndarray: The image with the bounding boxes drawn on it
 

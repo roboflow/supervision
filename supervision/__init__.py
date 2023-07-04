@@ -8,7 +8,7 @@ from supervision.dataset.core import (
 )
 
 from supervision.annotators.core import LabelAnnotator, MaskAnnotator, BoxAnnotator, PillowLabelAnnotator
-from supervision.annotators.composable import DetectionAnnotator, TrackAnnotator, SegmentationAnnotator
+from supervision.annotators.composable import DetectionAnnotator, TrackAnnotator, SegmentationAnnotator, TrackedDetectionAnnotator
 from supervision.detection.core import Detections
 from supervision.detection.line_counter import LineZone, LineZoneAnnotator
 from supervision.detection.tools.polygon_zone import PolygonZone, PolygonZoneAnnotator
