@@ -1,0 +1,65 @@
+[tool.poetry]
+name = "supervision"
+version = "0.11.0"
+description = "A set of easy-to-use utils that will come in handy in any Computer Vision project"
+authors = ["Piotr Skalski <piotr.skalski92@gmail.com>"]
+maintainers = ["Piotr Skalski <piotr.skalski92@gmail.com>"]
+readme = "README.md"
+packages = [{include = "supervision"}]
+homepage = "https://github.com/roboflow/supervision"
+repository = "https://github.com/roboflow/supervision"
+documentation = "https://github.com/roboflow/supervision/blob/main/README.md"
+keywords = ["machine-learning", "deep-learning", "vision", "ML", "DL", "AI", "YOLOv5", "YOLOv8", "Roboflow"]
+
+classifiers=[
+    'Intended Audience :: Developers',
+    'Intended Audience :: Science/Research',
+    'License :: OSI Approved :: BSD License',
+    'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: 3.7',
+    'Programming Language :: Python :: 3.8',
+    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3 :: Only',
+    'Topic :: Software Development',
+    'Topic :: Scientific/Engineering',
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Image Recognition",
+    'Typing :: Typed',
+    'Operating System :: Microsoft :: Windows',
+    'Operating System :: POSIX',
+    'Operating System :: Unix',
+    'Operating System :: MacOS'
+]
+
+[tool.poetry.dependencies]
+python = ">=3.8,<3.12.0"
+numpy = "^1.20.0"
+opencv-python-headless = "^4.8.0.74"
+matplotlib = "^3.7.1"
+pyyaml = "^6.0"
+opencv-python= { version = "^4.8.0.74", optional = true }
+
+
+[tool.poetry.extras]
+full = ["opencv-python"]
+
+
+[tool.poetry.group.dev.dependencies]
+twine = "^4.0.2"
+pytest = "^7.2.2"
+wheel = "^0.40.0"
+notebook = "^6.5.3"
+mkdocs-material = "^9.1.4"
+mkdocstrings = {extras = ["python"], version = "^0.20.0"}
+
+
+[tool.setuptools]
+include-package-data = false
+
+[tool.setuptools.packages.find]
+exclude = ["docs*", "test*"]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
