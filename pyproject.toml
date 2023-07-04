@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "supervision"
-version = "0.11.1"
+version = "0.12.0"
 description = "A set of easy-to-use utils that will come in handy in any Computer Vision project"
 authors = ["Piotr Skalski <piotr.skalski92@gmail.com>"]
 maintainers = ["Piotr Skalski <piotr.skalski92@gmail.com>"]
@@ -52,6 +52,7 @@ wheel = "^0.40.0"
 notebook = "^6.5.3"
 mkdocs-material = "^9.1.4"
 mkdocstrings = {extras = ["python"], version = "^0.20.0"}
+build = "^0.10.0"
 
 
 [tool.setuptools]
