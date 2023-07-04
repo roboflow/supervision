@@ -1,10 +1,11 @@
 from abc import ABC, abstractmethod
-from typing import Union, Optional, Dict, List
+from typing import List, Optional, Union
 
-import numpy as np
 import cv2
+import numpy as np
 
 from supervision.detection.core import Detections
+from supervision.detection.track import TrackStorage
 from supervision.draw.color import Color, ColorPalette
 
 
@@ -18,19 +19,20 @@ class BoxAnnotator(BaseAnnotator):
     """
     Basic bounding box annotation class
     """
+
     def __init__(
-            self,
-            color: Union[Color, ColorPalette] = ColorPalette.default(),
-            thickness: int = 2,
+        self,
+        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        thickness: int = 2,
     ):
         self.color: Union[Color, ColorPalette] = color
         self.thickness: int = thickness
 
     def annotate(
-            self,
-            scene: np.ndarray,
-            detections: Detections,
-            color_by_track: bool = False,
+        self,
+        scene: np.ndarray,
+        detections: Detections,
+        color_by_track: bool = False,
     ) -> np.ndarray:
         """
         Draws bounding boxes on the frame using the detections provided.
@@ -62,7 +64,9 @@ class BoxAnnotator(BaseAnnotator):
 
             if color_by_track:
                 tracker_id = (
-                    detections.tracker_id[i] if detections.tracker_id is not None else None
+                    detections.tracker_id[i]
+                    if detections.tracker_id is not None
+                    else None
                 )
                 idx = tracker_id if tracker_id is not None else i
             else:
@@ -103,7 +107,12 @@ class MaskAnnotator(BaseAnnotator):
         self.color: Union[Color, ColorPalette] = color
         self.opacity = opacity
 
-    def annotate(self, scene: np.ndarray, detections: Detections, color_by_track: bool = False,) -> np.ndarray:
+    def annotate(
+        self,
+        scene: np.ndarray,
+        detections: Detections,
+        color_by_track: bool = False,
+    ) -> np.ndarray:
         """
         Overlays the masks on the given image based on the provided detections, with a specified opacity.
 
@@ -113,6 +122,20 @@ class MaskAnnotator(BaseAnnotator):
 
         Returns:
             np.ndarray: The image with the masks overlaid
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> classes = ['person', ...]
+            >>> image = ...
+            >>> detections = sv.Detections(...)
+
+            >>> mask_annotator = sv.MaskAnnotator()
+            >>> annotated_frame = mask_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
+            ```
         """
         if detections.mask is None:
             return scene
@@ -120,7 +143,9 @@ class MaskAnnotator(BaseAnnotator):
         for i in np.flip(np.argsort(detections.area)):
             if color_by_track:
                 tracker_id = (
-                    detections.tracker_id[i] if detections.tracker_id is not None else None
+                    detections.tracker_id[i]
+                    if detections.tracker_id is not None
+                    else None
                 )
                 idx = tracker_id if tracker_id is not None else i
             else:
@@ -156,12 +181,15 @@ class LabelAnnotator(BaseAnnotator):
         color (Union[Color, ColorPalette]): The color to text on the image, can be a single color or a color palette
     """
 
-    def __init__(self, color: Union[Color, ColorPalette] = ColorPalette.default(),
+    def __init__(
+        self,
+        color: Union[Color, ColorPalette] = ColorPalette.default(),
         thickness: int = 2,
         text_color: Color = Color.black(),
         text_scale: float = 0.5,
         text_thickness: int = 1,
-        text_padding: int = 10,):
+        text_padding: int = 10,
+    ):
         self.color: Union[Color, ColorPalette] = color
         self.thickness: int = thickness
         self.text_color: Color = text_color
@@ -169,62 +197,69 @@ class LabelAnnotator(BaseAnnotator):
         self.text_thickness: int = text_thickness
         self.text_padding: int = text_padding
 
-    def annotate(self, scene: np.ndarray,
+    def annotate(
+        self,
+        scene: np.ndarray,
         detections: Detections,
         labels: Optional[List[str]] = None,
-        skip_label: bool = False,
-        color_by_track: bool = False,) -> np.ndarray:
+        color_by_track: bool = False,
+    ) -> np.ndarray:
         """
-         Draws bounding boxes on the frame using the detections provided.
+        Draws text on the frame using the detections provided and label.
 
-         Args:
-             scene (np.ndarray): The image on which the bounding boxes will be drawn
-             detections (Detections): The detections for which the bounding boxes will be drawn
-             labels (Optional[List[str]]): An optional list of labels corresponding to each detection. If `labels` are not provided, corresponding `class_id` will be used as label.
-             skip_label (bool): Is set to `True`, skips bounding box label annotation.
-             color_by_track (bool): If set then color will be chosen by tracker id if provided
-         Returns:
-             np.ndarray: The image with the bounding boxes drawn on it
+        Args:
+            scene (np.ndarray): The image on which the bounding boxes will be drawn
+            detections (Detections): The detections for which the bounding boxes will be drawn
+            labels (Optional[List[str]]): An optional list of labels corresponding to each detection. If `labels` are not provided, corresponding `class_id` will be used as label.
+            color_by_track (bool): If set then color will be chosen by tracker id if provided
+        Returns:
+            np.ndarray: The image with the bounding boxes drawn on it
 
-         Example:
-             ```python
-             >>> import supervision as sv
+        Example:
+            ```python
+            >>> import supervision as sv
 
-             >>> classes = ['person', ...]
-             >>> image = ...
-             >>> detections = sv.Detections(...)
+            >>> classes = ['person', ...]
+            >>> image = ...
+            >>> detections = sv.Detections(...)
 
-             >>> label_annotator = sv.LabelAnnotator()
-             >>> labels = [
-             ...     f"{classes[class_id]} {confidence:0.2f}"
-             ...     for _, _, confidence, class_id, _
-             ...     in detections
-             ... ]
-             >>> annotated_frame = label_annotator.annotate(
-             ...     scene=image.copy(),
-             ...     detections=detections,
-             ...     labels=labels
-             ... )
-             ```
-         """
+            >>> label_annotator = sv.LabelAnnotator()
+            >>> labels = [
+            ...     f"{classes[class_id]} {confidence:0.2f}"
+            ...     for _, _, confidence, class_id, _
+            ...     in detections
+            ... ]
+            >>> annotated_frame = label_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections,
+            ...     labels=labels
+            ... )
+            ```
+        """
         font = cv2.FONT_HERSHEY_SIMPLEX
         for i in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[i].astype(int)
-            class_id = (
-                detections.class_id[i] if detections.class_id is not None else None
-            )
-            idx = class_id if class_id is not None else i
+            if color_by_track:
+                tracker_id = (
+                    detections.tracker_id[i]
+                    if detections.tracker_id is not None
+                    else None
+                )
+                idx = tracker_id if tracker_id is not None else i
+            else:
+                class_id = (
+                    detections.class_id[i] if detections.class_id is not None else None
+                )
+                idx = class_id if class_id is not None else i
+
             color = (
                 self.color.by_idx(idx)
                 if isinstance(self.color, ColorPalette)
                 else self.color
             )
 
-            if skip_label:
-                continue
-
             text = (
-                f"{class_id}"
+                f"{idx}"
                 if (labels is None or len(detections) != len(labels))
                 else labels[i]
             )
@@ -265,16 +300,153 @@ class LabelAnnotator(BaseAnnotator):
         return scene
 
 
-class PillowLabelAnnotator(BaseAnnotator):
-    def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
-        pass
+class BoxMaskAnnotator(BaseAnnotator):
+    def __init__(
+        self,
+        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        opacity: float = 0.5,
+    ):
+        self.color: Union[Color, ColorPalette] = color
+        self.opacity = opacity
+
+    def annotate(
+        self,
+        scene: np.ndarray,
+        detections: Detections,
+        color_by_track: bool = False,
+    ) -> np.ndarray:
+        """
+        Overlays the rectangle masks on the given image based on the provided detections, with a specified opacity.
+
+        Args:
+            scene (np.ndarray): The image on which the masks will be overlaid
+            detections (Detections): The detections for which the masks will be overlaid
+            color_by_track (bool): If set then color will be chosen by tracker id if provided
+        Returns:
+            np.ndarray: The image with the masks overlaid
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> classes = ['person', ...]
+            >>> image = ...
+            >>> detections = sv.Detections(...)
+
+            >>> box_mask_annotator = sv.MaskAnnotator()
+            >>> annotated_frame = box_mask_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
+            ```
+        """
+        overlay_img = np.zeros_like(scene, np.uint8)
+        for i in range(len(detections)):
+            x1, y1, x2, y2 = detections.xyxy[i].astype(int)
+            if color_by_track:
+                tracker_id = (
+                    detections.tracker_id[i]
+                    if detections.tracker_id is not None
+                    else None
+                )
+                idx = tracker_id if tracker_id is not None else i
+            else:
+                class_id = (
+                    detections.class_id[i] if detections.class_id is not None else None
+                )
+                idx = class_id if class_id is not None else i
+            color = (
+                self.color.by_idx(idx)
+                if isinstance(self.color, ColorPalette)
+                else self.color
+            )
+            cv2.rectangle(
+                img=overlay_img,
+                pt1=(x1, y1),
+                pt2=(x2, y2),
+                color=color.as_bgr(),
+                thickness=-1,
+            )
+
+        mask = overlay_img.astype(bool)
+        scene[mask] = cv2.addWeighted(
+            scene, self.opacity, overlay_img, 1 - self.opacity, 0
+        )[mask]
+        return scene
 
 
 class TrackAnnotator(BaseAnnotator):
-    def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
-        pass
+    """
+    Initialize TrackAnnotator
+    """
+
+    def __init__(
+        self,
+        tracks: TrackStorage,
+        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        thickness: int = 2,
+    ):
+        self.track_storage = tracks
+        self.color: Union[Color, ColorPalette] = color
+        self.thickness: int = thickness
+        self.boundry_tolerance = 20
+
+    def annotate(self, scene: np.ndarray, color_by_track: bool = False) -> np.ndarray:
+        """
+        Draws the object trajectory on the frame using the trace provided.
+        Attributes:
+            scene (np.ndarray): The image on which the object trajectories will be drawn.
+            trace (Trace): The trace that will be used to draw the previous and current position.
+
+        Returns:
+            np.ndarray: The image with the object trajectories on it.
+            ```python
+            >>> import supervision as sv
+            >>> track_storage = sv.TrackStorage()
+            >>> track_annotator = sv.TrackAnnotator(track_storage)
+            >>> for frame in sv.get_video_frames_generator(source_path='source_video.mp4'):
+            >>>     detections = sv.Detections(...)
+            >>>     tracked_objects = tracker(...)
+            >>>     tracked_detections = sv.Detections(tracked_objects)
+            >>>     track_storage.update(tracked_detections)
+            >>>     track_annotator.annotate(scene)
+        """
+        img_h, img_w, _ = scene.shape
+        unique_ids = np.unique(self.track_storage.storage[:, -1])
+        for unique_id in unique_ids:
+            valid = np.where(self.track_storage.storage[:, -1] == unique_id)[0]
+
+            frames = self.track_storage.storage[valid, 0]
+            latest_frame = np.argmax(frames)
+            points_to_draw = self.track_storage.storage[valid, 1:3]
+
+            n_pts = points_to_draw.shape[0]
+            headx, heady = int(points_to_draw[latest_frame][0]), int(
+                points_to_draw[latest_frame][1]
+            )
+
+            if headx > self.boundry_tolerance and heady > self.boundry_tolerance:
+                if color_by_track:
+                    idx = int(unique_id)
+                else:
+                    idx = int(self.track_storage.storage[0, -2])
+                color = (
+                    self.color.by_idx(idx)
+                    if isinstance(self.color, ColorPalette)
+                    else self.color
+                )
+
+                for i in range(n_pts - 1):
+                    px, py = int(points_to_draw[i][0]), int(points_to_draw[i][1])
+                    qx, qy = int(points_to_draw[i + 1][0]), int(
+                        points_to_draw[i + 1][1]
+                    )
+                    cv2.line(scene, (px, py), (qx, qy), color.as_bgr(), self.thickness)
+                    scene = cv2.circle(
+                        scene, (headx, heady), int(10), color.as_bgr(), thickness=-1
+                    )
+        return scene
 
 
-class BoxMaskAnnotator(BaseAnnotator):
+class PillowLabelAnnotator(BaseAnnotator):
     def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
         pass
