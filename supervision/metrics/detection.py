@@ -127,9 +127,6 @@ class ConfusionMatrix:
         true_boxes = true_detections.xyxy
         detection_boxes = detection_batch_filtered.xyxy
 
-        # ConfusionMatrix._validate_classes_idx_values(classes=true_classes, num_classes=num_classes)
-        # ConfusionMatrix._validate_classes_idx_values(classes=detection_classes, num_classes=num_classes)
-
         iou_batch = box_iou_batch(
             boxes_true=true_boxes, boxes_detection=detection_boxes
         )
@@ -139,7 +136,7 @@ class ConfusionMatrix:
             matches = np.stack(
                 (matched_idx[0], matched_idx[1], iou_batch[matched_idx]), axis=1
             )
-            # matches = ConfusionMatrix._drop_extra_matches(matches=matches)
+            matches = ConfusionMatrix._drop_extra_matches(matches=matches)
         else:
             matches = np.zeros((0, 3))
 
@@ -161,6 +158,15 @@ class ConfusionMatrix:
                 result_matrix[num_classes, detection_class_value] += 1  # FP
 
         return result_matrix
+
+    @staticmethod
+    def _drop_extra_matches(matches: np.ndarray) -> np.ndarray:
+        if matches.shape[0] > 0:
+            matches = matches[matches[:, 2].argsort()[::-1]]
+            matches = matches[np.unique(matches[:, 1], return_index=True)[1]]
+            matches = matches[matches[:, 2].argsort()[::-1]]
+            matches = matches[np.unique(matches[:, 0], return_index=True)[1]]
+        return matches
 
     def plot(
         self,
