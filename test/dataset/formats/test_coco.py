@@ -1,11 +1,11 @@
 from contextlib import ExitStack as DoesNotRaise
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
 import pytest
 
 from supervision import Detections
 from supervision.dataset.formats.coco import classes_to_coco_categories, coco_categories_to_classes, \
-    group_coco_annotations_by_image_id, coco_annotations_to_detections
+    group_coco_annotations_by_image_id, coco_annotations_to_detections, build_coco_class_index_mapping
 
 import numpy as np
 
@@ -288,5 +288,137 @@ def test_coco_annotations_to_detections(
             image_annotations=image_annotations,
             resolution_wh=resolution_wh,
             with_masks=with_masks
+        )
+        assert result == expected_result
+
+@pytest.mark.parametrize(
+    "coco_categories, target_classes, expected_result, exception",
+    [
+        (
+            [],
+            [],
+            {},
+            DoesNotRaise()
+        ), # empty coco categories
+        (
+            [
+                {
+                    "id": 0,
+                    "name": "fashion-assistant",
+                    "supercategory": "none"
+                }
+            ],
+            [
+                "fashion-assistant"
+            ],
+            {
+                0: 0
+            },
+            DoesNotRaise()
+        ),  # single coco category starting from 0
+        (
+            [
+                {
+                    "id": 1,
+                    "name": "fashion-assistant",
+                    "supercategory": "none"
+                }
+            ],
+            [
+                "fashion-assistant"
+            ],
+            {
+                1: 0
+            },
+            DoesNotRaise()
+        ),  # single coco category starting from 1
+        (
+            [
+                {
+                    "id": 0,
+                    "name": "fashion-assistant",
+                    "supercategory": "none"
+                },
+                {
+                    "id": 2,
+                    "name": "hoodie",
+                    "supercategory": "fashion-assistant"
+                },
+                {
+                    "id": 1,
+                    "name": "baseball cap",
+                    "supercategory": "fashion-assistant"
+                }
+            ],
+            [
+                "fashion-assistant",
+                "baseball cap",
+                "hoodie"
+            ],
+            {
+                0: 0,
+                1: 1,
+                2: 2
+            },
+            DoesNotRaise()
+        ),  # three coco categories
+        (
+            [
+                {
+                    "id": 2,
+                    "name": "hoodie",
+                    "supercategory": "fashion-assistant"
+                },
+                {
+                    "id": 1,
+                    "name": "baseball cap",
+                    "supercategory": "fashion-assistant"
+                }
+            ],
+            [
+                "baseball cap",
+                "hoodie"
+            ],
+            {
+                2: 1,
+                1: 0
+            },
+            DoesNotRaise()
+        ),  # two coco categories
+        (
+            [
+                {
+                    "id": 3,
+                    "name": "hoodie",
+                    "supercategory": "fashion-assistant"
+                },
+                {
+                    "id": 1,
+                    "name": "baseball cap",
+                    "supercategory": "fashion-assistant"
+                }
+            ],
+            [
+                "baseball cap",
+                "hoodie"
+            ],
+            {
+                3: 1,
+                1: 0
+            },
+            DoesNotRaise()
+        ),  # two coco categories with missing category
+    ]
+)
+def test_build_coco_class_index_mapping(
+    coco_categories: List[dict],
+    target_classes: List[str],
+    expected_result: Dict[int, int],
+    exception: Exception
+) -> None:
+    with exception:
+        result = build_coco_class_index_mapping(
+            coco_categories=coco_categories,
+            target_classes=target_classes
         )
         assert result == expected_result
