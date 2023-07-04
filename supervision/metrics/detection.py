@@ -42,36 +42,41 @@ class ConfusionMatrix:
 
         Example:
         ```
-        >>> import numpy as np
-
-        >>> from onemetric.cv.object_detection import ConfusionMatrix
+        >>> from supervision.metrics.detection import ConfusionMatrix
 
         >>> target = [
-        ...     np.array([
-        ...         [0.0, 0.0, 3.0, 3.0, 1],
-        ...         [2.0, 2.0, 5.0, 5.0, 1],
-        ...         [6.0, 1.0, 8.0, 3.0, 2],
-        ...     ]),
-        ...     np.array([
-        ...         [1.0, 1.0, 2.0, 2.0, 2],
-        ...     ]),
+        ...     Detections(xyxy=array([
+        ...     [ 0.0, 0.0, 3.0, 3.0 ],
+        ...     [ 2.0, 2.0, 5.0, 5.0 ],
+        ...     [ 6.0, 1.0, 8.0, 3.0 ],
+        ...     ]), confidence=array([ 1.0, 1.0, 1.0, 1.0 ]), class_id=array([1, 1,  2])),
+        ...     Detections(xyxy=array([
+        ...     [ 1.0, 1.0, 2.0, 2.0 ],
+        ...     ]), confidence=array([ 1.0 ]), class_id=array([2]))
         ... ]
-
-        >>> detection_batches = [
-        ...     np.array([
-        ...         [0.0, 0.0, 3.0, 3.0, 1, 0.9],
-        ...         [0.1, 0.1, 3.0, 3.0, 0, 0.9],
-        ...         [6.0, 1.0, 8.0, 3.0, 1, 0.8],
-        ...         [1.0, 6.0, 2.0, 7.0, 1, 0.8],
-        ...     ]),
-        ...     np.array([
-        ...         [1.0, 1.0, 2.0, 2.0, 2, 0.8],
-        ...     ]),
+        >>> predictions = [
+        ...     Detections(
+        ...         xyxy=array([
+        ...     [ 0.0, 0.0, 3.0, 3.0 ],
+        ...     [ 0.1, 0.1, 3.0, 3.0 ],
+        ...     [ 6.0, 1.0, 8.0, 3.0 ],
+        ...     [ 1.0, 6.0, 2.0, 7.0 ],
+        ...     ]), 
+        ...     confidence=array([ 0.9, 0.9, 0.8, 0.8 ]), 
+        ...     class_id=array([1, 0, 1, 1])
+        ...     ),
+        ...     Detections(
+        ...         xyxy=array([
+        ...     [ 1.0, 1.0, 2.0, 2.0 ]
+        ...     ]), 
+        ...     confidence=array([ 0.8 ]), 
+        ...     class_id=array([2])
+        ...     )
         ... ]
 
         >>> confusion_matrix = ConfusionMatrix.from_detections(
+        ...     predictions=predictions,
         ...     target=target,
-        ...     detection_batches=detection_batches,
         ...     num_classes=3
         ... )
 
@@ -84,9 +89,8 @@ class ConfusionMatrix:
         ... ])
         ```
         """
-        # validate_detections(
-        #     target=target, detection_batches=detection_batches
-        # )
+        # TODO: add validation for inputs
+        
         num_classes = len(classes)
         matrix = np.zeros((num_classes + 1, num_classes + 1))
         for true_batch, detection_batch in zip(target, predictions):
@@ -113,8 +117,6 @@ class ConfusionMatrix:
         conf_threshold: float,
         iou_threshold: float,
     ) -> np.ndarray:
-        # validate_true_batch(true_batch=true_batch)
-        # validate_detection_batch(detection_batch=detection_batch)
 
         result_matrix = np.zeros((num_classes + 1, num_classes + 1))
         detection_batch_filtered = pred_detections[
