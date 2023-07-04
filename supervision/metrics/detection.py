@@ -3,7 +3,6 @@ from typing import Callable, List, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
-import seaborn as sn
 from matplotlib import rcParams
 
 import supervision as sv
@@ -184,13 +183,16 @@ class ConfusionMatrix:
             class_names: `Optional[List[str]]` list of class names detected my model. If non given class indexes will be used. Default `None`.
             normalize: `bool` if set to `False` chart will display absolute number of detections falling into given category. Otherwise percentage of detections will be displayed.
         """
-        plt.rcParams["font.family"] = "sans-serif"
-        plt.rcParams["font.sans-serif"] = ["Verdana"]
+        # TODO: replace seaborn with matplotlib
+        import seaborn as sn
+
+        rcParams["font.family"] = "sans-serif"
+        rcParams["font.sans-serif"] = ["Verdana"]
 
         array = self.matrix.copy()
 
         if normalize:
-            array = array / (array.sum(0).reshape(1, self.num_classes + 1) + EPSILON)
+            array = array / (array.sum(0).reshape(1, self.num_classes + 1) + 1e-8)
 
         array[array < 0.005] = np.nan
 
