@@ -46,7 +46,9 @@ class BaseDataset(ABC):
     ) -> Tuple[BaseDataset, BaseDataset]:
         pass
 
-    def add_instance(self, filename: str, image: np.ndarray, detections: Detections) -> None:
+    def add_instance(
+        self, filename: str, image: np.ndarray, detections: Detections
+    ) -> None:
         pass
 
     def add_class_names(self, class_names: List[str]) -> None:
