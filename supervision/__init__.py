@@ -1,4 +1,6 @@
-__version__ = "0.11.1"
+import importlib.metadata as importlib_metadata
+__version__ = importlib_metadata.version(__package__)
+
 
 from supervision.classification.core import Classifications
 from supervision.dataset.core import (
