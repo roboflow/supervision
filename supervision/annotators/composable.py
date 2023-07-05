@@ -35,9 +35,7 @@ class ComposableAnnotator(ABC):
                     color_by_track=color_by_track,
                 )
             elif isinstance(annotator, TrackAnnotator):
-                scene = annotator.annotate(
-                    scene=scene, color_by_track=color_by_track
-                )
+                scene = annotator.annotate(scene=scene, color_by_track=color_by_track)
             else:
                 scene = annotator.annotate(
                     scene=scene, detections=detections, color_by_track=color_by_track

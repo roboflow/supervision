@@ -1,8 +1,11 @@
+import os.path
 from abc import ABC, abstractmethod
 from typing import List, Optional, Union
 
 import cv2
 import numpy as np
+import PIL.Image
+from PIL import Image, ImageDraw, ImageFont
 
 from supervision.detection.core import Detections
 from supervision.detection.track import TrackStorage
@@ -448,5 +451,243 @@ class TrackAnnotator(BaseAnnotator):
 
 
 class PillowLabelAnnotator(BaseAnnotator):
-    def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
-        pass
+    def __init__(
+        self,
+        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        text_color: Color = Color.black(),
+        text_padding: int = 20,
+    ):
+        self.font = ImageFont.load_default()
+        self.color: Union[Color, ColorPalette] = color
+        self.text_color: Color = text_color
+        self.text_padding: int = text_padding
+
+    def annotate(
+        self,
+        scene: np.ndarray,
+        detections: Detections,
+        labels: Optional[List[str]] = None,
+        color_by_track: bool = False,
+        font: Optional[str] = None,
+        font_size: Optional[int] = 15,
+    ) -> np.ndarray:
+        """
+        Draws text on the frame using the detections provided and label.
+
+        Args:
+            scene (np.ndarray): The image on which the bounding boxes will be drawn
+            detections (Detections): The detections for which the bounding boxes will be drawn
+            labels (Optional[List[str]]): An optional list of labels corresponding to each detection. If `labels` are not provided, corresponding `class_id` will be used as label.
+            color_by_track (bool): If set then color will be chosen by tracker id if provided
+        Returns:
+            np.ndarray: The image with the bounding boxes drawn on it
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> classes = ['person', ...]
+            >>> image = ...
+            >>> detections = sv.Detections(...)
+
+            >>> pil_label_annotator = sv.PillowLabelAnnotator()
+            >>> labels = [
+            ...     f"{classes[class_id]} {confidence:0.2f}"
+            ...     for _, _, confidence, class_id, _
+            ...     in detections
+            ... ]
+            >>> annotated_frame = pil_label_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections,
+            ...     labels=labels,
+            ...     font=FONT_FILE_PATH,
+            ... )
+            ```
+        """
+        if font and os.path.exists(font):
+            self.font = ImageFont.truetype(font, font_size)
+
+        pil_image = Image.fromarray(scene)
+        draw = ImageDraw.Draw(pil_image)
+        text_color = "#fff"
+
+        for i in range(len(detections)):
+            x1, y1, x2, y2 = detections.xyxy[i].astype(int)
+            if color_by_track:
+                tracker_id = (
+                    detections.tracker_id[i]
+                    if detections.tracker_id is not None
+                    else None
+                )
+                idx = tracker_id if tracker_id is not None else i
+            else:
+                class_id = (
+                    detections.class_id[i] if detections.class_id is not None else None
+                )
+                idx = class_id if class_id is not None else i
+
+            color = (
+                self.color.by_idx(idx)
+                if isinstance(self.color, ColorPalette)
+                else self.color
+            )
+
+            text = (
+                f"{idx}"
+                if (labels is None or len(detections) != len(labels))
+                else labels[i]
+            )
+
+            text_bbox = draw.textbbox((x1, y1), text, font=self.font)
+
+            text_height = text_bbox[3] - text_bbox[1]
+            text_width = text_bbox[2] - text_bbox[0]
+
+            text_x = x1 + self.text_padding / 2
+            text_y = y1 - self.text_padding / 2 - text_height
+
+            text_background_x1 = x1
+            text_background_y1 = y1 - self.text_padding / 2 - text_height
+
+            text_background_x2 = x1 + 2 * self.text_padding / 2 + text_width
+            text_background_y2 = y1  # correct
+
+            draw.rectangle(
+                (
+                    text_background_x1,
+                    text_background_y1,
+                    text_background_x2,
+                    text_background_y2,
+                ),
+                fill=color.as_bgr(),
+            )
+            draw.text((text_x, text_y), text, font=self.font, fill=text_color)
+
+        scene = np.asarray(pil_image)
+        return scene
+
+
+class CorneredBoxAnotator(BaseAnnotator):
+    def __init__(
+        self,
+        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        thickness: int = 2,
+    ):
+        self.color: Union[Color, ColorPalette] = color
+        self.thickness: int = thickness
+
+    def annotate(
+        self,
+        scene: np.ndarray,
+        detections: Detections,
+        color_by_track: bool = False,
+    ):
+        """
+        Draws cornered bounding boxes on the frame using the detections provided.
+        Args:
+            scene (np.ndarray): The image on which the bounding boxes will be drawn
+            detections (Detections): The detections for which the bounding boxes will be drawn
+            labels (Optional[List[str]]): An optional list of labels corresponding to each detection. If `labels` are not provided, corresponding `class_id` will be used as label.
+            skip_label (bool): Is set to `True`, skips bounding box label annotation.
+        Returns:
+            np.ndarray: The image with the bounding boxes drawn on it
+        Example:
+            ```python
+            >>> import supervision as sv
+            >>> classes = ['person', ...]
+            >>> image = ...
+            >>> detections = sv.Detections(...)
+            >>> corner_box_annotator = sv.CorneredBoxAnotator()
+            >>> annotated_frame = corner_box_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections,
+            ...     labels=labels
+            ... )
+            ```
+        """
+
+        line_thickness = self.thickness + 2
+        for i in range(len(detections)):
+            x1, y1, x2, y2 = detections.xyxy[i].astype(int)
+            if color_by_track:
+                tracker_id = (
+                    detections.tracker_id[i]
+                    if detections.tracker_id is not None
+                    else None
+                )
+                idx = tracker_id if tracker_id is not None else i
+            else:
+                class_id = (
+                    detections.class_id[i] if detections.class_id is not None else None
+                )
+                idx = class_id if class_id is not None else i
+            color = (
+                self.color.by_idx(idx)
+                if isinstance(self.color, ColorPalette)
+                else self.color
+            )
+
+            box_width = x2 - x1
+            box_height = y2 - y1
+
+            cv2.line(
+                scene,
+                (x1, y1),
+                (x1 + int(0.2 * box_width), y1),
+                color.as_bgr(),
+                thickness=line_thickness,
+            )
+            cv2.line(
+                scene,
+                (x2 - int(0.2 * box_width), y1),
+                (x2, y1),
+                color.as_bgr(),
+                thickness=line_thickness,
+            )
+
+            cv2.line(
+                scene,
+                (x1, y2),
+                (x1 + int(0.2 * box_width), y2),
+                color.as_bgr(),
+                thickness=line_thickness,
+            )
+            cv2.line(
+                scene,
+                (x2 - int(0.2 * box_width), y2),
+                (x2, y2),
+                color.as_bgr(),
+                thickness=line_thickness,
+            )
+            #
+            cv2.line(
+                scene,
+                (x1, y1),
+                (x1, y1 + int(0.2 * box_height)),
+                color.as_bgr(),
+                thickness=line_thickness,
+            )
+            cv2.line(
+                scene,
+                (x2, y1 + int(0.2 * box_height)),
+                (x2, y1),
+                color.as_bgr(),
+                thickness=line_thickness,
+            )
+
+            cv2.line(
+                scene,
+                (x1, y2 - int(0.2 * box_height)),
+                (x1, y2),
+                color.as_bgr(),
+                thickness=line_thickness,
+            )
+            cv2.line(
+                scene,
+                (x2, y2 - int(0.2 * box_height)),
+                (x2, y2),
+                color.as_bgr(),
+                thickness=line_thickness,
+            )
+
+        return scene

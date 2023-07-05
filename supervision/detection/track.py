@@ -61,9 +61,7 @@ class TrackStorage:
     def _remove_previous(self) -> None:
         to_remove_frames = self.frame_counter - self.max_length
         if self.storage.shape[0] > 0:
-            self.storage = self.storage[
-                self.storage[:, 0] > to_remove_frames
-                ]
+            self.storage = self.storage[self.storage[:, 0] > to_remove_frames]
 
     def _remove_lost(self, tracker_ids) -> None:
         if self.storage.shape[0] > 0:

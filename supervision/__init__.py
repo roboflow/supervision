@@ -9,6 +9,7 @@ from supervision.annotators.composable import (
 from supervision.annotators.core import (
     BoxAnnotator,
     BoxMaskAnnotator,
+    CorneredBoxAnotator,
     LabelAnnotator,
     MaskAnnotator,
     PillowLabelAnnotator,
