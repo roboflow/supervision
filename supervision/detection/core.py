@@ -244,21 +244,17 @@ class Detections:
             ```python
             >>> import cv2
             >>> import supervision as sv
-            >>> from mmdet.apis import inference_detector, init_detector
-            >>> from mmengine.config import Config
+            >>> from mmdet.apis import DetInferencer
 
-            >>> image = cv2.imread(SOURCE_IMAGE_PATH)
-            >>> config = Config.fromfile(CONFIG)
-            >>> model = init_detector(config, CHECKPOINT, device=device, cfg_options={})
-            >>> img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            >>> mmdet_result = inference_detector(model, img_rgb)
+            >>> inferencer = DetInferencer(model_name, checkpoint, device)
+            >>> mmdet_result = inferencer(SOURCE_IMAGE_PATH, out_dir='./output')["predictions"][0]
             >>> detections = sv.Detections.from_mmdet(mmdet_result)
             ```
         """
         return cls(
-            xyxy=mmdet_results.pred_instances.bboxes.xyxy.cpu().numpy(),
-            confidence=mmdet_results.pred_instances.scores.cpu().numpy(),
-            class_id=mmdet_results.pred_instances.labels.cpu().numpy().astype(int),
+            xyxy=np.asarray(mmdet_results["bboxes"]),
+            confidence=np.asarray(mmdet_results["scores"]),
+            class_id=np.asarray(mmdet_results["labels"], dtype=int),
         )
 
     @classmethod
