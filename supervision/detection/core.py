@@ -252,9 +252,9 @@ class Detections:
             ```
         """
         return cls(
-            xyxy=np.asarray(mmdet_results["bboxes"]),
-            confidence=np.asarray(mmdet_results["scores"]),
-            class_id=np.asarray(mmdet_results["labels"], dtype=int),
+            xyxy=mmdet_results.predictions.bboxes.xyxy.cpu().numpy(),
+            confidence=mmdet_results.predictions.scores.cpu().numpy(),
+            class_id=mmdet_results.predictions.labels.cpu().numpy().astype(int),
         )
 
     @classmethod
