@@ -240,6 +240,7 @@ class LabelAnnotator(BaseAnnotator):
             ```
         """
         font = cv2.FONT_HERSHEY_SIMPLEX
+
         for i in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[i].astype(int)
             if color_by_track:
@@ -398,7 +399,7 @@ class TrackAnnotator(BaseAnnotator):
         Draws the object trajectory on the frame using the trace provided.
         Attributes:
             scene (np.ndarray): The image on which the object trajectories will be drawn.
-            trace (Trace): The trace that will be used to draw the previous and current position.
+            tracks (TrackStorage): The track storage that will be used to draw the previous and current position.
 
         Returns:
             np.ndarray: The image with the object trajectories on it.
@@ -587,8 +588,6 @@ class CorneredBoxAnotator(BaseAnnotator):
         Args:
             scene (np.ndarray): The image on which the bounding boxes will be drawn
             detections (Detections): The detections for which the bounding boxes will be drawn
-            labels (Optional[List[str]]): An optional list of labels corresponding to each detection. If `labels` are not provided, corresponding `class_id` will be used as label.
-            skip_label (bool): Is set to `True`, skips bounding box label annotation.
         Returns:
             np.ndarray: The image with the bounding boxes drawn on it
         Example:
