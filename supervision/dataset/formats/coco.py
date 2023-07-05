@@ -199,8 +199,7 @@ def save_coco_annotations(
     coco_images = []
     coco_categories = classes_to_coco_categories(classes=classes)
 
-    image_id = 0
-    annotation_id = 0
+    image_id, annotation_id = 1, 1
     for image_name, image in images.items():
         image_height, image_width, _ = image.shape
 
