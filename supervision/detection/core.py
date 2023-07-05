@@ -247,13 +247,13 @@ class Detections:
             >>> from mmdet.apis import DetInferencer
 
             >>> inferencer = DetInferencer(model_name, checkpoint, device)
-            >>> mmdet_result = inferencer(SOURCE_IMAGE_PATH, out_dir='./output')["predictions"][0]
+            >>> mmdet_result = inferencer(SOURCE_IMAGE_PATH, out_dir='./output', return_datasample=True)["predictions"][0]
             >>> detections = sv.Detections.from_mmdet(mmdet_result)
             ```
         """
         return cls(
             xyxy=mmdet_results.pred_instances.bboxes.cpu().numpy(),
-            confidence=mmdet_results.pred_instances.cpu().numpy(),
+            confidence=mmdet_results.pred_instances.scores.cpu().numpy(),
             class_id=mmdet_results.pred_instances.labels.cpu().numpy().astype(int),
         )
 
