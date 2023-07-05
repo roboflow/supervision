@@ -60,15 +60,15 @@ class ConfusionMatrix:
         ...     [ 0.1, 0.1, 3.0, 3.0 ],
         ...     [ 6.0, 1.0, 8.0, 3.0 ],
         ...     [ 1.0, 6.0, 2.0, 7.0 ],
-        ...     ]), 
-        ...     confidence=array([ 0.9, 0.9, 0.8, 0.8 ]), 
+        ...     ]),
+        ...     confidence=array([ 0.9, 0.9, 0.8, 0.8 ]),
         ...     class_id=array([1, 0, 1, 1])
         ...     ),
         ...     Detections(
         ...         xyxy=array([
         ...     [ 1.0, 1.0, 2.0, 2.0 ]
-        ...     ]), 
-        ...     confidence=array([ 0.8 ]), 
+        ...     ]),
+        ...     confidence=array([ 0.8 ]),
         ...     class_id=array([2])
         ...     )
         ... ]
@@ -89,7 +89,7 @@ class ConfusionMatrix:
         ```
         """
         # TODO: add validation for inputs
-        
+
         num_classes = len(classes)
         matrix = np.zeros((num_classes + 1, num_classes + 1))
         for true_batch, detection_batch in zip(target, predictions):
@@ -116,7 +116,6 @@ class ConfusionMatrix:
         conf_threshold: float,
         iou_threshold: float,
     ) -> np.ndarray:
-
         result_matrix = np.zeros((num_classes + 1, num_classes + 1))
         detection_batch_filtered = pred_detections[
             pred_detections.confidence > conf_threshold
@@ -178,16 +177,18 @@ class ConfusionMatrix:
         Create confusion matrix plot and save it at selected location.
 
         Args:
-            target_path: `str` selected target location of confusion matrix plot.
-            title: `Optional[str]` title displayed at the top of the confusion matrix plot. Default `None`.
-            class_names: `Optional[List[str]]` list of class names detected my model. If non given class indexes will be used. Default `None`.
-            normalize: `bool` if set to `False` chart will display absolute number of detections falling into given category. Otherwise percentage of detections will be displayed.
+            target_path: save location of confusion matrix plot.
+            title: title displayed at the top of the confusion matrix plot. Default `None`.
+            class_names: list of class names detected my model. If non given class indexes will be used. Default `None`.
+            normalize: chart will display absolute number of detections falling into given category. Otherwise percentage of detections will be displayed.
         """
         # TODO: replace seaborn with matplotlib
+        import matplotlib.pyplot as plt
         import seaborn as sn
+        from matplotlib import rcParams
 
-        rcParams["font.family"] = "sans-serif"
-        rcParams["font.sans-serif"] = ["Verdana"]
+        # rcParams["font.family"] = "sans-serif"
+        # rcParams["font.sans-serif"] = ["Verdana"]
 
         array = self.matrix.copy()
 
@@ -196,8 +197,8 @@ class ConfusionMatrix:
 
         array[array < 0.005] = np.nan
 
-        fig = plt.figure(figsize=(12, 10), tight_layout=True, facecolor="white")
-        sn.set(font_scale=1.0 if self.num_classes < 50 else 0.8)
+        fig, ax = plt.subplots(figsize=(12, 10), tight_layout=True, facecolor="white")
+        # sn.set(font_scale=1.0 if self.num_classes < 50 else 0.8)
 
         labels = (
             class_names is not None
@@ -206,24 +207,58 @@ class ConfusionMatrix:
         )
         x_tick_labels = class_names + ["FN"] if labels else "auto"
         y_tick_labels = class_names + ["FP"] if labels else "auto"
-        sn.heatmap(
-            array,
-            annot=self.num_classes < 30,
-            annot_kws={"size": 8},
-            fmt=".2f",
-            square=True,
-            vmin=0,
-            cmap="Blues",
-            xticklabels=x_tick_labels,
-            yticklabels=y_tick_labels,
-        ).set_facecolor((1, 1, 1))
+        # sn.heatmap(
+        #     array,
+        #     annot=self.num_classes < 30,
+        #     annot_kws={"size": 8},
+        #     fmt=".2f",
+        #     square=True,
+        #     vmin=0,
+        #     cmap="Blues",
+        #     xticklabels=x_tick_labels,
+        #     yticklabels=y_tick_labels,
+        # ).set_facecolor((1, 1, 1))
+        im = ax.imshow(array, cmap="Blues")
+        # Create colorbar
+        cbar_kw = {}
+        cbarlabel = ""
+        cbar = ax.figure.colorbar(im, ax=ax, **cbar_kw)
+        cbar.ax.set_ylabel(cbarlabel, rotation=-90, va="bottom")
+        cbar.mappable.set_clim(vmin=0, vmax=np.nanmax(array))
+        # Disable grid lines in the axis
+        ax.grid(False)
+
+        # Adjust the z-order of the grid lines
+        ax.set_axisbelow(True)
+        ax.yaxis.grid(color='gray', zorder=0)
+        ax.xaxis.grid(color='gray', zorder=0)
+
+        # Show all ticks and label them with the respective list entries.
+        ax.set_xticks(np.arange(array.shape[1])-0.5)
+        ax.set_yticks(np.arange(array.shape[0])-0.5)
+        # ax.grid(which="major", color="gray", linestyle="-", linewidth=1)
+        # ax.tick_params(which="minor", bottom=False, left=False)
+
+        # Let the horizontal axes labeling appear on top.
+        # ax.tick_params(top=True, bottom=False, labeltop=True, labelbottom=False)
+
+        # Rotate the tick labels and set their alignment.
+        plt.setp(ax.get_xticklabels(), rotation=90, ha="right", rotation_mode="anchor")
+
+        # Turn spines off and create white grid.
+        # ax.spines[:].set_visible(False)
+
+        # ax.set_xticks(x_tick_labels, minor=True)
+        # ax.set_yticks(y_tick_labels, minor=True)
+        # ax.grid(which="minor", color="w", linestyle="-", linewidth=1)
+        # ax.tick_params(which="minor", bottom=False, left=False)
 
         if title:
-            fig.axes[0].set_title(title, fontsize=20)
+            ax.set_title(title, fontsize=20)
 
-        fig.axes[0].set_xlabel("Predicted")
-        fig.axes[0].set_ylabel("True")
-        fig.axes[0].set_facecolor("white")
+        ax.set_xlabel("Predicted")
+        ax.set_ylabel("True")
+        ax.set_facecolor("white")
         fig.savefig(
             target_path, dpi=250, facecolor=fig.get_facecolor(), transparent=True
         )
