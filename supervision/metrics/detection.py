@@ -21,7 +21,7 @@ class ConfusionMatrix:
     def from_detections(
         cls,
         predictions: List[sv.Detections],
-        target: List[sv.Detections],
+        targets: List[sv.Detections],
         classes: List[str],
         conf_threshold: float = 0.3,
         iou_threshold: float = 0.5,
@@ -92,7 +92,7 @@ class ConfusionMatrix:
 
         num_classes = len(classes)
         matrix = np.zeros((num_classes + 1, num_classes + 1))
-        for true_batch, detection_batch in zip(target, predictions):
+        for true_batch, detection_batch in zip(targets, predictions):
             matrix += ConfusionMatrix._evaluate_detection_batch(
                 true_detections=true_batch,
                 pred_detections=detection_batch,
@@ -166,6 +166,39 @@ class ConfusionMatrix:
             matches = matches[np.unique(matches[:, 0], return_index=True)[1]]
         return matches
 
+    @classmethod
+    def benchmark(
+        cls,
+        dataset: sv.DetectionDataset,
+        callback: Callable[[np.ndarray], sv.Detections],
+        conf_threshold: float = 0.3,
+        iou_threshold: float = 0.5,
+    ) -> "ConfusionMatrix":
+        """
+        Create confusion matrix from dataset and callback function.
+
+        Args:
+            dataset: an annotated dataset.
+            callback: a function that takes an image as input and returns detections.
+            conf_threshold: see ConfusionMatrix.from_detections.
+            iou_threshold: see ConfusionMatrix.from_detections.
+
+        Returns:
+            ConfusionMatrix object.
+        """
+        predictions = []
+        targets = []
+        for img_name, img in dataset.images.items():
+            predictions.append(callback(img))
+            targets.append(dataset.annotations[img_name])
+        return cls.from_detections(
+            predictions=predictions,
+            targets=targets,
+            classes=dataset.classes,
+            conf_threshold=conf_threshold,
+            iou_threshold=iou_threshold,
+        )
+
     def plot(
         self,
         target_path: str,
@@ -182,10 +215,6 @@ class ConfusionMatrix:
             class_names: list of class names detected my model. If non given class indexes will be used. Default `None`.
             normalize: chart will display absolute number of detections falling into given category. Otherwise percentage of detections will be displayed.
         """
-        # TODO: replace seaborn with matplotlib
-        import matplotlib.pyplot as plt
-        import seaborn as sn
-        from matplotlib import rcParams
 
         # rcParams["font.family"] = "sans-serif"
         # rcParams["font.sans-serif"] = ["Verdana"]
@@ -230,12 +259,12 @@ class ConfusionMatrix:
 
         # Adjust the z-order of the grid lines
         ax.set_axisbelow(True)
-        ax.yaxis.grid(color='gray', zorder=0)
-        ax.xaxis.grid(color='gray', zorder=0)
+        ax.yaxis.grid(color="gray", zorder=0)
+        ax.xaxis.grid(color="gray", zorder=0)
 
         # Show all ticks and label them with the respective list entries.
-        ax.set_xticks(np.arange(array.shape[1])-0.5)
-        ax.set_yticks(np.arange(array.shape[0])-0.5)
+        ax.set_xticks(np.arange(array.shape[1]) - 0.5)
+        ax.set_yticks(np.arange(array.shape[0]) - 0.5)
         # ax.grid(which="major", color="gray", linestyle="-", linewidth=1)
         # ax.tick_params(which="minor", bottom=False, left=False)
 
@@ -262,13 +291,3 @@ class ConfusionMatrix:
         fig.savefig(
             target_path, dpi=250, facecolor=fig.get_facecolor(), transparent=True
         )
-
-    @classmethod
-    def benchmark(
-        cls,
-        dataset: sv.DetectionDataset,
-        callback: Callable[[np.ndarray], sv.Detections],
-        conf_threshold: float = 0.3,
-        iou_threshold: float = 0.5,
-    ) -> "ConfusionMatrix":
-        pass
