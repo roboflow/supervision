@@ -34,15 +34,15 @@ classifiers=[
 [tool.poetry.dependencies]
 python = ">=3.8,<3.12.0"
 numpy = "^1.20.0"
-opencv-python-headless = "^4.8.0.74"
 matplotlib = "^3.7.1"
 pyyaml = "^6.0"
 opencv-python = { version = "^4.8.0.74", optional = true }
+opencv-python-headless = { version = "^4.8.0.74", optional = true }
 
 
 [tool.poetry.extras]
-full = ["opencv-python"]
-
+desktop = ["opencv-python"]
+headless = ["opencv-python-headless"]
 
 [tool.poetry.group.dev.dependencies]
 twine = "^4.0.2"
