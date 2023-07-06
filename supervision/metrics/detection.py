@@ -201,7 +201,7 @@ class ConfusionMatrix:
 
     def plot(
         self,
-        target_path: str,
+        save_path: str,
         title: Optional[str] = None,
         class_names: Optional[List[str]] = None,
         normalize: bool = True,
@@ -216,71 +216,69 @@ class ConfusionMatrix:
             normalize: chart will display absolute number of detections falling into given category. Otherwise percentage of detections will be displayed.
         """
 
-        # rcParams["font.family"] = "sans-serif"
-        # rcParams["font.sans-serif"] = ["Verdana"]
+        rcParams["font.family"] = "sans-serif"
+        rcParams["font.sans-serif"] = ["Verdana"]
 
         array = self.matrix.copy()
 
+        # num_classes = self.num_classes + 1
+        num_classes = 21
+        class_names = class_names[:20]
+        array = array[:20, :20]
+        array[0, 0] = 10
+        array[1, 8] = 15
+        array[2, 9] = 20
+        array[3, 10] = 25
+        array[4, 11] = 10
+        array[5, 12] = 15
+        array[8, 12] = 35
+
         if normalize:
-            array = array / (array.sum(0).reshape(1, self.num_classes + 1) + 1e-8)
+            eps = 1e-8
+            array = array / (array.sum(0).reshape(1, -1) + eps)
 
         array[array < 0.005] = np.nan
 
         fig, ax = plt.subplots(figsize=(12, 10), tight_layout=True, facecolor="white")
-        # sn.set(font_scale=1.0 if self.num_classes < 50 else 0.8)
 
         labels = (
             class_names is not None
             and (0 < len(class_names) < 99)
             and len(class_names) == self.num_classes
         )
-        x_tick_labels = class_names + ["FN"] if labels else "auto"
-        y_tick_labels = class_names + ["FP"] if labels else "auto"
-        # sn.heatmap(
-        #     array,
-        #     annot=self.num_classes < 30,
-        #     annot_kws={"size": 8},
-        #     fmt=".2f",
-        #     square=True,
-        #     vmin=0,
-        #     cmap="Blues",
-        #     xticklabels=x_tick_labels,
-        #     yticklabels=y_tick_labels,
-        # ).set_facecolor((1, 1, 1))
+        x_tick_labels = class_names + ["FN"] if labels else None
+        y_tick_labels = class_names + ["FP"] if labels else None
         im = ax.imshow(array, cmap="Blues")
-        # Create colorbar
+
         cbar_kw = {}
         cbarlabel = ""
         cbar = ax.figure.colorbar(im, ax=ax, **cbar_kw)
         cbar.ax.set_ylabel(cbarlabel, rotation=-90, va="bottom")
         cbar.mappable.set_clim(vmin=0, vmax=np.nanmax(array))
-        # Disable grid lines in the axis
-        ax.grid(False)
 
-        # Adjust the z-order of the grid lines
-        ax.set_axisbelow(True)
-        ax.yaxis.grid(color="gray", zorder=0)
-        ax.xaxis.grid(color="gray", zorder=0)
+        if x_tick_labels is None:
+            tick_interval = 2
+        else:
+            tick_interval = 1
+        ax.set_xticks(np.arange(0, num_classes, tick_interval), labels=x_tick_labels)
+        ax.set_yticks(np.arange(0, num_classes, tick_interval), labels=y_tick_labels)
 
-        # Show all ticks and label them with the respective list entries.
-        ax.set_xticks(np.arange(array.shape[1]) - 0.5)
-        ax.set_yticks(np.arange(array.shape[0]) - 0.5)
-        # ax.grid(which="major", color="gray", linestyle="-", linewidth=1)
-        # ax.tick_params(which="minor", bottom=False, left=False)
+        plt.setp(ax.get_xticklabels(), rotation=90, ha="right", rotation_mode="default")
 
-        # Let the horizontal axes labeling appear on top.
-        # ax.tick_params(top=True, bottom=False, labeltop=True, labelbottom=False)
+        labelsize = 10 if self.num_classes < 50 else 8
+        ax.tick_params(axis="both", which="both", labelsize=labelsize)
 
-        # Rotate the tick labels and set their alignment.
-        plt.setp(ax.get_xticklabels(), rotation=90, ha="right", rotation_mode="anchor")
-
-        # Turn spines off and create white grid.
-        # ax.spines[:].set_visible(False)
-
-        # ax.set_xticks(x_tick_labels, minor=True)
-        # ax.set_yticks(y_tick_labels, minor=True)
-        # ax.grid(which="minor", color="w", linestyle="-", linewidth=1)
-        # ax.tick_params(which="minor", bottom=False, left=False)
+        if (num_classes) < 30:
+            for i in range(array.shape[0]):
+                for j in range(array.shape[1]):
+                    ax.text(
+                        j,
+                        i,
+                        f"{array[i, j]:.2f}" if normalize else f"{array[i, j]:.0f}",
+                        ha="center",
+                        va="center",
+                        color="white",
+                    )
 
         if title:
             ax.set_title(title, fontsize=20)
@@ -288,6 +286,4 @@ class ConfusionMatrix:
         ax.set_xlabel("Predicted")
         ax.set_ylabel("True")
         ax.set_facecolor("white")
-        fig.savefig(
-            target_path, dpi=250, facecolor=fig.get_facecolor(), transparent=True
-        )
+        fig.savefig(save_path, dpi=250, facecolor=fig.get_facecolor(), transparent=True)
