@@ -241,10 +241,7 @@ class ConfusionMatrix:
         y_tick_labels = class_names + ["FP"] if labels else None
         im = ax.imshow(array, cmap="Blues")
 
-        cbar_kw = {}
-        cbarlabel = ""
-        cbar = ax.figure.colorbar(im, ax=ax, **cbar_kw)
-        cbar.ax.set_ylabel(cbarlabel, rotation=-90, va="bottom")
+        cbar = ax.figure.colorbar(im, ax=ax)
         cbar.mappable.set_clim(vmin=0, vmax=np.nanmax(array))
 
         if x_tick_labels is None:
