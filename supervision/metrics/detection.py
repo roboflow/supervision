@@ -27,17 +27,15 @@ class ConfusionMatrix:
         iou_threshold: float = 0.5,
     ) -> "ConfusionMatrix":
         """
-        Calculate confusion matrix based on ground-true and detected objects across all images in concerned dataset.
+        Calculate confusion matrix based on predicted and ground-truth detections.
 
         Args:
-            target: representing ground-truth objects across all images in concerned dataset. Each element of `target` list describe single image and has `shape = (N, 5)` where `N` is number of ground-truth objects. Each row is an sv.Detections object
-            predictions: representing detected objects across all images in concerned dataset. Each element of `detection_batches` list describe single image and has `shape = (M, 1)` where `M` is number of detected objects. Each row is an sv.Detections object
+            target: Detections objects from ground-truth.
+            predictions: Detections objects predicted by the model.
             classes:  all known classes.
             conf_threshold:  detection confidence threshold between 0 and 1. Detections with lower confidence will be excluded.
             iou_threshold:  detection iou  threshold between 0 and 1. Detections with lower iou will be classified as FP.
 
-        Returns:
-            confusion_matrix: `ConfusionMatrix` object raw confusion matrix 2d `np.ndarray`.
 
         Example:
         ```
@@ -116,6 +114,15 @@ class ConfusionMatrix:
         conf_threshold: float,
         iou_threshold: float,
     ) -> np.ndarray:
+        """
+        Calculate confusion matrix for a batch of detections for a single image.
+
+        Args:
+            See ConfusionMatrix.from_detections
+
+        Returns:
+            confusion matrix based on a single image.
+        """
         result_matrix = np.zeros((num_classes + 1, num_classes + 1))
         detection_batch_filtered = pred_detections[
             pred_detections.confidence > conf_threshold
@@ -159,6 +166,10 @@ class ConfusionMatrix:
 
     @staticmethod
     def _drop_extra_matches(matches: np.ndarray) -> np.ndarray:
+        """
+        Deduplicate matches. If there are multiple matches for the same true or predicted box,
+        only the one with the highest IoU is kept.
+        """
         if matches.shape[0] > 0:
             matches = matches[matches[:, 2].argsort()[::-1]]
             matches = matches[np.unique(matches[:, 1], return_index=True)[1]]
@@ -211,7 +222,7 @@ class ConfusionMatrix:
         Create confusion matrix plot and save it at selected location.
 
         Args:
-            target_path: save location of confusion matrix plot.
+            save_path: save location of confusion matrix plot.
             title: title displayed at the top of the confusion matrix plot. Default `None`.
             class_names: list of class names detected my model. If non given class indexes will be used. Default `None`.
             normalize: chart will display absolute number of detections falling into given category. Otherwise percentage of detections will be displayed.
