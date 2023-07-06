@@ -221,17 +221,7 @@ class ConfusionMatrix:
 
         array = self.matrix.copy()
 
-        # num_classes = self.num_classes + 1
-        num_classes = 21
-        class_names = class_names[:20]
-        array = array[:20, :20]
-        array[0, 0] = 10
-        array[1, 8] = 15
-        array[2, 9] = 20
-        array[3, 10] = 25
-        array[4, 11] = 10
-        array[5, 12] = 15
-        array[8, 12] = 35
+        num_classes = self.num_classes + 1
 
         if normalize:
             eps = 1e-8
