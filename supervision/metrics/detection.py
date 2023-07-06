@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Callable, List, Optional
+from typing import Callable, List, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -205,6 +205,7 @@ class ConfusionMatrix:
         title: Optional[str] = None,
         class_names: Optional[List[str]] = None,
         normalize: bool = True,
+        figsize: Tuple[int, int] = (12, 10),
     ) -> None:
         """
         Create confusion matrix plot and save it at selected location.
@@ -229,7 +230,7 @@ class ConfusionMatrix:
 
         array[array < 0.005] = np.nan
 
-        fig, ax = plt.subplots(figsize=(12, 10), tight_layout=True, facecolor="white")
+        fig, ax = plt.subplots(figsize=figsize, tight_layout=True, facecolor="white")
 
         labels = (
             class_names is not None
