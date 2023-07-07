@@ -33,10 +33,18 @@ CERTAIN_DETECTIONS = Detections(
     class_id=PREDICTIONS[:, 5].astype(int),
 )
 
-IDEAL_RESULT = np.zeros((81, 81))
+IDEAL_MATCHES = np.stack(
+    [
+        np.arange(len(PREDICTIONS)),
+        np.arange(len(PREDICTIONS)),
+        np.ones(len(PREDICTIONS)),
+    ],
+    axis=1,
+)
+IDEAL_CONF_MATRIX = np.zeros((81, 81))
 for class_id, count in zip(*np.unique(PREDICTIONS[:, 5], return_counts=True)):
     class_id = int(class_id)
-    IDEAL_RESULT[class_id, class_id] = count
+    IDEAL_CONF_MATRIX[class_id, class_id] = count
 
 classes = np.arange(80)
 num_classes = len(classes)
@@ -51,7 +59,7 @@ num_classes = len(classes)
             classes,
             0.3,
             0.5,
-            IDEAL_RESULT,
+            IDEAL_CONF_MATRIX,
             DoesNotRaise(),
         )
     ],
@@ -87,7 +95,7 @@ def test_from_detections(
             num_classes,
             0.3,
             0.5,
-            IDEAL_RESULT,
+            IDEAL_CONF_MATRIX,
             DoesNotRaise(),
         )
     ],
@@ -114,8 +122,25 @@ def test_evaluate_detection_batch(
         assert np.array_equal(result, expected_result)
 
 
-def test_drop_extra_matches():
-    ...
+@pytest.mark.parametrize(
+    "matches, expected_result, exception",
+    [
+        (
+            IDEAL_MATCHES,
+            IDEAL_MATCHES,
+            DoesNotRaise(),
+        )
+    ],
+)
+def test_drop_extra_matches(
+    matches,
+    expected_result: Optional[np.ndarray],
+    exception: Exception,
+):
+    with exception:
+        result = ConfusionMatrix._drop_extra_matches(matches)
+
+        assert np.array_equal(result, expected_result)
 
 
 def test_benchmark():
