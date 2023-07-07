@@ -574,7 +574,7 @@ class PillowLabelAnnotator(BaseAnnotator):
         return scene
 
 
-class CorneredBoxAnotator(BaseAnnotator):
+class CorneredBoxAnnotator(BaseAnnotator):
     def __init__(
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
@@ -699,7 +699,7 @@ class CorneredBoxAnotator(BaseAnnotator):
         return scene
 
 
-class EllipseAnotator(BaseAnnotator):
+class EllipseAnnotator(BaseAnnotator):
     def __init__(
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
