@@ -4,7 +4,6 @@ from typing import List, Optional, Union
 
 import cv2
 import numpy as np
-import PIL.Image
 from PIL import Image, ImageDraw, ImageFont
 
 from supervision.detection.core import Detections
@@ -27,15 +26,16 @@ class BoxAnnotator(BaseAnnotator):
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
         thickness: int = 2,
+        color_by_track: bool = False,
     ):
         self.color: Union[Color, ColorPalette] = color
         self.thickness: int = thickness
+        self.color_by_track = color_by_track
 
     def annotate(
         self,
         scene: np.ndarray,
         detections: Detections,
-        color_by_track: bool = False,
     ) -> np.ndarray:
         """
         Draws bounding boxes on the frame using the detections provided.
@@ -43,7 +43,6 @@ class BoxAnnotator(BaseAnnotator):
         Args:
             scene (np.ndarray): The image on which the bounding boxes will be drawn
             detections (Detections): The detections for which the bounding boxes will be drawn
-            color_by_track (bool): It allows to pick color by tracker id if present
         Returns:
             np.ndarray: The image with the bounding boxes drawn on it
 
@@ -65,7 +64,7 @@ class BoxAnnotator(BaseAnnotator):
         for i in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[i].astype(int)
 
-            if color_by_track:
+            if self.color_by_track:
                 tracker_id = (
                     detections.tracker_id[i]
                     if detections.tracker_id is not None
@@ -106,15 +105,16 @@ class MaskAnnotator(BaseAnnotator):
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
         opacity: float = 0.5,
+        color_by_track: bool = False,
     ):
         self.color: Union[Color, ColorPalette] = color
         self.opacity = opacity
+        self.color_by_track = color_by_track
 
     def annotate(
         self,
         scene: np.ndarray,
         detections: Detections,
-        color_by_track: bool = False,
     ) -> np.ndarray:
         """
         Overlays the masks on the given image based on the provided detections, with a specified opacity.
@@ -144,7 +144,7 @@ class MaskAnnotator(BaseAnnotator):
             return scene
 
         for i in np.flip(np.argsort(detections.area)):
-            if color_by_track:
+            if self.color_by_track:
                 tracker_id = (
                     detections.tracker_id[i]
                     if detections.tracker_id is not None
@@ -192,6 +192,7 @@ class LabelAnnotator(BaseAnnotator):
         text_scale: float = 0.5,
         text_thickness: int = 1,
         text_padding: int = 10,
+        color_by_track: bool = False,
     ):
         self.color: Union[Color, ColorPalette] = color
         self.thickness: int = thickness
@@ -199,13 +200,13 @@ class LabelAnnotator(BaseAnnotator):
         self.text_scale: float = text_scale
         self.text_thickness: int = text_thickness
         self.text_padding: int = text_padding
+        self.color_by_track = color_by_track
 
     def annotate(
         self,
         scene: np.ndarray,
         detections: Detections,
         labels: Optional[List[str]] = None,
-        color_by_track: bool = False,
     ) -> np.ndarray:
         """
         Draws text on the frame using the detections provided and label.
@@ -214,7 +215,6 @@ class LabelAnnotator(BaseAnnotator):
             scene (np.ndarray): The image on which the bounding boxes will be drawn
             detections (Detections): The detections for which the bounding boxes will be drawn
             labels (Optional[List[str]]): An optional list of labels corresponding to each detection. If `labels` are not provided, corresponding `class_id` will be used as label.
-            color_by_track (bool): If set then color will be chosen by tracker id if provided
         Returns:
             np.ndarray: The image with the bounding boxes drawn on it
 
@@ -243,7 +243,7 @@ class LabelAnnotator(BaseAnnotator):
 
         for i in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[i].astype(int)
-            if color_by_track:
+            if self.color_by_track:
                 tracker_id = (
                     detections.tracker_id[i]
                     if detections.tracker_id is not None
@@ -309,15 +309,16 @@ class BoxMaskAnnotator(BaseAnnotator):
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
         opacity: float = 0.5,
+        color_by_track: bool = False,
     ):
         self.color: Union[Color, ColorPalette] = color
         self.opacity = opacity
+        self.color_by_track = color_by_track
 
     def annotate(
         self,
         scene: np.ndarray,
         detections: Detections,
-        color_by_track: bool = False,
     ) -> np.ndarray:
         """
         Overlays the rectangle masks on the given image based on the provided detections, with a specified opacity.
@@ -325,7 +326,6 @@ class BoxMaskAnnotator(BaseAnnotator):
         Args:
             scene (np.ndarray): The image on which the masks will be overlaid
             detections (Detections): The detections for which the masks will be overlaid
-            color_by_track (bool): If set then color will be chosen by tracker id if provided
         Returns:
             np.ndarray: The image with the masks overlaid
         Example:
@@ -346,7 +346,7 @@ class BoxMaskAnnotator(BaseAnnotator):
         overlay_img = np.zeros_like(scene, np.uint8)
         for i in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[i].astype(int)
-            if color_by_track:
+            if self.color_by_track:
                 tracker_id = (
                     detections.tracker_id[i]
                     if detections.tracker_id is not None
@@ -388,13 +388,18 @@ class TrackAnnotator(BaseAnnotator):
         tracks: TrackStorage,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
         thickness: int = 2,
+        color_by_track: bool = False,
     ):
         self.track_storage = tracks
         self.color: Union[Color, ColorPalette] = color
         self.thickness: int = thickness
         self.boundry_tolerance = 20
+        self.color_by_track = color_by_track
 
-    def annotate(self, scene: np.ndarray, color_by_track: bool = False) -> np.ndarray:
+    def annotate(
+        self,
+        scene: np.ndarray,
+    ) -> np.ndarray:
         """
         Draws the object trajectory on the frame using the trace provided.
         Attributes:
@@ -429,7 +434,7 @@ class TrackAnnotator(BaseAnnotator):
             )
 
             if headx > self.boundry_tolerance and heady > self.boundry_tolerance:
-                if color_by_track:
+                if self.color_by_track:
                     idx = int(unique_id)
                 else:
                     idx = int(self.track_storage.storage[0, -2])
@@ -457,20 +462,24 @@ class PillowLabelAnnotator(BaseAnnotator):
         color: Union[Color, ColorPalette] = ColorPalette.default(),
         text_color: Color = Color.black(),
         text_padding: int = 20,
+        color_by_track: bool = False,
+        font: Optional[str] = None,
+        font_size: Optional[int] = 15,
     ):
-        self.font = ImageFont.load_default()
+        if font and os.path.exists(font):
+            self.font = ImageFont.truetype(font, font_size)
+        else:
+            self.font = ImageFont.load_default()
         self.color: Union[Color, ColorPalette] = color
         self.text_color: Color = text_color
         self.text_padding: int = text_padding
+        self.color_by_track = color_by_track
 
     def annotate(
         self,
         scene: np.ndarray,
         detections: Detections,
         labels: Optional[List[str]] = None,
-        color_by_track: bool = False,
-        font: Optional[str] = None,
-        font_size: Optional[int] = 15,
     ) -> np.ndarray:
         """
         Draws text on the frame using the detections provided and label.
@@ -479,7 +488,6 @@ class PillowLabelAnnotator(BaseAnnotator):
             scene (np.ndarray): The image on which the bounding boxes will be drawn
             detections (Detections): The detections for which the bounding boxes will be drawn
             labels (Optional[List[str]]): An optional list of labels corresponding to each detection. If `labels` are not provided, corresponding `class_id` will be used as label.
-            color_by_track (bool): If set then color will be chosen by tracker id if provided
         Returns:
             np.ndarray: The image with the bounding boxes drawn on it
 
@@ -501,20 +509,16 @@ class PillowLabelAnnotator(BaseAnnotator):
             ...     scene=image.copy(),
             ...     detections=detections,
             ...     labels=labels,
-            ...     font=FONT_FILE_PATH,
             ... )
             ```
         """
-        if font and os.path.exists(font):
-            self.font = ImageFont.truetype(font, font_size)
-
         pil_image = Image.fromarray(scene)
         draw = ImageDraw.Draw(pil_image)
         text_color = "#fff"
 
         for i in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[i].astype(int)
-            if color_by_track:
+            if self.color_by_track:
                 tracker_id = (
                     detections.tracker_id[i]
                     if detections.tracker_id is not None
@@ -573,15 +577,16 @@ class CorneredBoxAnotator(BaseAnnotator):
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
         thickness: int = 2,
+        color_by_track: bool = False,
     ):
         self.color: Union[Color, ColorPalette] = color
         self.thickness: int = thickness
+        self.color_by_track = color_by_track
 
     def annotate(
         self,
         scene: np.ndarray,
         detections: Detections,
-        color_by_track: bool = False,
     ):
         """
         Draws cornered bounding boxes on the frame using the detections provided.
@@ -608,7 +613,7 @@ class CorneredBoxAnotator(BaseAnnotator):
         line_thickness = self.thickness + 2
         for i in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[i].astype(int)
-            if color_by_track:
+            if self.color_by_track:
                 tracker_id = (
                     detections.tracker_id[i]
                     if detections.tracker_id is not None
@@ -658,7 +663,7 @@ class CorneredBoxAnotator(BaseAnnotator):
                 color.as_bgr(),
                 thickness=line_thickness,
             )
-            #
+
             cv2.line(
                 scene,
                 (x1, y1),

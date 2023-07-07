@@ -24,7 +24,6 @@ class ComposableAnnotator(ABC):
         scene: np.ndarray,
         detections: Detections,
         labels: Optional[List[str]] = None,
-        color_by_track: bool = False,
     ) -> np.ndarray:
         for annotator in self.annotators:
             if isinstance(annotator, LabelAnnotator):
@@ -32,14 +31,11 @@ class ComposableAnnotator(ABC):
                     scene=scene,
                     detections=detections,
                     labels=labels,
-                    color_by_track=color_by_track,
                 )
             elif isinstance(annotator, TrackAnnotator):
-                scene = annotator.annotate(scene=scene, color_by_track=color_by_track)
+                scene = annotator.annotate(scene=scene)
             else:
-                scene = annotator.annotate(
-                    scene=scene, detections=detections, color_by_track=color_by_track
-                )
+                scene = annotator.annotate(scene=scene, detections=detections)
         return scene
 
 
@@ -62,12 +58,15 @@ class DetectionAnnotator(ComposableAnnotator):
         ```
     """
 
-    def __init__(self):
+    def __init__(
+        self,
+        color_by_track: bool = False,
+        skip_label: bool = False,
+    ):
         super().__init__()
-        self.annotators = [
-            BoxAnnotator(),
-            LabelAnnotator(),
-        ]
+        self.annotators = [BoxAnnotator(color_by_track=color_by_track)]
+        if not skip_label:
+            self.annotators.append(LabelAnnotator(color_by_track=color_by_track))
 
 
 class SegmentationAnnotator(ComposableAnnotator):
@@ -89,13 +88,18 @@ class SegmentationAnnotator(ComposableAnnotator):
         ```
     """
 
-    def __init__(self):
+    def __init__(
+        self,
+        color_by_track: bool = False,
+        skip_label: bool = False,
+    ):
         super().__init__()
         self.annotators = [
-            BoxAnnotator(),
-            LabelAnnotator(),
-            MaskAnnotator(),
+            BoxAnnotator(color_by_track=color_by_track),
+            MaskAnnotator(color_by_track=color_by_track),
         ]
+        if not skip_label:
+            self.annotators.append(LabelAnnotator(color_by_track=color_by_track))
 
 
 class TrackedDetectionAnnotator(ComposableAnnotator):
@@ -118,10 +122,16 @@ class TrackedDetectionAnnotator(ComposableAnnotator):
        ```
     """
 
-    def __init__(self, tracks: TrackStorage):
+    def __init__(
+        self,
+        tracks: TrackStorage,
+        color_by_track: bool = False,
+        skip_label: bool = False,
+    ):
         super().__init__()
         self.annotators = [
-            BoxAnnotator(),
-            LabelAnnotator(),
-            TrackAnnotator(tracks=tracks),
+            BoxAnnotator(color_by_track=color_by_track),
+            TrackAnnotator(tracks=tracks, color_by_track=color_by_track),
         ]
+        if not skip_label:
+            self.annotators.append(LabelAnnotator(color_by_track=color_by_track))
