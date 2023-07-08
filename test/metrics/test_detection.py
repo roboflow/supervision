@@ -1,4 +1,5 @@
 from contextlib import ExitStack as DoesNotRaise
+from test.utils import dummy_detection_dataset_with_map_img_to_annotation
 from typing import Optional
 
 import numpy as np
@@ -41,13 +42,14 @@ IDEAL_MATCHES = np.stack(
     ],
     axis=1,
 )
+
 IDEAL_CONF_MATRIX = np.zeros((81, 81))
 for class_id, count in zip(*np.unique(PREDICTIONS[:, 5], return_counts=True)):
     class_id = int(class_id)
     IDEAL_CONF_MATRIX[class_id, class_id] = count
 
-classes = np.arange(80)
-num_classes = len(classes)
+CLASSES = np.arange(80)
+NUM_CLASSES = len(CLASSES)
 
 
 @pytest.mark.parametrize(
@@ -56,7 +58,7 @@ num_classes = len(classes)
         (
             [CERTAIN_DETECTIONS],
             [DETECTIONS],
-            classes,
+            CLASSES,
             0.3,
             0.5,
             IDEAL_CONF_MATRIX,
@@ -92,7 +94,7 @@ def test_from_detections(
         (
             CERTAIN_DETECTIONS,
             DETECTIONS,
-            num_classes,
+            NUM_CLASSES,
             0.3,
             0.5,
             IDEAL_CONF_MATRIX,
@@ -143,8 +145,33 @@ def test_drop_extra_matches(
         assert np.array_equal(result, expected_result)
 
 
-def test_benchmark():
-    ...
+@pytest.mark.parametrize(
+    "dataset, conf_threshold, iou_threshold, expected_result, exception",
+    [
+        (
+            dummy_detection_dataset_with_map_img_to_annotation(),
+            0.3,
+            0.5,
+            IDEAL_CONF_MATRIX,
+            DoesNotRaise(),
+        )
+    ],
+)
+def test_benchmark(dataset, conf_threshold, iou_threshold, expected_result, exception):
+    with exception:
+
+        def callback(img):
+            return dataset.map_img_to_annotation(img)
+
+        result = ConfusionMatrix.benchmark(
+            dataset=dataset,
+            callback=callback,
+            conf_threshold=conf_threshold,
+            iou_threshold=iou_threshold,
+        )
+
+        assert result.matrix.diagonal().sum() == result.matrix.sum()
+        assert np.array_equal(result, expected_result)
 
 
 def test_from_matrix():
