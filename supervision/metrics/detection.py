@@ -11,6 +11,15 @@ from supervision.detection.utils import box_iou_batch
 
 @dataclass
 class ConfusionMatrix:
+    """
+    Data class containing information about classification results in form of a confusion matrix.
+    Attributes:
+        matrix: An array of shape (len(classes) + 1, len(classes) + 1) containing the number of TP, FP, FN and TN for each class.
+        classes: all known class names.
+        conf_threshold: detection confidence threshold between 0 and 1. Detections with lower confidence will be excluded from the matrix.
+        iou_threshold: detection iou threshold between 0 and 1. Detections with lower iou will be classified as FP.
+    """
+
     matrix: np.ndarray
     classes: List[str]
     conf_threshold: float
