@@ -13,7 +13,6 @@ from supervision.detection.utils import box_iou_batch
 class ConfusionMatrix:
     matrix: np.ndarray
     classes: List[str]
-    num_classes: int
     conf_threshold: float
     iou_threshold: float
 
@@ -34,11 +33,12 @@ class ConfusionMatrix:
             conf_threshold:  detection confidence threshold between 0 and 1. Detections with lower confidence will be excluded.
             iou_threshold:  detection iou  threshold between 0 and 1. Detections with lower iou will be classified as FP.
         """
-        classes = classes if classes is not None else [str(x) for x in (range(len(matrix)))]
+        classes = (
+            classes if classes is not None else [str(x) for x in (range(len(matrix)))]
+        )
         return cls(
             matrix=matrix,
             classes=classes,
-            num_classes=len(classes),
             conf_threshold=conf_threshold,
             iou_threshold=iou_threshold,
         )
@@ -126,7 +126,6 @@ class ConfusionMatrix:
             )
         return cls(
             matrix=matrix,
-            num_classes=num_classes,
             classes=classes,
             conf_threshold=conf_threshold,
             iou_threshold=iou_threshold,
@@ -219,9 +218,6 @@ class ConfusionMatrix:
             callback: a function that takes an image as input and returns detections.
             conf_threshold: see ConfusionMatrix.from_detections.
             iou_threshold: see ConfusionMatrix.from_detections.
-
-        Returns:
-            ConfusionMatrix object.
         """
         predictions = []
         targets = []
@@ -259,8 +255,6 @@ class ConfusionMatrix:
 
         array = self.matrix.copy()
 
-        num_classes = self.num_classes + 1
-
         if normalize:
             eps = 1e-8
             array = array / (array.sum(0).reshape(1, -1) + eps)
@@ -287,15 +281,15 @@ class ConfusionMatrix:
             tick_interval = 2
         else:
             tick_interval = 1
-        ax.set_xticks(np.arange(0, num_classes, tick_interval), labels=x_tick_labels)
-        ax.set_yticks(np.arange(0, num_classes, tick_interval), labels=y_tick_labels)
+        ax.set_xticks(np.arange(0, num_ticks, tick_interval), labels=x_tick_labels)
+        ax.set_yticks(np.arange(0, num_ticks, tick_interval), labels=y_tick_labels)
 
         plt.setp(ax.get_xticklabels(), rotation=90, ha="right", rotation_mode="default")
 
-        labelsize = 10 if self.num_classes < 50 else 8
+        labelsize = 10 if num_ticks < 50 else 8
         ax.tick_params(axis="both", which="both", labelsize=labelsize)
 
-        if (num_classes) < 30:
+        if num_ticks < 30:
             for i in range(array.shape[0]):
                 for j in range(array.shape[1]):
                     ax.text(
