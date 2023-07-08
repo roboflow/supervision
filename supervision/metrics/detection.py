@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 from typing import Callable, List, Optional, Tuple
+import matplotlib
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib import rcParams
 
 import supervision as sv
 from supervision.detection.utils import box_iou_batch
@@ -235,28 +235,29 @@ class ConfusionMatrix:
 
     def plot(
         self,
-        save_path: str,
+        save_path: Optional[str] = None,
         title: Optional[str] = None,
         class_names: Optional[List[str]] = None,
-        normalize: bool = True,
+        do_normalize: bool = True,
         figsize: Tuple[int, int] = (12, 10),
-    ) -> None:
+    ) -> matplotlib.figure.Figure:
         """
         Create confusion matrix plot and save it at selected location.
 
         Args:
             save_path: save location of confusion matrix plot.
             title: title displayed at the top of the confusion matrix plot. Default `None`.
-            class_names: list of class names detected my model. If non given class indexes will be used. Default `None`.
-            normalize: chart will display absolute number of detections falling into given category. Otherwise percentage of detections will be displayed.
+            class_names: custom classes to be displayed on the plot. If not provided, original classes will be used.
+            do_normalize: chart will display fraction of detections in a given class instead of absolute numbers.
+            figsize: size of the plot.
         """
 
-        rcParams["font.family"] = "sans-serif"
-        rcParams["font.sans-serif"] = ["Verdana"]
+        matplotlib.rcParams["font.family"] = "sans-serif"
+        matplotlib.rcParams["font.sans-serif"] = ["Verdana"]
 
         array = self.matrix.copy()
 
-        if normalize:
+        if do_normalize:
             eps = 1e-8
             array = array / (array.sum(0).reshape(1, -1) + eps)
 
@@ -264,6 +265,7 @@ class ConfusionMatrix:
 
         fig, ax = plt.subplots(figsize=figsize, tight_layout=True, facecolor="white")
 
+        class_names = class_names if class_names is not None else self.classes
         use_labels_for_ticks = class_names is not None and (0 < len(class_names) < 99)
         if use_labels_for_ticks:
             x_tick_labels = class_names + ["FN"]
@@ -296,7 +298,7 @@ class ConfusionMatrix:
                     ax.text(
                         j,
                         i,
-                        f"{array[i, j]:.2f}" if normalize else f"{array[i, j]:.0f}",
+                        f"{array[i, j]:.2f}" if do_normalize else f"{array[i, j]:.0f}",
                         ha="center",
                         va="center",
                         color="white",
@@ -308,4 +310,6 @@ class ConfusionMatrix:
         ax.set_xlabel("Predicted")
         ax.set_ylabel("True")
         ax.set_facecolor("white")
-        fig.savefig(save_path, dpi=250, facecolor=fig.get_facecolor(), transparent=True)
+        if save_path:
+            fig.savefig(save_path, dpi=250, facecolor=fig.get_facecolor(), transparent=True)
+        return fig
