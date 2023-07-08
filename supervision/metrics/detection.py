@@ -269,13 +269,15 @@ class ConfusionMatrix:
 
         fig, ax = plt.subplots(figsize=figsize, tight_layout=True, facecolor="white")
 
-        labels = (
-            class_names is not None
-            and (0 < len(class_names) < 99)
-            and len(class_names) == self.num_classes
-        )
-        x_tick_labels = class_names + ["FN"] if labels else None
-        y_tick_labels = class_names + ["FP"] if labels else None
+        use_labels_for_ticks = class_names is not None and (0 < len(class_names) < 99)
+        if use_labels_for_ticks:
+            x_tick_labels = class_names + ["FN"]
+            y_tick_labels = class_names + ["FP"]
+            num_ticks = len(x_tick_labels)
+        else:
+            x_tick_labels = None
+            y_tick_labels = None
+            num_ticks = len(array)
         im = ax.imshow(array, cmap="Blues")
 
         cbar = ax.figure.colorbar(im, ax=ax)
