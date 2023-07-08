@@ -8,6 +8,9 @@ import pytest
 from supervision import Detections
 from supervision.metrics.detection import ConfusionMatrix
 
+CLASSES = np.arange(80)
+NUM_CLASSES = len(CLASSES)
+
 PREDICTIONS = np.array(
     [
         [2254, 906, 2447, 1353, 0.90538, 0],
@@ -43,13 +46,30 @@ IDEAL_MATCHES = np.stack(
     axis=1,
 )
 
-IDEAL_CONF_MATRIX = np.zeros((81, 81))
-for class_id, count in zip(*np.unique(PREDICTIONS[:, 5], return_counts=True)):
-    class_id = int(class_id)
-    IDEAL_CONF_MATRIX[class_id, class_id] = count
 
-CLASSES = np.arange(80)
-NUM_CLASSES = len(CLASSES)
+def create_empty_conf_matrix(num_classes: int, do_add_dummy_class: bool = True):
+    if do_add_dummy_class:
+        num_classes += 1
+    return np.zeros((num_classes, num_classes))
+
+
+def update_ideal_conf_matrix(conf_matrix: np.ndarray, class_ids: np.ndarray):
+    for class_id, count in zip(*np.unique(class_ids, return_counts=True)):
+        class_id = int(class_id)
+        conf_matrix[class_id, class_id] += count
+    return conf_matrix
+
+
+IDEAL_CONF_MATRIX = create_empty_conf_matrix(NUM_CLASSES)
+IDEAL_CONF_MATRIX = update_ideal_conf_matrix(IDEAL_CONF_MATRIX, PREDICTIONS[:, 5])
+
+
+DUMMY_DET_DATASET = dummy_detection_dataset_with_map_img_to_annotation()
+DUMMY_DET_IDEAL_CONF_MATRIX = create_empty_conf_matrix(len(DUMMY_DET_DATASET.classes))
+for det in DUMMY_DET_DATASET.annotations.values():
+    DUMMY_DET_IDEAL_CONF_MATRIX = update_ideal_conf_matrix(
+        DUMMY_DET_IDEAL_CONF_MATRIX, det.class_id
+    )
 
 
 @pytest.mark.parametrize(
@@ -149,10 +169,10 @@ def test_drop_extra_matches(
     "dataset, conf_threshold, iou_threshold, expected_result, exception",
     [
         (
-            dummy_detection_dataset_with_map_img_to_annotation(),
+            DUMMY_DET_DATASET,
             0.3,
             0.5,
-            IDEAL_CONF_MATRIX,
+            DUMMY_DET_IDEAL_CONF_MATRIX,
             DoesNotRaise(),
         )
     ],
@@ -171,7 +191,7 @@ def test_benchmark(dataset, conf_threshold, iou_threshold, expected_result, exce
         )
 
         assert result.matrix.diagonal().sum() == result.matrix.sum()
-        assert np.array_equal(result, expected_result)
+        assert np.array_equal(result.matrix, expected_result)
 
 
 def test_from_matrix():
