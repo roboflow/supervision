@@ -111,6 +111,7 @@ class ConfusionMatrix:
         ...     [1., 1., 0., 0.]
         ... ])
         ```
+        Source: https://github.com/SkalskiP/onemetric/blob/master/onemetric/cv/object_detection/confusion_matrix.py
         """
         # TODO: add validation for inputs
 
