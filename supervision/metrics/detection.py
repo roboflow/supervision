@@ -320,5 +320,7 @@ class ConfusionMatrix:
         ax.set_ylabel("True")
         ax.set_facecolor("white")
         if save_path:
-            fig.savefig(save_path, dpi=250, facecolor=fig.get_facecolor(), transparent=True)
+            fig.savefig(
+                save_path, dpi=250, facecolor=fig.get_facecolor(), transparent=True
+            )
         return fig
