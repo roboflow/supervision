@@ -357,9 +357,9 @@ class Detections:
     @classmethod
     def from_paddledet(cls, paddledet_result):
         return cls(
-            xyxy=paddledet_result[:, 2:6],
-            confidence=paddledet_result[:, 1],
-            class_id=paddledet_result[:, 0].astype(int),
+            xyxy=paddledet_result["bbox"][:, 2:6],
+            confidence=paddledet_result["bbox"][:, 1],
+            class_id=paddledet_result["bbox"][:, 0].astype(int),
         )
 
     @classmethod
