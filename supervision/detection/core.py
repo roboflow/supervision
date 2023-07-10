@@ -355,6 +355,14 @@ class Detections:
         return Detections(xyxy=xywh_to_xyxy(boxes_xywh=xywh), mask=mask)
 
     @classmethod
+    def from_paddledet(cls, paddledet_result):
+        return cls(
+            xyxy=paddledet_result[:, 2:6],
+            confidence=paddledet_result[:, 1],
+            class_id=paddledet_result[:, 0].astype(int),
+        )
+
+    @classmethod
     def empty(cls) -> Detections:
         """
         Create an empty Detections object with no bounding boxes, confidences, or class IDs.
