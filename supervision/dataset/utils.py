@@ -83,9 +83,11 @@ def map_detections_class_id(
         )
 
     detections_copy = copy.deepcopy(detections)
-    detections_copy.class_id = np.vectorize(source_to_target_mapping.get)(
-        detections_copy.class_id
-    )
+
+    if len(detections) > 0:
+        detections_copy.class_id = np.vectorize(source_to_target_mapping.get)(
+            detections_copy.class_id
+        )
 
     return detections_copy
 
