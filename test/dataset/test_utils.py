@@ -205,6 +205,12 @@ def test_build_class_index_mapping(
             DoesNotRaise()
         ),  # single mapping
         (
+                {0: 1, 1: 2},
+                Detections.empty(),
+                Detections.empty(),
+                DoesNotRaise()
+        ),  # empty detections
+        (
             {0: 1, 1: 2},
             mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[0]),
             mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[1]),
