@@ -16,17 +16,32 @@ jobs:
         with:
           ref: ${{ github.head_ref }}
       - name: 🐍 Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
       - name: 🦾 Install dependencies
         run: |
+          python -m pip install --upgrade virtualenv
           python -m pip install --upgrade pip
-          pip install ".[dev]"
-      - name: 🚀 Publish to PyPi
-        env: 
-          PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
-          PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-          PYPI_TEST_PASSWORD: ${{ secrets.PYPI_TEST_PASSWORD }}
+          virtualenv venv
+          source venv/bin/activate
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade poetry
+          poetry install
+
+      - name:  🏗️ Build source and wheel distributions
         run: |
-          make publish -e PYPI_USERNAME=$PYPI_USERNAME -e PYPI_PASSWORD=$PYPI_PASSWORD -e PYPI_TEST_PASSWORD=$PYPI_TEST_PASSWORD
+          python -m pip install --upgrade build twine
+          python -m build
+          twine check --strict dist/*
+      - name: 🚀 Publish to PyPi
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: ${{ secrets.PYPI_USERNAME }}
+          password: ${{ secrets.PYPI_PASSWORD }}
+      - name: 🚀 Publish to Test-PyPi
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          user: ${{ secrets.PYPI_USERNAME }}
+          password: ${{ secrets.PYPI_TEST_PASSWORD }}
