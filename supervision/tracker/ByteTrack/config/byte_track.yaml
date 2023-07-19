@@ -1,0 +1,5 @@
+byte_track:
+  track_thresh: 0.45
+  track_buffer: 25
+  match_thresh: 0.8 
+  frame_rate: 30
