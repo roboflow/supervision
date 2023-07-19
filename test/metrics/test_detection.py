@@ -37,6 +37,25 @@ CERTAIN_DETECTIONS = Detections(
     class_id=PREDICTIONS[:, 5].astype(int),
 )
 
+DETECTION_TENSORS = [
+    np.concatenate(
+        [
+            det.xyxy,
+            np.expand_dims(det.class_id, 1),
+            np.expand_dims(det.confidence, 1),
+        ],
+        axis=1,
+    )
+    for det in [DETECTIONS]
+]
+CERTAIN_DETECTION_TENSORS = [
+    np.concatenate(
+        [det.xyxy, np.expand_dims(det.class_id, 1)],
+        axis=1,
+    )
+    for det in [CERTAIN_DETECTIONS]
+]
+
 IDEAL_MATCHES = np.stack(
     [
         np.arange(len(PREDICTIONS)),
@@ -109,11 +128,47 @@ def test_from_detections(
 
 
 @pytest.mark.parametrize(
+    "predictions, targets, classes, conf_threshold, iou_threshold, expected_result, exception",
+    [
+        (
+            DETECTION_TENSORS,
+            CERTAIN_DETECTION_TENSORS,
+            CLASSES,
+            0.3,
+            0.5,
+            IDEAL_CONF_MATRIX,
+            DoesNotRaise(),
+        )
+    ],
+)
+def test_from_tensors(
+    predictions,
+    targets,
+    classes,
+    conf_threshold,
+    iou_threshold,
+    expected_result: Optional[np.ndarray],
+    exception: Exception,
+):
+    with exception:
+        result = ConfusionMatrix.from_tensors(
+            predictions=predictions,
+            targets=targets,
+            classes=classes,
+            conf_threshold=conf_threshold,
+            iou_threshold=iou_threshold,
+        )
+
+        assert result.matrix.diagonal().sum() == result.matrix.sum()
+        assert np.array_equal(result.matrix, expected_result)
+
+
+@pytest.mark.parametrize(
     "predictions, targets, num_classes, conf_threshold, iou_threshold, expected_result, exception",
     [
         (
-            CERTAIN_DETECTIONS,
-            DETECTIONS,
+            DETECTION_TENSORS[0],
+            CERTAIN_DETECTION_TENSORS[0],
             NUM_CLASSES,
             0.3,
             0.5,
