@@ -119,8 +119,8 @@ class ConfusionMatrix:
                 )
             )
         return cls.from_tensors(
-            predictions=predictions,
-            targets=targets,
+            predictions=prediction_tensors,
+            targets=target_tensors,
             classes=classes,
             conf_threshold=conf_threshold,
             iou_threshold=iou_threshold,
@@ -212,8 +212,8 @@ class ConfusionMatrix:
 
     @staticmethod
     def _evaluate_detection_batch(
-        true_detections: Detections,
-        pred_detections: Detections,
+        true_detections: np.ndarray,
+        pred_detections: np.ndarray,
         num_classes: int,
         conf_threshold: float,
         iou_threshold: float,
@@ -228,13 +228,16 @@ class ConfusionMatrix:
             confusion matrix based on a single image.
         """
         result_matrix = np.zeros((num_classes + 1, num_classes + 1))
+        conf_idx = 5
+        confidence = pred_detections[:, conf_idx]
         detection_batch_filtered = pred_detections[
-            pred_detections.confidence > conf_threshold
+            confidence > conf_threshold
         ]
-        true_classes = true_detections.class_id
-        detection_classes = detection_batch_filtered.class_id
-        true_boxes = true_detections.xyxy
-        detection_boxes = detection_batch_filtered.xyxy
+        class_id_idx = 4
+        true_classes = np.array(true_detections[:, class_id_idx], dtype=np.int16)
+        detection_classes = np.array(detection_batch_filtered[:, class_id_idx], dtype=np.int16)
+        true_boxes = true_detections[:, :class_id_idx]
+        detection_boxes = detection_batch_filtered[:, :class_id_idx]
 
         iou_batch = box_iou_batch(
             boxes_true=true_boxes, boxes_detection=detection_boxes
