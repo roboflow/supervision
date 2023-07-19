@@ -264,9 +264,6 @@ class ConfusionMatrix:
             figsize: size of the plot.
         """
 
-        matplotlib.rcParams["font.family"] = "sans-serif"
-        matplotlib.rcParams["font.sans-serif"] = ["Verdana"]
-
         array = self.matrix.copy()
 
         if do_normalize:
