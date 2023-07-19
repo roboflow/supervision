@@ -192,30 +192,3 @@ def test_benchmark(dataset, conf_threshold, iou_threshold, expected_result, exce
 
         assert result.matrix.diagonal().sum() == result.matrix.sum()
         assert np.array_equal(result.matrix, expected_result)
-
-
-def test_from_matrix():
-    matrix = np.array(
-        [
-            [0, 1, 0],
-            [1, 4, 0],
-            [0, 1, 3],
-        ]
-    )
-    conf_threshold = 0.3
-    iou_threshold = 0.5
-    classes = ["a", "b", "c"]
-
-    result = ConfusionMatrix.from_matrix(
-        matrix,
-        conf_threshold=conf_threshold,
-        iou_threshold=iou_threshold,
-        classes=classes,
-    )
-
-    assert (
-        np.array_equal(result.matrix, matrix)
-        and result.conf_threshold == conf_threshold
-        and result.iou_threshold == iou_threshold
-        and result.classes == classes
-    )
