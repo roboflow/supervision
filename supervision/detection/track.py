@@ -38,19 +38,12 @@ class TrackStorage:
 
     def update(self, frame_counter: int, detections: Detections) -> None:
         if detections.xyxy.shape[0] > 0:
-            xyxy = detections.xyxy
+            xy = detections.get_anchor_coordinates(anchor=self.position)
 
-            if self.position == Position.CENTER:
-                x = (xyxy[:, 0] + xyxy[:, 2]) / 2
-                y = (xyxy[:, 1] + xyxy[:, 3]) / 2
-            elif self.position == Position.BOTTOM_CENTER:
-                x = (xyxy[:, 0] + xyxy[:, 2]) / 2
-                y = xyxy[:, 3]
-
-            new_detections = np.zeros(shape=(xyxy.shape[0], 5))
+            new_detections = np.zeros(shape=(xy.shape[0], 5))
             new_detections[:, 0] = frame_counter
-            new_detections[:, 1] = x
-            new_detections[:, 2] = y
+            new_detections[:, 1] = xy[:, 0]
+            new_detections[:, 2] = xy[:, 1]
             new_detections[:, 3] = detections.class_id
             new_detections[:, 4] = detections.tracker_id
             self.storage = np.append(self.storage, new_detections, axis=0)

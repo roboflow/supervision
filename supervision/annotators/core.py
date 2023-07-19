@@ -33,10 +33,7 @@ class BoxAnnotator(BaseAnnotator):
         self.color_by_track = color_by_track
 
     def annotate(
-        self,
-        scene: np.ndarray,
-        detections: Detections,
-        **kwargs
+        self, scene: np.ndarray, detections: Detections, **kwargs
     ) -> np.ndarray:
         """
         Draws bounding boxes on the frame using the detections provided.
@@ -113,10 +110,7 @@ class MaskAnnotator(BaseAnnotator):
         self.color_by_track = color_by_track
 
     def annotate(
-        self,
-        scene: np.ndarray,
-        detections: Detections,
-        **kwargs
+        self, scene: np.ndarray, detections: Detections, **kwargs
     ) -> np.ndarray:
         """
         Overlays the masks on the given image based on the provided detections, with a specified opacity.
