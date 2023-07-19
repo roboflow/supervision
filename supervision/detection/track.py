@@ -1,3 +1,5 @@
+from typing import Optional, Tuple
+
 import numpy as np
 
 from supervision.detection.core import Detections
@@ -34,28 +36,51 @@ class TrackStorage:
         self.position = position
         self.max_length = max_length
         self.frame_counter = 0
-        self.storage = np.zeros((0, 5))
+
+        self.xy = np.zeros((0, 2))
+        self.confidence = np.zeros(0)
+        self.class_id = np.zeros(0)
+        self.tracker_id = np.zeros(0)
+        self.frame_id = np.zeros(0)
 
     def update(self, frame_counter: int, detections: Detections) -> None:
-        if detections.xyxy.shape[0] > 0:
+        n_dets = detections.xyxy.shape[0]
+        if n_dets > 0 and detections.tracker_id.shape[0] > 0:
             xy = detections.get_anchor_coordinates(anchor=self.position)
 
-            new_detections = np.zeros(shape=(xy.shape[0], 5))
-            new_detections[:, 0] = frame_counter
-            new_detections[:, 1] = xy[:, 0]
-            new_detections[:, 2] = xy[:, 1]
-            new_detections[:, 3] = detections.class_id
-            new_detections[:, 4] = detections.tracker_id
-            self.storage = np.append(self.storage, new_detections, axis=0)
+            self.tracker_id = np.append(self.tracker_id, detections.tracker_id, axis=0)
+
+            self.xy = np.append(self.xy, xy, axis=0)
+            if detections.class_id is not None:
+                self.class_id = np.append(self.class_id, detections.class_id, axis=0)
+            if detections.confidence is not None:
+                self.confidence = np.append(
+                    self.confidence, detections.confidence, axis=0
+                )
+            self.frame_id = np.append(
+                self.frame_id, np.full((n_dets), fill_value=frame_counter), axis=0
+            )
             self.frame_counter = frame_counter
             self._remove_lost(tracker_ids=detections.tracker_id)
         self._remove_previous()
 
     def _remove_previous(self) -> None:
         to_remove_frames = self.frame_counter - self.max_length
-        if self.storage.shape[0] > 0:
-            self.storage = self.storage[self.storage[:, 0] > to_remove_frames]
+        if self.frame_id.shape[0] > 0:
+            valid = self.frame_id > to_remove_frames
+            self._remove(valid)
 
     def _remove_lost(self, tracker_ids) -> None:
-        if self.storage.shape[0] > 0:
-            self.storage = self.storage[np.isin(self.storage[:, -1], tracker_ids)]
+        if self.tracker_id.shape[0] > 0:
+            valid = np.isin(self.tracker_id, tracker_ids)
+            self._remove(valid)
+
+    def _remove(self, valid: Optional[Tuple]) -> None:
+        if valid.size > 0:
+            self.xy = self.xy[valid]
+            self.frame_id = self.frame_id[valid]
+            self.tracker_id = self.tracker_id[valid]
+            if self.confidence.shape[0] > 0:
+                self.confidence = self.confidence[valid]
+            if self.class_id.shape[0] > 0:
+                self.class_id = self.class_id[valid]

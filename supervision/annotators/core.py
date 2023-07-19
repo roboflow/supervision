@@ -416,13 +416,14 @@ class TrackAnnotator(BaseAnnotator):
             >>>     track_annotator.annotate(scene)
         """
         img_h, img_w, _ = scene.shape
-        unique_ids = np.unique(self.track_storage.storage[:, -1])
+        unique_ids = np.unique(self.track_storage.tracker_id)
         for unique_id in unique_ids:
-            valid = np.where(self.track_storage.storage[:, -1] == unique_id)[0]
-
-            frames = self.track_storage.storage[valid, 0]
+            valid = np.where(self.track_storage.tracker_id == unique_id)[0]
+            if valid.shape[0] == 0:
+                continue
+            frames = self.track_storage.frame_id[valid]
             latest_frame = np.argmax(frames)
-            points_to_draw = self.track_storage.storage[valid, 1:3]
+            points_to_draw = self.track_storage.xy[valid]
 
             n_pts = points_to_draw.shape[0]
             headx, heady = int(points_to_draw[latest_frame][0]), int(
@@ -430,10 +431,12 @@ class TrackAnnotator(BaseAnnotator):
             )
 
             if headx > self.boundry_tolerance and heady > self.boundry_tolerance:
-                if self.color_by_track:
+                idx = None
+                if not self.color_by_track and self.track_storage.class_id.shape[0] > 0:
+                    class_id = self.track_storage.class_id[valid][0]
+                    idx = int(class_id)
+                if self.color_by_track or idx is None:
                     idx = int(unique_id)
-                else:
-                    idx = int(self.track_storage.storage[0, -2])
                 color = (
                     self.color.by_idx(idx)
                     if isinstance(self.color, ColorPalette)
