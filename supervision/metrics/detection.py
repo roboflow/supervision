@@ -84,7 +84,100 @@ class ConfusionMatrix:
 
         >>> confusion_matrix = ConfusionMatrix.from_detections(
         ...     predictions=predictions,
-        ...     target=target,
+        ...     targets=target,
+        ...     num_classes=3
+        ... )
+
+        >>> confusion_matrix.matrix
+        ... array([
+        ...     [0., 0., 0., 0.],
+        ...     [0., 1., 0., 1.],
+        ...     [0., 1., 1., 0.],
+        ...     [1., 1., 0., 0.]
+        ... ])
+        ```
+        Source: https://github.com/SkalskiP/onemetric/blob/master/onemetric/cv/object_detection/confusion_matrix.py
+        """
+        # TODO: add validation for inputs
+
+        prediction_tensors = []
+        target_tensors = []
+        for prediction, target in zip(predictions, targets):
+            prediction_tensors.append(
+                np.concatenate(
+                    [
+                        prediction.xyxy,
+                        np.expand_dims(prediction.class_id, 1),
+                        np.expand_dims(prediction.confidence, 1),
+                    ],
+                    axis=1,
+                )
+            )
+            target_tensors.append(
+                np.concatenate(
+                    [target.xyxy, np.expand_dims(target.class_id, 1)], axis=1
+                )
+            )
+        return cls.from_tensors(
+            predictions=predictions,
+            targets=targets,
+            classes=classes,
+            conf_threshold=conf_threshold,
+            iou_threshold=iou_threshold,
+        )
+
+    @classmethod
+    def from_tensors(
+        cls,
+        predictions: List[np.ndarray],
+        targets: List[np.ndarray],
+        classes: List[str],
+        conf_threshold: float = 0.3,
+        iou_threshold: float = 0.5,
+    ) -> ConfusionMatrix:
+        """
+        Calculate confusion matrix based on predicted and ground-truth detections.
+
+        Args:
+            predictions: detected objects. Each element of the list describes a single image and has shape = (M, 6) where M is the number of detected objects. Each row is expected to be in (x_min, y_min, x_max, y_max, class, conf) format.
+            target: ground-truth objects. Each element of the list describes a single image and has shape = (N, 5) where N is the number of ground-truth objects. Each row is expected to be in (x_min, y_min, x_max, y_max, class) format.
+            classes:  all known classes.
+            conf_threshold:  detection confidence threshold between 0 and 1. Detections with lower confidence will be excluded.
+            iou_threshold:  detection iou  threshold between 0 and 1. Detections with lower iou will be classified as FP.
+
+
+        Example:
+        ```
+        >>> from supervision.metrics.detection import ConfusionMatrix
+
+        >>> target = (
+        ...     [
+        ...         array(
+        ...             [
+        ...                 [0.0, 0.0, 3.0, 3.0, 1],
+        ...                 [2.0, 2.0, 5.0, 5.0, 1],
+        ...                 [6.0, 1.0, 8.0, 3.0, 2],
+        ...             ]
+        ...         ),
+        ...         array([1.0, 1.0, 2.0, 2.0, 2]),
+        ...     ]
+        ... )
+        ...
+        >>> predictions = [
+        ...     array(
+        ...         [
+        ...             [0.0, 0.0, 3.0, 3.0, 1, 0.9],
+        ...             [0.1, 0.1, 3.0, 3.0, 0, 0.9],
+        ...             [6.0, 1.0, 8.0, 3.0, 1, 0.8],
+        ...             [1.0, 6.0, 2.0, 7.0, 1, 0.8],
+        ...         ]
+        ...     ),
+        ...     array([[1.0, 1.0, 2.0, 2.0, 2, 0.8]])
+        ... ]
+
+        >>> confusion_matrix = ConfusionMatrix.from_tensors(
+        ...     predictions=predictions,
+        ...     targets=targets,
         ...     num_classes=3
         ... )
 
