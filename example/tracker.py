@@ -53,7 +53,7 @@ def match_detections_with_tracks(
 model = YOLO('yolov5s.pt')
 CLASS_NAMES_DICT  = model.model.names
 SOURCE_VIDEO_PATH = "walking.mp4"
-TARGET_VIDEO_PATH = f"walking_out.mp4"
+TARGET_VIDEO_PATH = "walking_out.mp4"
 @dataclass(frozen=True)
 class BYTETrackerArgs:
     track_thresh: float = 0.25
@@ -76,6 +76,7 @@ generator = get_video_frames_generator(SOURCE_VIDEO_PATH)
 with VideoSink(TARGET_VIDEO_PATH, video_info) as sink:
     # loop over video frames
     for frame in tqdm(generator, total=video_info.total_frames):
+        # inference
         results = model(frame)
         detections = Detections(
             xyxy=results[0].boxes.xyxy.cpu().numpy(),
@@ -83,6 +84,7 @@ with VideoSink(TARGET_VIDEO_PATH, video_info) as sink:
             class_id=results[0].boxes.cls.cpu().numpy().astype(int)
         )
 
+        # update tracker
         tracks = byte_tracker.update(
             output_results=detections2boxes(detections=detections),
             img_info=frame.shape,
@@ -100,5 +102,6 @@ with VideoSink(TARGET_VIDEO_PATH, video_info) as sink:
                 tracker_id = res[4]
                 frame_text = f"#{tracker_id} {CLASS_NAMES_DICT[class_id]} {confidence:0.2f}"
                 frame_text_list.append(frame_text)
+        # draw bbox and add class name with track id
         frame = annotator.annotate(scene=frame, detections=detections, labels=frame_text_list)
         sink.write_frame(frame)
