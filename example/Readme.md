@@ -1,6 +1,6 @@
 # Examples
 
-This repository also includes example code that demonstrates the usage of the computer vision library. Each example is located in a separate folder under the "examples" directory. You can find the installation instructions and usage details for each example in their respective README files.
+This repository also includes example code that demonstrates the usage of the computer vision library. Each example is located in a separate file under the "examples" directory. You can find the installation instructions and usage details for each example in README file.
 
 ## Example 1: Object Tracking with Byte Track
 
