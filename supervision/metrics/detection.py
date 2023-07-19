@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Callable, List, Optional, Tuple
-import matplotlib
 
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -32,7 +34,7 @@ class ConfusionMatrix:
         conf_threshold: float,
         iou_threshold: float,
         classes: Optional[List[str]],
-    ) -> "ConfusionMatrix":
+    ) -> ConfusionMatrix:
         """
         Create ConfusionMatrix from matrix.
 
@@ -60,7 +62,7 @@ class ConfusionMatrix:
         classes: List[str],
         conf_threshold: float = 0.3,
         iou_threshold: float = 0.5,
-    ) -> "ConfusionMatrix":
+    ) -> ConfusionMatrix:
         """
         Calculate confusion matrix based on predicted and ground-truth detections.
 
@@ -219,7 +221,7 @@ class ConfusionMatrix:
         callback: Callable[[np.ndarray], sv.Detections],
         conf_threshold: float = 0.3,
         iou_threshold: float = 0.5,
-    ) -> "ConfusionMatrix":
+    ) -> ConfusionMatrix:
         """
         Create confusion matrix from dataset and callback function.
 
