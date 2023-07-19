@@ -2,7 +2,8 @@ from typing import Dict, List
 
 import numpy as np
 
-from supervision import DetectionDataset, Detections
+from supervision.detection.core import Detections
+from supervision.dataset.core import DetectionDataset
 
 
 def mock_detections(
@@ -60,9 +61,6 @@ def dummy_detection_dataset():
 
 def dummy_detection_dataset_with_map_img_to_annotation():
     dataset = dummy_detection_dataset()
-    # dataset.img2ann = {
-    #     tuple(img): dataset.annotations[img_key] for img_key, img in dataset.images.items()
-    # }
     dataset.map_img_to_annotation = lambda img: dataset.annotations[
         [k for k, v in dataset.images.items() if np.array_equal(v, img)][0]
     ]

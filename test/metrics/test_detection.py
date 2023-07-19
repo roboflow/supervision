@@ -5,7 +5,7 @@ from typing import Optional
 import numpy as np
 import pytest
 
-from supervision import Detections
+from supervision.detection.core import Detections
 from supervision.metrics.detection import ConfusionMatrix
 
 CLASSES = np.arange(80)

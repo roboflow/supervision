@@ -7,7 +7,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 
-import supervision as sv
+from supervision.dataset.core import DetectionDataset
+from supervision.detection.core import Detections
 from supervision.detection.utils import box_iou_batch
 
 
@@ -57,8 +58,8 @@ class ConfusionMatrix:
     @classmethod
     def from_detections(
         cls,
-        predictions: List[sv.Detections],
-        targets: List[sv.Detections],
+        predictions: List[Detections],
+        targets: List[Detections],
         classes: List[str],
         conf_threshold: float = 0.3,
         iou_threshold: float = 0.5,
@@ -67,7 +68,7 @@ class ConfusionMatrix:
         Calculate confusion matrix based on predicted and ground-truth detections.
 
         Args:
-            target: Detections objects from ground-truth.
+            targets: Detections objects from ground-truth.
             predictions: Detections objects predicted by the model.
             classes:  all known classes.
             conf_threshold:  detection confidence threshold between 0 and 1. Detections with lower confidence will be excluded.
@@ -145,8 +146,8 @@ class ConfusionMatrix:
 
     @staticmethod
     def _evaluate_detection_batch(
-        true_detections: sv.Detections,
-        pred_detections: sv.Detections,
+        true_detections: Detections,
+        pred_detections: Detections,
         num_classes: int,
         conf_threshold: float,
         iou_threshold: float,
@@ -217,8 +218,8 @@ class ConfusionMatrix:
     @classmethod
     def benchmark(
         cls,
-        dataset: sv.DetectionDataset,
-        callback: Callable[[np.ndarray], sv.Detections],
+        dataset: DetectionDataset,
+        callback: Callable[[np.ndarray], Detections],
         conf_threshold: float = 0.3,
         iou_threshold: float = 0.5,
     ) -> ConfusionMatrix:
