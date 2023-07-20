@@ -228,9 +228,11 @@ class ConfusionMatrix:
             confusion matrix based on a single image.
         """
         result_matrix = np.zeros((num_classes + 1, num_classes + 1))
+
         conf_idx = 5
         confidence = pred_detections[:, conf_idx]
         detection_batch_filtered = pred_detections[confidence > conf_threshold]
+
         class_id_idx = 4
         true_classes = np.array(true_detections[:, class_id_idx], dtype=np.int16)
         detection_classes = np.array(
@@ -373,14 +375,18 @@ class ConfusionMatrix:
         if num_ticks < 30:
             for i in range(array.shape[0]):
                 for j in range(array.shape[1]):
-                    ax.text(
-                        j,
-                        i,
-                        f"{array[i, j]:.2f}" if do_normalize else f"{array[i, j]:.0f}",
-                        ha="center",
-                        va="center",
-                        color="white",
-                    )
+                    n_preds = array[i, j]
+                    if not np.isnan(n_preds):
+                        ax.text(
+                            j,
+                            i,
+                            f"{n_preds:.2f}" if do_normalize else f"{n_preds:.0f}",
+                            ha="center",
+                            va="center",
+                            color="black"
+                            if n_preds < 0.5 * np.nanmax(array)
+                            else "white",
+                        )
 
         if title:
             ax.set_title(title, fontsize=20)
