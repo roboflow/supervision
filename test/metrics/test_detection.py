@@ -138,7 +138,16 @@ def test_from_detections(
             0.5,
             IDEAL_CONF_MATRIX,
             DoesNotRaise(),
-        )
+        ),
+        (
+            [],
+            [],
+            CLASSES,
+            0.2,
+            0.5,
+            create_empty_conf_matrix(NUM_CLASSES),
+            DoesNotRaise(),
+        ),
     ],
 )
 def test_from_tensors(
