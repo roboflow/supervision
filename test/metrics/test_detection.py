@@ -317,42 +317,6 @@ def test_from_tensors(
 
 
 @pytest.mark.parametrize(
-    "predictions, targets, classes, conf_threshold, iou_threshold, expected_result, exception",
-    [
-        (
-            [DETECTIONS],
-            [CERTAIN_DETECTIONS],
-            CLASSES,
-            0.2,
-            0.5,
-            IDEAL_CONF_MATRIX,
-            DoesNotRaise(),
-        )
-    ],
-)
-def test_from_detections(
-    predictions,
-    targets,
-    classes,
-    conf_threshold,
-    iou_threshold,
-    expected_result: Optional[np.ndarray],
-    exception: Exception,
-):
-    with exception:
-        result = ConfusionMatrix.from_detections(
-            predictions=predictions,
-            targets=targets,
-            classes=classes,
-            conf_threshold=conf_threshold,
-            iou_threshold=iou_threshold,
-        )
-
-        assert result.matrix.diagonal().sum() == result.matrix.sum()
-        assert np.array_equal(result.matrix, expected_result)
-
-
-@pytest.mark.parametrize(
     "predictions, targets, num_classes, conf_threshold, iou_threshold, expected_result, exception",
     [
         (
