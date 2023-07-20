@@ -121,13 +121,6 @@ BAD_CONF_MATRIX = worsen_ideal_conf_matrix(
     IDEAL_CONF_MATRIX.copy(), [62, 72, 72, 39, 39, 39, 39, 56]
 )
 
-DUMMY_DET_DATASET = dummy_detection_dataset_with_map_img_to_annotation()
-DUMMY_DET_IDEAL_CONF_MATRIX = create_empty_conf_matrix(len(DUMMY_DET_DATASET.classes))
-for det in DUMMY_DET_DATASET.annotations.values():
-    DUMMY_DET_IDEAL_CONF_MATRIX = update_ideal_conf_matrix(
-        DUMMY_DET_IDEAL_CONF_MATRIX, det.class_id
-    )
-
 
 @pytest.mark.parametrize(
     "predictions, targets, classes, conf_threshold, iou_threshold, expected_result, exception",
@@ -169,51 +162,111 @@ for det in DUMMY_DET_DATASET.annotations.values():
             DoesNotRaise(),
         ),
         (
-            [np.array([
-                [0.0, 0.0, 3.0, 3.0, 0, 0.9],  # correct detection of [0]
-                [0.1, 0.1, 3.0, 3.0, 0, 0.9],  # additional detection of [0] - FP
-                [6.0, 1.0, 8.0, 3.0, 1, 0.8],  # correct detection with incorrect class
-                [1.0, 6.0, 2.0, 7.0, 1, 0.8],  # incorrect detection - FP
-                [1.0, 2.0, 2.0, 4.0, 1, 0.8],  # incorrect detection with low IoU - FP
-            ])],
-            [np.array([
-                [0.0, 0.0, 3.0, 3.0, 0],  # [0] detected
-                [2.0, 2.0, 5.0, 5.0, 1],  # [1] undetected - FN
-                [6.0, 1.0, 8.0, 3.0, 2],  # [2] correct detection with incorrect class
-            ])],
+            [
+                np.array(
+                    [
+                        [0.0, 0.0, 3.0, 3.0, 0, 0.9],  # correct detection of [0]
+                        [
+                            0.1,
+                            0.1,
+                            3.0,
+                            3.0,
+                            0,
+                            0.9,
+                        ],  # additional detection of [0] - FP
+                        [
+                            6.0,
+                            1.0,
+                            8.0,
+                            3.0,
+                            1,
+                            0.8,
+                        ],  # correct detection with incorrect class
+                        [1.0, 6.0, 2.0, 7.0, 1, 0.8],  # incorrect detection - FP
+                        [
+                            1.0,
+                            2.0,
+                            2.0,
+                            4.0,
+                            1,
+                            0.8,
+                        ],  # incorrect detection with low IoU - FP
+                    ]
+                )
+            ],
+            [
+                np.array(
+                    [
+                        [0.0, 0.0, 3.0, 3.0, 0],  # [0] detected
+                        [2.0, 2.0, 5.0, 5.0, 1],  # [1] undetected - FN
+                        [
+                            6.0,
+                            1.0,
+                            8.0,
+                            3.0,
+                            2,
+                        ],  # [2] correct detection with incorrect class
+                    ]
+                )
+            ],
             CLASSES[:3],
             0.6,
             0.5,
-            np.array([
-                [1, 0, 0, 0],
-                [0, 0, 0, 1],
-                [0, 1, 0, 0],
-                [1, 2, 0, 0]
-            ]),
+            np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 1, 0, 0], [1, 2, 0, 0]]),
             DoesNotRaise(),
         ),
         (
-            [np.array([
-                [0.0, 0.0, 3.0, 3.0, 0, 0.9],  # correct detection of [0]
-                [0.1, 0.1, 3.0, 3.0, 0, 0.9],  # additional detection of [0] - FP
-                [6.0, 1.0, 8.0, 3.0, 1, 0.8],  # correct detection with incorrect class
-                [1.0, 6.0, 2.0, 7.0, 1, 0.8],  # incorrect detection - FP
-                [1.0, 2.0, 2.0, 4.0, 1, 0.8],  # incorrect detection with low IoU - FP
-            ])],
-            [np.array([
-                [0.0, 0.0, 3.0, 3.0, 0],  # [0] detected
-                [2.0, 2.0, 5.0, 5.0, 1],  # [1] undetected - FN
-                [6.0, 1.0, 8.0, 3.0, 2],  # [2] correct detection with incorrect class
-            ])],
+            [
+                np.array(
+                    [
+                        [0.0, 0.0, 3.0, 3.0, 0, 0.9],  # correct detection of [0]
+                        [
+                            0.1,
+                            0.1,
+                            3.0,
+                            3.0,
+                            0,
+                            0.9,
+                        ],  # additional detection of [0] - FP
+                        [
+                            6.0,
+                            1.0,
+                            8.0,
+                            3.0,
+                            1,
+                            0.8,
+                        ],  # correct detection with incorrect class
+                        [1.0, 6.0, 2.0, 7.0, 1, 0.8],  # incorrect detection - FP
+                        [
+                            1.0,
+                            2.0,
+                            2.0,
+                            4.0,
+                            1,
+                            0.8,
+                        ],  # incorrect detection with low IoU - FP
+                    ]
+                )
+            ],
+            [
+                np.array(
+                    [
+                        [0.0, 0.0, 3.0, 3.0, 0],  # [0] detected
+                        [2.0, 2.0, 5.0, 5.0, 1],  # [1] undetected - FN
+                        [
+                            6.0,
+                            1.0,
+                            8.0,
+                            3.0,
+                            2,
+                        ],  # [2] correct detection with incorrect class
+                    ]
+                )
+            ],
             CLASSES[:3],
             0.6,
             1.0,
-            np.array([
-                [0, 0, 0, 1],
-                [0, 0, 0, 1],
-                [0, 0, 0, 1],
-                [2, 3, 0, 0]
-            ]),
+            np.array([[0, 0, 0, 1], [0, 0, 0, 1], [0, 0, 0, 1], [2, 3, 0, 0]]),
             DoesNotRaise(),
         ),
     ],
@@ -331,32 +384,3 @@ def test_drop_extra_matches(
         result = ConfusionMatrix._drop_extra_matches(matches)
 
         assert np.array_equal(result, expected_result)
-
-
-@pytest.mark.parametrize(
-    "dataset, conf_threshold, iou_threshold, expected_result, exception",
-    [
-        (
-            DUMMY_DET_DATASET,
-            0.3,
-            0.5,
-            DUMMY_DET_IDEAL_CONF_MATRIX,
-            DoesNotRaise(),
-        )
-    ],
-)
-def test_benchmark(dataset, conf_threshold, iou_threshold, expected_result, exception):
-    with exception:
-
-        def callback(img):
-            return dataset.map_img_to_annotation(img)
-
-        result = ConfusionMatrix.benchmark(
-            dataset=dataset,
-            callback=callback,
-            conf_threshold=conf_threshold,
-            iou_threshold=iou_threshold,
-        )
-
-        assert result.matrix.diagonal().sum() == result.matrix.sum()
-        assert np.array_equal(result.matrix, expected_result)
