@@ -230,12 +230,12 @@ class ConfusionMatrix:
         result_matrix = np.zeros((num_classes + 1, num_classes + 1))
         conf_idx = 5
         confidence = pred_detections[:, conf_idx]
-        detection_batch_filtered = pred_detections[
-            confidence > conf_threshold
-        ]
+        detection_batch_filtered = pred_detections[confidence > conf_threshold]
         class_id_idx = 4
         true_classes = np.array(true_detections[:, class_id_idx], dtype=np.int16)
-        detection_classes = np.array(detection_batch_filtered[:, class_id_idx], dtype=np.int16)
+        detection_classes = np.array(
+            detection_batch_filtered[:, class_id_idx], dtype=np.int16
+        )
         true_boxes = true_detections[:, :class_id_idx]
         detection_boxes = detection_batch_filtered[:, :class_id_idx]
 
