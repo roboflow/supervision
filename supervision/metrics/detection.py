@@ -101,27 +101,25 @@ class ConfusionMatrix:
         prediction_tensors = []
         target_tensors = []
         for prediction, target in zip(predictions, targets):
-            prediction_tensors.append(
-                np.concatenate(
-                    [
-                        prediction.xyxy,
-                        np.expand_dims(prediction.class_id, 1),
-                        np.expand_dims(prediction.confidence, 1),
-                    ],
-                    axis=1,
-                )
-            )
-            target_tensors.append(
-                np.concatenate(
-                    [target.xyxy, np.expand_dims(target.class_id, 1)], axis=1
-                )
-            )
+            prediction_tensors.append(cls.convert_detections_to_tensor(prediction))
+            target_tensors.append(cls.convert_detections_to_tensor(target))
         return cls.from_tensors(
             predictions=prediction_tensors,
             targets=target_tensors,
             classes=classes,
             conf_threshold=conf_threshold,
             iou_threshold=iou_threshold,
+        )
+
+    @classmethod
+    def convert_detections_to_tensor(cls, detections: Detections) -> np.ndarray:
+        arrays_to_concat = [detections.xyxy, np.expand_dims(detections.class_id, 1)]
+        if detections.confidence is not None:
+            arrays_to_concat.append(np.expand_dims(detections.confidence, 1))
+
+        return np.concatenate(
+            arrays_to_concat,
+            axis=1,
         )
 
     @classmethod
