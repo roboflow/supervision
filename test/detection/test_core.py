@@ -1,14 +1,11 @@
 from contextlib import ExitStack as DoesNotRaise
+from test.utils import mock_detections
+from typing import List, Optional, Union
 
+import numpy as np
 import pytest
 
 from supervision import Detections
-
-from typing import Optional, Union, List
-
-import numpy as np
-
-from test.utils import mock_detections
 
 PREDICTIONS = np.array([
         [       2254,         906,        2447,        1353,     0.90538,           0],

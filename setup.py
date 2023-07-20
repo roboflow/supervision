@@ -1,7 +1,8 @@
-import setuptools
-from setuptools import find_packages
 import re
 from pathlib import Path
+
+import setuptools
+from setuptools import find_packages
 
 FILE = Path(__file__).resolve()
 PARENT = FILE.parent  # root directory

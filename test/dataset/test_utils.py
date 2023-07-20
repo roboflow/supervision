@@ -1,12 +1,16 @@
 from contextlib import ExitStack as DoesNotRaise
-from typing import List, TypeVar, Optional, Tuple, Dict
+from test.utils import mock_detections
+from typing import Dict, List, Optional, Tuple, TypeVar
 
 import pytest
 
 from supervision import Detections
-from supervision.dataset.utils import train_test_split, merge_class_lists, build_class_index_mapping, \
-    map_detections_class_id
-from test.utils import mock_detections
+from supervision.dataset.utils import (
+    build_class_index_mapping,
+    map_detections_class_id,
+    merge_class_lists,
+    train_test_split,
+)
 
 T = TypeVar("T")
 

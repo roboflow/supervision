@@ -1,12 +1,15 @@
 from contextlib import ExitStack as DoesNotRaise
-from typing import Optional, Tuple, List
-
-import pytest
+from typing import List, Optional, Tuple
 
 import numpy as np
+import pytest
 
-from supervision.detection.utils import non_max_suppression, clip_boxes, filter_polygons_by_area, \
-    process_roboflow_result
+from supervision.detection.utils import (
+    clip_boxes,
+    filter_polygons_by_area,
+    non_max_suppression,
+    process_roboflow_result,
+)
 
 
 @pytest.mark.parametrize(

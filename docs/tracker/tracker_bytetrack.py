@@ -1,17 +1,15 @@
 
 from typing import List
+
 import numpy as np
 from onemetric.cv.utils.iou import box_iou_batch
 from tqdm.notebook import tqdm
-
 from ultralytics import YOLO
 
-from supervision.tracker.byte_tracker.byte_tracker import byte_tracker, strack
-from supervision.detection.annotate import BoxAnnotator
-from supervision.utils.video import VideoInfo
-from supervision.utils.video import get_video_frames_generator
-from supervision.utils.video import VideoSink
 from supervision import Detections
+from supervision.detection.annotate import BoxAnnotator
+from supervision.tracker.byte_tracker.byte_tracker import byte_tracker, strack
+from supervision.utils.video import VideoInfo, VideoSink, get_video_frames_generator
 
 
 # converts Detections into format that can be consumed by match_detections_with_tracks function

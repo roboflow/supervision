@@ -1,13 +1,17 @@
 from contextlib import ExitStack as DoesNotRaise
-from typing import List, Tuple, Dict
+from typing import Dict, List, Tuple
 
+import numpy as np
 import pytest
 
 from supervision import Detections
-from supervision.dataset.formats.coco import classes_to_coco_categories, coco_categories_to_classes, \
-    group_coco_annotations_by_image_id, coco_annotations_to_detections, build_coco_class_index_mapping
-
-import numpy as np
+from supervision.dataset.formats.coco import (
+    build_coco_class_index_mapping,
+    classes_to_coco_categories,
+    coco_annotations_to_detections,
+    coco_categories_to_classes,
+    group_coco_annotations_by_image_id,
+)
 
 
 def mock_cock_coco_annotation(
