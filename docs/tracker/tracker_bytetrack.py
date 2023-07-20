@@ -52,14 +52,6 @@ CLASS_NAMES_DICT  = model.model.names
 SOURCE_VIDEO_PATH = "walking.mp4"
 TARGET_VIDEO_PATH = "walking_out.mp4"
 
-track_thresh=0.25
-track_buffer=30
-match_thresh=0.8
-aspect_ratio_thresh=3.0
-min_box_area=1.0
-mot20=False
-frame_rate=30
-
 byte_tracker = byte_tracker(track_thresh=0.25, 
                             track_buffer=30, 
                             match_thresh=0.8, 
