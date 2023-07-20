@@ -123,6 +123,29 @@ BAD_CONF_MATRIX = worsen_ideal_conf_matrix(
 
 
 @pytest.mark.parametrize(
+    "detections, exception",
+    [
+        (
+            DETECTIONS,
+            DoesNotRaise(),
+        )
+    ],
+)
+def test_convert_detections_to_tensor(
+    detections,
+    exception: Exception,
+):
+    with exception:
+        result = ConfusionMatrix.convert_detections_to_tensor(
+            detections=detections,
+        )
+
+        assert np.array_equal(result[:, :4], detections.xyxy)
+        assert np.array_equal(result[:, 4], detections.class_id)
+        assert np.array_equal(result[:, 5], detections.confidence)
+
+
+@pytest.mark.parametrize(
     "predictions, targets, classes, conf_threshold, iou_threshold, expected_result, exception",
     [
         (
