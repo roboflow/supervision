@@ -168,6 +168,54 @@ for det in DUMMY_DET_DATASET.annotations.values():
             BAD_CONF_MATRIX,
             DoesNotRaise(),
         ),
+        (
+            [np.array([
+                [0.0, 0.0, 3.0, 3.0, 0, 0.9],  # correct detection of [0]
+                [0.1, 0.1, 3.0, 3.0, 0, 0.9],  # additional detection of [0] - FP
+                [6.0, 1.0, 8.0, 3.0, 1, 0.8],  # correct detection with incorrect class
+                [1.0, 6.0, 2.0, 7.0, 1, 0.8],  # incorrect detection - FP
+                [1.0, 2.0, 2.0, 4.0, 1, 0.8],  # incorrect detection with low IoU - FP
+            ])],
+            [np.array([
+                [0.0, 0.0, 3.0, 3.0, 0],  # [0] detected
+                [2.0, 2.0, 5.0, 5.0, 1],  # [1] undetected - FN
+                [6.0, 1.0, 8.0, 3.0, 2],  # [2] correct detection with incorrect class
+            ])],
+            CLASSES[:3],
+            0.6,
+            0.5,
+            np.array([
+                [1, 0, 0, 0],
+                [0, 0, 0, 1],
+                [0, 1, 0, 0],
+                [1, 2, 0, 0]
+            ]),
+            DoesNotRaise(),
+        ),
+        (
+            [np.array([
+                [0.0, 0.0, 3.0, 3.0, 0, 0.9],  # correct detection of [0]
+                [0.1, 0.1, 3.0, 3.0, 0, 0.9],  # additional detection of [0] - FP
+                [6.0, 1.0, 8.0, 3.0, 1, 0.8],  # correct detection with incorrect class
+                [1.0, 6.0, 2.0, 7.0, 1, 0.8],  # incorrect detection - FP
+                [1.0, 2.0, 2.0, 4.0, 1, 0.8],  # incorrect detection with low IoU - FP
+            ])],
+            [np.array([
+                [0.0, 0.0, 3.0, 3.0, 0],  # [0] detected
+                [2.0, 2.0, 5.0, 5.0, 1],  # [1] undetected - FN
+                [6.0, 1.0, 8.0, 3.0, 2],  # [2] correct detection with incorrect class
+            ])],
+            CLASSES[:3],
+            0.6,
+            1.0,
+            np.array([
+                [0, 0, 0, 1],
+                [0, 0, 0, 1],
+                [0, 0, 0, 1],
+                [2, 3, 0, 0]
+            ]),
+            DoesNotRaise(),
+        ),
     ],
 )
 def test_from_tensors(
