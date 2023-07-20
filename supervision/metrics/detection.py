@@ -96,9 +96,7 @@ class ConfusionMatrix:
         ...     [1., 1., 0., 0.]
         ... ])
         ```
-        Source: https://github.com/SkalskiP/onemetric/blob/master/onemetric/cv/object_detection/confusion_matrix.py
         """
-        # TODO: add validation for inputs
 
         prediction_tensors = []
         target_tensors = []
@@ -191,7 +189,7 @@ class ConfusionMatrix:
         ```
         Source: https://github.com/SkalskiP/onemetric/blob/master/onemetric/cv/object_detection/confusion_matrix.py
         """
-        # TODO: add validation for inputs
+        cls._validate_input_tensors(predictions, targets)
 
         num_classes = len(classes)
         matrix = np.zeros((num_classes + 1, num_classes + 1))
@@ -209,6 +207,29 @@ class ConfusionMatrix:
             conf_threshold=conf_threshold,
             iou_threshold=iou_threshold,
         )
+
+    @classmethod
+    def _validate_input_tensors(cls, predictions, targets):
+        """Checks for shape consistency of input tensors."""
+        if len(predictions) != len(targets):
+            raise ValueError(
+                f"Number of predictions ({len(predictions)}) and targets ({len(targets)}) must be equal."
+            )
+        if len(predictions) > 0:
+            if not isinstance(predictions[0], np.ndarray) or not isinstance(
+                targets[0], np.ndarray
+            ):
+                raise ValueError(
+                    f"Predictions and targets must be lists of numpy arrays. Got {type(predictions[0])} and {type(targets[0])} instead."
+                )
+            if predictions[0].shape[1] != 6:
+                raise ValueError(
+                    f"Predictions must have shape (N, 6). Got {predictions[0].shape} instead."
+                )
+            if targets[0].shape[1] != 5:
+                raise ValueError(
+                    f"Targets must have shape (N, 5). Got {targets[0].shape} instead."
+                )
 
     @staticmethod
     def _evaluate_detection_batch(
