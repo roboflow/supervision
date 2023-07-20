@@ -1,6 +1,6 @@
 from contextlib import ExitStack as DoesNotRaise
 from test.utils import dummy_detection_dataset_with_map_img_to_annotation
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
 import pytest
@@ -25,6 +25,29 @@ PREDICTIONS = np.array(
     ],
     dtype=np.float32,
 )
+CERTAIN_PREDICTIONS = np.concatenate(
+    [
+        PREDICTIONS[:, :4],
+        np.ones((len(PREDICTIONS), 1)),
+    ],
+    axis=1,
+)
+
+TARGET_TENSORS = [
+    np.array(
+        [
+            [2254, 906, 2447, 1353, 0],
+            [2049, 1133, 2226, 1371, 56],
+            [727, 1224, 838, 1601, 39],
+            [808, 1214, 910, 1564, 39],
+            [6, 52, 1131, 2133, 72],
+            [299, 1225, 512, 1663, 39],
+            [529, 874, 645, 945, 39],
+            [8, 47, 1935, 2135, 72],
+            [2265, 813, 2328, 901, 62],
+        ]
+    )
+]
 
 DETECTIONS = Detections(
     xyxy=PREDICTIONS[:, :4],
@@ -79,9 +102,24 @@ def update_ideal_conf_matrix(conf_matrix: np.ndarray, class_ids: np.ndarray):
     return conf_matrix
 
 
+def worsen_ideal_conf_matrix(
+    conf_matrix: np.ndarray, class_ids: Union[np.ndarray, list]
+):
+    for class_id in class_ids:
+        class_id = int(class_id)
+        conf_matrix[class_id, class_id] -= 1
+        conf_matrix[class_id, 80] += 1
+    return conf_matrix
+
+
 IDEAL_CONF_MATRIX = create_empty_conf_matrix(NUM_CLASSES)
 IDEAL_CONF_MATRIX = update_ideal_conf_matrix(IDEAL_CONF_MATRIX, PREDICTIONS[:, 5])
 
+GOOD_CONF_MATRIX = worsen_ideal_conf_matrix(IDEAL_CONF_MATRIX.copy(), [62, 72])
+
+BAD_CONF_MATRIX = worsen_ideal_conf_matrix(
+    IDEAL_CONF_MATRIX.copy(), [62, 72, 72, 39, 39, 39, 39, 56]
+)
 
 DUMMY_DET_DATASET = dummy_detection_dataset_with_map_img_to_annotation()
 DUMMY_DET_IDEAL_CONF_MATRIX = create_empty_conf_matrix(len(DUMMY_DET_DATASET.classes))
@@ -89,6 +127,69 @@ for det in DUMMY_DET_DATASET.annotations.values():
     DUMMY_DET_IDEAL_CONF_MATRIX = update_ideal_conf_matrix(
         DUMMY_DET_IDEAL_CONF_MATRIX, det.class_id
     )
+
+
+@pytest.mark.parametrize(
+    "predictions, targets, classes, conf_threshold, iou_threshold, expected_result, exception",
+    [
+        (
+            DETECTION_TENSORS,
+            TARGET_TENSORS,
+            CLASSES,
+            0.2,
+            0.5,
+            IDEAL_CONF_MATRIX,
+            DoesNotRaise(),
+        ),
+        (
+            [],
+            [],
+            CLASSES,
+            0.2,
+            0.5,
+            create_empty_conf_matrix(NUM_CLASSES),
+            DoesNotRaise(),
+        ),
+        (
+            DETECTION_TENSORS,
+            TARGET_TENSORS,
+            CLASSES,
+            0.3,
+            0.5,
+            GOOD_CONF_MATRIX,
+            DoesNotRaise(),
+        ),
+        (
+            DETECTION_TENSORS,
+            TARGET_TENSORS,
+            CLASSES,
+            0.6,
+            0.5,
+            BAD_CONF_MATRIX,
+            DoesNotRaise(),
+        ),
+    ],
+)
+def test_from_tensors(
+    predictions,
+    targets,
+    classes,
+    conf_threshold,
+    iou_threshold,
+    expected_result: Optional[np.ndarray],
+    exception: Exception,
+):
+    with exception:
+        result = ConfusionMatrix.from_tensors(
+            predictions=predictions,
+            targets=targets,
+            classes=classes,
+            conf_threshold=conf_threshold,
+            iou_threshold=iou_threshold,
+        )
+
+        assert result.matrix.diagonal().sum() == expected_result.diagonal().sum()
+        assert np.array_equal(result.matrix, expected_result)
 
 
 @pytest.mark.parametrize(
@@ -116,51 +217,6 @@ def test_from_detections(
 ):
     with exception:
         result = ConfusionMatrix.from_detections(
-            predictions=predictions,
-            targets=targets,
-            classes=classes,
-            conf_threshold=conf_threshold,
-            iou_threshold=iou_threshold,
-        )
-
-        assert result.matrix.diagonal().sum() == result.matrix.sum()
-        assert np.array_equal(result.matrix, expected_result)
-
-
-@pytest.mark.parametrize(
-    "predictions, targets, classes, conf_threshold, iou_threshold, expected_result, exception",
-    [
-        (
-            DETECTION_TENSORS,
-            CERTAIN_DETECTION_TENSORS,
-            CLASSES,
-            0.2,
-            0.5,
-            IDEAL_CONF_MATRIX,
-            DoesNotRaise(),
-        ),
-        (
-            [],
-            [],
-            CLASSES,
-            0.2,
-            0.5,
-            create_empty_conf_matrix(NUM_CLASSES),
-            DoesNotRaise(),
-        ),
-    ],
-)
-def test_from_tensors(
-    predictions,
-    targets,
-    classes,
-    conf_threshold,
-    iou_threshold,
-    expected_result: Optional[np.ndarray],
-    exception: Exception,
-):
-    with exception:
-        result = ConfusionMatrix.from_tensors(
             predictions=predictions,
             targets=targets,
             classes=classes,
