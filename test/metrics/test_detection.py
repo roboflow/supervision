@@ -25,13 +25,6 @@ PREDICTIONS = np.array(
     ],
     dtype=np.float32,
 )
-CERTAIN_PREDICTIONS = np.concatenate(
-    [
-        PREDICTIONS[:, :4],
-        np.ones((len(PREDICTIONS), 1)),
-    ],
-    axis=1,
-)
 
 TARGET_TENSORS = [
     np.array(
@@ -56,7 +49,7 @@ DETECTIONS = Detections(
 )
 CERTAIN_DETECTIONS = Detections(
     xyxy=PREDICTIONS[:, :4],
-    confidence=np.ones_like(PREDICTIONS[:, 4]),
+    confidence=np.ones(len(PREDICTIONS)),
     class_id=PREDICTIONS[:, 5].astype(int),
 )
 
@@ -73,10 +66,14 @@ DETECTION_TENSORS = [
 ]
 CERTAIN_DETECTION_TENSORS = [
     np.concatenate(
-        [det.xyxy, np.expand_dims(det.class_id, 1)],
+        [
+            det.xyxy,
+            np.expand_dims(det.class_id, 1),
+            np.ones((len(det), 1)),
+        ],
         axis=1,
     )
-    for det in [CERTAIN_DETECTIONS]
+    for det in [DETECTIONS]
 ]
 
 IDEAL_MATCHES = np.stack(
