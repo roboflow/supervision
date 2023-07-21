@@ -18,21 +18,35 @@
 
 </div>
 
-## 👋 hello
+## 👋 Hello
 
 **We write your reusable computer vision tools.** Whether you need to load your dataset from your hard drive, draw detections on an image or video, or count how many detections are in a zone. You can count on us! 🤝
 
-## 💻 install
+## 💻 Install
 
 Pip install the supervision package in a
 [**3.11>=Python>=3.8**](https://www.python.org/) environment.
+
+### Headless Installation 
+
+The headless installation of supervision is designed for environments where graphical user interfaces (GUI) are not needed, making it more lightweight and suitable for server-side or headless applications. To install supervision with the headless version of OpenCV, simply use the following command:
 
 ```bash
 pip install supervision
 ```
 
+### Desktop Installation
+
+If you require the full version of supervision with GUI support and want to utilize OpenCV's graphical capabilities, you can install the desktop version. This version includes the GUI components of OpenCV, allowing you to interact with images and videos through graphical interfaces. To install supervision with the full version of OpenCV, use the following command:
+
+```bash
+pip install supervision[desktop]
+```
+
 <details close>
-<summary>👉 install from source</summary>
+<summary>👉 Install from source</summary>
+
+### Virtualenv/Pip Installation Method 
 
 ```bash
 # clone repository and navigate to root directory
@@ -43,13 +57,41 @@ cd supervision
 python3 -m venv venv
 source venv/bin/activate
 
-# install
-pip install -e ".[dev]"
+# Headless install
+pip install -e "."
+
+# Desktop install
+pip install -e ".[desktop]"
+
+```
+
+### Poetry Installation Method
+
+
+```bash
+# clone repository and navigate to root directory
+git clone https://github.com/roboflow/supervision.git
+cd supervision
+
+# setup python environment and activate it
+poetry shell
+
+# If you like to speficiy python version 
+poetry env use python 3.10 # 3.8,3.9
+poetry shell
+
+
+# Headless install
+poetry install
+
+# Desktop install
+poetry install --extras "desktop"
+
 ```
 
 </details>
 
-## 🔥 quickstart
+## 🔥 Quickstart
 
 ### [detections processing](https://roboflow.github.io/supervision/detection/core/)
 
