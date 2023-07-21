@@ -216,20 +216,28 @@ class ConfusionMatrix:
                 f"Number of predictions ({len(predictions)}) and targets ({len(targets)}) must be equal."
             )
         if len(predictions) > 0:
-            if not isinstance(predictions[0], np.ndarray) or not isinstance(
-                targets[0], np.ndarray
-            ):
-                raise ValueError(
-                    f"Predictions and targets must be lists of numpy arrays. Got {type(predictions[0])} and {type(targets[0])} instead."
-                )
-            if predictions[0].shape[1] != 6:
-                raise ValueError(
-                    f"Predictions must have shape (N, 6). Got {predictions[0].shape} instead."
-                )
-            if targets[0].shape[1] != 5:
-                raise ValueError(
-                    f"Targets must have shape (N, 5). Got {targets[0].shape} instead."
-                )
+            first_non_empty_prediction = next(
+                (x for x in predictions if len(x) > 0), None
+            )
+            first_non_empty_target = next((x for x in targets if len(x) > 0), None)
+            if first_non_empty_prediction is not None:
+                if not isinstance(first_non_empty_prediction, np.ndarray):
+                    raise ValueError(
+                        f"Predictions must be lists of numpy arrays. Got {type(first_non_empty_prediction)} instead."
+                    )
+                if first_non_empty_prediction.shape[1] != 6:
+                    raise ValueError(
+                        f"Predictions must have shape (N, 6). Got {predictions[0].shape} instead."
+                    )
+            if first_non_empty_target is not None:
+                if not isinstance(first_non_empty_target, np.ndarray):
+                    raise ValueError(
+                        f"Targets must be lists of numpy arrays. Got {type(first_non_empty_target)} instead."
+                    )
+                if first_non_empty_target.shape[1] != 5:
+                    raise ValueError(
+                        f"Targets must have shape (N, 5). Got {targets[0].shape} instead."
+                    )
 
     @staticmethod
     def evaluate_detection_batch(
@@ -379,14 +387,16 @@ class ConfusionMatrix:
                 elif isinstance(sample_value, str):
                     class_names = list(self.classes.values())
                 else:
-                    print("Displayed class names won't be strings. Taking self.classes.keys() as class names.")
+                    print(
+                        "Displayed class names won't be strings. Taking self.classes.keys() as class names."
+                    )
                     class_names = list(self.classes.keys())
             else:
                 raise ValueError(
                     f"To be used in the plot, self.classes must be a list or a dict. Got {type(self.classes)} instead."
                 )
 
-        use_labels_for_ticks = (0 < len(class_names) < 99)
+        use_labels_for_ticks = 0 < len(class_names) < 99
         if use_labels_for_ticks:
             x_tick_labels = class_names + ["FN"]
             y_tick_labels = class_names + ["FP"]
