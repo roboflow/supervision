@@ -1,3 +1,57 @@
+### 0.12.0 <small>July 24, 2023</small>
+
+- Added ability to calculate confusion matrices for model predictions using the `ConfusionMatrix` API. You can plot matrices with the ConfusionMatrix `plot()` class method.
+
+```python
+>>> import supervision as sv
+>>> from ultralytics import YOLO
+
+>>> model = YOLO('yolov8s.pt')
+
+>>> dataset = sv.DetectionDataset.from_yolo(
+...     images_directory_path='...',
+...     annotations_directory_path='...',
+...     data_yaml_path='...'
+... )
+
+>>> predictions, target = [], []
+
+>>> for _, image, labels in dataset:
+...    result = model(image)[0]
+...    detections = sv.Detections.from_yolov8(result)
+...    predictions.append(detections)
+...    target.append(labels)
+
+>>> matrix = ConfusionMatrix.from_detections(
+...     predictions=predictions,
+...     target=target,
+...     classes=dataset.classes
+... )
+>>> matrix.plot('...')
+```
+
+- Added the `from_mmdetection()` class method on `sv.Detections` for loading MMDetections data.
+
+```python
+>>> import cv2
+>>> import supervision as sv
+>>> from mmdet.apis import DetInferencer
+>>> inferencer = DetInferencer(model_name, checkpoint, device)
+
+>>> mmdet_result = inferencer(SOURCE_IMAGE_PATH, out_dir='./output', return_datasample=True)["predictions"][0]
+>>> detections = sv.Detections.from_mmdet(mmdet_result)
+```
+
+- Users can install `supervision` using both the headless version of opencv (with `pip install supervision`) and the full version of opencv (with `pip install supervision[full]`).
+
+- Fixed [#188](https://github.com/roboflow/supervision/issues/188): COCO datasets cannot be loaded when there are images without annotations
+- Fixed issue in [#150](https://github.com/roboflow/supervision/pull/150): COCO class ID loading `image_id` and `labels_id` should start from 0 instead of 1
+- `supervision` no longer officially supports Python 3.7 (#179).
+
+## 🏆 Contributors
+
+@SkalskiP @hardikdava @onuralpszr
+
 ### 0.11.1 <small>June 29, 2023</small>
 
 - Fix [[#165](https://github.com/roboflow/supervision/pull/165)]: [`as_folder_structure`](https://roboflow.github.io/supervision/dataset/core/#supervision.dataset.core.ClassificationDataset.as_folder_structure) fails to save [`sv.ClassificationDataset`](https://roboflow.github.io/supervision/dataset/core/#classificationdataset) when it is result of inference.
