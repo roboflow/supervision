@@ -287,5 +287,3 @@ def test_get_anchor_coordinates() -> None:
     result = detections.get_anchor_coordinates(Position.BOTTOM_RIGHT).tolist()
     expected_result = [[20, 20], [30, 30]]
     assert result == expected_result
-
-
