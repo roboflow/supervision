@@ -15,12 +15,13 @@ from supervision.detection.utils import box_iou_batch
 @dataclass
 class ConfusionMatrix:
     """
-    Data class containing information about classification results in form of a confusion matrix.
+    Confusion matrix for object detection tasks.
+
     Attributes:
-        matrix: An array of shape (len(classes) + 1, len(classes) + 1) containing the number of TP, FP, FN and TN for each class.
-        classes: all known class names.
-        conf_threshold: detection confidence threshold between 0 and 1. Detections with lower confidence will be excluded from the matrix.
-        iou_threshold: detection iou threshold between 0 and 1. Detections with lower iou will be classified as FP.
+        matrix (np.ndarray): An 2D `np.ndarray` of shape `(len(classes) + 1, len(classes) + 1)` containing the number of `TP`, `FP`, `FN` and `TN` for each class.
+        classes (List[str]): Model class names.
+        conf_threshold (float): Detection confidence threshold between `0` and `1`. Detections with lower confidence will be excluded from the matrix.
+        iou_threshold (float): Detection IoU threshold between `0` and `1`. Detections with lower IoU will be classified as `FP`.
     """
 
     matrix: np.ndarray
@@ -41,61 +42,43 @@ class ConfusionMatrix:
         Calculate confusion matrix based on predicted and ground-truth detections.
 
         Args:
-            targets: Detections objects from ground-truth.
-            predictions: Detections objects predicted by the model.
-            classes:  all known classes.
-            conf_threshold:  detection confidence threshold between 0 and 1. Detections with lower confidence will be excluded.
-            iou_threshold:  detection iou  threshold between 0 and 1. Detections with lower iou will be classified as FP.
+            targets (List[Detections]): Detections objects from ground-truth.
+            predictions (List[Detections]): Detections objects predicted by the model.
+            classes (List[str]): Model class names.
+            conf_threshold (float): Detection confidence threshold between `0` and `1`. Detections with lower confidence will be excluded.
+            iou_threshold (float): Detection IoU threshold between `0` and `1`. Detections with lower IoU will be classified as `FP`.
 
+        Returns:
+            ConfusionMatrix: New instance of ConfusionMatrix.
 
         Example:
-        ```python
-        >>> import supervision as sv
+            ```python
+            >>> import supervision as sv
 
-        >>> target = [
-        ...     Detections(xyxy=array([
-        ...     [ 0.0, 0.0, 3.0, 3.0 ],
-        ...     [ 2.0, 2.0, 5.0, 5.0 ],
-        ...     [ 6.0, 1.0, 8.0, 3.0 ],
-        ...     ]), confidence=array([ 1.0, 1.0, 1.0, 1.0 ]), class_id=array([1, 1,  2])),
-        ...     Detections(xyxy=array([
-        ...     [ 1.0, 1.0, 2.0, 2.0 ],
-        ...     ]), confidence=array([ 1.0 ]), class_id=array([2]))
-        ... ]
-        >>> predictions = [
-        ...     Detections(
-        ...         xyxy=array([
-        ...     [ 0.0, 0.0, 3.0, 3.0 ],
-        ...     [ 0.1, 0.1, 3.0, 3.0 ],
-        ...     [ 6.0, 1.0, 8.0, 3.0 ],
-        ...     [ 1.0, 6.0, 2.0, 7.0 ],
-        ...     ]),
-        ...     confidence=array([ 0.9, 0.9, 0.8, 0.8 ]),
-        ...     class_id=array([1, 0, 1, 1])
-        ...     ),
-        ...     Detections(
-        ...         xyxy=array([
-        ...     [ 1.0, 1.0, 2.0, 2.0 ]
-        ...     ]),
-        ...     confidence=array([ 0.8 ]),
-        ...     class_id=array([2])
-        ...     )
-        ... ]
+            >>> targets = [
+            ...     sv.Detections(...),
+            ...     sv.Detections(...)
+            ... ]
 
-        >>> confusion_matrix = sv.ConfusionMatrix.from_detections(
-        ...     predictions=predictions,
-        ...     targets=target,
-        ...     num_classes=3
-        ... )
+            >>> predictions = [
+            ...     sv.Detections(...),
+            ...     sv.Detections(...)
+            ... ]
 
-        >>> confusion_matrix.matrix
-        ... array([
-        ...     [0., 0., 0., 0.],
-        ...     [0., 1., 0., 1.],
-        ...     [0., 1., 1., 0.],
-        ...     [1., 1., 0., 0.]
-        ... ])
-        ```
+            >>> confusion_matrix = sv.ConfusionMatrix.from_detections(
+            ...     predictions=predictions,
+            ...     targets=target,
+            ...     classes=['person', ...]
+            ... )
+
+            >>> confusion_matrix.matrix
+            array([
+                [0., 0., 0., 0.],
+                [0., 1., 0., 1.],
+                [0., 1., 1., 0.],
+                [1., 1., 0., 0.]
+            ])
+            ```
         """
 
         prediction_tensors = []
@@ -135,57 +118,58 @@ class ConfusionMatrix:
         Calculate confusion matrix based on predicted and ground-truth detections.
 
         Args:
-            predictions: detected objects. Each element of the list describes a single image and has shape = (M, 6) where M is the number of detected objects. Each row is expected to be in (x_min, y_min, x_max, y_max, class, conf) format.
-            targets: ground-truth objects. Each element of the list describes a single image and has shape = (N, 5) where N is the number of ground-truth objects. Each row is expected to be in (x_min, y_min, x_max, y_max, class) format.
-            classes:  all known classes.
-            conf_threshold:  detection confidence threshold between 0 and 1. Detections with lower confidence will be excluded.
-            iou_threshold:  detection iou  threshold between 0 and 1. Detections with lower iou will be classified as FP.
+            predictions (List[np.ndarray]): Each element of the list describes a single image and has `shape = (M, 6)` where `M` is the number of detected objects. Each row is expected to be in `(x_min, y_min, x_max, y_max, class, conf)` format.
+            targets (List[np.ndarray]): Each element of the list describes a single image and has `shape = (N, 5)` where `N` is the number of ground-truth objects. Each row is expected to be in `(x_min, y_min, x_max, y_max, class)` format.
+            classes (List[str]): Model class names.
+            conf_threshold (float): Detection confidence threshold between `0` and `1`. Detections with lower confidence will be excluded.
+            iou_threshold (float): Detection iou  threshold between `0` and `1`. Detections with lower iou will be classified as `FP`.
 
+        Returns:
+            ConfusionMatrix: New instance of ConfusionMatrix.
 
         Example:
-        ```python
-        >>> import supervision as sv
+            ```python
+            >>> import supervision as sv
 
-        >>> target = (
-        ...     [
-        ...         array(
-        ...             [
-        ...                 [0.0, 0.0, 3.0, 3.0, 1],
-        ...                 [2.0, 2.0, 5.0, 5.0, 1],
-        ...                 [6.0, 1.0, 8.0, 3.0, 2],
-        ...             ]
-        ...         ),
-        ...         array([1.0, 1.0, 2.0, 2.0, 2]),
-        ...     ]
-        ... )
-        ...
-        >>> predictions = [
-        ...     array(
-        ...         [
-        ...             [0.0, 0.0, 3.0, 3.0, 1, 0.9],
-        ...             [0.1, 0.1, 3.0, 3.0, 0, 0.9],
-        ...             [6.0, 1.0, 8.0, 3.0, 1, 0.8],
-        ...             [1.0, 6.0, 2.0, 7.0, 1, 0.8],
-        ...         ]
-        ...     ),
-        ...     array([[1.0, 1.0, 2.0, 2.0, 2, 0.8]])
-        ... ]
+            >>> targets = (
+            ...     [
+            ...         array(
+            ...             [
+            ...                 [0.0, 0.0, 3.0, 3.0, 1],
+            ...                 [2.0, 2.0, 5.0, 5.0, 1],
+            ...                 [6.0, 1.0, 8.0, 3.0, 2],
+            ...             ]
+            ...         ),
+            ...         array([1.0, 1.0, 2.0, 2.0, 2]),
+            ...     ]
+            ... )
 
-        >>> confusion_matrix = sv.ConfusionMatrix.from_tensors(
-        ...     predictions=predictions,
-        ...     targets=targets,
-        ...     num_classes=3
-        ... )
+            >>> predictions = [
+            ...     array(
+            ...         [
+            ...             [0.0, 0.0, 3.0, 3.0, 1, 0.9],
+            ...             [0.1, 0.1, 3.0, 3.0, 0, 0.9],
+            ...             [6.0, 1.0, 8.0, 3.0, 1, 0.8],
+            ...             [1.0, 6.0, 2.0, 7.0, 1, 0.8],
+            ...         ]
+            ...     ),
+            ...     array([[1.0, 1.0, 2.0, 2.0, 2, 0.8]])
+            ... ]
 
-        >>> confusion_matrix.matrix
-        ... array([
-        ...     [0., 0., 0., 0.],
-        ...     [0., 1., 0., 1.],
-        ...     [0., 1., 1., 0.],
-        ...     [1., 1., 0., 0.]
-        ... ])
-        ```
-        Source: https://github.com/SkalskiP/onemetric/blob/master/onemetric/cv/object_detection/confusion_matrix.py
+            >>> confusion_matrix = sv.ConfusionMatrix.from_tensors(
+            ...     predictions=predictions,
+            ...     targets=targets,
+            ...     classes=['person', ...]
+            ... )
+
+            >>> confusion_matrix.matrix
+            array([
+                [0., 0., 0., 0.],
+                [0., 1., 0., 1.],
+                [0., 1., 1., 0.],
+                [1., 1., 0., 0.]
+            ])
+            ```
         """
         cls._validate_input_tensors(predictions, targets)
 
@@ -210,7 +194,9 @@ class ConfusionMatrix:
     def _validate_input_tensors(
         cls, predictions: List[np.ndarray], targets: List[np.ndarray]
     ):
-        """Checks for shape consistency of input tensors."""
+        """
+        Checks for shape consistency of input tensors.
+        """
         if len(predictions) != len(targets):
             raise ValueError(
                 f"Number of predictions ({len(predictions)}) and targets ({len(targets)}) must be equal."
@@ -243,10 +229,14 @@ class ConfusionMatrix:
         Calculate confusion matrix for a batch of detections for a single image.
 
         Args:
-            See ConfusionMatrix.from_detections
+            predictions (List[np.ndarray]): Each element of the list describes a single image and has `shape = (M, 6)` where `M` is the number of detected objects. Each row is expected to be in `(x_min, y_min, x_max, y_max, class, conf)` format.
+            targets (List[np.ndarray]): Each element of the list describes a single image and has `shape = (N, 5)` where `N` is the number of ground-truth objects. Each row is expected to be in `(x_min, y_min, x_max, y_max, class)` format.
+            num_classes (int): Number of classes.
+            conf_threshold (float): Detection confidence threshold between `0` and `1`. Detections with lower confidence will be excluded.
+            iou_threshold (float): Detection iou  threshold between `0` and `1`. Detections with lower iou will be classified as `FP`.
 
         Returns:
-            confusion matrix based on a single image.
+            np.ndarray: Confusion matrix based on a single image.
         """
         result_matrix = np.zeros((num_classes + 1, num_classes + 1))
 
@@ -296,11 +286,12 @@ class ConfusionMatrix:
 
     @staticmethod
     def _drop_extra_matches(matches: np.ndarray) -> np.ndarray:
+        """
+        Deduplicate matches. If there are multiple matches for the same true or predicted box,
+        only the one with the highest IoU is kept.
+        """
         if matches.shape[0] > 0:
-            # sort by IoU
             matches = matches[matches[:, 2].argsort()[::-1]]
-            # If there are multiple matches for the same true or predicted box,
-            # only the one with the highest IoU is kept.
             matches = matches[np.unique(matches[:, 1], return_index=True)[1]]
             matches = matches[matches[:, 2].argsort()[::-1]]
             matches = matches[np.unique(matches[:, 0], return_index=True)[1]]
@@ -318,20 +309,46 @@ class ConfusionMatrix:
         Create confusion matrix from dataset and callback function.
 
         Args:
-            dataset: an annotated dataset.
-            callback: a function that takes an image as input and returns detections.
-            conf_threshold: see ConfusionMatrix.from_detections.
-            iou_threshold: see ConfusionMatrix.from_detections.
+            dataset (DetectionDataset): Object detection dataset used for evaluation.
+            callback (Callable[[np.ndarray], Detections]): Function that takes an image as input and returns Detections object.
+            conf_threshold (float): Detection confidence threshold between `0` and `1`. Detections with lower confidence will be excluded.
+            iou_threshold (float): Detection IoU threshold between `0` and `1`. Detections with lower IoU will be classified as `FP`.
+
+        Returns:
+            ConfusionMatrix: New instance of ConfusionMatrix.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+            >>> from ultralytics import YOLO
+
+            >>> dataset = sv.DetectionDataset.from_yolo(...)
+
+            >>> model = YOLO(...)
+            >>> def callback(image: np.ndarray) -> sv.Detections:
+            ...     result = model(image)[0]
+            ...     return sv.Detections.from_yolov8(result)
+
+            >>> confusion_matrix = sv.ConfusionMatrix.benchmark(
+            ...     dataset = dataset,
+            ...     callback = callback
+            ... )
+
+            >>> confusion_matrix.matrix
+            array([
+                [0., 0., 0., 0.],
+                [0., 1., 0., 1.],
+                [0., 1., 1., 0.],
+                [1., 1., 0., 0.]
+            ])
+            ```
         """
-        predictions = []
-        targets = []
+        predictions, targets = [], []
         for img_name, img in dataset.images.items():
-            pred_det = callback(img)
-            print(f"{pred_det.xyxy.shape[0]} detections in {img_name}")
-            predictions.append(pred_det)
-            true_det = dataset.annotations[img_name]
-            print(f"{true_det.xyxy.shape[0]} annotations in {img_name}")
-            targets.append(true_det)
+            predictions_batch = callback(img)
+            predictions.append(predictions_batch)
+            targets_batch = dataset.annotations[img_name]
+            targets.append(targets_batch)
         return cls.from_detections(
             predictions=predictions,
             targets=targets,
@@ -344,32 +361,35 @@ class ConfusionMatrix:
         self,
         save_path: Optional[str] = None,
         title: Optional[str] = None,
-        class_names: Optional[List[str]] = None,
-        do_normalize: bool = True,
-        figsize: Tuple[int, int] = (12, 10),
+        classes: Optional[List[str]] = None,
+        normalize: bool = False,
+        fig_size: Tuple[int, int] = (12, 10),
     ) -> matplotlib.figure.Figure:
         """
         Create confusion matrix plot and save it at selected location.
 
         Args:
-            save_path: save location of confusion matrix plot.
-            title: title displayed at the top of the confusion matrix plot. Default `None`.
-            class_names: custom classes to be displayed on the plot. If not provided, original classes will be used.
-            do_normalize: chart will display fraction of detections in a given class instead of absolute numbers.
-            figsize: size of the plot.
+            save_path (Optional[str]): Path to save the plot. If not provided, plot will be displayed.
+            title (Optional[str]): Title of the plot.
+            classes (Optional[List[str]]): List of classes to be displayed on the plot. If not provided, all classes will be displayed.
+            normalize (bool): If True, normalize the confusion matrix.
+            fig_size (Tuple[int, int]): Size of the plot.
+
+        Returns:
+            matplotlib.figure.Figure: Confusion matrix plot.
         """
 
         array = self.matrix.copy()
 
-        if do_normalize:
+        if normalize:
             eps = 1e-8
             array = array / (array.sum(0).reshape(1, -1) + eps)
 
         array[array < 0.005] = np.nan
 
-        fig, ax = plt.subplots(figsize=figsize, tight_layout=True, facecolor="white")
+        fig, ax = plt.subplots(figsize=fig_size, tight_layout=True, facecolor="white")
 
-        class_names = class_names if class_names is not None else self.classes
+        class_names = classes if classes is not None else self.classes
         use_labels_for_ticks = class_names is not None and (0 < len(class_names) < 99)
         if use_labels_for_ticks:
             x_tick_labels = class_names + ["FN"]
@@ -404,7 +424,7 @@ class ConfusionMatrix:
                         ax.text(
                             j,
                             i,
-                            f"{n_preds:.2f}" if do_normalize else f"{n_preds:.0f}",
+                            f"{n_preds:.2f}" if normalize else f"{n_preds:.0f}",
                             ha="center",
                             va="center",
                             color="black"

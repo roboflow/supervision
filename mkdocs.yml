@@ -40,7 +40,7 @@ nav:
     - Dataset:
         - Core: dataset/core.md
     - Metrics:
-      - Detection: metrics/detection.md
+      - Detection Models: metrics/detection.md
     - Draw:
         - Utils: draw/utils.md
     - Utils:
