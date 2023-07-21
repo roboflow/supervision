@@ -356,6 +356,34 @@ class Detections:
 
     @classmethod
     def from_paddledet(cls, paddledet_result):
+        """
+        Creates a Detections instance from [PaddleDetection](https://github.com/PaddlePaddle/PaddleDetection) inference result.
+
+        Args:
+            paddledet_result (List[dict]): The output Results instance from SAM
+
+        Returns:
+            Detections: A new Detections object.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+            >>> import paddle
+            >>> from ppdet.engine import Trainer
+            >>> from ppdet.core.workspace import load_config
+
+            >>> weights = (...)
+            >>> config = (...)
+
+            >>> cfg = load_config(config)
+            >>> trainer = Trainer(cfg, mode='test')
+            >>> trainer.load_weights(weights)
+
+            >>> paddledet_result = trainer.predict([images])[0]
+
+            >>> detections = sv.Detections.from_paddledet(paddledet_result=paddledet_result)
+            ```
+        """
         return cls(
             xyxy=paddledet_result["bbox"][:, 2:6],
             confidence=paddledet_result["bbox"][:, 1],
