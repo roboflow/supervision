@@ -1,9 +1,8 @@
-from typing import Dict, List
+from typing import List
 
 import numpy as np
 
 from supervision.detection.core import Detections
-from supervision.dataset.core import DetectionDataset
 
 
 def mock_detections(
@@ -22,50 +21,3 @@ def mock_detections(
         if tracker_id is None
         else np.array(tracker_id, dtype=int),
     )
-
-
-def mock_detection_dataset(
-    images: Dict[str, np.ndarray],
-    annotations: Dict[str, Detections],
-    classes: List[str],
-) -> DetectionDataset:
-    return DetectionDataset(classes=classes, images=images, annotations=annotations)
-
-
-def dummy_detection_dataset():
-    img_paths = ["a.png", "b.png", "c.png"]
-    classes = ["a", "b", "c"]
-    imgs = [
-        np.random.randint(0, 255, size=(28, 28, 3), dtype=np.uint8),
-        np.random.randint(0, 255, size=(28, 28, 3), dtype=np.uint8),
-        np.random.randint(0, 255, size=(28, 28, 3), dtype=np.uint8),
-    ]
-    detections = [
-        mock_detections(
-            xyxy=[[10, 10, 20, 20], [20, 20, 25, 25]],
-            class_id=[0, 1],
-            confidence=np.ones(2),
-        ),
-        mock_detections(
-            xyxy=[[10, 10, 20, 20], [20, 20, 25, 25]],
-            class_id=[2, 1],
-            confidence=np.ones(2),
-        ),
-        mock_detections(
-            xyxy=[[10, 10, 20, 20], [20, 20, 25, 25], [10, 10, 15, 15]],
-            class_id=[0, 2, 2],
-            confidence=np.ones(3),
-        ),
-    ]
-    annotations = dict(zip(img_paths, detections))
-    images = dict(zip(img_paths, imgs))
-    dataset = mock_detection_dataset(images, annotations, classes)
-    return dataset
-
-
-def dummy_detection_dataset_with_map_img_to_annotation():
-    dataset = dummy_detection_dataset()
-    dataset.map_img_to_annotation = lambda img: dataset.annotations[
-        [k for k, v in dataset.images.items() if np.array_equal(v, img)][0]
-    ]
-    return dataset
