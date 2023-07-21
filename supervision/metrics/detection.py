@@ -49,8 +49,8 @@ class ConfusionMatrix:
 
 
         Example:
-        ```
-        >>> from supervision.metrics.detection import ConfusionMatrix
+        ```python
+        >>> import supervision as sv
 
         >>> target = [
         ...     Detections(xyxy=array([
@@ -82,7 +82,7 @@ class ConfusionMatrix:
         ...     )
         ... ]
 
-        >>> confusion_matrix = ConfusionMatrix.from_detections(
+        >>> confusion_matrix = sv.ConfusionMatrix.from_detections(
         ...     predictions=predictions,
         ...     targets=target,
         ...     num_classes=3
@@ -136,15 +136,15 @@ class ConfusionMatrix:
 
         Args:
             predictions: detected objects. Each element of the list describes a single image and has shape = (M, 6) where M is the number of detected objects. Each row is expected to be in (x_min, y_min, x_max, y_max, class, conf) format.
-            target: ground-truth objects. Each element of the list describes a single image and has shape = (N, 5) where N is the number of ground-truth objects. Each row is expected to be in (x_min, y_min, x_max, y_max, class) format.
+            targets: ground-truth objects. Each element of the list describes a single image and has shape = (N, 5) where N is the number of ground-truth objects. Each row is expected to be in (x_min, y_min, x_max, y_max, class) format.
             classes:  all known classes.
             conf_threshold:  detection confidence threshold between 0 and 1. Detections with lower confidence will be excluded.
             iou_threshold:  detection iou  threshold between 0 and 1. Detections with lower iou will be classified as FP.
 
 
         Example:
-        ```
-        >>> from supervision.metrics.detection import ConfusionMatrix
+        ```python
+        >>> import supervision as sv
 
         >>> target = (
         ...     [
@@ -171,7 +171,7 @@ class ConfusionMatrix:
         ...     array([[1.0, 1.0, 2.0, 2.0, 2, 0.8]])
         ... ]
 
-        >>> confusion_matrix = ConfusionMatrix.from_tensors(
+        >>> confusion_matrix = sv.ConfusionMatrix.from_tensors(
         ...     predictions=predictions,
         ...     targets=targets,
         ...     num_classes=3
@@ -192,9 +192,9 @@ class ConfusionMatrix:
         num_classes = len(classes)
         matrix = np.zeros((num_classes + 1, num_classes + 1))
         for true_batch, detection_batch in zip(targets, predictions):
-            matrix += ConfusionMatrix._evaluate_detection_batch(
-                true_detections=true_batch,
-                pred_detections=detection_batch,
+            matrix += cls.evaluate_detection_batch(
+                predictions=detection_batch,
+                targets=true_batch,
                 num_classes=num_classes,
                 conf_threshold=conf_threshold,
                 iou_threshold=iou_threshold,
@@ -207,7 +207,9 @@ class ConfusionMatrix:
         )
 
     @classmethod
-    def _validate_input_tensors(cls, predictions, targets):
+    def _validate_input_tensors(
+        cls, predictions: List[np.ndarray], targets: List[np.ndarray]
+    ):
         """Checks for shape consistency of input tensors."""
         if len(predictions) != len(targets):
             raise ValueError(
@@ -230,9 +232,9 @@ class ConfusionMatrix:
                 )
 
     @staticmethod
-    def _evaluate_detection_batch(
-        true_detections: np.ndarray,
-        pred_detections: np.ndarray,
+    def evaluate_detection_batch(
+        predictions: np.ndarray,
+        targets: np.ndarray,
         num_classes: int,
         conf_threshold: float,
         iou_threshold: float,
@@ -249,15 +251,15 @@ class ConfusionMatrix:
         result_matrix = np.zeros((num_classes + 1, num_classes + 1))
 
         conf_idx = 5
-        confidence = pred_detections[:, conf_idx]
-        detection_batch_filtered = pred_detections[confidence > conf_threshold]
+        confidence = predictions[:, conf_idx]
+        detection_batch_filtered = predictions[confidence > conf_threshold]
 
         class_id_idx = 4
-        true_classes = np.array(true_detections[:, class_id_idx], dtype=np.int16)
+        true_classes = np.array(targets[:, class_id_idx], dtype=np.int16)
         detection_classes = np.array(
             detection_batch_filtered[:, class_id_idx], dtype=np.int16
         )
-        true_boxes = true_detections[:, :class_id_idx]
+        true_boxes = targets[:, :class_id_idx]
         detection_boxes = detection_batch_filtered[:, :class_id_idx]
 
         iou_batch = box_iou_batch(
@@ -325,8 +327,12 @@ class ConfusionMatrix:
         predictions = []
         targets = []
         for img_name, img in dataset.images.items():
-            predictions.append(callback(img))
-            targets.append(dataset.annotations[img_name])
+            pred_det = callback(img)
+            print(f"{pred_det.xyxy.shape[0]} detections in {img_name}")
+            predictions.append(pred_det)
+            true_det = dataset.annotations[img_name]
+            print(f"{true_det.xyxy.shape[0]} annotations in {img_name}")
+            targets.append(true_det)
         return cls.from_detections(
             predictions=predictions,
             targets=targets,

@@ -1,5 +1,4 @@
 from contextlib import ExitStack as DoesNotRaise
-from test.utils import dummy_detection_dataset_with_map_img_to_annotation
 from typing import Optional, Union
 
 import numpy as np
@@ -337,9 +336,9 @@ def test_evaluate_detection_batch(
     exception: Exception,
 ):
     with exception:
-        result = ConfusionMatrix._evaluate_detection_batch(
-            true_detections=targets,
-            pred_detections=predictions,
+        result = ConfusionMatrix.evaluate_detection_batch(
+            predictions=predictions,
+            targets=targets,
             num_classes=num_classes,
             conf_threshold=conf_threshold,
             iou_threshold=iou_threshold,
