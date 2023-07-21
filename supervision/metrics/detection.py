@@ -369,8 +369,24 @@ class ConfusionMatrix:
 
         fig, ax = plt.subplots(figsize=figsize, tight_layout=True, facecolor="white")
 
-        class_names = class_names if class_names is not None else self.classes
-        use_labels_for_ticks = class_names is not None and (0 < len(class_names) < 99)
+        if class_names is None:
+            if isinstance(self.classes, list):
+                class_names = self.classes
+            elif isinstance(self.classes, dict):
+                sample_key, sample_value = next(iter(self.classes.items()))
+                if isinstance(sample_key, str):
+                    class_names = list(self.classes.keys())
+                elif isinstance(sample_value, str):
+                    class_names = list(self.classes.values())
+                else:
+                    print("Displayed class names won't be strings. Taking self.classes.keys() as class names.")
+                    class_names = list(self.classes.keys())
+            else:
+                raise ValueError(
+                    f"To be used in the plot, self.classes must be a list or a dict. Got {type(self.classes)} instead."
+                )
+
+        use_labels_for_ticks = (0 < len(class_names) < 99)
         if use_labels_for_ticks:
             x_tick_labels = class_names + ["FN"]
             y_tick_labels = class_names + ["FP"]
