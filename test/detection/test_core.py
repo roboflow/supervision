@@ -2,7 +2,7 @@ from contextlib import ExitStack as DoesNotRaise
 
 import pytest
 
-from supervision import Detections
+from supervision import Detections, Position
 
 from typing import Optional, Union, List
 
@@ -243,3 +243,49 @@ def test_merge(
     with exception:
         result = Detections.merge(detections_list=detections_list)
         assert result == expected_result
+
+
+def test_get_anchor_coordinates() -> None:
+    detections = mock_detections(
+        xyxy=[
+            [10, 10, 20, 20],
+            [20, 20, 30, 30]
+        ]
+    )
+    result = detections.get_anchor_coordinates(Position.CENTER).tolist()
+    expected_result = [[15, 15], [25, 25]]
+    assert result == expected_result
+
+    result = detections.get_anchor_coordinates(Position.CENTER_LEFT).tolist()
+    expected_result = [[10, 15], [20, 25]]
+    assert result == expected_result
+
+    result = detections.get_anchor_coordinates(Position.CENTER_RIGHT).tolist()
+    expected_result = [[20, 15], [30, 25]]
+    assert result == expected_result
+
+    result = detections.get_anchor_coordinates(Position.TOP_CENTER).tolist()
+    expected_result = [[15, 10], [25, 20]]
+    assert result == expected_result
+
+    result = detections.get_anchor_coordinates(Position.TOP_LEFT).tolist()
+    expected_result = [[10, 10], [20, 20]]
+    assert result == expected_result
+
+    result = detections.get_anchor_coordinates(Position.TOP_RIGHT).tolist()
+    expected_result = [[20, 10], [30, 20]]
+    assert result == expected_result
+
+    result = detections.get_anchor_coordinates(Position.BOTTOM_CENTER).tolist()
+    expected_result = [[15, 20], [25, 30]]
+    assert result == expected_result
+
+    result = detections.get_anchor_coordinates(Position.BOTTOM_LEFT).tolist()
+    expected_result = [[10, 20], [20, 30]]
+    assert result == expected_result
+
+    result = detections.get_anchor_coordinates(Position.BOTTOM_RIGHT).tolist()
+    expected_result = [[20, 20], [30, 30]]
+    assert result == expected_result
+
+
