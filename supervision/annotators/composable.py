@@ -3,14 +3,8 @@ from typing import List, Optional
 
 import numpy as np
 
-from supervision.annotators.core import (
-    BoxAnnotator,
-    LabelAnnotator,
-    MaskAnnotator,
-    TrackAnnotator,
-)
+from supervision.annotators.core import BoxAnnotator, LabelAnnotator, MaskAnnotator
 from supervision.detection.core import Detections
-from supervision.detection.track import TrackStorage
 
 
 class ComposableAnnotator(ABC):
@@ -32,8 +26,6 @@ class ComposableAnnotator(ABC):
                     detections=detections,
                     labels=labels,
                 )
-            elif isinstance(annotator, TrackAnnotator):
-                scene = annotator.annotate(scene=scene)
             else:
                 scene = annotator.annotate(scene=scene, detections=detections)
         return scene
@@ -97,41 +89,6 @@ class SegmentationAnnotator(ComposableAnnotator):
         self.annotators = [
             BoxAnnotator(color_by_track=color_by_track),
             MaskAnnotator(color_by_track=color_by_track),
-        ]
-        if not skip_label:
-            self.annotators.append(LabelAnnotator(color_by_track=color_by_track))
-
-
-class TrackedDetectionAnnotator(ComposableAnnotator):
-    """
-    A class for drawing object trajectories, bounding box and tracker ids on an image using provided detections.
-    User have freedom to choose color based on class_ids or tracker_ids
-    Example:
-       ```python
-       >>> import supervision as sv
-
-       >>> classes = ['person', ...]
-       >>> image = ...
-       >>> detections = sv.Detections(...)
-
-       >>> tracked_detection_annotator = sv.TrackedDetectionAnnotator()
-       >>> annotated_frame = tracked_detection_annotator.annotate(
-       ...     scene=image.copy(),
-       ...     detections=detections
-       ... )
-       ```
-    """
-
-    def __init__(
-        self,
-        tracks: TrackStorage,
-        color_by_track: bool = False,
-        skip_label: bool = False,
-    ):
-        super().__init__()
-        self.annotators = [
-            BoxAnnotator(color_by_track=color_by_track),
-            TrackAnnotator(tracks=tracks, color_by_track=color_by_track),
         ]
         if not skip_label:
             self.annotators.append(LabelAnnotator(color_by_track=color_by_track))

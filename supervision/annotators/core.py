@@ -1,13 +1,12 @@
 import os.path
 from abc import ABC, abstractmethod
-from typing import List, Optional, Union
+from typing import Callable, List, Optional, Union
 
 import cv2
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 from supervision.detection.core import Detections
-from supervision.detection.track import TrackStorage
 from supervision.draw.color import Color, ColorPalette
 
 
@@ -172,6 +171,19 @@ class MaskAnnotator(BaseAnnotator):
         return scene
 
 
+def default_label_formatter(
+    detections: Detections,
+) -> List[str]:
+    return [str(class_id) for class_id in detections.class_id]
+
+
+def build_label_formatter(classes: List[str]) -> Callable[[Detections], List[str]]:
+    def default_label_formatter(detections: Detections) -> List[str]:
+        return [classes[class_id] for class_id in detections.class_id]
+
+    return default_label_formatter
+
+
 class LabelAnnotator(BaseAnnotator):
     """
     A class for putting text on an image using provided detections.
@@ -189,20 +201,30 @@ class LabelAnnotator(BaseAnnotator):
         text_thickness: int = 1,
         text_padding: int = 10,
         color_by_track: bool = False,
+        classes: Optional[List[str]] = None,
+        label_formatter: Optional[
+            Callable[[Detections], List[str]]
+        ] = default_label_formatter,
     ):
+        """
+        Args:
+            color_by_track: pick color by tracker id
+            classes: Optional list of class name
+            label_formatter: Optional callback function for label generator, avoided if classes is provided
+        """
         self.color: Union[Color, ColorPalette] = color
-        self.thickness: int = thickness
         self.text_color: Color = text_color
         self.text_scale: float = text_scale
         self.text_thickness: int = text_thickness
         self.text_padding: int = text_padding
         self.color_by_track = color_by_track
+        self.classes = classes
+        self.label_formatter = label_formatter
 
     def annotate(
         self,
         scene: np.ndarray,
         detections: Detections,
-        labels: Optional[List[str]] = None,
     ) -> np.ndarray:
         """
         Draws text on the frame using the detections provided and label.
@@ -210,7 +232,6 @@ class LabelAnnotator(BaseAnnotator):
         Args:
             scene (np.ndarray): The image on which the bounding boxes will be drawn
             detections (Detections): The detections for which the bounding boxes will be drawn
-            labels (Optional[List[str]]): An optional list of labels corresponding to each detection. If `labels` are not provided, corresponding `class_id` will be used as label.
         Returns:
             np.ndarray: The image with the bounding boxes drawn on it
 
@@ -231,11 +252,17 @@ class LabelAnnotator(BaseAnnotator):
             >>> annotated_frame = label_annotator.annotate(
             ...     scene=image.copy(),
             ...     detections=detections,
-            ...     labels=labels
             ... )
             ```
         """
         font = cv2.FONT_HERSHEY_SIMPLEX
+
+        labels = None
+        if self.classes:
+            label_formatter = build_label_formatter(self.classes)
+            labels = label_formatter(detections)
+        else:
+            labels = self.label_formatter(detections=detections)
 
         for i in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[i].astype(int)
@@ -374,85 +401,8 @@ class BoxMaskAnnotator(BaseAnnotator):
         return scene
 
 
-class TrackAnnotator(BaseAnnotator):
-    """
-    Initialize TrackAnnotator
-    """
-
-    def __init__(
-        self,
-        tracks: TrackStorage,
-        color: Union[Color, ColorPalette] = ColorPalette.default(),
-        thickness: int = 2,
-        color_by_track: bool = False,
-    ):
-        self.track_storage = tracks
-        self.color: Union[Color, ColorPalette] = color
-        self.thickness: int = thickness
-        self.boundry_tolerance = 20
-        self.color_by_track = color_by_track
-
-    def annotate(
-        self,
-        scene: np.ndarray,
-    ) -> np.ndarray:
-        """
-        Draws the object trajectory on the frame using the trace provided.
-        Attributes:
-            scene (np.ndarray): The image on which the object trajectories will be drawn.
-            tracks (TrackStorage): The track storage that will be used to draw the previous and current position.
-
-        Returns:
-            np.ndarray: The image with the object trajectories on it.
-            ```python
-            >>> import supervision as sv
-            >>> track_storage = sv.TrackStorage()
-            >>> track_annotator = sv.TrackAnnotator(track_storage)
-            >>> for frame in sv.get_video_frames_generator(source_path='source_video.mp4'):
-            >>>     detections = sv.Detections(...)
-            >>>     tracked_objects = tracker(...)
-            >>>     tracked_detections = sv.Detections(tracked_objects)
-            >>>     track_storage.update(tracked_detections)
-            >>>     track_annotator.annotate(scene)
-        """
-        img_h, img_w, _ = scene.shape
-        unique_ids = np.unique(self.track_storage.tracker_id)
-        for unique_id in unique_ids:
-            valid = np.where(self.track_storage.tracker_id == unique_id)[0]
-            if valid.shape[0] == 0:
-                continue
-            frames = self.track_storage.frame_id[valid]
-            latest_frame = np.argmax(frames)
-            points_to_draw = self.track_storage.xy[valid]
-
-            n_pts = points_to_draw.shape[0]
-            headx, heady = int(points_to_draw[latest_frame][0]), int(
-                points_to_draw[latest_frame][1]
-            )
-
-            if headx > self.boundry_tolerance and heady > self.boundry_tolerance:
-                idx = None
-                if not self.color_by_track and self.track_storage.class_id.shape[0] > 0:
-                    class_id = self.track_storage.class_id[valid][0]
-                    idx = int(class_id)
-                if self.color_by_track or idx is None:
-                    idx = int(unique_id)
-                color = (
-                    self.color.by_idx(idx)
-                    if isinstance(self.color, ColorPalette)
-                    else self.color
-                )
-
-                for i in range(n_pts - 1):
-                    px, py = int(points_to_draw[i][0]), int(points_to_draw[i][1])
-                    qx, qy = int(points_to_draw[i + 1][0]), int(
-                        points_to_draw[i + 1][1]
-                    )
-                    cv2.line(scene, (px, py), (qx, qy), color.as_bgr(), self.thickness)
-                    scene = cv2.circle(
-                        scene, (headx, heady), int(10), color.as_bgr(), thickness=-1
-                    )
-        return scene
+def default_label_formatter(detections: Detections) -> List[str]:
+    return [str(class_id) for class_id in detections.class_id]
 
 
 class PillowLabelAnnotator(BaseAnnotator):

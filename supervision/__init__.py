@@ -1,11 +1,6 @@
 __version__ = "0.11.1"
 
-from supervision.annotators.composable import (
-    DetectionAnnotator,
-    SegmentationAnnotator,
-    TrackAnnotator,
-    TrackedDetectionAnnotator,
-)
+from supervision.annotators.composable import DetectionAnnotator, SegmentationAnnotator
 from supervision.annotators.core import (
     BoxAnnotator,
     BoxMaskAnnotator,
@@ -14,7 +9,7 @@ from supervision.annotators.core import (
     LabelAnnotator,
     MaskAnnotator,
     PillowLabelAnnotator,
-    TrackAnnotator,
+    build_label_formatter,
 )
 from supervision.classification.core import Classifications
 from supervision.dataset.core import (
@@ -25,7 +20,6 @@ from supervision.dataset.core import (
 from supervision.detection.core import Detections
 from supervision.detection.line_counter import LineZone, LineZoneAnnotator
 from supervision.detection.tools.polygon_zone import PolygonZone, PolygonZoneAnnotator
-from supervision.detection.track import TrackStorage
 from supervision.detection.utils import (
     box_iou_batch,
     filter_polygons_by_area,
