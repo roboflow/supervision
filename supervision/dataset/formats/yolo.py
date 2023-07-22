@@ -69,7 +69,10 @@ def _with_mask(lines: List[str]) -> bool:
 
 def _extract_class_names(file_path: str) -> List[str]:
     data = read_yaml_file(file_path=file_path)
-    return data["names"]
+    names = data["names"]
+    if isinstance(names, dict):
+        names = [names[key] for key in sorted(names.keys())]
+    return names
 
 
 def _image_name_to_annotation_name(image_name: str) -> str:
