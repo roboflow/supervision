@@ -12,8 +12,8 @@ from supervision.detection.utils import (
     process_roboflow_result,
     xywh_to_xyxy,
 )
-from supervision.utils.internal import deprecated
 from supervision.geometry.core import Position
+from supervision.utils.internal import deprecated
 
 
 def _validate_xyxy(xyxy: Any, n: int) -> None:
@@ -171,7 +171,9 @@ class Detections:
         )
 
     @classmethod
-    @deprecated("Please use sv.Detections.from_ultralytics() API for future usage. This method is deprecated and removed in future release")
+    @deprecated(
+        "Please use sv.Detections.from_ultralytics() API for future usage. This method is deprecated and removed in future release"
+    )
     def from_yolov8(cls, yolov8_results) -> Detections:
         """
         Creates a Detections instance from a [YOLOv8](https://github.com/ultralytics/ultralytics) inference result.
@@ -223,7 +225,7 @@ class Detections:
             >>> model = SAM('sam_b.pt')
             >>> model = SAM('mobile_sam.pt')
             >>> model = FastSAM('FastSAM-s.pt')
-            >>> model = RTDETR('FastSAM-s.pt')
+            >>> model = RTDETR('rtdetr-l.pt')
 
             >>> result = model(image)[0]
             >>> detections = sv.Detections.from_ultralytics(result)
