@@ -7,11 +7,12 @@ import cv2
 import numpy as np
 
 from supervision.detection.utils import (
-    extract_yolov8_masks,
+    extract_ultralytics_masks,
     non_max_suppression,
     process_roboflow_result,
     xywh_to_xyxy,
 )
+from supervision.utils.internal import deprecated
 from supervision.geometry.core import Position
 
 
@@ -170,6 +171,7 @@ class Detections:
         )
 
     @classmethod
+    @deprecated("Please use sv.Detections.from_ultralytics() API for future usage. This method is deprecated and removed in future release")
     def from_yolov8(cls, yolov8_results) -> Detections:
         """
         Creates a Detections instance from a [YOLOv8](https://github.com/ultralytics/ultralytics) inference result.
@@ -196,7 +198,42 @@ class Detections:
             xyxy=yolov8_results.boxes.xyxy.cpu().numpy(),
             confidence=yolov8_results.boxes.conf.cpu().numpy(),
             class_id=yolov8_results.boxes.cls.cpu().numpy().astype(int),
-            mask=extract_yolov8_masks(yolov8_results),
+            mask=extract_ultralytics_masks(yolov8_results),
+        )
+
+    @classmethod
+    def from_ultralytics(cls, ultralytics_results) -> Detections:
+        """
+        Creates a Detections instance from a [YOLOv8](https://github.com/ultralytics/ultralytics) inference result.
+
+        Args:
+            yolov8_results (ultralytics.yolo.engine.results.Results): The output Results instance from YOLOv8
+
+        Returns:
+            Detections: A new Detections object.
+
+        Example:
+            ```python
+            >>> import cv2
+            >>> from ultralytics import YOLO, FastSAM, SAM, RTDETR
+            >>> import supervision as sv
+
+            >>> image = cv2.imread(SOURCE_IMAGE_PATH)
+            >>> model = YOLO('yolov8s.pt')
+            >>> model = SAM('sam_b.pt')
+            >>> model = SAM('mobile_sam.pt')
+            >>> model = FastSAM('FastSAM-s.pt')
+            >>> model = RTDETR('FastSAM-s.pt')
+
+            >>> result = model(image)[0]
+            >>> detections = sv.Detections.from_ultralytics(result)
+            ```
+        """
+        return cls(
+            xyxy=ultralytics_results.boxes.xyxy.cpu().numpy(),
+            confidence=ultralytics_results.boxes.conf.cpu().numpy(),
+            class_id=ultralytics_results.boxes.cls.cpu().numpy().astype(int),
+            mask=extract_ultralytics_masks(ultralytics_results),
         )
 
     @classmethod
