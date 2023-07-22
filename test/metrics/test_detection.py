@@ -6,6 +6,7 @@ import pytest
 
 from supervision.detection.core import Detections
 from supervision.metrics.detection import ConfusionMatrix
+from test.utils import mock_detections
 
 CLASSES = np.arange(80)
 NUM_CLASSES = len(CLASSES)
@@ -119,26 +120,58 @@ BAD_CONF_MATRIX = worsen_ideal_conf_matrix(
 
 
 @pytest.mark.parametrize(
-    "detections, exception",
+    "detections, with_confidence, expected_result, exception",
     [
         (
-            DETECTIONS,
+            Detections.empty(),
+            False,
+            np.empty((0, 5), dtype=np.float32),
             DoesNotRaise(),
-        )
+        ),  # empty detections; no confidence
+        (
+            Detections.empty(),
+            True,
+            np.empty((0, 6), dtype=np.float32),
+            DoesNotRaise(),
+        ),  # empty detections; with confidence
+        (
+            mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[0], confidence=[0.5]),
+            False,
+            np.array([[0, 0, 10, 10, 0]], dtype=np.float32),
+            DoesNotRaise(),
+        ),  # single detection; no confidence
+        (
+            mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[0], confidence=[0.5]),
+            True,
+            np.array([[0, 0, 10, 10, 0, 0.5]], dtype=np.float32),
+            DoesNotRaise(),
+        ),  # single detection; with confidence
+        (
+            mock_detections(xyxy=[[0, 0, 10, 10], [0, 0, 20, 20]], class_id=[0, 1], confidence=[0.5, 0.2]),
+            False,
+            np.array([[0, 0, 10, 10, 0], [0, 0, 20, 20, 1]], dtype=np.float32),
+            DoesNotRaise(),
+        ),  # multiple detections; no confidence
+        (
+            mock_detections(xyxy=[[0, 0, 10, 10], [0, 0, 20, 20]], class_id=[0, 1], confidence=[0.5, 0.2]),
+            True,
+            np.array([[0, 0, 10, 10, 0, 0.5], [0, 0, 20, 20, 1, 0.2]], dtype=np.float32),
+            DoesNotRaise(),
+        ),  # multiple detections; with confidence
     ],
 )
-def test_convert_detections_to_tensor(
-    detections,
-    exception: Exception,
+def test_detections_to_tensor(
+    detections: Detections,
+    with_confidence: bool,
+    expected_result: Optional[np.ndarray],
+    exception: Exception
 ):
     with exception:
-        result = ConfusionMatrix.convert_detections_to_tensor(
+        result = ConfusionMatrix.detections_to_tensor(
             detections=detections,
+            with_confidence=with_confidence
         )
-
-        assert np.array_equal(result[:, :4], detections.xyxy)
-        assert np.array_equal(result[:, 4], detections.class_id)
-        assert np.array_equal(result[:, 5], detections.confidence)
+        assert np.array_equal(result, expected_result)
 
 
 @pytest.mark.parametrize(

@@ -2,7 +2,7 @@ name: Test WorkFlow
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, develop]
 
 jobs:
   build:
@@ -13,8 +13,6 @@ jobs:
     steps:
       - name: 🛎️ Checkout
         uses: actions/checkout@v3
-        with:
-          ref: ${{ github.head_ref }}
       - name: 🐍 Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
