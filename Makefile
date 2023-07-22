@@ -16,7 +16,7 @@ check_code_quality:
 	flake8 $(check_dirs) --count --max-line-length=88 --exit-zero  --ignore=D --extend-ignore=E203,E501,W503  --statistics
 	
 publish:
-	python setup.py sdist bdist_wheel
+	poetry build
 	twine upload -r testpypi dist/* -u ${PYPI_USERNAME} -p ${PYPI_TEST_PASSWORD} --verbose 
 	twine check dist/*
 	twine upload dist/* -u ${PYPI_USERNAME} -p ${PYPI_PASSWORD} --verbose 

@@ -172,5 +172,4 @@ def test_dataset_merge(
 ) -> None:
     with exception:
         result = DetectionDataset.merge(dataset_list=dataset_list)
-        print(result.images.keys())
         assert result == expected_result

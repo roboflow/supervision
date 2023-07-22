@@ -229,6 +229,35 @@ class Detections:
         )
 
     @classmethod
+    def from_mmdetection(cls, mmdet_results) -> Detections:
+        """
+        Creates a Detections instance from a [mmdetection](https://github.com/open-mmlab/mmdetection) inference result.
+        Also supported for [mmyolo](https://github.com/open-mmlab/mmyolo)
+
+        Args:
+        mmdet_results (mmdet.structures.DetDataSample): The output Results instance from MMDetection
+
+        Returns:
+        Detections: A new Detections object.
+
+        Example:
+            ```python
+            >>> import cv2
+            >>> import supervision as sv
+            >>> from mmdet.apis import DetInferencer
+
+            >>> inferencer = DetInferencer(model_name, checkpoint, device)
+            >>> mmdet_result = inferencer(SOURCE_IMAGE_PATH, out_dir='./output', return_datasample=True)["predictions"][0]
+            >>> detections = sv.Detections.from_mmdet(mmdet_result)
+            ```
+        """
+        return cls(
+            xyxy=mmdet_results.pred_instances.bboxes.cpu().numpy(),
+            confidence=mmdet_results.pred_instances.scores.cpu().numpy(),
+            class_id=mmdet_results.pred_instances.labels.cpu().numpy().astype(int),
+        )
+
+    @classmethod
     def from_transformers(cls, transformers_results: dict) -> Detections:
         """
         Creates a Detections instance from object detection [transformer](https://github.com/huggingface/transformers) inference result.

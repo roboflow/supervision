@@ -1,4 +1,7 @@
-__version__ = "0.11.1"
+import importlib.metadata as importlib_metadata
+
+__version__ = importlib_metadata.version(__package__)
+
 
 from supervision.classification.core import Classifications
 from supervision.dataset.core import (
@@ -23,6 +26,7 @@ from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import draw_filled_rectangle, draw_polygon, draw_text
 from supervision.geometry.core import Point, Position, Rect
 from supervision.geometry.utils import get_polygon_center
+from supervision.metrics.detection import ConfusionMatrix
 from supervision.utils.file import list_files_with_extensions
 from supervision.utils.image import ImageSink, crop
 from supervision.utils.notebook import plot_image, plot_images_grid

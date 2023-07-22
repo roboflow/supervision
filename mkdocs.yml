@@ -39,6 +39,8 @@ nav:
             - Polygon Zone: detection/tools/polygon_zone.md
     - Dataset:
         - Core: dataset/core.md
+    - Metrics:
+      - Detection Models: metrics/detection.md
     - Draw:
         - Utils: draw/utils.md
     - Utils:
