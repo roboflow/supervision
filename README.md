@@ -221,6 +221,30 @@ Read more about desktop, headless and local installation in our [guide](https://
 
 </details>
 
+### [model evaluation](https://roboflow.github.io/supervision/metrics/detection/)
+
+```python
+>>> import supervision as sv
+
+>>> dataset = sv.DetectionDataset.from_yolo(...)
+
+>>> def callback(image: np.ndarray) -> sv.Detections:
+...     ...
+
+>>> confusion_matrix = sv.ConfusionMatrix.benchmark(
+...     dataset = dataset,
+...     callback = callback
+... )
+
+>>> confusion_matrix.matrix
+array([
+    [0., 0., 0., 0.],
+    [0., 1., 0., 1.],
+    [0., 1., 1., 0.],
+    [1., 1., 0., 0.]
+])
+```
+
 ## 🎬 tutorials
 
 <p align="left">
