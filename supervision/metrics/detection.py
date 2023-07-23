@@ -85,10 +85,10 @@ class ConfusionMatrix:
         target_tensors = []
         for prediction, target in zip(predictions, targets):
             prediction_tensors.append(
-                cls.detections_to_tensor(prediction, with_confidence=True)
+                ConfusionMatrix.detections_to_tensor(prediction, with_confidence=True)
             )
             target_tensors.append(
-                cls.detections_to_tensor(target, with_confidence=False)
+                ConfusionMatrix.detections_to_tensor(target, with_confidence=False)
             )
         return cls.from_tensors(
             predictions=prediction_tensors,
@@ -98,9 +98,9 @@ class ConfusionMatrix:
             iou_threshold=iou_threshold,
         )
 
-    @classmethod
+    @staticmethod
     def detections_to_tensor(
-        cls, detections: Detections, with_confidence: bool = False
+        detections: Detections, with_confidence: bool = False
     ) -> np.ndarray:
         if detections.class_id is None:
             raise ValueError(
