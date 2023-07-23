@@ -463,7 +463,10 @@ class ConfusionMatrix:
             )
         return fig
 
+
 import torch
+
+
 @dataclass(frozen=True)
 class MeanAveragePrecision:
     map: float
@@ -556,7 +559,7 @@ class MeanAveragePrecision:
                     targets=true_batch,
                     iouv=iouv,
                 )
-                # (correct, conf, pcls, tcls)
+                # (correct, confidence, pred-class, target-class)
                 stats.append(
                     (
                         correct,
@@ -590,10 +593,7 @@ class MeanAveragePrecision:
                 _X1 = np.vstack([x[0], x[1]]).T
                 _x2 = iou[x[0], x[1]][:, None]
                 matches = np.concatenate([_X1, _x2], axis=1)  # [label, detect, iou]
-                if x[0].shape[0] > 1:
-                    matches = matches[matches[:, 2].argsort()[::-1]]
-                    matches = matches[np.unique(matches[:, 1], return_index=True)[1]]
-                    matches = matches[np.unique(matches[:, 0], return_index=True)[1]]
+                matches = MeanAveragePrecision._drop_extra_matches(matches)
                 correct[matches[:, 1].astype(int), i] = True
         return correct, iouv
 
@@ -634,29 +634,13 @@ class MeanAveragePrecision:
         return matches
 
 
-def ap_per_class(tp, conf, pred_cls, target_cls, names=(), eps=1e-16):
-    """Compute the average precision, given the recall and precision curves.
-    Source: https://github.com/rafaelpadilla/Object-Detection-Metrics.
-    # Arguments
-        tp:  True positives (nparray, nx1 or nx10).
-        conf:  Objectness value from 0-1 (nparray).
-        pred_cls:  Predicted object classes (nparray).
-        target_cls:  True object classes (nparray).
-        plot:  Plot precision-recall curve at mAP@0.5
-        save_dir:  Plot save directory
-    # Returns
-        The average precision as computed in py-faster-rcnn.
-    """
-
-    # Sort by objectness
+def ap_per_class(tp, conf, pred_cls, target_cls, eps=1e-16):
     i = np.argsort(-conf)
     tp, conf, pred_cls = tp[i], conf[i], pred_cls[i]
 
-    # Find unique classes
     unique_classes, nt = np.unique(target_cls, return_counts=True)
     nc = unique_classes.shape[0]  # number of classes, number of detections
 
-    # Create Precision-Recall curve and compute AP for each class
     px, py = np.linspace(0, 1, 1000), []  # for plotting
     ap, p, r = np.zeros((nc, tp.shape[1])), np.zeros((nc, 1000)), np.zeros((nc, 1000))
     for ci, c in enumerate(unique_classes):
@@ -691,7 +675,7 @@ def ap_per_class(tp, conf, pred_cls, target_cls, names=(), eps=1e-16):
     p, r, f1 = p[:, i], r[:, i], f1[:, i]
     tp = (r * nt).round()  # true positives
     fp = (tp / (p + eps) - tp).round()  # false positives
-    return ap, unique_classes.astype(int)
+    return tp, fp, p, r, f1, ap, unique_classes.astype(int)
 
 
 def smooth(y, f=0.05):
