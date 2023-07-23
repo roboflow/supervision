@@ -28,26 +28,10 @@ Pip install the supervision package in a
 [**3.11>=Python>=3.8**](https://www.python.org/) environment.
 
 ```bash
-pip install supervision
+pip install supervision[desktop]
 ```
 
-<details close>
-<summary>👉 install from source</summary>
-
-```bash
-# clone repository and navigate to root directory
-git clone https://github.com/roboflow/supervision.git
-cd supervision
-
-# setup python environment and activate it
-python3 -m venv venv
-source venv/bin/activate
-
-# install
-pip install -e ".[dev]"
-```
-
-</details>
+Read more about desktop, headless and local installation in our [guide](https://roboflow.github.io/supervision/).
 
 ## 🔥 quickstart
 
@@ -236,6 +220,30 @@ pip install -e ".[dev]"
     ```
 
 </details>
+
+### [model evaluation](https://roboflow.github.io/supervision/metrics/detection/)
+
+```python
+>>> import supervision as sv
+
+>>> dataset = sv.DetectionDataset.from_yolo(...)
+
+>>> def callback(image: np.ndarray) -> sv.Detections:
+...     ...
+
+>>> confusion_matrix = sv.ConfusionMatrix.benchmark(
+...     dataset = dataset,
+...     callback = callback
+... )
+
+>>> confusion_matrix.matrix
+array([
+    [0., 0., 0., 0.],
+    [0., 1., 0., 1.],
+    [0., 1., 1., 0.],
+    [1., 1., 0., 0.]
+])
+```
 
 ## 🎬 tutorials
 
