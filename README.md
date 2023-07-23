@@ -263,11 +263,7 @@ array([
 
 ## 📚 documentation
 
-Curious how Supervision can help you solve problems on your project? Visit our [documentation](https://roboflow.github.io/supervision) page!
-
-## 💜 built with supervision
-
-You built something cool using supervision? [Let us know!](https://github.com/roboflow/supervision/discussions/categories/built-with-supervision)
+Visit our [documentation](https://roboflow.github.io/supervision) page to learn how supervision can help you build computer vision applications faster and more reliably. 
 
 ## 🏆 contribution
 
