@@ -2,15 +2,16 @@ __version__ = "0.11.1"
 
 from supervision.annotators.composable import DetectionAnnotator, SegmentationAnnotator
 from supervision.annotators.core import (
-    BoxAnnotator,
+    BoxLineAnnotator,
     BoxMaskAnnotator,
-    CorneredBoxAnnotator,
+    BoxCornerAnnotator,
     EllipseAnnotator,
     LabelAnnotator,
     MaskAnnotator,
-    PillowLabelAnnotator,
+    LabelAdvancedAnnotator,
     build_label_formatter,
 )
+from supervision.detection.annotate import BoxAnnotator, MaskAnnotator
 from supervision.classification.core import Classifications
 from supervision.dataset.core import (
     BaseDataset,

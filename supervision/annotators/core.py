@@ -15,8 +15,12 @@ class BaseAnnotator(ABC):
     def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
         pass
 
+    @staticmethod
+    def resolve_annotation_color(color: Union[Color, ColorPalette], by_track: bool, detections: Detections) -> Color:
+        pass
 
-class BoxAnnotator(BaseAnnotator):
+
+class BoxLineAnnotator(BaseAnnotator):
     """
     Basic bounding box annotation class
     """
@@ -41,18 +45,17 @@ class BoxAnnotator(BaseAnnotator):
             scene (np.ndarray): The image on which the bounding boxes will be drawn
             detections (Detections): The detections for which the bounding boxes will be drawn
         Returns:
-            np.ndarray: The image with the bounding boxes drawn on it
+            np.ndarray: The image with the bounding boxes drawn on it.
 
         Example:
             ```python
             >>> import supervision as sv
 
-            >>> classes = ['person', ...]
             >>> image = ...
             >>> detections = sv.Detections(...)
 
-            >>> box_annotator = sv.BoxAnnotator()
-            >>> annotated_frame = box_annotator.annotate(
+            >>> box_line_annotator = sv.BoxLineAnnotator()
+            >>> annotated_frame = box_line_annotator.annotate(
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
@@ -405,7 +408,7 @@ def default_label_formatter(detections: Detections) -> List[str]:
     return [str(class_id) for class_id in detections.class_id]
 
 
-class PillowLabelAnnotator(BaseAnnotator):
+class LabelAdvancedAnnotator(BaseAnnotator):
     def __init__(
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
@@ -448,7 +451,7 @@ class PillowLabelAnnotator(BaseAnnotator):
             >>> image = ...
             >>> detections = sv.Detections(...)
 
-            >>> pil_label_annotator = sv.PillowLabelAnnotator()
+            >>> pil_label_annotator = sv.LabelAdvancedAnnotator()
             >>> labels = [
             ...     f"{classes[class_id]} {confidence:0.2f}"
             ...     for _, _, confidence, class_id, _
@@ -521,7 +524,7 @@ class PillowLabelAnnotator(BaseAnnotator):
         return scene
 
 
-class CorneredBoxAnnotator(BaseAnnotator):
+class BoxCornerAnnotator(BaseAnnotator):
     def __init__(
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),

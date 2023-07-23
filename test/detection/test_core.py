@@ -2,7 +2,8 @@ from contextlib import ExitStack as DoesNotRaise
 
 import pytest
 
-from supervision import Detections, Position
+from supervision.detection.core import Detections
+from supervision.geometry.core import Position
 
 from typing import Optional, Union, List
 
