@@ -27,7 +27,8 @@ setuptools.setup(
         'numpy>=1.20.0',
         'opencv-python',
         'matplotlib',
-        'pyyaml'
+        'pyyaml',
+        'pillow'
     ],
     packages=find_packages(exclude=("tests",)),
     extras_require={

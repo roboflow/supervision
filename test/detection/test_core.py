@@ -2,7 +2,8 @@ from contextlib import ExitStack as DoesNotRaise
 
 import pytest
 
-from supervision import Detections
+from supervision.detection.core import Detections
+from supervision.geometry.core import Position
 
 from typing import Optional, Union, List
 
@@ -243,3 +244,85 @@ def test_merge(
     with exception:
         result = Detections.merge(detections_list=detections_list)
         assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    'detections, anchor, expected_result, exception',
+    [
+        (
+            Detections.empty(),
+            Position.CENTER,
+            np.empty((0, 2), dtype=np.float32),
+            DoesNotRaise()
+        ),  # empty detections
+        (
+            mock_detections(xyxy=[[10, 10, 20, 20]]),
+            Position.CENTER,
+            np.array([[15, 15]], dtype=np.float32),
+            DoesNotRaise()
+        ),  # single detection; center anchor
+        (
+            mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
+            Position.CENTER,
+            np.array([[15, 15], [25, 25]], dtype=np.float32),
+            DoesNotRaise()
+        ),  # two detections; center anchor
+        (
+            mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
+            Position.CENTER_LEFT,
+            np.array([[10, 15], [20, 25]], dtype=np.float32),
+            DoesNotRaise()
+        ),  # two detections; center left anchor
+        (
+            mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
+            Position.CENTER_RIGHT,
+            np.array([[20, 15], [30, 25]], dtype=np.float32),
+            DoesNotRaise()
+        ),  # two detections; center right anchor
+        (
+            mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
+            Position.TOP_CENTER,
+            np.array([[15, 10], [25, 20]], dtype=np.float32),
+            DoesNotRaise()
+        ),  # two detections; top center anchor
+        (
+            mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
+            Position.TOP_LEFT,
+            np.array([[10, 10], [20, 20]], dtype=np.float32),
+            DoesNotRaise()
+        ),  # two detections; top left anchor
+        (
+            mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
+            Position.TOP_RIGHT,
+            np.array([[20, 10], [30, 20]], dtype=np.float32),
+            DoesNotRaise()
+        ),  # two detections; top right anchor
+        (
+            mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
+            Position.BOTTOM_CENTER,
+            np.array([[15, 20], [25, 30]], dtype=np.float32),
+            DoesNotRaise()
+        ),  # two detections; bottom center anchor
+        (
+            mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
+            Position.BOTTOM_LEFT,
+            np.array([[10, 20], [20, 30]], dtype=np.float32),
+            DoesNotRaise()
+        ),  # two detections; bottom left anchor
+        (
+            mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
+            Position.BOTTOM_RIGHT,
+            np.array([[20, 20], [30, 30]], dtype=np.float32),
+            DoesNotRaise()
+        ),  # two detections; bottom right anchor
+    ]
+)
+def test_get_anchor_coordinates(
+        detections: Detections,
+        anchor: Position,
+        expected_result: np.ndarray,
+        exception: Exception
+) -> None:
+    result = detections.get_anchor_coordinates(anchor)
+    with exception:
+        assert np.array_equal(result, expected_result)
