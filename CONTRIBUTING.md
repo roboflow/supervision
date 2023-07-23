@@ -24,7 +24,7 @@ Before you contribute a new feature, consider submitting an Issue to discuss the
 
 ## How to Contribute Changes
 
-First, fork this repository to your own GitHub account. Create a new branch that describes your changes (i.e. `line-counter-docs`). Push your changes to the branch on your fork and then submit a pull request to this repository.
+First, fork this repository to your own GitHub account. Create a new branch that describes your changes (i.e. `line-counter-docs`). Push your changes to the branch on your fork and then submit a pull request to `develop` branch of this repository.
 
 When creating new functions, please ensure you have the following:
 
