@@ -2,7 +2,6 @@ from typing import List, Optional, Union
 
 import cv2
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
 
 from supervision.detection.core import Detections
 from supervision.draw.color import Color, ColorPalette
