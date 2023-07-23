@@ -46,14 +46,6 @@ class BaseDataset(ABC):
     ) -> Tuple[BaseDataset, BaseDataset]:
         pass
 
-    def add_instance(
-        self, filename: str, image: np.ndarray, detections: Detections
-    ) -> None:
-        pass
-
-    def add_class_names(self, class_names: List[str]) -> None:
-        pass
-
 
 @dataclass
 class DetectionDataset(BaseDataset):
@@ -510,18 +502,6 @@ class DetectionDataset(BaseDataset):
         return cls(
             classes=merged_classes, images=merged_images, annotations=merged_annotations
         )
-
-    def add_class_names(self, class_names: List[str]):
-        self.classes = class_names
-
-    def add_instance(self, filename: str, image: np.ndarray, detections: Detections):
-        if filename not in self.annotations.keys():
-            self.images[filename] = image
-            self.annotations[filename] = detections
-
-    @classmethod
-    def emty(cls):
-        return cls(classes=[], images={}, annotations={})
 
 
 @dataclass
