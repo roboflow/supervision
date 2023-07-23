@@ -456,3 +456,268 @@ class ConfusionMatrix:
                 save_path, dpi=250, facecolor=fig.get_facecolor(), transparent=True
             )
         return fig
+
+
+@dataclass
+class AveragePrecision:
+
+    value: float
+    recall_values: np.ndarray
+    precision_values: np.ndarray
+    class_idx: Optional[int] = None
+    iou_threshold: Optional[float] = None
+
+    @classmethod
+    def from_detections(
+        cls,
+        predictions: List[Detections],
+        targets: List[Detections],
+        class_idx: int,
+        iou_threshold: float = 0.5,
+    ) -> AveragePrecision:
+
+        prediction_tensors = []
+        target_tensors = []
+        for prediction, target in zip(predictions, targets):
+            prediction_tensors.append(
+                cls.detections_to_tensor(prediction, with_confidence=True)
+            )
+            target_tensors.append(
+                cls.detections_to_tensor(target, with_confidence=False)
+            )
+        return cls.from_tensors(
+            predictions=prediction_tensors,
+            targets=target_tensors,
+            class_idx=class_idx,
+            iou_threshold=iou_threshold,
+        )
+
+    @classmethod
+    def detections_to_tensor(
+        cls, detections: Detections, with_confidence: bool = False
+    ) -> np.ndarray:
+        if detections.class_id is None:
+            raise ValueError(
+                "ConfusionMatrix can only be calculated for Detections with class_id"
+            )
+
+        arrays_to_concat = [detections.xyxy, np.expand_dims(detections.class_id, 1)]
+
+        if with_confidence:
+            if detections.confidence is None:
+                raise ValueError(
+                    "ConfusionMatrix can only be calculated for Detections with confidence"
+                )
+            arrays_to_concat.append(np.expand_dims(detections.confidence, 1))
+
+        return np.concatenate(arrays_to_concat, axis=1)
+
+    @classmethod
+    def from_tensors(
+        cls,
+        predictions: List[np.ndarray],
+        targets: List[np.ndarray],
+        class_idx: int,
+        iou_threshold: float = 0.5,
+    ) -> AveragePrecision:
+
+        cls._validate_input_tensors(predictions, targets)
+
+        evaluated_detections = np.zeros((0, 3))
+
+        for true_batch, detection_batch in zip(targets, predictions):
+
+            batch_evaluated_detection = AveragePrecision.evaluate_detection_batch(
+                targets=true_batch,
+                predictions=detection_batch,
+                class_idx=class_idx,
+                iou_threshold=iou_threshold
+            )
+
+            evaluated_detections = np.concatenate([evaluated_detections, batch_evaluated_detection])
+
+        evaluated_detections = evaluated_detections[evaluated_detections[:, 0].argsort()[::-1]]
+        tp = np.cumsum(evaluated_detections[:, 1])
+        all_detections = evaluated_detections.shape[0]
+        precision = tp / np.arange(1, all_detections + 1)
+        recall = tp / all_detections
+
+        return cls.from_precision_recall(precision=precision, recall=recall, class_idx=class_idx, iou_threshold=iou_threshold)
+
+    @classmethod
+    def from_precision_recall(
+            cls,
+            recall: np.ndarray,
+            precision: np.ndarray,
+            class_idx: Optional[int] = None,
+            iou_threshold: Optional[float] = None
+    ) -> AveragePrecision:
+        """
+        Calculate average precision (AP) metric based on given precision/recall curve.
+        """
+        EPSILON = 1e-6
+        if precision.shape[0] == 0:
+            recall_values = np.array([0., EPSILON])
+            precision_values = np.array([1., 0.])
+        else:
+            recall_values = np.concatenate(([0.], recall, [1.0])) # as per yolov8 max=
+            precision_values = np.concatenate(([1.], precision, [0.]))
+
+        precision_values = np.flip(np.maximum.accumulate(np.flip(precision_values)))
+        i = np.where(recall_values[1:] != recall_values[:-1])[0]
+        value = np.sum((recall_values[i + 1] - recall_values[i]) * precision_values[i + 1])
+        return cls(
+            value=value,
+            recall_values=recall_values,
+            precision_values=precision_values,
+            class_idx=class_idx,
+            iou_threshold=iou_threshold
+        )
+
+    @classmethod
+    def _validate_input_tensors(
+        cls, predictions: List[np.ndarray], targets: List[np.ndarray]
+    ):
+        """
+        Checks for shape consistency of input tensors.
+        """
+        if len(predictions) != len(targets):
+            raise ValueError(
+                f"Number of predictions ({len(predictions)}) and targets ({len(targets)}) must be equal."
+            )
+        if len(predictions) > 0:
+            if not isinstance(predictions[0], np.ndarray) or not isinstance(
+                targets[0], np.ndarray
+            ):
+                raise ValueError(
+                    f"Predictions and targets must be lists of numpy arrays. Got {type(predictions[0])} and {type(targets[0])} instead."
+                )
+            if predictions[0].shape[1] != 6:
+                raise ValueError(
+                    f"Predictions must have shape (N, 6). Got {predictions[0].shape} instead."
+                )
+            if targets[0].shape[1] != 5:
+                raise ValueError(
+                    f"Targets must have shape (N, 5). Got {targets[0].shape} instead."
+                )
+
+    @staticmethod
+    def evaluate_detection_batch(
+        predictions: np.ndarray,
+        targets: np.ndarray,
+        class_idx: int,
+        iou_threshold: float,
+    ) -> np.ndarray:
+
+        detection_batch_filtered = predictions[predictions[:, 4] == class_idx]
+        true_batch_filtered = targets[targets[:, 4] == class_idx]
+        # confidence, tp, fp
+        result_matrix = np.zeros((detection_batch_filtered.shape[0], 3))
+
+        true_boxes = true_batch_filtered[:, :4]
+        detection_boxes = detection_batch_filtered[:, :4]
+        detection_conf = detection_batch_filtered[:, 5]
+        iou_batch = box_iou_batch(boxes_true=true_boxes, boxes_detection=detection_boxes)
+        matched_idx = np.asarray(iou_batch > iou_threshold).nonzero()
+
+        if matched_idx[0].shape[0]:
+            matches = np.stack((matched_idx[0], matched_idx[1], iou_batch[matched_idx]), axis=1)
+            matches = AveragePrecision._drop_extra_matches(matches=matches)
+        else:
+            matches = np.zeros((0, 3))
+
+        matched_true_class_idx, matched_detection_class_idx, _ = matches.transpose().astype(np.int16)
+
+        for i, conf in enumerate(detection_conf):
+            if any(matched_detection_class_idx == i):
+                result_matrix[i] = np.array([conf, 1, 0])
+            else:
+                result_matrix[i] = np.array([conf, 0, 1])
+
+        return result_matrix
+
+    @staticmethod
+    def _drop_extra_matches(matches: np.ndarray) -> np.ndarray:
+        """
+        Deduplicate matches. If there are multiple matches for the same true or predicted box,
+        only the one with the highest IoU is kept.
+        """
+        if matches.shape[0] > 0:
+            matches = matches[matches[:, 2].argsort()[::-1]]
+            matches = matches[np.unique(matches[:, 1], return_index=True)[1]]
+            matches = matches[matches[:, 2].argsort()[::-1]]
+            matches = matches[np.unique(matches[:, 0], return_index=True)[1]]
+        return matches
+
+
+@dataclass(frozen=True)
+class MeanAveragePrecision:
+    value: float
+    per_class: List[AveragePrecision]
+    class_names: List[str]
+    iou_threshold: float
+
+    @classmethod
+    def from_detections(
+        cls,
+        predictions: List[Detections],
+        targets: List[Detections],
+        class_names: List[str],
+        iou_threshold: float = 0.6
+    ) -> MeanAveragePrecision:
+        num_classes = len(class_names)
+        per_class = [
+            AveragePrecision.from_detections(
+                targets=targets,
+                predictions=predictions,
+                class_idx=class_idx,
+                iou_threshold=iou_threshold
+            )
+            for class_idx
+            in range(num_classes)
+        ]
+        values = [ap.value for ap in per_class]
+
+        print(values)
+        return cls(value=sum(values) / num_classes, per_class=per_class, class_names=class_names, iou_threshold=iou_threshold)
+
+    def plot(self, target_path: str, title: Optional[str] = None, class_names: Optional[List[str]] = None) -> None:
+        """
+        Create mean average precision plot and save it at selected location.
+
+        Args:
+            target_path: `str` selected target location of confusion matrix plot.
+            title: `Optional[str]` title displayed at the top of the confusion matrix plot. Default `None`.
+            class_names: `Optional[List[str]]` list of class names detected my model. If non given class indexes will be used. Default `None`.
+        """
+        text_labels = class_names is not None and len(class_names) == self.num_classes
+        labels = class_names if text_labels else list(range(self.num_classes))
+
+        fig = plt.figure(figsize=(12, 9), tight_layout=True, facecolor='white')
+        ax = fig.add_subplot(111)
+
+        for label, ap in zip(labels, self.per_class):
+            ax.plot(ap.recall_values, ap.precision_values, label=label, linewidth=2.0,)
+
+        plt.xlabel('Recall')
+        plt.ylabel('Precision')
+        plt.xlim([0, 1])
+        plt.ylim([0, 1])
+
+        # axis style
+        for spine in ax.spines.values():
+            spine.set_edgecolor('black')
+        for s in ['top', 'right']:
+            ax.spines[s].set_visible(False)
+            ax.spines[s].set_visible(False)
+
+        handles, labels = ax.get_legend_handles_labels()
+        ax.legend(handles, labels, loc='upper center', bbox_to_anchor=(1.1, 1), facecolor='white',
+                  framealpha=1, frameon=False, fontsize=10)
+        ax.set_facecolor('white')
+        ax.grid(b=True, color='grey', linestyle='-.', linewidth=0.5, alpha=0.5)
+
+        if title:
+            plt.title(title, fontsize=20, pad=20)
+
+        fig.savefig(target_path, dpi=250, facecolor=fig.get_facecolor(), transparent=True)
