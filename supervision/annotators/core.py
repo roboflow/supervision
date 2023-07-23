@@ -16,7 +16,9 @@ class BaseAnnotator(ABC):
         pass
 
     @staticmethod
-    def resolve_annotation_color(color: Union[Color, ColorPalette], by_track: bool, detections: Detections) -> Color:
+    def resolve_annotation_color(
+        color: Union[Color, ColorPalette], by_track: bool, detections: Detections
+    ) -> Color:
         pass
 
 
