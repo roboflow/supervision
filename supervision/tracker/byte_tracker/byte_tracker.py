@@ -265,6 +265,8 @@ class ByteTrack:
             img_size: Image Size
 
         Updates the strack with the provided results and frame info.
+        Returns:
+            Detection: supervision detection result with track id
         """
         # update tracker
         tracks = self.update_from_numpy(
@@ -287,6 +289,8 @@ class ByteTrack:
             img_size: Image Size
 
         Updates the strack with the provided results and frame info.
+        Returns:
+            Track_id: track id
         """
         self.frame_id += 1
         activated_starcks = []
