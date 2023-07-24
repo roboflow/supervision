@@ -151,6 +151,15 @@ class strack(BaseTrack):
 
 # converts Detections into format that can be consumed by match_detections_with_tracks function
 def detections2boxes(detections: Detections) -> np.ndarray:
+    """
+    Convert Detections into a format that can be consumed by the match_detections_with_tracks function.
+
+    Parameters:
+        detections (Detections): An object representing the detected bounding boxes.
+
+    Returns:
+        np.ndarray: An array containing the bounding boxes' coordinates (xyxy) and their corresponding confidences.
+    """
     return np.hstack((detections.xyxy, detections.confidence[:, np.newaxis]))
 
 
@@ -163,6 +172,16 @@ def tracks2boxes(tracks: List[strack]) -> np.ndarray:
 def match_detections_with_tracks(
     detections: Detections, tracks: List[strack]
 ) -> Detections:
+    """
+    Match bounding boxes from detections with existing strack objects.
+
+    Parameters:
+        detections (Detections): An object representing the detected bounding boxes.
+        tracks (List[strack]): A list of strack objects to match with the detections.
+
+    Returns:
+        Detections: An object representing the matched tracker IDs for the detections.
+    """
     if not np.any(detections.xyxy) or len(tracks) == 0:
         return np.empty((0,))
 
@@ -191,6 +210,34 @@ class ByteTrack:
         frame_rate=30,
     ):
 
+        """
+        Initialize the ByteTrack object.
+
+        Parameters:
+            track_thresh (float, optional): Detection confidence threshold for track activation.
+            track_buffer (int, optional): Number of frames to buffer when a track is lost.
+            match_thresh (float, optional): Threshold for matching tracks with detections.
+            aspect_ratio_thresh (float, optional): Threshold for aspect ratio to filter out detections.
+            min_box_area (float, optional): Minimum box area threshold to filter out detections.
+            mot20 (bool, optional): Set to True for using MOT20 evaluation criteria.
+            frame_rate (int, optional): The frame rate of the video.
+
+        Attributes:
+            track_thresh (float): Detection confidence threshold for track activation.
+            track_buffer (int): Number of frames to buffer when a track is lost.
+            match_thresh (float): Threshold for matching tracks with detections.
+            aspect_ratio_thresh (float): Threshold for aspect ratio to filter out detections.
+            min_box_area (float): Minimum box area threshold to filter out detections.
+            mot20 (bool): Indicates if MOT20 evaluation criteria are used.
+            tracked_stracks (List[strack]): List of tracked strack objects.
+            lost_stracks (List[strack]): List of lost strack objects.
+            removed_stracks (List[strack]): List of removed strack objects.
+            frame_id (int): ID of the current frame.
+            det_thresh (float): Detection threshold for track association.
+            buffer_size (int): Size of the buffer for a track when it's lost.
+            max_time_lost (int): Maximum number of frames a track can be lost before removal.
+            kalman_filter (KalmanFilter): The Kalman filter used for state prediction.
+        """
         self.track_thresh = track_thresh
         self.track_buffer = track_buffer
         self.match_thresh = match_thresh
@@ -209,6 +256,16 @@ class ByteTrack:
         self.kalman_filter = KalmanFilter()
 
     def update_from_detections(self, detections, img_info, img_size):
+        """
+        Update a matched strack. It uses the supervision detection.
+
+        Parameters:
+            detections: The new detections to update with.
+            img_info: Image Info.
+            img_size: Image Size
+
+        Updates the strack with the provided results and frame info.
+        """
         # update tracker
         tracks = self.update_from_numpy(
             output_results=detections2boxes(detections=detections),
@@ -221,6 +278,16 @@ class ByteTrack:
         return detections
 
     def update_from_numpy(self, output_results, img_info, img_size):
+        """
+        Update a matched strack. It uses the numpy results.
+
+        Parameters:
+            output_results: The new detections to update with.
+            img_info: Image Info.
+            img_size: Image Size
+
+        Updates the strack with the provided results and frame info.
+        """
         self.frame_id += 1
         activated_starcks = []
         refind_stracks = []
