@@ -1,9 +1,10 @@
 from collections import OrderedDict
+from enum import Enum
 
 import numpy as np
 
 
-class TrackState:
+class TrackState(Enum):
     New = 0
     Tracked = 1
     Lost = 2
@@ -13,20 +14,21 @@ class TrackState:
 class BaseTrack:
     _count = 0
 
-    track_id = 0
-    is_activated = False
-    state = TrackState.New
+    def __init__(self):
+        self.track_id = 0
+        self.is_activated = False
+        self.state = TrackState.New
 
-    history = OrderedDict()
-    features = []
-    curr_feature = None
-    score = 0
-    start_frame = 0
-    frame_id = 0
-    time_since_update = 0
+        self.history = OrderedDict()
+        self.features = []
+        self.curr_feature = None
+        self.score = 0
+        self.start_frame = 0
+        self.frame_id = 0
+        self.time_since_update = 0
 
-    # multi-camera
-    location = (np.inf, np.inf)
+        # multi-camera
+        self.location = (np.inf, np.inf)
 
     @property
     def end_frame(self):

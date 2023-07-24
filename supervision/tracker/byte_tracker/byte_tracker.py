@@ -1,5 +1,9 @@
-import numpy as np
+from typing import List
 
+import numpy as np
+from onemetric.cv.utils.iou import box_iou_batch
+
+from supervision import Detections
 from supervision.tracker.byte_tracker import matching
 from supervision.tracker.byte_tracker.basetrack import BaseTrack, TrackState
 from supervision.tracker.byte_tracker.kalman_filter import KalmanFilter
@@ -145,7 +149,37 @@ class strack(BaseTrack):
         return "OT_{}_({}-{})".format(self.track_id, self.start_frame, self.end_frame)
 
 
-class byte_tracker(object):
+# converts Detections into format that can be consumed by match_detections_with_tracks function
+def detections2boxes(detections: Detections) -> np.ndarray:
+    return np.hstack((detections.xyxy, detections.confidence[:, np.newaxis]))
+
+
+# converts List[strack] into format that can be consumed by match_detections_with_tracks function
+def tracks2boxes(tracks: List[strack]) -> np.ndarray:
+    return np.array([track.tlbr for track in tracks], dtype=float)
+
+
+# matches our bounding boxes with predictions
+def match_detections_with_tracks(
+    detections: Detections, tracks: List[strack]
+) -> Detections:
+    if not np.any(detections.xyxy) or len(tracks) == 0:
+        return np.empty((0,))
+
+    tracks_boxes = tracks2boxes(tracks=tracks)
+    iou = box_iou_batch(tracks_boxes, detections.xyxy)
+    track2detection = np.argmax(iou, axis=1)
+
+    tracker_ids = [None] * len(detections)
+
+    for tracker_index, detection_index in enumerate(track2detection):
+        if iou[tracker_index, detection_index] != 0:
+            tracker_ids[detection_index] = tracks[tracker_index].track_id
+
+    return tracker_ids
+
+
+class ByteTrack:
     def __init__(
         self,
         track_thresh=0.25,
@@ -174,7 +208,19 @@ class byte_tracker(object):
         self.max_time_lost = self.buffer_size
         self.kalman_filter = KalmanFilter()
 
-    def update(self, output_results, img_info, img_size):
+    def update_from_detections(self, detections, img_info, img_size):
+        # update tracker
+        tracks = self.update_from_numpy(
+            output_results=detections2boxes(detections=detections),
+            img_info=img_info,
+            img_size=img_size,
+        )
+        tracker_id = match_detections_with_tracks(detections=detections, tracks=tracks)
+        if tracker_id != None:
+            detections.tracker_id = np.array(tracker_id)
+        return detections
+
+    def update_from_numpy(self, output_results, img_info, img_size):
         self.frame_id += 1
         activated_starcks = []
         refind_stracks = []
