@@ -669,8 +669,8 @@ class MeanAveragePrecision:
 
         if len(stats) and stats[0].any():
             ap = MeanAveragePrecision.ap_per_class(*stats)
-            ap50, ap75 = ap[:, 0], ap[:, 5]
-            ap = ap.mean(1)  # AP@0.5, AP@0.5:0.95
+
+            ap50, ap75, ap = ap[:, 0], ap[:, 5], ap.mean(1)  # AP@0.5, AP@0.5:0.95
             map50, map75, map = ap50.mean(), ap75.mean(), ap.mean()
 
         return cls(map=map, map50=map50, map75=map75)
@@ -699,6 +699,7 @@ class MeanAveragePrecision:
     ) -> np.ndarray:
         correct = np.zeros((predictions.shape[0], iou_levels.shape[0])).astype(bool)
         iou = box_iou_batch(targets[:, :4], predictions[:, :4])
+
         correct_class = targets[:, 4:5] == predictions[:, 4]
 
         for i in range(len(iou_levels)):
