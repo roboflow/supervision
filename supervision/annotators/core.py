@@ -1,5 +1,6 @@
 import os.path
 from abc import ABC, abstractmethod
+from enum import Enum
 from typing import Callable, List, Optional, Union
 
 import cv2
@@ -10,36 +11,70 @@ from supervision.detection.core import Detections
 from supervision.draw.color import Color, ColorPalette
 
 
+class ColorMap(Enum):
+    """
+    Enum for annotator color mapping.
+    """
+
+    INDEX = "index"
+    CLASS = "class"
+    TRACK = "track"
+
+
+def resolve_color_idx(
+    detections: Detections,
+    detection_idx: int,
+    color_map: ColorMap = ColorMap.CLASS
+) -> int:
+    if detection_idx >= len(detections):
+        raise ValueError(f"Detection index {detection_idx} is out of bounds for detections of length {len(detections)}")
+
+    if color_map == ColorMap.INDEX:
+        return detection_idx
+    elif color_map == ColorMap.CLASS:
+        if detections.class_id is None:
+            raise ValueError("Could not resolve color by class because Detections do not have class_id")
+        return detections.class_id[detection_idx]
+    elif color_map == ColorMap.TRACK:
+        if detections.tracker_id is None:
+            raise ValueError("Could not resolve color by track because Detections do not have tracker_id")
+        return detections.tracker_id[detection_idx]
+
+
+def resolve_color(color: Union[Color, ColorPalette], idx: int) -> Color:
+    if isinstance(color, ColorPalette):
+        return color.by_idx(idx)
+    else:
+        return color
+
+
 class BaseAnnotator(ABC):
     @abstractmethod
     def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
         pass
 
-    @staticmethod
-    def resolve_annotation_color(
-        color: Union[Color, ColorPalette], by_track: bool, detections: Detections
-    ) -> Color:
-        pass
-
 
 class BoxLineAnnotator(BaseAnnotator):
     """
-    Basic bounding box annotation class
+    Basic line bounding box annotator.
     """
-
     def __init__(
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
         thickness: int = 2,
-        color_by_track: bool = False,
+        color_map: str = "class"
     ):
+        """
+        Parameters:
+            color (Union[Color, ColorPalette]): The color to use for annotating detections.
+            thickness (int): The thickness of the bounding box lines.
+            color_map (ColorMap): The color mapping to use for annotating detections.
+        """
         self.color: Union[Color, ColorPalette] = color
         self.thickness: int = thickness
-        self.color_by_track = color_by_track
+        self.color_map: ColorMap = ColorMap(color_map)
 
-    def annotate(
-        self, scene: np.ndarray, detections: Detections, **kwargs
-    ) -> np.ndarray:
+    def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
         """
         Draws bounding boxes on the frame using the detections provided.
 
@@ -63,26 +98,10 @@ class BoxLineAnnotator(BaseAnnotator):
             ... )
             ```
         """
-        for i in range(len(detections)):
-            x1, y1, x2, y2 = detections.xyxy[i].astype(int)
-
-            if self.color_by_track:
-                tracker_id = (
-                    detections.tracker_id[i]
-                    if detections.tracker_id is not None
-                    else None
-                )
-                idx = tracker_id if tracker_id is not None else i
-            else:
-                class_id = (
-                    detections.class_id[i] if detections.class_id is not None else None
-                )
-                idx = class_id if class_id is not None else i
-            color = (
-                self.color.by_idx(idx)
-                if isinstance(self.color, ColorPalette)
-                else self.color
-            )
+        for detection_idx in range(len(detections)):
+            x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
+            idx = resolve_color_idx(detections=detections, detection_idx=detection_idx, color_map=self.color_map)
+            color = resolve_color(color=self.color, idx=idx)
             cv2.rectangle(
                 img=scene,
                 pt1=(x1, y1),
@@ -90,7 +109,6 @@ class BoxLineAnnotator(BaseAnnotator):
                 color=color.as_bgr(),
                 thickness=self.thickness,
             )
-
         return scene
 
 
