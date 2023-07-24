@@ -116,11 +116,15 @@ def detections_to_pascal_voc(
             for polygon in polygons:
                 xyxy = polygon_to_xyxy(polygon=polygon)
                 next_object = object_to_pascal_voc(
-                    xyxy=__increment_bbox_for_pascal_voc(xyxy), name=name, polygon=polygon
+                    xyxy=__increment_bbox_for_pascal_voc(xyxy),
+                    name=name,
+                    polygon=polygon,
                 )
                 annotation.append(next_object)
         else:
-            next_object = object_to_pascal_voc(xyxy=__increment_bbox_for_pascal_voc(xyxy), name=name)
+            next_object = object_to_pascal_voc(
+                xyxy=__increment_bbox_for_pascal_voc(xyxy), name=name
+            )
             annotation.append(next_object)
 
     # Generate XML string
