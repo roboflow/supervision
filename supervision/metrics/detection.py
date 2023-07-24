@@ -468,9 +468,19 @@ class ConfusionMatrix:
 class MeanAveragePrecision:
     map: float
     map50: float
-    ap50: float
+    map75: float
     per_class: List[np.ndarray]
     classes: List[str]
+    """
+    Mean Average Precision for object detection tasks.
+
+    Attributes:
+        map (float): map value.
+        map50 (float): map value at iou threshold=0.5.
+        map75 (float): map value at iou threshold=0.75.
+        per_class (np.ndarray): numpy array of map values for each class
+        classes (List[str]): Model class names.
+    """
 
     @classmethod
     def from_detections(
@@ -479,6 +489,43 @@ class MeanAveragePrecision:
         targets: List[Detections],
         classes: List[str],
     ) -> MeanAveragePrecision:
+        """
+        Calculate confusion matrix based on predicted and ground-truth detections.
+
+        Args:
+            targets (List[Detections]): Detections objects from ground-truth.
+            predictions (List[Detections]): Detections objects predicted by the model.
+            classes (List[str]): Model class names.
+            conf_threshold (float): Detection confidence threshold between `0` and `1`. Detections with lower confidence will be excluded.
+            iou_threshold (float): Detection IoU threshold between `0` and `1`. Detections with lower IoU will be classified as `FP`.
+
+        Returns:
+            ConfusionMatrix: New instance of ConfusionMatrix.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> targets = [
+            ...     sv.Detections(...),
+            ...     sv.Detections(...)
+            ... ]
+
+            >>> predictions = [
+            ...     sv.Detections(...),
+            ...     sv.Detections(...)
+            ... ]
+
+            >>> mean_average_precison = sv.MeanAveragePrecision.from_detections(
+            ...     predictions=predictions,
+            ...     targets=target,
+            ...     classes=['person', ...]
+            ... )
+
+            >>> mean_average_precison.matrix
+            0.433
+           ```
+        """
         prediction_tensors = []
         target_tensors = []
         for prediction, target in zip(predictions, targets):
@@ -496,22 +543,53 @@ class MeanAveragePrecision:
             classes=classes,
         )
 
-    @staticmethod
-    def detections_to_tensor(
-        detections: Detections, with_confidence: bool = False
-    ) -> np.ndarray:
-        if detections.class_id is None:
-            raise ValueError(
-                "MeanAveragePrecision can only be calculated for Detections with class_id"
-            )
+    @classmethod
+    def benchmark(
+            cls,
+            dataset: DetectionDataset,
+            callback: Callable[[np.ndarray], Detections],
+    ) -> MeanAveragePrecision:
+        """
+        Get map from dataset and callback function.
 
-        arrays_to_concat = [detections.xyxy, np.expand_dims(detections.class_id, 1)]
+        Args:
+            dataset (DetectionDataset): Object detection dataset used for evaluation.
+            callback (Callable[[np.ndarray], Detections]): Function that takes an image as input and returns Detections object.
+        Returns:
+            MeanAveragePrecision: New instance of MeanAveragePrecision.
 
-        if with_confidence:
-            if detections.confidence is not None:
-                arrays_to_concat.append(np.expand_dims(detections.confidence, 1))
+        Example:
+            ```python
+            >>> import supervision as sv
+            >>> from ultralytics import YOLO
 
-        return np.concatenate(arrays_to_concat, axis=1)
+            >>> dataset = sv.DetectionDataset.from_yolo(...)
+
+            >>> model = YOLO(...)
+            >>> def callback(image: np.ndarray) -> sv.Detections:
+            ...     result = model(image)[0]
+            ...     return sv.Detections.from_yolov8(result)
+
+            >>> mean_average_precision = sv.MeanAveragePrecision.benchmark(
+            ...     dataset = dataset,
+            ...     callback = callback
+            ... )
+
+            >>> mean_average_precision.map
+            0.433
+            ```
+        """
+        predictions, targets = [], []
+        for img_name, img in dataset.images.items():
+            predictions_batch = callback(img)
+            predictions.append(predictions_batch)
+            targets_batch = dataset.annotations[img_name]
+            targets.append(targets_batch)
+        return cls.from_detections(
+            predictions=predictions,
+            targets=targets,
+            classes=dataset.classes,
+        )
 
     @classmethod
     def from_tensors(
@@ -520,22 +598,61 @@ class MeanAveragePrecision:
         targets: List[np.ndarray],
         classes: List[str],
     ) -> MeanAveragePrecision:
+        """
+        Calculate Mean Average Precision based on predicted and ground-truth detections at different threshold.
+
+        Args:
+            predictions (List[np.ndarray]): Each element of the list describes a single image and has `shape = (M, 6)` where `M` is the number of detected objects. Each row is expected to be in `(x_min, y_min, x_max, y_max, class, conf)` format.
+            targets (List[np.ndarray]): Each element of the list describes a single image and has `shape = (N, 5)` where `N` is the number of ground-truth objects. Each row is expected to be in `(x_min, y_min, x_max, y_max, class)` format.
+            classes (List[str]): Model class names.
+        Returns:
+            MeanAveragePrecision: New instance of MeanAveragePrecision.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> targets = (
+            ...     [
+            ...         array(
+            ...             [
+            ...                 [0.0, 0.0, 3.0, 3.0, 1],
+            ...                 [2.0, 2.0, 5.0, 5.0, 1],
+            ...                 [6.0, 1.0, 8.0, 3.0, 2],
+            ...             ]
+            ...         ),
+            ...         array([1.0, 1.0, 2.0, 2.0, 2]),
+            ...     ]
+            ... )
+
+            >>> predictions = [
+            ...     array(
+            ...         [
+            ...             [0.0, 0.0, 3.0, 3.0, 1, 0.9],
+            ...             [0.1, 0.1, 3.0, 3.0, 0, 0.9],
+            ...             [6.0, 1.0, 8.0, 3.0, 1, 0.8],
+            ...             [1.0, 6.0, 2.0, 7.0, 1, 0.8],
+            ...         ]
+            ...     ),
+            ...     array([[1.0, 1.0, 2.0, 2.0, 2, 0.8]])
+            ... ]
+
+            >>> mean_average_precison = sv.MeanAveragePrecision.from_tensors(
+            ...     predictions=predictions,
+            ...     targets=targets,
+            ...     classes=['person', ...]
+            ... )
+
+            >>> mean_average_precison.map
+            0.433
+            ```
+        """
         cls._validate_input_tensors(predictions, targets)
+        map, map50, map75, map90 = 0, 0, 0, 0
+        ap50, ap75, ap90 = 0, 0, 0
+        p, r, f1 = 0, 0, 0
 
-        tp, fp, p, r, f1, mp, mr, map50, ap50, map = (
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-        )
-        jdict, stats, ap, ap_class = [], [], [], []
-
+        stats, ap, ap_class = [], [], []
         iouv = np.linspace(0.5, 0.95, 10)
         niou = iouv.size
 
@@ -551,12 +668,11 @@ class MeanAveragePrecision:
                     stats.append((correct, *np.zeros((2, 0)), true_batch[:, 4]))
                 continue
             if nl:
-                correct, iouv = cls.evaluate_detection_batch(
+                correct, iouv = cls._match_detection_batch(
                     predictions=detection_batch,
                     targets=true_batch,
                     iouv=iouv,
                 )
-                # (correct, confidence, pred-class, target-class)
                 stats.append(
                     (
                         correct,
@@ -569,14 +685,33 @@ class MeanAveragePrecision:
         stats = [np.concatenate(x, 0) for x in zip(*stats)]
 
         if len(stats) and stats[0].any():
-            tp, fp, p, r, f1, ap, ap_class = MeanAveragePrecision.ap_per_class(*stats, names=classes)
-            ap50, ap = ap[:, 0], ap.mean(1)  # AP@0.5, AP@0.5:0.95
-            mp, mr, map50, map = p.mean(), r.mean(), ap50.mean(), ap.mean()
+            p, r, f1, ap, ap_class = MeanAveragePrecision.ap_per_class(*stats)
+            ap50, ap75 = ap[:, 0], ap[:, 5]
+            ap = ap.mean(1)  # AP@0.5, AP@0.5:0.95
+            map50, map75, map = ap50.mean(), ap75.mean(), ap.mean()
 
-        return cls(map=map, map50=map50, ap50=ap50, per_class=ap_class, classes=classes)
+        return cls(map=map, map50=map50, map75=map75, per_class=ap_class, classes=classes)
 
     @staticmethod
-    def evaluate_detection_batch(
+    def detections_to_tensor(
+            detections: Detections, with_confidence: bool = False
+    ) -> np.ndarray:
+
+        if detections.class_id is None:
+            raise ValueError(
+                "MeanAveragePrecision can only be calculated for Detections with class_id"
+            )
+
+        arrays_to_concat = [detections.xyxy, np.expand_dims(detections.class_id, 1)]
+
+        if with_confidence:
+            if detections.confidence is not None:
+                arrays_to_concat.append(np.expand_dims(detections.confidence, 1))
+
+        return np.concatenate(arrays_to_concat, axis=1)
+
+    @staticmethod
+    def _match_detection_batch(
         predictions: np.ndarray, targets: np.ndarray, iouv: np.ndarray
     ) -> np.ndarray:
         correct = np.zeros((predictions.shape[0], iouv.shape[0])).astype(bool)
@@ -623,6 +758,10 @@ class MeanAveragePrecision:
 
     @staticmethod
     def _drop_extra_matches(matches: np.ndarray) -> np.ndarray:
+        """
+        Deduplicate matches. If there are multiple matches for the same true or predicted box,
+        only the one with the highest IoU is kept.
+        """
         if matches.shape[0] > 0:
             matches = matches[matches[:, 2].argsort()[::-1]]
             matches = matches[np.unique(matches[:, 1], return_index=True)[1]]
@@ -632,74 +771,73 @@ class MeanAveragePrecision:
 
     @staticmethod
     def compute_ap(recall, precision):
-        """Compute the average precision, given the recall and precision curves
+        """Compute the average precision using 101-point interpolation (COCO), given the recall and precision curves
         # Arguments
             recall:    The recall curve (list)
             precision: The precision curve (list)
         # Returns
             Average precision, precision curve, recall curve
         """
-        # Append sentinel values to beginning and end
         mrec = np.concatenate(([0.0], recall, [1.0]))
         mpre = np.concatenate(([1.0], precision, [0.0]))
 
-        # Compute the precision envelope
         mpre = np.flip(np.maximum.accumulate(np.flip(mpre)))
 
-        # Integrate area under curve
-        method = "interp"  # methods: 'continuous', 'interp'
-        if method == "interp":
-            x = np.linspace(0, 1, 101)  # 101-point interp (COCO)
-            ap = np.trapz(np.interp(x, mrec, mpre), x)  # integrate
-        else:  # 'continuous'
-            i = np.where(mrec[1:] != mrec[:-1])[0]  # points where x axis (recall) changes
-            ap = np.sum((mrec[i + 1] - mrec[i]) * mpre[i + 1])  # area under curve
-
-        return ap, mpre, mrec
+        x = np.linspace(0, 1, 101)
+        ap = np.trapz(np.interp(x, mrec, mpre), x)
+        return ap
 
     @staticmethod
-    def ap_per_class(tp, conf, pred_cls, target_cls, eps=1e-16):
-        i = np.argsort(-conf)
-        tp, conf, pred_cls = tp[i], conf[i], pred_cls[i]
+    def ap_per_class(matches: np.ndarray, prediction_confidence: np.ndarray, prediction_class_ids: np.ndarray, true_batch_class_ids: np.ndarray, EPS=1e-16):
+        """
+        Args:
+            matches (np.ndarray): matches between predictions and targets
+            prediction_confidence (np.ndarray): confidence values of predictions
+            prediction_class_ids (np.ndarray): class ids values of predictions
+            true_batch_class_ids (np.ndarray): class ids values of targets
+            EPS: constant to avoid divide by zero
+        Returns:
+            precision, recall, f1_score, average_precisions, unique_classes
+        """
+        sorted_ids = np.argsort(-prediction_confidence)
+        prediction_confidence = prediction_confidence[sorted_ids]
+        matches = matches[sorted_ids]
 
-        unique_classes, nt = np.unique(target_cls, return_counts=True)
-        nc = unique_classes.shape[0]  # number of classes, number of detections
+        unique_classes, class_counts = np.unique(true_batch_class_ids, return_counts=True)
+        num_classes = unique_classes.shape[0]  # number of classes, number of detections
 
         px, py = np.linspace(0, 1, 1000), []  # for plotting
-        ap, p, r = np.zeros((nc, tp.shape[1])), np.zeros((nc, 1000)), np.zeros((nc, 1000))
+        average_precisions = np.zeros((num_classes, matches.shape[1]))
+        precisions_all, recalls_all = np.zeros((num_classes, 1000)), np.zeros((num_classes, 1000))
         for ci, c in enumerate(unique_classes):
-            i = pred_cls == c
-            n_l = nt[ci]  # number of labels
-            n_p = i.sum()  # number of predictions
-            if n_p == 0 or n_l == 0:
+            i = prediction_class_ids == c
+            num_targets = class_counts[ci]
+            num_predictions = i.sum()
+            if num_targets == 0 or num_predictions == 0:
                 continue
 
-            # Accumulate FPs and TPs
-            fpc = (1 - tp[i]).cumsum(0)
-            tpc = tp[i].cumsum(0)
+            _false_positives = (1 - matches[i]).cumsum(0)
+            _true_positives = matches[i].cumsum(0)
 
-            # Recall
-            recall = tpc / (n_l + eps)  # recall curve
-            r[ci] = np.interp(
-                -px, -conf[i], recall[:, 0], left=0
-            )  # negative x, xp because xp decreases
+            recall = _true_positives / (num_targets + EPS)  # recall curve
+            recalls_all[ci] = np.interp(
+                -px, -prediction_confidence[i], recall[:, 0], left=0
+            )
 
-            # Precision
-            precision = tpc / (tpc + fpc)  # precision curve
-            p[ci] = np.interp(-px, -conf[i], precision[:, 0], left=1)  # p at pr_score
+            precision = _true_positives / (_true_positives + _false_positives)  # precision curve
+            precisions_all[ci] = np.interp(-px, -prediction_confidence[i], precision[:, 0], left=1)  # p at pr_score
 
             # AP from recall-precision curve
-            for j in range(tp.shape[1]):
-                ap[ci, j], mpre, mrec = MeanAveragePrecision.compute_ap(recall[:, j], precision[:, j])
+            for j in range(matches.shape[1]):
+                average_precisions[ci, j] = MeanAveragePrecision.compute_ap(recall[:, j], precision[:, j])
 
         # Compute F1 (harmonic mean of precision and recall)
-        f1 = 2 * p * r / (p + r + eps)
+        f1_scores = 2 * precisions_all * recalls_all / (precisions_all + recalls_all + EPS)
 
-        i = MeanAveragePrecision.smooth(f1.mean(0), 0.1).argmax()  # max F1 index
-        p, r, f1 = p[:, i], r[:, i], f1[:, i]
-        tp = (r * nt).round()  # true positives
-        fp = (tp / (p + eps) - tp).round()  # false positives
-        return tp, fp, p, r, f1, ap, unique_classes.astype(int)
+        i = MeanAveragePrecision.smooth(f1_scores.mean(0), 0.1).argmax()  # max F1 index
+        precision, recall, f1_score = precisions_all[:, i], recalls_all[:, i], f1_scores[:, i]
+
+        return precision, recall, f1_score, average_precisions, unique_classes.astype(int)
 
     @staticmethod
     def smooth(y, f=0.05):
