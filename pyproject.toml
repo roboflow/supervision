@@ -40,7 +40,7 @@ pyyaml = "^6.0"
 pillow = "^8.4.0"
 opencv-python = { version = "^4.8.0.74", optional = true }
 opencv-python-headless = "^4.8.0.74"
-
+tqdm = "^4.65.0"
 
 [tool.poetry.extras]
 desktop = ["opencv-python"]

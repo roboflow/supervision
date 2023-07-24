@@ -2,6 +2,7 @@ import os
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Tuple
+from tqdm import tqdm
 
 import cv2
 import numpy as np
@@ -13,6 +14,7 @@ from supervision.dataset.utils import (
 from supervision.detection.core import Detections
 from supervision.detection.utils import polygon_to_mask
 from supervision.utils.file import read_json_file, save_json_file
+from supervision.utils.console import get_dataset_loading_tqdm_iterable
 
 
 def coco_categories_to_classes(coco_categories: List[dict]) -> List[str]:
@@ -150,7 +152,7 @@ def load_coco_annotations(
     images = {}
     annotations = {}
 
-    for coco_image in coco_images:
+    for coco_image in get_dataset_loading_tqdm_iterable(coco_images):
         image_name, image_width, image_height = (
             coco_image["file_name"],
             coco_image["width"],
