@@ -817,6 +817,3 @@ class MeanAveragePrecision:
         p = np.ones(nf // 2)  # ones padding
         yp = np.concatenate((p * y[0], y, p * y[-1]), 0)  # y padded
         return np.convolve(yp, np.ones(nf) / nf, mode="valid")  # y-smoothed
-
-
-
