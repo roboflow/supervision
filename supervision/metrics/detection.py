@@ -651,7 +651,7 @@ class MeanAveragePrecision:
                     stats.append((correct, *np.zeros((2, 0)), true_batch[:, 4]))
                 continue
             if nl:
-                correct, iouv = cls._match_detection_batch(
+                correct, iou_levels = cls._match_detection_batch(
                     predictions=detection_batch,
                     targets=true_batch,
                     iou_levels=iou_levels,
@@ -668,8 +668,7 @@ class MeanAveragePrecision:
         stats = [np.concatenate(x, 0) for x in zip(*stats)]
 
         if len(stats) and stats[0].any():
-            ap = MeanAveragePrecision.ap_per_class(*stats)
-
+            ap = cls.ap_per_class(*stats)
             ap50, ap75, ap = ap[:, 0], ap[:, 5], ap.mean(1)  # AP@0.5, AP@0.5:0.95
             map50, map75, map = ap50.mean(), ap75.mean(), ap.mean()
 
@@ -773,39 +772,41 @@ class MeanAveragePrecision:
 
     @staticmethod
     def ap_per_class(matches: np.ndarray, prediction_confidence: np.ndarray, prediction_class_ids: np.ndarray, true_batch_class_ids: np.ndarray, EPS=1e-16):
+        """ Compute the average precision, given the recall and precision curves.
+        Source: https://github.com/rafaelpadilla/Object-Detection-Metrics.
+        # Arguments
+            tp:  True positives (nparray, nx1 or nx10).
+            conf:  Objectness value from 0-1 (nparray).
+            pred_cls:  Predicted object classes (nparray).
+            target_cls:  True object classes (nparray).
+            plot:  Plot precision-recall curve at mAP@0.5
+            save_dir:  Plot save directory
+        # Returns
+            The average precision as computed in py-faster-rcnn.
         """
-        Args:
-            matches (np.ndarray): matches between predictions and targets
-            prediction_confidence (np.ndarray): confidence values of predictions
-            prediction_class_ids (np.ndarray): class ids values of predictions
-            true_batch_class_ids (np.ndarray): class ids values of targets
-            EPS: constant to avoid divide by zero
-        Returns:
-            precision, recall, f1_score, average_precisions, unique_classes
-        """
-        sorted_ids = np.argsort(-prediction_confidence)
-        matches = matches[sorted_ids]
 
+        sorted_confidences = np.argsort(-prediction_confidence)
+        matches = matches[sorted_confidences]
+        prediction_class_ids = prediction_class_ids[sorted_confidences]
+
+        # Find unique classes
         unique_classes, class_counts = np.unique(true_batch_class_ids, return_counts=True)
         num_classes = unique_classes.shape[0]  # number of classes, number of detections
 
         average_precisions = np.zeros((num_classes, matches.shape[1]))
-
         for ci, c in enumerate(unique_classes):
-            i = prediction_class_ids == c
-            num_targets = class_counts[ci]
-            num_predictions = i.sum()
-            if num_targets == 0 or num_predictions == 0:
+            valid = prediction_class_ids == c
+            num_targets = class_counts[ci]  # number of labels
+            num_predictions = valid.sum()  # number of predictions
+            if num_predictions == 0 or num_targets == 0:
                 continue
 
-            _false_positives = (1 - matches[i]).cumsum(0)
-            _true_positives = matches[i].cumsum(0)
+            fp_pool = (1 - matches[valid]).cumsum(0)
+            tp_pool = matches[valid].cumsum(0)
 
-            recall = _true_positives / (num_targets + EPS)  # recall curve
+            recall = tp_pool / (num_targets + EPS)
+            precision = tp_pool / (tp_pool + fp_pool)
 
-            precision = _true_positives / (_true_positives + _false_positives)  # precision curve
-
-            # AP from recall-precision curve
             for j in range(matches.shape[1]):
                 average_precisions[ci, j] = MeanAveragePrecision.compute_ap(recall[:, j], precision[:, j])
 
