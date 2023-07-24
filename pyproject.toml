@@ -14,7 +14,7 @@ keywords = ["machine-learning", "deep-learning", "vision", "ML", "DL", "AI", "YO
 classifiers=[
     'Intended Audience :: Developers',
     'Intended Audience :: Science/Research',
-    'License :: OSI Approved :: BSD License',
+    'License :: OSI Approved :: MIT License',
     'Programming Language :: Python :: 3',
     'Programming Language :: Python :: 3.8',
     'Programming Language :: Python :: 3.9',
