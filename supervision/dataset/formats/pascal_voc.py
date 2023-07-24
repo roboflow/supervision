@@ -154,8 +154,6 @@ def load_pascal_voc_annotations(
 
         bbox = obj.find("bndbox")
 
-        # Correction for VOC XML format as bounding boxes in VOC XML start at (1,1) not (0,0). Refer:
-        # https://github.com/roboflow/supervision/issues/144
         x1 = int(bbox.find("xmin").text)
         y1 = int(bbox.find("ymin").text)
         x2 = int(bbox.find("xmax").text)
