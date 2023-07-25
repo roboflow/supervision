@@ -19,13 +19,13 @@ def object_to_pascal_voc(
 
     bndbox = SubElement(root, "bndbox")
     xmin = SubElement(bndbox, "xmin")
-    xmin.text = str(int(xyxy[0]))
+    xmin.text = str(int(xyxy[0] + 1))
     ymin = SubElement(bndbox, "ymin")
-    ymin.text = str(int(xyxy[1]))
+    ymin.text = str(int(xyxy[1] + 1))
     xmax = SubElement(bndbox, "xmax")
-    xmax.text = str(int(xyxy[2]))
+    xmax.text = str(int(xyxy[2] + 1))
     ymax = SubElement(bndbox, "ymax")
-    ymax.text = str(int(xyxy[3]))
+    ymax.text = str(int(xyxy[3] + 1))
 
     if polygon is not None:
         object_polygon = SubElement(root, "polygon")
@@ -106,15 +106,13 @@ def detections_to_pascal_voc(
             for polygon in polygons:
                 xyxy = polygon_to_xyxy(polygon=polygon)
                 next_object = object_to_pascal_voc(
-                    xyxy=xyxy + 1,
+                    xyxy=xyxy,
                     name=name,
                     polygon=polygon,
                 )
                 annotation.append(next_object)
         else:
-            # Correction functions for VOC XML format as bounding boxes in VOC XML start at (1,1) not (0,0). Refer:
-            # https://github.com/roboflow/supervision/issues/144
-            next_object = object_to_pascal_voc(xyxy=xyxy + 1, name=name)
+            next_object = object_to_pascal_voc(xyxy=xyxy, name=name)
             annotation.append(next_object)
 
     # Generate XML string
@@ -148,6 +146,8 @@ def load_pascal_voc_annotations(
 
         bbox = obj.find("bndbox")
 
+        # Correction functions for VOC XML format as bounding boxes in VOC XML start at (1,1) not (0,0). Refer:
+        # https://github.com/roboflow/supervision/issues/144
         x1 = int(bbox.find("xmin").text) - 1
         y1 = int(bbox.find("ymin").text) - 1
         x2 = int(bbox.find("xmax").text) - 1
