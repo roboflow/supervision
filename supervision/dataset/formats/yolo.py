@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple
 
 import cv2
 import numpy as np
@@ -126,9 +126,7 @@ def load_yolo_annotations(
     image_paths = list_files_with_extensions(
         directory=images_directory_path, extensions=["jpg", "jpeg", "png"]
     )
-    annotation_paths = list_files_with_extensions(
-        directory=annotations_directory_path, extensions=["txt"]
-    )
+    list_files_with_extensions(directory=annotations_directory_path, extensions=["txt"])
 
     classes = _extract_class_names(file_path=data_yaml_path)
     images = {}

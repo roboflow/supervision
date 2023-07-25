@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import astuple, dataclass
 from typing import Any, Iterator, List, Optional, Tuple, Union
 
-import cv2
 import numpy as np
 
 from supervision.detection.utils import (
@@ -437,7 +436,8 @@ class Detections:
             list(field) for field in zip(*detections_tuples_list)
         ]
 
-        all_not_none = lambda l: all(x is not None for x in l)
+        def all_not_none(l):
+            return all(x is not None for x in l)
 
         xyxy = np.vstack(xyxy)
         mask = np.vstack(mask) if all_not_none(mask) else None
@@ -561,7 +561,7 @@ class Detections:
 
         assert (
             self.confidence is not None
-        ), f"Detections confidence must be given for NMS to be executed."
+        ), "Detections confidence must be given for NMS to be executed."
 
         if class_agnostic:
             predictions = np.hstack((self.xyxy, self.confidence.reshape(-1, 1)))
@@ -571,8 +571,8 @@ class Detections:
             return self[indices]
 
         assert self.class_id is not None, (
-            f"Detections class_id must be given for NMS to be executed. If you intended to perform class agnostic "
-            f"NMS set class_agnostic=True."
+            "Detections class_id must be given for NMS to be executed. If you intended"
+            " to perform class agnostic NMS set class_agnostic=True."
         )
 
         predictions = np.hstack(

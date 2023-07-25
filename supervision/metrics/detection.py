@@ -112,7 +112,8 @@ class ConfusionMatrix:
         if with_confidence:
             if detections.confidence is None:
                 raise ValueError(
-                    "ConfusionMatrix can only be calculated for Detections with confidence"
+                    "ConfusionMatrix can only be calculated for Detections with"
+                    " confidence"
                 )
             arrays_to_concat.append(np.expand_dims(detections.confidence, 1))
 
@@ -212,18 +213,21 @@ class ConfusionMatrix:
         """
         if len(predictions) != len(targets):
             raise ValueError(
-                f"Number of predictions ({len(predictions)}) and targets ({len(targets)}) must be equal."
+                f"Number of predictions ({len(predictions)}) and targets"
+                f" ({len(targets)}) must be equal."
             )
         if len(predictions) > 0:
             if not isinstance(predictions[0], np.ndarray) or not isinstance(
                 targets[0], np.ndarray
             ):
                 raise ValueError(
-                    f"Predictions and targets must be lists of numpy arrays. Got {type(predictions[0])} and {type(targets[0])} instead."
+                    "Predictions and targets must be lists of numpy arrays. Got"
+                    f" {type(predictions[0])} and {type(targets[0])} instead."
                 )
             if predictions[0].shape[1] != 6:
                 raise ValueError(
-                    f"Predictions must have shape (N, 6). Got {predictions[0].shape} instead."
+                    "Predictions must have shape (N, 6). Got"
+                    f" {predictions[0].shape} instead."
                 )
             if targets[0].shape[1] != 5:
                 raise ValueError(

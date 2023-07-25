@@ -103,7 +103,7 @@ def _validate_and_setup_video(source_path: str, start: int, end: Optional[int]):
         raise Exception(f"Could not open video at {source_path}")
     total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
     if end is not None and end > total_frames:
-        raise Exception(f"Requested frames are outbound")
+        raise Exception("Requested frames are outbound")
     start = max(start, 0)
     end = min(end, total_frames) if end is not None else total_frames
     video.set(cv2.CAP_PROP_POS_FRAMES, start)

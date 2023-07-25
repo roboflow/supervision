@@ -1,4 +1,5 @@
 from contextlib import ExitStack as DoesNotRaise
+from test.utils import mock_detections
 from typing import Optional, Union
 
 import numpy as np
@@ -6,7 +7,6 @@ import pytest
 
 from supervision.detection.core import Detections
 from supervision.metrics.detection import ConfusionMatrix
-from test.utils import mock_detections
 
 CLASSES = np.arange(80)
 NUM_CLASSES = len(CLASSES)
@@ -147,15 +147,25 @@ BAD_CONF_MATRIX = worsen_ideal_conf_matrix(
             DoesNotRaise(),
         ),  # single detection; with confidence
         (
-            mock_detections(xyxy=[[0, 0, 10, 10], [0, 0, 20, 20]], class_id=[0, 1], confidence=[0.5, 0.2]),
+            mock_detections(
+                xyxy=[[0, 0, 10, 10], [0, 0, 20, 20]],
+                class_id=[0, 1],
+                confidence=[0.5, 0.2],
+            ),
             False,
             np.array([[0, 0, 10, 10, 0], [0, 0, 20, 20, 1]], dtype=np.float32),
             DoesNotRaise(),
         ),  # multiple detections; no confidence
         (
-            mock_detections(xyxy=[[0, 0, 10, 10], [0, 0, 20, 20]], class_id=[0, 1], confidence=[0.5, 0.2]),
+            mock_detections(
+                xyxy=[[0, 0, 10, 10], [0, 0, 20, 20]],
+                class_id=[0, 1],
+                confidence=[0.5, 0.2],
+            ),
             True,
-            np.array([[0, 0, 10, 10, 0, 0.5], [0, 0, 20, 20, 1, 0.2]], dtype=np.float32),
+            np.array(
+                [[0, 0, 10, 10, 0, 0.5], [0, 0, 20, 20, 1, 0.2]], dtype=np.float32
+            ),
             DoesNotRaise(),
         ),  # multiple detections; with confidence
     ],
@@ -164,18 +174,18 @@ def test_detections_to_tensor(
     detections: Detections,
     with_confidence: bool,
     expected_result: Optional[np.ndarray],
-    exception: Exception
+    exception: Exception,
 ):
     with exception:
         result = ConfusionMatrix.detections_to_tensor(
-            detections=detections,
-            with_confidence=with_confidence
+            detections=detections, with_confidence=with_confidence
         )
         assert np.array_equal(result, expected_result)
 
 
 @pytest.mark.parametrize(
-    "predictions, targets, classes, conf_threshold, iou_threshold, expected_result, exception",
+    "predictions, targets, classes, conf_threshold, iou_threshold, expected_result,"
+    " exception",
     [
         (
             DETECTION_TENSORS,
@@ -346,7 +356,8 @@ def test_from_tensors(
 
 
 @pytest.mark.parametrize(
-    "predictions, targets, num_classes, conf_threshold, iou_threshold, expected_result, exception",
+    "predictions, targets, num_classes, conf_threshold, iou_threshold, expected_result,"
+    " exception",
     [
         (
             DETECTION_TENSORS[0],

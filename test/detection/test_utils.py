@@ -1,12 +1,15 @@
 from contextlib import ExitStack as DoesNotRaise
-from typing import Optional, Tuple, List
-
-import pytest
+from typing import List, Optional, Tuple
 
 import numpy as np
+import pytest
 
-from supervision.detection.utils import non_max_suppression, clip_boxes, filter_polygons_by_area, \
-    process_roboflow_result
+from supervision.detection.utils import (
+    clip_boxes,
+    filter_polygons_by_area,
+    non_max_suppression,
+    process_roboflow_result,
+)
 
 
 @pytest.mark.parametrize(
@@ -16,116 +19,101 @@ from supervision.detection.utils import non_max_suppression, clip_boxes, filter_
             np.empty(shape=(0, 5)),
             0.5,
             np.array([]),
-            DoesNotRaise()
+            DoesNotRaise(),
         ),  # single box with no category
         (
-            np.array([
-                [10.0, 10.0, 40.0, 40.0, 0.8]
-            ]),
+            np.array([[10.0, 10.0, 40.0, 40.0, 0.8]]),
             0.5,
-            np.array([
-                True
-            ]),
-            DoesNotRaise()
+            np.array([True]),
+            DoesNotRaise(),
         ),  # single box with no category
         (
-            np.array([
-                [10.0, 10.0, 40.0, 40.0, 0.8, 0]
-            ]),
+            np.array([[10.0, 10.0, 40.0, 40.0, 0.8, 0]]),
             0.5,
-            np.array([
-                True
-            ]),
-            DoesNotRaise()
+            np.array([True]),
+            DoesNotRaise(),
         ),  # single box with category
         (
-            np.array([
-                [10.0, 10.0, 40.0, 40.0, 0.8],
-                [15.0, 15.0, 40.0, 40.0, 0.9],
-            ]),
+            np.array(
+                [
+                    [10.0, 10.0, 40.0, 40.0, 0.8],
+                    [15.0, 15.0, 40.0, 40.0, 0.9],
+                ]
+            ),
             0.5,
-            np.array([
-                False,
-                True
-            ]),
-            DoesNotRaise()
+            np.array([False, True]),
+            DoesNotRaise(),
         ),  # two boxes with no category
         (
-            np.array([
-                [10.0, 10.0, 40.0, 40.0, 0.8, 0],
-                [15.0, 15.0, 40.0, 40.0, 0.9, 1],
-            ]),
+            np.array(
+                [
+                    [10.0, 10.0, 40.0, 40.0, 0.8, 0],
+                    [15.0, 15.0, 40.0, 40.0, 0.9, 1],
+                ]
+            ),
             0.5,
-            np.array([
-                True,
-                True
-            ]),
-            DoesNotRaise()
+            np.array([True, True]),
+            DoesNotRaise(),
         ),  # two boxes with different category
         (
-            np.array([
-                [10.0, 10.0, 40.0, 40.0, 0.8, 0],
-                [15.0, 15.0, 40.0, 40.0, 0.9, 0],
-            ]),
+            np.array(
+                [
+                    [10.0, 10.0, 40.0, 40.0, 0.8, 0],
+                    [15.0, 15.0, 40.0, 40.0, 0.9, 0],
+                ]
+            ),
             0.5,
-            np.array([
-                False,
-                True
-            ]),
-            DoesNotRaise()
+            np.array([False, True]),
+            DoesNotRaise(),
         ),  # two boxes with same category
         (
-            np.array([
-                [0.0, 0.0, 30.0, 40.0, 0.8],
-                [5.0, 5.0, 35.0, 45.0, 0.9],
-                [10.0, 10.0, 40.0, 50.0, 0.85],
-            ]),
+            np.array(
+                [
+                    [0.0, 0.0, 30.0, 40.0, 0.8],
+                    [5.0, 5.0, 35.0, 45.0, 0.9],
+                    [10.0, 10.0, 40.0, 50.0, 0.85],
+                ]
+            ),
             0.5,
-            np.array([
-                False,
-                True,
-                False
-            ]),
-            DoesNotRaise()
+            np.array([False, True, False]),
+            DoesNotRaise(),
         ),  # three boxes with no category
         (
-            np.array([
-                [0.0, 0.0, 30.0, 40.0, 0.8, 0],
-                [5.0, 5.0, 35.0, 45.0, 0.9, 1],
-                [10.0, 10.0, 40.0, 50.0, 0.85, 2],
-            ]),
+            np.array(
+                [
+                    [0.0, 0.0, 30.0, 40.0, 0.8, 0],
+                    [5.0, 5.0, 35.0, 45.0, 0.9, 1],
+                    [10.0, 10.0, 40.0, 50.0, 0.85, 2],
+                ]
+            ),
             0.5,
-            np.array([
-                True,
-                True,
-                True
-            ]),
-            DoesNotRaise()
+            np.array([True, True, True]),
+            DoesNotRaise(),
         ),  # three boxes with same category
         (
-            np.array([
-                [0.0, 0.0, 30.0, 40.0, 0.8, 0],
-                [5.0, 5.0, 35.0, 45.0, 0.9, 0],
-                [10.0, 10.0, 40.0, 50.0, 0.85, 1],
-            ]),
+            np.array(
+                [
+                    [0.0, 0.0, 30.0, 40.0, 0.8, 0],
+                    [5.0, 5.0, 35.0, 45.0, 0.9, 0],
+                    [10.0, 10.0, 40.0, 50.0, 0.85, 1],
+                ]
+            ),
             0.5,
-            np.array([
-                False,
-                True,
-                True
-            ]),
-            DoesNotRaise()
+            np.array([False, True, True]),
+            DoesNotRaise(),
         ),  # three boxes with different category
-    ]
+    ],
 )
 def test_non_max_suppression(
-        predictions: np.ndarray,
-        iou_threshold: float,
-        expected_result: Optional[np.ndarray],
-        exception: Exception
+    predictions: np.ndarray,
+    iou_threshold: float,
+    expected_result: Optional[np.ndarray],
+    exception: Exception,
 ) -> None:
     with exception:
-        result = non_max_suppression(predictions=predictions, iou_threshold=iou_threshold)
+        result = non_max_suppression(
+            predictions=predictions, iou_threshold=iou_threshold
+        )
         assert np.array_equal(result, expected_result)
 
 
@@ -138,53 +126,37 @@ def test_non_max_suppression(
             np.empty(shape=(0, 4)),
         ),
         (
-            np.array([
-                [1.0, 1.0, 1279.0, 719.0]
-            ]),
+            np.array([[1.0, 1.0, 1279.0, 719.0]]),
             (1280, 720),
-            np.array([
-                [1.0, 1.0, 1279.0, 719.0]
-            ]),
+            np.array([[1.0, 1.0, 1279.0, 719.0]]),
         ),
         (
-            np.array([
-                [-1.0, 1.0, 1279.0, 719.0]
-            ]),
+            np.array([[-1.0, 1.0, 1279.0, 719.0]]),
             (1280, 720),
-            np.array([
-                [0.0, 1.0, 1279.0, 719.0]
-            ]),
+            np.array([[0.0, 1.0, 1279.0, 719.0]]),
         ),
         (
-            np.array([
-                [1.0, -1.0, 1279.0, 719.0]
-            ]),
+            np.array([[1.0, -1.0, 1279.0, 719.0]]),
             (1280, 720),
-            np.array([
-                [1.0, 0.0, 1279.0, 719.0]
-            ]),
+            np.array([[1.0, 0.0, 1279.0, 719.0]]),
         ),
         (
-            np.array([
-                [1.0, 1.0, 1281.0, 719.0]
-            ]),
+            np.array([[1.0, 1.0, 1281.0, 719.0]]),
             (1280, 720),
-            np.array([
-                [1.0, 1.0, 1280.0, 719.0]
-            ]),
+            np.array([[1.0, 1.0, 1280.0, 719.0]]),
         ),
         (
-            np.array([
-                [1.0, 1.0, 1279.0, 721.0]
-            ]),
+            np.array([[1.0, 1.0, 1279.0, 721.0]]),
             (1280, 720),
-            np.array([
-                [1.0, 1.0, 1279.0, 720.0]
-            ]),
+            np.array([[1.0, 1.0, 1279.0, 720.0]]),
         ),
-    ]
+    ],
 )
-def test_clip_boxes(boxes_xyxy: np.ndarray, frame_resolution_wh: Tuple[int, int], expected_result: np.ndarray) -> None:
+def test_clip_boxes(
+    boxes_xyxy: np.ndarray,
+    frame_resolution_wh: Tuple[int, int],
+    expected_result: np.ndarray,
+) -> None:
     result = clip_boxes(boxes_xyxy=boxes_xyxy, frame_resolution_wh=frame_resolution_wh)
     assert np.array_equal(result, expected_result)
 
@@ -197,83 +169,85 @@ def test_clip_boxes(boxes_xyxy: np.ndarray, frame_resolution_wh: Tuple[int, int]
             None,
             None,
             [np.array([[0, 0], [0, 10], [10, 10], [10, 0]])],
-            DoesNotRaise()
+            DoesNotRaise(),
         ),  # single polygon without area constraints
         (
             [np.array([[0, 0], [0, 10], [10, 10], [10, 0]])],
             50,
             None,
             [np.array([[0, 0], [0, 10], [10, 10], [10, 0]])],
-            DoesNotRaise()
+            DoesNotRaise(),
         ),  # single polygon with min_area constraint
         (
             [np.array([[0, 0], [0, 10], [10, 10], [10, 0]])],
             None,
             50,
             [],
-            DoesNotRaise()
+            DoesNotRaise(),
         ),  # single polygon with max_area constraint
         (
             [
                 np.array([[0, 0], [0, 10], [10, 10], [10, 0]]),
-                np.array([[0, 0], [0, 20], [20, 20], [20, 0]])
+                np.array([[0, 0], [0, 20], [20, 20], [20, 0]]),
             ],
             200,
             None,
             [np.array([[0, 0], [0, 20], [20, 20], [20, 0]])],
-            DoesNotRaise()
+            DoesNotRaise(),
         ),  # two polygons with min_area constraint
         (
             [
                 np.array([[0, 0], [0, 10], [10, 10], [10, 0]]),
-                np.array([[0, 0], [0, 20], [20, 20], [20, 0]])
+                np.array([[0, 0], [0, 20], [20, 20], [20, 0]]),
             ],
             None,
             200,
             [np.array([[0, 0], [0, 10], [10, 10], [10, 0]])],
-            DoesNotRaise()
+            DoesNotRaise(),
         ),  # two polygons with max_area constraint
         (
             [
                 np.array([[0, 0], [0, 10], [10, 10], [10, 0]]),
-                np.array([[0, 0], [0, 20], [20, 20], [20, 0]])
+                np.array([[0, 0], [0, 20], [20, 20], [20, 0]]),
             ],
             200,
             200,
             [],
-            DoesNotRaise()
+            DoesNotRaise(),
         ),  # two polygons with both area constraints
         (
             [
                 np.array([[0, 0], [0, 10], [10, 10], [10, 0]]),
-                np.array([[0, 0], [0, 20], [20, 20], [20, 0]])
+                np.array([[0, 0], [0, 20], [20, 20], [20, 0]]),
             ],
             100,
             100,
             [np.array([[0, 0], [0, 10], [10, 10], [10, 0]])],
-            DoesNotRaise()
+            DoesNotRaise(),
         ),  # two polygons with min_area and max_area equal to the area of the first polygon
         (
             [
                 np.array([[0, 0], [0, 10], [10, 10], [10, 0]]),
-                np.array([[0, 0], [0, 20], [20, 20], [20, 0]])
+                np.array([[0, 0], [0, 20], [20, 20], [20, 0]]),
             ],
             400,
             400,
             [np.array([[0, 0], [0, 20], [20, 20], [20, 0]])],
-            DoesNotRaise()
+            DoesNotRaise(),
         ),  # two polygons with min_area and max_area equal to the area of the second polygon
-    ]
+    ],
 )
 def test_filter_polygons_by_area(
-        polygons: List[np.ndarray],
-        min_area: Optional[float],
-        max_area: Optional[float],
-        expected_result: List[np.ndarray],
-        exception: Exception
+    polygons: List[np.ndarray],
+    min_area: Optional[float],
+    max_area: Optional[float],
+    expected_result: List[np.ndarray],
+    exception: Exception,
 ) -> None:
     with exception:
-        result = filter_polygons_by_area(polygons=polygons, min_area=min_area, max_area=max_area)
+        result = filter_polygons_by_area(
+            polygons=polygons, min_area=min_area, max_area=max_area
+        )
         assert len(result) == len(expected_result)
         for result_polygon, expected_result_polygon in zip(result, expected_result):
             assert np.array_equal(result_polygon, expected_result_polygon)
@@ -283,18 +257,10 @@ def test_filter_polygons_by_area(
     "roboflow_result, class_list, expected_result, exception",
     [
         (
-            {
-                "predictions": [],
-                "image": {"width": 1000, "height": 1000}
-            },
+            {"predictions": [], "image": {"width": 1000, "height": 1000}},
             ["person", "car", "truck"],
-            (
-                np.empty((0, 4)),
-                np.empty(0),
-                np.empty(0),
-                None
-             ),
-            DoesNotRaise()
+            (np.empty((0, 4)), np.empty(0), np.empty(0), None),
+            DoesNotRaise(),
         ),  # empty result
         (
             {
@@ -305,33 +271,35 @@ def test_filter_polygons_by_area(
                         "width": 50.0,
                         "height": 50.0,
                         "confidence": 0.9,
-                        "class": "person"
+                        "class": "person",
                     }
                 ],
-                "image": {"width": 1000, "height": 1000}
+                "image": {"width": 1000, "height": 1000},
             },
             ["person", "car", "truck"],
             (
-                np.array([
-                    [175.0, 275.0, 225.0, 325.0]
-                ]),
+                np.array([[175.0, 275.0, 225.0, 325.0]]),
                 np.array([0.9]),
                 np.array([0]),
-                None
-             ),
-            DoesNotRaise()
+                None,
+            ),
+            DoesNotRaise(),
         ),  # single bounding box
-    ]
+    ],
 )
 def test_process_roboflow_result(
-        roboflow_result: dict,
-        class_list: List[str],
-        expected_result: Tuple[np.ndarray, np.ndarray, np.ndarray, Optional[np.ndarray]],
-        exception: Exception
+    roboflow_result: dict,
+    class_list: List[str],
+    expected_result: Tuple[np.ndarray, np.ndarray, np.ndarray, Optional[np.ndarray]],
+    exception: Exception,
 ) -> None:
     with exception:
-        result = process_roboflow_result(roboflow_result=roboflow_result, class_list=class_list)
+        result = process_roboflow_result(
+            roboflow_result=roboflow_result, class_list=class_list
+        )
         assert np.array_equal(result[0], expected_result[0])
         assert np.array_equal(result[1], expected_result[1])
         assert np.array_equal(result[2], expected_result[2])
-        assert (result[3] is None and expected_result[3] is None) or (np.array_equal(result[3], expected_result[3]))
+        assert (result[3] is None and expected_result[3] is None) or (
+            np.array_equal(result[3], expected_result[3])
+        )

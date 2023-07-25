@@ -78,7 +78,8 @@ def plot_images_grid(
 
     if len(images) > nrows * ncols:
         raise ValueError(
-            "The number of images exceeds the grid size. Please increase the grid size or reduce the number of images."
+            "The number of images exceeds the grid size. Please increase the grid size"
+            " or reduce the number of images."
         )
 
     fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=size)
