@@ -17,15 +17,17 @@ def object_to_pascal_voc(
     object_name = SubElement(root, "name")
     object_name.text = name
 
+    xyxy -= 1
+
     bndbox = SubElement(root, "bndbox")
     xmin = SubElement(bndbox, "xmin")
-    xmin.text = str(int(xyxy[0] + 1))
+    xmin.text = str(int(xyxy[0]))
     ymin = SubElement(bndbox, "ymin")
-    ymin.text = str(int(xyxy[1] + 1))
+    ymin.text = str(int(xyxy[1]))
     xmax = SubElement(bndbox, "xmax")
-    xmax.text = str(int(xyxy[2] + 1))
+    xmax.text = str(int(xyxy[2]))
     ymax = SubElement(bndbox, "ymax")
-    ymax.text = str(int(xyxy[3] + 1))
+    ymax.text = str(int(xyxy[3]))
 
     if polygon is not None:
         object_polygon = SubElement(root, "polygon")
@@ -155,7 +157,7 @@ def load_pascal_voc_annotations(
 
         xyxy.append([x1, y1, x2, y2])
 
-    xyxy = np.array(xyxy)
+    xyxy = np.array(xyxy) - 1
     detections = Detections(xyxy=xyxy)
 
     return image_name, detections, class_names
