@@ -109,9 +109,7 @@ def detections_to_pascal_voc(
             for polygon in polygons:
                 xyxy = polygon_to_xyxy(polygon=polygon)
                 next_object = object_to_pascal_voc(
-                    xyxy=xyxy,
-                    name=name,
-                    polygon=polygon,
+                    xyxy=xyxy, name=name, polygon=polygon,
                 )
                 annotation.append(next_object)
         else:
@@ -149,8 +147,6 @@ def load_pascal_voc_annotations(
 
         bbox = obj.find("bndbox")
 
-        # Correction functions for VOC XML format as bounding boxes in VOC XML start at (1,1) not (0,0). Refer:
-        # https://github.com/roboflow/supervision/issues/144
         x1 = int(bbox.find("xmin").text)
         y1 = int(bbox.find("ymin").text)
         x2 = int(bbox.find("xmax").text)
@@ -158,6 +154,8 @@ def load_pascal_voc_annotations(
 
         xyxy.append([x1, y1, x2, y2])
 
+    # Correction functions for VOC XML format as bounding boxes in VOC XML start at (1,1) not (0,0). Refer:
+    # https://github.com/roboflow/supervision/issues/144
     xyxy = np.array(xyxy) - 1
     detections = Detections(xyxy=xyxy)
 
