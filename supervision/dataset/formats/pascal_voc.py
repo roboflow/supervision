@@ -30,6 +30,7 @@ def object_to_pascal_voc(
     ymax.text = str(int(xyxy[3]))
 
     if polygon is not None:
+        polygon += 1
         object_polygon = SubElement(root, "polygon")
         for index, point in enumerate(polygon, start=1):
             x_coordinate, y_coordinate = point
