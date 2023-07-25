@@ -17,7 +17,7 @@ def object_to_pascal_voc(
     object_name = SubElement(root, "name")
     object_name.text = name
 
-    xyxy -= 1
+    xyxy += 1
 
     bndbox = SubElement(root, "bndbox")
     xmin = SubElement(bndbox, "xmin")
