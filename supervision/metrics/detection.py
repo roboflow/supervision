@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Callable, List, Optional, Tuple
-
+import json
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -469,6 +469,7 @@ class MeanAveragePrecision:
     map: float
     map50: float
     map75: float
+    average_precisions: np.ndarray
     """
     Mean Average Precision for object detection tasks.
 
@@ -636,7 +637,7 @@ class MeanAveragePrecision:
         class_index = 4
         conf_index = 5
 
-        stats, ap = [], []
+        stats, average_precisions = [], []
         iou_levels = np.linspace(0.5, 0.95, 10)
         num_ious = iou_levels.size
 
@@ -669,11 +670,11 @@ class MeanAveragePrecision:
         stats = [np.concatenate(x, 0) for x in zip(*stats)]
 
         if len(stats) and stats[0].any():
-            ap = cls.ap_per_class(*stats)
-            ap50, ap75, ap = ap[:, 0], ap[:, 5], ap.mean(1)  # AP@0.5, AP@0.5:0.95
-            map50, map75, map = ap50.mean(), ap75.mean(), ap.mean()
+            average_precisions = cls.average_precisions_per_class(*stats)
+            ap50, ap75, average_precisions = average_precisions[:, 0], average_precisions[:, 5], average_precisions.mean(1)
+            map50, map75, map = ap50.mean(), ap75.mean(), average_precisions.mean()
 
-        return cls(map=map, map50=map50, map75=map75)
+        return cls(map=map, map50=map50, map75=map75, average_precisions=average_precisions)
 
     @staticmethod
     def detections_to_tensor(
@@ -721,7 +722,7 @@ class MeanAveragePrecision:
         return correct
 
     @staticmethod
-    def compute_ap(recall, precision):
+    def compute_average_precision(recall, precision):
         """Compute the average precision using 101-point interpolation (COCO), given the recall and precision curves
         # Arguments
             recall:    The recall curve (list)
@@ -739,7 +740,7 @@ class MeanAveragePrecision:
         return ap
 
     @staticmethod
-    def ap_per_class(matches: np.ndarray, prediction_confidence: np.ndarray, prediction_class_ids: np.ndarray, true_batch_class_ids: np.ndarray, EPS=1e-16):
+    def average_precisions_per_class(matches: np.ndarray, prediction_confidence: np.ndarray, prediction_class_ids: np.ndarray, true_batch_class_ids: np.ndarray, EPS=1e-16):
         """ Compute the average precision, given the recall and precision curves.
         Source: https://github.com/rafaelpadilla/Object-Detection-Metrics.
         # Arguments
@@ -771,7 +772,7 @@ class MeanAveragePrecision:
             precision = tp_pool / (tp_pool + fp_pool)
 
             for j in range(matches.shape[1]):
-                average_precisions[ci, j] = MeanAveragePrecision.compute_ap(recall[:, j], precision[:, j])
+                average_precisions[ci, j] = MeanAveragePrecision.compute_average_precision(recall[:, j], precision[:, j])
 
         return average_precisions
 
@@ -801,3 +802,6 @@ class MeanAveragePrecision:
                 raise ValueError(
                     f"Targets must have shape (N, 5). Got {targets[0].shape} instead."
                 )
+
+    def to_dict(self):
+        return {'map': self.map, 'map50': self.map50, 'map75': self.map75, 'average_precisions': self.average_precisions}
