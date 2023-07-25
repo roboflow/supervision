@@ -47,7 +47,8 @@ def mock_cock_coco_annotation(
             ],
             ["fashion-assistant", "baseball cap"],
             DoesNotRaise(),
-        ),  # two coco categories; one with supercategory == "none" and one with supercategory != "none"
+        ),  # two coco categories; one with supercategory == "none" and
+        # one with supercategory != "none"
         (
             [
                 {"id": 0, "name": "fashion-assistant", "supercategory": "none"},
@@ -56,7 +57,8 @@ def mock_cock_coco_annotation(
             ],
             ["fashion-assistant", "baseball cap", "hoodie"],
             DoesNotRaise(),
-        ),  # three coco categories; one with supercategory == "none" and two with supercategory != "none"
+        ),  # three coco categories; one with supercategory == "none" and
+        # two with supercategory != "none"
         (
             [
                 {"id": 0, "name": "fashion-assistant", "supercategory": "none"},
@@ -65,7 +67,8 @@ def mock_cock_coco_annotation(
             ],
             ["fashion-assistant", "baseball cap", "hoodie"],
             DoesNotRaise(),
-        ),  # three coco categories; one with supercategory == "none" and two with supercategory != "none" (different order)
+        ),  # three coco categories; one with supercategory == "none" and
+        # two with supercategory != "none" (different order)
     ],
 )
 def test_coco_categories_to_classes(

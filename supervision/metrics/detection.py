@@ -18,10 +18,14 @@ class ConfusionMatrix:
     Confusion matrix for object detection tasks.
 
     Attributes:
-        matrix (np.ndarray): An 2D `np.ndarray` of shape `(len(classes) + 1, len(classes) + 1)` containing the number of `TP`, `FP`, `FN` and `TN` for each class.
+        matrix (np.ndarray): An 2D `np.ndarray` of shape
+            `(len(classes) + 1, len(classes) + 1)`
+            containing the number of `TP`, `FP`, `FN` and `TN` for each class.
         classes (List[str]): Model class names.
-        conf_threshold (float): Detection confidence threshold between `0` and `1`. Detections with lower confidence will be excluded from the matrix.
-        iou_threshold (float): Detection IoU threshold between `0` and `1`. Detections with lower IoU will be classified as `FP`.
+        conf_threshold (float): Detection confidence threshold between `0` and `1`.
+            Detections with lower confidence will be excluded from the matrix.
+        iou_threshold (float): Detection IoU threshold between `0` and `1`.
+            Detections with lower IoU will be classified as `FP`.
     """
 
     matrix: np.ndarray
@@ -45,8 +49,10 @@ class ConfusionMatrix:
             targets (List[Detections]): Detections objects from ground-truth.
             predictions (List[Detections]): Detections objects predicted by the model.
             classes (List[str]): Model class names.
-            conf_threshold (float): Detection confidence threshold between `0` and `1`. Detections with lower confidence will be excluded.
-            iou_threshold (float): Detection IoU threshold between `0` and `1`. Detections with lower IoU will be classified as `FP`.
+            conf_threshold (float): Detection confidence threshold between `0` and `1`.
+                Detections with lower confidence will be excluded.
+            iou_threshold (float): Detection IoU threshold between `0` and `1`.
+                Detections with lower IoU will be classified as `FP`.
 
         Returns:
             ConfusionMatrix: New instance of ConfusionMatrix.
@@ -132,11 +138,19 @@ class ConfusionMatrix:
         Calculate confusion matrix based on predicted and ground-truth detections.
 
         Args:
-            predictions (List[np.ndarray]): Each element of the list describes a single image and has `shape = (M, 6)` where `M` is the number of detected objects. Each row is expected to be in `(x_min, y_min, x_max, y_max, class, conf)` format.
-            targets (List[np.ndarray]): Each element of the list describes a single image and has `shape = (N, 5)` where `N` is the number of ground-truth objects. Each row is expected to be in `(x_min, y_min, x_max, y_max, class)` format.
+            predictions (List[np.ndarray]): Each element of the list describes a single
+                image and has `shape = (M, 6)` where `M` is the number of detected
+                objects. Each row is expected to be in
+                `(x_min, y_min, x_max, y_max, class, conf)` format.
+            targets (List[np.ndarray]): Each element of the list describes a single
+                image and has `shape = (N, 5)` where `N` is the number of
+                ground-truth objects. Each row is expected to be in
+                `(x_min, y_min, x_max, y_max, class)` format.
             classes (List[str]): Model class names.
-            conf_threshold (float): Detection confidence threshold between `0` and `1`. Detections with lower confidence will be excluded.
-            iou_threshold (float): Detection iou  threshold between `0` and `1`. Detections with lower iou will be classified as `FP`.
+            conf_threshold (float): Detection confidence threshold between `0` and `1`.
+                Detections with lower confidence will be excluded.
+            iou_threshold (float): Detection iou  threshold between `0` and `1`.
+                Detections with lower iou will be classified as `FP`.
 
         Returns:
             ConfusionMatrix: New instance of ConfusionMatrix.
@@ -246,11 +260,19 @@ class ConfusionMatrix:
         Calculate confusion matrix for a batch of detections for a single image.
 
         Args:
-            predictions (List[np.ndarray]): Each element of the list describes a single image and has `shape = (M, 6)` where `M` is the number of detected objects. Each row is expected to be in `(x_min, y_min, x_max, y_max, class, conf)` format.
-            targets (List[np.ndarray]): Each element of the list describes a single image and has `shape = (N, 5)` where `N` is the number of ground-truth objects. Each row is expected to be in `(x_min, y_min, x_max, y_max, class)` format.
+            predictions (List[np.ndarray]): Each element of the list describes a single
+                image and has `shape = (M, 6)` where `M` is the number of detected
+                objects. Each row is expected to be in
+                `(x_min, y_min, x_max, y_max, class, conf)` format.
+            targets (List[np.ndarray]): Each element of the list describes a single
+                image and has `shape = (N, 5)` where `N` is the number of ground-truth
+                objects. Each row is expected to be in
+                `(x_min, y_min, x_max, y_max, class)` format.
             num_classes (int): Number of classes.
-            conf_threshold (float): Detection confidence threshold between `0` and `1`. Detections with lower confidence will be excluded.
-            iou_threshold (float): Detection iou  threshold between `0` and `1`. Detections with lower iou will be classified as `FP`.
+            conf_threshold (float): Detection confidence threshold between `0` and `1`.
+                Detections with lower confidence will be excluded.
+            iou_threshold (float): Detection iou  threshold between `0` and `1`.
+                Detections with lower iou will be classified as `FP`.
 
         Returns:
             np.ndarray: Confusion matrix based on a single image.
@@ -304,8 +326,8 @@ class ConfusionMatrix:
     @staticmethod
     def _drop_extra_matches(matches: np.ndarray) -> np.ndarray:
         """
-        Deduplicate matches. If there are multiple matches for the same true or predicted box,
-        only the one with the highest IoU is kept.
+        Deduplicate matches. If there are multiple matches for the same true or
+        predicted box, only the one with the highest IoU is kept.
         """
         if matches.shape[0] > 0:
             matches = matches[matches[:, 2].argsort()[::-1]]
@@ -327,9 +349,12 @@ class ConfusionMatrix:
 
         Args:
             dataset (DetectionDataset): Object detection dataset used for evaluation.
-            callback (Callable[[np.ndarray], Detections]): Function that takes an image as input and returns Detections object.
-            conf_threshold (float): Detection confidence threshold between `0` and `1`. Detections with lower confidence will be excluded.
-            iou_threshold (float): Detection IoU threshold between `0` and `1`. Detections with lower IoU will be classified as `FP`.
+            callback (Callable[[np.ndarray], Detections]): Function that takes an image
+                as input and returns Detections object.
+            conf_threshold (float): Detection confidence threshold between `0` and `1`.
+                Detections with lower confidence will be excluded.
+            iou_threshold (float): Detection IoU threshold between `0` and `1`.
+                Detections with lower IoU will be classified as `FP`.
 
         Returns:
             ConfusionMatrix: New instance of ConfusionMatrix.
@@ -386,9 +411,11 @@ class ConfusionMatrix:
         Create confusion matrix plot and save it at selected location.
 
         Args:
-            save_path (Optional[str]): Path to save the plot. If not provided, plot will be displayed.
+            save_path (Optional[str]): Path to save the plot. If not provided,
+                plot will be displayed.
             title (Optional[str]): Title of the plot.
-            classes (Optional[List[str]]): List of classes to be displayed on the plot. If not provided, all classes will be displayed.
+            classes (Optional[List[str]]): List of classes to be displayed on the plot.
+                If not provided, all classes will be displayed.
             normalize (bool): If True, normalize the confusion matrix.
             fig_size (Tuple[int, int]): Size of the plot.
 

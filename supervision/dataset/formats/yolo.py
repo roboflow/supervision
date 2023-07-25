@@ -112,16 +112,23 @@ def load_yolo_annotations(
     force_masks: bool = False,
 ) -> Tuple[List[str], Dict[str, np.ndarray], Dict[str, Detections]]:
     """
-    Loads YOLO annotations and returns class names, images, and their corresponding detections.
+    Loads YOLO annotations and returns class names, images,
+        and their corresponding detections.
 
     Args:
         images_directory_path (str): The path to the directory containing the images.
-        annotations_directory_path (str): The path to the directory containing the YOLO annotation files.
-        data_yaml_path (str): The path to the data YAML file containing class information.
-        force_masks (bool, optional): If True, forces masks to be loaded for all annotations, regardless of whether they are present.
+        annotations_directory_path (str): The path to the directory
+            containing the YOLO annotation files.
+        data_yaml_path (str): The path to the data
+            YAML file containing class information.
+        force_masks (bool, optional): If True, forces masks to be loaded
+            for all annotations, regardless of whether they are present.
 
     Returns:
-        Tuple[List[str], Dict[str, np.ndarray], Dict[str, Detections]]: A tuple containing a list of class names, a dictionary with image names as keys and images as values, and a dictionary with image names as keys and corresponding Detections instances as values.
+        Tuple[List[str], Dict[str, np.ndarray], Dict[str, Detections]]:
+            A tuple containing a list of class names, a dictionary with
+            image names as keys and images as values, and a dictionary
+            with image names as keys and corresponding Detections instances as values.
     """
     image_paths = list_files_with_extensions(
         directory=images_directory_path, extensions=["jpg", "jpeg", "png"]

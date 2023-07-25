@@ -50,9 +50,12 @@ def plot_images_grid(
 
     Args:
        images (List[np.ndarray]): A list of images as numpy arrays.
-       grid_size (Tuple[int, int]): A tuple specifying the number of rows and columns for the grid.
-       titles (Optional[List[str]]): A list of titles for each image. Defaults to None.
-       size (Tuple[int, int]): A tuple specifying the width and height of the entire plot in inches.
+       grid_size (Tuple[int, int]): A tuple specifying the number
+            of rows and columns for the grid.
+       titles (Optional[List[str]]): A list of titles for each image.
+            Defaults to None.
+       size (Tuple[int, int]): A tuple specifying the width and
+            height of the entire plot in inches.
        cmap (str): the colormap to use for single channel images.
 
     Raises:

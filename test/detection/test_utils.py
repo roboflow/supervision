@@ -224,7 +224,8 @@ def test_clip_boxes(
             100,
             [np.array([[0, 0], [0, 10], [10, 10], [10, 0]])],
             DoesNotRaise(),
-        ),  # two polygons with min_area and max_area equal to the area of the first polygon
+        ),  # two polygons with min_area and
+        # max_area equal to the area of the first polygon
         (
             [
                 np.array([[0, 0], [0, 10], [10, 10], [10, 0]]),
@@ -234,7 +235,8 @@ def test_clip_boxes(
             400,
             [np.array([[0, 0], [0, 20], [20, 20], [20, 0]])],
             DoesNotRaise(),
-        ),  # two polygons with min_area and max_area equal to the area of the second polygon
+        ),  # two polygons with min_area and
+        # max_area equal to the area of the second polygon
     ],
 )
 def test_filter_polygons_by_area(

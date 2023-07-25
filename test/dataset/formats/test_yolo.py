@@ -154,7 +154,8 @@ def test_with_mask(
                 ),
             ),
             DoesNotRaise(),
-        ),  # yolo annotation file with two lines - one box and one polygon in with_masks mode
+        ),  # yolo annotation file with two lines -
+        # one box and one polygon in with_masks mode
         (
             ["0 0.4 0.4 0.6 0.4 0.6 0.6 0.4 0.6", "1 0.11 0.47 0.22 0.30"],
             (1000, 1000),
