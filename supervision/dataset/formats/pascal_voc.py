@@ -39,16 +39,6 @@ def object_to_pascal_voc(
     return root
 
 
-# Correction functions for VOC XML format as bounding boxes in VOC XML start at (1,1) not (0,0). Refer:
-# https://github.com/roboflow/supervision/issues/144
-def __increment_bbox_for_pascal_voc(xyxy):
-    return xyxy + 1
-
-
-def __decrement_bbox_for_pascal_voc(xyxy):
-    return xyxy - 1
-
-
 def detections_to_pascal_voc(
     detections: Detections,
     classes: List[str],
@@ -116,15 +106,15 @@ def detections_to_pascal_voc(
             for polygon in polygons:
                 xyxy = polygon_to_xyxy(polygon=polygon)
                 next_object = object_to_pascal_voc(
-                    xyxy=__increment_bbox_for_pascal_voc(xyxy),
+                    xyxy=xyxy + 1,
                     name=name,
                     polygon=polygon,
                 )
                 annotation.append(next_object)
         else:
-            next_object = object_to_pascal_voc(
-                xyxy=__increment_bbox_for_pascal_voc(xyxy), name=name
-            )
+            # Correction functions for VOC XML format as bounding boxes in VOC XML start at (1,1) not (0,0). Refer:
+            # https://github.com/roboflow/supervision/issues/144
+            next_object = object_to_pascal_voc(xyxy=xyxy + 1, name=name)
             annotation.append(next_object)
 
     # Generate XML string
@@ -158,14 +148,12 @@ def load_pascal_voc_annotations(
 
         bbox = obj.find("bndbox")
 
-        x1 = int(bbox.find("xmin").text)
-        y1 = int(bbox.find("ymin").text)
-        x2 = int(bbox.find("xmax").text)
-        y2 = int(bbox.find("ymax").text)
+        x1 = int(bbox.find("xmin").text) - 1
+        y1 = int(bbox.find("ymin").text) - 1
+        x2 = int(bbox.find("xmax").text) - 1
+        y2 = int(bbox.find("ymax").text) - 1
 
-        xyxy.append(
-            __decrement_bbox_for_pascal_voc(np.array([x1, y1, x2, y2])).tolist()
-        )
+        xyxy.append([x1, y1, x2, y2])
 
     xyxy = np.array(xyxy)
     detections = Detections(xyxy=xyxy)
