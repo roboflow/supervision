@@ -52,24 +52,16 @@ def _polygons_to_masks(
     )
 
 
-def _pair_image_with_annotation(
-    image_paths: List[Union[str, Path]], annotation_paths: List[Union[str, Path]]
-) -> List[Tuple[Union[str, Path], Union[str, Path]]]:
-    image_dict = {p.stem: p for p in image_paths}
-    return [
-        (image_dict[annotation_path.stem], annotation_path)
-        for annotation_path in annotation_paths
-        if annotation_path.stem in image_dict
-    ]
-
-
 def _with_mask(lines: List[str]) -> bool:
     return any([len(line.split()) > 5 for line in lines])
 
 
 def _extract_class_names(file_path: str) -> List[str]:
     data = read_yaml_file(file_path=file_path)
-    return data["names"]
+    names = data["names"]
+    if isinstance(names, dict):
+        names = [names[key] for key in sorted(names.keys())]
+    return names
 
 
 def _image_name_to_annotation_name(image_name: str) -> str:
@@ -137,14 +129,21 @@ def load_yolo_annotations(
     annotation_paths = list_files_with_extensions(
         directory=annotations_directory_path, extensions=["txt"]
     )
-    path_pairs = _pair_image_with_annotation(
-        image_paths=image_paths, annotation_paths=annotation_paths
-    )
+
     classes = _extract_class_names(file_path=data_yaml_path)
     images = {}
     annotations = {}
-    for image_path, annotation_path in path_pairs:
+
+    for image_path in image_paths:
+        image_name = Path(image_path).stem
         image = cv2.imread(str(image_path))
+
+        annotation_path = os.path.join(annotations_directory_path, f"{image_name}.txt")
+        if not os.path.exists(annotation_path):
+            images[image_path.name] = image
+            annotations[image_path.name] = Detections.empty()
+            continue
+
         lines = read_txt_file(str(annotation_path))
         h, w, _ = image.shape
         resolution_wh = (w, h)

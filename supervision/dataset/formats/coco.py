@@ -124,7 +124,7 @@ def detections_to_coco_annotations(
             "category_id": int(class_id),
             "bbox": [xyxy[0], xyxy[1], box_width, box_height],
             "area": box_width * box_height,
-            "segmentation": polygon,
+            "segmentation": [polygon] if polygon else [],
             "iscrowd": 0,
         }
         coco_annotations.append(coco_annotation)
