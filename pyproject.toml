@@ -5,6 +5,7 @@ description = "A set of easy-to-use utils that will come in handy in any Compute
 authors = ["Piotr Skalski <piotr.skalski92@gmail.com>"]
 maintainers = ["Piotr Skalski <piotr.skalski92@gmail.com>"]
 readme = "README.md"
+license = "MIT"
 packages = [{include = "supervision"}]
 homepage = "https://github.com/roboflow/supervision"
 repository = "https://github.com/roboflow/supervision"
