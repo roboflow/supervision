@@ -520,12 +520,10 @@ class MeanAveragePrecision:
         target_tensors = []
         for prediction, target in zip(predictions, targets):
             prediction_tensors.append(
-                MeanAveragePrecision.detections_to_tensor(
-                    prediction, with_confidence=True
-                )
+                MeanAveragePrecision.detections_to_tensor(prediction)
             )
             target_tensors.append(
-                MeanAveragePrecision.detections_to_tensor(target, with_confidence=False)
+                MeanAveragePrecision.targets_to_tensor(target)
             )
         return cls.from_tensors(
             predictions=prediction_tensors,
@@ -635,6 +633,9 @@ class MeanAveragePrecision:
         cls._validate_input_tensors(predictions, targets)
         map, map50, map75 = 0, 0, 0
 
+        class_index = 4
+        conf_index = 5
+
         stats, ap = [], []
         iou_levels = np.linspace(0.5, 0.95, 10)
         num_ious = iou_levels.size
@@ -643,7 +644,7 @@ class MeanAveragePrecision:
             nl, npr = (
                 true_batch.shape[0],
                 detection_batch.shape[0],
-            )  # number of labels, predictions
+            )
             correct = np.zeros((npr, num_ious), dtype=bool)  # init
 
             if npr == 0:
@@ -659,9 +660,9 @@ class MeanAveragePrecision:
                 stats.append(
                     (
                         correct,
-                        detection_batch[:, 5],
-                        detection_batch[:, 4],
-                        true_batch[:, 4],
+                        detection_batch[:, conf_index],
+                        detection_batch[:, class_index],
+                        true_batch[:, class_index],
                     )
                 )
 
@@ -676,21 +677,24 @@ class MeanAveragePrecision:
 
     @staticmethod
     def detections_to_tensor(
-            detections: Detections, with_confidence: bool = False
+            detections: Detections
     ) -> np.ndarray:
-
         if detections.class_id is None:
             raise ValueError(
                 "MeanAveragePrecision can only be calculated for Detections with class_id"
             )
 
-        arrays_to_concat = [detections.xyxy, np.expand_dims(detections.class_id, 1)]
+        return np.concatenate([detections.xyxy, np.expand_dims(detections.class_id, 1), np.expand_dims(detections.confidence, 1)], 1)
 
-        if with_confidence:
-            if detections.confidence is not None:
-                arrays_to_concat.append(np.expand_dims(detections.confidence, 1))
+    @staticmethod
+    def targets_to_tensor(
+            detections: Detections) -> np.ndarray:
 
-        return np.concatenate(arrays_to_concat, axis=1)
+        if detections.class_id is None:
+            raise ValueError(
+                "MeanAveragePrecision can only be calculated for Detections with class_id"
+            )
+        return np.hstack([detections.xyxy, np.expand_dims(detections.class_id, 1)])
 
     @staticmethod
     def _match_detection_batch(
@@ -708,22 +712,13 @@ class MeanAveragePrecision:
                 _X1 = np.concatenate([np.expand_dims(x[0], 1), np.expand_dims(x[1], 1)], axis=1)
                 _x2 = iou[x[0], x[1]][:, None]
                 matches = np.concatenate([_X1, _x2], axis=1)  # [label, detect, iou]
-                matches = MeanAveragePrecision._drop_extra_matches(matches)
+                if x[0].shape[0] > 1:
+                    matches = matches[matches[:, 2].argsort()[::-1]]
+                    matches = matches[np.unique(matches[:, 1], return_index=True)[1]]
+                    matches = matches[np.unique(matches[:, 0], return_index=True)[1]]
+                correct[matches[:, 1].astype(int), i] = True
                 correct[matches[:, 1].astype(int), i] = True
         return correct
-
-    @staticmethod
-    def _drop_extra_matches(matches: np.ndarray) -> np.ndarray:
-        """
-        Deduplicate matches. If there are multiple matches for the same true or predicted box,
-        only the one with the highest IoU is kept.
-        """
-        if matches.shape[0] > 0:
-            matches = matches[matches[:, 2].argsort()[::-1]]
-            matches = matches[np.unique(matches[:, 1], return_index=True)[1]]
-            matches = matches[matches[:, 2].argsort()[::-1]]
-            matches = matches[np.unique(matches[:, 0], return_index=True)[1]]
-        return matches
 
     @staticmethod
     def compute_ap(recall, precision):
