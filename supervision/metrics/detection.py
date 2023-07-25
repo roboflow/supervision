@@ -651,7 +651,7 @@ class MeanAveragePrecision:
                     stats.append((correct, *np.zeros((2, 0)), true_batch[:, 4]))
                 continue
             if nl:
-                correct, iou_levels = cls._match_detection_batch(
+                correct = cls._match_detection_batch(
                     predictions=detection_batch,
                     targets=true_batch,
                     iou_levels=iou_levels,
@@ -705,39 +705,12 @@ class MeanAveragePrecision:
             x = np.where((iou >= iou_levels[i]) & correct_class)
 
             if x[0].shape[0]:
-                _X1 = np.vstack([x[0], x[1]]).T
+                _X1 = np.concatenate([np.expand_dims(x[0], 1), np.expand_dims(x[1], 1)], axis=1)
                 _x2 = iou[x[0], x[1]][:, None]
                 matches = np.concatenate([_X1, _x2], axis=1)  # [label, detect, iou]
                 matches = MeanAveragePrecision._drop_extra_matches(matches)
                 correct[matches[:, 1].astype(int), i] = True
-        return correct, iou_levels
-
-    @classmethod
-    def _validate_input_tensors(
-        cls, predictions: List[np.ndarray], targets: List[np.ndarray]
-    ):
-        """
-        Checks for shape consistency of input tensors.
-        """
-        if len(predictions) != len(targets):
-            raise ValueError(
-                f"Number of predictions ({len(predictions)}) and targets ({len(targets)}) must be equal."
-            )
-        if len(predictions) > 0:
-            if not isinstance(predictions[0], np.ndarray) or not isinstance(
-                targets[0], np.ndarray
-            ):
-                raise ValueError(
-                    f"Predictions and targets must be lists of numpy arrays. Got {type(predictions[0])} and {type(targets[0])} instead."
-                )
-            if predictions[0].shape[1] != 6:
-                raise ValueError(
-                    f"Predictions must have shape (N, 6). Got {predictions[0].shape} instead."
-                )
-            if targets[0].shape[1] != 5:
-                raise ValueError(
-                    f"Targets must have shape (N, 5). Got {targets[0].shape} instead."
-                )
+        return correct
 
     @staticmethod
     def _drop_extra_matches(matches: np.ndarray) -> np.ndarray:
@@ -775,16 +748,11 @@ class MeanAveragePrecision:
         """ Compute the average precision, given the recall and precision curves.
         Source: https://github.com/rafaelpadilla/Object-Detection-Metrics.
         # Arguments
-            tp:  True positives (nparray, nx1 or nx10).
-            conf:  Objectness value from 0-1 (nparray).
-            pred_cls:  Predicted object classes (nparray).
-            target_cls:  True object classes (nparray).
-            plot:  Plot precision-recall curve at mAP@0.5
-            save_dir:  Plot save directory
-        # Returns
-            The average precision as computed in py-faster-rcnn.
+            matches:  True positives (nparray, nx1 or nx10).
+            prediction_confidence:  Objectness value from 0-1 (nparray).
+            prediction_class_ids:  Predicted object classes (nparray).
+            true_batch_class_ids:  True object classes (nparray).
         """
-
         sorted_confidences = np.argsort(-prediction_confidence)
         matches = matches[sorted_confidences]
         prediction_class_ids = prediction_class_ids[sorted_confidences]
@@ -812,10 +780,29 @@ class MeanAveragePrecision:
 
         return average_precisions
 
-    @staticmethod
-    def smooth(y, f=0.05):
-        # Box filter of fraction f
-        nf = round(len(y) * f * 2) // 2 + 1  # number of filter elements (must be odd)
-        p = np.ones(nf // 2)  # ones padding
-        yp = np.concatenate((p * y[0], y, p * y[-1]), 0)  # y padded
-        return np.convolve(yp, np.ones(nf) / nf, mode="valid")  # y-smoothed
+    @classmethod
+    def _validate_input_tensors(
+        cls, predictions: List[np.ndarray], targets: List[np.ndarray]
+    ):
+        """
+        Checks for shape consistency of input tensors.
+        """
+        if len(predictions) != len(targets):
+            raise ValueError(
+                f"Number of predictions ({len(predictions)}) and targets ({len(targets)}) must be equal."
+            )
+        if len(predictions) > 0:
+            if not isinstance(predictions[0], np.ndarray) or not isinstance(
+                targets[0], np.ndarray
+            ):
+                raise ValueError(
+                    f"Predictions and targets must be lists of numpy arrays. Got {type(predictions[0])} and {type(targets[0])} instead."
+                )
+            if predictions[0].shape[1] != 6:
+                raise ValueError(
+                    f"Predictions must have shape (N, 6). Got {predictions[0].shape} instead."
+                )
+            if targets[0].shape[1] != 5:
+                raise ValueError(
+                    f"Targets must have shape (N, 5). Got {targets[0].shape} instead."
+                )
