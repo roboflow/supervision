@@ -7,7 +7,6 @@ A tracker is a computer vision algorithm that aims to track objects across conse
   - [Table of Contents](#table-of-contents)
   - [1. Byte Tracker](#1-byte-tracker)
     - [Introduction](#introduction)
-    - [Example](#example)
     - [Usage](#usage)
 
 ## 1. Byte Tracker
@@ -20,24 +19,6 @@ Byte Tracker is a visual object tracking method designed to track objects in vid
 Byte Tracker is a visual object tracking algorithm that leverages a combination of motion and appearance features to track objects in videos. The algorithm is robust to object occlusions, scale changes, and abrupt motion.
 
 The folder contains the implementation of the Byte Tracker algorithm, which can be used in conjunction with object detection algorithms to track objects over time.
-
-### Example
-
-To use the Byte Tracker in your projects, follow these steps:
-
-1. Install supervision.
-2. Navigate to the example folder:
-   ```bash
-   cd docs/tracker
-   ```
-3. Prepare the source video:
-   - Ensure that the source video is in a compatible format.
-   - Set the SOURCE_VIDEO_PATH variable in the code to the path of your source video file.
-
-4. Run the code:
-   ```bash
-   python3 tracker_bytetrack.py
-   ```
    
 ### Usage
 

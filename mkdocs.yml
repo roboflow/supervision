@@ -46,6 +46,9 @@ nav:
         - Image: utils/image.md
         - Notebook: utils/notebook.md
         - File: utils/file.md
+    - Tracker:
+        - Bytetrack: tracker/bytetrack.md
+
   - Changelog: changelog.md
 
 theme:
