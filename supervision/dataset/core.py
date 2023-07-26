@@ -225,7 +225,7 @@ class DetectionDataset(BaseDataset):
             >>> project = rf.workspace(WORKSPACE_ID).project(PROJECT_ID)
             >>> dataset = project.version(PROJECT_VERSION).download("voc")
 
-            >>> ds = sv.DetectionDataset.from_yolo(
+            >>> ds = sv.DetectionDataset.from_pascal_voc(
             ...     images_directory_path=f"{dataset.location}/train/images",
             ...     annotations_directory_path=f"{dataset.location}/train/labels"
             ... )

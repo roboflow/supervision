@@ -129,13 +129,15 @@ def load_pascal_voc_annotations(
     force_masks: bool = False,
 ) -> Tuple[List[str], Dict[str, np.ndarray], Dict[str, Detections]]:
     """
-    Loads PASCAL VOC XML annotations and returns the image name, a Detections instance, and a list of class names.
+    Loads PASCAL VOC annotations and returns class names, images, and their corresponding detections.
 
     Args:
-        annotation_path (str): The path to the PASCAL VOC XML annotations file.
+        images_directory_path (str): The path to the directory containing the images.
+        annotations_directory_path (str): The path to the directory containing the PASCAL VOC annotation files.
+        force_masks (bool, optional): If True, forces masks to be loaded for all annotations, regardless of whether they are present.
 
     Returns:
-        Tuple[str, Detections, List[str]]: A tuple containing the image name, a Detections instance, and a list of class names of objects in the detections.
+        Tuple[List[str], Dict[str, np.ndarray], Dict[str, Detections]]: A tuple containing a list of class names, a dictionary with image names as keys and images as values, and a dictionary with image names as keys and corresponding Detections instances as values.
     """
 
     image_paths = list_files_with_extensions(
