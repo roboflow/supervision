@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Callable, List, Optional, Tuple
-import json
+
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -514,7 +514,7 @@ class MeanAveragePrecision:
             ... )
 
             >>> mean_average_precison.matrix
-            0.433
+            0.2899
            ```
         """
         prediction_tensors = []
@@ -628,7 +628,7 @@ class MeanAveragePrecision:
             ... )
 
             >>> mean_average_precison.map
-            0.433
+            0.2899
             ```
         """
         cls._validate_input_tensors(predictions, targets)
