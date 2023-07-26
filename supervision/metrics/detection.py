@@ -477,6 +477,7 @@ class MeanAveragePrecision:
         map (float): map value.
         map50 (float): map value at iou threshold=0.5.
         map75 (float): map value at iou threshold=0.75
+        average_precisions (np.ndarray): values for every classes
     """
 
     @classmethod
