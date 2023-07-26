@@ -203,6 +203,10 @@ def load_pascal_voc_annotations(
 
     classes = list(set(classes))
 
+    for annotation in annotations.values():
+        class_id = [classes.index(class_name) for class_name in annotation.class_id]
+        annotation.class_id = np.array(class_id)
+
     return classes, images, annotations
 
 

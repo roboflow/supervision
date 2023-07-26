@@ -241,10 +241,6 @@ class DetectionDataset(BaseDataset):
             force_masks=force_masks,
         )
 
-        for annotation in annotations.values():
-            class_id = [classes.index(class_name) for class_name in annotation.class_id]
-            annotation.class_id = np.array(class_id)
-
         return DetectionDataset(classes=classes, images=images, annotations=annotations)
 
     @classmethod
