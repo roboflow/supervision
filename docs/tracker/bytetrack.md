@@ -8,6 +8,8 @@ A tracker is a computer vision algorithm that aims to track objects across conse
   - [1. Byte Tracker](#1-byte-tracker)
     - [Introduction](#introduction)
     - [Usage](#usage)
+    - [update from sv result:](#update-from-sv-result)
+    - [update from numpy array:](#update-from-numpy-array)
 
 ## 1. Byte Tracker
 
@@ -40,13 +42,19 @@ The folder contains the implementation of the Byte Tracker algorithm, which can 
       frame_rate=30
    )
    ```
-
 3. Update the tracker with new detections and frames for each video frame:
-   
+### update from sv result:
    ```python
-   tracks = tracker.update(
+   detections_res = byte_tracker.update_from_detections(
+      detections=sv_results, img_info=frame.shape, img_size=frame.shape
+   )
+   ```
+### update from numpy array:
+  
+   ```python
+   tracks = byte_tracker.update_from_numpy(
       output_results=detections2boxes(detections=detections),
       img_info=frame.shape,
-      img_size=frame.shape
+      img_size=frame.shape,
    )
    ```
