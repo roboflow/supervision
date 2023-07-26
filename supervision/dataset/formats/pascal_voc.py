@@ -1,12 +1,16 @@
-from typing import List, Optional, Tuple
+import os
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
 from xml.dom.minidom import parseString
 from xml.etree.ElementTree import Element, SubElement, parse, tostring
 
+import cv2
 import numpy as np
 
 from supervision.dataset.utils import approximate_mask_with_polygons
 from supervision.detection.core import Detections
 from supervision.detection.utils import polygon_to_xyxy
+from supervision.utils.file import list_files_with_extensions
 
 
 def object_to_pascal_voc(
@@ -120,6 +124,93 @@ def detections_to_pascal_voc(
 
 
 def load_pascal_voc_annotations(
+    images_directory_path: str,
+    annotations_directory_path: str,
+    force_masks: bool = False,
+) -> Tuple[List[str], Dict[str, np.ndarray], Dict[str, Detections]]:
+    """
+    Loads PASCAL VOC XML annotations and returns the image name, a Detections instance, and a list of class names.
+
+    Args:
+        annotation_path (str): The path to the PASCAL VOC XML annotations file.
+
+    Returns:
+        Tuple[str, Detections, List[str]]: A tuple containing the image name, a Detections instance, and a list of class names of objects in the detections.
+    """
+
+    image_paths = list_files_with_extensions(
+        directory=images_directory_path, extensions=["jpg", "jpeg", "png"]
+    )
+
+    classes = []
+    images = {}
+    annotations = {}
+
+    for image_path in image_paths:
+        image_name = Path(image_path).stem
+        image = cv2.imread(str(image_path))
+
+        annotation_path = os.path.join(annotations_directory_path, f"{image_name}.xml")
+        if not os.path.exists(annotation_path):
+            images[image_path.name] = image
+            annotations[image_path.name] = Detections.empty()
+            continue
+
+        tree = parse(annotation_path)
+        root = tree.getroot()
+
+        xyxy = []
+        class_names = []
+        masks = []
+        for obj in root.findall("object"):
+            class_name = obj.find("name").text
+            class_names.append(class_name)
+
+            bbox = obj.find("bndbox")
+            x1 = int(bbox.find("xmin").text)
+            y1 = int(bbox.find("ymin").text)
+            x2 = int(bbox.find("xmax").text)
+            y2 = int(bbox.find("ymax").text)
+
+            xyxy.append([x1, y1, x2, y2])
+
+            with_masks = obj.find("polygon") is not None
+            with_masks = force_masks if force_masks else with_masks
+
+            for polygon in obj.findall("polygon"):
+                polygon_points = []
+                coords = polygon.findall(".//*")
+                for i in range(0, len(coords), 2):
+                    x = int(coords[i].text)
+                    y = int(coords[i + 1].text)
+                    polygon_points.append([x, y])
+
+                mask_from_polygon = polygon_to_mask(
+                    polygon=np.array(polygon_points),
+                    resolution_wh=(image.shape[0], image.shape[1]),
+                )
+                masks.append(mask_from_polygon)
+
+        xyxy = np.array(xyxy)
+        masks = np.array(masks)
+        annotation = Detections(xyxy=xyxy, mask=masks, class_id=np.array(class_names))
+
+        images[image_path.name] = image
+        annotations[image_path.name] = annotation
+        classes += class_names
+
+    classes = list(set(classes))
+
+    return classes, images, annotations
+
+
+def polygon_to_mask(polygon: np.ndarray, resolution_wh: Tuple[int, int]) -> np.ndarray:
+    mask = np.zeros(resolution_wh, dtype=np.uint8)
+    cv2.fillPoly(mask, pts=[polygon], color=1)
+    return mask
+
+
+def load_pascal_voc_annotations_v1(
     annotation_path: str,
 ) -> Tuple[str, Detections, List[str]]:
     """
