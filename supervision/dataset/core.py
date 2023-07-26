@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
@@ -44,6 +45,9 @@ class BaseDataset(ABC):
     def split(
         self, split_ratio=0.8, random_state=None, shuffle: bool = True
     ) -> Tuple[BaseDataset, BaseDataset]:
+        pass
+
+    def add_detection(self, filename: Optional[str], image:np.ndarray, detections: Detections) -> None:
         pass
 
 
@@ -502,6 +506,34 @@ class DetectionDataset(BaseDataset):
         return cls(
             classes=merged_classes, images=merged_images, annotations=merged_annotations
         )
+
+    @classmethod
+    def empty(cls) -> DetectionDataset:
+        """
+        Create an empty DetectionDataset object with no image and no annotations.
+
+        Returns:
+            (DetectionDataset): An empty DetectionDataset object.
+
+        Example:
+            ```python
+            >>> from supervision import DetectionDataset
+
+            >>> empty_ds = DetectionDataset.empty()
+            ```
+        """
+        return cls(
+            classes=[],
+            images=dict(),
+            annotations=dict()
+        )
+
+    def add_detection(self, image_name: Optional[str], image:np.ndarray, detections: Detections) -> None:
+        image_name = image_name if image_name else f"{str(uuid.uuid4())}.jpg"
+        if image_name in self.images:
+            image_name = image_name if image_name else f"{str(uuid.uuid4())}.jpg"
+        self.images[image_name] = image.copy()
+        self.annotations[image_name] = detections
 
 
 @dataclass
