@@ -9,7 +9,7 @@ import numpy as np
 
 from supervision.dataset.utils import approximate_mask_with_polygons
 from supervision.detection.core import Detections
-from supervision.detection.utils import polygon_to_xyxy
+from supervision.detection.utils import polygon_to_mask, polygon_to_xyxy
 from supervision.utils.file import list_files_with_extensions
 
 
@@ -208,12 +208,6 @@ def load_pascal_voc_annotations(
         annotation.class_id = np.array(class_id)
 
     return classes, images, annotations
-
-
-def polygon_to_mask(polygon: np.ndarray, resolution_wh: Tuple[int, int]) -> np.ndarray:
-    mask = np.zeros(resolution_wh, dtype=np.uint8)
-    cv2.fillPoly(mask, pts=[polygon], color=1)
-    return mask
 
 
 def load_pascal_voc_annotations_v1(
