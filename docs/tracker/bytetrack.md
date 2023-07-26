@@ -5,13 +5,13 @@ A tracker is a computer vision algorithm that aims to track objects across conse
 ## Table of Contents
 - [Tracker](#tracker)
   - [Table of Contents](#table-of-contents)
-  - [1. Byte Tracker](#1-byte-tracker)
+  - [Byte Tracker](#byte-tracker)
     - [Introduction](#introduction)
     - [Usage](#usage)
     - [update from sv result:](#update-from-sv-result)
     - [update from numpy array:](#update-from-numpy-array)
 
-## 1. Byte Tracker
+## Byte Tracker
 
 Byte Tracker is a visual object tracking method designed to track objects in video sequences. This folder contains the implementation of the Byte Tracker algorithm.
 
