@@ -75,10 +75,27 @@ repos:
           args: ["-c", "pyproject.toml"]
           additional_dependencies: ["bandit[toml]"]
 
+  -   repo: https://github.com/pycqa/isort
+      rev: 5.12.0
+      hooks:
+      -   id: isort
+          name: isort (python)
+      -   id: isort
+          name: isort (cython)
+          types: [cython]
+      -   id: isort
+          name: isort (pyi)
+          types: [pyi]
+
   # -   repo: https://github.com/PyCQA/autoflake
   #     rev: v2.2.0
   #     hooks:
   #     -   id: autoflake
+
+  -   repo: https://github.com/psf/black
+      rev: 23.7.0
+      hooks:
+      -   id: black
 
   -   repo: https://github.com/astral-sh/ruff-pre-commit
       rev: v0.0.280
