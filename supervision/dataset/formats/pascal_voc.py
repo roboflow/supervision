@@ -195,24 +195,18 @@ def load_pascal_voc_annotations(
                 masks.append(mask_from_polygon)
 
         xyxy = np.array(xyxy) if len(xyxy) > 0 else np.empty((0, 4))
+        for k in set(class_names):
+            if k not in classes:
+                classes.append(k)
+        class_id = np.array([classes.index(class_name) for class_name in class_names])
 
         if with_masks:
-            masks = np.array(masks)
-            annotation = Detections(
-                xyxy=xyxy, mask=masks, class_id=np.array(class_names)
-            )
+            annotation = Detections(xyxy=xyxy, mask=np.array(masks), class_id=class_id)
         else:
-            annotation = Detections(xyxy=xyxy, class_id=np.array(class_names))
+            annotation = Detections(xyxy=xyxy, class_id=class_id)
 
         images[image_path.name] = image
         annotations[image_path.name] = annotation
-        classes += class_names
-
-    classes = list(set(classes))
-
-    for annotation in annotations.values():
-        class_id = [classes.index(class_name) for class_name in annotation.class_id]
-        annotation.class_id = np.array(class_id)
 
     return classes, images, annotations
 
