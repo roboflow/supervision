@@ -164,6 +164,7 @@ def load_pascal_voc_annotations(
         xyxy = []
         class_names = []
         masks = []
+        with_masks = False
         for obj in root.findall("object"):
             class_name = obj.find("name").text
             class_names.append(class_name)
@@ -194,8 +195,14 @@ def load_pascal_voc_annotations(
                 masks.append(mask_from_polygon)
 
         xyxy = np.array(xyxy)
-        masks = np.array(masks)
-        annotation = Detections(xyxy=xyxy, mask=masks, class_id=np.array(class_names))
+
+        if with_masks:
+            masks = np.array(masks)
+            annotation = Detections(
+                xyxy=xyxy, mask=masks, class_id=np.array(class_names)
+            )
+        else:
+            annotation = Detections(xyxy=xyxy, class_id=np.array(class_names))
 
         images[image_path.name] = image
         annotations[image_path.name] = annotation
