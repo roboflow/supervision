@@ -194,7 +194,7 @@ def load_pascal_voc_annotations(
                 )
                 masks.append(mask_from_polygon)
 
-        xyxy = np.array(xyxy)
+        xyxy = np.array(xyxy) if len(xyxy) > 0 else np.empty((0, 4))
 
         if with_masks:
             masks = np.array(masks)
