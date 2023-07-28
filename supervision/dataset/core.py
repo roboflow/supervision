@@ -31,7 +31,6 @@ from supervision.dataset.utils import (
     train_test_split,
 )
 from supervision.detection.core import Detections
-from supervision.utils.file import list_files_with_extensions
 
 
 @dataclass
@@ -208,6 +207,7 @@ class DetectionDataset(BaseDataset):
         Args:
             images_directory_path (str): The path to the directory containing the images.
             annotations_directory_path (str): The path to the directory containing the PASCAL VOC XML annotations.
+            force_masks (bool, optional): If True, forces masks to be loaded for all annotations, regardless of whether they are present.
 
         Returns:
             DetectionDataset: A DetectionDataset instance containing the loaded images and annotations.
