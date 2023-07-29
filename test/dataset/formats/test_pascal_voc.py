@@ -1,19 +1,16 @@
 import xml.etree.ElementTree as ET
 from contextlib import ExitStack as DoesNotRaise
 from test.utils import mock_detections
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 import numpy as np
 import pytest
 
 from supervision.dataset.formats.pascal_voc import (
     detections_from_xml_obj,
-    detections_to_pascal_voc,
-    load_pascal_voc_annotations,
     object_to_pascal_voc,
     parse_polygon_points,
 )
-from supervision.detection.core import Detections
 
 
 def are_xml_elements_equal(elem1, elem2):
