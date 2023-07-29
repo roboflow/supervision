@@ -161,49 +161,60 @@ def load_pascal_voc_annotations(
         tree = parse(annotation_path)
         root = tree.getroot()
 
-        xyxy = []
-        class_names = []
-        masks = []
-        with_masks = False
-        for obj in root.findall("object"):
-            class_name = obj.find("name").text
-            class_names.append(class_name)
-
-            bbox = obj.find("bndbox")
-            x1 = int(bbox.find("xmin").text)
-            y1 = int(bbox.find("ymin").text)
-            x2 = int(bbox.find("xmax").text)
-            y2 = int(bbox.find("ymax").text)
-
-            xyxy.append([x1, y1, x2, y2])
-
-            with_masks = obj.find("polygon") is not None
-            with_masks = force_masks if force_masks else with_masks
-
-            for polygon in obj.findall("polygon"):
-                polygon_points = parse_polygon_points(polygon)
-
-                mask_from_polygon = polygon_to_mask(
-                    polygon=np.array(polygon_points),
-                    resolution_wh=(image.shape[0], image.shape[1]),
-                )
-                masks.append(mask_from_polygon)
-
-        xyxy = np.array(xyxy) if len(xyxy) > 0 else np.empty((0, 4))
-        for k in set(class_names):
-            if k not in classes:
-                classes.append(k)
-        class_id = np.array([classes.index(class_name) for class_name in class_names])
-
-        if with_masks:
-            annotation = Detections(xyxy=xyxy, mask=np.array(masks), class_id=class_id)
-        else:
-            annotation = Detections(xyxy=xyxy, class_id=class_id)
+        resolution_wh = (image.shape[0], image.shape[1])
+        annotation, classes = detections_from_xml_obj(
+            root, classes, resolution_wh, force_masks
+        )
 
         images[image_path.name] = image
         annotations[image_path.name] = annotation
 
     return classes, images, annotations
+
+
+def detections_from_xml_obj(root, classes, resolution_wh, force_masks=False):
+    xyxy = []
+    class_names = []
+    masks = []
+    with_masks = False
+    extended_classes = classes[:]
+    for obj in root.findall("object"):
+        class_name = obj.find("name").text
+        class_names.append(class_name)
+
+        bbox = obj.find("bndbox")
+        x1 = int(bbox.find("xmin").text)
+        y1 = int(bbox.find("ymin").text)
+        x2 = int(bbox.find("xmax").text)
+        y2 = int(bbox.find("ymax").text)
+
+        xyxy.append([x1, y1, x2, y2])
+
+        with_masks = obj.find("polygon") is not None
+        with_masks = force_masks if force_masks else with_masks
+
+        for polygon in obj.findall("polygon"):
+            polygon_points = parse_polygon_points(polygon)
+
+            mask_from_polygon = polygon_to_mask(
+                polygon=np.array(polygon_points),
+                resolution_wh=resolution_wh,
+            )
+            masks.append(mask_from_polygon)
+
+    xyxy = np.array(xyxy) if len(xyxy) > 0 else np.empty((0, 4))
+    for k in set(class_names):
+        if k not in extended_classes:
+            extended_classes.append(k)
+    class_id = np.array(
+        [extended_classes.index(class_name) for class_name in class_names]
+    )
+
+    if with_masks:
+        annotation = Detections(xyxy=xyxy, mask=np.array(masks), class_id=class_id)
+    else:
+        annotation = Detections(xyxy=xyxy, class_id=class_id)
+    return annotation, extended_classes
 
 
 def parse_polygon_points(polygon: Element):

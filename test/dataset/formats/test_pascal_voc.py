@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 from supervision.dataset.formats.pascal_voc import (
+    detections_from_xml_obj,
     detections_to_pascal_voc,
     load_pascal_voc_annotations,
     object_to_pascal_voc,
@@ -89,4 +90,26 @@ def test_parse_polygon_points(
 ):
     with exception:
         result = parse_polygon_points(polygon_element)
+        assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    "xml_string, classes, resolution_wh, force_masks, expected_result, exception",
+    [
+        (
+            """<annotation><filename>test.jpg</filename><size><width>100</width><height>100</height></size><object><name>test</name><bndbox><xmin>0</xmin><ymin>0</ymin><xmax>10</xmax><ymax>10</ymax></bndbox></object></annotation>""",
+            ["test"],
+            (100, 100),
+            False,
+            mock_detections(np.array([[0, 0, 10, 10]]), None, [0]),
+            DoesNotRaise(),
+        )
+    ],
+)
+def test_detections_from_xml_obj(
+    xml_string, classes, resolution_wh, force_masks, expected_result, exception
+):
+    with exception:
+        root = ET.fromstring(xml_string)
+        result, _ = detections_from_xml_obj(root, classes, resolution_wh, force_masks)
         assert result == expected_result
