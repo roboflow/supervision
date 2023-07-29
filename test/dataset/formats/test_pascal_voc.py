@@ -71,7 +71,3 @@ def test_object_to_pascal_voc(
 
 def test_load_pascal_voc_annotations(expected_result, exception: Exception):
     ...
-
-
-def test_detections_to_pascal_voc(expected_result, exception: Exception):
-    ...
