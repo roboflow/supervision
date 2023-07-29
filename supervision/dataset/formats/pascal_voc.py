@@ -181,12 +181,7 @@ def load_pascal_voc_annotations(
             with_masks = force_masks if force_masks else with_masks
 
             for polygon in obj.findall("polygon"):
-                polygon_points = []
-                coords = polygon.findall(".//*")
-                for i in range(0, len(coords), 2):
-                    x = int(coords[i].text)
-                    y = int(coords[i + 1].text)
-                    polygon_points.append([x, y])
+                polygon_points = parse_polygon_points(polygon)
 
                 mask_from_polygon = polygon_to_mask(
                     polygon=np.array(polygon_points),
@@ -209,6 +204,16 @@ def load_pascal_voc_annotations(
         annotations[image_path.name] = annotation
 
     return classes, images, annotations
+
+
+def parse_polygon_points(polygon: Element):
+    polygon_points = []
+    coords = polygon.findall(".//*")
+    for i in range(0, len(coords), 2):
+        x = int(coords[i].text)
+        y = int(coords[i + 1].text)
+        polygon_points.append([x, y])
+    return polygon_points
 
 
 def load_pascal_voc_annotations_v1(

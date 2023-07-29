@@ -10,6 +10,7 @@ from supervision.dataset.formats.pascal_voc import (
     detections_to_pascal_voc,
     load_pascal_voc_annotations,
     object_to_pascal_voc,
+    parse_polygon_points,
 )
 from supervision.detection.core import Detections
 
@@ -69,5 +70,23 @@ def test_object_to_pascal_voc(
         assert are_xml_elements_equal(result, expected_result)
 
 
-def test_load_pascal_voc_annotations(expected_result, exception: Exception):
-    ...
+@pytest.mark.parametrize(
+    "polygon_element, expected_result, exception",
+    [
+        (
+            ET.fromstring(
+                """<polygon><x1>0</x1><y1>0</y1><x2>10</x2><y2>0</y2><x3>10</x3><y3>10</y3><x4>0</x4><y4>10</y4></polygon>"""
+            ),
+            [[0, 0], [10, 0], [10, 10], [0, 10]],
+            DoesNotRaise(),
+        )
+    ],
+)
+def test_parse_polygon_points(
+    polygon_element,
+    expected_result: List[list],
+    exception,
+):
+    with exception:
+        result = parse_polygon_points(polygon_element)
+        assert result == expected_result
