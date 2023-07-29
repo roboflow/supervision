@@ -201,6 +201,8 @@ def detections_from_xml_obj(
         </object>
     </annotation>
 
+    Returns:
+        Tuple[Detections, List[str]]: A tuple containing a Detections object and an updated list of class names, extended with the class names from the XML object.
     """
     xyxy = []
     class_names = []
