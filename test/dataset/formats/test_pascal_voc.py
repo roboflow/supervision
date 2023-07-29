@@ -97,7 +97,7 @@ def test_parse_polygon_points(
     "xml_string, classes, resolution_wh, force_masks, expected_result, exception",
     [
         (
-            """<annotation><filename>test.jpg</filename><size><width>100</width><height>100</height></size><object><name>test</name><bndbox><xmin>0</xmin><ymin>0</ymin><xmax>10</xmax><ymax>10</ymax></bndbox></object></annotation>""",
+            """<annotation><object><name>test</name><bndbox><xmin>0</xmin><ymin>0</ymin><xmax>10</xmax><ymax>10</ymax></bndbox></object></annotation>""",
             ["test"],
             (100, 100),
             False,

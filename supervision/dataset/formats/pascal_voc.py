@@ -172,7 +172,36 @@ def load_pascal_voc_annotations(
     return classes, images, annotations
 
 
-def detections_from_xml_obj(root, classes, resolution_wh, force_masks=False):
+def detections_from_xml_obj(
+    root: Element, classes: List[str], resolution_wh, force_masks: bool = False
+) -> Tuple[Detections, List[str]]:
+    """
+    Converts an XML object in Pascal VOC format to a Detections object.
+    Expected XML format:
+    <annotation>
+        ...
+        <object>
+            <name>dog</name>
+            <bndbox>
+                <xmin>48</xmin>
+                <ymin>240</ymin>
+                <xmax>195</xmax>
+                <ymax>371</ymax>
+            </bndbox>
+            <polygon>
+                <x1>48</x1>
+                <y1>240</y1>
+                <x2>195</x2>
+                <y2>240</y2>
+                <x3>195</x3>
+                <y3>371</y3>
+                <x4>48</x4>
+                <y4>371</y4>
+            </polygon>
+        </object>
+    </annotation>
+
+    """
     xyxy = []
     class_names = []
     masks = []
@@ -217,7 +246,8 @@ def detections_from_xml_obj(root, classes, resolution_wh, force_masks=False):
     return annotation, extended_classes
 
 
-def parse_polygon_points(polygon: Element):
+def parse_polygon_points(polygon: Element) -> List[List[int]]:
+    # Parses polygon points in format: <polygon><x1>...</x1><y1>...</y1><x2>...</x2><y2>...</y2>...</polygon>
     polygon_points = []
     coords = polygon.findall(".//*")
     for i in range(0, len(coords), 2):
