@@ -50,6 +50,9 @@ class BaseDataset(ABC):
     def add_detection(self, filename: Optional[str], image:np.ndarray, detections: Detections) -> None:
         pass
 
+    def set_classes(self, classes: List[str]) -> None:
+        pass
+
 
 @dataclass
 class DetectionDataset(BaseDataset):
@@ -534,6 +537,9 @@ class DetectionDataset(BaseDataset):
             image_name = image_name if image_name else f"{str(uuid.uuid4())}.jpg"
         self.images[image_name] = image.copy()
         self.annotations[image_name] = detections
+
+    def set_classes(self, classes: List[str]) -> None:
+        self.classes = classes
 
 
 @dataclass
