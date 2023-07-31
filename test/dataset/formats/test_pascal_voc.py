@@ -61,10 +61,6 @@ def test_object_to_pascal_voc(
 ):
     with exception:
         result = object_to_pascal_voc(xyxy=xyxy, name=name, polygon=polygon)
-        with open("/tmp/test.xml", "w") as f:
-            f.write(ET.tostring(result).decode())
-        with open("/tmp/exptest.xml", "w") as f:
-            f.write(ET.tostring(expected_result).decode())
         assert are_xml_elements_equal(result, expected_result)
 
 
