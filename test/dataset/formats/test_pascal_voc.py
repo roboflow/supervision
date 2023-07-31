@@ -86,17 +86,56 @@ def test_parse_polygon_points(
         assert result == expected_result
 
 
+ONE_CLASS_N_BBOX = """<annotation><object><name>test</name><bndbox><xmin>0</xmin><ymin>0</ymin><xmax>10</xmax><ymax>10</ymax></bndbox></object><object><name>test</name><bndbox><xmin>10</xmin><ymin>10</ymin><xmax>20</xmax><ymax>20</ymax></bndbox></object></annotation>"""
+
+
+ONE_CLASS_ONE_BBOX = """<annotation><object><name>test</name><bndbox><xmin>0</xmin><ymin>0</ymin><xmax>10</xmax><ymax>10</ymax></bndbox></object></annotation>"""
+
+
+N_CLASS_N_BBOX = """<annotation><object><name>test</name><bndbox><xmin>0</xmin><ymin>0</ymin><xmax>10</xmax><ymax>10</ymax></bndbox></object><object><name>test</name><bndbox><xmin>20</xmin><ymin>30</ymin><xmax>30</xmax><ymax>40</ymax></bndbox></object><object><name>test2</name><bndbox><xmin>10</xmin><ymin>10</ymin><xmax>20</xmax><ymax>20</ymax></bndbox></object></annotation>"""
+
+NO_DETECTIONS = """<annotation></annotation>"""
+
+
 @pytest.mark.parametrize(
     "xml_string, classes, resolution_wh, force_masks, expected_result, exception",
     [
         (
-            """<annotation><object><name>test</name><bndbox><xmin>0</xmin><ymin>0</ymin><xmax>10</xmax><ymax>10</ymax></bndbox></object></annotation>""",
+            ONE_CLASS_ONE_BBOX,
             ["test"],
             (100, 100),
             False,
             mock_detections(np.array([[0, 0, 10, 10]]), None, [0]),
             DoesNotRaise(),
-        )
+        ),
+        (
+            ONE_CLASS_N_BBOX,
+            ["test"],
+            (100, 100),
+            False,
+            mock_detections(np.array([[0, 0, 10, 10], [10, 10, 20, 20]]), None, [0, 0]),
+            DoesNotRaise(),
+        ),
+        (
+            N_CLASS_N_BBOX,
+            ["test", "test2"],
+            (100, 100),
+            False,
+            mock_detections(
+                np.array([[0, 0, 10, 10], [20, 30, 30, 40], [10, 10, 20, 20]]),
+                None,
+                [0, 0, 1],
+            ),
+            DoesNotRaise(),
+        ),
+        (
+            NO_DETECTIONS,
+            [],
+            (100, 100),
+            False,
+            mock_detections(np.empty((0, 4)), None, []),
+            DoesNotRaise(),
+        ),
     ],
 )
 def test_detections_from_xml_obj(
