@@ -242,14 +242,13 @@ def detections_from_xml_obj(
     )
 
     if with_masks:
-        annotation = Detections(xyxy=xyxy, mask=np.array(masks), class_id=class_id)
+        annotation = Detections(xyxy=xyxy, mask=np.array(masks).astype(bool), class_id=class_id)
     else:
         annotation = Detections(xyxy=xyxy, class_id=class_id)
     return annotation, extended_classes
 
 
 def parse_polygon_points(polygon: Element) -> List[List[int]]:
-    # Parses polygon points in format: <polygon><x1>...</x1><y1>...</y1><x2>...</x2><y2>...</y2>...</polygon>
     polygon_points = []
     coords = polygon.findall(".//*")
     for i in range(0, len(coords), 2):
