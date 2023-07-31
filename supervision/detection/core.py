@@ -172,7 +172,7 @@ class Detections:
 
     @classmethod
     @deprecated(
-        "Please use sv.Detections.from_ultralytics() API for future usage. This method is deprecated and removed in future release"
+        "This method is deprecated and removed in 0.15.0 release. Use sv.Detections.from_ultralytics() instead."
     )
     def from_yolov8(cls, yolov8_results) -> Detections:
         """
