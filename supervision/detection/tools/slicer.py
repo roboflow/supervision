@@ -82,6 +82,14 @@ class Slicer:
         return detection
 
     def _slice_generation(self, image_width, image_height) -> List:
+        """
+        Args:
+            image_width (int): width of the input image
+            image_height (int): height of the input image
+
+        Returns:
+            list of slice locations according to slicer parameters
+        """
         width_stride = self.siced_width - int(self.overlap_width_ratio * self.siced_width)
         height_stride = self.sliced_height - int(self.overlap_height_ratio * self.sliced_height)
         slice_locations = []
@@ -96,6 +104,13 @@ class Slicer:
 
     @staticmethod
     def _reposition_detections(detection: Detections, slice_location: Tuple[int, int, int, int]) -> Detections:
+        """
+        Args:
+            detection (np.ndarray): result of model inference of the slice
+            slice_location (Tuple[int, int, int, int]): slice location at which inference was performed
+        Returns:
+            (sv.Detections) repositioned detections result based on original image
+        """
         if len(detection) == 0:
             return detection
         xyxy = Slicer._reposition_boxes(boxes=detection.xyxy, slice_location=slice_location)
@@ -104,8 +119,28 @@ class Slicer:
 
     @staticmethod
     def _reposition_boxes(boxes: np.ndarray, slice_location: Tuple[int, int, int, int]) -> np.ndarray:
+        """
+        Args:
+            boxes (np.ndarray): boxes of model inference of the slice
+            slice_location (Tuple[int, int, int, int]): slice location at which inference was performed
+
+        Returns:
+            (np.ndarray) repositioned bounding boxes
+        """
         boxes[:, 0] = boxes[:, 0] + slice_location[0]
         boxes[:, 1] = boxes[:, 1] + slice_location[1]
         boxes[:, 2] = boxes[:, 2] + slice_location[0]
         boxes[:, 3] = boxes[:, 3] + slice_location[1]
         return boxes
+
+    @staticmethod
+    def _reposition_mask(mask: np.ndarray, slice_location: Tuple[int, int, int, int]) -> np.ndarray:
+        """
+        Args:
+            boxes (np.ndarray): masks of model inference of the slice
+            slice_location (Tuple[int, int, int, int]): slice location at which inference was performed
+
+        Returns:
+            (np.ndarray) repositioned bounding boxes
+        """
+        return mask
