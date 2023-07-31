@@ -161,7 +161,7 @@ def load_pascal_voc_annotations(
         tree = parse(annotation_path)
         root = tree.getroot()
 
-        resolution_wh = (image.shape[0], image.shape[1])
+        resolution_wh = (image.shape[1], image.shape[0])
         annotation, classes = detections_from_xml_obj(
             root, classes, resolution_wh, force_masks
         )
