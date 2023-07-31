@@ -17,8 +17,9 @@ def polygon_to_mask(polygon: np.ndarray, resolution_wh: Tuple[int, int]) -> np.n
         np.ndarray: The generated 2D mask, where the polygon is marked with `1`'s and the rest is filled with `0`'s.
     """
     width, height = resolution_wh
-    mask = np.zeros((height, width), dtype=np.uint8)
+    mask = np.zeros((height, width))
     cv2.fillPoly(mask, [polygon], color=1)
+    mask = mask.astype(bool)
     return mask
 
 
