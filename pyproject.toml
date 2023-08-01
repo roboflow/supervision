@@ -41,7 +41,7 @@ pyyaml = "^6.0"
 pillow = "^9.4.0"
 opencv-python = { version = "^4.8.0.74", optional = true }
 opencv-python-headless = "^4.8.0.74"
-scipy = ">=1.11.1"
+scipy = ">=1.8.0"
 
 
 [tool.poetry.extras]
