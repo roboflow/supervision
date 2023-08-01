@@ -42,7 +42,7 @@ class Slicer:
         self.callback = callback
         _validate_callback(callback=callback)
 
-    def __call__(self, image: np.ndarray) -> Detections:
+    def infer(self, image: np.ndarray) -> Detections:
         """
 
         Args:
@@ -67,7 +67,7 @@ class Slicer:
             ...     callback = callback
             ... )
 
-            >>> detections = slicer(image)
+            >>> detections = slicer.infer(image)
             ```
         """
         detections = []
