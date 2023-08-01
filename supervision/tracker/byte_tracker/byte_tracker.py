@@ -266,7 +266,6 @@ class ByteTrack:
                 match_thresh=0.8,
                 aspect_ratio_thresh=3.0,
                 min_box_area=1.0,
-                mot20=False,
                 frame_rate=30,
             )
             annotator = BoxAnnotator()
