@@ -31,6 +31,11 @@ from supervision.draw.utils import draw_filled_rectangle, draw_polygon, draw_tex
 from supervision.geometry.core import Point, Position, Rect
 from supervision.geometry.utils import get_polygon_center
 from supervision.metrics.detection import ConfusionMatrix
+from supervision.tracker.byte_tracker.byte_tracker import (
+    ByteTrack,
+    detections2boxes,
+    match_detections_with_tracks,
+)
 from supervision.utils.file import list_files_with_extensions
 from supervision.utils.image import ImageSink, crop
 from supervision.utils.notebook import plot_image, plot_images_grid
@@ -39,9 +44,4 @@ from supervision.utils.video import (
     VideoSink,
     get_video_frames_generator,
     process_video,
-)
-from supervision.tracker.byte_tracker.byte_tracker import (
-    ByteTrack,
-    detections2boxes,
-    match_detections_with_tracks,
 )
