@@ -40,3 +40,8 @@ from supervision.utils.video import (
     get_video_frames_generator,
     process_video,
 )
+from supervision.tracker.byte_tracker.byte_tracker import (
+    ByteTrack,
+    detections2boxes,
+    match_detections_with_tracks,
+)
