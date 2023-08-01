@@ -229,10 +229,10 @@ def detections_from_xml_obj(
         with_masks = force_masks if force_masks else with_masks
 
         for polygon in obj.findall("polygon"):
-            polygon_points = parse_polygon_points(polygon)
+            polygon_points = np.array(parse_polygon_points(polygon))
 
             mask_from_polygon = polygon_to_mask(
-                polygon=np.array(polygon_points),
+                polygon=polygon_points - 1,
                 resolution_wh=resolution_wh,
             )
             masks.append(mask_from_polygon)
