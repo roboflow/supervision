@@ -1,10 +1,11 @@
 from typing import Optional, Tuple, Callable, List
 
 import numpy as np
+
 from supervision.detection.core import Detections
 
 
-def _validate_callback(callback):
+def _validate_callback(callback) -> None:
     tmp_img = np.zeros((256, 256, 3), dtype=np.uint8)
     res = callback(tmp_img)
     if not isinstance(res, Detections):
