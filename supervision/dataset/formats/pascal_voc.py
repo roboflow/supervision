@@ -224,7 +224,7 @@ def detections_from_xml_obj(
         y2 = int(bbox.find("ymax").text)
 
         xyxy.append([x1, y1, x2, y2])
-        
+
         with_masks = obj.find("polygon") is not None
         with_masks = force_masks if force_masks else with_masks
 
@@ -237,12 +237,12 @@ def detections_from_xml_obj(
             )
             masks.append(mask_from_polygon)
 
-    xyxy = np.array(xyxy) if len(xyxy) > 0 else np.empty((0, 4))]
-    
+    xyxy = np.array(xyxy) if len(xyxy) > 0 else np.empty((0, 4))
+
     # Correction functions for VOC XML format as bounding boxes in VOC XML start at (1,1) not (0,0). Refer:
     # https://github.com/roboflow/supervision/issues/144
     xyxy = np.array(xyxy) - 1
-    
+
     for k in set(class_names):
         if k not in extended_classes:
             extended_classes.append(k)
@@ -257,7 +257,6 @@ def detections_from_xml_obj(
     else:
         annotation = Detections(xyxy=xyxy, class_id=class_id)
     return annotation, extended_classes
-
 
 
 def parse_polygon_points(polygon: Element) -> List[List[int]]:
