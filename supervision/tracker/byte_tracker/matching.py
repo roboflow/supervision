@@ -1,7 +1,7 @@
 import numpy as np
 import scipy
-from scipy.spatial.distance import cdist
 from scipy.optimize import linear_sum_assignment
+from scipy.spatial.distance import cdist
 
 from supervision.tracker.byte_tracker import kalman_filter
 
@@ -42,7 +42,11 @@ def linear_assignment(cost_matrix, thresh):
     :return: matches, unmatched_a, unmatched_b
     """
     if cost_matrix.size == 0:
-        return np.empty((0, 2), dtype=int), tuple(range(cost_matrix.shape[0])), tuple(range(cost_matrix.shape[1]))
+        return (
+            np.empty((0, 2), dtype=int),
+            tuple(range(cost_matrix.shape[0])),
+            tuple(range(cost_matrix.shape[1])),
+        )
 
     cost_matrix[cost_matrix > thresh] = thresh + 1e-4
     row_ind, col_ind = linear_sum_assignment(cost_matrix)

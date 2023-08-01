@@ -397,7 +397,7 @@ class ByteTrack:
         # Predict the current location with KF
         Strack.multi_predict(strack_pool)
         dists = matching.iou_distance(strack_pool, detections)
-        
+
         dists = matching.fuse_score(dists, detections)
         matches, u_track, u_detection = matching.linear_assignment(
             dists, thresh=self.match_thresh
@@ -451,7 +451,7 @@ class ByteTrack:
         """Deal with unconfirmed tracks, usually tracks with only one beginning frame"""
         detections = [detections[i] for i in u_detection]
         dists = matching.iou_distance(unconfirmed, detections)
-        
+
         dists = matching.fuse_score(dists, detections)
         matches, u_unconfirmed, u_detection = matching.linear_assignment(
             dists, thresh=0.7
