@@ -24,8 +24,8 @@ class Slicer:
         """
         Args:
             callback (Callable): model callback method which returns detections as sv.Detections
-            sliced_width (int): width of the each slice
-            sliced_height (int): height of the each slice
+            sliced_width (int): width of each slice
+            sliced_height (int): height of each slice
             overlap_width_ratio (float): Fractional overlap in width of each
                                         slice (e.g. an overlap of 0.2 for a slice of size 100 yields an
                                         overlap of 20 pixels). Default 0.2.
@@ -40,6 +40,7 @@ class Slicer:
         self.overlap_height_ratio = overlap_height_ratio
         self.iou_threshold = iou_threshold
         self.callback = callback
+        _validate_callback(callback=callback)
 
     def __call__(self, image: np.ndarray) -> Detections:
         """
@@ -132,15 +133,3 @@ class Slicer:
         boxes[:, 2] = boxes[:, 2] + slice_location[0]
         boxes[:, 3] = boxes[:, 3] + slice_location[1]
         return boxes
-
-    @staticmethod
-    def _reposition_mask(mask: np.ndarray, slice_location: Tuple[int, int, int, int]) -> np.ndarray:
-        """
-        Args:
-            boxes (np.ndarray): masks of model inference of the slice
-            slice_location (Tuple[int, int, int, int]): slice location at which inference was performed
-
-        Returns:
-            (np.ndarray) repositioned bounding boxes
-        """
-        return mask
