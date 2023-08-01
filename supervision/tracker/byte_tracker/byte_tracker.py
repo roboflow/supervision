@@ -201,7 +201,6 @@ class ByteTrack:
         match_thresh=0.8,
         aspect_ratio_thresh=3.0,
         min_box_area=1.0,
-        mot20=False,
         frame_rate=30,
     ):
 
@@ -224,7 +223,6 @@ class ByteTrack:
         self.match_thresh = match_thresh
         self.aspect_ratio_thresh = aspect_ratio_thresh
         self.min_box_area = min_box_area
-        self.mot20 = mot20
 
         self.tracked_stracks = []  # type: list[Strack]
         self.lost_stracks = []  # type: list[Strack]
@@ -308,7 +306,6 @@ class ByteTrack:
                     sink.write_frame(frame)
             ```
         """
-
         # update tracker
         tracks = self.update_from_numpy(
             output_results=detections2boxes(detections=detections),
@@ -400,8 +397,8 @@ class ByteTrack:
         # Predict the current location with KF
         Strack.multi_predict(strack_pool)
         dists = matching.iou_distance(strack_pool, detections)
-        if not self.mot20:
-            dists = matching.fuse_score(dists, detections)
+        
+        dists = matching.fuse_score(dists, detections)
         matches, u_track, u_detection = matching.linear_assignment(
             dists, thresh=self.match_thresh
         )
@@ -454,8 +451,8 @@ class ByteTrack:
         """Deal with unconfirmed tracks, usually tracks with only one beginning frame"""
         detections = [detections[i] for i in u_detection]
         dists = matching.iou_distance(unconfirmed, detections)
-        if not self.mot20:
-            dists = matching.fuse_score(dists, detections)
+        
+        dists = matching.fuse_score(dists, detections)
         matches, u_unconfirmed, u_detection = matching.linear_assignment(
             dists, thresh=0.7
         )
