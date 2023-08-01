@@ -53,6 +53,13 @@ def _validate_tracker_id(tracker_id: Any, n: int) -> None:
         raise ValueError("tracker_id must be None or 1d np.ndarray with (n,) shape")
 
 
+def validate_inference_callback(callback) -> None:
+    tmp_img = np.zeros((256, 256, 3), dtype=np.uint8)
+    res = callback(tmp_img)
+    if not isinstance(res, Detections):
+        raise ValueError("Callback function must return sv.Detection type")
+
+
 @dataclass
 class Detections:
     """

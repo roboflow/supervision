@@ -1,15 +1,9 @@
-from typing import Optional, Tuple, Callable, List
+from typing import Optional, Tuple, Callable
 
 import numpy as np
 
-from supervision.detection.core import Detections
-
-
-def _validate_callback(callback) -> None:
-    tmp_img = np.zeros((256, 256, 3), dtype=np.uint8)
-    res = callback(tmp_img)
-    if not isinstance(res, Detections):
-        raise ValueError("Callback function must return sv.Detection type")
+from supervision.detection.core import Detections, validate_inference_callback
+from supervision.detection.utils import move_boxes
 
 
 class Slicer:
@@ -41,9 +35,9 @@ class Slicer:
         self.overlap_height_ratio = overlap_height_ratio
         self.iou_threshold = iou_threshold
         self.callback = callback
-        _validate_callback(callback=callback)
+        validate_inference_callback(callback=callback)
 
-    def infer(self, image: np.ndarray) -> Detections:
+    def __call__(self, image: np.ndarray) -> Detections:
         """
 
         Args:
@@ -68,22 +62,22 @@ class Slicer:
             ...     callback = callback
             ... )
 
-            >>> detections = slicer.infer(image)
+            >>> detections = slicer(image)
             ```
         """
         detections = []
         image_height, image_width, _ = image.shape
-        slice_locations = self._slice_generation(image_width=image_width, image_height=image_height)
+        offsets = self._offset_generation(image_width=image_width, image_height=image_height)
 
-        for slice_location in slice_locations:
-            slice = image[slice_location[1]:slice_location[3], slice_location[0]:slice_location[2]]
+        for offset in offsets:
+            slice = image[offset[1]:offset[3], offset[0]:offset[2]]
             det = self.callback(slice)
-            det = self._reposition_detections(detection=det, slice_location=slice_location)
+            det = self._reposition_detections(detection=det, offset=offset)
             detections.append(det)
         detection = Detections.merge(detections_list=detections).with_nms(threshold=self.iou_threshold)
         return detection
 
-    def _slice_generation(self, image_width, image_height) -> List:
+    def _offset_generation(self, image_width: int, image_height: int) -> np.ndarray:
         """
         Args:
             image_width (int): width of the input image
@@ -94,18 +88,19 @@ class Slicer:
         """
         width_stride = self.siced_width - int(self.overlap_width_ratio * self.siced_width)
         height_stride = self.sliced_height - int(self.overlap_height_ratio * self.sliced_height)
-        slice_locations = []
+        offsets = []
         for h in range(0, image_height, height_stride):
             for w in range(0, image_width, width_stride):
                 xmin = w
                 ymin = h
                 xmax = min(image_width, w + self.siced_width)
                 ymax = min(image_height, h + self.sliced_height)
-                slice_locations.append([xmin, ymin, xmax, ymax])
-        return slice_locations
+                offsets.append([xmin, ymin, xmax, ymax])
+        offsets = np.asarray(offsets)
+        return offsets
 
     @staticmethod
-    def _reposition_detections(detection: Detections, slice_location: Tuple[int, int, int, int]) -> Detections:
+    def _reposition_detections(detection: Detections, offset: np.array) -> Detections:
         """
         Args:
             detection (np.ndarray): result of model inference of the slice
@@ -115,22 +110,6 @@ class Slicer:
         """
         if len(detection) == 0:
             return detection
-        xyxy = Slicer._reposition_boxes(boxes=detection.xyxy, slice_location=slice_location)
+        xyxy = move_boxes(boxes=detection.xyxy, offset=offset)
         detection.xyxy = xyxy
         return detection
-
-    @staticmethod
-    def _reposition_boxes(boxes: np.ndarray, slice_location: Tuple[int, int, int, int]) -> np.ndarray:
-        """
-        Args:
-            boxes (np.ndarray): boxes of model inference of the slice
-            slice_location (Tuple[int, int, int, int]): slice location at which inference was performed
-
-        Returns:
-            (np.ndarray) repositioned bounding boxes
-        """
-        boxes[:, 0] = boxes[:, 0] + slice_location[0]
-        boxes[:, 1] = boxes[:, 1] + slice_location[1]
-        boxes[:, 2] = boxes[:, 2] + slice_location[0]
-        boxes[:, 3] = boxes[:, 3] + slice_location[1]
-        return boxes
