@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 
 import numpy as np
 
@@ -12,7 +12,7 @@ from supervision.tracker.byte_tracker.kalman_filter import KalmanFilter
 class Strack(BaseTrack):
     shared_kalman = KalmanFilter()
 
-    def __init__(self, tlwh, score):
+    def __init__(self, tlwh, score, class_ids):
 
         # wait activate
         self._tlwh = np.asarray(tlwh, dtype=np.float32)
@@ -21,6 +21,7 @@ class Strack(BaseTrack):
         self.is_activated = False
 
         self.score = score
+        self.class_ids = class_ids
         self.tracklet_len = 0
 
     def predict(self):
@@ -155,7 +156,7 @@ def detections2boxes(detections: Detections) -> np.ndarray:
     Returns:
         np.ndarray: An array containing the bounding boxes' coordinates (xyxy) and their corresponding confidences.
     """
-    return np.hstack((detections.xyxy, detections.confidence[:, np.newaxis]))
+    return np.hstack((detections.xyxy, detections.confidence[:, np.newaxis], detections.class_id[:, np.newaxis]))
 
 
 # converts List[strack] into format that can be consumed by match_detections_with_tracks function
@@ -234,7 +235,7 @@ class ByteTrack:
         self.max_time_lost = self.buffer_size
         self.kalman_filter = KalmanFilter()
 
-    def update_from_detections(self, detections, img_info, img_size):
+    def update_from_detections(self, detections, img_info, img_size) -> Detections:
         """
         Updates the strack with the provided results and frame info.
 
@@ -266,6 +267,7 @@ class ByteTrack:
                 match_thresh=0.8,
                 aspect_ratio_thresh=3.0,
                 min_box_area=1.0,
+                mot20=False,
                 frame_rate=30,
             )
             annotator = BoxAnnotator()
@@ -305,18 +307,22 @@ class ByteTrack:
                     sink.write_frame(frame)
             ```
         """
-        # update tracker
+
         tracks = self.update_from_numpy(
             output_results=detections2boxes(detections=detections),
             img_info=img_info,
             img_size=img_size,
         )
-        tracker_id = match_detections_with_tracks(detections=detections, tracks=tracks)
-        if tracker_id != None:
-            detections.tracker_id = np.array(tracker_id)
+        detections = Detections.empty()
+        if len(tracks) > 0:
+            detections.xyxy = np.array([track.tlbr for track in tracks], dtype=float)
+            detections.class_id = [int(t.class_ids) for t in tracks]
+            detections.tracker_id = [int(t.track_id) for t in tracks]
+            detections.confidence = [t.score for t in tracks]
+
         return detections
 
-    def update_from_numpy(self, output_results, img_info, img_size):
+    def update_from_numpy(self, output_results, img_info, img_size) -> List[Strack]:
         """
         Update a matched strack. It uses the numpy results.
 
@@ -355,7 +361,12 @@ class ByteTrack:
         if output_results.shape[1] == 5:
             scores = output_results[:, 4]
             bboxes = output_results[:, :4]
+        elif isinstance(output_results, np.ndarray) and output_results.shape[1] == 6:
+            class_ids = output_results[:, 5]
+            scores = output_results[:, 4]
+            bboxes = output_results[:, :4]
         else:
+            # Todo: Handle class id from torch tensor
             output_results = output_results.cpu().numpy()
             scores = output_results[:, 4] * output_results[:, 5]
             bboxes = output_results[:, :4]  # x1y1x2y2
@@ -373,11 +384,14 @@ class ByteTrack:
         scores_keep = scores[remain_inds]
         scores_second = scores[inds_second]
 
+        class_ids_keep = class_ids[remain_inds]
+        class_ids_second = class_ids[inds_second]
+
         if len(dets) > 0:
             """Detections"""
             detections = [
-                Strack(Strack.tlbr_to_tlwh(tlbr), s)
-                for (tlbr, s) in zip(dets, scores_keep)
+                Strack(Strack.tlbr_to_tlwh(tlbr), s, c)
+                for (tlbr, s, c) in zip(dets, scores_keep, class_ids_keep)
             ]
         else:
             detections = []
@@ -417,8 +431,8 @@ class ByteTrack:
         if len(dets_second) > 0:
             """Detections"""
             detections_second = [
-                Strack(Strack.tlbr_to_tlwh(tlbr), s)
-                for (tlbr, s) in zip(dets_second, scores_second)
+                Strack(Strack.tlbr_to_tlwh(tlbr), s, c)
+                for (tlbr, s, c) in zip(dets_second, scores_second, class_ids_second)
             ]
         else:
             detections_second = []
@@ -476,8 +490,6 @@ class ByteTrack:
                 track.mark_removed()
                 removed_stracks.append(track)
 
-        # print('Ramained match {} s'.format(t4-t3))
-
         self.tracked_stracks = [
             t for t in self.tracked_stracks if t.state == TrackState.Tracked
         ]
@@ -490,13 +502,12 @@ class ByteTrack:
         self.tracked_stracks, self.lost_stracks = remove_duplicate_stracks(
             self.tracked_stracks, self.lost_stracks
         )
-        # get scores of lost tracks
         output_stracks = [track for track in self.tracked_stracks if track.is_activated]
 
         return output_stracks
 
 
-def joint_stracks(tlista, tlistb):
+def joint_stracks(tlista, tlistb) -> List[Strack]:
     exists = {}
     res = []
     for t in tlista:
@@ -510,7 +521,7 @@ def joint_stracks(tlista, tlistb):
     return res
 
 
-def sub_stracks(tlista, tlistb):
+def sub_stracks(tlista, tlistb) -> List[int]:
     stracks = {}
     for t in tlista:
         stracks[t.track_id] = t
@@ -521,7 +532,7 @@ def sub_stracks(tlista, tlistb):
     return list(stracks.values())
 
 
-def remove_duplicate_stracks(stracksa, stracksb):
+def remove_duplicate_stracks(stracksa, stracksb) -> Tuple[List, List]:
     pdist = matching.iou_distance(stracksa, stracksb)
     pairs = np.where(pdist < 0.15)
     dupa, dupb = list(), list()
