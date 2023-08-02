@@ -7,8 +7,8 @@ import numpy as np
 import pytest
 
 from supervision.dataset.formats.pascal_voc import (
+    XMLBuilder,
     detections_from_xml_obj,
-    object_to_pascal_voc,
     parse_polygon_points,
 )
 
@@ -29,38 +29,56 @@ def are_xml_elements_equal(elem1, elem2):
     return True
 
 
+XML_BUILDER = XMLBuilder(
+    "test",
+)
+
+
 @pytest.mark.parametrize(
-    "xyxy, name, polygon, expected_result, exception",
+    "xml_builder, xyxy, expected_result, exception",
     [
         (
+            XML_BUILDER,
             [0, 0, 10, 10],
-            "test",
-            None,
             ET.fromstring(
-                """<object><name>test</name><bndbox><xmin>0</xmin><ymin>0</ymin><xmax>10</xmax><ymax>10</ymax></bndbox></object>"""
+                """<bndbox><xmin>0</xmin><ymin>0</ymin><xmax>10</xmax><ymax>10</ymax></bndbox>"""
             ),
             DoesNotRaise(),
-        ),
-        (
-            [0, 0, 10, 10],
-            "test",
-            [[0, 0], [10, 0], [10, 10], [0, 10]],
-            ET.fromstring(
-                """<object><name>test</name><bndbox><xmin>0</xmin><ymin>0</ymin><xmax>10</xmax><ymax>10</ymax></bndbox><polygon><x1>0</x1><y1>0</y1><x2>10</x2><y2>0</y2><x3>10</x3><y3>10</y3><x4>0</x4><y4>10</y4></polygon></object>"""
-            ),
-            DoesNotRaise(),
-        ),
+        )
     ],
 )
-def test_object_to_pascal_voc(
+def test_add_obj_det(
+    xml_builder: XMLBuilder,
     xyxy: np.ndarray,
-    name: str,
-    polygon: Optional[np.ndarray],
     expected_result,
     exception: Exception,
 ):
     with exception:
-        result = object_to_pascal_voc(xyxy=xyxy, name=name, polygon=polygon)
+        result = xml_builder.add_obj_det(xml_builder.annotation, xyxy)
+        assert are_xml_elements_equal(result, expected_result)
+
+
+@pytest.mark.parametrize(
+    "xml_builder, polygon, expected_result, exception",
+    [
+        (
+            XML_BUILDER,
+            [[0, 0], [10, 0], [10, 10], [0, 10]],
+            ET.fromstring(
+                """<polygon><x1>0</x1><y1>0</y1><x2>10</x2><y2>0</y2><x3>10</x3><y3>10</y3><x4>0</x4><y4>10</y4></polygon>"""
+            ),
+            DoesNotRaise(),
+        )
+    ],
+)
+def test_add_img_segm(
+    xml_builder: XMLBuilder,
+    polygon: np.ndarray,
+    expected_result,
+    exception: Exception,
+):
+    with exception:
+        result = xml_builder.add_img_segm(xml_builder.annotation, polygon)
         assert are_xml_elements_equal(result, expected_result)
 
 
