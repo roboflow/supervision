@@ -58,16 +58,6 @@ class XMLBuilder:
         d.text = str(depth)
         return size
 
-    def add_size(self, width: int, height: int, depth: int) -> Element:
-        size = SubElement(self.annotation, "size")
-        w = SubElement(size, "width")
-        w.text = str(width)
-        h = SubElement(size, "height")
-        h.text = str(height)
-        d = SubElement(size, "depth")
-        d.text = str(depth)
-        return size
-
     def add_segmented(self, segmented_name: int = 0) -> Element:
         segmented = SubElement(self.annotation, "segmented")
         segmented.text = str(segmented_name)
@@ -93,7 +83,7 @@ class XMLBuilder:
         ymax = SubElement(bndbox, "ymax")
         ymax.text = str(int(xyxy[3]))
 
-        return root
+        return bndbox
 
     def add_img_segm(
         self,
@@ -108,7 +98,7 @@ class XMLBuilder:
             y = SubElement(object_polygon, f"y{index}")
             y.text = str(y_coordinate)
 
-        return root
+        return object_polygon
 
 
 def detections_to_pascal_voc(
@@ -138,7 +128,7 @@ def detections_to_pascal_voc(
 
     xml_builder = XMLBuilder(filename)
 
-    xml_builder.add_size(width, height, depth)
+    xml_builder.add_size_spec(width, height, depth)
 
     xyxy_and_mask_available = (
         detections.xyxy is not None and detections.mask is not None
