@@ -5,6 +5,7 @@ description = "A set of easy-to-use utils that will come in handy in any Compute
 authors = ["Piotr Skalski <piotr.skalski92@gmail.com>"]
 maintainers = ["Piotr Skalski <piotr.skalski92@gmail.com>"]
 readme = "README.md"
+license = "MIT"
 packages = [{include = "supervision"}]
 homepage = "https://github.com/roboflow/supervision"
 repository = "https://github.com/roboflow/supervision"
@@ -14,7 +15,7 @@ keywords = ["machine-learning", "deep-learning", "vision", "ML", "DL", "AI", "YO
 classifiers=[
     'Intended Audience :: Developers',
     'Intended Audience :: Science/Research',
-    'License :: OSI Approved :: BSD License',
+    'License :: OSI Approved :: MIT License',
     'Programming Language :: Python :: 3',
     'Programming Language :: Python :: 3.8',
     'Programming Language :: Python :: 3.9',
@@ -37,7 +38,7 @@ python = ">=3.8,<3.12.0"
 numpy = "^1.20.0"
 matplotlib = "^3.7.1"
 pyyaml = "^6.0"
-pillow = "^8.4.0"
+pillow = "^9.4.0"
 opencv-python = { version = "^4.8.0.74", optional = true }
 opencv-python-headless = "^4.8.0.74"
 

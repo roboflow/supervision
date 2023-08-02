@@ -19,7 +19,7 @@ def polygon_to_mask(polygon: np.ndarray, resolution_wh: Tuple[int, int]) -> np.n
             `1`'s and the rest is filled with `0`'s.
     """
     width, height = resolution_wh
-    mask = np.zeros((height, width), dtype=np.uint8)
+    mask = np.zeros((height, width))
     cv2.fillPoly(mask, [polygon], color=1)
     return mask
 
@@ -293,7 +293,7 @@ def approximate_polygon(
     return np.squeeze(approximated_points, axis=1)
 
 
-def extract_yolov8_masks(yolov8_results) -> Optional[np.ndarray]:
+def extract_ultralytics_masks(yolov8_results) -> Optional[np.ndarray]:
     if not yolov8_results.masks:
         return None
 
@@ -321,7 +321,10 @@ def extract_yolov8_masks(yolov8_results) -> Optional[np.ndarray]:
     for i in range(masks.shape[0]):
         mask = masks[i]
         mask = mask[top:bottom, left:right]
-        mask = cv2.resize(mask, (orig_shape[1], orig_shape[0]))
+
+        if mask.shape != orig_shape:
+            mask = cv2.resize(mask, (orig_shape[1], orig_shape[0]))
+
         mask_maps.append(mask)
 
     return np.asarray(mask_maps, dtype=bool)

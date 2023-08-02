@@ -31,7 +31,6 @@ from supervision.dataset.utils import (
     train_test_split,
 )
 from supervision.detection.core import Detections
-from supervision.utils.file import list_files_with_extensions
 
 
 @dataclass
@@ -212,16 +211,20 @@ class DetectionDataset(BaseDataset):
 
     @classmethod
     def from_pascal_voc(
-        cls, images_directory_path: str, annotations_directory_path: str
+        cls,
+        images_directory_path: str,
+        annotations_directory_path: str,
+        force_masks: bool = False,
     ) -> DetectionDataset:
         """
         Creates a Dataset instance from PASCAL VOC formatted data.
 
         Args:
-            images_directory_path (str): The path to the
-                directory containing the images.
-            annotations_directory_path (str): The path to the directory
+            images_directory_path (str): Path to the directory containing the images.
+            annotations_directory_path (str): Path to the directory
                 containing the PASCAL VOC XML annotations.
+            force_masks (bool, optional): If True, forces masks to
+                be loaded for all annotations, regardless of whether they are present.
 
         Returns:
             DetectionDataset: A DetectionDataset instance containing
@@ -240,7 +243,7 @@ class DetectionDataset(BaseDataset):
             >>> project = rf.workspace(WORKSPACE_ID).project(PROJECT_ID)
             >>> dataset = project.version(PROJECT_VERSION).download("voc")
 
-            >>> ds = sv.DetectionDataset.from_yolo(
+            >>> ds = sv.DetectionDataset.from_pascal_voc(
             ...     images_directory_path=f"{dataset.location}/train/images",
             ...     annotations_directory_path=f"{dataset.location}/train/labels"
             ... )
@@ -249,34 +252,13 @@ class DetectionDataset(BaseDataset):
             ['dog', 'person']
             ```
         """
-        image_paths = list_files_with_extensions(
-            directory=images_directory_path, extensions=["jpg", "jpeg", "png"]
+
+        classes, images, annotations = load_pascal_voc_annotations(
+            images_directory_path=images_directory_path,
+            annotations_directory_path=annotations_directory_path,
+            force_masks=force_masks,
         )
-        annotation_paths = list_files_with_extensions(
-            directory=annotations_directory_path, extensions=["xml"]
-        )
 
-        raw_annotations: List[Tuple[str, Detections, List[str]]] = [
-            load_pascal_voc_annotations(annotation_path=str(annotation_path))
-            for annotation_path in annotation_paths
-        ]
-
-        classes = []
-        for annotation in raw_annotations:
-            classes.extend(annotation[2])
-        classes = list(set(classes))
-
-        for annotation in raw_annotations:
-            class_id = [classes.index(class_name) for class_name in annotation[2]]
-            annotation[1].class_id = np.array(class_id)
-
-        images = {
-            image_path.name: cv2.imread(str(image_path)) for image_path in image_paths
-        }
-
-        annotations = {
-            image_name: detections for image_name, detections, _ in raw_annotations
-        }
         return DetectionDataset(classes=classes, images=images, annotations=annotations)
 
     @classmethod
