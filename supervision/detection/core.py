@@ -27,7 +27,7 @@ def _validate_mask(mask: Any, n: int) -> None:
         isinstance(mask, np.ndarray) and len(mask.shape) == 3 and mask.shape[0] == n
     )
     if not is_valid:
-        raise ValueError("mask must be 3d np.ndarray with (n, W, H) shape")
+        raise ValueError("mask must be 3d np.ndarray with (n, H, W) shape")
 
 
 def _validate_class_id(class_id: Any, n: int) -> None:
@@ -60,7 +60,7 @@ class Detections:
     Data class containing information about the detections in a video frame.
     Attributes:
         xyxy (np.ndarray): An array of shape `(n, 4)` containing the bounding boxes coordinates in format `[x1, y1, x2, y2]`
-        mask: (Optional[np.ndarray]): An array of shape `(n, W, H)` containing the segmentation masks.
+        mask: (Optional[np.ndarray]): An array of shape `(n, H, W)` containing the segmentation masks.
         confidence (Optional[np.ndarray]): An array of shape `(n,)` containing the confidence scores of the detections.
         class_id (Optional[np.ndarray]): An array of shape `(n,)` containing the class ids of the detections.
         tracker_id (Optional[np.ndarray]): An array of shape `(n,)` containing the tracker ids of the detections.
