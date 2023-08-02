@@ -1,12 +1,12 @@
-from typing import Tuple, List, Optional
+from typing import List, Optional, Tuple
 
 import numpy as np
 import scipy
 from scipy.optimize import linear_sum_assignment
 from scipy.spatial.distance import cdist
 
-from supervision.tracker.byte_tracker import kalman_filter
 from supervision.detection.utils import box_iou_batch
+from supervision.tracker.byte_tracker import kalman_filter
 
 
 def merge_matches(m1, m2, shape) -> Tuple[List, tuple, tuple]:
@@ -26,7 +26,9 @@ def merge_matches(m1, m2, shape) -> Tuple[List, tuple, tuple]:
     return match, unmatched_O, unmatched_Q
 
 
-def _indices_to_matches(cost_matrix: np.ndarray, indices: np.ndarray, thresh: float) -> Tuple[np.ndarray, tuple, tuple]:
+def _indices_to_matches(
+    cost_matrix: np.ndarray, indices: np.ndarray, thresh: float
+) -> Tuple[np.ndarray, tuple, tuple]:
     matched_cost = cost_matrix[tuple(zip(*indices))]
     matched_mask = matched_cost <= thresh
 
@@ -36,7 +38,9 @@ def _indices_to_matches(cost_matrix: np.ndarray, indices: np.ndarray, thresh: fl
     return matches, unmatched_a, unmatched_b
 
 
-def linear_assignment(cost_matrix: np.ndarray, thresh: float) -> [np.ndarray, Tuple[int], Tuple[int, int]]:
+def linear_assignment(
+    cost_matrix: np.ndarray, thresh: float
+) -> [np.ndarray, Tuple[int], Tuple[int, int]]:
     """
     Simple linear assignment
     :type cost_matrix: np.ndarray
@@ -100,7 +104,7 @@ def v_iou_distance(atracks: List, btracks: List) -> np.ndarray:
     else:
         atlbrs = [track.tlwh_to_tlbr(track.pred_bbox) for track in atracks]
         btlbrs = [track.tlwh_to_tlbr(track.pred_bbox) for track in btracks]
-    _ious =box_iou_batch(np.asarray(atlbrs), np.asarray(btlbrs))
+    _ious = box_iou_batch(np.asarray(atlbrs), np.asarray(btlbrs))
     cost_matrix = 1 - _ious
 
     return cost_matrix
@@ -129,7 +133,13 @@ def embedding_distance(tracks: List, detections: List, metric="cosine") -> np.nd
     return cost_matrix
 
 
-def gate_cost_matrix(kf, cost_matrix: np.ndarray, tracks: List, detections: np.ndarray, only_position=False) -> np.ndarray:
+def gate_cost_matrix(
+    kf,
+    cost_matrix: np.ndarray,
+    tracks: List,
+    detections: np.ndarray,
+    only_position=False,
+) -> np.ndarray:
     if cost_matrix.size == 0:
         return cost_matrix
     gating_dim = 2 if only_position else 4
@@ -143,7 +153,14 @@ def gate_cost_matrix(kf, cost_matrix: np.ndarray, tracks: List, detections: np.n
     return cost_matrix
 
 
-def fuse_motion(kf, cost_matrix: np.ndarray, tracks: List, detections: np.ndarray, only_position=False, lambda_=0.98) -> np.ndarray:
+def fuse_motion(
+    kf,
+    cost_matrix: np.ndarray,
+    tracks: List,
+    detections: np.ndarray,
+    only_position=False,
+    lambda_=0.98,
+) -> np.ndarray:
     if cost_matrix.size == 0:
         return cost_matrix
     gating_dim = 2 if only_position else 4
@@ -158,7 +175,9 @@ def fuse_motion(kf, cost_matrix: np.ndarray, tracks: List, detections: np.ndarra
     return cost_matrix
 
 
-def fuse_iou(cost_matrix: np.ndarray, tracks: List, detections: np.ndarray) -> np.ndarray:
+def fuse_iou(
+    cost_matrix: np.ndarray, tracks: List, detections: np.ndarray
+) -> np.ndarray:
     if cost_matrix.size == 0:
         return cost_matrix
     reid_sim = 1 - cost_matrix

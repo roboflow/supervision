@@ -156,7 +156,13 @@ def detections2boxes(detections: Detections) -> np.ndarray:
     Returns:
         np.ndarray: An array containing the bounding boxes' coordinates (xyxy) and their corresponding confidences.
     """
-    return np.hstack((detections.xyxy, detections.confidence[:, np.newaxis], detections.class_id[:, np.newaxis]))
+    return np.hstack(
+        (
+            detections.xyxy,
+            detections.confidence[:, np.newaxis],
+            detections.class_id[:, np.newaxis],
+        )
+    )
 
 
 # converts List[strack] into format that can be consumed by match_detections_with_tracks function

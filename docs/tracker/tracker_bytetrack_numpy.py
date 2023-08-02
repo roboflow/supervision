@@ -3,12 +3,8 @@ from tqdm.notebook import tqdm
 from ultralytics import YOLO
 
 import supervision as sv
+from supervision import ByteTrack, detections2boxes, match_detections_with_tracks
 from supervision.detection.annotate import BoxAnnotator
-from supervision import (
-    ByteTrack,
-    detections2boxes,
-    match_detections_with_tracks,
-)
 from supervision.utils.video import VideoInfo, VideoSink, get_video_frames_generator
 
 model = YOLO("yolov5s.pt")

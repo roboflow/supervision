@@ -2,8 +2,8 @@ from tqdm.notebook import tqdm
 from ultralytics import YOLO
 
 import supervision as sv
-from supervision.detection.annotate import BoxAnnotator
 from supervision import ByteTrack
+from supervision.detection.annotate import BoxAnnotator
 from supervision.utils.video import VideoInfo, VideoSink, get_video_frames_generator
 
 model = YOLO("yolov5s.pt")
