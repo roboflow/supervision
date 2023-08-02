@@ -1,4 +1,5 @@
 import os
+import warnings
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 from xml.dom.minidom import parseString
@@ -13,25 +14,82 @@ from supervision.detection.utils import polygon_to_mask, polygon_to_xyxy
 from supervision.utils.file import list_files_with_extensions
 
 
-def object_to_pascal_voc(
-    xyxy: np.ndarray, name: str, polygon: Optional[np.ndarray] = None
-) -> Element:
-    root = Element("object")
+class XMLBuilder:
+    default_root_name = "annotation"
+    default_folder_name = "VOC"
 
-    object_name = SubElement(root, "name")
-    object_name.text = name
+    def __init__(
+        self,
+        filename: str,
+        root: str = default_root_name,
+        folder: str = default_folder_name,
+    ):
+        self.annotation = self.add_annot_root(
+            root_name=root, folder=folder, filename=filename
+        )
 
-    bndbox = SubElement(root, "bndbox")
-    xmin = SubElement(bndbox, "xmin")
-    xmin.text = str(int(xyxy[0]))
-    ymin = SubElement(bndbox, "ymin")
-    ymin.text = str(int(xyxy[1]))
-    xmax = SubElement(bndbox, "xmax")
-    xmax.text = str(int(xyxy[2]))
-    ymax = SubElement(bndbox, "ymax")
-    ymax.text = str(int(xyxy[3]))
+    def add_annot_root(
+        self,
+        filename: str,
+        root_name: str = default_root_name,
+        folder: str = default_folder_name,
+    ) -> Element:
+        annotation = Element(root_name)
 
-    if polygon is not None:
+        source = SubElement(annotation, "source")
+        database = SubElement(source, "database")
+        database.text = "roboflow.ai"
+
+        folder = SubElement(annotation, "folder")
+        folder.text = folder
+
+        file_name = SubElement(annotation, "filename")
+        file_name.text = filename
+
+        return annotation
+
+    def add_size_spec(self, width: int, height: int, depth: int) -> Element:
+        size = SubElement(self.annotation, "size")
+        w = SubElement(size, "width")
+        w.text = str(width)
+        h = SubElement(size, "height")
+        h.text = str(height)
+        d = SubElement(size, "depth")
+        d.text = str(depth)
+        return size
+
+    def add_segmented(self, segmented_name: int = 0) -> Element:
+        segmented = SubElement(self.annotation, "segmented")
+        segmented.text = str(segmented_name)
+        return segmented
+
+    def add_object(self, name: str) -> Element:
+        object = SubElement(self.annotation, "object")
+        object_name = SubElement(object, "name")
+        object_name.text = name
+        return object
+
+    def to_string(self) -> str:
+        return parseString(tostring(self.annotation)).toprettyxml(indent="  ")
+
+    def add_obj_det(self, root: Element, xyxy: np.ndarray) -> Element:
+        bndbox = SubElement(root, "bndbox")
+        xmin = SubElement(bndbox, "xmin")
+        xmin.text = str(int(xyxy[0]))
+        ymin = SubElement(bndbox, "ymin")
+        ymin.text = str(int(xyxy[1]))
+        xmax = SubElement(bndbox, "xmax")
+        xmax.text = str(int(xyxy[2]))
+        ymax = SubElement(bndbox, "ymax")
+        ymax.text = str(int(xyxy[3]))
+
+        return bndbox
+
+    def add_img_segm(
+        self,
+        root: Element,
+        polygon: np.ndarray,
+    ) -> Element:
         object_polygon = SubElement(root, "polygon")
         for index, point in enumerate(polygon, start=1):
             x_coordinate, y_coordinate = point
@@ -40,7 +98,7 @@ def object_to_pascal_voc(
             y = SubElement(object_polygon, f"y{index}")
             y.text = str(y_coordinate)
 
-    return root
+        return object_polygon
 
 
 def detections_to_pascal_voc(
@@ -56,7 +114,7 @@ def detections_to_pascal_voc(
     Converts Detections object to Pascal VOC XML format.
 
     Args:
-        detections (Detections): A Detections object containing bounding boxes, class ids, and other relevant information.
+        detections (Detections): A Detections object containing class ids and either bounding boxes or masks.
         classes (List[str]): A list of class names corresponding to the class ids in the Detections object.
         filename (str): The name of the image file associated with the detections.
         image_shape (Tuple[int, int, int]): The shape of the image file associated with the detections.
@@ -68,39 +126,24 @@ def detections_to_pascal_voc(
     """
     height, width, depth = image_shape
 
-    # Create root element
-    annotation = Element("annotation")
+    xml_builder = XMLBuilder(filename)
 
-    # Add folder element
-    folder = SubElement(annotation, "folder")
-    folder.text = "VOC"
+    xml_builder.add_size_spec(width, height, depth)
 
-    # Add filename element
-    file_name = SubElement(annotation, "filename")
-    file_name.text = filename
+    xyxy_and_mask_available = (
+        detections.xyxy is not None and detections.mask is not None
+    )
+    mask_available = detections.mask is not None
+    xyxy_available = detections.xyxy is not None
 
-    # Add source element
-    source = SubElement(annotation, "source")
-    database = SubElement(source, "database")
-    database.text = "roboflow.ai"
-
-    # Add size element
-    size = SubElement(annotation, "size")
-    w = SubElement(size, "width")
-    w.text = str(width)
-    h = SubElement(size, "height")
-    h.text = str(height)
-    d = SubElement(size, "depth")
-    d.text = str(depth)
-
-    # Add segmented element
-    segmented = SubElement(annotation, "segmented")
-    segmented.text = "0"
-
-    # Add object elements
-    for xyxy, mask, _, class_id, _ in detections:
-        name = classes[class_id]
-        if mask is not None:
+    if xyxy_and_mask_available or mask_available:
+        if xyxy_and_mask_available:
+            warnings.warn(
+                "Detections object contains both xyxy and mask information. This will be removed in future versions. Please use either xyxy or mask."
+            )
+        xml_builder.add_segmented()
+        for mask, class_id in zip(detections.mask, detections.class_id):
+            name = classes[class_id]
             polygons = approximate_mask_with_polygons(
                 mask=mask,
                 min_image_area_percentage=min_image_area_percentage,
@@ -108,17 +151,19 @@ def detections_to_pascal_voc(
                 approximation_percentage=approximation_percentage,
             )
             for polygon in polygons:
-                xyxy = polygon_to_xyxy(polygon=polygon)
-                next_object = object_to_pascal_voc(
-                    xyxy=xyxy, name=name, polygon=polygon
-                )
-                annotation.append(next_object)
-        else:
-            next_object = object_to_pascal_voc(xyxy=xyxy, name=name)
-            annotation.append(next_object)
+                next_object = xml_builder.add_object(name)
+                if xyxy_available:
+                    xyxy = polygon_to_xyxy(polygon=polygon)
+                    xml_builder.add_obj_det(root=next_object, xyxy=xyxy)
+                xml_builder.add_img_segm(root=next_object, polygon=polygon)
 
-    # Generate XML string
-    xml_string = parseString(tostring(annotation)).toprettyxml(indent="  ")
+    elif xyxy_available:
+        for xyxy, class_id in zip(detections.xyxy, detections.class_id):
+            name = classes[class_id]
+            next_object = xml_builder.add_object(name)
+            xml_builder.add_obj_det(root=next_object, xyxy=xyxy)
+
+    xml_string = xml_builder.to_string()
 
     return xml_string
 
