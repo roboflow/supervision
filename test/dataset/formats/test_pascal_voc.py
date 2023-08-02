@@ -13,7 +13,7 @@ from supervision.dataset.formats.pascal_voc import (
 )
 
 
-def are_xml_elements_equal_with_offset(elem1, elem2):
+def are_xml_elements_equal_with_voc_offset(elem1, elem2):
     if (
         elem1.tag != elem2.tag
         or elem1.attrib != elem2.attrib
@@ -23,7 +23,7 @@ def are_xml_elements_equal_with_offset(elem1, elem2):
         return False
 
     for child1, child2 in zip(elem1, elem2):
-        if not are_xml_elements_equal_with_offset(child1, child2):
+        if not are_xml_elements_equal_with_voc_offset(child1, child2):
             return False
 
     return True
@@ -61,7 +61,7 @@ def test_object_to_pascal_voc(
 ):
     with exception:
         result = object_to_pascal_voc(xyxy=xyxy, name=name, polygon=polygon)
-        assert are_xml_elements_equal_with_offset(result, expected_result)
+        assert are_xml_elements_equal_with_voc_offset(result, expected_result)
 
 
 @pytest.mark.parametrize(
@@ -138,7 +138,7 @@ NO_DETECTIONS = """<annotation></annotation>"""
         ),
     ],
 )
-def test_detections_from_xml_obj_with_offset(
+def test_detections_from_xml_obj_with_voc_offset(
     xml_string, classes, resolution_wh, force_masks, expected_result, exception
 ):
     with exception:
