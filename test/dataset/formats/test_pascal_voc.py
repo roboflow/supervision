@@ -38,7 +38,7 @@ def are_xml_elements_equal(elem1, elem2):
             None,
             ET.fromstring(
                 """<object><name>test</name><bndbox><xmin>0</xmin><ymin>0</ymin>
-                    <xmax>10</xmax><ymax>10</ymax></bndbox></object>"""
+                <xmax>10</xmax><ymax>10</ymax></bndbox></object>"""
             ),
             DoesNotRaise(),
         ),
@@ -48,10 +48,10 @@ def are_xml_elements_equal(elem1, elem2):
             [[0, 0], [10, 0], [10, 10], [0, 10]],
             ET.fromstring(
                 """<object><name>test</name><bndbox><xmin>0</xmin><ymin>0</ymin>
-                    <xmax>10</xmax><ymax>10</ymax
-                        ></bndbox><polygon><x1>0</x1><y1>0</y1><x2>10</x2>
-                        <y2>0</y2><x3>10</x3><y3>10</y3><x4>0</x4><y4>10
-                        </y4></polygon></object>"""
+                    <xmax>10</xmax><ymax>10</ymax>
+                    </bndbox><polygon><x1>0</x1><y1>0</y1><x2>10</x2>
+                    <y2>0</y2><x3>10</x3><y3>10</y3><x4>0</x4><y4>10</y4>
+                    </polygon></object>"""
             ),
             DoesNotRaise(),
         ),
