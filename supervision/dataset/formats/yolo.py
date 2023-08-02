@@ -133,7 +133,6 @@ def load_yolo_annotations(
     image_paths = list_files_with_extensions(
         directory=images_directory_path, extensions=["jpg", "jpeg", "png"]
     )
-    list_files_with_extensions(directory=annotations_directory_path, extensions=["txt"])
 
     classes = _extract_class_names(file_path=data_yaml_path)
     images = {}
