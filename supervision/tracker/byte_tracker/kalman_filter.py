@@ -1,4 +1,3 @@
-# vim: expandtab:ts=4:sw=4
 import numpy as np
 import scipy.linalg
 
@@ -159,7 +158,7 @@ class KalmanFilter(object):
         )
         return mean, covariance + innovation_cov
 
-    def multi_predict(self, mean, covariance):
+    def multi_predict(self, mean, covariance) -> [np.ndarray, np.ndarray]:
         """Run Kalman filter prediction step (Vectorized version).
         Parameters
         ----------

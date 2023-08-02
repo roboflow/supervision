@@ -31,11 +31,11 @@ class BaseTrack:
         self.location = (np.inf, np.inf)
 
     @property
-    def end_frame(self):
+    def end_frame(self) -> int:
         return self.frame_id
 
     @staticmethod
-    def next_id():
+    def next_id() -> int:
         BaseTrack._count += 1
         return BaseTrack._count
 
