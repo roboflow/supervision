@@ -114,7 +114,7 @@ def detections_to_pascal_voc(
     Converts Detections object to Pascal VOC XML format.
 
     Args:
-        detections (Detections): A Detections object containing bounding boxes, class ids, and other relevant information.
+        detections (Detections): A Detections object containing class ids and either bounding boxes or masks.
         classes (List[str]): A list of class names corresponding to the class ids in the Detections object.
         filename (str): The name of the image file associated with the detections.
         image_shape (Tuple[int, int, int]): The shape of the image file associated with the detections.
