@@ -59,14 +59,14 @@ class Detections:
     """
     Data class containing information about the detections in a video frame.
     Attributes:
-        xyxy (np.ndarray): An array of shape `(n, 4)` containing the bounding boxes coordinates in format `[x1, y1, x2, y2]`
+        xyxy (Optional[np.ndarray]): An array of shape `(n, 4)` containing the bounding boxes coordinates in format `[x1, y1, x2, y2]`
         mask: (Optional[np.ndarray]): An array of shape `(n, W, H)` containing the segmentation masks.
         confidence (Optional[np.ndarray]): An array of shape `(n,)` containing the confidence scores of the detections.
         class_id (Optional[np.ndarray]): An array of shape `(n,)` containing the class ids of the detections.
         tracker_id (Optional[np.ndarray]): An array of shape `(n,)` containing the tracker ids of the detections.
     """
 
-    xyxy: np.ndarray
+    xyxy: np.Optional[np.ndarray] = None
     mask: np.Optional[np.ndarray] = None
     confidence: Optional[np.ndarray] = None
     class_id: Optional[np.ndarray] = None
