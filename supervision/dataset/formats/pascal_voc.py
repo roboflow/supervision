@@ -72,7 +72,7 @@ class XMLBuilder:
     def to_string(self) -> str:
         return parseString(tostring(self.annotation)).toprettyxml(indent="  ")
 
-    def add_obj_det(self, root, xyxy: np.ndarray) -> Element:
+    def add_obj_det(self, root: Element, xyxy: np.ndarray) -> Element:
         bndbox = SubElement(root, "bndbox")
         xmin = SubElement(bndbox, "xmin")
         xmin.text = str(int(xyxy[0]))
@@ -87,7 +87,7 @@ class XMLBuilder:
 
     def add_img_segm(
         self,
-        root,
+        root: Element,
         polygon: np.ndarray,
     ) -> Element:
         object_polygon = SubElement(root, "polygon")
