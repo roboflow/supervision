@@ -5,6 +5,21 @@ from collections import deque
 class FpsMonitor:
 
     def __init__(self, sample_size: int = 30):
+        """
+        Initialize class to measure Frame per second for latency benchmark.
+        Args:
+            sample_size (int): Maximum observation to measure latency benchmark
+        Examples:
+            ```python
+            >>> import supervision as sv
+
+            >>> fps_monitor = sv.FpsMonitor()
+            >>> while True:
+            ...      (...)
+            ...      fps_monitor.tick()
+            ...      fps = fps_monitor()
+            ```
+        """
         self.all_timestamps = deque(maxlen=sample_size)
 
     def __call__(self, last_only=False) -> float:
