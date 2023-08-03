@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, List
 
 import cv2
 import numpy as np
@@ -24,12 +24,12 @@ class LineZone:
         """
         self.vector = Vector(start=start, end=end)
         self.tracker_state: Dict[str, bool] = {}
-        self.in_count: int = 0
-        self.out_count: int = 0
+        self.counts: Dict[str, int] = {}
+        self.total_counts = {"in": 0, "out": 0}
         self.anchor = anchor
         self.previous_detections = None
 
-    def trigger(self, detections: Detections):
+    def trigger(self, detections: Detections) -> None:
         """
         Update the in_count and out_count for the detections that cross the line.
 
@@ -50,34 +50,62 @@ class LineZone:
 
         common_previous_anchors = anchors_previous[previous_common_tracks]
         common_current_anchors = anchors_current[current_common_tracks]
+        common_current_class_ids = detections.class_id[current_common_tracks]
 
         for i in range(len(common_tracks)):
             track_id = common_tracks[i]
+            class_id = str(common_current_class_ids[i])
             previous_pt = Point(x=common_previous_anchors[i][0], y=common_previous_anchors[i][1])
             current_pt = Point(x=common_current_anchors[i][0], y=common_current_anchors[i][1])
 
             move_direction = Point.get_direction(p1=previous_pt, p2=current_pt)
-
+            if class_id not in self.counts:
+                self.counts[class_id] = {'in': 0, 'out': 0}
             tracker_state = Point.intersect(self.vector.start, self.vector.end, previous_pt, current_pt)
-
             if track_id in self.tracker_state:
                 if tracker_state != self.tracker_state[track_id]:
                     if tracker_state and move_direction:
-                        self.in_count += 1
+                        self.total_counts["in"] += 1
+                        self.counts[class_id]["in"] += 1
                     elif not tracker_state and not move_direction:
-                        self.out_count += 1
+                        self.total_counts["out"] += 1
+                        self.counts[class_id]["out"] += 1
             self.tracker_state[track_id] = tracker_state
-
         self.previous_detections = detections
 
-    def get_in_out_detections(self, detections: Detections) -> Tuple[Detections, Detections]:
+    def get_in_out_detections(self, detections: Optional[Detections] = None) -> Tuple[Detections, Detections]:
         track_ids = np.asarray(list(self.tracker_state.keys()))
         track_stat = np.asarray(list(self.tracker_state.values()))
         in_track_ids = track_ids[track_stat == True]
         out_track_ids = track_ids[track_stat == False]
+
+        if detections is None:
+            detections = self.previous_detections
         in_detections = detections[np.isin(detections.tracker_id, in_track_ids)]
         out_detections = detections[np.isin(detections.tracker_id, out_track_ids)]
         return in_detections, out_detections
+
+    def get_counts(self, classes: Optional[Tuple[int]] = None) -> Dict:
+        """
+        Args:
+            classes (Optional(Tuple[int])): tuple specific classes
+
+        Returns:
+            Dictionary of requested class count
+        """
+        if classes:
+            counts = {}
+            for class_id in classes:
+                counts[class_id] = self.counts.get(str(class_id))
+            return counts
+        return self.counts
+
+    def get_total_counts(self) -> Dict:
+        """
+        Returns:
+            (Dict) : Total counts dictionary containing "in" and "out" values
+        """
+        return self.total_counts
 
 
 class LineZoneAnnotator:
@@ -128,25 +156,6 @@ class LineZoneAnnotator:
             np.ndarray: The image with the line drawn on it.
 
         """
-        frame = self._annotate_line(frame, line_counter)
-
-        frame = self._annotate_texts(frame, line_counter)
-
-        anchors = line_counter.previous_detections.get_anchor_coordinates(anchor=line_counter.anchor)
-
-        for anchor in anchors:
-            cv2.circle(
-                frame,
-                (int(anchor[0]), int(anchor[1])),
-                radius=5,
-                color=self.text_color.as_bgr(),
-                thickness=-1,
-                lineType=cv2.LINE_AA,
-            )
-
-        return frame
-
-    def _annotate_line(self, frame: np.ndarray, line_counter: LineZone):
         cv2.line(
             frame,
             line_counter.vector.start.as_xy_int_tuple(),
@@ -174,18 +183,15 @@ class LineZoneAnnotator:
             lineType=cv2.LINE_AA,
         )
 
-        return frame
-
-    def _annotate_texts(self, frame: np.ndarray, line_counter: LineZone):
         in_text = (
-            f"{self.custom_in_text}: {line_counter.in_count}"
+            f"{self.custom_in_text}: {line_counter.total_counts['in']}"
             if self.custom_in_text is not None
-            else f"in: {line_counter.in_count}"
+            else f"in: {line_counter.total_counts['in']}"
         )
         out_text = (
-            f"{self.custom_out_text}: {line_counter.out_count}"
+            f"{self.custom_out_text}: {line_counter.total_counts['out']}"
             if self.custom_out_text is not None
-            else f"out: {line_counter.out_count}"
+            else f"out: {line_counter.total_counts['out']}"
         )
 
         (in_text_width, in_text_height), _ = cv2.getTextSize(
@@ -265,3 +271,4 @@ class LineZoneAnnotator:
         )
 
         return frame
+
