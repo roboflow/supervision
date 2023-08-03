@@ -1,11 +1,11 @@
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
 import cv2
 import numpy as np
 
 from supervision.detection.core import Detections
 from supervision.draw.color import Color
-from supervision.geometry.core import Point, Rect, Vector
+from supervision.geometry.core import Point, Rect, Vector, Position
 
 
 class LineZone:
@@ -13,7 +13,7 @@ class LineZone:
     Count the number of objects that cross a line.
     """
 
-    def __init__(self, start: Point, end: Point):
+    def __init__(self, start: Point, end: Point, anchor: Position = Position.CENTER):
         """
         Initialize a LineCounter object.
 
@@ -26,6 +26,8 @@ class LineZone:
         self.tracker_state: Dict[str, bool] = {}
         self.in_count: int = 0
         self.out_count: int = 0
+        self.anchor = anchor
+        self.previous_detections = None
 
     def trigger(self, detections: Detections):
         """
@@ -33,42 +35,49 @@ class LineZone:
 
         Attributes:
             detections (Detections): The detections for which to update the counts.
-
         """
-        for xyxy, _, confidence, class_id, tracker_id in detections:
-            # handle detections with no tracker_id
-            if tracker_id is None:
-                continue
+        if not self.previous_detections:
+            self.previous_detections = detections
+            return
 
-            # we check if all four anchors of bbox are on the same side of vector
-            x1, y1, x2, y2 = xyxy
-            anchors = [
-                Point(x=x1, y=y1),
-                Point(x=x1, y=y2),
-                Point(x=x2, y=y1),
-                Point(x=x2, y=y2),
-            ]
-            triggers = [self.vector.is_in(point=anchor) for anchor in anchors]
+        tracks_previous = self.previous_detections.tracker_id
+        anchors_previous = self.previous_detections.get_anchor_coordinates(anchor=self.anchor)
 
-            # detection is partially in and partially out
-            if len(set(triggers)) == 2:
-                continue
+        tracks_current = detections.tracker_id
+        anchors_current = detections.get_anchor_coordinates(anchor=self.anchor)
 
-            tracker_state = triggers[0]
-            # handle new detection
-            if tracker_id not in self.tracker_state:
-                self.tracker_state[tracker_id] = tracker_state
-                continue
+        common_tracks, previous_common_tracks, current_common_tracks = np.intersect1d(tracks_previous, tracks_current, return_indices=True)
 
-            # handle detection on the same side of the line
-            if self.tracker_state.get(tracker_id) == tracker_state:
-                continue
+        common_previous_anchors = anchors_previous[previous_common_tracks]
+        common_current_anchors = anchors_current[current_common_tracks]
 
-            self.tracker_state[tracker_id] = tracker_state
-            if tracker_state:
-                self.in_count += 1
-            else:
-                self.out_count += 1
+        for i in range(len(common_tracks)):
+            track_id = common_tracks[i]
+            previous_pt = Point(x=common_previous_anchors[i][0], y=common_previous_anchors[i][1])
+            current_pt = Point(x=common_current_anchors[i][0], y=common_current_anchors[i][1])
+
+            move_direction = Point.get_direction(p1=previous_pt, p2=current_pt)
+
+            tracker_state = Point.intersect(self.vector.start, self.vector.end, previous_pt, current_pt)
+
+            if track_id in self.tracker_state:
+                if tracker_state != self.tracker_state[track_id]:
+                    if tracker_state and move_direction:
+                        self.in_count += 1
+                    elif not tracker_state and not move_direction:
+                        self.out_count += 1
+            self.tracker_state[track_id] = tracker_state
+
+        self.previous_detections = detections
+
+    def get_in_out_detections(self, detections: Detections) -> Tuple[Detections, Detections]:
+        track_ids = np.asarray(list(self.tracker_state.keys()))
+        track_stat = np.asarray(list(self.tracker_state.values()))
+        in_track_ids = track_ids[track_stat == True]
+        out_track_ids = track_ids[track_stat == False]
+        in_detections = detections[np.isin(detections.tracker_id, in_track_ids)]
+        out_detections = detections[np.isin(detections.tracker_id, out_track_ids)]
+        return in_detections, out_detections
 
 
 class LineZoneAnnotator:
@@ -119,6 +128,25 @@ class LineZoneAnnotator:
             np.ndarray: The image with the line drawn on it.
 
         """
+        frame = self._annotate_line(frame, line_counter)
+
+        frame = self._annotate_texts(frame, line_counter)
+
+        anchors = line_counter.previous_detections.get_anchor_coordinates(anchor=line_counter.anchor)
+
+        for anchor in anchors:
+            cv2.circle(
+                frame,
+                (int(anchor[0]), int(anchor[1])),
+                radius=5,
+                color=self.text_color.as_bgr(),
+                thickness=-1,
+                lineType=cv2.LINE_AA,
+            )
+
+        return frame
+
+    def _annotate_line(self, frame: np.ndarray, line_counter: LineZone):
         cv2.line(
             frame,
             line_counter.vector.start.as_xy_int_tuple(),
@@ -128,6 +156,7 @@ class LineZoneAnnotator:
             lineType=cv2.LINE_AA,
             shift=0,
         )
+
         cv2.circle(
             frame,
             line_counter.vector.start.as_xy_int_tuple(),
@@ -145,6 +174,9 @@ class LineZoneAnnotator:
             lineType=cv2.LINE_AA,
         )
 
+        return frame
+
+    def _annotate_texts(self, frame: np.ndarray, line_counter: LineZone):
         in_text = (
             f"{self.custom_in_text}: {line_counter.in_count}"
             if self.custom_in_text is not None
@@ -231,4 +263,5 @@ class LineZoneAnnotator:
             self.text_thickness,
             cv2.LINE_AA,
         )
+
         return frame
