@@ -25,21 +25,6 @@ class Point:
     def as_xy_float_tuple(self) -> Tuple[float, float]:
         return self.x, self.y
 
-    @staticmethod
-    def get_direction(p1: Point, p2: Point) -> bool:
-        if p1.x < p2.x and p1.y < p2.y:
-            return False
-        else:
-            return True
-
-    @staticmethod
-    def ccw(A: Point, B: Point, C: Point):
-        return (C.y - A.y) * (B.x - A.x) > (B.y - A.y) * (C.x - A.x)
-
-    @staticmethod
-    def intersect(A: Point, B: Point, C: Point, D: Point):
-        return Point.ccw(A, C, D) != Point.ccw(B, C, D) and Point.ccw(A, B, C) != Point.ccw(A, B, D)
-
 
 @dataclass
 class Vector:
@@ -53,15 +38,6 @@ class Vector:
             v1.end.y - v1.start.y
         ) * (v2.end.x - v2.start.x)
         return cross_product < 0
-
-
-    @staticmethod
-    def is_in_vectors(v1: Vector, v2: Vector):
-        cross_product = (v1.end.x - v1.start.x) * (v2.end.y - v2.start.y) - (
-                v1.end.y - v1.start.y
-        ) * (v2.end.x - v2.start.x)
-        return cross_product < 0
-
 
 
 @dataclass

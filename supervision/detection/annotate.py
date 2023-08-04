@@ -5,6 +5,7 @@ import numpy as np
 
 from supervision.detection.core import Detections
 from supervision.draw.color import Color, ColorPalette
+from supervision.geometry.core import Position
 
 
 class BoxAnnotator:
@@ -192,4 +193,42 @@ class MaskAnnotator:
                 scene,
             )
 
+        return scene
+
+
+class AnchorAnnotator:
+
+    def __init__(
+        self,
+        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        anchor: Optional[Position] = Position.CENTER,
+        radius: Optional[int] = 5,
+        thickness: Optional[int] = -1,
+    ):
+        self.color: Union[Color, ColorPalette] = color
+        self.radius = radius
+        self.anchor = anchor
+        self.thickness = thickness
+
+    def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
+        anchors = detections.get_anchor_coordinates(anchor=self.anchor).astype(int)
+        for i, anchor in enumerate(anchors):
+            class_id = (
+                detections.class_id[i] if detections.class_id is not None else None
+            )
+            idx = class_id if class_id is not None else i
+            color = (
+                self.color.by_idx(idx)
+                if isinstance(self.color, ColorPalette)
+                else self.color
+            )
+
+            cv2.circle(
+                scene,
+                (anchor[0], anchor[1]),
+                radius=5,
+                color=color.as_bgr(),
+                thickness=-1,
+                lineType=cv2.LINE_AA,
+            )
         return scene

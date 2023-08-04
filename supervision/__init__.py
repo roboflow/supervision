@@ -13,7 +13,7 @@ from supervision.dataset.core import (
     ClassificationDataset,
     DetectionDataset,
 )
-from supervision.detection.annotate import BoxAnnotator, MaskAnnotator
+from supervision.detection.annotate import BoxAnnotator, MaskAnnotator, AnchorAnnotator
 from supervision.detection.core import Detections
 from supervision.detection.line_counter import LineZone, LineZoneAnnotator
 from supervision.detection.tools.polygon_zone import PolygonZone, PolygonZoneAnnotator
