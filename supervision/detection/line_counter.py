@@ -74,10 +74,13 @@ class LineZone:
         self.previous_detections = detections
 
     def get_in_out_detections(self, detections: Optional[Detections] = None) -> Tuple[Detections, Detections]:
+        if len(detections) == 0:
+            return Detections.empty(), Detections.empty()
+
         track_ids = np.asarray(list(self.tracker_state.keys()))
-        track_stat = np.asarray(list(self.tracker_state.values()))
-        in_track_ids = track_ids[track_stat == True]
-        out_track_ids = track_ids[track_stat == False]
+        track_state = np.asarray(list(self.tracker_state.values()))
+        in_track_ids = track_ids[track_state == True]
+        out_track_ids = track_ids[track_state == False]
 
         if detections is None:
             detections = self.previous_detections
