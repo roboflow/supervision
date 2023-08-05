@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Tuple, List, Callable
+from typing import Dict, Optional, Tuple, List
 
 import cv2
 import numpy as np
@@ -28,7 +28,7 @@ class LineZone:
         self.total_counts = {"in": 0, "out": 0}
         self.anchor = anchor
         self.previous_detections = None
-        self.counted_tracker_ids: Dict[str, List] = {'in': [], 'out': []}
+        self.counted_tracker_ids: Dict[str, List] = {"in": [], "out": []}
         self.new_trigger = False
 
     def trigger(self, detections: Detections) -> None:
@@ -49,7 +49,9 @@ class LineZone:
         tracks_current = detections.tracker_id
         anchors_current = detections.get_anchor_coordinates(anchor=self.anchor)
 
-        common_tracks, previous_common_tracks, current_common_tracks = np.intersect1d(tracks_previous, tracks_current, return_indices=True)
+        common_tracks, previous_common_tracks, current_common_tracks = np.intersect1d(
+            tracks_previous, tracks_current, return_indices=True
+        )
 
         common_current_anchors = anchors_current[current_common_tracks]
         common_current_class_ids = detections.class_id[current_common_tracks]
@@ -57,14 +59,19 @@ class LineZone:
         for i in range(len(common_tracks)):
             track_id = common_tracks[i]
 
-            if track_id in self.counted_tracker_ids['in'] or track_id in self.counted_tracker_ids['out']:
+            if (
+                track_id in self.counted_tracker_ids["in"]
+                or track_id in self.counted_tracker_ids["out"]
+            ):
                 continue
 
             class_id = str(common_current_class_ids[i])
-            current_position = Point(x=common_current_anchors[i][0], y=common_current_anchors[i][1])
+            current_position = Point(
+                x=common_current_anchors[i][0], y=common_current_anchors[i][1]
+            )
 
             if class_id not in self.counts:
-                self.counts[class_id] = {'in': 0, 'out': 0}
+                self.counts[class_id] = {"in": 0, "out": 0}
 
             tracker_state = self.vector.is_in(point=current_position)
 
@@ -74,18 +81,18 @@ class LineZone:
                         self.total_counts["in"] += 1
                         self.counts[class_id]["in"] += 1
                         self.new_trigger = True
-                        if track_id not in self.counted_tracker_ids['in']:
-                            self.counted_tracker_ids['in'].append(track_id)
-                        if track_id in self.counted_tracker_ids['out']:
-                            self.counted_tracker_ids['out'].remove(track_id)
+                        if track_id not in self.counted_tracker_ids["in"]:
+                            self.counted_tracker_ids["in"].append(track_id)
+                        if track_id in self.counted_tracker_ids["out"]:
+                            self.counted_tracker_ids["out"].remove(track_id)
                     elif not tracker_state:
                         self.total_counts["out"] += 1
                         self.counts[class_id]["out"] += 1
                         self.new_trigger = True
-                        if track_id not in self.counted_tracker_ids['out']:
-                            self.counted_tracker_ids['out'].append(track_id)
-                        if track_id in self.counted_tracker_ids['in']:
-                            self.counted_tracker_ids['in'].remove(track_id)
+                        if track_id not in self.counted_tracker_ids["out"]:
+                            self.counted_tracker_ids["out"].append(track_id)
+                        if track_id in self.counted_tracker_ids["in"]:
+                            self.counted_tracker_ids["in"].remove(track_id)
             self.tracker_state[track_id] = tracker_state
         self.previous_detections = detections
 
@@ -94,8 +101,8 @@ class LineZone:
         Returns:
             (sv.Detections, sv.Detections) : return detections going in and out as sv.Detection objects
         """
-        in_track_ids = self.counted_tracker_ids['in']
-        out_track_ids = self.counted_tracker_ids['out']
+        in_track_ids = self.counted_tracker_ids["in"]
+        out_track_ids = self.counted_tracker_ids["out"]
 
         detections = self.previous_detections
         in_detections = detections[np.isin(detections.tracker_id, in_track_ids)]
@@ -150,7 +157,9 @@ class LineZoneAnnotator:
             text_scale (float): The scale of the text that will be drawn.
             text_offset (float): The offset of the text that will be drawn.
             text_padding (int): The padding of the text that will be drawn.
-
+            custom_in_text (str): Replace "in" with provided custom text.
+            custom_out_text (str): Replace "out" with provided custom text.
+            on_trigger_action (bool): Change line color when any object crossed the line
         """
         self.thickness: float = thickness
         self.color: Color = color
@@ -297,4 +306,3 @@ class LineZoneAnnotator:
         )
 
         return frame
-
