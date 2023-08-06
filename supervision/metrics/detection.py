@@ -102,7 +102,7 @@ class ConfusionMatrix:
     def detections_to_tensor(
         detections: Detections, with_confidence: bool = False
     ) -> np.ndarray:
-        if detections == Detections.empty():
+        if len(detections) == 0:
             if with_confidence:
                 return np.zeros((0, 6))
             else:
@@ -325,7 +325,7 @@ class ConfusionMatrix:
         iou_threshold: float = 0.5,
     ) -> ConfusionMatrix:
         """
-        Create confusion matrix from dataset and callback function.
+        Calculate confusion matrix from dataset and callback function.
 
         Args:
             dataset (DetectionDataset): Object detection dataset used for evaluation.
@@ -466,19 +466,19 @@ class ConfusionMatrix:
 
 @dataclass(frozen=True)
 class MeanAveragePrecision:
-    map: float
-    map50: float
-    map75: float
-    average_precisions: np.ndarray
     """
     Mean Average Precision for object detection tasks.
 
     Attributes:
-        map (float): map value.
-        map50 (float): map value at iou threshold=0.5.
-        map75 (float): map value at iou threshold=0.75
-        average_precisions (np.ndarray): values for every classes
+        map (float): mAP value.
+        map50 (float): mAP value at IoU `threshold = 0.5`.
+        map75 (float): mAP value at IoU `threshold = 0.75`.
+        average_precisions (np.ndarray): values for every classes.
     """
+    map: float
+    map50: float
+    map75: float
+    average_precisions: np.ndarray
 
     @classmethod
     def from_detections(
@@ -487,7 +487,7 @@ class MeanAveragePrecision:
         targets: List[Detections],
     ) -> MeanAveragePrecision:
         """
-        Calculate MeanAveragePrecision based on predicted and ground-truth detections.
+        Calculate mean average precision based on predicted and ground-truth detections.
 
         Args:
             targets (List[Detections]): Detections objects from ground-truth.
@@ -509,12 +509,12 @@ class MeanAveragePrecision:
             ...     sv.Detections(...)
             ... ]
 
-            >>> mean_average_precison = sv.MeanAveragePrecision.from_detections(
+            >>> mean_average_precision = sv.MeanAveragePrecision.from_detections(
             ...     predictions=predictions,
             ...     targets=target,
             ... )
 
-            >>> mean_average_precison.matrix
+            >>> mean_average_precison.map
             0.2899
            ```
         """
@@ -537,7 +537,7 @@ class MeanAveragePrecision:
         callback: Callable[[np.ndarray], Detections],
     ) -> MeanAveragePrecision:
         """
-        Get map from dataset and callback function.
+        Calculate mean average precision from dataset and callback function.
 
         Args:
             dataset (DetectionDataset): Object detection dataset used for evaluation.
@@ -669,7 +669,7 @@ class MeanAveragePrecision:
         stats = [np.concatenate(x, 0) for x in zip(*stats)]
 
         if len(stats) and stats[0].any():
-            average_precisions = cls.average_precisions_per_class(*stats)
+            average_precisions = cls._average_precisions_per_class(*stats)
             ap50, ap75, average_precisions = (
                 average_precisions[:, 0],
                 average_precisions[:, 5],
@@ -750,16 +750,17 @@ class MeanAveragePrecision:
         return ap
 
     @staticmethod
-    def average_precisions_per_class(
+    def _average_precisions_per_class(
         matches: np.ndarray,
         prediction_confidence: np.ndarray,
         prediction_class_ids: np.ndarray,
         true_batch_class_ids: np.ndarray,
         EPS=1e-16,
     ):
-        """Compute the average precision, given the recall and precision curves.
+        """
+        Compute the average precision, given the recall and precision curves.
         Source: https://github.com/rafaelpadilla/Object-Detection-Metrics.
-        # Arguments
+        Arguments
             matches:  True positives (nparray, nx1 or nx10).
             prediction_confidence:  Objectness value from 0-1 (nparray).
             prediction_class_ids:  Predicted object classes (nparray).
