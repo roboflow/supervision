@@ -23,12 +23,6 @@ def detections_to_tensor(
     Returns:
         (np.ndarray): Detections as numpy tensors as in (xyxy, class_id, confidence) order
     """
-    if len(detections) == 0:
-        if with_confidence:
-            return np.zeros((0, 6))
-        else:
-            return np.zeros((0, 5))
-
     if detections.class_id is None:
         raise ValueError(
             "ConfusionMatrix can only be calculated for Detections with class_id"
@@ -46,7 +40,7 @@ def detections_to_tensor(
     return np.concatenate(arrays_to_concat, axis=1)
 
 
-def _validate_input_tensors(predictions: List[np.ndarray], targets: List[np.ndarray]):
+def validate_input_tensors(predictions: List[np.ndarray], targets: List[np.ndarray]):
     """
     Checks for shape consistency of input tensors.
     """
@@ -221,7 +215,7 @@ class ConfusionMatrix:
             ])
             ```
         """
-        _validate_input_tensors(predictions, targets)
+        validate_input_tensors(predictions, targets)
 
         num_classes = len(classes)
         matrix = np.zeros((num_classes + 1, num_classes + 1))
@@ -521,7 +515,7 @@ class MeanAveragePrecision:
 
             >>> mean_average_precison.map
             0.2899
-           ```
+            ```
         """
         prediction_tensors = []
         target_tensors = []
@@ -635,7 +629,7 @@ class MeanAveragePrecision:
             0.2899
             ```
         """
-        _validate_input_tensors(predictions, targets)
+        validate_input_tensors(predictions, targets)
         map, map50, map75 = 0, 0, 0
 
         class_index = 4
@@ -730,7 +724,7 @@ class MeanAveragePrecision:
             recall (np.ndarray):    The recall curve
             precision (np.ndarray): The precision curve
         Returns:
-            (np.ndarray) Average precision, precision curve, recall curve
+            (np.ndarray): Average precision, precision curve, recall curve
         """
         mrec = np.concatenate(([0.0], recall, [1.0]))
         mpre = np.concatenate(([1.0], precision, [0.0]))

@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 from supervision.detection.core import Detections
-from supervision.metrics.detection import ConfusionMatrix
+from supervision.metrics.detection import ConfusionMatrix, detections_to_tensor
 from test.utils import mock_detections
 
 CLASSES = np.arange(80)
@@ -167,7 +167,7 @@ def test_detections_to_tensor(
     exception: Exception
 ):
     with exception:
-        result = ConfusionMatrix.detections_to_tensor(
+        result = detections_to_tensor(
             detections=detections,
             with_confidence=with_confidence
         )
