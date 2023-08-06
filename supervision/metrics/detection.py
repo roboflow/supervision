@@ -523,9 +523,11 @@ class MeanAveragePrecision:
         target_tensors = []
         for prediction, target in zip(predictions, targets):
             prediction_tensors.append(
-                MeanAveragePrecision.detections_to_tensor(prediction)
+                ConfusionMatrix.detections_to_tensor(prediction, with_confidence=True)
             )
-            target_tensors.append(MeanAveragePrecision.targets_to_tensor(target))
+            target_tensors.append(
+                ConfusionMatrix.detections_to_tensor(target, with_confidence=False)
+            )
         return cls.from_tensors(
             predictions=prediction_tensors,
             targets=target_tensors,
@@ -631,7 +633,7 @@ class MeanAveragePrecision:
             0.2899
             ```
         """
-        cls._validate_input_tensors(predictions, targets)
+        ConfusionMatrix._validate_input_tensors(predictions, targets)
         map, map50, map75 = 0, 0, 0
 
         class_index = 4
@@ -683,33 +685,18 @@ class MeanAveragePrecision:
         )
 
     @staticmethod
-    def detections_to_tensor(detections: Detections) -> np.ndarray:
-        if detections.class_id is None:
-            raise ValueError(
-                "MeanAveragePrecision can only be calculated for Detections with class_id"
-            )
-
-        return np.concatenate(
-            [
-                detections.xyxy,
-                np.expand_dims(detections.class_id, 1),
-                np.expand_dims(detections.confidence, 1),
-            ],
-            1,
-        )
-
-    @staticmethod
-    def targets_to_tensor(detections: Detections) -> np.ndarray:
-        if detections.class_id is None:
-            raise ValueError(
-                "MeanAveragePrecision can only be calculated for Detections with class_id"
-            )
-        return np.hstack([detections.xyxy, np.expand_dims(detections.class_id, 1)])
-
-    @staticmethod
     def _match_detection_batch(
         predictions: np.ndarray, targets: np.ndarray, iou_levels: np.ndarray
     ) -> np.ndarray:
+        """
+        Args:
+            predictions (np.ndarray): batch prediction
+            targets (np.ndarray): batch target labels
+            iou_levels (np.ndarray): iou levels array contains different iou levels
+
+        Returns:
+            (np.ndarray): matched prediction with target lebels result
+        """
         correct = np.zeros((predictions.shape[0], iou_levels.shape[0])).astype(bool)
         iou = box_iou_batch(targets[:, :4], predictions[:, :4])
 
@@ -733,13 +720,15 @@ class MeanAveragePrecision:
         return correct
 
     @staticmethod
-    def compute_average_precision(recall, precision):
+    def compute_average_precision(
+        recall: np.ndarray, precision: np.ndarray
+    ) -> np.ndarray:
         """Compute the average precision using 101-point interpolation (COCO), given the recall and precision curves
-        # Arguments
-            recall:    The recall curve (list)
-            precision: The precision curve (list)
-        # Returns
-            Average precision, precision curve, recall curve
+        Args:
+            recall (np.ndarray):    The recall curve
+            precision (np.ndarray): The precision curve
+        Returns:
+            (np.ndarray) Average precision, precision curve, recall curve
         """
         mrec = np.concatenate(([0.0], recall, [1.0]))
         mpre = np.concatenate(([1.0], precision, [0.0]))
@@ -757,15 +746,17 @@ class MeanAveragePrecision:
         prediction_class_ids: np.ndarray,
         true_batch_class_ids: np.ndarray,
         EPS=1e-16,
-    ):
+    ) -> np.ndarray:
         """
         Compute the average precision, given the recall and precision curves.
         Source: https://github.com/rafaelpadilla/Object-Detection-Metrics.
-        Arguments
-            matches:  True positives (nparray, nx1 or nx10).
-            prediction_confidence:  Objectness value from 0-1 (nparray).
-            prediction_class_ids:  Predicted object classes (nparray).
-            true_batch_class_ids:  True object classes (nparray).
+        Args:
+            matches (np.ndarray):  True positives (nparray, nx1 or nx10).
+            prediction_confidence (np.ndarray):  Objectness value from 0-1 (nparray).
+            prediction_class_ids (np.ndarray):  Predicted object classes (nparray).
+            true_batch_class_ids (np.ndarray):  True object classes (nparray).
+        Returns:
+            (np.ndarray): Average precision for different iou level array
         """
         sorted_confidences = np.argsort(-prediction_confidence)
         matches = matches[sorted_confidences]
@@ -799,38 +790,3 @@ class MeanAveragePrecision:
                 )
 
         return average_precisions
-
-    @classmethod
-    def _validate_input_tensors(
-        cls, predictions: List[np.ndarray], targets: List[np.ndarray]
-    ):
-        """
-        Checks for shape consistency of input tensors.
-        """
-        if len(predictions) != len(targets):
-            raise ValueError(
-                f"Number of predictions ({len(predictions)}) and targets ({len(targets)}) must be equal."
-            )
-        if len(predictions) > 0:
-            if not isinstance(predictions[0], np.ndarray) or not isinstance(
-                targets[0], np.ndarray
-            ):
-                raise ValueError(
-                    f"Predictions and targets must be lists of numpy arrays. Got {type(predictions[0])} and {type(targets[0])} instead."
-                )
-            if predictions[0].shape[1] != 6:
-                raise ValueError(
-                    f"Predictions must have shape (N, 6). Got {predictions[0].shape} instead."
-                )
-            if targets[0].shape[1] != 5:
-                raise ValueError(
-                    f"Targets must have shape (N, 5). Got {targets[0].shape} instead."
-                )
-
-    def to_dict(self):
-        return {
-            "map": self.map,
-            "map50": self.map50,
-            "map75": self.map75,
-            "average_precisions": self.average_precisions,
-        }
