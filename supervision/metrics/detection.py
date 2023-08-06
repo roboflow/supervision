@@ -524,9 +524,7 @@ class MeanAveragePrecision:
             prediction_tensors.append(
                 MeanAveragePrecision.detections_to_tensor(prediction)
             )
-            target_tensors.append(
-                MeanAveragePrecision.targets_to_tensor(target)
-            )
+            target_tensors.append(MeanAveragePrecision.targets_to_tensor(target))
         return cls.from_tensors(
             predictions=prediction_tensors,
             targets=target_tensors,
@@ -534,9 +532,9 @@ class MeanAveragePrecision:
 
     @classmethod
     def benchmark(
-            cls,
-            dataset: DetectionDataset,
-            callback: Callable[[np.ndarray], Detections],
+        cls,
+        dataset: DetectionDataset,
+        callback: Callable[[np.ndarray], Detections],
     ) -> MeanAveragePrecision:
         """
         Get map from dataset and callback function.
@@ -672,26 +670,35 @@ class MeanAveragePrecision:
 
         if len(stats) and stats[0].any():
             average_precisions = cls.average_precisions_per_class(*stats)
-            ap50, ap75, average_precisions = average_precisions[:, 0], average_precisions[:, 5], average_precisions.mean(1)
+            ap50, ap75, average_precisions = (
+                average_precisions[:, 0],
+                average_precisions[:, 5],
+                average_precisions.mean(1),
+            )
             map50, map75, map = ap50.mean(), ap75.mean(), average_precisions.mean()
 
-        return cls(map=map, map50=map50, map75=map75, average_precisions=average_precisions)
+        return cls(
+            map=map, map50=map50, map75=map75, average_precisions=average_precisions
+        )
 
     @staticmethod
-    def detections_to_tensor(
-            detections: Detections
-    ) -> np.ndarray:
+    def detections_to_tensor(detections: Detections) -> np.ndarray:
         if detections.class_id is None:
             raise ValueError(
                 "MeanAveragePrecision can only be calculated for Detections with class_id"
             )
 
-        return np.concatenate([detections.xyxy, np.expand_dims(detections.class_id, 1), np.expand_dims(detections.confidence, 1)], 1)
+        return np.concatenate(
+            [
+                detections.xyxy,
+                np.expand_dims(detections.class_id, 1),
+                np.expand_dims(detections.confidence, 1),
+            ],
+            1,
+        )
 
     @staticmethod
-    def targets_to_tensor(
-            detections: Detections) -> np.ndarray:
-
+    def targets_to_tensor(detections: Detections) -> np.ndarray:
         if detections.class_id is None:
             raise ValueError(
                 "MeanAveragePrecision can only be calculated for Detections with class_id"
@@ -711,7 +718,9 @@ class MeanAveragePrecision:
             x = np.where((iou >= iou_levels[i]) & correct_class)
 
             if x[0].shape[0]:
-                _X1 = np.concatenate([np.expand_dims(x[0], 1), np.expand_dims(x[1], 1)], axis=1)
+                _X1 = np.concatenate(
+                    [np.expand_dims(x[0], 1), np.expand_dims(x[1], 1)], axis=1
+                )
                 _x2 = iou[x[0], x[1]][:, None]
                 matches = np.concatenate([_X1, _x2], axis=1)  # [label, detect, iou]
                 if x[0].shape[0] > 1:
@@ -741,8 +750,14 @@ class MeanAveragePrecision:
         return ap
 
     @staticmethod
-    def average_precisions_per_class(matches: np.ndarray, prediction_confidence: np.ndarray, prediction_class_ids: np.ndarray, true_batch_class_ids: np.ndarray, EPS=1e-16):
-        """ Compute the average precision, given the recall and precision curves.
+    def average_precisions_per_class(
+        matches: np.ndarray,
+        prediction_confidence: np.ndarray,
+        prediction_class_ids: np.ndarray,
+        true_batch_class_ids: np.ndarray,
+        EPS=1e-16,
+    ):
+        """Compute the average precision, given the recall and precision curves.
         Source: https://github.com/rafaelpadilla/Object-Detection-Metrics.
         # Arguments
             matches:  True positives (nparray, nx1 or nx10).
@@ -755,7 +770,9 @@ class MeanAveragePrecision:
         prediction_class_ids = prediction_class_ids[sorted_confidences]
 
         # Find unique classes
-        unique_classes, class_counts = np.unique(true_batch_class_ids, return_counts=True)
+        unique_classes, class_counts = np.unique(
+            true_batch_class_ids, return_counts=True
+        )
         num_classes = unique_classes.shape[0]  # number of classes, number of detections
 
         average_precisions = np.zeros((num_classes, matches.shape[1]))
@@ -773,7 +790,11 @@ class MeanAveragePrecision:
             precision = tp_pool / (tp_pool + fp_pool)
 
             for j in range(matches.shape[1]):
-                average_precisions[ci, j] = MeanAveragePrecision.compute_average_precision(recall[:, j], precision[:, j])
+                average_precisions[
+                    ci, j
+                ] = MeanAveragePrecision.compute_average_precision(
+                    recall[:, j], precision[:, j]
+                )
 
         return average_precisions
 
@@ -805,4 +826,9 @@ class MeanAveragePrecision:
                 )
 
     def to_dict(self):
-        return {'map': self.map, 'map50': self.map50, 'map75': self.map75, 'average_precisions': self.average_precisions}
+        return {
+            "map": self.map,
+            "map50": self.map50,
+            "map75": self.map75,
+            "average_precisions": self.average_precisions,
+        }
