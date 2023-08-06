@@ -12,6 +12,65 @@ from supervision.detection.core import Detections
 from supervision.detection.utils import box_iou_batch
 
 
+def detections_to_tensor(
+    detections: Detections, with_confidence: bool = False
+) -> np.ndarray:
+    """
+    Convert Supervision Detections to numpy tensors for further computation
+    Args:
+        detections (sv.Detections): Detections/Targets in the format of sv.Detections
+        with_confidence (bool): Whether to include confidence in the tensor
+    Returns:
+        (np.ndarray): Detections as numpy tensors as in (xyxy, class_id, confidence) order
+    """
+    if len(detections) == 0:
+        if with_confidence:
+            return np.zeros((0, 6))
+        else:
+            return np.zeros((0, 5))
+
+    if detections.class_id is None:
+        raise ValueError(
+            "ConfusionMatrix can only be calculated for Detections with class_id"
+        )
+
+    arrays_to_concat = [detections.xyxy, np.expand_dims(detections.class_id, 1)]
+
+    if with_confidence:
+        if detections.confidence is None:
+            raise ValueError(
+                "ConfusionMatrix can only be calculated for Detections with confidence"
+            )
+        arrays_to_concat.append(np.expand_dims(detections.confidence, 1))
+
+    return np.concatenate(arrays_to_concat, axis=1)
+
+
+def _validate_input_tensors(predictions: List[np.ndarray], targets: List[np.ndarray]):
+    """
+    Checks for shape consistency of input tensors.
+    """
+    if len(predictions) != len(targets):
+        raise ValueError(
+            f"Number of predictions ({len(predictions)}) and targets ({len(targets)}) must be equal."
+        )
+    if len(predictions) > 0:
+        if not isinstance(predictions[0], np.ndarray) or not isinstance(
+            targets[0], np.ndarray
+        ):
+            raise ValueError(
+                f"Predictions and targets must be lists of numpy arrays. Got {type(predictions[0])} and {type(targets[0])} instead."
+            )
+        if predictions[0].shape[1] != 6:
+            raise ValueError(
+                f"Predictions must have shape (N, 6). Got {predictions[0].shape} instead."
+            )
+        if targets[0].shape[1] != 5:
+            raise ValueError(
+                f"Targets must have shape (N, 5). Got {targets[0].shape} instead."
+            )
+
+
 @dataclass
 class ConfusionMatrix:
     """
@@ -85,11 +144,9 @@ class ConfusionMatrix:
         target_tensors = []
         for prediction, target in zip(predictions, targets):
             prediction_tensors.append(
-                ConfusionMatrix.detections_to_tensor(prediction, with_confidence=True)
+                detections_to_tensor(prediction, with_confidence=True)
             )
-            target_tensors.append(
-                ConfusionMatrix.detections_to_tensor(target, with_confidence=False)
-            )
+            target_tensors.append(detections_to_tensor(target, with_confidence=False))
         return cls.from_tensors(
             predictions=prediction_tensors,
             targets=target_tensors,
@@ -97,32 +154,6 @@ class ConfusionMatrix:
             conf_threshold=conf_threshold,
             iou_threshold=iou_threshold,
         )
-
-    @staticmethod
-    def detections_to_tensor(
-        detections: Detections, with_confidence: bool = False
-    ) -> np.ndarray:
-        if len(detections) == 0:
-            if with_confidence:
-                return np.zeros((0, 6))
-            else:
-                return np.zeros((0, 5))
-
-        if detections.class_id is None:
-            raise ValueError(
-                "ConfusionMatrix can only be calculated for Detections with class_id"
-            )
-
-        arrays_to_concat = [detections.xyxy, np.expand_dims(detections.class_id, 1)]
-
-        if with_confidence:
-            if detections.confidence is None:
-                raise ValueError(
-                    "ConfusionMatrix can only be calculated for Detections with confidence"
-                )
-            arrays_to_concat.append(np.expand_dims(detections.confidence, 1))
-
-        return np.concatenate(arrays_to_concat, axis=1)
 
     @classmethod
     def from_tensors(
@@ -190,7 +221,7 @@ class ConfusionMatrix:
             ])
             ```
         """
-        cls._validate_input_tensors(predictions, targets)
+        _validate_input_tensors(predictions, targets)
 
         num_classes = len(classes)
         matrix = np.zeros((num_classes + 1, num_classes + 1))
@@ -208,33 +239,6 @@ class ConfusionMatrix:
             conf_threshold=conf_threshold,
             iou_threshold=iou_threshold,
         )
-
-    @classmethod
-    def _validate_input_tensors(
-        cls, predictions: List[np.ndarray], targets: List[np.ndarray]
-    ):
-        """
-        Checks for shape consistency of input tensors.
-        """
-        if len(predictions) != len(targets):
-            raise ValueError(
-                f"Number of predictions ({len(predictions)}) and targets ({len(targets)}) must be equal."
-            )
-        if len(predictions) > 0:
-            if not isinstance(predictions[0], np.ndarray) or not isinstance(
-                targets[0], np.ndarray
-            ):
-                raise ValueError(
-                    f"Predictions and targets must be lists of numpy arrays. Got {type(predictions[0])} and {type(targets[0])} instead."
-                )
-            if predictions[0].shape[1] != 6:
-                raise ValueError(
-                    f"Predictions must have shape (N, 6). Got {predictions[0].shape} instead."
-                )
-            if targets[0].shape[1] != 5:
-                raise ValueError(
-                    f"Targets must have shape (N, 5). Got {targets[0].shape} instead."
-                )
 
     @staticmethod
     def evaluate_detection_batch(
@@ -523,11 +527,9 @@ class MeanAveragePrecision:
         target_tensors = []
         for prediction, target in zip(predictions, targets):
             prediction_tensors.append(
-                ConfusionMatrix.detections_to_tensor(prediction, with_confidence=True)
+                detections_to_tensor(prediction, with_confidence=True)
             )
-            target_tensors.append(
-                ConfusionMatrix.detections_to_tensor(target, with_confidence=False)
-            )
+            target_tensors.append(detections_to_tensor(target, with_confidence=False))
         return cls.from_tensors(
             predictions=prediction_tensors,
             targets=target_tensors,
@@ -633,7 +635,7 @@ class MeanAveragePrecision:
             0.2899
             ```
         """
-        ConfusionMatrix._validate_input_tensors(predictions, targets)
+        _validate_input_tensors(predictions, targets)
         map, map50, map75 = 0, 0, 0
 
         class_index = 4
