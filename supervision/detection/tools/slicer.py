@@ -10,12 +10,16 @@ class Slicer:
     """
     Slicing inference(SAHI) method for small target detection.
     """
-    def __init__(self, callback: Callable[[np.ndarray], Detections],
-                 sliced_width: Optional[int] = 320,
-                 sliced_height: Optional[int] = 320,
-                 overlap_width_ratio: Optional[float] = 0.2,
-                 overlap_height_ratio: Optional[float] = 0.2,
-                 iou_threshold: Optional[float] = 0.5,):
+
+    def __init__(
+        self,
+        callback: Callable[[np.ndarray], Detections],
+        sliced_width: Optional[int] = 320,
+        sliced_height: Optional[int] = 320,
+        overlap_width_ratio: Optional[float] = 0.2,
+        overlap_height_ratio: Optional[float] = 0.2,
+        iou_threshold: Optional[float] = 0.5,
+    ):
         """
         Args:
             callback (Callable): model callback method which returns detections as sv.Detections
@@ -67,14 +71,18 @@ class Slicer:
         """
         detections = []
         image_height, image_width, _ = image.shape
-        offsets = self._offset_generation(image_width=image_width, image_height=image_height)
+        offsets = self._offset_generation(
+            image_width=image_width, image_height=image_height
+        )
 
         for offset in offsets:
-            slice = image[offset[1]:offset[3], offset[0]:offset[2]]
+            slice = image[offset[1] : offset[3], offset[0] : offset[2]]
             det = self.callback(slice)
             det = self._reposition_detections(detection=det, offset=offset)
             detections.append(det)
-        detection = Detections.merge(detections_list=detections).with_nms(threshold=self.iou_threshold)
+        detection = Detections.merge(detections_list=detections).with_nms(
+            threshold=self.iou_threshold
+        )
         return detection
 
     def _offset_generation(self, image_width: int, image_height: int) -> np.ndarray:
@@ -86,8 +94,12 @@ class Slicer:
         Returns:
             list of slice locations according to slicer parameters
         """
-        width_stride = self.siced_width - int(self.overlap_width_ratio * self.siced_width)
-        height_stride = self.sliced_height - int(self.overlap_height_ratio * self.sliced_height)
+        width_stride = self.siced_width - int(
+            self.overlap_width_ratio * self.siced_width
+        )
+        height_stride = self.sliced_height - int(
+            self.overlap_height_ratio * self.sliced_height
+        )
         offsets = []
         for h in range(0, image_height, height_stride):
             for w in range(0, image_width, width_stride):
