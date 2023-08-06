@@ -1,11 +1,11 @@
-from typing import Dict, Optional, Tuple, List
+from typing import Dict, List, Optional, Tuple
 
 import cv2
 import numpy as np
 
 from supervision.detection.core import Detections
 from supervision.draw.color import Color
-from supervision.geometry.core import Point, Rect, Vector, Position
+from supervision.geometry.core import Point, Position, Rect, Vector
 
 
 class LineZone:
