@@ -475,6 +475,7 @@ class MeanAveragePrecision:
         map75 (float): mAP value at IoU `threshold = 0.75`.
         average_precisions (np.ndarray): values for every classes.
     """
+
     map: float
     map50: float
     map75: float
