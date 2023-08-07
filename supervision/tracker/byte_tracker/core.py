@@ -201,6 +201,18 @@ def match_detections_with_tracks(
 
 
 class ByteTrack:
+    """
+    Initialize the ByteTrack object.
+
+    Parameters:
+        track_thresh (float, optional): Detection confidence threshold for track activation.
+        track_buffer (int, optional): Number of frames to buffer when a track is lost.
+        match_thresh (float, optional): Threshold for matching tracks with detections.
+        aspect_ratio_thresh (float, optional): Threshold for aspect ratio to filter out detections.
+        min_box_area (float, optional): Minimum box area threshold to filter out detections.
+        mot20 (bool, optional): Set to True for using MOT20 evaluation criteria.
+        frame_rate (int, optional): The frame rate of the video.
+    """
     def __init__(
         self,
         track_thresh=0.25,
@@ -210,21 +222,6 @@ class ByteTrack:
         min_box_area=1.0,
         frame_rate=30,
     ):
-
-        """
-        Initialize the ByteTrack object.
-
-        Parameters:
-            track_thresh (float, optional): Detection confidence threshold for track activation.
-            track_buffer (int, optional): Number of frames to buffer when a track is lost.
-            match_thresh (float, optional): Threshold for matching tracks with detections.
-            aspect_ratio_thresh (float, optional): Threshold for aspect ratio to filter out detections.
-            min_box_area (float, optional): Minimum box area threshold to filter out detections.
-            mot20 (bool, optional): Set to True for using MOT20 evaluation criteria.
-            frame_rate (int, optional): The frame rate of the video.
-
-
-        """
         self.track_thresh = track_thresh
         self.track_buffer = track_buffer
         self.match_thresh = match_thresh
@@ -241,83 +238,21 @@ class ByteTrack:
         self.max_time_lost = self.buffer_size
         self.kalman_filter = KalmanFilter()
 
-    def update_from_detections(self, detections, img_info, img_size) -> Detections:
+    def update_from_detections(self, detections: Detections) -> Detections:
         """
         Updates the strack with the provided results and frame info.
 
         Parameters:
             detections: The new detections to update with.
-            img_info: Image Info.
-            img_size: Image Size
-
         Returns:
-            Detection: supervision detection result with track id
+            Detection: supervision detection result with track id.
         Examples:
             ```python
-            from tqdm.notebook import tqdm
-            from ultralytics import YOLO
-
-            import supervision as sv
-            from supervision.detection.annotate import BoxAnnotator
-            from supervision import ByteTrack
-            from supervision.utils.video import VideoInfo, VideoSink, get_video_frames_generator
-
-            model = YOLO("yolov5s.pt")
-            CLASS_NAMES_DICT = model.model.names
-            SOURCE_VIDEO_PATH = "walking.mp4"
-            TARGET_VIDEO_PATH = "output.mp4"
-
-            byte_tracker = ByteTrack(
-                track_thresh=0.25,
-                track_buffer=30,
-                match_thresh=0.8,
-                aspect_ratio_thresh=3.0,
-                min_box_area=1.0,
-                mot20=False,
-                frame_rate=30,
-            )
-            annotator = BoxAnnotator()
-
-            # create VideoInfo instance
-            video_info = VideoInfo.from_video_path(SOURCE_VIDEO_PATH)
-            # create frame generator
-            generator = get_video_frames_generator(SOURCE_VIDEO_PATH)
-
-            # open target video file
-            with VideoSink(TARGET_VIDEO_PATH, video_info) as sink:
-                # loop over video frames
-                for frame in tqdm(generator, total=video_info.total_frames):
-                    # inference
-                    results = model(frame)
-                    sv_results = sv.Detections.from_yolov8(results[0])
-
-                    # update tracker
-                    detections_res = byte_tracker.update_from_detections(
-                        detections=sv_results, img_info=frame.shape, img_size=frame.shape
-                    )
-
-                    frame_text_list = []
-                    if len(detections_res) > 0:
-                        for res in detections_res:
-                            confidence = res[2]
-                            class_id = res[3]
-                            tracker_id = res[4]
-                            frame_text = (
-                                f"#{tracker_id} {CLASS_NAMES_DICT[class_id]} {confidence:0.2f}"
-                            )
-                            frame_text_list.append(frame_text)
-                    # draw bbox and add class name with track id
-                    frame = annotator.annotate(
-                        scene=frame, detections=detections_res, labels=frame_text_list
-                    )
-                    sink.write_frame(frame)
             ```
         """
 
         tracks = self.update_from_numpy(
-            output_results=detections2boxes(detections=detections),
-            img_info=img_info,
-            img_size=img_size,
+            output_results=detections2boxes(detections=detections)
         )
         detections = Detections.empty()
         if len(tracks) > 0:
@@ -328,14 +263,12 @@ class ByteTrack:
 
         return detections
 
-    def update_from_numpy(self, output_results, img_info, img_size) -> List[Strack]:
+    def update_from_numpy(self, output_results) -> List[Strack]:
         """
         Update a matched strack. It uses the numpy results.
 
         Parameters:
             output_results: The new detections to update with.
-            img_info: Image Info.
-            img_size: Image Size
 
         Updates the strack with the provided results and frame info.
         Returns:
@@ -343,19 +276,6 @@ class ByteTrack:
 
         Examples:
             ```python
-            from supervision import (
-                ByteTrack,
-                detections2boxes,
-                match_detections_with_tracks,
-            )
-             # update tracker
-            tracks = byte_tracker.update_from_numpy(
-                output_results=detections2boxes(detections=detections),
-                img_info=frame.shape,
-                img_size=frame.shape,
-            )
-
-            tracker_id = match_detections_with_tracks(detections=detections, tracks=tracks)
             ```
         """
         self.frame_id += 1
@@ -376,9 +296,6 @@ class ByteTrack:
             output_results = output_results.cpu().numpy()
             scores = output_results[:, 4] * output_results[:, 5]
             bboxes = output_results[:, :4]  # x1y1x2y2
-        img_h, img_w = img_info[0], img_info[1]
-        scale = min(img_size[0] / float(img_h), img_size[1] / float(img_w))
-        bboxes /= scale
 
         remain_inds = scores > self.track_thresh
         inds_low = scores > 0.1
