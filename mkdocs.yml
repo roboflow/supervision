@@ -37,6 +37,8 @@ nav:
         - Utils: detection/utils.md
         - Tools:
             - Polygon Zone: detection/tools/polygon_zone.md
+    - Trackers:
+        - Core: tracker/core.md
     - Dataset:
         - Core: dataset/core.md
     - Metrics:

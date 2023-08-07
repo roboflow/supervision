@@ -218,19 +218,18 @@ class ByteTrack:
         frame_rate: int = 30,
     ):
         self.track_thresh = track_thresh
-        self.track_buffer = track_buffer
         self.match_thresh = match_thresh
-
-        self.tracked_stracks = []  # type: list[STrack]
-        self.lost_stracks = []  # type: list[STrack]
-        self.removed_stracks = []  # type: list[STrack]
 
         self.frame_id = 0
         self.det_thresh = self.track_thresh + 0.1
-        self.max_time_lost = int(frame_rate / 30.0 * self.track_buffer)
+        self.max_time_lost = int(frame_rate / 30.0 * track_buffer)
         self.kalman_filter = KalmanFilter()
 
-    def update_from_detections(self, detections: Detections) -> Detections:
+        self.tracked_tracks: List[STrack] = []
+        self.lost_tracks: List[STrack] = []
+        self.removed_tracks: List[STrack] = []
+
+    def update_with_detections(self, detections: Detections) -> Detections:
         """
         Updates the strack with the provided results and frame info.
 
@@ -243,7 +242,7 @@ class ByteTrack:
             ```
         """
 
-        tracks = self.update_from_numpy(
+        tracks = self.update_with_numpy(
             output_results=detections2boxes(detections=detections)
         )
         detections = Detections.empty()
@@ -255,7 +254,7 @@ class ByteTrack:
 
         return detections
 
-    def update_from_numpy(self, output_results) -> List[STrack]:
+    def update_with_numpy(self, output_results) -> List[STrack]:
         """
         Update a matched strack. It uses the numpy results.
 
@@ -314,14 +313,14 @@ class ByteTrack:
         """ Add newly detected tracklets to tracked_stracks"""
         unconfirmed = []
         tracked_stracks = []  # type: list[STrack]
-        for track in self.tracked_stracks:
+        for track in self.tracked_tracks:
             if not track.is_activated:
                 unconfirmed.append(track)
             else:
                 tracked_stracks.append(track)
 
         """ Step 2: First association, with high score detection boxes"""
-        strack_pool = joint_stracks(tracked_stracks, self.lost_stracks)
+        strack_pool = joint_stracks(tracked_stracks, self.lost_tracks)
         # Predict the current location with KF
         STrack.multi_predict(strack_pool)
         dists = matching.iou_distance(strack_pool, detections)
@@ -400,24 +399,24 @@ class ByteTrack:
             track.activate(self.kalman_filter, self.frame_id)
             activated_starcks.append(track)
         """ Step 5: Update state"""
-        for track in self.lost_stracks:
+        for track in self.lost_tracks:
             if self.frame_id - track.end_frame > self.max_time_lost:
                 track.mark_removed()
                 removed_stracks.append(track)
 
-        self.tracked_stracks = [
-            t for t in self.tracked_stracks if t.state == TrackState.Tracked
+        self.tracked_tracks = [
+            t for t in self.tracked_tracks if t.state == TrackState.Tracked
         ]
-        self.tracked_stracks = joint_stracks(self.tracked_stracks, activated_starcks)
-        self.tracked_stracks = joint_stracks(self.tracked_stracks, refind_stracks)
-        self.lost_stracks = sub_stracks(self.lost_stracks, self.tracked_stracks)
-        self.lost_stracks.extend(lost_stracks)
-        self.lost_stracks = sub_stracks(self.lost_stracks, self.removed_stracks)
-        self.removed_stracks.extend(removed_stracks)
-        self.tracked_stracks, self.lost_stracks = remove_duplicate_stracks(
-            self.tracked_stracks, self.lost_stracks
+        self.tracked_tracks = joint_stracks(self.tracked_tracks, activated_starcks)
+        self.tracked_tracks = joint_stracks(self.tracked_tracks, refind_stracks)
+        self.lost_tracks = sub_stracks(self.lost_tracks, self.tracked_tracks)
+        self.lost_tracks.extend(lost_stracks)
+        self.lost_tracks = sub_stracks(self.lost_tracks, self.removed_tracks)
+        self.removed_tracks.extend(removed_stracks)
+        self.tracked_tracks, self.lost_tracks = remove_duplicate_stracks(
+            self.tracked_tracks, self.lost_tracks
         )
-        output_stracks = [track for track in self.tracked_stracks if track.is_activated]
+        output_stracks = [track for track in self.tracked_tracks if track.is_activated]
 
         return output_stracks
 
