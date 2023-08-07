@@ -9,7 +9,7 @@ from supervision.tracker.byte_tracker.basetrack import BaseTrack, TrackState
 from supervision.tracker.byte_tracker.kalman_filter import KalmanFilter
 
 
-class Strack(BaseTrack):
+class STrack(BaseTrack):
     shared_kalman = KalmanFilter()
 
     def __init__(self, tlwh, score, class_ids):
@@ -39,7 +39,7 @@ class Strack(BaseTrack):
             for i, st in enumerate(stracks):
                 if st.state != TrackState.Tracked:
                     multi_mean[i][7] = 0
-            multi_mean, multi_covariance = Strack.shared_kalman.multi_predict(
+            multi_mean, multi_covariance = STrack.shared_kalman.multi_predict(
                 multi_mean, multi_covariance
             )
             for i, (mean, cov) in enumerate(zip(multi_mean, multi_covariance)):
@@ -165,13 +165,13 @@ def detections2boxes(detections: Detections) -> np.ndarray:
 
 
 # converts List[strack] into format that can be consumed by match_detections_with_tracks function
-def tracks2boxes(tracks: List[Strack]) -> np.ndarray:
+def tracks2boxes(tracks: List[STrack]) -> np.ndarray:
     return np.array([track.tlbr for track in tracks], dtype=float)
 
 
 # matches our bounding boxes with predictions
 def match_detections_with_tracks(
-    detections: Detections, tracks: List[Strack]
+    detections: Detections, tracks: List[STrack]
 ) -> Detections:
     """
     Match bounding boxes from detections with existing strack objects.
@@ -207,35 +207,27 @@ class ByteTrack:
         track_thresh (float, optional): Detection confidence threshold for track activation.
         track_buffer (int, optional): Number of frames to buffer when a track is lost.
         match_thresh (float, optional): Threshold for matching tracks with detections.
-        aspect_ratio_thresh (float, optional): Threshold for aspect ratio to filter out detections.
-        min_box_area (float, optional): Minimum box area threshold to filter out detections.
-        mot20 (bool, optional): Set to True for using MOT20 evaluation criteria.
         frame_rate (int, optional): The frame rate of the video.
     """
 
     def __init__(
         self,
-        track_thresh=0.25,
-        track_buffer=30,
-        match_thresh=0.8,
-        aspect_ratio_thresh=3.0,
-        min_box_area=1.0,
-        frame_rate=30,
+        track_thresh: float = 0.25,
+        track_buffer: int = 30,
+        match_thresh: float = 0.8,
+        frame_rate: int = 30,
     ):
         self.track_thresh = track_thresh
         self.track_buffer = track_buffer
         self.match_thresh = match_thresh
-        self.aspect_ratio_thresh = aspect_ratio_thresh
-        self.min_box_area = min_box_area
 
-        self.tracked_stracks = []  # type: list[Strack]
-        self.lost_stracks = []  # type: list[Strack]
-        self.removed_stracks = []  # type: list[Strack]
+        self.tracked_stracks = []  # type: list[STrack]
+        self.lost_stracks = []  # type: list[STrack]
+        self.removed_stracks = []  # type: list[STrack]
 
         self.frame_id = 0
         self.det_thresh = self.track_thresh + 0.1
-        self.buffer_size = int(frame_rate / 30.0 * self.track_buffer)
-        self.max_time_lost = self.buffer_size
+        self.max_time_lost = int(frame_rate / 30.0 * self.track_buffer)
         self.kalman_filter = KalmanFilter()
 
     def update_from_detections(self, detections: Detections) -> Detections:
@@ -263,7 +255,7 @@ class ByteTrack:
 
         return detections
 
-    def update_from_numpy(self, output_results) -> List[Strack]:
+    def update_from_numpy(self, output_results) -> List[STrack]:
         """
         Update a matched strack. It uses the numpy results.
 
@@ -313,7 +305,7 @@ class ByteTrack:
         if len(dets) > 0:
             """Detections"""
             detections = [
-                Strack(Strack.tlbr_to_tlwh(tlbr), s, c)
+                STrack(STrack.tlbr_to_tlwh(tlbr), s, c)
                 for (tlbr, s, c) in zip(dets, scores_keep, class_ids_keep)
             ]
         else:
@@ -321,7 +313,7 @@ class ByteTrack:
 
         """ Add newly detected tracklets to tracked_stracks"""
         unconfirmed = []
-        tracked_stracks = []  # type: list[Strack]
+        tracked_stracks = []  # type: list[STrack]
         for track in self.tracked_stracks:
             if not track.is_activated:
                 unconfirmed.append(track)
@@ -331,7 +323,7 @@ class ByteTrack:
         """ Step 2: First association, with high score detection boxes"""
         strack_pool = joint_stracks(tracked_stracks, self.lost_stracks)
         # Predict the current location with KF
-        Strack.multi_predict(strack_pool)
+        STrack.multi_predict(strack_pool)
         dists = matching.iou_distance(strack_pool, detections)
 
         dists = matching.fuse_score(dists, detections)
@@ -354,7 +346,7 @@ class ByteTrack:
         if len(dets_second) > 0:
             """Detections"""
             detections_second = [
-                Strack(Strack.tlbr_to_tlwh(tlbr), s, c)
+                STrack(STrack.tlbr_to_tlwh(tlbr), s, c)
                 for (tlbr, s, c) in zip(dets_second, scores_second, class_ids_second)
             ]
         else:
@@ -430,7 +422,7 @@ class ByteTrack:
         return output_stracks
 
 
-def joint_stracks(tlista, tlistb) -> List[Strack]:
+def joint_stracks(tlista, tlistb) -> List[STrack]:
     exists = {}
     res = []
     for t in tlista:
