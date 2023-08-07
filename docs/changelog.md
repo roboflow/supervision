@@ -1,8 +1,6 @@
 ### 0.13.0 <small>August 8, 2023</small>
 
-## 🚀 Added
-
-- Support for mean average precision (mAP) for object detection models with [`sv.MeanAveragePrecision`](https://roboflow.github.io/supervision/metrics/detection/#meanaverageprecision). ([#236](https://github.com/roboflow/supervision/pull/236))
+- Added [#236](https://github.com/roboflow/supervision/pull/236): support for mean average precision (mAP) for object detection models with [`sv.MeanAveragePrecision`](https://roboflow.github.io/supervision/metrics/detection/#meanaverageprecision). 
 
 ```python
 >>> import supervision as sv
@@ -24,46 +22,17 @@
 0.433
 ```
 
-- Support for `ByteTrack` for object tracking with [`sv.ByteTrack`](https://roboflow.github.io/supervision/tracker/core/#bytetrack). ([#256](https://github.com/roboflow/supervision/pull/256))
+- Added [#256](https://github.com/roboflow/supervision/pull/256): support for ByteTrack for object tracking with [`sv.ByteTrack`](https://roboflow.github.io/supervision/tracker/core/#bytetrack).
 
-```python
->>> import supervision as sv
->>> from ultralytics import YOLO
+- Added [#222](https://github.com/roboflow/supervision/pull/222): [`sv.Detections.from_ultralytics`](https://roboflow.github.io/supervision/detection/core/#supervision.detection.core.Detections.from_ultralytics) to enable seamless integration with [Ultralytics](https://github.com/ultralytics/ultralytics) framework. This will enable you to use `supervision` with all [models](https://docs.ultralytics.com/models/) that Ultralytics supports.
 
->>> model = YOLO(...)
->>> byte_tracker = sv.ByteTrack()
->>> annotator = sv.BoxAnnotator()
+!!! warning
 
->>> def callback(frame: np.ndarray, index: int) -> np.ndarray:
-...     results = model(frame)[0]
-...     detections = sv.Detections.from_yolov8(results)
-...     detections = byte_tracker.update_from_detections(detections=detections)
-...     labels = [
-...         f"#{tracker_id} {model.model.names[class_id]} {confidence:0.2f}"
-...         for _, _, confidence, class_id, tracker_id
-...         in detections
-...     ]
-...     return annotator.annotate(scene=frame.copy(), detections=detections, labels=labels)
+    [`sv.Detections.from_yolov8`](https://roboflow.github.io/supervision/detection/core/#supervision.detection.core.Detections.from_yolov8) is now deprecated and will be removed with `supervision-0.15.0` release.
 
->>> sv.process_video(
-...     source_path='...',
-...     target_path='...',
-...     callback=callback
-... )
-```
+- Added [#191](https://github.com/roboflow/supervision/pull/191): [`sv.Detections.from_paddledet`](https://roboflow.github.io/supervision/detection/core/#supervision.detection.core.Detections.from_paddledet) to enable seamless integration with [PaddleDetection](https://github.com/PaddlePaddle/PaddleDetection) framework.
 
-- [`sv.Detections.from_ultralytics`](https://roboflow.github.io/supervision/detection/core/#supervision.detection.core.Detections.from_ultralytics) to enable seamless integration with [Ultralytics](https://github.com/ultralytics/ultralytics) framework. This will enable you to use `supervision` with all [models](https://docs.ultralytics.com/models/) that Ultralytics supports. ([#222](https://github.com/roboflow/supervision/pull/222))
-
-    > **Warning**
-    > [`sv.Detections.from_yolov8`](https://roboflow.github.io/supervision/detection/core/#supervision.detection.core.Detections.from_yolov8) is now deprecated and will be removed with `supervision-0.15.0` release.
-
-- [`sv.Detections.from_paddledet`](https://roboflow.github.io/supervision/detection/core/#supervision.detection.core.Detections.from_paddledet) to enable seamless integration with [PaddleDetection](https://github.com/PaddlePaddle/PaddleDetection) framework. ([#191](https://github.com/roboflow/supervision/pull/191))
-
-- Support for loading PASCAL VOC segmentation datasets with [`sv.DetectionDataset.`](https://roboflow.github.io/supervision/dataset/core/#supervision.dataset.core.DetectionDataset.from_pascal_voc). ([#245](https://github.com/roboflow/supervision/pull/245))
-
-## 🏆 Contributors
-
-@hardikdava (Hardik Dava), @kirilllzaitsev (Kirill Zaitsev), @onuralpszr (Onuralp SEZER), @dbroboflow (Dervis Basbabasi), @mayankagarwals (Mayank Agarwal), @danigarciaoca (Daniel M. García-Ocaña), @capjamesg (James Gallagher), @SkalskiP (Piotr Skalski)
+- Added [#245](https://github.com/roboflow/supervision/pull/245): support for loading PASCAL VOC segmentation datasets with [`sv.DetectionDataset.`](https://roboflow.github.io/supervision/dataset/core/#supervision.dataset.core.DetectionDataset.from_pascal_voc).
 
 ### 0.12.0 <small>July 24, 2023</small>
 
