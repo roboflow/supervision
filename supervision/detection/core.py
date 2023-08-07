@@ -236,6 +236,9 @@ class Detections:
             confidence=ultralytics_results.boxes.conf.cpu().numpy(),
             class_id=ultralytics_results.boxes.cls.cpu().numpy().astype(int),
             mask=extract_ultralytics_masks(ultralytics_results),
+            tracker_id=ultralytics_results.boxes.id.int().cpu().numpy()
+            if ultralytics_results.boxes.id is not None
+            else None,
         )
 
     @classmethod
