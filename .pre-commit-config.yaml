@@ -39,39 +39,6 @@ repos:
       - id: isort
         name: Sort imports
 
-  - repo: https://github.com/executablebooks/mdformat
-    rev: 0.7.16
-    hooks:
-      - id: mdformat
-        name: MD formatting
-        additional_dependencies:
-          - mdformat-gfm
-          - mdformat-black
-        exclude: "README.md|CITATION|CONTRIBUTING.md"
-
-  # - repo: https://github.com/PyCQA/flake8
-  #   rev: 6.0.0
-  #   hooks:
-  #     - id: flake8
-  #       name: PEP8 Max Line Length Check
-  #       args:
-  #         - --count --max-line-length=88 --exit-zero  --ignore=D --extend-ignore=E203,E501,W503  --statistics
-
-
-  # - repo: https://github.com/PyCQA/flake8
-  #   rev: 6.0.0
-  #   hooks:
-  #     - id: flake8
-  #       name: PEP8
-  #       args:
-  #         - --count  --max-line-length=88 --select=E9,F63,F7,F82 --show-source --statistics
-
-  # -   repo: https://github.com/PyCQA/autoflake
-  #     rev: v2.2.0
-  #     hooks:
-  #     -   id: autoflake
-
-
   - repo: https://github.com/PyCQA/flake8
     rev: 6.0.0
     hooks:

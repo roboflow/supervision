@@ -2,9 +2,7 @@
 
 !!! warning
 
-```
-With the `supervision-0.12.0` release, we are terminating official support for Python 3.7.
-```
+    With the `supervision-0.12.0` release, we are terminating official support for Python 3.7.
 
 - Added [#177](https://github.com/roboflow/supervision/pull/177): initial support for object detection model benchmarking with [`sv.ConfusionMatrix`](https://roboflow.github.io/supervision/metrics/detection/#confusionmatrix).
 

@@ -20,58 +20,54 @@ You can install `supervision` with pip in a
 
 !!! example "pip install (recommended)"
 
-````
-=== "headless"
-    The headless installation of `supervision` is designed for environments where graphical user interfaces (GUI) are not needed, making it more lightweight and suitable for server-side applications.
+    === "headless"
+        The headless installation of `supervision` is designed for environments where graphical user interfaces (GUI) are not needed, making it more lightweight and suitable for server-side applications.
 
-    ```bash
-    pip install supervision
-    ```
+        ```bash
+        pip install supervision
+        ```
 
-=== "desktop"
-    If you require the full version of `supervision` with GUI support you can install the desktop version. This version includes the GUI components of OpenCV, allowing you to display images and videos on the screen.
+    === "desktop"
+        If you require the full version of `supervision` with GUI support you can install the desktop version. This version includes the GUI components of OpenCV, allowing you to display images and videos on the screen.
 
-    ```bash
-    pip install supervision[desktop]
-    ```
-````
+        ```bash
+        pip install supervision[desktop]
+        ```
 
 !!! example "git clone (for development)"
 
-````
-=== "virtualenv"
+    === "virtualenv"
 
-    ```bash
-    # clone repository and navigate to root directory
-    git clone https://github.com/roboflow/supervision.git
-    cd supervision
+        ```bash
+        # clone repository and navigate to root directory
+        git clone https://github.com/roboflow/supervision.git
+        cd supervision
 
-    # setup python environment and activate it
-    python3 -m venv venv
-    source venv/bin/activate
+        # setup python environment and activate it
+        python3 -m venv venv
+        source venv/bin/activate
 
-    # headless install
-    pip install -e "."
+        # headless install
+        pip install -e "."
 
-    # desktop install
-    pip install -e ".[desktop]"
-    ```
+        # desktop install
+        pip install -e ".[desktop]"
+        ```
 
-=== "poetry"
+    === "poetry"
 
-    ```bash
-    # clone repository and navigate to root directory
-    git clone https://github.com/roboflow/supervision.git
-    cd supervision
+        ```bash
+        # clone repository and navigate to root directory
+        git clone https://github.com/roboflow/supervision.git
+        cd supervision
 
-    # setup python environment and activate it
-    poetry env use python 3.10
-    poetry shell
+        # setup python environment and activate it
+        poetry env use python 3.10
+        poetry shell
 
-    # headless install
-    poetry install
+        # headless install
+        poetry install
 
-    # desktop install
-    poetry install --extras "desktop"
-    ```
-````
+        # desktop install
+        poetry install --extras "desktop"
+        ```

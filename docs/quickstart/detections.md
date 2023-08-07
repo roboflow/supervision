@@ -1,5 +1,6 @@
 ## advanced filtering
 
+
 The advanced filtering capabilities of the `Detections` class offer users a versatile and efficient way to narrow down
 and refine object detections. This section outlines various filtering methods, including filtering by specific class
 or a set of classes, confidence, object area, bounding box area, relative area, box dimensions, and designated zones.
@@ -12,37 +13,34 @@ Allows you to select detections that belong only to one selected class.
 
 === "After"
 
-````
-```python
-import supervision as sv
+    ```python
+    import supervision as sv
 
-detections = sv.Detections(...)
-detections = detections[detections.class_id == 0]
-```
+    detections = sv.Detections(...)
+    detections = detections[detections.class_id == 0]
+    ```
 
-<div class="result" markdown>
+    <div class="result" markdown>
 
-![by-specific-class](https://media.roboflow.com/open-source/supervision/supervision-detection-by-specific-class.png){ align=center width="800" }
+    ![by-specific-class](https://media.roboflow.com/open-source/supervision/supervision-detection-by-specific-class.png){ align=center width="800" }
 
-</div>
-````
+    </div>
 
 === "Before"
 
-````
-```python
-import supervision as sv
+    ```python
+    import supervision as sv
 
-detections = sv.Detections(...)
-detections = detections[detections.class_id == 0]
-```
+    detections = sv.Detections(...)
+    detections = detections[detections.class_id == 0]
+    ```
 
-<div class="result" markdown>
+    <div class="result" markdown>
 
-![original](https://media.roboflow.com/open-source/supervision/supervision-detection-original.png){ align=center width="800" }
+    ![original](https://media.roboflow.com/open-source/supervision/supervision-detection-original.png){ align=center width="800" }
 
-</div>
-````
+    </div>
+
 
 ### by set of classes
 
@@ -50,41 +48,37 @@ Allows you to select detections that belong only to selected set of classes.
 
 === "After"
 
-````
-```python
-import numpy as np
-import supervision as sv
+    ```python
+    import numpy as np
+    import supervision as sv
 
-selected_classes = [0, 2, 3]
-detections = sv.Detections(...)
-detections = detections[np.isin(detections.class_id, selected_classes)]
-```
+    selected_classes = [0, 2, 3]
+    detections = sv.Detections(...)
+    detections = detections[np.isin(detections.class_id, selected_classes)]
+    ```
 
-<div class="result" markdown>
+    <div class="result" markdown>
 
-![by-set-of-classes](https://media.roboflow.com/open-source/supervision/supervision-detection-by-set-of-classes.png){ align=center width="800" }
+    ![by-set-of-classes](https://media.roboflow.com/open-source/supervision/supervision-detection-by-set-of-classes.png){ align=center width="800" }
 
-</div>
-````
+    </div>
 
 === "Before"
 
-````
-```python
-import numpy as np
-import supervision as sv
+    ```python
+    import numpy as np
+    import supervision as sv
 
-class_id = [0, 2, 3]
-detections = sv.Detections(...)
-detections = detections[np.isin(detections.class_id, class_id)]
-```
+    class_id = [0, 2, 3]
+    detections = sv.Detections(...)
+    detections = detections[np.isin(detections.class_id, class_id)]
+    ```
 
-<div class="result" markdown>
+    <div class="result" markdown>
 
-![original](https://media.roboflow.com/open-source/supervision/supervision-detection-original.png){ align=center width="800" }
+    ![original](https://media.roboflow.com/open-source/supervision/supervision-detection-original.png){ align=center width="800" }
 
-</div>
-````
+    </div>
 
 ### by confidence
 
@@ -92,37 +86,33 @@ Allows you to select detections with specific confidence value, for example high
 
 === "After"
 
-````
-```python
-import supervision as sv
+    ```python
+    import supervision as sv
 
-detections = sv.Detections(...)
-detections = detections[detections.confidence > 0.5]
-```
+    detections = sv.Detections(...)
+    detections = detections[detections.confidence > 0.5]
+    ```
 
-<div class="result" markdown>
+    <div class="result" markdown>
 
-![by-set-of-classes](https://media.roboflow.com/open-source/supervision/supervision-detection-by-confidence.png){ align=center width="800" }
+    ![by-set-of-classes](https://media.roboflow.com/open-source/supervision/supervision-detection-by-confidence.png){ align=center width="800" }
 
-</div>
-````
+    </div>
 
 === "Before"
 
-````
-```python
-import supervision as sv
+    ```python
+    import supervision as sv
 
-detections = sv.Detections(...)
-detections = detections[detections.confidence > 0.5]
-```
+    detections = sv.Detections(...)
+    detections = detections[detections.confidence > 0.5]
+    ```
 
-<div class="result" markdown>
+    <div class="result" markdown>
 
-![original](https://media.roboflow.com/open-source/supervision/supervision-detection-original.png){ align=center width="800" }
+    ![original](https://media.roboflow.com/open-source/supervision/supervision-detection-original.png){ align=center width="800" }
 
-</div>
-````
+    </div>
 
 ### by area
 
@@ -131,37 +121,33 @@ detection in the image. In the example below, we have sifted out the detections 
 
 === "After"
 
-````
-```python
-import supervision as sv
+    ```python
+    import supervision as sv
 
-detections = sv.Detections(...)
-detections = detections[detections.area > 1000]
-```
+    detections = sv.Detections(...)
+    detections = detections[detections.area > 1000]
+    ```
 
-<div class="result" markdown>
+    <div class="result" markdown>
 
-![by-area](https://media.roboflow.com/open-source/supervision/supervision-detection-by-area.png){ align=center width="800" }
+    ![by-area](https://media.roboflow.com/open-source/supervision/supervision-detection-by-area.png){ align=center width="800" }
 
-</div>
-````
+    </div>
 
 === "Before"
 
-````
-```python
-import supervision as sv
+    ```python
+    import supervision as sv
 
-detections = sv.Detections(...)
-detections = detections[detections.area > 1000]
-```
+    detections = sv.Detections(...)
+    detections = detections[detections.area > 1000]
+    ```
 
-<div class="result" markdown>
+    <div class="result" markdown>
 
-![original](https://media.roboflow.com/open-source/supervision/supervision-detection-original.png){ align=center width="800" }
+    ![original](https://media.roboflow.com/open-source/supervision/supervision-detection-original.png){ align=center width="800" }
 
-</div>
-````
+    </div>
 
 ### by relative area
 
@@ -172,45 +158,41 @@ occupied by them. In the example below, we remove too large detections.
 
 === "After"
 
-````
-```python
-import supervision as sv
+    ```python
+    import supervision as sv
 
-image = ...
-height, width, channels = image.shape
-image_area = height * width
+    image = ...
+    height, width, channels = image.shape
+    image_area = height * width
 
-detections = sv.Detections(...)
-detections = detections[(detections.area / image_area) < 0.8]
-```
+    detections = sv.Detections(...)
+    detections = detections[(detections.area / image_area) < 0.8]
+    ```
 
-<div class="result" markdown>
+    <div class="result" markdown>
 
-![by-relative-area](https://media.roboflow.com/open-source/supervision/supervision-detection-by-relative-area.png?updatedAt=1683207183434){ align=center width="800" }
+    ![by-relative-area](https://media.roboflow.com/open-source/supervision/supervision-detection-by-relative-area.png?updatedAt=1683207183434){ align=center width="800" }
 
-</div>
-````
+    </div>
 
 === "Before"
 
-````
-```python
-import supervision as sv
+    ```python
+    import supervision as sv
 
-image = ...
-height, width, channels = image.shape
-image_area = height * width
+    image = ...
+    height, width, channels = image.shape
+    image_area = height * width
 
-detections = sv.Detections(...)
-detections = detections[(detections.area / image_area) < 0.8]
-```
+    detections = sv.Detections(...)
+    detections = detections[(detections.area / image_area) < 0.8]
+    ```
 
-<div class="result" markdown>
+    <div class="result" markdown>
 
-![original](https://media.roboflow.com/open-source/supervision/supervision-detection-original.png){ align=center width="800" }
+    ![original](https://media.roboflow.com/open-source/supervision/supervision-detection-original.png){ align=center width="800" }
 
-</div>
-````
+    </div>
 
 ### by box dimensions
 
@@ -220,41 +202,37 @@ simple and fast.
 
 === "After"
 
-````
-```python
-import supervision as sv
+    ```python
+    import supervision as sv
 
-detections = sv.Detections(...)
-w = detections.xyxy[:, 2] - detections.xyxy[:, 0]
-h = detections.xyxy[:, 3] - detections.xyxy[:, 1]
-detections = detections[(w > 200) & (h > 200)]
-```
+    detections = sv.Detections(...)
+    w = detections.xyxy[:, 2] - detections.xyxy[:, 0]
+    h = detections.xyxy[:, 3] - detections.xyxy[:, 1]
+    detections = detections[(w > 200) & (h > 200)]
+    ```
 
-<div class="result" markdown>
+    <div class="result" markdown>
 
-![by-box-dimensions](https://media.roboflow.com/open-source/supervision/supervision-detection-by-box-dimensions.png){ align=center width="800" }
+    ![by-box-dimensions](https://media.roboflow.com/open-source/supervision/supervision-detection-by-box-dimensions.png){ align=center width="800" }
 
-</div>
-````
+    </div>
 
 === "Before"
 
-````
-```python
-import supervision as sv
+    ```python
+    import supervision as sv
 
-detections = sv.Detections(...)
-w = detections.xyxy[:, 2] - detections.xyxy[:, 0]
-h = detections.xyxy[:, 3] - detections.xyxy[:, 1]
-detections = detections[(w > 200) & (h > 200)]
-```
+    detections = sv.Detections(...)
+    w = detections.xyxy[:, 2] - detections.xyxy[:, 0]
+    h = detections.xyxy[:, 3] - detections.xyxy[:, 1]
+    detections = detections[(w > 200) & (h > 200)]
+    ```
 
-<div class="result" markdown>
+    <div class="result" markdown>
 
-![original](https://media.roboflow.com/open-source/supervision/supervision-detection-original.png){ align=center width="800" }
+    ![original](https://media.roboflow.com/open-source/supervision/supervision-detection-original.png){ align=center width="800" }
 
-</div>
-````
+    </div>
 
 ### by `PolygonZone`
 
@@ -263,41 +241,37 @@ zone. In the example below you can see how to filter out all detections located 
 
 === "After"
 
-````
-```python
-import supervision as sv
+    ```python
+    import supervision as sv
 
-zone = sv.PolygonZone(...)
-detections = sv.Detections(...)
-mask = zone.trigger(detections=detections)
-detections = detections[mask]
-```
+    zone = sv.PolygonZone(...)
+    detections = sv.Detections(...)
+    mask = zone.trigger(detections=detections)
+    detections = detections[mask]
+    ```
 
-<div class="result" markdown>
+    <div class="result" markdown>
 
-![by-polygon-zone](https://media.roboflow.com/open-source/supervision/supervision-detection-by-polygon-zone.png?updatedAt=1683211380445){ align=center width="800" }
+    ![by-polygon-zone](https://media.roboflow.com/open-source/supervision/supervision-detection-by-polygon-zone.png?updatedAt=1683211380445){ align=center width="800" }
 
-</div>
-````
+    </div>
 
 === "Before"
 
-````
-```python
-import supervision as sv
+    ```python
+    import supervision as sv
 
-zone = sv.PolygonZone(...)
-detections = sv.Detections(...)
-mask = zone.trigger(detections=detections)
-detections = detections[mask]
-```
+    zone = sv.PolygonZone(...)
+    detections = sv.Detections(...)
+    mask = zone.trigger(detections=detections)
+    detections = detections[mask]
+    ```
 
-<div class="result" markdown>
+    <div class="result" markdown>
 
-![original](https://media.roboflow.com/open-source/supervision/supervision-detection-original.png){ align=center width="800" }
+    ![original](https://media.roboflow.com/open-source/supervision/supervision-detection-original.png){ align=center width="800" }
 
-</div>
-````
+    </div>
 
 ### by mixed conditions
 
@@ -305,38 +279,34 @@ detections = detections[mask]
 
 === "After"
 
-````
-```python
-import supervision as sv
+    ```python
+    import supervision as sv
 
-zone = sv.PolygonZone(...)
-detections = sv.Detections(...)
-mask = zone.trigger(detections=detections)
-detections = detections[(detections.confidence > 0.7) & mask]
-```
+    zone = sv.PolygonZone(...)
+    detections = sv.Detections(...)
+    mask = zone.trigger(detections=detections)
+    detections = detections[(detections.confidence > 0.7) & mask]
+    ```
 
-<div class="result" markdown>
+    <div class="result" markdown>
 
-![by-mixed-conditions](https://media.roboflow.com/open-source/supervision/supervision-detection-by-mixed-conditions.png){ align=center width="800" }
+    ![by-mixed-conditions](https://media.roboflow.com/open-source/supervision/supervision-detection-by-mixed-conditions.png){ align=center width="800" }
 
-</div>
-````
+    </div>
 
 === "Before"
 
-````
-```python
-import supervision as sv
+    ```python
+    import supervision as sv
 
-zone = sv.PolygonZone(...)
-detections = sv.Detections(...)
-mask = zone.trigger(detections=detections)
-detections = detections[mask]
-```
+    zone = sv.PolygonZone(...)
+    detections = sv.Detections(...)
+    mask = zone.trigger(detections=detections)
+    detections = detections[mask]
+    ```
 
-<div class="result" markdown>
+    <div class="result" markdown>
 
-![original](https://media.roboflow.com/open-source/supervision/supervision-detection-original.png){ align=center width="800" }
+    ![original](https://media.roboflow.com/open-source/supervision/supervision-detection-original.png){ align=center width="800" }
 
-</div>
-````
+    </div>
