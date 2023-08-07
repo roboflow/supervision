@@ -471,13 +471,13 @@ class MeanAveragePrecision:
         map (float): mAP value.
         map50 (float): mAP value at IoU `threshold = 0.5`.
         map75 (float): mAP value at IoU `threshold = 0.75`.
-        average_precisions (np.ndarray): values for every classes.
+        per_class_ap (np.ndarray): values for every classes.
     """
 
     map: float
     map50: float
     map75: float
-    average_precisions: np.ndarray
+    per_class_ap: np.ndarray
 
     @classmethod
     def from_detections(
@@ -644,14 +644,14 @@ class MeanAveragePrecision:
                 true_batch.shape[0],
                 detection_batch.shape[0],
             )
-            correct = np.zeros((npr, num_ious), dtype=bool)  # init
+            correct = np.zeros((npr, num_ious), dtype=bool)
 
             if npr == 0:
                 if nl:
                     stats.append((correct, *np.zeros((2, 0)), true_batch[:, 4]))
                 continue
             if nl:
-                correct = cls._match_detection_batch(
+                correct = MeanAveragePrecision._match_detection_batch(
                     predictions=detection_batch,
                     targets=true_batch,
                     iou_levels=iou_levels,
@@ -676,9 +676,7 @@ class MeanAveragePrecision:
             )
             map50, map75, map = ap50.mean(), ap75.mean(), average_precisions.mean()
 
-        return cls(
-            map=map, map50=map50, map75=map75, average_precisions=average_precisions
-        )
+        return cls(map=map, map50=map50, map75=map75, per_class_ap=average_precisions)
 
     @staticmethod
     def _match_detection_batch(
@@ -706,7 +704,7 @@ class MeanAveragePrecision:
                     [np.expand_dims(x[0], 1), np.expand_dims(x[1], 1)], axis=1
                 )
                 _x2 = iou[x[0], x[1]][:, None]
-                matches = np.concatenate([_X1, _x2], axis=1)  # [label, detect, iou]
+                matches = np.concatenate([_X1, _x2], axis=1)
                 if x[0].shape[0] > 1:
                     matches = matches[matches[:, 2].argsort()[::-1]]
                     matches = matches[np.unique(matches[:, 1], return_index=True)[1]]
@@ -716,24 +714,28 @@ class MeanAveragePrecision:
         return correct
 
     @staticmethod
-    def compute_average_precision(
-        recall: np.ndarray, precision: np.ndarray
-    ) -> np.ndarray:
-        """Compute the average precision using 101-point interpolation (COCO), given the recall and precision curves
-        Args:
-            recall (np.ndarray):    The recall curve
-            precision (np.ndarray): The precision curve
-        Returns:
-            (np.ndarray): Average precision, precision curve, recall curve
+    def compute_average_precision(recall: np.ndarray, precision: np.ndarray) -> float:
         """
-        mrec = np.concatenate(([0.0], recall, [1.0]))
-        mpre = np.concatenate(([1.0], precision, [0.0]))
+        Compute the average precision using 101-point interpolation (COCO), given the recall and precision curves.
 
-        mpre = np.flip(np.maximum.accumulate(np.flip(mpre)))
+        Args:
+            recall (np.ndarray): The recall curve.
+            precision (np.ndarray): The precision curve.
 
-        x = np.linspace(0, 1, 101)
-        ap = np.trapz(np.interp(x, mrec, mpre), x)
-        return ap
+        Returns:
+            float: Average precision.
+        """
+        extended_recall = np.concatenate(([0.0], recall, [1.0]))
+        extended_precision = np.concatenate(([1.0], precision, [0.0]))
+        max_accumulated_precision = np.flip(
+            np.maximum.accumulate(np.flip(extended_precision))
+        )
+        interpolated_recall_levels = np.linspace(0, 1, 101)
+        interpolated_precision = np.interp(
+            interpolated_recall_levels, extended_recall, max_accumulated_precision
+        )
+        average_precision = np.trapz(interpolated_precision, interpolated_recall_levels)
+        return average_precision
 
     @staticmethod
     def _average_precisions_per_class(
@@ -741,7 +743,7 @@ class MeanAveragePrecision:
         prediction_confidence: np.ndarray,
         prediction_class_ids: np.ndarray,
         true_batch_class_ids: np.ndarray,
-        EPS=1e-16,
+        eps: float = 1e-16,
     ) -> np.ndarray:
         """
         Compute the average precision, given the recall and precision curves.
@@ -775,7 +777,7 @@ class MeanAveragePrecision:
             fp_pool = (1 - matches[valid]).cumsum(0)
             tp_pool = matches[valid].cumsum(0)
 
-            recall = tp_pool / (num_targets + EPS)
+            recall = tp_pool / (num_targets + eps)
             precision = tp_pool / (tp_pool + fp_pool)
 
             for j in range(matches.shape[1]):

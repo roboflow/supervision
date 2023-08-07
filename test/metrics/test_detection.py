@@ -5,8 +5,8 @@ import numpy as np
 import pytest
 
 from supervision.detection.core import Detections
-from supervision.metrics.detection import ConfusionMatrix, detections_to_tensor
-from test.utils import mock_detections
+from supervision.metrics.detection import ConfusionMatrix, detections_to_tensor, MeanAveragePrecision
+from test.utils import mock_detections, assert_almost_equal
 
 CLASSES = np.arange(80)
 NUM_CLASSES = len(CLASSES)
@@ -400,3 +400,43 @@ def test_drop_extra_matches(
         result = ConfusionMatrix._drop_extra_matches(matches)
 
         assert np.array_equal(result, expected_result)
+
+
+@pytest.mark.parametrize(
+    'recall, precision, expected_result, exception',
+    [
+        (
+            np.array([1.0]),
+            np.array([1.0]),
+            1.0,
+            DoesNotRaise()
+        ),  # perfect recall and precision
+        (
+            np.array([0.0]),
+            np.array([0.0]),
+            0.0,
+            DoesNotRaise()
+        ),  # no recall and precision
+        (
+            np.array([0.0, 0.2, 0.2, 0.8, 0.8, 1.0]),
+            np.array([0.7, 0.8, 0.4, 0.5, 0.1, 0.2]),
+            0.5,
+            DoesNotRaise()
+        ),
+        (
+            np.array([0.0, 0.5, 0.5, 1.0]),
+            np.array([0.75, 0.75, 0.75, 0.75]),
+            0.75,
+            DoesNotRaise()
+        )
+    ]
+)
+def test_compute_average_precision(
+        recall: np.ndarray,
+        precision: np.ndarray,
+        expected_result: float,
+        exception: Exception
+) -> None:
+    with exception:
+        result = MeanAveragePrecision.compute_average_precision(recall=recall, precision=precision)
+        assert_almost_equal(result, expected_result, tolerance=0.01)
