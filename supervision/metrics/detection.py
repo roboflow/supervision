@@ -473,6 +473,7 @@ class MeanAveragePrecision:
         map75 (float): Mean Average Precision (mAP) calculated specifically at an IoU threshold of `0.75`.
         per_class_ap50_95 (np.ndarray): Average Precision (AP) values calculated over IoU thresholds ranging from `0.50` to `0.95` with a step size of `0.05`, provided for each individual class.
     """
+
     map50_95: float
     map50: float
     map75: float
@@ -670,7 +671,10 @@ class MeanAveragePrecision:
             average_precisions = []
 
         return cls(
-            map50_95=map50_95, map50=map50, map75=map75, per_class_ap50_95=average_precisions
+            map50_95=map50_95,
+            map50=map50,
+            map75=map75,
+            per_class_ap50_95=average_precisions,
         )
 
     @staticmethod
