@@ -12,6 +12,59 @@ from supervision.detection.core import Detections
 from supervision.detection.utils import box_iou_batch
 
 
+def detections_to_tensor(
+    detections: Detections, with_confidence: bool = False
+) -> np.ndarray:
+    """
+    Convert Supervision Detections to numpy tensors for further computation
+    Args:
+        detections (sv.Detections): Detections/Targets in the format of sv.Detections
+        with_confidence (bool): Whether to include confidence in the tensor
+    Returns:
+        (np.ndarray): Detections as numpy tensors as in (xyxy, class_id, confidence) order
+    """
+    if detections.class_id is None:
+        raise ValueError(
+            "ConfusionMatrix can only be calculated for Detections with class_id"
+        )
+
+    arrays_to_concat = [detections.xyxy, np.expand_dims(detections.class_id, 1)]
+
+    if with_confidence:
+        if detections.confidence is None:
+            raise ValueError(
+                "ConfusionMatrix can only be calculated for Detections with confidence"
+            )
+        arrays_to_concat.append(np.expand_dims(detections.confidence, 1))
+
+    return np.concatenate(arrays_to_concat, axis=1)
+
+
+def validate_input_tensors(predictions: List[np.ndarray], targets: List[np.ndarray]):
+    """
+    Checks for shape consistency of input tensors.
+    """
+    if len(predictions) != len(targets):
+        raise ValueError(
+            f"Number of predictions ({len(predictions)}) and targets ({len(targets)}) must be equal."
+        )
+    if len(predictions) > 0:
+        if not isinstance(predictions[0], np.ndarray) or not isinstance(
+            targets[0], np.ndarray
+        ):
+            raise ValueError(
+                f"Predictions and targets must be lists of numpy arrays. Got {type(predictions[0])} and {type(targets[0])} instead."
+            )
+        if predictions[0].shape[1] != 6:
+            raise ValueError(
+                f"Predictions must have shape (N, 6). Got {predictions[0].shape} instead."
+            )
+        if targets[0].shape[1] != 5:
+            raise ValueError(
+                f"Targets must have shape (N, 5). Got {targets[0].shape} instead."
+            )
+
+
 @dataclass
 class ConfusionMatrix:
     """
@@ -85,11 +138,9 @@ class ConfusionMatrix:
         target_tensors = []
         for prediction, target in zip(predictions, targets):
             prediction_tensors.append(
-                ConfusionMatrix.detections_to_tensor(prediction, with_confidence=True)
+                detections_to_tensor(prediction, with_confidence=True)
             )
-            target_tensors.append(
-                ConfusionMatrix.detections_to_tensor(target, with_confidence=False)
-            )
+            target_tensors.append(detections_to_tensor(target, with_confidence=False))
         return cls.from_tensors(
             predictions=prediction_tensors,
             targets=target_tensors,
@@ -97,26 +148,6 @@ class ConfusionMatrix:
             conf_threshold=conf_threshold,
             iou_threshold=iou_threshold,
         )
-
-    @staticmethod
-    def detections_to_tensor(
-        detections: Detections, with_confidence: bool = False
-    ) -> np.ndarray:
-        if detections.class_id is None:
-            raise ValueError(
-                "ConfusionMatrix can only be calculated for Detections with class_id"
-            )
-
-        arrays_to_concat = [detections.xyxy, np.expand_dims(detections.class_id, 1)]
-
-        if with_confidence:
-            if detections.confidence is None:
-                raise ValueError(
-                    "ConfusionMatrix can only be calculated for Detections with confidence"
-                )
-            arrays_to_concat.append(np.expand_dims(detections.confidence, 1))
-
-        return np.concatenate(arrays_to_concat, axis=1)
 
     @classmethod
     def from_tensors(
@@ -184,7 +215,7 @@ class ConfusionMatrix:
             ])
             ```
         """
-        cls._validate_input_tensors(predictions, targets)
+        validate_input_tensors(predictions, targets)
 
         num_classes = len(classes)
         matrix = np.zeros((num_classes + 1, num_classes + 1))
@@ -202,33 +233,6 @@ class ConfusionMatrix:
             conf_threshold=conf_threshold,
             iou_threshold=iou_threshold,
         )
-
-    @classmethod
-    def _validate_input_tensors(
-        cls, predictions: List[np.ndarray], targets: List[np.ndarray]
-    ):
-        """
-        Checks for shape consistency of input tensors.
-        """
-        if len(predictions) != len(targets):
-            raise ValueError(
-                f"Number of predictions ({len(predictions)}) and targets ({len(targets)}) must be equal."
-            )
-        if len(predictions) > 0:
-            if not isinstance(predictions[0], np.ndarray) or not isinstance(
-                targets[0], np.ndarray
-            ):
-                raise ValueError(
-                    f"Predictions and targets must be lists of numpy arrays. Got {type(predictions[0])} and {type(targets[0])} instead."
-                )
-            if predictions[0].shape[1] != 6:
-                raise ValueError(
-                    f"Predictions must have shape (N, 6). Got {predictions[0].shape} instead."
-                )
-            if targets[0].shape[1] != 5:
-                raise ValueError(
-                    f"Targets must have shape (N, 5). Got {targets[0].shape} instead."
-                )
 
     @staticmethod
     def evaluate_detection_batch(
@@ -319,7 +323,7 @@ class ConfusionMatrix:
         iou_threshold: float = 0.5,
     ) -> ConfusionMatrix:
         """
-        Create confusion matrix from dataset and callback function.
+        Calculate confusion matrix from dataset and callback function.
 
         Args:
             dataset (DetectionDataset): Object detection dataset used for evaluation.
@@ -456,3 +460,331 @@ class ConfusionMatrix:
                 save_path, dpi=250, facecolor=fig.get_facecolor(), transparent=True
             )
         return fig
+
+
+@dataclass(frozen=True)
+class MeanAveragePrecision:
+    """
+    Mean Average Precision for object detection tasks.
+
+    Attributes:
+        map (float): mAP value.
+        map50 (float): mAP value at IoU `threshold = 0.5`.
+        map75 (float): mAP value at IoU `threshold = 0.75`.
+        per_class_ap (np.ndarray): values for every classes.
+    """
+
+    map: float
+    map50: float
+    map75: float
+    per_class_ap: np.ndarray
+
+    @classmethod
+    def from_detections(
+        cls,
+        predictions: List[Detections],
+        targets: List[Detections],
+    ) -> MeanAveragePrecision:
+        """
+        Calculate mean average precision based on predicted and ground-truth detections.
+
+        Args:
+            targets (List[Detections]): Detections objects from ground-truth.
+            predictions (List[Detections]): Detections objects predicted by the model.
+        Returns:
+            MeanAveragePrecision: New instance of ConfusionMatrix.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> targets = [
+            ...     sv.Detections(...),
+            ...     sv.Detections(...)
+            ... ]
+
+            >>> predictions = [
+            ...     sv.Detections(...),
+            ...     sv.Detections(...)
+            ... ]
+
+            >>> mean_average_precision = sv.MeanAveragePrecision.from_detections(
+            ...     predictions=predictions,
+            ...     targets=target,
+            ... )
+
+            >>> mean_average_precison.map
+            0.2899
+            ```
+        """
+        prediction_tensors = []
+        target_tensors = []
+        for prediction, target in zip(predictions, targets):
+            prediction_tensors.append(
+                detections_to_tensor(prediction, with_confidence=True)
+            )
+            target_tensors.append(detections_to_tensor(target, with_confidence=False))
+        return cls.from_tensors(
+            predictions=prediction_tensors,
+            targets=target_tensors,
+        )
+
+    @classmethod
+    def benchmark(
+        cls,
+        dataset: DetectionDataset,
+        callback: Callable[[np.ndarray], Detections],
+    ) -> MeanAveragePrecision:
+        """
+        Calculate mean average precision from dataset and callback function.
+
+        Args:
+            dataset (DetectionDataset): Object detection dataset used for evaluation.
+            callback (Callable[[np.ndarray], Detections]): Function that takes an image as input and returns Detections object.
+        Returns:
+            MeanAveragePrecision: New instance of MeanAveragePrecision.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+            >>> from ultralytics import YOLO
+
+            >>> dataset = sv.DetectionDataset.from_yolo(...)
+
+            >>> model = YOLO(...)
+            >>> def callback(image: np.ndarray) -> sv.Detections:
+            ...     result = model(image)[0]
+            ...     return sv.Detections.from_yolov8(result)
+
+            >>> mean_average_precision = sv.MeanAveragePrecision.benchmark(
+            ...     dataset = dataset,
+            ...     callback = callback
+            ... )
+
+            >>> mean_average_precision.map
+            0.433
+            ```
+        """
+        predictions, targets = [], []
+        for img_name, img in dataset.images.items():
+            predictions_batch = callback(img)
+            predictions.append(predictions_batch)
+            targets_batch = dataset.annotations[img_name]
+            targets.append(targets_batch)
+        return cls.from_detections(
+            predictions=predictions,
+            targets=targets,
+        )
+
+    @classmethod
+    def from_tensors(
+        cls,
+        predictions: List[np.ndarray],
+        targets: List[np.ndarray],
+    ) -> MeanAveragePrecision:
+        """
+        Calculate Mean Average Precision based on predicted and ground-truth detections at different threshold.
+
+        Args:
+            predictions (List[np.ndarray]): Each element of the list describes a single image and has `shape = (M, 6)` where `M` is the number of detected objects. Each row is expected to be in `(x_min, y_min, x_max, y_max, class, conf)` format.
+            targets (List[np.ndarray]): Each element of the list describes a single image and has `shape = (N, 5)` where `N` is the number of ground-truth objects. Each row is expected to be in `(x_min, y_min, x_max, y_max, class)` format.
+        Returns:
+            MeanAveragePrecision: New instance of MeanAveragePrecision.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> targets = (
+            ...     [
+            ...         array(
+            ...             [
+            ...                 [0.0, 0.0, 3.0, 3.0, 1],
+            ...                 [2.0, 2.0, 5.0, 5.0, 1],
+            ...                 [6.0, 1.0, 8.0, 3.0, 2],
+            ...             ]
+            ...         ),
+            ...         array([1.0, 1.0, 2.0, 2.0, 2]),
+            ...     ]
+            ... )
+
+            >>> predictions = [
+            ...     array(
+            ...         [
+            ...             [0.0, 0.0, 3.0, 3.0, 1, 0.9],
+            ...             [0.1, 0.1, 3.0, 3.0, 0, 0.9],
+            ...             [6.0, 1.0, 8.0, 3.0, 1, 0.8],
+            ...             [1.0, 6.0, 2.0, 7.0, 1, 0.8],
+            ...         ]
+            ...     ),
+            ...     array([[1.0, 1.0, 2.0, 2.0, 2, 0.8]])
+            ... ]
+
+            >>> mean_average_precison = sv.MeanAveragePrecision.from_tensors(
+            ...     predictions=predictions,
+            ...     targets=targets,
+            ... )
+
+            >>> mean_average_precison.map
+            0.2899
+            ```
+        """
+        validate_input_tensors(predictions, targets)
+        map, map50, map75 = 0, 0, 0
+
+        class_index = 4
+        conf_index = 5
+
+        stats, average_precisions = [], []
+        iou_levels = np.linspace(0.5, 0.95, 10)
+        num_ious = iou_levels.size
+
+        for true_batch, detection_batch in zip(targets, predictions):
+            nl, npr = (
+                true_batch.shape[0],
+                detection_batch.shape[0],
+            )
+            correct = np.zeros((npr, num_ious), dtype=bool)
+
+            if npr == 0:
+                if nl:
+                    stats.append((correct, *np.zeros((2, 0)), true_batch[:, 4]))
+                continue
+            if nl:
+                correct = MeanAveragePrecision._match_detection_batch(
+                    predictions=detection_batch,
+                    targets=true_batch,
+                    iou_levels=iou_levels,
+                )
+                stats.append(
+                    (
+                        correct,
+                        detection_batch[:, conf_index],
+                        detection_batch[:, class_index],
+                        true_batch[:, class_index],
+                    )
+                )
+
+        stats = [np.concatenate(x, 0) for x in zip(*stats)]
+
+        if len(stats) and stats[0].any():
+            average_precisions = cls._average_precisions_per_class(*stats)
+            ap50, ap75, average_precisions = (
+                average_precisions[:, 0],
+                average_precisions[:, 5],
+                average_precisions.mean(1),
+            )
+            map50, map75, map = ap50.mean(), ap75.mean(), average_precisions.mean()
+
+        return cls(map=map, map50=map50, map75=map75, per_class_ap=average_precisions)
+
+    @staticmethod
+    def _match_detection_batch(
+        predictions: np.ndarray, targets: np.ndarray, iou_levels: np.ndarray
+    ) -> np.ndarray:
+        """
+        Args:
+            predictions (np.ndarray): batch prediction
+            targets (np.ndarray): batch target labels
+            iou_levels (np.ndarray): iou levels array contains different iou levels
+
+        Returns:
+            (np.ndarray): matched prediction with target lebels result
+        """
+        correct = np.zeros((predictions.shape[0], iou_levels.shape[0])).astype(bool)
+        iou = box_iou_batch(targets[:, :4], predictions[:, :4])
+
+        correct_class = targets[:, 4:5] == predictions[:, 4]
+
+        for i in range(len(iou_levels)):
+            x = np.where((iou >= iou_levels[i]) & correct_class)
+
+            if x[0].shape[0]:
+                _X1 = np.concatenate(
+                    [np.expand_dims(x[0], 1), np.expand_dims(x[1], 1)], axis=1
+                )
+                _x2 = iou[x[0], x[1]][:, None]
+                matches = np.concatenate([_X1, _x2], axis=1)
+                if x[0].shape[0] > 1:
+                    matches = matches[matches[:, 2].argsort()[::-1]]
+                    matches = matches[np.unique(matches[:, 1], return_index=True)[1]]
+                    matches = matches[np.unique(matches[:, 0], return_index=True)[1]]
+                correct[matches[:, 1].astype(int), i] = True
+                correct[matches[:, 1].astype(int), i] = True
+        return correct
+
+    @staticmethod
+    def compute_average_precision(recall: np.ndarray, precision: np.ndarray) -> float:
+        """
+        Compute the average precision using 101-point interpolation (COCO), given the recall and precision curves.
+
+        Args:
+            recall (np.ndarray): The recall curve.
+            precision (np.ndarray): The precision curve.
+
+        Returns:
+            float: Average precision.
+        """
+        extended_recall = np.concatenate(([0.0], recall, [1.0]))
+        extended_precision = np.concatenate(([1.0], precision, [0.0]))
+        max_accumulated_precision = np.flip(
+            np.maximum.accumulate(np.flip(extended_precision))
+        )
+        interpolated_recall_levels = np.linspace(0, 1, 101)
+        interpolated_precision = np.interp(
+            interpolated_recall_levels, extended_recall, max_accumulated_precision
+        )
+        average_precision = np.trapz(interpolated_precision, interpolated_recall_levels)
+        return average_precision
+
+    @staticmethod
+    def _average_precisions_per_class(
+        matches: np.ndarray,
+        prediction_confidence: np.ndarray,
+        prediction_class_ids: np.ndarray,
+        true_batch_class_ids: np.ndarray,
+        eps: float = 1e-16,
+    ) -> np.ndarray:
+        """
+        Compute the average precision, given the recall and precision curves.
+        Source: https://github.com/rafaelpadilla/Object-Detection-Metrics.
+        Args:
+            matches (np.ndarray):  True positives (nparray, nx1 or nx10).
+            prediction_confidence (np.ndarray):  Objectness value from 0-1 (nparray).
+            prediction_class_ids (np.ndarray):  Predicted object classes (nparray).
+            true_batch_class_ids (np.ndarray):  True object classes (nparray).
+        Returns:
+            (np.ndarray): Average precision for different iou level array
+        """
+        sorted_confidences = np.argsort(-prediction_confidence)
+        matches = matches[sorted_confidences]
+        prediction_class_ids = prediction_class_ids[sorted_confidences]
+
+        # Find unique classes
+        unique_classes, class_counts = np.unique(
+            true_batch_class_ids, return_counts=True
+        )
+        num_classes = unique_classes.shape[0]  # number of classes, number of detections
+
+        average_precisions = np.zeros((num_classes, matches.shape[1]))
+        for ci, c in enumerate(unique_classes):
+            valid = prediction_class_ids == c
+            num_targets = class_counts[ci]  # number of labels
+            num_predictions = valid.sum()  # number of predictions
+            if num_predictions == 0 or num_targets == 0:
+                continue
+
+            fp_pool = (1 - matches[valid]).cumsum(0)
+            tp_pool = matches[valid].cumsum(0)
+
+            recall = tp_pool / (num_targets + eps)
+            precision = tp_pool / (tp_pool + fp_pool)
+
+            for j in range(matches.shape[1]):
+                average_precisions[
+                    ci, j
+                ] = MeanAveragePrecision.compute_average_precision(
+                    recall[:, j], precision[:, j]
+                )
+
+        return average_precisions
