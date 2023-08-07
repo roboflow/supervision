@@ -3,7 +3,6 @@ from collections import deque
 
 
 class FpsMonitor:
-
     def __init__(self, sample_size: int = 30):
         """
         Initialize class to measure Frame per second for latency benchmark.
