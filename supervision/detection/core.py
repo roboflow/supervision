@@ -209,7 +209,7 @@ class Detections:
         Creates a Detections instance from a [YOLOv8](https://github.com/ultralytics/ultralytics) inference result.
 
         Args:
-            yolov8_results (ultralytics.yolo.engine.results.Results): The output Results instance from YOLOv8
+            ultralytics_results (ultralytics.yolo.engine.results.Results): The output Results instance from YOLOv8
 
         Returns:
             Detections: A new Detections object.
@@ -274,10 +274,10 @@ class Detections:
         Also supported for [mmyolo](https://github.com/open-mmlab/mmyolo)
 
         Args:
-        mmdet_results (mmdet.structures.DetDataSample): The output Results instance from MMDetection
+            mmdet_results (mmdet.structures.DetDataSample): The output Results instance from MMDetection
 
         Returns:
-        Detections: A new Detections object.
+            Detections: A new Detections object.
 
         Example:
             ```python
@@ -423,7 +423,7 @@ class Detections:
         return Detections(xyxy=xywh_to_xyxy(boxes_xywh=xywh), mask=mask)
 
     @classmethod
-    def from_paddledet(cls, paddledet_result):
+    def from_paddledet(cls, paddledet_result) -> Detections:
         """
         Creates a Detections instance from [PaddleDetection](https://github.com/PaddlePaddle/PaddleDetection) inference result.
 
