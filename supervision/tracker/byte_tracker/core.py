@@ -230,10 +230,18 @@ class ByteTrack:
         )
         detections = Detections.empty()
         if len(tracks) > 0:
-            detections.xyxy = np.array([track.tlbr for track in tracks], dtype=np.float32)
-            detections.class_id = np.array([int(t.class_ids) for t in tracks], dtype=int)
-            detections.tracker_id = np.array([int(t.track_id) for t in tracks], dtype=int)
-            detections.confidence = np.array([t.score for t in tracks], dtype=np.float32)
+            detections.xyxy = np.array(
+                [track.tlbr for track in tracks], dtype=np.float32
+            )
+            detections.class_id = np.array(
+                [int(t.class_ids) for t in tracks], dtype=int
+            )
+            detections.tracker_id = np.array(
+                [int(t.track_id) for t in tracks], dtype=int
+            )
+            detections.confidence = np.array(
+                [t.score for t in tracks], dtype=np.float32
+            )
 
         return detections
 
@@ -390,7 +398,9 @@ class ByteTrack:
         return output_stracks
 
 
-def joint_tracks(track_list_a: List[STrack], track_list_b: List[STrack]) -> List[STrack]:
+def joint_tracks(
+    track_list_a: List[STrack], track_list_b: List[STrack]
+) -> List[STrack]:
     """
     Joins two lists of tracks, ensuring that the resulting list does not
     contain tracks with duplicate track_id values.
@@ -446,7 +456,11 @@ def remove_duplicate_tracks(tracks_a: List, tracks_b: List) -> Tuple[List, List]
         else:
             duplicates_a.add(track_index_a)
 
-    result_a = [track for index, track in enumerate(tracks_a) if index not in duplicates_a]
-    result_b = [track for index, track in enumerate(tracks_b) if index not in duplicates_b]
+    result_a = [
+        track for index, track in enumerate(tracks_a) if index not in duplicates_a
+    ]
+    result_b = [
+        track for index, track in enumerate(tracks_b) if index not in duplicates_b
+    ]
 
     return result_a, result_b
