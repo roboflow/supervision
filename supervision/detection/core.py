@@ -226,8 +226,10 @@ class Detections:
             >>> model = SAM('mobile_sam.pt')
             >>> model = FastSAM('FastSAM-s.pt')
             >>> model = RTDETR('rtdetr-l.pt')
-
+            >>> # model inferences
             >>> result = model(image)[0]
+            >>> # if tracker is enabled
+            >>> result = model.track(image)[0]
             >>> detections = sv.Detections.from_ultralytics(result)
             ```
         """
