@@ -26,7 +26,7 @@ def _validate_mask(mask: Any, n: int) -> None:
         isinstance(mask, np.ndarray) and len(mask.shape) == 3 and mask.shape[0] == n
     )
     if not is_valid:
-        raise ValueError("mask must be 3d np.ndarray with (n, W, H) shape")
+        raise ValueError("mask must be 3d np.ndarray with (n, H, W) shape")
 
 
 def _validate_class_id(class_id: Any, n: int) -> None:
@@ -58,16 +58,16 @@ class Detections:
     """
     Data class containing information about the detections in a video frame.
     Attributes:
-        xyxy (np.ndarray): An array of shape `(n, 4)` containing the
-            bounding boxes coordinates in format `[x1, y1, x2, y2]`
-        mask: (Optional[np.ndarray]): An array of shape `(n, W, H)`
-            containing the segmentation masks.
-        confidence (Optional[np.ndarray]): An array of shape `(n,)`
-            containing the confidence scores of the detections.
-        class_id (Optional[np.ndarray]): An array of shape `(n,)`
-            containing the class ids of the detections.
-        tracker_id (Optional[np.ndarray]): An array of shape `(n,)`
-            containing the tracker ids of the detections.
+        xyxy (np.ndarray): An array of shape `(n, 4)` containing
+            the bounding boxes coordinates in format `[x1, y1, x2, y2]`
+        mask: (Optional[np.ndarray]): An array of shape
+            `(n, H, W)` containing the segmentation masks.
+        confidence (Optional[np.ndarray]): An array of shape
+            `(n,)` containing the confidence scores of the detections.
+        class_id (Optional[np.ndarray]): An array of shape
+            `(n,)` containing the class ids of the detections.
+        tracker_id (Optional[np.ndarray]): An array of shape
+            `(n,)` containing the tracker ids of the detections.
     """
 
     xyxy: np.ndarray
@@ -220,8 +220,8 @@ class Detections:
             [YOLOv8](https://github.com/ultralytics/ultralytics) inference result.
 
         Args:
-            yolov8_results (ultralytics.yolo.engine.results.Results): The output
-                results instance from YOLOv8
+            ultralytics_results (ultralytics.yolo.engine.results.Results):
+                The output Results instance from YOLOv8
 
         Returns:
             Detections: A new Detections object.
@@ -292,11 +292,11 @@ class Detections:
         Also supported for [mmyolo](https://github.com/open-mmlab/mmyolo)
 
         Args:
-        mmdet_results (mmdet.structures.DetDataSample):
-            The output Results instance from MMDetection
+            mmdet_results (mmdet.structures.DetDataSample):
+                The output Results instance from MMDetection
 
         Returns:
-        Detections: A new Detections object.
+            Detections: A new Detections object.
 
         Example:
             ```python
@@ -457,7 +457,7 @@ class Detections:
         return Detections(xyxy=xywh_to_xyxy(boxes_xywh=xywh), mask=mask)
 
     @classmethod
-    def from_paddledet(cls, paddledet_result):
+    def from_paddledet(cls, paddledet_result) -> Detections:
         """
         Creates a Detections instance from
             [PaddleDetection](https://github.com/PaddlePaddle/PaddleDetection)

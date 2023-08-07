@@ -176,15 +176,15 @@ def process_video(
 
     Examples:
         ```python
-        >>> from supervision import process_video
+        >>> import supervision as sv
 
-        >>> def process_frame(scene: np.ndarray) -> np.ndarray:
+        >>> def callback(scene: np.ndarray, index: int) -> np.ndarray:
         ...     ...
 
         >>> process_video(
-        ...     source_path='source_video.mp4',
-        ...     target_path='target_video.mp4',
-        ...     callback=process_frame
+        ...     source_path='...',
+        ...     target_path='...',
+        ...     callback=callback
         ... )
         ```
     """

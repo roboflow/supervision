@@ -8,3 +8,7 @@ Evaluation API is still fluid and may change. If you use Evaluation API in your 
 ## ConfusionMatrix
 
 :::supervision.metrics.detection.ConfusionMatrix
+
+## MeanAveragePrecision
+
+:::supervision.metrics.detection.MeanAveragePrecision
