@@ -2,7 +2,7 @@ from typing import List, Tuple
 
 import numpy as np
 
-from supervision import Detections
+from supervision.detection.core import Detections
 from supervision.tracker.byte_tracker import matching
 from supervision.tracker.byte_tracker.basetrack import BaseTrack, TrackState
 from supervision.tracker.byte_tracker.kalman_filter import KalmanFilter
@@ -143,16 +143,13 @@ class STrack(BaseTrack):
         return "OT_{}_({}-{})".format(self.track_id, self.start_frame, self.end_frame)
 
 
-# converts Detections into format that can be consumed by match_detections_with_tracks function
 def detections2boxes(detections: Detections) -> np.ndarray:
     """
-    Convert Detections into a format that can be consumed by the match_detections_with_tracks function.
-
-    Parameters:
-        detections (Detections): An object representing the detected bounding boxes.
-
+    Convert Supervision Detections to numpy tensors for further computation.
+    Args:
+        detections (Detections): Detections/Targets in the format of sv.Detections.
     Returns:
-        np.ndarray: An array containing the bounding boxes' coordinates (xyxy) and their corresponding confidences.
+        (np.ndarray): Detections as numpy tensors as in `(x_min, y_min, x_max, y_max, confidence, class_id)` order.
     """
     return np.hstack(
         (
@@ -201,8 +198,31 @@ class ByteTrack:
             detections: The new detections to update with.
         Returns:
             Detection: supervision detection result with track id.
-        Examples:
+        Example:
             ```python
+            >>> import supervision as sv
+            >>> from ultralytics import YOLO
+
+            >>> model = YOLO(...)
+            >>> byte_tracker = sv.ByteTrack()
+            >>> annotator = sv.BoxAnnotator()
+
+            def callback(frame: np.ndarray, index: int) -> np.ndarray:
+                results = model(frame)[0]
+                detections = sv.Detections.from_yolov8(results)
+                detections = byte_tracker.update_from_detections(detections=detections)
+                labels = [
+                    f"#{tracker_id} {model.model.names[class_id]} {confidence:0.2f}"
+                    for _, _, confidence, class_id, tracker_id
+                    in detections
+                ]
+                return annotator.annotate(scene=frame.copy(), detections=detections, labels=labels)
+
+            sv.process_video(
+                source_path='...',
+                target_path='...',
+                callback=callback
+            )
             ```
         """
 
@@ -225,7 +245,6 @@ class ByteTrack:
         Parameters:
             output_results: The new detections to update with.
 
-        Updates the strack with the provided results and frame info.
         Returns:
             Track_id: track id
 
