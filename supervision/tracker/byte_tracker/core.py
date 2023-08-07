@@ -13,7 +13,6 @@ class Strack(BaseTrack):
     shared_kalman = KalmanFilter()
 
     def __init__(self, tlwh, score, class_ids):
-
         # wait activate
         self._tlwh = np.asarray(tlwh, dtype=np.float32)
         self.kalman_filter = None
@@ -213,6 +212,7 @@ class ByteTrack:
         mot20 (bool, optional): Set to True for using MOT20 evaluation criteria.
         frame_rate (int, optional): The frame rate of the video.
     """
+
     def __init__(
         self,
         track_thresh=0.25,
