@@ -31,7 +31,7 @@ Pip install the supervision package in a
 pip install supervision[desktop]
 ```
 
-Read more about desktop, headless and local installation in our [guide](https://roboflow.github.io/supervision/).
+Read more about desktop, headless, and local installation in our [guide](https://roboflow.github.io/supervision/).
 
 ## 🔥 quickstart
 
@@ -52,7 +52,7 @@ Read more about desktop, headless and local installation in our [guide](https://
 <details close>
 <summary>👉 more detections utils</summary>
   
-- Easily switch inference pipeline between supported object detection / instance segmentation models
+- Easily switch inference pipeline between supported object detection/instance segmentation models
   
     ```python
     >>> import supervision as sv
@@ -107,7 +107,7 @@ Read more about desktop, headless and local installation in our [guide](https://
 <details close>
 <summary>👉 more dataset utils</summary>
 
-- Load object detection / instance segmentation datasets in one of supported formats
+- Load object detection/instance segmentation datasets in one of the supported formats
 
     ```python
     >>> dataset = sv.DetectionDataset.from_yolo(
@@ -138,7 +138,7 @@ Read more about desktop, headless and local installation in our [guide](https://
            [ 20.154999, 347.825   , 416.125   , 915.895   ]], dtype=float32)
     ```
   
-- Split dataset for training, testing and validation
+- Split dataset for training, testing, and validation
   
     ```python
     >>> train_dataset, test_dataset = dataset.split(split_ratio=0.7)
@@ -148,7 +148,7 @@ Read more about desktop, headless and local installation in our [guide](https://
     (700, 150, 150)
     ```
   
-- Merge multiple datasets together
+- Merge multiple datasets
 
     ```python
     >>> ds_1 = sv.DetectionDataset(...)
@@ -170,7 +170,7 @@ Read more about desktop, headless and local installation in our [guide](https://
     ['cat', 'dog', 'person']
     ```
   
-- Save object detection / instance segmentation datasets in one of supported formats
+- Save object detection/instance segmentation datasets in one of the supported formats
   
     ```python
     >>> dataset.as_yolo(
@@ -203,7 +203,7 @@ Read more about desktop, headless and local installation in our [guide](https://
     ... )
     ```
   
-- Load classification datasets in one of supported formats
+- Load classification datasets in one of the supported formats
 
     ```python
     >>> cs = sv.ClassificationDataset.from_folder_structure(
@@ -211,7 +211,7 @@ Read more about desktop, headless and local installation in our [guide](https://
     ... )
     ```
 
-- Save classification datasets in one of supported formats
+- Save classification datasets in one of the supported formats
 
     ```python
     >>> cs.as_folder_structure(
@@ -244,6 +244,30 @@ array([
     [1., 1., 0., 0.]
 ])
 ```
+
+<details close>
+<summary>👉 more metrics</summary>
+
+- Mean average precision (mAP) for object detection tasks.
+
+    ```python
+    >>> import supervision as sv
+    
+    >>> dataset = sv.DetectionDataset.from_yolo(...)
+    
+    >>> def callback(image: np.ndarray) -> sv.Detections:
+    ...     ...
+    
+    >>> mean_average_precision = sv.MeanAveragePrecision.benchmark(
+    ...     dataset = dataset,
+    ...     callback = callback
+    ... )
+    
+    >>> mean_average_precision.map50_95
+    0.433 
+    ```
+  
+</details>
 
 ## 🎬 tutorials
 
