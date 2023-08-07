@@ -21,12 +21,6 @@ def indices_to_matches(
 def linear_assignment(
     cost_matrix: np.ndarray, thresh: float
 ) -> [np.ndarray, Tuple[int], Tuple[int, int]]:
-    """
-    Simple linear assignment
-    :type cost_matrix: np.ndarray
-    :type thresh: float
-    :return: matches, unmatched_a, unmatched_b
-    """
     if cost_matrix.size == 0:
         return (
             np.empty((0, 2), dtype=int),
@@ -42,14 +36,6 @@ def linear_assignment(
 
 
 def iou_distance(atracks: List, btracks: List) -> np.ndarray:
-    """
-    Compute cost based on IoU
-    :type atracks: list[STrack]
-    :type btracks: list[STrack]
-
-    :rtype cost_matrix np.ndarray
-    """
-
     if (len(atracks) > 0 and isinstance(atracks[0], np.ndarray)) or (
         len(btracks) > 0 and isinstance(btracks[0], np.ndarray)
     ):

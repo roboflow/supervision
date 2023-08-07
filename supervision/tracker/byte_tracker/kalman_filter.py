@@ -57,7 +57,9 @@ class KalmanFilter:
         covariance = np.diag(np.square(std))
         return mean, covariance
 
-    def predict(self, mean: np.ndarray, covariance: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def predict(
+        self, mean: np.ndarray, covariance: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Run Kalman filter prediction step.
 
@@ -90,7 +92,9 @@ class KalmanFilter:
 
         return mean, covariance
 
-    def project(self, mean: np.ndarray, covariance: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def project(
+        self, mean: np.ndarray, covariance: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Project state distribution to measurement space.
 
@@ -115,7 +119,9 @@ class KalmanFilter:
         )
         return mean, covariance + innovation_cov
 
-    def multi_predict(self, mean: np.ndarray, covariance: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def multi_predict(
+        self, mean: np.ndarray, covariance: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Run Kalman filter prediction step (Vectorized version).
 
