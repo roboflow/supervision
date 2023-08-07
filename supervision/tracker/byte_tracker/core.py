@@ -192,12 +192,12 @@ class ByteTrack:
 
     def update_with_detections(self, detections: Detections) -> Detections:
         """
-        Updates the strack with the provided results and frame info.
+        Updates the tracker with the provided detections and returns the updated detection results.
 
         Parameters:
             detections: The new detections to update with.
         Returns:
-            Detection: supervision detection result with track id.
+            Detection: The updated detection results that now include tracking IDs.
         Example:
             ```python
             >>> import supervision as sv
@@ -226,31 +226,27 @@ class ByteTrack:
             ```
         """
 
-        tracks = self.update_with_numpy(
-            output_results=detections2boxes(detections=detections)
+        tracks = self.update_with_tensors(
+            tensors=detections2boxes(detections=detections)
         )
         detections = Detections.empty()
         if len(tracks) > 0:
-            detections.xyxy = np.array([track.tlbr for track in tracks], dtype=float)
-            detections.class_id = [int(t.class_ids) for t in tracks]
-            detections.tracker_id = [int(t.track_id) for t in tracks]
-            detections.confidence = [t.score for t in tracks]
+            detections.xyxy = np.array([track.tlbr for track in tracks], dtype=np.float32)
+            detections.class_id = np.array([int(t.class_ids) for t in tracks], dtype=int)
+            detections.tracker_id = np.array([int(t.track_id) for t in tracks], dtype=int)
+            detections.confidence = np.array([t.score for t in tracks], dtype=np.float32)
 
         return detections
 
-    def update_with_numpy(self, output_results: np.ndarray) -> List[STrack]:
+    def update_with_tensors(self, tensors: np.ndarray) -> List[STrack]:
         """
-        Update a matched strack. It uses the numpy results.
+        Updates the tracker with the provided tensors and returns the updated tracks.
 
         Parameters:
-            output_results: The new detections to update with.
+            tensors: The new tensors to update with.
 
         Returns:
-            Track_id: track id
-
-        Examples:
-            ```python
-            ```
+            List[STrack]: Updated tracks.
         """
         self.frame_id += 1
         activated_starcks = []
@@ -258,18 +254,9 @@ class ByteTrack:
         lost_stracks = []
         removed_stracks = []
 
-        if output_results.shape[1] == 5:
-            scores = output_results[:, 4]
-            bboxes = output_results[:, :4]
-        elif isinstance(output_results, np.ndarray) and output_results.shape[1] == 6:
-            class_ids = output_results[:, 5]
-            scores = output_results[:, 4]
-            bboxes = output_results[:, :4]
-        else:
-            # Todo: Handle class id from torch tensor
-            output_results = output_results.cpu().numpy()
-            scores = output_results[:, 4] * output_results[:, 5]
-            bboxes = output_results[:, :4]  # x1y1x2y2
+        class_ids = tensors[:, 5]
+        scores = tensors[:, 4]
+        bboxes = tensors[:, :4]
 
         remain_inds = scores > self.track_thresh
         inds_low = scores > 0.1
