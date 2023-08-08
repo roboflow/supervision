@@ -7,12 +7,13 @@ import cv2
 import numpy as np
 
 from supervision.detection.utils import (
-    extract_yolov8_masks,
+    extract_ultralytics_masks,
     non_max_suppression,
     process_roboflow_result,
     xywh_to_xyxy,
 )
 from supervision.geometry.core import Position
+from supervision.utils.internal import deprecated
 
 
 def _validate_xyxy(xyxy: Any, n: int) -> None:
@@ -26,7 +27,7 @@ def _validate_mask(mask: Any, n: int) -> None:
         isinstance(mask, np.ndarray) and len(mask.shape) == 3 and mask.shape[0] == n
     )
     if not is_valid:
-        raise ValueError("mask must be 3d np.ndarray with (n, W, H) shape")
+        raise ValueError("mask must be 3d np.ndarray with (n, H, W) shape")
 
 
 def _validate_class_id(class_id: Any, n: int) -> None:
@@ -59,7 +60,7 @@ class Detections:
     Data class containing information about the detections in a video frame.
     Attributes:
         xyxy (np.ndarray): An array of shape `(n, 4)` containing the bounding boxes coordinates in format `[x1, y1, x2, y2]`
-        mask: (Optional[np.ndarray]): An array of shape `(n, W, H)` containing the segmentation masks.
+        mask: (Optional[np.ndarray]): An array of shape `(n, H, W)` containing the segmentation masks.
         confidence (Optional[np.ndarray]): An array of shape `(n,)` containing the confidence scores of the detections.
         class_id (Optional[np.ndarray]): An array of shape `(n,)` containing the class ids of the detections.
         tracker_id (Optional[np.ndarray]): An array of shape `(n,)` containing the tracker ids of the detections.
@@ -170,6 +171,9 @@ class Detections:
         )
 
     @classmethod
+    @deprecated(
+        "This method is deprecated and removed in 0.15.0 release. Use sv.Detections.from_ultralytics() instead."
+    )
     def from_yolov8(cls, yolov8_results) -> Detections:
         """
         Creates a Detections instance from a [YOLOv8](https://github.com/ultralytics/ultralytics) inference result.
@@ -196,7 +200,47 @@ class Detections:
             xyxy=yolov8_results.boxes.xyxy.cpu().numpy(),
             confidence=yolov8_results.boxes.conf.cpu().numpy(),
             class_id=yolov8_results.boxes.cls.cpu().numpy().astype(int),
-            mask=extract_yolov8_masks(yolov8_results),
+            mask=extract_ultralytics_masks(yolov8_results),
+        )
+
+    @classmethod
+    def from_ultralytics(cls, ultralytics_results) -> Detections:
+        """
+        Creates a Detections instance from a [YOLOv8](https://github.com/ultralytics/ultralytics) inference result.
+
+        Args:
+            ultralytics_results (ultralytics.yolo.engine.results.Results): The output Results instance from YOLOv8
+
+        Returns:
+            Detections: A new Detections object.
+
+        Example:
+            ```python
+            >>> import cv2
+            >>> from ultralytics import YOLO, FastSAM, SAM, RTDETR
+            >>> import supervision as sv
+
+            >>> image = cv2.imread(SOURCE_IMAGE_PATH)
+            >>> model = YOLO('yolov8s.pt')
+            >>> model = SAM('sam_b.pt')
+            >>> model = SAM('mobile_sam.pt')
+            >>> model = FastSAM('FastSAM-s.pt')
+            >>> model = RTDETR('rtdetr-l.pt')
+            >>> # model inferences
+            >>> result = model(image)[0]
+            >>> # if tracker is enabled
+            >>> result = model.track(image)[0]
+            >>> detections = sv.Detections.from_ultralytics(result)
+            ```
+        """
+        return cls(
+            xyxy=ultralytics_results.boxes.xyxy.cpu().numpy(),
+            confidence=ultralytics_results.boxes.conf.cpu().numpy(),
+            class_id=ultralytics_results.boxes.cls.cpu().numpy().astype(int),
+            mask=extract_ultralytics_masks(ultralytics_results),
+            tracker_id=ultralytics_results.boxes.id.int().cpu().numpy()
+            if ultralytics_results.boxes.id is not None
+            else None,
         )
 
     @classmethod
@@ -235,10 +279,10 @@ class Detections:
         Also supported for [mmyolo](https://github.com/open-mmlab/mmyolo)
 
         Args:
-        mmdet_results (mmdet.structures.DetDataSample): The output Results instance from MMDetection
+            mmdet_results (mmdet.structures.DetDataSample): The output Results instance from MMDetection
 
         Returns:
-        Detections: A new Detections object.
+            Detections: A new Detections object.
 
         Example:
             ```python
@@ -382,6 +426,42 @@ class Detections:
         mask = np.array([mask["segmentation"] for mask in sorted_generated_masks])
 
         return Detections(xyxy=xywh_to_xyxy(boxes_xywh=xywh), mask=mask)
+
+    @classmethod
+    def from_paddledet(cls, paddledet_result) -> Detections:
+        """
+        Creates a Detections instance from [PaddleDetection](https://github.com/PaddlePaddle/PaddleDetection) inference result.
+
+        Args:
+            paddledet_result (List[dict]): The output Results instance from SAM
+
+        Returns:
+            Detections: A new Detections object.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+            >>> import paddle
+            >>> from ppdet.engine import Trainer
+            >>> from ppdet.core.workspace import load_config
+
+            >>> weights = (...)
+            >>> config = (...)
+
+            >>> cfg = load_config(config)
+            >>> trainer = Trainer(cfg, mode='test')
+            >>> trainer.load_weights(weights)
+
+            >>> paddledet_result = trainer.predict([images])[0]
+
+            >>> detections = sv.Detections.from_paddledet(paddledet_result=paddledet_result)
+            ```
+        """
+        return cls(
+            xyxy=paddledet_result["bbox"][:, 2:6],
+            confidence=paddledet_result["bbox"][:, 1],
+            class_id=paddledet_result["bbox"][:, 0].astype(int),
+        )
 
     @classmethod
     def empty(cls) -> Detections:
