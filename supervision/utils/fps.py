@@ -21,7 +21,7 @@ class FpsMonitor:
         """
         self.all_timestamps = deque(maxlen=sample_size)
 
-    def __call__(self, last_only=False) -> float:
+    def __call__(self) -> float:
         if not self.all_timestamps:
             return 0.0
         taken_time = self.all_timestamps[-1] - self.all_timestamps[0]
