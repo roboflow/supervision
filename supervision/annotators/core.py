@@ -2,6 +2,7 @@ import os.path
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Callable, List, Optional, Union
+from collections import defaultdict
 
 import cv2
 import numpy as np
@@ -9,6 +10,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 from supervision.detection.core import Detections
 from supervision.draw.color import Color, ColorPalette
+from supervision.geometry.core import Position, Point
 
 
 class ColorMap(Enum):
@@ -745,5 +747,89 @@ class EllipseAnnotator(BaseAnnotator):
                 thickness=self.thickness,
                 lineType=cv2.LINE_4,
             )
+
+        return scene
+
+
+class TraceAnnotator(BaseAnnotator):
+    """
+    A class for drawing trajectory of a tracker on an image using detections provided.
+
+    Attributes:
+        color (Union[Color, ColorPalette]): The color to draw the trajectory, can be a single color or a color palette
+        color_by_track (bool): Whther to use tracker id to pick the color
+        position (Optional[Position]): Choose position of trajectory such as center position, top left corner, etc
+        trace_length (int): Length of the previous points
+        thickness (int): thickness of the line
+    """
+
+    def __init__(
+        self,
+        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        color_by_track: bool = False,
+        position: Optional[Position] = Position.CENTER,
+        trace_length: int = 30,
+        thickness: int = 2,
+
+    ):
+        self.color: Union[Color, ColorPalette] = color
+        self.color_by_track = color_by_track
+        self.position = position
+        self.tracker_storage = defaultdict(lambda: [])
+        self.trace_length = trace_length
+        self.thickness = thickness
+
+    def annotate(
+        self, scene: np.ndarray, detections: Detections, **kwargs
+    ) -> np.ndarray:
+        """
+        Draw the object trajectory based on history of tracked objects
+
+        Args:
+            scene (np.ndarray): The image on which the trace will be drawn
+            detections (Detections): The detections for trajectory and points
+
+        Returns:
+            np.ndarray: The image with the masks overlaid
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> classes = ['person', ...]
+            >>> image = ...
+            >>> detections = sv.Detections(...)
+
+            >>> trace_annotator = sv.TraceAnnotator()
+            >>> annotated_frame = trace_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
+            ```
+        """
+        if detections.tracker_id is None:
+            return scene
+
+        anchor_points = detections.get_anchor_coordinates(anchor=self.position)
+
+        for i, tracker_id in enumerate(detections.tracker_id):
+            track = self.tracker_storage[tracker_id]
+            track.append((anchor_points[i][0], anchor_points[i][1]))
+            if len(track) > self.trace_length:
+                track.pop(0)
+            points = np.hstack(track).astype(np.int32).reshape((-1, 1, 2))
+
+            if self.color_by_track:
+                idx = tracker_id if tracker_id is not None else i
+            else:
+                class_id = (
+                    detections.class_id[i] if detections.class_id is not None else None
+                )
+                idx = class_id if class_id is not None else i
+            color = (
+                self.color.by_idx(idx)
+                if isinstance(self.color, ColorPalette)
+                else self.color
+            )
+            cv2.polylines(scene, [points], isClosed=False, color=color.as_bgr(), thickness=self.thickness)
 
         return scene
