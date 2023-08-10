@@ -344,7 +344,7 @@ class ConfusionMatrix:
             >>> model = YOLO(...)
             >>> def callback(image: np.ndarray) -> sv.Detections:
             ...     result = model(image)[0]
-            ...     return sv.Detections.from_yolov8(result)
+            ...     return sv.Detections.from_ultralytics(result)
 
             >>> confusion_matrix = sv.ConfusionMatrix.benchmark(
             ...     dataset = dataset,
@@ -554,7 +554,7 @@ class MeanAveragePrecision:
             >>> model = YOLO(...)
             >>> def callback(image: np.ndarray) -> sv.Detections:
             ...     result = model(image)[0]
-            ...     return sv.Detections.from_yolov8(result)
+            ...     return sv.Detections.from_ultralytics(result)
 
             >>> mean_average_precision = sv.MeanAveragePrecision.benchmark(
             ...     dataset = dataset,
