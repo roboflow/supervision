@@ -101,9 +101,6 @@ class Classifications:
         confidence = ultralytics_results.boxes.conf.cpu().numpy()
         return cls(class_id=np.arange(confidence.shape[0]), confidence=confidence)
 
-
-
-
     def get_top_k(self, k: int) -> Tuple[np.ndarray, np.ndarray]:
         """
         Retrieve the top k class IDs and confidences, ordered in descending order by confidence.
