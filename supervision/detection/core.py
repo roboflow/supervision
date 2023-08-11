@@ -6,9 +6,12 @@ from typing import Any, Iterator, List, Optional, Tuple, Union
 import cv2
 import numpy as np
 
-from supervision.detection.utils import (extract_ultralytics_masks,
-                                         non_max_suppression,
-                                         process_roboflow_result, xywh_to_xyxy)
+from supervision.detection.utils import (
+    extract_ultralytics_masks,
+    non_max_suppression,
+    process_roboflow_result,
+    xywh_to_xyxy,
+)
 from supervision.geometry.core import Position
 from supervision.utils.internal import deprecated
 
