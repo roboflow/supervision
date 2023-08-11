@@ -212,7 +212,7 @@ class ByteTrack:
             >>> def callback(frame: np.ndarray, index: int) -> np.ndarray:
             ...     results = model(frame)[0]
             ...     detections = sv.Detections.from_yolov8(results)
-            ...     detections = byte_tracker.update_from_detections(detections)
+            ...     detections = byte_tracker.update_with_detections(detections=detections)
             ...     labels = [
             ...         f"#{tracker_id} {model.model.names[class_id]} {confidence:0.2f}"
             ...         for _, _, confidence, class_id, tracker_id
