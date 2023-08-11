@@ -7,13 +7,15 @@ except importlib_metadata.PackageNotFoundError:
     __version__ = "development"
 
 
+from supervision.application.line_counter import LineZone, LineZoneAnnotator
+from supervision.application.polygon_zone import PolygonZone, PolygonZoneAnnotator
 from supervision.classification.core import Classifications
 from supervision.dataset.core import (
     BaseDataset,
     ClassificationDataset,
     DetectionDataset,
 )
-from supervision.detection.annotate import BoxAnnotator, MaskAnnotator, AnchorAnnotator
+from supervision.detection.annotate import AnchorAnnotator, BoxAnnotator, MaskAnnotator
 from supervision.detection.core import Detections
 from supervision.detection.utils import (
     box_iou_batch,
@@ -24,8 +26,6 @@ from supervision.detection.utils import (
     polygon_to_mask,
     polygon_to_xyxy,
 )
-from supervision.application.line_counter import LineZone, LineZoneAnnotator
-from supervision.application.polygon_zone import PolygonZone, PolygonZoneAnnotator
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import draw_filled_rectangle, draw_polygon, draw_text
 from supervision.geometry.core import Point, Position, Rect
