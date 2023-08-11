@@ -37,7 +37,6 @@ nav:
         - Utils: detection/utils.md
         - Tools:
             - Polygon Zone: detection/tools/polygon_zone.md
-            - Slicer: detection/tools/slicer.md
     - Dataset:
         - Core: dataset/core.md
     - Metrics:
