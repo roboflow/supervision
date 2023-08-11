@@ -4,7 +4,7 @@ from typing import Optional, Tuple
 import cv2
 import numpy as np
 
-from supervision import Detections
+from supervision.detection.core import Detections
 from supervision.detection.utils import clip_boxes, polygon_to_mask
 from supervision.draw.color import Color
 from supervision.draw.utils import draw_polygon, draw_text
