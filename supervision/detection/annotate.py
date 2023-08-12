@@ -12,12 +12,15 @@ class BoxAnnotator:
     A class for drawing bounding boxes on an image using detections provided.
 
     Attributes:
-        color (Union[Color, ColorPalette]): The color to draw the bounding box, can be a single color or a color palette
+        color (Union[Color, ColorPalette]): The color to draw the bounding box,
+            can be a single color or a color palette
         thickness (int): The thickness of the bounding box lines, default is 2
         text_color (Color): The color of the text on the bounding box, default is white
         text_scale (float): The scale of the text on the bounding box, default is 0.5
-        text_thickness (int): The thickness of the text on the bounding box, default is 1
-        text_padding (int): The padding around the text on the bounding box, default is 5
+        text_thickness (int): The thickness of the text on the bounding box,
+            default is 1
+        text_padding (int): The padding around the text on the bounding box,
+            default is 5
 
     """
 
@@ -49,8 +52,11 @@ class BoxAnnotator:
 
         Args:
             scene (np.ndarray): The image on which the bounding boxes will be drawn
-            detections (Detections): The detections for which the bounding boxes will be drawn
-            labels (Optional[List[str]]): An optional list of labels corresponding to each detection. If `labels` are not provided, corresponding `class_id` will be used as label.
+            detections (Detections): The detections for which the
+                bounding boxes will be drawn
+            labels (Optional[List[str]]): An optional list of labels
+                corresponding to each detection. If `labels` are not provided,
+                corresponding `class_id` will be used as label.
             skip_label (bool): Is set to `True`, skips bounding box label annotation.
         Returns:
             np.ndarray: The image with the bounding boxes drawn on it
@@ -145,7 +151,8 @@ class MaskAnnotator:
     A class for overlaying masks on an image using detections provided.
 
     Attributes:
-        color (Union[Color, ColorPalette]): The color to fill the mask, can be a single color or a color palette
+        color (Union[Color, ColorPalette]): The color to fill the mask,
+            can be a single color or a color palette
     """
 
     def __init__(
@@ -158,11 +165,13 @@ class MaskAnnotator:
         self, scene: np.ndarray, detections: Detections, opacity: float = 0.5
     ) -> np.ndarray:
         """
-        Overlays the masks on the given image based on the provided detections, with a specified opacity.
+        Overlays the masks on the given image based on the provided detections,
+            with a specified opacity.
 
         Args:
             scene (np.ndarray): The image on which the masks will be overlaid
-            detections (Detections): The detections for which the masks will be overlaid
+            detections (Detections): The detections for which the
+                masks will be overlaid
             opacity (float): The opacity of the masks, between 0 and 1, default is 0.5
 
         Returns:

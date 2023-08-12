@@ -31,7 +31,7 @@ Pip install the supervision package in a
 pip install supervision[desktop]
 ```
 
-Read more about desktop, headless and local installation in our [guide](https://roboflow.github.io/supervision/).
+Read more about desktop, headless, and local installation in our [guide](https://roboflow.github.io/supervision/).
 
 ## 🔥 quickstart
 
@@ -51,9 +51,9 @@ Read more about desktop, headless and local installation in our [guide](https://
 
 <details close>
 <summary>👉 more detections utils</summary>
-  
-- Easily switch inference pipeline between supported object detection / instance segmentation models
-  
+
+- Easily switch inference pipeline between supported object detection/instance segmentation models
+
     ```python
     >>> import supervision as sv
     >>> from segment_anything import sam_model_registry, SamAutomaticMaskGenerator
@@ -63,17 +63,17 @@ Read more about desktop, headless and local installation in our [guide](https://
     >>> sam_result = mask_generator.generate(IMAGE)
     >>> detections = sv.Detections.from_sam(sam_result=sam_result)
     ```
- 
+
 - [Advanced filtering](https://roboflow.github.io/supervision/quickstart/detections/)
-  
+
     ```python
     >>> detections = detections[detections.class_id == 0]
     >>> detections = detections[detections.confidence > 0.5]
     >>> detections = detections[detections.area > 1000]
     ```
-  
+
 - Image annotation
-  
+
     ```python
     >>> import supervision as sv
 
@@ -83,7 +83,7 @@ Read more about desktop, headless and local installation in our [guide](https://
     ...     detections=detections
     ... )
     ```
-  
+
 </details>
 
 ### [datasets processing](https://roboflow.github.io/supervision/dataset/core/)
@@ -107,7 +107,7 @@ Read more about desktop, headless and local installation in our [guide](https://
 <details close>
 <summary>👉 more dataset utils</summary>
 
-- Load object detection / instance segmentation datasets in one of supported formats
+- Load object detection/instance segmentation datasets in one of the supported formats
 
     ```python
     >>> dataset = sv.DetectionDataset.from_yolo(
@@ -126,7 +126,7 @@ Read more about desktop, headless and local installation in our [guide](https://
     ...     annotations_path='...'
     ... )
     ```
-  
+
 - Loop over dataset entries
 
     ```python
@@ -137,18 +137,18 @@ Read more about desktop, headless and local installation in our [guide](https://
            [155.      , 497.      , 404.      , 833.5     ],
            [ 20.154999, 347.825   , 416.125   , 915.895   ]], dtype=float32)
     ```
-  
-- Split dataset for training, testing and validation
-  
+
+- Split dataset for training, testing, and validation
+
     ```python
     >>> train_dataset, test_dataset = dataset.split(split_ratio=0.7)
     >>> test_dataset, valid_dataset = test_dataset.split(split_ratio=0.5)
-  
+
     >>> len(train_dataset), len(test_dataset), len(valid_dataset)
     (700, 150, 150)
     ```
-  
-- Merge multiple datasets together
+
+- Merge multiple datasets
 
     ```python
     >>> ds_1 = sv.DetectionDataset(...)
@@ -156,22 +156,22 @@ Read more about desktop, headless and local installation in our [guide](https://
     100
     >>> ds_1.classes
     ['dog', 'person']
-  
+
     >>> ds_2 = sv.DetectionDataset(...)
     >>> len(ds_2)
     200
     >>> ds_2.classes
     ['cat']
-  
+
     >>> ds_merged = sv.DetectionDataset.merge([ds_1, ds_2])
     >>> len(ds_merged)
     300
     >>> ds_merged.classes
     ['cat', 'dog', 'person']
     ```
-  
-- Save object detection / instance segmentation datasets in one of supported formats
-  
+
+- Save object detection/instance segmentation datasets in one of the supported formats
+
     ```python
     >>> dataset.as_yolo(
     ...     images_directory_path='...',
@@ -189,9 +189,9 @@ Read more about desktop, headless and local installation in our [guide](https://
     ...     annotations_path='...'
     ... )
     ```
-  
+
 - Convert labels between supported formats
-  
+
     ```python
     >>> sv.DetectionDataset.from_yolo(
     ...     images_directory_path='...',
@@ -202,8 +202,8 @@ Read more about desktop, headless and local installation in our [guide](https://
     ...     annotations_directory_path='...'
     ... )
     ```
-  
-- Load classification datasets in one of supported formats
+
+- Load classification datasets in one of the supported formats
 
     ```python
     >>> cs = sv.ClassificationDataset.from_folder_structure(
@@ -211,7 +211,7 @@ Read more about desktop, headless and local installation in our [guide](https://
     ... )
     ```
 
-- Save classification datasets in one of supported formats
+- Save classification datasets in one of the supported formats
 
     ```python
     >>> cs.as_folder_structure(
@@ -245,15 +245,39 @@ array([
 ])
 ```
 
+<details close>
+<summary>👉 more metrics</summary>
+
+- Mean average precision (mAP) for object detection tasks.
+
+    ```python
+    >>> import supervision as sv
+
+    >>> dataset = sv.DetectionDataset.from_yolo(...)
+
+    >>> def callback(image: np.ndarray) -> sv.Detections:
+    ...     ...
+
+    >>> mean_average_precision = sv.MeanAveragePrecision.benchmark(
+    ...     dataset = dataset,
+    ...     callback = callback
+    ... )
+
+    >>> mean_average_precision.map50_95
+    0.433
+    ```
+
+</details>
+
 ## 🎬 tutorials
 
 <p align="left">
 <a href="https://youtu.be/oEQYStnF2l8" title="Accelerate Image Annotation with SAM and Grounding DINO"><img src="https://github.com/SkalskiP/SkalskiP/assets/26109316/ae1ca38e-40b7-4b35-8582-e8ea5de3806e" alt="Accelerate Image Annotation with SAM and Grounding DINO" width="300px" align="left" /></a>
 <a href="https://youtu.be/oEQYStnF2l8" title="Accelerate Image Annotation with SAM and Grounding DINO"><strong>Accelerate Image Annotation with SAM and Grounding DINO</strong></a>
 <div><strong>Created: 20 Apr 2023</strong> | <strong>Updated: 20 Apr 2023</strong></div>
-<br/> Discover how to speed up your image annotation process using Grounding DINO and Segment Anything Model (SAM). Learn how to convert object detection datasets into instance segmentation datasets, and see the potential of using these models to automatically annotate your datasets for real-time detectors like YOLOv8... </p> 
+<br/> Discover how to speed up your image annotation process using Grounding DINO and Segment Anything Model (SAM). Learn how to convert object detection datasets into instance segmentation datasets, and see the potential of using these models to automatically annotate your datasets for real-time detectors like YOLOv8... </p>
 
-<br/> 
+<br/>
 
 <p align="left">
 <a href="https://youtu.be/oEQYStnF2l8" title="SAM - Segment Anything Model by Meta AI: Complete Guide"><img src="https://github.com/SkalskiP/SkalskiP/assets/26109316/6913ff11-53c6-4341-8d90-eaff3023c3fd" alt="SAM - Segment Anything Model by Meta AI: Complete Guide" width="300px" align="left" /></a>
@@ -263,7 +287,7 @@ array([
 
 ## 📚 documentation
 
-Visit our [documentation](https://roboflow.github.io/supervision) page to learn how supervision can help you build computer vision applications faster and more reliably. 
+Visit our [documentation](https://roboflow.github.io/supervision) page to learn how supervision can help you build computer vision applications faster and more reliably.
 
 ## 🏆 contribution
 
