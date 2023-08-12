@@ -50,9 +50,12 @@ def plot_images_grid(
 
     Args:
        images (List[np.ndarray]): A list of images as numpy arrays.
-       grid_size (Tuple[int, int]): A tuple specifying the number of rows and columns for the grid.
-       titles (Optional[List[str]]): A list of titles for each image. Defaults to None.
-       size (Tuple[int, int]): A tuple specifying the width and height of the entire plot in inches.
+       grid_size (Tuple[int, int]): A tuple specifying the number
+            of rows and columns for the grid.
+       titles (Optional[List[str]]): A list of titles for each image.
+            Defaults to None.
+       size (Tuple[int, int]): A tuple specifying the width and
+            height of the entire plot in inches.
        cmap (str): the colormap to use for single channel images.
 
     Raises:
@@ -78,7 +81,8 @@ def plot_images_grid(
 
     if len(images) > nrows * ncols:
         raise ValueError(
-            "The number of images exceeds the grid size. Please increase the grid size or reduce the number of images."
+            "The number of images exceeds the grid size. Please increase the grid size"
+            " or reduce the number of images."
         )
 
     fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=size)

@@ -30,7 +30,8 @@ from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import draw_filled_rectangle, draw_polygon, draw_text
 from supervision.geometry.core import Point, Position, Rect
 from supervision.geometry.utils import get_polygon_center
-from supervision.metrics.detection import ConfusionMatrix
+from supervision.metrics.detection import ConfusionMatrix, MeanAveragePrecision
+from supervision.tracker.byte_tracker.core import ByteTrack
 from supervision.utils.file import list_files_with_extensions
 from supervision.utils.image import ImageSink, crop
 from supervision.utils.notebook import plot_image, plot_images_grid
