@@ -42,10 +42,12 @@ class Classifications:
     @classmethod
     def from_yolov8(cls, yolov8_results) -> Classifications:
         """
-        Creates a Classifications instance from a [YOLOv8](https://github.com/ultralytics/ultralytics) inference result.
+        Creates a Classifications instance from a
+        [YOLOv8](https://github.com/ultralytics/ultralytics) inference result.
 
         Args:
-            yolov8_results (ultralytics.yolo.engine.results.Results): The output Results instance from YOLOv8
+            yolov8_results (ultralytics.yolo.engine.results.Results):
+                The output Results instance from YOLOv8
 
         Returns:
             Detections: A new Classifications object.
@@ -67,13 +69,15 @@ class Classifications:
 
     def get_top_k(self, k: int) -> Tuple[np.ndarray, np.ndarray]:
         """
-        Retrieve the top k class IDs and confidences, ordered in descending order by confidence.
+        Retrieve the top k class IDs and confidences,
+            ordered in descending order by confidence.
 
         Args:
             k (int): The number of top class IDs and confidences to retrieve.
 
         Returns:
-            Tuple[np.ndarray, np.ndarray]: A tuple containing the top k class IDs and confidences.
+            Tuple[np.ndarray, np.ndarray]: A tuple containing
+                the top k class IDs and confidences.
 
         Example:
             ```python

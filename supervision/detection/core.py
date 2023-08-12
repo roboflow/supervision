@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import astuple, dataclass
 from typing import Any, Iterator, List, Optional, Tuple, Union
 
-import cv2
 import numpy as np
 
 from supervision.detection.utils import (
@@ -59,11 +58,16 @@ class Detections:
     """
     Data class containing information about the detections in a video frame.
     Attributes:
-        xyxy (np.ndarray): An array of shape `(n, 4)` containing the bounding boxes coordinates in format `[x1, y1, x2, y2]`
-        mask: (Optional[np.ndarray]): An array of shape `(n, H, W)` containing the segmentation masks.
-        confidence (Optional[np.ndarray]): An array of shape `(n,)` containing the confidence scores of the detections.
-        class_id (Optional[np.ndarray]): An array of shape `(n,)` containing the class ids of the detections.
-        tracker_id (Optional[np.ndarray]): An array of shape `(n,)` containing the tracker ids of the detections.
+        xyxy (np.ndarray): An array of shape `(n, 4)` containing
+            the bounding boxes coordinates in format `[x1, y1, x2, y2]`
+        mask: (Optional[np.ndarray]): An array of shape
+            `(n, H, W)` containing the segmentation masks.
+        confidence (Optional[np.ndarray]): An array of shape
+            `(n,)` containing the confidence scores of the detections.
+        class_id (Optional[np.ndarray]): An array of shape
+            `(n,)` containing the class ids of the detections.
+        tracker_id (Optional[np.ndarray]): An array of shape
+            `(n,)` containing the tracker ids of the detections.
     """
 
     xyxy: np.ndarray
@@ -98,7 +102,8 @@ class Detections:
         ]
     ]:
         """
-        Iterates over the Detections object and yield a tuple of `(xyxy, mask, confidence, class_id, tracker_id)` for each detection.
+        Iterates over the Detections object and yield a tuple of
+        `(xyxy, mask, confidence, class_id, tracker_id)` for each detection.
         """
         for i in range(len(self.xyxy)):
             yield (
@@ -143,10 +148,12 @@ class Detections:
     @classmethod
     def from_yolov5(cls, yolov5_results) -> Detections:
         """
-        Creates a Detections instance from a [YOLOv5](https://github.com/ultralytics/yolov5) inference result.
+        Creates a Detections instance from a
+        [YOLOv5](https://github.com/ultralytics/yolov5) inference result.
 
         Args:
-            yolov5_results (yolov5.models.common.Detections): The output Detections instance from YOLOv5
+            yolov5_results (yolov5.models.common.Detections):
+                The output Detections instance from YOLOv5
 
         Returns:
             Detections: A new Detections object.
@@ -172,14 +179,17 @@ class Detections:
 
     @classmethod
     @deprecated(
-        "This method is deprecated and removed in 0.15.0 release. Use sv.Detections.from_ultralytics() instead."
+        "This method is deprecated and removed in 0.15.0 release. Use "
+        "sv.Detections.from_ultralytics() instead."
     )
     def from_yolov8(cls, yolov8_results) -> Detections:
         """
-        Creates a Detections instance from a [YOLOv8](https://github.com/ultralytics/ultralytics) inference result.
+        Creates a Detections instance from a
+        [YOLOv8](https://github.com/ultralytics/ultralytics) inference result.
 
         Args:
-            yolov8_results (ultralytics.yolo.engine.results.Results): The output Results instance from YOLOv8
+            yolov8_results (ultralytics.yolo.engine.results.Results):
+                The output Results instance from YOLOv8
 
         Returns:
             Detections: A new Detections object.
@@ -206,10 +216,12 @@ class Detections:
     @classmethod
     def from_ultralytics(cls, ultralytics_results) -> Detections:
         """
-        Creates a Detections instance from a [YOLOv8](https://github.com/ultralytics/ultralytics) inference result.
+        Creates a Detections instance from a
+            [YOLOv8](https://github.com/ultralytics/ultralytics) inference result.
 
         Args:
-            ultralytics_results (ultralytics.yolo.engine.results.Results): The output Results instance from YOLOv8
+            ultralytics_results (ultralytics.yolo.engine.results.Results):
+                The output Results instance from YOLOv8
 
         Returns:
             Detections: A new Detections object.
@@ -246,10 +258,15 @@ class Detections:
     @classmethod
     def from_yolo_nas(cls, yolo_nas_results) -> Detections:
         """
-        Creates a Detections instance from a [YOLO-NAS](https://github.com/Deci-AI/super-gradients/blob/master/YOLONAS.md) inference result.
+        Creates a Detections instance from a
+        [YOLO-NAS](https://github.com/Deci-AI/super-gradients/blob/master/YOLONAS.md)
+        inference result.
 
         Args:
-            yolo_nas_results (super_gradients.training.models.prediction_results.ImageDetectionPrediction): The output Results instance from YOLO-NAS
+            yolo_nas_results (ImageDetectionPrediction):
+                The output Results instance from YOLO-NAS
+                ImageDetectionPrediction is coming from
+                'super_gradients.training.models.prediction_results'
 
         Returns:
             Detections: A new Detections object.
@@ -275,11 +292,13 @@ class Detections:
     @classmethod
     def from_mmdetection(cls, mmdet_results) -> Detections:
         """
-        Creates a Detections instance from a [mmdetection](https://github.com/open-mmlab/mmdetection) inference result.
+        Creates a Detections instance from
+        a [mmdetection](https://github.com/open-mmlab/mmdetection) inference result.
         Also supported for [mmyolo](https://github.com/open-mmlab/mmyolo)
 
         Args:
-            mmdet_results (mmdet.structures.DetDataSample): The output Results instance from MMDetection
+            mmdet_results (mmdet.structures.DetDataSample):
+                The output Results instance from MMDetection
 
         Returns:
             Detections: A new Detections object.
@@ -291,7 +310,8 @@ class Detections:
             >>> from mmdet.apis import DetInferencer
 
             >>> inferencer = DetInferencer(model_name, checkpoint, device)
-            >>> mmdet_result = inferencer(SOURCE_IMAGE_PATH, out_dir='./output', return_datasample=True)["predictions"][0]
+            >>> mmdet_result = inferencer(SOURCE_IMAGE_PATH, out_dir='./output',
+            ...                           return_datasample=True)["predictions"][0]
             >>> detections = sv.Detections.from_mmdet(mmdet_result)
             ```
         """
@@ -304,7 +324,8 @@ class Detections:
     @classmethod
     def from_transformers(cls, transformers_results: dict) -> Detections:
         """
-        Creates a Detections instance from object detection [transformer](https://github.com/huggingface/transformers) inference result.
+        Creates a Detections instance from object detection
+        [transformer](https://github.com/huggingface/transformers) inference result.
 
         Returns:
             Detections: A new Detections object.
@@ -318,13 +339,16 @@ class Detections:
     @classmethod
     def from_detectron2(cls, detectron2_results) -> Detections:
         """
-        Create a Detections object from the [Detectron2](https://github.com/facebookresearch/detectron2) inference result.
+        Create a Detections object from the
+        [Detectron2](https://github.com/facebookresearch/detectron2) inference result.
 
         Args:
-            detectron2_results: The output of a Detectron2 model containing instances with prediction data.
+            detectron2_results: The output of a
+                Detectron2 model containing instances with prediction data.
 
         Returns:
-            (Detections): A Detections object containing the bounding boxes, class IDs, and confidences of the predictions.
+            (Detections): A Detections object containing the bounding boxes,
+                class IDs, and confidences of the predictions.
 
         Example:
             ```python
@@ -339,7 +363,6 @@ class Detections:
             >>> cfg.MODEL.WEIGHTS = "path/to/model_weights.pth"
             >>> predictor = DefaultPredictor(cfg)
             >>> result = predictor(image)
-
             >>> detections = sv.Detections.from_detectron2(result)
             ```
         """
@@ -355,14 +378,18 @@ class Detections:
     @classmethod
     def from_roboflow(cls, roboflow_result: dict, class_list: List[str]) -> Detections:
         """
-        Create a Detections object from the [Roboflow](https://roboflow.com/) API inference result.
+        Create a Detections object from the [Roboflow](https://roboflow.com/)
+            API inference result.
 
         Args:
-            roboflow_result (dict): The result from the Roboflow API containing predictions.
-            class_list (List[str]): A list of class names corresponding to the class IDs in the API result.
+            roboflow_result (dict): The result from the
+                Roboflow API containing predictions.
+            class_list (List[str]): A list of class names
+                corresponding to the class IDs in the API result.
 
         Returns:
-            (Detections): A Detections object containing the bounding boxes, class IDs, and confidences of the predictions.
+            (Detections): A Detections object containing the bounding boxes, class IDs,
+                and confidences of the predictions.
 
         Example:
             ```python
@@ -399,7 +426,9 @@ class Detections:
     @classmethod
     def from_sam(cls, sam_result: List[dict]) -> Detections:
         """
-        Creates a Detections instance from [Segment Anything Model](https://github.com/facebookresearch/segment-anything) inference result.
+        Creates a Detections instance from
+        [Segment Anything Model](https://github.com/facebookresearch/segment-anything)
+        inference result.
 
         Args:
             sam_result (List[dict]): The output Results instance from SAM
@@ -410,14 +439,19 @@ class Detections:
         Example:
             ```python
             >>> import supervision as sv
-            >>> from segment_anything import sam_model_registry, SamAutomaticMaskGenerator
+            >>> from segment_anything import (
+            ...     sam_model_registry,
+            ...     SamAutomaticMaskGenerator
+            ...     )
 
-            >>> sam = sam_model_registry[MODEL_TYPE](checkpoint=CHECKPOINT_PATH).to(device=DEVICE)
+            >>> sam_model_reg = sam_model_registry[MODEL_TYPE]
+            >>> sam = sam_model_reg(checkpoint=CHECKPOINT_PATH).to(device=DEVICE)
             >>> mask_generator = SamAutomaticMaskGenerator(sam)
             >>> sam_result = mask_generator.generate(IMAGE)
             >>> detections = sv.Detections.from_sam(sam_result=sam_result)
             ```
         """
+
         sorted_generated_masks = sorted(
             sam_result, key=lambda x: x["area"], reverse=True
         )
@@ -430,7 +464,9 @@ class Detections:
     @classmethod
     def from_paddledet(cls, paddledet_result) -> Detections:
         """
-        Creates a Detections instance from [PaddleDetection](https://github.com/PaddlePaddle/PaddleDetection) inference result.
+        Creates a Detections instance from
+            [PaddleDetection](https://github.com/PaddlePaddle/PaddleDetection)
+            inference result.
 
         Args:
             paddledet_result (List[dict]): The output Results instance from SAM
@@ -454,7 +490,7 @@ class Detections:
 
             >>> paddledet_result = trainer.predict([images])[0]
 
-            >>> detections = sv.Detections.from_paddledet(paddledet_result=paddledet_result)
+            >>> detections = sv.Detections.from_paddledet(paddledet_result)
             ```
         """
         return cls(
@@ -466,7 +502,8 @@ class Detections:
     @classmethod
     def empty(cls) -> Detections:
         """
-        Create an empty Detections object with no bounding boxes, confidences, or class IDs.
+        Create an empty Detections object with no bounding boxes,
+            confidences, or class IDs.
 
         Returns:
             (Detections): An empty Detections object.
@@ -489,15 +526,18 @@ class Detections:
         """
         Merge a list of Detections objects into a single Detections object.
 
-        This method takes a list of Detections objects and combines their respective fields (`xyxy`, `mask`,
-        `confidence`, `class_id`, and `tracker_id`) into a single Detections object. If all elements in a field are not
-        `None`, the corresponding field will be stacked. Otherwise, the field will be set to `None`.
+        This method takes a list of Detections objects and combines their
+        respective fields (`xyxy`, `mask`, `confidence`, `class_id`, and `tracker_id`)
+        into a single Detections object. If all elements in a field are not
+        `None`, the corresponding field will be stacked.
+        Otherwise, the field will be set to `None`.
 
         Args:
             detections_list (List[Detections]): A list of Detections objects to merge.
 
         Returns:
-            (Detections): A single Detections object containing the merged data from the input list.
+            (Detections): A single Detections object containing
+                the merged data from the input list.
 
         Example:
             ```python
@@ -517,13 +557,14 @@ class Detections:
             list(field) for field in zip(*detections_tuples_list)
         ]
 
-        all_not_none = lambda l: all(x is not None for x in l)
+        def __all_not_none(item_list: List[Any]):
+            return all(x is not None for x in item_list)
 
         xyxy = np.vstack(xyxy)
-        mask = np.vstack(mask) if all_not_none(mask) else None
-        confidence = np.hstack(confidence) if all_not_none(confidence) else None
-        class_id = np.hstack(class_id) if all_not_none(class_id) else None
-        tracker_id = np.hstack(tracker_id) if all_not_none(tracker_id) else None
+        mask = np.vstack(mask) if __all_not_none(mask) else None
+        confidence = np.hstack(confidence) if __all_not_none(confidence) else None
+        class_id = np.hstack(class_id) if __all_not_none(class_id) else None
+        tracker_id = np.hstack(tracker_id) if __all_not_none(tracker_id) else None
 
         return cls(
             xyxy=xyxy,
@@ -538,10 +579,12 @@ class Detections:
         Returns the bounding box coordinates for a specific anchor.
 
         Args:
-            anchor (Position): Position of bounding box anchor for which to return the coordinates.
+            anchor (Position): Position of bounding box anchor
+                for which to return the coordinates.
 
         Returns:
-            np.ndarray: An array of shape `(n, 2)` containing the bounding box anchor coordinates in format `[x, y]`.
+            np.ndarray: An array of shape `(n, 2)` containing the bounding
+                box anchor coordinates in format `[x, y]`.
         """
         if anchor == Position.CENTER:
             return np.array(
@@ -564,7 +607,8 @@ class Detections:
         Get a subset of the Detections object.
 
         Args:
-            index (Union[int, slice, List[int], np.ndarray]): The index or indices of the subset of the Detections
+            index (Union[int, slice, List[int], np.ndarray]):
+                The index or indices of the subset of the Detections
 
         Returns:
             (Detections): A subset of the Detections object.
@@ -599,11 +643,14 @@ class Detections:
     @property
     def area(self) -> np.ndarray:
         """
-        Calculate the area of each detection in the set of object detections. If masks field is defined property
-        returns are of each mask. If only box is given property return area of each box.
+        Calculate the area of each detection in the set of object detections.
+        If masks field is defined property returns are of each mask.
+        If only box is given property return area of each box.
 
         Returns:
-          np.ndarray: An array of floats containing the area of each detection in the format of `(area_1, area_2, ..., area_n)`, where n is the number of detections.
+          np.ndarray: An array of floats containing the area of each detection
+            in the format of `(area_1, area_2, ..., area_n)`,
+            where n is the number of detections.
         """
         if self.mask is not None:
             return np.array([np.sum(mask) for mask in self.mask])
@@ -616,7 +663,9 @@ class Detections:
         Calculate the area of each bounding box in the set of object detections.
 
         Returns:
-            np.ndarray: An array of floats containing the area of each bounding box in the format of `(area_1, area_2, ..., area_n)`, where n is the number of detections.
+            np.ndarray: An array of floats containing the area of each bounding
+                box in the format of `(area_1, area_2, ..., area_n)`,
+                where n is the number of detections.
         """
         return (self.xyxy[:, 3] - self.xyxy[:, 1]) * (self.xyxy[:, 2] - self.xyxy[:, 0])
 
@@ -627,21 +676,26 @@ class Detections:
         Perform non-maximum suppression on the current set of object detections.
 
         Args:
-            threshold (float, optional): The intersection-over-union threshold to use for non-maximum suppression. Defaults to 0.5.
-            class_agnostic (bool, optional): Whether to perform class-agnostic non-maximum suppression. If True, the class_id of each detection will be ignored. Defaults to False.
+            threshold (float, optional): The intersection-over-union threshold
+                to use for non-maximum suppression. Defaults to 0.5.
+            class_agnostic (bool, optional): Whether to perform class-agnostic
+                non-maximum suppression. If True, the class_id of each detection
+                will be ignored. Defaults to False.
 
         Returns:
-            Detections: A new Detections object containing the subset of detections after non-maximum suppression.
+            Detections: A new Detections object containing the subset of detections
+                after non-maximum suppression.
 
         Raises:
-            AssertionError: If `confidence` is None and class_agnostic is False. If `class_id` is None and class_agnostic is False.
+            AssertionError: If `confidence` is None and class_agnostic is False.
+                If `class_id` is None and class_agnostic is False.
         """
         if len(self) == 0:
             return self
 
         assert (
             self.confidence is not None
-        ), f"Detections confidence must be given for NMS to be executed."
+        ), "Detections confidence must be given for NMS to be executed."
 
         if class_agnostic:
             predictions = np.hstack((self.xyxy, self.confidence.reshape(-1, 1)))
@@ -651,8 +705,8 @@ class Detections:
             return self[indices]
 
         assert self.class_id is not None, (
-            f"Detections class_id must be given for NMS to be executed. If you intended to perform class agnostic "
-            f"NMS set class_agnostic=True."
+            "Detections class_id must be given for NMS to be executed. If you intended"
+            " to perform class agnostic NMS set class_agnostic=True."
         )
 
         predictions = np.hstack(

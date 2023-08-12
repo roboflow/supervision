@@ -35,10 +35,13 @@ class KalmanFilter:
         Create track from an unassociated measurement.
 
         Args:
-            measurement (ndarray): Bounding box coordinates (x, y, a, h) with center position (x, y), aspect ratio a, and height h.
+            measurement (ndarray): Bounding box coordinates (x, y, a, h) with
+                center position (x, y), aspect ratio a, and height h.
 
         Returns:
-            Tuple[ndarray, ndarray]: Returns the mean vector (8 dimensional) and covariance matrix (8x8 dimensional) of the new track. Unobserved velocities are initialized to 0 mean.
+            Tuple[ndarray, ndarray]: Returns the mean vector (8 dimensional) and
+                covariance matrix (8x8 dimensional) of the new track.
+                Unobserved velocities are initialized to 0 mean.
         """
         mean_pos = measurement
         mean_vel = np.zeros_like(mean_pos)
@@ -64,11 +67,15 @@ class KalmanFilter:
         Run Kalman filter prediction step.
 
         Args:
-            mean (ndarray): The 8 dimensional mean vector of the object state at the previous time step.
-            covariance (ndarray): The 8x8 dimensional covariance matrix of the object state at the previous time step.
+            mean (ndarray): The 8 dimensional mean vector of the object
+                state at the previous time step.
+            covariance (ndarray): The 8x8 dimensional covariance matrix of
+                the object state at the previous time step.
 
         Returns:
-            Tuple[ndarray, ndarray]: Returns the mean vector and covariance matrix of the predicted state. Unobserved velocities are initialized to 0 mean.
+            Tuple[ndarray, ndarray]: Returns the mean vector and
+                covariance matrix of the predicted state.
+                Unobserved velocities are initialized to 0 mean.
         """
         std_pos = [
             self._std_weight_position * mean[3],
@@ -103,7 +110,8 @@ class KalmanFilter:
             covariance (ndarray): The state's covariance matrix (8x8 dimensional).
 
         Returns:
-            Tuple[ndarray, ndarray]: Returns the projected mean and covariance matrix of the given state estimate.
+            Tuple[ndarray, ndarray]: Returns the projected mean and
+                covariance matrix of the given state estimate.
         """
         std = [
             self._std_weight_position * mean[3],
@@ -126,11 +134,15 @@ class KalmanFilter:
         Run Kalman filter prediction step (Vectorized version).
 
         Args:
-            mean (ndarray): The Nx8 dimensional mean matrix of the object states at the previous time step.
-            covariance (ndarray): The Nx8x8 dimensional covariance matrices of the object states at the previous time step.
+            mean (ndarray): The Nx8 dimensional mean matrix
+                of the object states at the previous time step.
+            covariance (ndarray): The Nx8x8 dimensional covariance matrices
+                of the object states at the previous time step.
 
         Returns:
-            Tuple[ndarray, ndarray]: Returns the mean vector and covariance matrix of the predicted state. Unobserved velocities are initialized to 0 mean.
+            Tuple[ndarray, ndarray]: Returns the mean vector and
+                covariance matrix of the predicted state.
+                Unobserved velocities are initialized to 0 mean.
         """
         std_pos = [
             self._std_weight_position * mean[:, 3],
@@ -166,10 +178,13 @@ class KalmanFilter:
         Args:
             mean (ndarray): The predicted state's mean vector (8 dimensional).
             covariance (ndarray): The state's covariance matrix (8x8 dimensional).
-            measurement (ndarray): The 4-dimensional measurement vector (x, y, a, h), where (x, y) is the center position, a the aspect ratio, and h the height of the bounding box.
+            measurement (ndarray): The 4-dimensional measurement vector (x, y, a, h),
+                where (x, y) is the center position, a the aspect ratio,
+                and h the height of the bounding box.
 
         Returns:
-            Tuple[ndarray, ndarray]: Returns the measurement-corrected state distribution.
+            Tuple[ndarray, ndarray]: Returns the measurement-corrected
+                state distribution.
         """
         projected_mean, projected_cov = self.project(mean, covariance)
 
