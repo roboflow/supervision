@@ -88,11 +88,8 @@ class Classifications:
             >>> import supervision as sv
 
             >>> image = cv2.imread(SOURCE_IMAGE_PATH)
-            >>> model = YOLO('yolov8s.pt')
-            >>> model = SAM('sam_b.pt')
-            >>> model = SAM('mobile_sam.pt')
-            >>> model = FastSAM('FastSAM-s.pt')
-            >>> model = RTDETR('rtdetr-l.pt')
+            >>> model = YOLO('yolov8n-cls.pt')
+            >>> model = YOLO('yolov8s-cls.pt')
 
             >>> result = model(image)[0]
             >>> classifications = sv.Classifications.from_ultralytics(result)
