@@ -469,7 +469,7 @@ class Detections:
             inference result.
 
         Args:
-            paddledet_result (List[dict]): The output Results instance from SAM
+            paddledet_result (List[dict]): The output Results instance from PaddleDet
 
         Returns:
             Detections: A new Detections object.

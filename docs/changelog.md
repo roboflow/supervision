@@ -1,6 +1,6 @@
 ### 0.13.0 <small>August 8, 2023</small>
 
-- Added [#236](https://github.com/roboflow/supervision/pull/236): support for mean average precision (mAP) for object detection models with [`sv.MeanAveragePrecision`](https://roboflow.github.io/supervision/metrics/detection/#meanaverageprecision). 
+- Added [#236](https://github.com/roboflow/supervision/pull/236): support for mean average precision (mAP) for object detection models with [`sv.MeanAveragePrecision`](https://roboflow.github.io/supervision/metrics/detection/#meanaverageprecision).
 
 ```python
 >>> import supervision as sv
