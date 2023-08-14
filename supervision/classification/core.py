@@ -86,7 +86,7 @@ class Classifications:
         Example:
             ```python
             >>> import cv2
-            >>> from ultralytics import YOLO, FastSAM, SAM, RTDETR
+            >>> from ultralytics import YOLO
             >>> import supervision as sv
 
             >>> image = cv2.imread(SOURCE_IMAGE_PATH)
