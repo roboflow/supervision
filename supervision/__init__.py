@@ -9,6 +9,7 @@ from supervision.annotators.core import (
     LabelAdvancedAnnotator,
     LabelAnnotator,
     MaskAnnotator,
+    TraceAnnotator,
     build_label_formatter,
 )
 from supervision.classification.core import Classifications
