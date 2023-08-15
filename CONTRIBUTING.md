@@ -24,7 +24,7 @@ Before you contribute a new feature, consider submitting an Issue to discuss the
 
 ## How to Contribute Changes
 
-First, fork this repository to your own GitHub account. Create a new branch that describes your changes (i.e. `line-counter-docs`). Push your changes to the branch on your fork and then submit a pull request to this repository.
+First, fork this repository to your own GitHub account. Create a new branch that describes your changes (i.e. `line-counter-docs`). Push your changes to the branch on your fork and then submit a pull request to `develop` branch of this repository.
 
 When creating new functions, please ensure you have the following:
 
@@ -32,20 +32,21 @@ When creating new functions, please ensure you have the following:
 2. Unit tests for the function.
 3. Examples in the documentation for the function.
 4. Created an entry in our docs to autogenerate the documentation for the function.
+5. Please share google colab with minimal code to test new feature or reproduce PR whenever it is possible. Please ensure that google colab can be accessed without any issue.
 
 All pull requests will be reviewed by the maintainers of the project. We will provide feedback and ask for changes if necessary.
 
 PRs must pass all tests and linting requirements before they can be merged.
 
-## 🧹 code quality 
+## 🧹 code quality
 
 We provide two handy commands inside the `Makefile`, namely:
 
 - `make style` to format the code
 - `make check_code_quality` to check code quality (PEP8 basically)
 
-So far, **there is no types checking with mypy**. See [issue](https://github.com/roboflow-ai/template-python/issues/4). 
+So far, **there is no types checking with mypy**. See [issue](https://github.com/roboflow-ai/template-python/issues/4).
 
-## 🧪 tests 
+## 🧪 tests
 
 [`pytests`](https://docs.pytest.org/en/7.1.x/) is used to run our tests.
