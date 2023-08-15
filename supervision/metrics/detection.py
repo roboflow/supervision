@@ -99,7 +99,7 @@ class ConfusionMatrix:
         classes: List[str],
         conf_threshold: float = 0.3,
         iou_threshold: float = 0.5,
-        force_masks = True
+        force_masks=True,
     ) -> ConfusionMatrix:
         """
         Calculate confusion matrix based on predicted and ground-truth detections.
@@ -256,17 +256,17 @@ class ConfusionMatrix:
         num_classes = len(classes)
         matrix = np.zeros((num_classes + 1, num_classes + 1))
 
-        if prediction_masks:
-            segmentationMatrix = np.zeros((num_classes + 1, num_classes + 1))
+        segmentation_matrix = (
+            np.zeros((num_classes + 1, num_classes + 1)) if prediction_masks else None
+        )
 
         for i in range(len(predictions)):
-
             detection_batch = predictions[i]
             true_batch = targets[i]
             detection_mask = prediction_masks[i]
             true_mask = target_masks[i]
 
-            partialMatrix, partialSegmentationMatrix = cls.evaluate_detection_batch(
+            partial_matrix, partial_segmentation_matrix = cls.evaluate_detection_batch(
                 predictions=detection_batch,
                 targets=true_batch,
                 prediction_mask=detection_mask,
@@ -276,30 +276,27 @@ class ConfusionMatrix:
                 iou_threshold=iou_threshold,
             )
 
-            matrix += partialMatrix
+            matrix += partial_matrix
             if prediction_masks:
-                segmentationMatrix += partialSegmentationMatrix
-
+                segmentation_matrix += partial_segmentation_matrix
 
         return cls(
             matrix=matrix,
-            segmentationMatrix=segmentationMatrix,
+            segmentationMatrix=segmentation_matrix,
             classes=classes,
             conf_threshold=conf_threshold,
             iou_threshold=iou_threshold,
         )
 
-
     @staticmethod
     def populateConfusionMatrix(
-            iou_batch: np.ndarray,
-            iou_threshold: float,
-            true_classes: np.ndarray,
-            detection_classes: np.ndarray,
-            num_classes: int,
-            matrix: np.ndarray
+        iou_batch: np.ndarray,
+        iou_threshold: float,
+        true_classes: np.ndarray,
+        detection_classes: np.ndarray,
+        num_classes: int,
+        matrix: np.ndarray,
     ):
-
         matched_idx = np.asarray(iou_batch > iou_threshold).nonzero()
 
         if matched_idx[0].shape[0]:
@@ -328,7 +325,6 @@ class ConfusionMatrix:
                 matrix[num_classes, detection_class_value] += 1  # FP
 
         return matrix
-
 
     @classmethod
     def evaluate_detection_batch(
@@ -363,7 +359,9 @@ class ConfusionMatrix:
             np.ndarray: Confusion matrix based on a single image.
         """
         result_matrix = np.zeros((num_classes + 1, num_classes + 1))
-        result_segmentation_matrix = np.zeros((num_classes + 1, num_classes + 1)) if prediction_mask else None
+        result_segmentation_matrix = (
+            np.zeros((num_classes + 1, num_classes + 1)) if prediction_mask else None
+        )
 
         conf_idx = 5
         confidence = predictions[:, conf_idx]
@@ -386,12 +384,25 @@ class ConfusionMatrix:
             masks_true=target_mask, masks_detection=detection_mask_batch_filtered
         )
 
-        cls.populateConfusionMatrix(iou_batch, iou_threshold, true_classes, detection_classes, num_classes, result_matrix)
+        cls.populateConfusionMatrix(
+            iou_batch,
+            iou_threshold,
+            true_classes,
+            detection_classes,
+            num_classes,
+            result_matrix,
+        )
         if prediction_mask:
-            cls.populateConfusionMatrix(iou_mask, iou_threshold, true_classes, detection_classes, num_classes, result_segmentation_matrix)
+            cls.populateConfusionMatrix(
+                iou_mask,
+                iou_threshold,
+                true_classes,
+                detection_classes,
+                num_classes,
+                result_segmentation_matrix,
+            )
 
         return result_matrix, result_segmentation_matrix
-
 
     @staticmethod
     def _drop_extra_matches(matches: np.ndarray) -> np.ndarray:
