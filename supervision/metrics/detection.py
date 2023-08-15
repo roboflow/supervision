@@ -9,7 +9,7 @@ import numpy as np
 
 from supervision.dataset.core import DetectionDataset
 from supervision.detection.core import Detections
-from supervision.detection.utils import box_iou_batch
+from supervision.detection.utils import box_iou_batch, mask_iou_batch
 
 
 @dataclass
@@ -25,6 +25,7 @@ class ConfusionMatrix:
     """
 
     matrix: np.ndarray
+    segmentationMatrix: np.ndarray
     classes: List[str]
     conf_threshold: float
     iou_threshold: float
@@ -83,6 +84,13 @@ class ConfusionMatrix:
 
         prediction_tensors = []
         target_tensors = []
+
+        prediction_masks = []
+        target_masks = []
+        prediction_mask_classes = []
+        prediction_mask_confidences = []
+        target_mask_classes = []
+
         for prediction, target in zip(predictions, targets):
             prediction_tensors.append(
                 ConfusionMatrix.detections_to_tensor(prediction, with_confidence=True)
@@ -90,13 +98,35 @@ class ConfusionMatrix:
             target_tensors.append(
                 ConfusionMatrix.detections_to_tensor(target, with_confidence=False)
             )
-        return cls.from_tensors(
+
+            # Check if masks are available and append them to the respective lists
+            if prediction.mask is not None and target.mask is not None:
+                prediction_masks.append(prediction.mask) #  List[(n, W, H)]
+                target_masks.append(target.mask)
+                prediction_mask_classes.append(prediction.class_id) # List[(n,)]
+                prediction_mask_confidences.append(prediction.confidence) #  List[(n,)]
+                target_mask_classes.append(target.class_id) #  List[(n,)]
+
+        result = cls.from_tensors(
             predictions=prediction_tensors,
             targets=target_tensors,
             classes=classes,
             conf_threshold=conf_threshold,
             iou_threshold=iou_threshold,
         )
+
+        result.segmentationMatrix = cls.from_masks(
+            prediction_masks = prediction_masks,
+            prediction_mask_classes = prediction_mask_classes,
+            prediction_mask_confidences = prediction_mask_confidences,
+            target_masks = target_masks,
+            target_mask_classes = target_mask_classes,
+            classes=classes,
+            conf_threshold=conf_threshold,
+            iou_threshold=iou_threshold
+        )
+
+        return result
 
     @staticmethod
     def detections_to_tensor(
@@ -202,6 +232,63 @@ class ConfusionMatrix:
             conf_threshold=conf_threshold,
             iou_threshold=iou_threshold,
         )
+
+    @classmethod
+    def from_masks(
+        cls,
+        prediction_masks : List[np.ndarray],
+        prediction_mask_classes : List[np.ndarray],
+        prediction_mask_confidences : List[np.ndarray],
+        target_masks : List[np.ndarray],
+        target_mask_classes : List[np.ndarray],
+        classes: List[str],
+        conf_threshold=conf_threshold,
+        iou_threshold=iou_threshold
+    ) -> ConfusionMatrix:
+
+        # no  need of validation here as we only insert masks if both prediction and target masks are present
+
+        num_classes = len(classes)
+        matrix = np.zeros((num_classes + 1, num_classes + 1))
+
+        for pred_mask, pred_class, pred_conf, tgt_mask, tgt_class in zip(
+                prediction_masks, prediction_mask_classes, prediction_mask_confidences, target_masks,
+                target_mask_classes
+        ):
+            # Filter out predictions based on confidence threshold
+            valid_preds = pred_conf > conf_threshold
+            pred_mask = pred_mask[valid_preds]
+            pred_class = pred_class[valid_preds]
+
+            # Compute pairwise IoU for masks
+            iou_values = mask_iou_batch(pred_mask, tgt_mask)
+
+            # Determine matches based on IoU threshold
+            matched_idx = np.asarray(iou_values > iou_threshold).nonzero()
+
+            if matched_idx[0].shape[0]:
+                matches = np.stack(
+                    (matched_idx[0], matched_idx[1], iou_values[matched_idx]), axis=1
+                )
+                matches = ConfusionMatrix._drop_extra_matches(matches=matches)
+            else:
+                matches = np.zeros((0, 3))
+
+            matched_pred_idx, matched_tgt_idx, _ = matches.transpose().astype(np.int16)
+
+            for i, true_class_value in enumerate(tgt_class):
+                j = matched_tgt_idx == i
+                if matches.shape[0] > 0 and sum(j) == 1:
+                    matrix[true_class_value, pred_class[matched_pred_idx[j]]] += 1  # TP
+                else:
+                    matrix[true_class_value, num_classes] += 1  # FN
+
+            for i, pred_class_value in enumerate(pred_class):
+                if not any(matched_pred_idx == i):
+                    matrix[num_classes, pred_class_value] += 1  # FP
+
+        return matrix
+
 
     @classmethod
     def _validate_input_tensors(
