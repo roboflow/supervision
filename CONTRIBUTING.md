@@ -80,11 +80,21 @@ When creating new functions, please ensure you have the following:
 2. Unit tests for the function.
 3. Examples in the documentation for the function.
 4. Created an entry in our docs to autogenerate the documentation for the function.
-5. Please share google colab with minimal code to test new feature or reproduce PR whenever it is possible. Please ensure that google colab can be accessed without any issue.
+5. Please share a Google Colab with minimal code to test new feature or reproduce PR whenever it is possible. Please ensure that Google Colab can be accessed without any issue.
+
+When you submit your Pull Request, you will be asked to sign a Contributor License Agreement (CLA) by the `cla-assistant` GitHub bot. We can only respond to PRs from contributors who have signed the project CLA.
 
 All pull requests will be reviewed by the maintainers of the project. We will provide feedback and ask for changes if necessary.
 
 PRs must pass all tests and linting requirements before they can be merged.
+
+## 📝 documentation
+
+The `supervision` documentation is stored in a folder called `docs`. The project documentation is built using `mkdocs`.
+
+To run the documentation, install the project requirements with `poetry install dev`. Then, run `mkdocs serve` to start the documentation server.
+
+You can learn more about mkdocs on the [mkdocs website](https://www.mkdocs.org/).
 
 ## 🧹 code quality
 
@@ -93,7 +103,11 @@ We provide two handy commands inside the `Makefile`, namely:
 - `make style` to format the code
 - `make check_code_quality` to check code quality (PEP8 basically)
 
-So far, **there is no types checking with mypy**. See [issue](https://github.com/roboflow-ai/template-python/issues/4).
+So far, **there is no type checking with mypy**. See [issue](https://github.com/roboflow-ai/template-python/issues/4).
+
+All new functions and classes in `supervision` should include docstrings. This is a prerequisite for any new functions and classes to be added to the library.
+
+`supervision` adheres to the [Google Python docstring style](https://google.github.io/styleguide/pyguide.html#383-functions-and-methods). Please refer to the style guide while writing docstrings for your contribution.
 
 ## 🧪 tests
 
