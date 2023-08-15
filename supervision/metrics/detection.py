@@ -242,8 +242,8 @@ class ConfusionMatrix:
         target_masks : List[np.ndarray],
         target_mask_classes : List[np.ndarray],
         classes: List[str],
-        conf_threshold=conf_threshold,
-        iou_threshold=iou_threshold
+        conf_threshold,
+        iou_threshold
     ) -> ConfusionMatrix:
 
         # no  need of validation here as we only insert masks if both prediction and target masks are present
