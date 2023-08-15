@@ -181,8 +181,8 @@ class ConfusionMatrix:
         predictions: List[np.ndarray],
         targets: List[np.ndarray],
         classes: List[str],
-        prediction_masks: List[np.ndarray],
-        target_masks: List[np.ndarray],
+        prediction_masks: Optional[List[np.ndarray]] = None,
+        target_masks: Optional[List[np.ndarray]] = None,
         conf_threshold: float = 0.3,
         iou_threshold: float = 0.5,
     ) -> ConfusionMatrix:
@@ -331,11 +331,11 @@ class ConfusionMatrix:
         cls,
         predictions: np.ndarray,
         targets: np.ndarray,
-        prediction_mask: np.ndarray,
-        target_mask: np.ndarray,
         num_classes: int,
         conf_threshold: float,
         iou_threshold: float,
+        prediction_mask: Optional[np.ndarray] = None,
+        target_mask: Optional[np.ndarray] = None
     ) -> np.ndarray:
         """
         Calculate confusion matrix for a batch of detections for a single image.
