@@ -79,10 +79,12 @@ class Classifications:
     @classmethod
     def from_ultralytics(cls, ultralytics_results) -> Classifications:
         """
-        Creates a Classifications instance from a (https://github.com/ultralytics/ultralytics) inference result.
+        Creates a Classifications instance from a (https://github.com/ultralytics/ultralytics)
+        inference result.
 
         Args:
-            ultralytics_results (ultralytics.engine.results.Results): The output Results instance from ultralytics model
+            ultralytics_results (ultralytics.engine.results.Results):
+            The output Results instance from ultralytics model
 
         Returns:
             Classifications: A new Classifications object.
