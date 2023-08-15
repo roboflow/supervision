@@ -86,10 +86,10 @@ class ConfusionMatrix:
     """
 
     matrix: np.ndarray
-    segmentationMatrix: np.ndarray
     classes: List[str]
     conf_threshold: float
     iou_threshold: float
+    segmentationMatrix: Optional[np.ndarray] = None
 
     @classmethod
     def from_detections(
