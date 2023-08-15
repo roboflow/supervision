@@ -161,8 +161,7 @@ def load_coco_annotations(
 
         image = cv2.imread(str(image_path))
 
-        with_masks = _with_mask(image_annotations[0])
-        with_masks = force_masks if force_masks else with_masks
+        with_masks = force_masks if force_masks else _with_mask(image_annotations[0])
 
         annotation = coco_annotations_to_detections(
             image_annotations=image_annotations,
