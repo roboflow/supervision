@@ -5,6 +5,8 @@ from typing import Any, Optional, Tuple
 
 import numpy as np
 
+from supervision.utils.internal import deprecated
+
 
 def _validate_class_ids(class_id: Any, n: int) -> None:
     """
@@ -40,6 +42,13 @@ class Classifications:
         _validate_confidence(self.confidence, n)
 
     @classmethod
+    @deprecated(
+        """
+        This method is deprecated and removed in 0.16.0 release.
+        Use sv.Classifications.from_ultralytics() instead as it is more generic and
+        can be used for detections from any ultralytics.engine.results.Results Object
+        """
+    )
     def from_yolov8(cls, yolov8_results) -> Classifications:
         """
         Creates a Classifications instance from a
@@ -50,7 +59,7 @@ class Classifications:
                 The output Results instance from YOLOv8
 
         Returns:
-            Detections: A new Classifications object.
+            Classifications: A new Classifications object.
 
         Example:
             ```python
@@ -65,6 +74,36 @@ class Classifications:
             ```
         """
         confidence = yolov8_results.probs.data.cpu().numpy()
+        return cls(class_id=np.arange(confidence.shape[0]), confidence=confidence)
+
+    @classmethod
+    def from_ultralytics(cls, ultralytics_results) -> Classifications:
+        """
+        Creates a Classifications instance from a
+        (https://github.com/ultralytics/ultralytics) inference result.
+
+        Args:
+            ultralytics_results (ultralytics.engine.results.Results):
+            The output Results instance from ultralytics model
+
+        Returns:
+            Classifications: A new Classifications object.
+
+        Example:
+            ```python
+            >>> import cv2
+            >>> from ultralytics import YOLO
+            >>> import supervision as sv
+
+            >>> image = cv2.imread(SOURCE_IMAGE_PATH)
+            >>> model = YOLO('yolov8n-cls.pt')
+            >>> model = YOLO('yolov8s-cls.pt')
+
+            >>> result = model(image)[0]
+            >>> classifications = sv.Classifications.from_ultralytics(result)
+            ```
+        """
+        confidence = ultralytics_results.probs.data.cpu().numpy()
         return cls(class_id=np.arange(confidence.shape[0]), confidence=confidence)
 
     def get_top_k(self, k: int) -> Tuple[np.ndarray, np.ndarray]:
