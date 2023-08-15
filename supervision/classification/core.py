@@ -103,7 +103,7 @@ class Classifications:
             >>> classifications = sv.Classifications.from_ultralytics(result)
             ```
         """
-        confidence = ultralytics_results.boxes.conf.cpu().numpy()
+        confidence = ultralytics_results.probs.data.cpu().numpy()
         return cls(class_id=np.arange(confidence.shape[0]), confidence=confidence)
 
     def get_top_k(self, k: int) -> Tuple[np.ndarray, np.ndarray]:
