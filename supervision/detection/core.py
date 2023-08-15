@@ -179,7 +179,8 @@ class Detections:
 
     @classmethod
     @deprecated(
-        "This method is deprecated and removed in 0.16.0 release. Use sv.Detections.from_ultralytics() instead."
+        "This method is deprecated and removed in 0.16.0 release. Use sv.Detections.from_ultralytics() instead"
+        "as it is more generic and can be used for detections from any ultralytics.engine.results.Results Object "
     )
     def from_yolov8(cls, yolov8_results) -> Detections:
         """

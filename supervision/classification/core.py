@@ -43,7 +43,8 @@ class Classifications:
 
     @classmethod
     @deprecated(
-        "This method is deprecated and removed in 0.16.0 release. Use sv.Classifications.from_ultralytics() instead."
+        "This method is deprecated and removed in 0.16.0 release. Use sv.Classifications.from_ultralytics() instead"
+        "as it is more generic and can be used for detections from any ultralytics.engine.results.Results Object "
     )
     def from_yolov8(cls, yolov8_results) -> Classifications:
         """
@@ -78,7 +79,7 @@ class Classifications:
         Creates a Classifications instance from a (https://github.com/ultralytics/ultralytics) inference result.
 
         Args:
-            ultralytics_results (ultralytics.yolo.engine.results.Results): The output Results instance from ultralytics model
+            ultralytics_results (ultralytics.engine.results.Results): The output Results instance from ultralytics model
 
         Returns:
             Classifications: A new Classifications object.
