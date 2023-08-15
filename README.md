@@ -43,7 +43,7 @@ Read more about desktop, headless, and local installation in our [guide](https:/
 
 >>> model = YOLO('yolov8s.pt')
 >>> result = model(IMAGE)[0]
->>> detections = sv.Detections.from_yolov8(result)
+>>> detections = sv.Detections.from_ultralytics(result)
 
 >>> len(detections)
 5
