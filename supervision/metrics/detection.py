@@ -162,11 +162,11 @@ class ConfusionMatrix:
 
             # Check if masks are available and append them to the respective lists
             if prediction.mask is not None and target.mask is not None:
-                prediction_masks.append(prediction.mask) #  List[(n, W, H)]
+                prediction_masks.append(prediction.mask)  #  List[(n, W, H)]
                 target_masks.append(target.mask)
-                prediction_mask_classes.append(prediction.class_id) # List[(n,)]
-                prediction_mask_confidences.append(prediction.confidence) #  List[(n,)]
-                target_mask_classes.append(target.class_id) #  List[(n,)]
+                prediction_mask_classes.append(prediction.class_id)  # List[(n,)]
+                prediction_mask_confidences.append(prediction.confidence)  #  List[(n,)]
+                target_mask_classes.append(target.class_id)  #  List[(n,)]
 
         result = cls.from_tensors(
             predictions=prediction_tensors,
@@ -177,18 +177,17 @@ class ConfusionMatrix:
         )
 
         result.segmentationMatrix = cls.from_masks(
-            prediction_masks = prediction_masks,
-            prediction_mask_classes = prediction_mask_classes,
-            prediction_mask_confidences = prediction_mask_confidences,
-            target_masks = target_masks,
-            target_mask_classes = target_mask_classes,
+            prediction_masks=prediction_masks,
+            prediction_mask_classes=prediction_mask_classes,
+            prediction_mask_confidences=prediction_mask_confidences,
+            target_masks=target_masks,
+            target_mask_classes=target_mask_classes,
             classes=classes,
             conf_threshold=conf_threshold,
-            iou_threshold=iou_threshold
+            iou_threshold=iou_threshold,
         )
 
         return result
-
 
     @classmethod
     def from_tensors(
@@ -286,24 +285,26 @@ class ConfusionMatrix:
     @classmethod
     def from_masks(
         cls,
-        prediction_masks : List[np.ndarray],
-        prediction_mask_classes : List[np.ndarray],
-        prediction_mask_confidences : List[np.ndarray],
-        target_masks : List[np.ndarray],
-        target_mask_classes : List[np.ndarray],
+        prediction_masks: List[np.ndarray],
+        prediction_mask_classes: List[np.ndarray],
+        prediction_mask_confidences: List[np.ndarray],
+        target_masks: List[np.ndarray],
+        target_mask_classes: List[np.ndarray],
         classes: List[str],
         conf_threshold,
-        iou_threshold
+        iou_threshold,
     ) -> ConfusionMatrix:
-
         # no  need of validation here as we only insert masks if both prediction and target masks are present
 
         num_classes = len(classes)
         matrix = np.zeros((num_classes + 1, num_classes + 1))
 
         for pred_mask, pred_class, pred_conf, tgt_mask, tgt_class in zip(
-                prediction_masks, prediction_mask_classes, prediction_mask_confidences, target_masks,
-                target_mask_classes
+            prediction_masks,
+            prediction_mask_classes,
+            prediction_mask_confidences,
+            target_masks,
+            target_mask_classes,
         ):
             # Filter out predictions based on confidence threshold
             valid_preds = pred_conf > conf_threshold
