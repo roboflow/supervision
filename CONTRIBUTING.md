@@ -64,7 +64,7 @@ Then, go back to your fork of the `supervision` repository, click "Pull Requests
 
 ![Opening a pull request](https://media.roboflow.com/open_pr.png)
 
-Click "compare across forks" and select your fork from the dropdown menu. Then, click "Create pull request".
+Make sure the `base` branch is `develop` before submitting your PR.
 
 On the next page, review your changes then click "Create pull request":
 
