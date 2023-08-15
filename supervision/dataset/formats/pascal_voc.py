@@ -56,13 +56,19 @@ def detections_to_pascal_voc(
     Converts Detections object to Pascal VOC XML format.
 
     Args:
-        detections (Detections): A Detections object containing bounding boxes, class ids, and other relevant information.
-        classes (List[str]): A list of class names corresponding to the class ids in the Detections object.
+        detections (Detections): A Detections object containing bounding boxes,
+            class ids, and other relevant information.
+        classes (List[str]): A list of class names corresponding to the
+            class ids in the Detections object.
         filename (str): The name of the image file associated with the detections.
-        image_shape (Tuple[int, int, int]): The shape of the image file associated with the detections.
-        min_image_area_percentage (float): Minimum detection area relative to area of image associated with it.
-        max_image_area_percentage (float): Maximum detection area relative to area of image associated with it.
-        approximation_percentage (float): The percentage of polygon points to be removed from the input polygon, in the range [0, 1).
+        image_shape (Tuple[int, int, int]): The shape of the image
+            file associated with the detections.
+        min_image_area_percentage (float): Minimum detection area
+            relative to area of image associated with it.
+        max_image_area_percentage (float): Maximum detection area
+            relative to area of image associated with it.
+        approximation_percentage (float): The percentage of
+            polygon points to be removed from the input polygon, in the range [0, 1).
     Returns:
         str: An XML string in Pascal VOC format representing the detections.
     """
@@ -129,15 +135,22 @@ def load_pascal_voc_annotations(
     force_masks: bool = False,
 ) -> Tuple[List[str], Dict[str, np.ndarray], Dict[str, Detections]]:
     """
-    Loads PASCAL VOC annotations and returns class names, images, and their corresponding detections.
+    Loads PASCAL VOC XML annotations and returns the image name,
+        a Detections instance, and a list of class names.
 
     Args:
         images_directory_path (str): The path to the directory containing the images.
-        annotations_directory_path (str): The path to the directory containing the PASCAL VOC annotation files.
-        force_masks (bool, optional): If True, forces masks to be loaded for all annotations, regardless of whether they are present.
+        annotations_directory_path (str): The path to the directory containing the
+            PASCAL VOC annotation files.
+        force_masks (bool, optional): If True, forces masks to be loaded for all
+            annotations, regardless of whether they are present.
 
     Returns:
-        Tuple[List[str], Dict[str, np.ndarray], Dict[str, Detections]]: A tuple containing a list of class names, a dictionary with image names as keys and images as values, and a dictionary with image names as keys and corresponding Detections instances as values.
+        Tuple[List[str], Dict[str, np.ndarray], Dict[str, Detections]]: A tuple
+            containing a list of class names,
+            a dictionary with image names as keys and
+            images as values, and a dictionary with image names as
+            keys and corresponding Detections instances as values.
     """
 
     image_paths = list_files_with_extensions(
@@ -202,7 +215,9 @@ def detections_from_xml_obj(
     </annotation>
 
     Returns:
-        Tuple[Detections, List[str]]: A tuple containing a Detections object and an updated list of class names, extended with the class names from the XML object.
+        Tuple[Detections, List[str]]: A tuple containing a Detections object and an
+            updated list of class names, extended with the class names
+            from the XML object.
     """
     xyxy = []
     class_names = []
