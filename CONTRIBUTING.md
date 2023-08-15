@@ -24,7 +24,55 @@ Before you contribute a new feature, consider submitting an Issue to discuss the
 
 ## How to Contribute Changes
 
-First, fork this repository to your own GitHub account. Create a new branch that describes your changes (i.e. `line-counter-docs`). Push your changes to the branch on your fork and then submit a pull request to `develop` branch of this repository.
+First, fork this repository to your own GitHub account. Click "fork" in the top corner of the `supervision` repository to get started:
+
+![Forking the repository](https://media.roboflow.com/fork.png)
+
+![Creating a repository fork](https://media.roboflow.com/create_fork.png)
+
+Then, run `git clone` to download the project code to your computer.
+
+Move to a new branch using the `git checkout` command:
+
+```bash
+git checkout -b <your_branch_name>
+```
+
+The name you choose for your branch should describe the change you want to make (i.e. `line-counter-docs`).
+
+Make any changes you want to the project code, then run the following commands to commit your changes:
+
+```bash
+git add .
+git commit -m "Your commit message"
+git push -u origin main
+```
+
+This project utilizes the [pre-commit](https://pre-commit.com/) tool to maintain code quality and consistency. Before submitting a pull request or making any commits, it is important to run the pre-commit tool to ensure that your changes meet the project's guidelines.
+
+To run the pre-commit tool, follow these steps:
+
+1. Install pre-commit by running the following command: `poetry install`. It will not only install pre-commit but also install all the deps and dev-deps of project
+
+2. Once pre-commit is installed, navigate to the project's root directory.
+
+3. Run the command `pre-commit run --all-files`. This will execute the pre-commit hooks configured for this project against the modified files. If any issues are found, the pre-commit tool will provide feedback on how to resolve them. Make the necessary changes and re-run the pre-commit command until all issues are resolved.
+
+4. You can also install pre-commit as a git hook by execute `pre-commit install`. Every time you made `git commit` pre-commit run automatically for you.
+
+Then, go back to your fork of the `supervision` repository, click "Pull Requests", and click "New Pull Request". 
+
+![Opening a pull request](https://media.roboflow.com/open_pr.png)
+
+Click "compare across forks" and select your fork from the dropdown menu. Then, click "Create pull request".
+
+On the next page, review your changes then click "Create pull request":
+
+![Configuring a pull request](https://media.roboflow.com/create_pr_submit.png)
+
+Next, write a description for your pull request, and click "Create pull request" again to submit it for review:
+
+![Submitting a pull request](https://media.roboflow.com/write_pr.png)
 
 When creating new functions, please ensure you have the following:
 
