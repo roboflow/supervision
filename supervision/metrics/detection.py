@@ -149,8 +149,8 @@ class ConfusionMatrix:
         prediction_tensors = []
         target_tensors = []
 
-        prediction_masks = []
-        target_masks = []
+        prediction_masks = [] if force_masks else None
+        target_masks = [] if force_masks else None
 
         for prediction, target in zip(predictions, targets):
             prediction_tensors.append(
@@ -255,7 +255,10 @@ class ConfusionMatrix:
 
         num_classes = len(classes)
         matrix = np.zeros((num_classes + 1, num_classes + 1))
-        segmentationMatrix = np.zeros((num_classes + 1, num_classes + 1))
+
+        if prediction_masks:
+            segmentationMatrix = np.zeros((num_classes + 1, num_classes + 1))
+
         for i in range(len(predictions)):
 
             detection_batch = predictions[i]
@@ -274,7 +277,8 @@ class ConfusionMatrix:
             )
 
             matrix += partialMatrix
-            segmentationMatrix += partialSegmentationMatrix
+            if prediction_masks:
+                segmentationMatrix += partialSegmentationMatrix
 
 
         return cls(
@@ -359,7 +363,7 @@ class ConfusionMatrix:
             np.ndarray: Confusion matrix based on a single image.
         """
         result_matrix = np.zeros((num_classes + 1, num_classes + 1))
-        result_segmentation_matrix = np.zeros((num_classes + 1, num_classes + 1))
+        result_segmentation_matrix = np.zeros((num_classes + 1, num_classes + 1)) if prediction_mask else None
 
         conf_idx = 5
         confidence = predictions[:, conf_idx]
@@ -383,7 +387,8 @@ class ConfusionMatrix:
         )
 
         cls.populateConfusionMatrix(iou_batch, iou_threshold, true_classes, detection_classes, num_classes, result_matrix)
-        cls.populateConfusionMatrix(iou_mask, iou_threshold, true_classes, detection_classes, num_classes, result_segmentation_matrix)
+        if prediction_mask:
+            cls.populateConfusionMatrix(iou_mask, iou_threshold, true_classes, detection_classes, num_classes, result_segmentation_matrix)
 
         return result_matrix, result_segmentation_matrix
 
