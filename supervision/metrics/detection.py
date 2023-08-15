@@ -335,7 +335,7 @@ class ConfusionMatrix:
         conf_threshold: float,
         iou_threshold: float,
         prediction_mask: Optional[np.ndarray] = None,
-        target_mask: Optional[np.ndarray] = None
+        target_mask: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         """
         Calculate confusion matrix for a batch of detections for a single image.
