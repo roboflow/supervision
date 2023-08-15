@@ -60,7 +60,7 @@ To run the pre-commit tool, follow these steps:
 
 4. You can also install pre-commit as a git hook by execute `pre-commit install`. Every time you made `git commit` pre-commit run automatically for you.
 
-Then, go back to your fork of the `supervision` repository, click "Pull Requests", and click "New Pull Request". 
+Then, go back to your fork of the `supervision` repository, click "Pull Requests", and click "New Pull Request".
 
 ![Opening a pull request](https://media.roboflow.com/open_pr.png)
 
