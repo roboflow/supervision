@@ -339,34 +339,6 @@ class ConfusionMatrix:
 
         return matrix
 
-
-    @classmethod
-    def _validate_input_tensors(
-        cls, predictions: List[np.ndarray], targets: List[np.ndarray]
-    ):
-        """
-        Checks for shape consistency of input tensors.
-        """
-        if len(predictions) != len(targets):
-            raise ValueError(
-                f"Number of predictions ({len(predictions)}) and targets ({len(targets)}) must be equal."
-            )
-        if len(predictions) > 0:
-            if not isinstance(predictions[0], np.ndarray) or not isinstance(
-                targets[0], np.ndarray
-            ):
-                raise ValueError(
-                    f"Predictions and targets must be lists of numpy arrays. Got {type(predictions[0])} and {type(targets[0])} instead."
-                )
-            if predictions[0].shape[1] != 6:
-                raise ValueError(
-                    f"Predictions must have shape (N, 6). Got {predictions[0].shape} instead."
-                )
-            if targets[0].shape[1] != 5:
-                raise ValueError(
-                    f"Targets must have shape (N, 5). Got {targets[0].shape} instead."
-                )
-
     @staticmethod
     def evaluate_detection_batch(
         predictions: np.ndarray,
