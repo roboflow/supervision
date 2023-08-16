@@ -254,7 +254,8 @@ def detections_from_xml_obj(
 
     xyxy = np.array(xyxy) if len(xyxy) > 0 else np.empty((0, 4))
 
-    # Correction functions for VOC XML format as bounding boxes in VOC XML start at (1,1) not (0,0). Refer:
+    # Correction functions for VOC XML format as bounding boxes
+    # in VOC XML start at (1,1) not (0,0). Refer:
     # https://github.com/roboflow/supervision/issues/144
     xyxy = np.array(xyxy) - 1
 
