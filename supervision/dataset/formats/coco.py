@@ -215,7 +215,7 @@ def save_coco_annotations(
         coco_images.append(coco_image)
         detections = annotations[image_name]
 
-        coco_annotation, label_id = detections_to_coco_annotations(
+        coco_annotation, annotation_id = detections_to_coco_annotations(
             detections=detections,
             image_id=image_id,
             annotation_id=annotation_id,
