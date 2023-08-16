@@ -1,10 +1,10 @@
 ## advanced filtering
 
 
-The advanced filtering capabilities of the `Detections` class offer users a versatile and efficient way to narrow down 
-and refine object detections. This section outlines various filtering methods, including filtering by specific class 
-or a set of classes, confidence, object area, bounding box area, relative area, box dimensions, and designated zones. 
-Each method is demonstrated with concise code examples to provide users with a clear understanding of how to implement 
+The advanced filtering capabilities of the `Detections` class offer users a versatile and efficient way to narrow down
+and refine object detections. This section outlines various filtering methods, including filtering by specific class
+or a set of classes, confidence, object area, bounding box area, relative area, box dimensions, and designated zones.
+Each method is demonstrated with concise code examples to provide users with a clear understanding of how to implement
 the filters in their applications.
 
 ### by specific class
@@ -44,14 +44,14 @@ Allows you to select detections that belong only to one selected class.
 
 ### by set of classes
 
-Allows you to select detections that belong only to selected set of classes. 
+Allows you to select detections that belong only to selected set of classes.
 
 === "After"
 
     ```python
     import numpy as np
     import supervision as sv
-    
+
     selected_classes = [0, 2, 3]
     detections = sv.Detections(...)
     detections = detections[np.isin(detections.class_id, selected_classes)]
@@ -68,7 +68,7 @@ Allows you to select detections that belong only to selected set of classes.
     ```python
     import numpy as np
     import supervision as sv
-    
+
     class_id = [0, 2, 3]
     detections = sv.Detections(...)
     detections = detections[np.isin(detections.class_id, class_id)]
@@ -116,8 +116,8 @@ Allows you to select detections with specific confidence value, for example high
 
 ### by area
 
-Allows you to select detections based on their size. We define the area as the number of pixels occupied by the 
-detection in the image. In the example below, we have sifted out the detections that are too small. 
+Allows you to select detections based on their size. We define the area as the number of pixels occupied by the
+detection in the image. In the example below, we have sifted out the detections that are too small.
 
 === "After"
 
@@ -151,9 +151,9 @@ detection in the image. In the example below, we have sifted out the detections 
 
 ### by relative area
 
-Allows you to select detections based on their size in relation to the size of whole image. Sometimes the concept of 
-detection size changes depending on the image. Detection occupying 10000 square px can be large on a 1280x720 image 
-but small on a 3840x2160 image. In such cases, we can filter out detections based on the percentage of the image area 
+Allows you to select detections based on their size in relation to the size of whole image. Sometimes the concept of
+detection size changes depending on the image. Detection occupying 10000 square px can be large on a 1280x720 image
+but small on a 3840x2160 image. In such cases, we can filter out detections based on the percentage of the image area
 occupied by them. In the example below, we remove too large detections.
 
 === "After"
@@ -164,7 +164,7 @@ occupied by them. In the example below, we remove too large detections.
     image = ...
     height, width, channels = image.shape
     image_area = height * width
-    
+
     detections = sv.Detections(...)
     detections = detections[(detections.area / image_area) < 0.8]
     ```
@@ -183,7 +183,7 @@ occupied by them. In the example below, we remove too large detections.
     image = ...
     height, width, channels = image.shape
     image_area = height * width
-    
+
     detections = sv.Detections(...)
     detections = detections[(detections.area / image_area) < 0.8]
     ```
@@ -196,8 +196,8 @@ occupied by them. In the example below, we remove too large detections.
 
 ### by box dimensions
 
-Allows you to select detections based on their dimensions. The size of the bounding box, as well as its coordinates, 
-can be criteria for rejecting detection. Implementing such filtering requires a bit of custom code but is relatively 
+Allows you to select detections based on their dimensions. The size of the bounding box, as well as its coordinates,
+can be criteria for rejecting detection. Implementing such filtering requires a bit of custom code but is relatively
 simple and fast.
 
 === "After"
@@ -236,7 +236,7 @@ simple and fast.
 
 ### by `PolygonZone`
 
-Allows you to use `Detections` in combination with `PolygonZone` to weed out bounding boxes that are in and out of the 
+Allows you to use `Detections` in combination with `PolygonZone` to weed out bounding boxes that are in and out of the
 zone. In the example below you can see how to filter out all detections located in the lower part of the image.
 
 === "After"

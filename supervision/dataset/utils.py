@@ -64,7 +64,7 @@ def build_class_index_mapping(
         if class_name not in target_classes:
             raise ValueError(
                 f"Class {class_name} not found in target classes. "
-                f"source_classes must be a subset of target_classes."
+                "source_classes must be a subset of target_classes."
             )
         corresponding_index = target_classes.index(class_name)
         index_mapping[i] = corresponding_index
