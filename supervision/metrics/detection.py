@@ -112,6 +112,9 @@ class ConfusionMatrix:
                 Detections with lower confidence will be excluded.
             iou_threshold (float): Detection IoU threshold between `0` and `1`.
                 Detections with lower IoU will be classified as `FP`.
+            force_masks (bool, default=True): If True, the ConfusionMatrix.segmentationMatrix is computed.
+            Otherwise, it is None
+            If this value is set to True and masks are not present for some images, error will be thrown.
 
         Returns:
             ConfusionMatrix: New instance of ConfusionMatrix.
@@ -159,6 +162,9 @@ class ConfusionMatrix:
             target_tensors.append(detections_to_tensor(target, with_confidence=False))
 
             if force_masks:
+                if not prediction.mask or not target.mask:
+                    raise Exception("Please make sure all images have corresponding mask annotations")
+
                 # add none so that we can utilize the same order of classes as prediction_tensors
                 prediction_masks.append(prediction.mask)
                 target_masks.append(target.mask)
@@ -199,6 +205,10 @@ class ConfusionMatrix:
                 ground-truth objects. Each row is expected to be in
                 `(x_min, y_min, x_max, y_max, class)` format.
             classes (List[str]): Model class names.
+            prediction_masks (Optional[List[np.ndarray]]): An array of shape
+            `(n, H, W)` containing the prediction segmentation masks.
+            target_masks (Optional[List[np.ndarray]]): An array of shape
+            `(n, H, W)` containing the target segmentation masks.
             conf_threshold (float): Detection confidence threshold between `0` and `1`.
                 Detections with lower confidence will be excluded.
             iou_threshold (float): Detection iou  threshold between `0` and `1`.
@@ -289,7 +299,7 @@ class ConfusionMatrix:
         )
 
     @staticmethod
-    def populateConfusionMatrix(
+    def populate_confusion_matrix(
         iou_batch: np.ndarray,
         iou_threshold: float,
         true_classes: np.ndarray,
@@ -384,7 +394,7 @@ class ConfusionMatrix:
             masks_true=target_mask, masks_detection=detection_mask_batch_filtered
         )
 
-        cls.populateConfusionMatrix(
+        cls.populate_confusion_matrix(
             iou_batch,
             iou_threshold,
             true_classes,
@@ -393,7 +403,7 @@ class ConfusionMatrix:
             result_matrix,
         )
         if prediction_mask:
-            cls.populateConfusionMatrix(
+            cls.populate_confusion_matrix(
                 iou_mask,
                 iou_threshold,
                 true_classes,
