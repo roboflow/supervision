@@ -21,6 +21,7 @@ def object_to_pascal_voc(
     object_name = SubElement(root, "name")
     object_name.text = name
 
+    # https://github.com/roboflow/supervision/issues/144
     xyxy += 1
 
     bndbox = SubElement(root, "bndbox")
@@ -34,6 +35,7 @@ def object_to_pascal_voc(
     ymax.text = str(int(xyxy[3]))
 
     if polygon is not None:
+        # https://github.com/roboflow/supervision/issues/144
         polygon += 1
         object_polygon = SubElement(root, "polygon")
         for index, point in enumerate(polygon, start=1):
@@ -232,7 +234,6 @@ def detections_from_xml_obj(
         class_names.append(class_name)
 
         bbox = obj.find("bndbox")
-
         x1 = int(bbox.find("xmin").text)
         y1 = int(bbox.find("ymin").text)
         x2 = int(bbox.find("xmax").text)
@@ -244,20 +245,20 @@ def detections_from_xml_obj(
         with_masks = force_masks if force_masks else with_masks
 
         for polygon in obj.findall("polygon"):
-            polygon_points = np.array(parse_polygon_points(polygon))
+            polygon = parse_polygon_points(polygon)
+            # https://github.com/roboflow/supervision/issues/144
+            polygon -= 1
 
             mask_from_polygon = polygon_to_mask(
-                polygon=polygon_points - 1,
+                polygon=polygon,
                 resolution_wh=resolution_wh,
             )
             masks.append(mask_from_polygon)
 
     xyxy = np.array(xyxy) if len(xyxy) > 0 else np.empty((0, 4))
 
-    # Correction functions for VOC XML format as bounding boxes
-    # in VOC XML start at (1,1) not (0,0). Refer:
     # https://github.com/roboflow/supervision/issues/144
-    xyxy = np.array(xyxy) - 1
+    xyxy -= 1
 
     for k in set(class_names):
         if k not in extended_classes:
@@ -275,11 +276,6 @@ def detections_from_xml_obj(
     return annotation, extended_classes
 
 
-def parse_polygon_points(polygon: Element) -> List[List[int]]:
-    polygon_points = []
-    coords = polygon.findall(".//*")
-    for i in range(0, len(coords), 2):
-        x = int(coords[i].text)
-        y = int(coords[i + 1].text)
-        polygon_points.append([x, y])
-    return polygon_points
+def parse_polygon_points(polygon: Element) -> np.ndarray:
+    coordinates = [int(coord.text) for coord in polygon.findall(".//*")]
+    return np.array([(coordinates[i], coordinates[i+1]) for i in range(0, len(coordinates), 2)])
