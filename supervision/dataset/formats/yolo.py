@@ -140,12 +140,13 @@ def load_yolo_annotations(
 
     for image_path in image_paths:
         image_name = Path(image_path).stem
-        image = cv2.imread(str(image_path))
+        image_path = str(image_path)
+        image = cv2.imread(image_path)
 
         annotation_path = os.path.join(annotations_directory_path, f"{image_name}.txt")
         if not os.path.exists(annotation_path):
-            images[image_path.name] = image
-            annotations[image_path.name] = Detections.empty()
+            images[image_path] = image
+            annotations[image_path] = Detections.empty()
             continue
 
         lines = read_txt_file(str(annotation_path))
@@ -158,8 +159,8 @@ def load_yolo_annotations(
             lines=lines, resolution_wh=resolution_wh, with_masks=with_masks
         )
 
-        images[image_path.name] = image
-        annotations[image_path.name] = annotation
+        images[image_path] = image
+        annotations[image_path] = annotation
     return classes, images, annotations
 
 
