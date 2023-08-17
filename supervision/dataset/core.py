@@ -666,9 +666,9 @@ class ClassificationDataset(BaseDataset):
             class_id = classes.index(class_name)
 
             for image in os.listdir(os.path.join(root_directory_path, class_name)):
-                image_dir = os.path.join(root_directory_path, class_name, image)
-                images[image] = cv2.imread(image_dir)
-                annotations[image] = Classifications(
+                image_path = str(os.path.join(root_directory_path, class_name, image))
+                images[image_path] = cv2.imread(image_path)
+                annotations[image_path] = Classifications(
                     class_id=np.array([class_id]),
                 )
 
