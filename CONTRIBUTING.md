@@ -112,3 +112,7 @@ All new functions and classes in `supervision` should include docstrings. This i
 ## 🧪 tests
 
 [`pytests`](https://docs.pytest.org/en/7.1.x/) is used to run our tests.
+
+## 📄 license
+
+By contributing, you agree that your contributions will be licensed under an [MIT license](https://github.com/roboflow/supervision/blob/develop/LICENSE.md).
