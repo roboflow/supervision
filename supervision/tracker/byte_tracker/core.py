@@ -40,7 +40,7 @@ class STrack(BaseTrack):
                 multi_covariance.append(st.covariance)
                 if st.state != TrackState.Tracked:
                     multi_mean[i][7] = 0
-            
+
             multi_mean, multi_covariance = STrack.shared_kalman.multi_predict(
                 np.asarray(multi_mean), np.asarray(multi_covariance)
             )
