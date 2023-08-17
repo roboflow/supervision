@@ -173,8 +173,8 @@ def load_pascal_voc_annotations(
 
         annotation_path = os.path.join(annotations_directory_path, f"{image_name}.xml")
         if not os.path.exists(annotation_path):
-            images[image_path.name] = image
-            annotations[image_path.name] = Detections.empty()
+            images[image_path] = image
+            annotations[image_path] = Detections.empty()
             continue
 
         tree = parse(annotation_path)
