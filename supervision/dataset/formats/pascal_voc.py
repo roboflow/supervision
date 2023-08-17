@@ -168,7 +168,8 @@ def load_pascal_voc_annotations(
 
     for image_path in image_paths:
         image_name = Path(image_path).stem
-        image = cv2.imread(str(image_path))
+        image_path = str(image_path)
+        image = cv2.imread(image_path)
 
         annotation_path = os.path.join(annotations_directory_path, f"{image_name}.xml")
         if not os.path.exists(annotation_path):
@@ -184,8 +185,8 @@ def load_pascal_voc_annotations(
             root, classes, resolution_wh, force_masks
         )
 
-        images[image_path.name] = image
-        annotations[image_path.name] = annotation
+        images[image_path] = image
+        annotations[image_path] = annotation
 
     return classes, images, annotations
 
