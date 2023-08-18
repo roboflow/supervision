@@ -200,9 +200,9 @@ def save_coco_annotations(
     coco_categories = classes_to_coco_categories(classes=classes)
 
     image_id, annotation_id = 1, 1
-    for image_name, image in images.items():
+    for image_path, image in images.items():
         image_height, image_width, _ = image.shape
-
+        image_name =f"{Path(image_path).stem}{Path(image_path).suffix}"
         coco_image = {
             "id": image_id,
             "license": 1,
@@ -213,7 +213,7 @@ def save_coco_annotations(
         }
 
         coco_images.append(coco_image)
-        detections = annotations[image_name]
+        detections = annotations[image_path]
 
         coco_annotation, annotation_id = detections_to_coco_annotations(
             detections=detections,
