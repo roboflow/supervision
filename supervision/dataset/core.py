@@ -627,7 +627,7 @@ class ClassificationDataset(BaseDataset):
             )
             class_name = self.classes[class_id]
             image_path = os.path.join(
-                root_directory_path, class_name, f"{image_name}.{image_ext}"
+                root_directory_path, class_name, f"{image_name}{image_ext}"
             )
             cv2.imwrite(image_path, image)
 
