@@ -300,10 +300,8 @@ class Detections:
         inference result.
 
         Args:
-            deepsparse_results (YOLOOutput):
-                The output Results instance from DeepSparse
-                YOLOOutput is coming from
-                'deepsparse.yolo.schemas.YOLOOutput'
+            deepsparse_results (deepsparse.yolo.schemas.YOLOOutput):
+                The output Results instance from DeepSparse.
 
         Returns:
             Detections: A new Detections object.
@@ -313,12 +311,10 @@ class Detections:
             >>> from deepsparse import Pipeline
             >>> import supervision as sv
 
-            >>> yolo_pipeline = Pipeline.create(task="yolo",
-              model_path="zoo:cv/detection/yolov5-s/pytorch/ultralytics/coco/pruned85-none")
-            >>> images = "basilica.jpg"
-            >>> pipeline_outputs = yolo_pipeline(images=images,
-                                    iou_thres=0.6,
-                                    conf_thres=0.001)
+            >>> yolo_pipeline = Pipeline.create(
+            ...     task="yolo",
+            ...     model_path="zoo:cv/detection/yolov5-s/pytorch/ultralytics/coco/pruned85-none")
+            >>> pipeline_outputs = yolo_pipeline(SOURCE_IMAGE_PATH, iou_thres=0.6, conf_thres=0.001)
             >>> result = list(pipeline_outputs.boxes[0])
             >>> detections = sv.Detections.from_yolo_nas(result)
             ```
@@ -338,7 +334,7 @@ class Detections:
 
         Args:
             mmdet_results (mmdet.structures.DetDataSample):
-                The output Results instance from MMDetection
+                The output Results instance from MMDetection.
 
         Returns:
             Detections: A new Detections object.
