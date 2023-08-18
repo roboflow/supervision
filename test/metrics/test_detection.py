@@ -6,13 +6,12 @@ import numpy as np
 import pytest
 
 from supervision.detection.core import Detections
+from supervision.detection.utils import mask_iou_batch
 from supervision.metrics.detection import (
     ConfusionMatrix,
     MeanAveragePrecision,
     detections_to_tensor,
 )
-from supervision.detection.utils import mask_iou_batch
-
 
 CLASSES = np.arange(80)
 NUM_CLASSES = len(CLASSES)
@@ -118,20 +117,20 @@ CUSTOM_DETECTION_TENSORS_1 = [
 ]
 
 CUSTOM_TARGET_TENSORS_1 = [
-                np.array(
-                    [
-                        [0.0, 0.0, 3.0, 3.0, 0],  # [0] detected
-                        [2.0, 2.0, 5.0, 5.0, 1],  # [1] undetected - FN
-                        [
-                            6.0,
-                            1.0,
-                            8.0,
-                            3.0,
-                            2,
-                        ],  # [2] correct detection with incorrect class
-                    ]
-                )
-            ]
+    np.array(
+        [
+            [0.0, 0.0, 3.0, 3.0, 0],  # [0] detected
+            [2.0, 2.0, 5.0, 5.0, 1],  # [1] undetected - FN
+            [
+                6.0,
+                1.0,
+                8.0,
+                3.0,
+                2,
+            ],  # [2] correct detection with incorrect class
+        ]
+    )
+]
 
 CUSTOM_DETECTION_TENSORS_2 = [
     np.array(
@@ -199,12 +198,14 @@ def create_mask_from_boxes(boxes, max_x, max_y):
 
     for idx, box in enumerate(boxes):
         x1, y1, x2, y2 = map(int, box[:4])
-        masks[idx, y1:y2 + 1, x1:x2 + 1] = True  # Directly fill the appropriate slice of the 3D array
+        masks[
+            idx, y1 : y2 + 1, x1 : x2 + 1
+        ] = True  # Directly fill the appropriate slice of the 3D array
 
     return masks
 
-def create_masks_from_tensors(detection_tensors, target_tensors):
 
+def create_masks_from_tensors(detection_tensors, target_tensors):
     max_x = int(np.max(detection_tensors[0][:, [0, 2]]))
     max_x = max(max_x, int(np.max(target_tensors[0][:, [0, 2]])))
     max_y = int(np.max(detection_tensors[0][:, [1, 3]]))
@@ -239,7 +240,9 @@ def worsen_ideal_conf_matrix(
     return conf_matrix
 
 
-DETECTION_MASKS, TARGET_MASKS = create_masks_from_tensors(DETECTION_TENSORS, TARGET_TENSORS)
+DETECTION_MASKS, TARGET_MASKS = create_masks_from_tensors(
+    DETECTION_TENSORS, TARGET_TENSORS
+)
 
 
 IDEAL_CONF_MATRIX = create_empty_conf_matrix(NUM_CLASSES)
@@ -383,7 +386,9 @@ def test_detections_to_tensor(
         (
             CUSTOM_DETECTION_TENSORS_1,
             CUSTOM_TARGET_TENSORS_1,
-            *create_masks_from_tensors(CUSTOM_DETECTION_TENSORS_1, CUSTOM_TARGET_TENSORS_1),
+            *create_masks_from_tensors(
+                CUSTOM_DETECTION_TENSORS_1, CUSTOM_TARGET_TENSORS_1
+            ),
             CLASSES[:3],
             0.6,
             0.5,
@@ -394,14 +399,16 @@ def test_detections_to_tensor(
         (
             CUSTOM_DETECTION_TENSORS_2,
             CUSTOM_TARGET_TENSORS_2,
-            *create_masks_from_tensors(CUSTOM_DETECTION_TENSORS_2, CUSTOM_TARGET_TENSORS_2),
+            *create_masks_from_tensors(
+                CUSTOM_DETECTION_TENSORS_2, CUSTOM_TARGET_TENSORS_2
+            ),
             CLASSES[:3],
             0.6,
             1.0,
             np.array([[0, 0, 0, 1], [0, 0, 0, 1], [0, 0, 0, 1], [2, 3, 0, 0]]),
             np.array([[0, 0, 0, 1], [0, 0, 0, 1], [0, 0, 0, 1], [2, 3, 0, 0]]),
             DoesNotRaise(),
-        )
+        ),
     ],
 )
 def test_from_tensors(
@@ -427,9 +434,15 @@ def test_from_tensors(
             iou_threshold=iou_threshold,
         )
 
-        assert result.matrix.diagonal().sum() == expected_box_confusion_matrix.diagonal().sum()
+        assert (
+            result.matrix.diagonal().sum()
+            == expected_box_confusion_matrix.diagonal().sum()
+        )
         assert np.array_equal(result.matrix, expected_box_confusion_matrix)
-        assert np.array_equal(result.segmentationMatrix, expected_segmentation_confusion_matrix)
+        assert np.array_equal(
+            result.segmentationMatrix, expected_segmentation_confusion_matrix
+        )
+
 
 @pytest.mark.parametrize(
     "predictions, targets, num_classes, conf_threshold, iou_threshold, expected_result,"
@@ -493,42 +506,23 @@ def test_drop_extra_matches(
     "masks_true, masks_detection, expected_iou, exception",
     [
         (
-            np.array([
-                [
-                    [0, 0, 0],
-                    [0, 1, 0],
-                    [0, 0, 0]
-                ],
-                [
-                    [1, 1, 0],
-                    [1, 1, 0],
-                    [0, 0, 0]
-                ]
-            ]),
-            np.array([
-                [
-                    [0, 0, 0],
-                    [0, 1, 0],
-                    [0, 0, 0]
-                ],
-                [
-                    [0, 1, 1],
-                    [0, 1, 1],
-                    [0, 0, 0]
-                ]
-            ]),
-            np.array([
-                [1.0, 0.25],
-                [0.25, 0.33333333]
-            ]),
-            DoesNotRaise()
+            np.array(
+                [[[0, 0, 0], [0, 1, 0], [0, 0, 0]], [[1, 1, 0], [1, 1, 0], [0, 0, 0]]]
+            ),
+            np.array(
+                [[[0, 0, 0], [0, 1, 0], [0, 0, 0]], [[0, 1, 1], [0, 1, 1], [0, 0, 0]]]
+            ),
+            np.array([[1.0, 0.25], [0.25, 0.33333333]]),
+            DoesNotRaise(),
         )
     ],
 )
 def test_mask_iou_batch(masks_true, masks_detection, expected_iou, exception):
     with exception:
         iou = mask_iou_batch(masks_true, masks_detection)
-        assert np.allclose(iou, expected_iou, atol=1e-6), f"Expected {expected_iou}, but got {iou}"
+        assert np.allclose(
+            iou, expected_iou, atol=1e-6
+        ), f"Expected {expected_iou}, but got {iou}"
 
 
 @pytest.mark.parametrize(
