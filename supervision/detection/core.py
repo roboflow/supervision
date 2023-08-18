@@ -313,8 +313,7 @@ class Detections:
             >>> from deepsparse import Pipeline
             >>> import supervision as sv
 
-            >>> model_stub = "zoo:cv/detection/yolov5-s/pytorch/ultralytics/coco/pruned85-none"
-            >>> yolo_pipeline = Pipeline.create(task="yolo",model_path=model_stub)
+            >>> yolo_pipeline = Pipeline.create(task="yolo", model_path="zoo:cv/detection/yolov5-s/pytorch/ultralytics/coco/pruned85-none")
             >>> images = "basilica.jpg"
             >>> pipeline_outputs = yolo_pipeline(images=images, iou_thres=0.6, conf_thres=0.001)
             >>> result = list(pipeline_outputs.boxes[0])
