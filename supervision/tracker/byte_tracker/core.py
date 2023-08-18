@@ -33,13 +33,16 @@ class STrack(BaseTrack):
     @staticmethod
     def multi_predict(stracks):
         if len(stracks) > 0:
-            multi_mean = np.asarray([st.mean.copy() for st in stracks])
-            multi_covariance = np.asarray([st.covariance for st in stracks])
+            multi_mean = []
+            multi_covariance = []
             for i, st in enumerate(stracks):
+                multi_mean.append(st.mean.copy())
+                multi_covariance.append(st.covariance)
                 if st.state != TrackState.Tracked:
                     multi_mean[i][7] = 0
+
             multi_mean, multi_covariance = STrack.shared_kalman.multi_predict(
-                multi_mean, multi_covariance
+                np.asarray(multi_mean), np.asarray(multi_covariance)
             )
             for i, (mean, cov) in enumerate(zip(multi_mean, multi_covariance)):
                 stracks[i].mean = mean
@@ -211,7 +214,7 @@ class ByteTrack:
 
             >>> def callback(frame: np.ndarray, index: int) -> np.ndarray:
             ...     results = model(frame)[0]
-            ...     detections = sv.Detections.from_yolov8(results)
+            ...     detections = sv.Detections.from_ultralytics(results)
             ...     detections = byte_tracker.update_with_detections(detections)
             ...     labels = [
             ...         f"#{tracker_id} {model.model.names[class_id]} {confidence:0.2f}"

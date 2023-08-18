@@ -33,25 +33,25 @@ def are_xml_elements_equal(elem1, elem2):
     "xyxy, name, polygon, expected_result, exception",
     [
         (
-            [0, 0, 10, 10],
+            np.array([0, 0, 10, 10]),
             "test",
             None,
             ET.fromstring(
-                """<object><name>test</name><bndbox><xmin>0</xmin><ymin>0</ymin>
-                <xmax>10</xmax><ymax>10</ymax></bndbox></object>"""
+                """<object><name>test</name><bndbox><xmin>1</xmin><ymin>1</ymin>
+                <xmax>11</xmax><ymax>11</ymax></bndbox></object>"""
             ),
             DoesNotRaise(),
         ),
         (
-            [0, 0, 10, 10],
+            np.array([0, 0, 10, 10]),
             "test",
-            [[0, 0], [10, 0], [10, 10], [0, 10]],
+            np.array([[0, 0], [10, 0], [10, 10], [0, 10]]),
             ET.fromstring(
-                """<object><name>test</name><bndbox><xmin>0</xmin><ymin>0</ymin>
-                    <xmax>10</xmax><ymax>10</ymax>
-                    </bndbox><polygon><x1>0</x1><y1>0</y1><x2>10</x2>
-                    <y2>0</y2><x3>10</x3><y3>10</y3><x4>0</x4><y4>10</y4>
-                    </polygon></object>"""
+                """<object><name>test</name><bndbox><xmin>1</xmin><ymin>1</ymin>
+                <xmax>11</xmax><ymax>11</ymax>
+                </bndbox><polygon><x1>1</x1><y1>1</y1><x2>11</x2>
+                <y2>1</y2><x3>11</x3><y3>11</y3><x4>1</x4><y4>11</y4>
+                </polygon></object>"""
             ),
             DoesNotRaise(),
         ),
@@ -77,7 +77,7 @@ def test_object_to_pascal_voc(
                 """<polygon><x1>0</x1><y1>0</y1><x2>10</x2><y2>0</y2><x3>10</x3>
                     <y3>10</y3><x4>0</x4><y4>10</y4></polygon>"""
             ),
-            [[0, 0], [10, 0], [10, 10], [0, 10]],
+            np.array([[0, 0], [10, 0], [10, 10], [0, 10]]),
             DoesNotRaise(),
         )
     ],
@@ -89,25 +89,29 @@ def test_parse_polygon_points(
 ):
     with exception:
         result = parse_polygon_points(polygon_element)
-        assert result == expected_result
+        assert np.array_equal(result, expected_result)
 
 
-ONE_CLASS_N_BBOX = """<annotation><object><name>test</name><bndbox><xmin>0</xmin
-><ymin>0</ymin><xmax>10</xmax><ymax
->10</ymax></bndbox></object><object><name>test</name><bndbox><xmin>10</xmin><ymin>10
-</ymin><xmax>20</xmax><ymax>20 </ymax></bndbox></object></annotation>"""
+ONE_CLASS_N_BBOX = """<annotation><object><name>test</name><bndbox><xmin>1</xmin>
+<ymin>1</ymin><xmax>11</xmax><ymax>11</ymax>
+</bndbox></object><object><name>test</name><bndbox><xmin>11</xmin><ymin>11</ymin>
+<xmax>21</xmax><ymax>21</ymax></bndbox></object></annotation>"""
 
-ONE_CLASS_ONE_BBOX = """<annotation><object><name>test</name><bndbox><xmin>0</xmin
-><ymin>0</ymin><xmax>10</xmax><ymax >10</ymax></bndbox></object></annotation>"""
 
-N_CLASS_N_BBOX = """<annotation><object><name>test</name><bndbox><xmin>0</xmin><ymin
->0</ymin><xmax>10</xmax><ymax>10
-</ymax></bndbox></object><object><name>test</name><bndbox><xmin>20</xmin><ymin>30
-</ymin><xmax>30</xmax><ymax>40</ymax
-></bndbox></object><object><name>test2</name><bndbox><xmin>10</xmin><ymin>10</ymin
-><xmax>20</xmax><ymax>20</ymax ></bndbox></object></annotation>"""
+ONE_CLASS_ONE_BBOX = """<annotation><object><name>test</name><bndbox>
+<xmin>1</xmin><ymin>1</ymin><xmax>11</xmax><ymax>11</ymax></bndbox></object>
+</annotation>"""
 
-NO_DETECTIONS = "<annotation></annotation>"
+
+N_CLASS_N_BBOX = """<annotation><object><name>test</name><bndbox><xmin>1</xmin>
+<ymin>1</ymin><xmax>11</xmax><ymax>11</ymax>
+</bndbox></object><object><name>test</name><bndbox>
+<xmin>21</xmin><ymin>31</ymin><xmax>31</xmax><ymax>41</ymax></bndbox>
+</object><object><name>test2</name><bndbox><xmin>
+11</xmin><ymin>11</ymin><xmax>21</xmax><ymax>
+21</ymax></bndbox></object></annotation>"""
+
+NO_DETECTIONS = """<annotation></annotation>"""
 
 
 @pytest.mark.parametrize(

@@ -43,7 +43,7 @@ Read more about desktop, headless, and local installation in our [guide](https:/
 
 >>> model = YOLO('yolov8s.pt')
 >>> result = model(IMAGE)[0]
->>> detections = sv.Detections.from_yolov8(result)
+>>> detections = sv.Detections.from_ultralytics(result)
 
 >>> len(detections)
 5
@@ -268,6 +268,12 @@ array([
     ```
 
 </details>
+
+## 🛠️ built with supervision
+
+Did you build something cool using supervision? [Let us know!](https://github.com/roboflow/supervision/discussions/categories/built-with-supervision)
+
+https://user-images.githubusercontent.com/26109316/207858600-ee862b22-0353-440b-ad85-caa0c4777904.mp4
 
 ## 🎬 tutorials
 
