@@ -323,7 +323,7 @@ class Detections:
         """
         return cls(
             xyxy=deepsparse_results.boxes[0],
-            confidence=deepsparse_results.scores.confidence[0],
+            confidence=deepsparse_results.scores[0],
         )
 
     @classmethod
