@@ -55,12 +55,12 @@ def validate_input_tensors(predictions: List[np.ndarray], targets: List[np.ndarr
             targets[0], np.ndarray
         ):
             raise ValueError(
-                f"Predictions and targets must be lists of numpy arrays."
+                "Predictions and targets must be lists of numpy arrays."
                 f"Got {type(predictions[0])} and {type(targets[0])} instead."
             )
         if predictions[0].shape[1] != 6:
             raise ValueError(
-                f"Predictions must have shape (N, 6)."
+                "Predictions must have shape (N, 6)."
                 f"Got {predictions[0].shape} instead."
             )
         if targets[0].shape[1] != 5:
@@ -112,9 +112,11 @@ class ConfusionMatrix:
                 Detections with lower confidence will be excluded.
             iou_threshold (float): Detection IoU threshold between `0` and `1`.
                 Detections with lower IoU will be classified as `FP`.
-            force_masks (bool, default=True): If True, the ConfusionMatrix.segmentationMatrix is computed.
+            force_masks (bool, default=True):
+            If True, the ConfusionMatrix.segmentationMatrix is computed.
             Otherwise, it is None
-            If this value is set to True and masks are not present for some images, error will be thrown.
+            If this value is set to True and masks
+            are not present for some images, error will be thrown.
 
         Returns:
             ConfusionMatrix: New instance of ConfusionMatrix.
@@ -164,10 +166,12 @@ class ConfusionMatrix:
             if force_masks:
                 if prediction.mask is None or target.mask is None:
                     raise Exception(
-                        "Please make sure all images have corresponding mask annotations"
+                        "Please make sure all images have corresponding mask"
+                        " annotations"
                     )
 
-                # add none so that we can utilize the same order of classes as prediction_tensors
+                # add none so that we can utilize the same order of classes
+                # as prediction_tensors
                 prediction_masks.append(prediction.mask)
                 target_masks.append(target.mask)
 
@@ -321,8 +325,10 @@ class ConfusionMatrix:
             `M` is number of detected objects.
             iou_threshold (float): Detection iou  threshold between `0` and `1`.
             Detections with lower iou will be classified as `FP`.
-            true_classes (np.ndarray): An array of shape `(n,) containing class ids of each target
-            detection_classes (np.ndarray): An array of shape `(n,) containing class ids of each prediction
+            true_classes (np.ndarray): An array of shape `(n,)
+            containing class ids of each target
+            detection_classes (np.ndarray): An array of shape `(n,)
+            containing class ids of each prediction
             num_classes (int): Number of classes.
 
         Returns:

@@ -320,7 +320,8 @@ def test_detections_to_tensor(
 
 
 @pytest.mark.parametrize(
-    "predictions, targets, prediction_masks, target_masks, classes, conf_threshold, iou_threshold,"
+    "predictions, targets, prediction_masks, target_masks, classes, "
+    "conf_threshold, iou_threshold,"
     "expected_box_confusion_matrix, expected_segmentation_confusion_matrix, exception",
     [
         (
@@ -445,7 +446,8 @@ def test_from_tensors(
 
 
 @pytest.mark.parametrize(
-    "predictions, targets, num_classes, conf_threshold, iou_threshold, prediction_mask, target_mask, "
+    "predictions, targets, num_classes, conf_threshold, iou_threshold, "
+    "prediction_mask, target_mask, "
     "expected_box_confusion_matrix, expected_segmentation_confusion_matrix,  exception",
     [
         (
