@@ -202,7 +202,7 @@ def save_coco_annotations(
     image_id, annotation_id = 1, 1
     for image_path, image in images.items():
         image_height, image_width, _ = image.shape
-        image_name =f"{Path(image_path).stem}{Path(image_path).suffix}"
+        image_name = f"{Path(image_path).stem}{Path(image_path).suffix}"
         coco_image = {
             "id": image_id,
             "license": 1,
