@@ -163,7 +163,9 @@ class ConfusionMatrix:
 
             if force_masks:
                 if prediction.mask is None or target.mask is None:
-                    raise Exception("Please make sure all images have corresponding mask annotations")
+                    raise Exception(
+                        "Please make sure all images have corresponding mask annotations"
+                    )
 
                 # add none so that we can utilize the same order of classes as prediction_tensors
                 prediction_masks.append(prediction.mask)
@@ -266,14 +268,18 @@ class ConfusionMatrix:
         num_classes = len(classes)
         matrix = np.zeros((num_classes + 1, num_classes + 1))
 
-        segmentation_matrix = prediction_masks if prediction_masks is None else (
-            np.zeros((num_classes + 1, num_classes + 1))
+        segmentation_matrix = (
+            prediction_masks
+            if prediction_masks is None
+            else (np.zeros((num_classes + 1, num_classes + 1)))
         )
 
         for i in range(len(predictions)):
             detection_batch = predictions[i]
             true_batch = targets[i]
-            detection_mask = prediction_masks if prediction_masks is None else prediction_masks[i]
+            detection_mask = (
+                prediction_masks if prediction_masks is None else prediction_masks[i]
+            )
             true_mask = target_masks if target_masks is None else target_masks[i]
 
             partial_matrix, partial_segmentation_matrix = cls.evaluate_detection_batch(
@@ -304,7 +310,7 @@ class ConfusionMatrix:
         iou_threshold: float,
         true_classes: np.ndarray,
         detection_classes: np.ndarray,
-        num_classes: int
+        num_classes: int,
     ) -> np.ndarray:
         """
         Calculate confusion matrix for a batch of detections for a single image.
@@ -362,7 +368,7 @@ class ConfusionMatrix:
         conf_threshold: float,
         iou_threshold: float,
         prediction_mask: Optional[np.ndarray] = None,
-        target_mask: Optional[np.ndarray] = None
+        target_mask: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         """
         Calculate confusion matrix for a batch of detections for a single image.
@@ -391,11 +397,14 @@ class ConfusionMatrix:
             np.ndarray: Confusion matrix based on a single image.
         """
 
-
         conf_idx = 5
         confidence = predictions[:, conf_idx]
         detection_batch_filtered = predictions[confidence > conf_threshold]
-        detection_mask_batch_filtered = prediction_mask if prediction_mask is None else prediction_mask[confidence > conf_threshold]
+        detection_mask_batch_filtered = (
+            prediction_mask
+            if prediction_mask is None
+            else prediction_mask[confidence > conf_threshold]
+        )
 
         class_id_idx = 4
         true_classes = np.array(targets[:, class_id_idx], dtype=np.int16)
@@ -409,27 +418,28 @@ class ConfusionMatrix:
             boxes_true=true_boxes, boxes_detection=detection_boxes
         )
 
-
-        iou_mask = target_mask if target_mask is None else mask_iou_batch(
-            masks_true=target_mask, masks_detection=detection_mask_batch_filtered
+        iou_mask = (
+            target_mask
+            if target_mask is None
+            else mask_iou_batch(
+                masks_true=target_mask, masks_detection=detection_mask_batch_filtered
+            )
         )
 
         box_confusion_matrix = cls.calculate_confusion_matrix_from_iou_matrix(
-            iou_batch,
-            iou_threshold,
-            true_classes,
-            detection_classes,
-            num_classes
+            iou_batch, iou_threshold, true_classes, detection_classes, num_classes
         )
 
         segmentation_confusion_matrix = None
         if prediction_mask is not None:
-            segmentation_confusion_matrix = cls.calculate_confusion_matrix_from_iou_matrix(
-                iou_mask,
-                iou_threshold,
-                true_classes,
-                detection_classes,
-                num_classes
+            segmentation_confusion_matrix = (
+                cls.calculate_confusion_matrix_from_iou_matrix(
+                    iou_mask,
+                    iou_threshold,
+                    true_classes,
+                    detection_classes,
+                    num_classes,
+                )
             )
 
         return box_confusion_matrix, segmentation_confusion_matrix
@@ -454,7 +464,7 @@ class ConfusionMatrix:
         callback: Callable[[np.ndarray], Detections],
         conf_threshold: float = 0.3,
         iou_threshold: float = 0.5,
-        force_masks = True,
+        force_masks=True,
     ) -> ConfusionMatrix:
         """
         Calculate confusion matrix from dataset and callback function.
