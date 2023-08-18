@@ -326,6 +326,7 @@ class Detections:
         return cls(
             xyxy=np.array(deepsparse_results.boxes[0]),
             confidence=np.array(deepsparse_results.scores[0]),
+            class_id=np.array(deepsparse_results.labels[0]).astype(float).astype(int),
         )
 
     @classmethod
