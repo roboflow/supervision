@@ -293,6 +293,40 @@ class Detections:
         )
 
     @classmethod
+    def from_deepsparse(cls, deepsparse_results) -> Detections:
+        """
+        Creates a Detections instance from a
+        [DeepSparse](https://github.com/neuralmagic/deepsparse)
+        inference result.
+
+        Args:
+            deepsparse_results (YOLOOutput):
+                The output Results instance from DeepSparse
+                YOLOOutput is coming from
+                'deepsparse.yolo.schemas.YOLOOutput'
+
+        Returns:
+            Detections: A new Detections object.
+
+        Example:
+            ```python
+            >>> from deepsparse import Pipeline
+            >>> from super_gradients.training import models
+            >>> import supervision as sv
+
+            >>> yolo_pipeline = Pipeline.create(task="yolo",model_path=model_stub)
+            >>> images = "basilica.jpg"
+            >>> pipeline_outputs = yolo_pipeline(images=images, iou_thres=0.6, conf_thres=0.001)
+            >>> result = list(pipeline_outputs.boxes[0])
+            >>> detections = sv.Detections.from_yolo_nas(result)
+            ```
+        """
+        return cls(
+            xyxy=deepsparse_results.boxes[0],
+            confidence=deepsparse_results.scores.confidence[0],
+        )
+
+    @classmethod
     def from_mmdetection(cls, mmdet_results) -> Detections:
         """
         Creates a Detections instance from
