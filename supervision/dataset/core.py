@@ -618,13 +618,15 @@ class ClassificationDataset(BaseDataset):
         for image_name in self.images:
             classification = self.annotations[image_name]
             image = self.images[image_name]
+            image_name = str(Path(image_name).stem)
+            image_ext = str(Path(image_name).suffix)
             class_id = (
                 classification.class_id[0]
                 if classification.confidence is None
                 else classification.get_top_k(1)[0][0]
             )
             class_name = self.classes[class_id]
-            image_path = os.path.join(root_directory_path, class_name, image_name)
+            image_path = os.path.join(root_directory_path, class_name, f"{image_name}.{image_ext}")
             cv2.imwrite(image_path, image)
 
     @classmethod
