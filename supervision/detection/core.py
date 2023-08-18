@@ -322,8 +322,8 @@ class Detections:
             ```
         """
         return cls(
-            xyxy=deepsparse_results.boxes[0],
-            confidence=deepsparse_results.scores[0],
+            xyxy=np.array(deepsparse_results.boxes[0]),
+            confidence=np.array(deepsparse_results.scores[0]),
         )
 
     @classmethod
