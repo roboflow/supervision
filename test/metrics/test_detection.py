@@ -445,8 +445,8 @@ def test_from_tensors(
 
 
 @pytest.mark.parametrize(
-    "predictions, targets, num_classes, conf_threshold, iou_threshold, expected_result,"
-    " exception",
+    "predictions, targets, num_classes, conf_threshold, iou_threshold, prediction_mask, target_mask, "
+    "expected_box_confusion_matrix, expected_segmentation_confusion_matrix,  exception",
     [
         (
             DETECTION_TENSORS[0],
@@ -454,6 +454,9 @@ def test_from_tensors(
             NUM_CLASSES,
             0.2,
             0.5,
+            DETECTION_MASKS[0],
+            TARGET_MASKS[0],
+            IDEAL_CONF_MATRIX,
             IDEAL_CONF_MATRIX,
             DoesNotRaise(),
         )
@@ -465,20 +468,28 @@ def test_evaluate_detection_batch(
     num_classes,
     conf_threshold,
     iou_threshold,
-    expected_result: Optional[np.ndarray],
+    prediction_mask,
+    target_mask,
+    expected_box_confusion_matrix: Optional[np.ndarray],
+    expected_segmentation_confusion_matrix: Optional[np.ndarray],
     exception: Exception,
 ):
     with exception:
-        result = ConfusionMatrix.evaluate_detection_batch(
+        matrix, segmentation_matrix = ConfusionMatrix.evaluate_detection_batch(
             predictions=predictions,
             targets=targets,
             num_classes=num_classes,
             conf_threshold=conf_threshold,
             iou_threshold=iou_threshold,
+            prediction_mask=prediction_mask,
+            target_mask=target_mask,
         )
 
-        assert result.diagonal().sum() == result.sum()
-        assert np.array_equal(result, expected_result)
+        assert matrix.diagonal().sum() == matrix.sum()
+        assert np.array_equal(matrix, expected_box_confusion_matrix)
+        assert np.array_equal(
+            segmentation_matrix, expected_segmentation_confusion_matrix
+        )
 
 
 @pytest.mark.parametrize(
