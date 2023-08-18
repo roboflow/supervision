@@ -626,7 +626,9 @@ class ClassificationDataset(BaseDataset):
                 else classification.get_top_k(1)[0][0]
             )
             class_name = self.classes[class_id]
-            image_path = os.path.join(root_directory_path, class_name, f"{image_name}.{image_ext}")
+            image_path = os.path.join(
+                root_directory_path, class_name, f"{image_name}.{image_ext}"
+            )
             cv2.imwrite(image_path, image)
 
     @classmethod
