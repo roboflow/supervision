@@ -311,7 +311,6 @@ class Detections:
         Example:
             ```python
             >>> from deepsparse import Pipeline
-            >>> from super_gradients.training import models
             >>> import supervision as sv
 
             >>> yolo_pipeline = Pipeline.create(task="yolo",model_path=model_stub)
