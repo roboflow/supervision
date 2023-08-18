@@ -20,7 +20,10 @@ def polygon_to_mask(polygon: np.ndarray, resolution_wh: Tuple[int, int]) -> np.n
     """
     width, height = resolution_wh
     mask = np.zeros((height, width))
-    cv2.fillPoly(mask, [polygon], color=1)
+
+    # Empty numpy array check
+    if np.any(polygon):
+        cv2.fillPoly(mask, [polygon], color=1)
     return mask
 
 
