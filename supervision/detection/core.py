@@ -180,8 +180,8 @@ class Detections:
     @classmethod
     @deprecated(
         """
-        This method is deprecated and removed in 0.16.0 release.
-        Use sv.Classifications.from_ultralytics() instead as it is more generic and
+        This method is deprecated and removed in 0.15.0 release.
+        Use sv.Detections.from_ultralytics() instead as it is more generic and
         can be used for detections from any ultralytics.engine.results.Results Object
         """
     )
