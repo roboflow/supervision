@@ -21,9 +21,7 @@ def polygon_to_mask(polygon: np.ndarray, resolution_wh: Tuple[int, int]) -> np.n
     width, height = resolution_wh
     mask = np.zeros((height, width))
 
-    # Empty numpy array check
-    if np.any(polygon):
-        cv2.fillPoly(mask, [polygon], color=1)
+    cv2.fillPoly(mask, [polygon], color=1)
     return mask
 
 
@@ -364,12 +362,13 @@ def process_roboflow_result(
         if "points" not in prediction:
             continue
 
-        polygon = np.array(
-            [[point["x"], point["y"]] for point in prediction["points"]], dtype=int
-        )
+        if len(prediction["points"]) >= 3:
+            polygon = np.array(
+                [[point["x"], point["y"]] for point in prediction["points"]], dtype=int
+            )
 
-        mask = polygon_to_mask(polygon, resolution_wh=(image_width, image_height))
-        masks.append(mask)
+            mask = polygon_to_mask(polygon, resolution_wh=(image_width, image_height))
+            masks.append(mask)
 
     xyxy = np.array(xyxy)
     confidence = np.array(confidence)
