@@ -193,7 +193,6 @@ class DetectionDataset(BaseDataset):
             detections = self.annotations[image_path]
 
             if annotations_directory_path:
-
                 annotation_name = Path(image_path).stem
                 image_name = f"{Path(image_path).stem}{Path(image_path).suffix}"
                 pascal_voc_xml = detections_to_pascal_voc(
