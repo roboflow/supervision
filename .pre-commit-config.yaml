@@ -40,7 +40,7 @@ repos:
         name: Sort imports
 
   - repo: https://github.com/PyCQA/flake8
-    rev: 6.0.0
+    rev: 6.1.0
     hooks:
       - id: flake8
         name: Flake8 Checks
@@ -74,7 +74,7 @@ repos:
       -   id: black
 
   -   repo: https://github.com/astral-sh/ruff-pre-commit
-      rev: v0.0.280
+      rev: v0.0.285
       hooks:
       -   id: ruff
           args: [--fix, --exit-non-zero-on-fix]
