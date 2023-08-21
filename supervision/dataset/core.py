@@ -181,21 +181,21 @@ class DetectionDataset(BaseDataset):
             in the range [0, 1). Argument is used only for segmentation datasets.
         """
         if images_directory_path:
-            images_path = Path(images_directory_path)
-            images_path.mkdir(parents=True, exist_ok=True)
+            save_dataset_images(
+                images_directory_path=images_directory_path, images=self.images
+            )
 
         if annotations_directory_path:
             annotations_path = Path(annotations_directory_path)
             annotations_path.mkdir(parents=True, exist_ok=True)
 
-        for image_name, image in self.images.items():
-            detections = self.annotations[image_name]
-
-            if images_directory_path:
-                cv2.imwrite(str(images_path / image_name), image)
+        for image_path, image in self.images.items():
+            detections = self.annotations[image_path]
 
             if annotations_directory_path:
-                annotation_name = Path(image_name).stem
+
+                annotation_name = Path(image_path).stem
+                image_name = f"{Path(image_path).stem}{Path(image_path).suffix}"
                 pascal_voc_xml = detections_to_pascal_voc(
                     detections=detections,
                     classes=self.classes,
