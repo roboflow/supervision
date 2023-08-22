@@ -11,7 +11,6 @@ from supervision.detection.utils import (
     process_roboflow_result,
 )
 
-
 TEST_MASK = np.zeros((1, 1000, 1000), dtype=bool)
 TEST_MASK[:, 300:351, 200:251] = True
 
@@ -263,17 +262,9 @@ def test_filter_polygons_by_area(
     "roboflow_result, class_list, expected_result, exception",
     [
         (
-            {
-                "predictions": [],
-                "image": {"width": 1000, "height": 1000}
-            },
+            {"predictions": [], "image": {"width": 1000, "height": 1000}},
             ["person", "car", "truck"],
-            (
-                np.empty((0, 4)),
-                np.empty(0),
-                np.empty(0),
-                None
-            ),
+            (np.empty((0, 4)), np.empty(0), np.empty(0), None),
             DoesNotRaise(),
         ),  # empty result
         (
@@ -299,7 +290,7 @@ def test_filter_polygons_by_area(
             ),
             DoesNotRaise(),
         ),  # single correct object detection result
-(
+        (
             {
                 "predictions": [
                     {
@@ -317,7 +308,7 @@ def test_filter_polygons_by_area(
                         "height": 100.0,
                         "confidence": 0.8,
                         "class": "truck",
-                    }
+                    },
                 ],
                 "image": {"width": 1000, "height": 1000},
             },
@@ -340,18 +331,13 @@ def test_filter_polygons_by_area(
                         "height": 50.0,
                         "confidence": 0.9,
                         "class": "person",
-                        "points": []
+                        "points": [],
                     }
                 ],
                 "image": {"width": 1000, "height": 1000},
             },
             ["person", "car", "truck"],
-            (
-                np.empty((0, 4)),
-                np.empty(0),
-                np.empty(0),
-                None
-            ),
+            (np.empty((0, 4)), np.empty(0), np.empty(0), None),
             DoesNotRaise(),
         ),  # single incorrect instance segmentation result with no points
         (
@@ -364,89 +350,81 @@ def test_filter_polygons_by_area(
                         "height": 50.0,
                         "confidence": 0.9,
                         "class": "person",
+                        "points": [{"x": 200.0, "y": 300.0}, {"x": 250.0, "y": 300.0}],
+                    }
+                ],
+                "image": {"width": 1000, "height": 1000},
+            },
+            ["person", "car", "truck"],
+            (np.empty((0, 4)), np.empty(0), np.empty(0), None),
+            DoesNotRaise(),
+        ),  # single incorrect instance segmentation result with no enough points
+        (
+            {
+                "predictions": [
+                    {
+                        "x": 200.0,
+                        "y": 300.0,
+                        "width": 50.0,
+                        "height": 50.0,
+                        "confidence": 0.9,
+                        "class": "person",
                         "points": [
                             {"x": 200.0, "y": 300.0},
-                            {"x": 250.0, "y": 300.0}
-                        ]
+                            {"x": 250.0, "y": 300.0},
+                            {"x": 250.0, "y": 350.0},
+                            {"x": 200.0, "y": 350.0},
+                        ],
                     }
                 ],
                 "image": {"width": 1000, "height": 1000},
             },
             ["person", "car", "truck"],
             (
-                np.empty((0, 4)),
-                np.empty(0),
-                np.empty(0),
-                None
+                np.array([[175.0, 275.0, 225.0, 325.0]]),
+                np.array([0.9]),
+                np.array([0]),
+                TEST_MASK,
             ),
             DoesNotRaise(),
         ),  # single incorrect instance segmentation result with no enough points
         (
-                {
-                    "predictions": [
-                        {
-                            "x": 200.0,
-                            "y": 300.0,
-                            "width": 50.0,
-                            "height": 50.0,
-                            "confidence": 0.9,
-                            "class": "person",
-                            "points": [
-                                {"x": 200.0, "y": 300.0},
-                                {"x": 250.0, "y": 300.0},
-                                {"x": 250.0, "y": 350.0},
-                                {"x": 200.0, "y": 350.0},
-                            ]
-                        }
-                    ],
-                    "image": {"width": 1000, "height": 1000},
-                },
-                ["person", "car", "truck"],
-                (
-                    np.array([[175.0, 275.0, 225.0, 325.0]]),
-                    np.array([0.9]),
-                    np.array([0]),
-                    TEST_MASK
-                ),
-                DoesNotRaise(),
-        ),  # single incorrect instance segmentation result with no enough points
-        (
-                {
-                    "predictions": [
-                        {
-                            "x": 200.0,
-                            "y": 300.0,
-                            "width": 50.0,
-                            "height": 50.0,
-                            "confidence": 0.9,
-                            "class": "person",
-                            "points": [
-                                {"x": 200.0, "y": 300.0},
-                                {"x": 250.0, "y": 300.0},
-                                {"x": 250.0, "y": 350.0},
-                                {"x": 200.0, "y": 350.0},
-                            ]
-                        },
-                        {
-                            "x": 500.0,
-                            "y": 500.0,
-                            "width": 100.0,
-                            "height": 100.0,
-                            "confidence": 0.8,
-                            "class": "truck",
-                            "points": []
-                        }
-                    ],
-                    "image": {"width": 1000, "height": 1000},
-                },
-                ["person", "car", "truck"],
-                (
-                    np.array([[175.0, 275.0, 225.0, 325.0]]),
-                    np.array([0.9]),
-                    np.array([0]),
-                    TEST_MASK
-                ),
-                DoesNotRaise(),
+            {
+                "predictions": [
+                    {
+                        "x": 200.0,
+                        "y": 300.0,
+                        "width": 50.0,
+                        "height": 50.0,
+                        "confidence": 0.9,
+                        "class": "person",
+                        "points": [
+                            {"x": 200.0, "y": 300.0},
+                            {"x": 250.0, "y": 300.0},
+                            {"x": 250.0, "y": 350.0},
+                            {"x": 200.0, "y": 350.0},
+                        ],
+                    },
+                    {
+                        "x": 500.0,
+                        "y": 500.0,
+                        "width": 100.0,
+                        "height": 100.0,
+                        "confidence": 0.8,
+                        "class": "truck",
+                        "points": [],
+                    },
+                ],
+                "image": {"width": 1000, "height": 1000},
+            },
+            ["person", "car", "truck"],
+            (
+                np.array([[175.0, 275.0, 225.0, 325.0]]),
+                np.array([0.9]),
+                np.array([0]),
+                TEST_MASK,
+            ),
+            DoesNotRaise(),
         ),  # two instance segmentation results - one correct, one incorrect
     ],
 )
