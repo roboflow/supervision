@@ -181,21 +181,20 @@ class DetectionDataset(BaseDataset):
             in the range [0, 1). Argument is used only for segmentation datasets.
         """
         if images_directory_path:
-            images_path = Path(images_directory_path)
-            images_path.mkdir(parents=True, exist_ok=True)
+            save_dataset_images(
+                images_directory_path=images_directory_path, images=self.images
+            )
 
         if annotations_directory_path:
             annotations_path = Path(annotations_directory_path)
             annotations_path.mkdir(parents=True, exist_ok=True)
 
-        for image_name, image in self.images.items():
-            detections = self.annotations[image_name]
-
-            if images_directory_path:
-                cv2.imwrite(str(images_path / image_name), image)
+        for image_path, image in self.images.items():
+            detections = self.annotations[image_path]
 
             if annotations_directory_path:
-                annotation_name = Path(image_name).stem
+                annotation_name = Path(image_path).stem
+                image_name = f"{Path(image_path).stem}{Path(image_path).suffix}"
                 pascal_voc_xml = detections_to_pascal_voc(
                     detections=detections,
                     classes=self.classes,
@@ -618,13 +617,17 @@ class ClassificationDataset(BaseDataset):
         for image_name in self.images:
             classification = self.annotations[image_name]
             image = self.images[image_name]
+            image_name = str(Path(image_name).stem)
+            image_ext = str(Path(image_name).suffix)
             class_id = (
                 classification.class_id[0]
                 if classification.confidence is None
                 else classification.get_top_k(1)[0][0]
             )
             class_name = self.classes[class_id]
-            image_path = os.path.join(root_directory_path, class_name, image_name)
+            image_path = os.path.join(
+                root_directory_path, class_name, f"{image_name}{image_ext}"
+            )
             cv2.imwrite(image_path, image)
 
     @classmethod
