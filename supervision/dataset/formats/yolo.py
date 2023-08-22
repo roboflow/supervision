@@ -139,13 +139,14 @@ def load_yolo_annotations(
     annotations = {}
 
     for image_path in image_paths:
-        image_name = Path(image_path).stem
-        image = cv2.imread(str(image_path))
+        image_stem = Path(image_path).stem
+        image_path = str(image_path)
+        image = cv2.imread(image_path)
 
-        annotation_path = os.path.join(annotations_directory_path, f"{image_name}.txt")
+        annotation_path = os.path.join(annotations_directory_path, f"{image_stem}.txt")
         if not os.path.exists(annotation_path):
-            images[image_path.name] = image
-            annotations[image_path.name] = Detections.empty()
+            images[image_path] = image
+            annotations[image_path] = Detections.empty()
             continue
 
         lines = read_txt_file(str(annotation_path))
@@ -158,8 +159,8 @@ def load_yolo_annotations(
             lines=lines, resolution_wh=resolution_wh, with_masks=with_masks
         )
 
-        images[image_path.name] = image
-        annotations[image_path.name] = annotation
+        images[image_path] = image
+        annotations[image_path] = annotation
     return classes, images, annotations
 
 
@@ -227,8 +228,9 @@ def save_yolo_annotations(
     approximation_percentage: float = 0.75,
 ) -> None:
     Path(annotations_directory_path).mkdir(parents=True, exist_ok=True)
-    for image_name, image in images.items():
-        detections = annotations[image_name]
+    for image_path, image in images.items():
+        detections = annotations[image_path]
+        image_name = Path(image_path).name
         yolo_annotations_name = _image_name_to_annotation_name(image_name=image_name)
         yolo_annotations_path = os.path.join(
             annotations_directory_path, yolo_annotations_name
