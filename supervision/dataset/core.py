@@ -182,8 +182,7 @@ class DetectionDataset(BaseDataset):
         """
         if images_directory_path:
             save_dataset_images(
-                images_directory_path=images_directory_path,
-                images=self.images
+                images_directory_path=images_directory_path, images=self.images
             )
         if annotations_directory_path:
             Path(annotations_directory_path).mkdir(parents=True, exist_ok=True)
@@ -193,7 +192,9 @@ class DetectionDataset(BaseDataset):
 
             if annotations_directory_path:
                 annotation_name = Path(image_path).stem
-                annotations_path = os.path.join(annotations_directory_path, f"{annotation_name}.xml")
+                annotations_path = os.path.join(
+                    annotations_directory_path, f"{annotation_name}.xml"
+                )
                 image_name = Path(image_path).name
                 pascal_voc_xml = detections_to_pascal_voc(
                     detections=detections,
@@ -356,8 +357,7 @@ class DetectionDataset(BaseDataset):
         """
         if images_directory_path is not None:
             save_dataset_images(
-                images_directory_path=images_directory_path,
-                images=self.images
+                images_directory_path=images_directory_path, images=self.images
             )
         if annotations_directory_path is not None:
             save_yolo_annotations(
@@ -454,8 +454,7 @@ class DetectionDataset(BaseDataset):
         """
         if images_directory_path is not None:
             save_dataset_images(
-                images_directory_path=images_directory_path,
-                images=self.images
+                images_directory_path=images_directory_path, images=self.images
             )
         if annotations_path is not None:
             save_coco_annotations(
@@ -626,9 +625,7 @@ class ClassificationDataset(BaseDataset):
                 else classification.get_top_k(1)[0][0]
             )
             class_name = self.classes[class_id]
-            image_path = os.path.join(
-                root_directory_path, class_name, image_name
-            )
+            image_path = os.path.join(root_directory_path, class_name, image_name)
             cv2.imwrite(image_path, image)
 
     @classmethod
