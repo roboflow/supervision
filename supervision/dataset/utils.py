@@ -98,11 +98,8 @@ def save_dataset_images(
     Path(images_directory_path).mkdir(parents=True, exist_ok=True)
 
     for image_path, image in images.items():
-        image_name = str(Path(image_path).stem)
-        image_ext = str(Path(image_path).suffix)
-        target_image_path = os.path.join(
-            images_directory_path, f"{image_name}{image_ext}"
-        )
+        image_name = Path(image_path).name
+        target_image_path = os.path.join(images_directory_path, image_name)
         cv2.imwrite(target_image_path, image)
 
 
