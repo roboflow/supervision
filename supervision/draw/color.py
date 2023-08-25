@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import List, Tuple
+
 import matplotlib.colors as colors
 
 DEFAULT_COLOR_PALETTE = list(colors.CSS4_COLORS.values())
+
 
 def _validate_color_hex(color_hex: str):
     color_hex = color_hex.lstrip("#")
