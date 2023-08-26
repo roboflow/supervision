@@ -842,19 +842,20 @@ class MeanAveragePrecision:
 
         return average_precisions
 
+
 @dataclass(frozen=True)
 class Precision:
-
     per_class_precision: np.ndarray
 
     @classmethod
-    def from_confusion_matrix(cls,
-                              confusion_matrix: np.ndarray):
-
+    def from_confusion_matrix(cls, confusion_matrix: np.ndarray):
         # add 1 to denominator to avoid division by zero
         # Remove the last element as it is the background class
         return cls(
-            per_class_precision=(confusion_matrix.diagonal() / np.maximum(confusion_matrix.sum(axis=0), 1.0))[: -1]
+            per_class_precision=(
+                confusion_matrix.diagonal()
+                / np.maximum(confusion_matrix.sum(axis=0), 1.0)
+            )[:-1]
         )
 
     @classmethod
