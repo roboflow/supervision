@@ -854,7 +854,7 @@ class Precision:
         return cls(
             per_class_precision=(
                 confusion_matrix.diagonal()
-                / np.maximum(confusion_matrix.sum(axis=0), 1.0)
+                / np.maximum(confusion_matrix[-1].sum(axis=0), 1.0)
             )[:-1]
         )
 
