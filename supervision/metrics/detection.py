@@ -841,3 +841,43 @@ class MeanAveragePrecision:
                 )
 
         return average_precisions
+
+@dataclass(frozen=True)
+class Precision:
+
+    per_class_precision: np.ndarray
+
+    @classmethod
+    def from_confusion_matrix(cls,
+                              confusion_matrix: np.ndarray):
+
+        # add 1 to denominator to avoid division by zero
+        # Remove the last element as it is the background class
+        return cls(
+            per_class_precision=(confusion_matrix.diagonal() / np.maximum(confusion_matrix.sum(axis=0), 1.0))[: -1]
+        )
+
+    @classmethod
+    def benchmark(
+        cls,
+        dataset: DetectionDataset,
+        callback: Callable[[np.ndarray], Detections],
+        conf_threshold: float = 0.3,
+        iou_threshold: float = 0.5,
+    ) -> Precision:
+        predictions, targets = [], []
+        for img_name, img in dataset.images.items():
+            predictions_batch = callback(img)
+            predictions.append(predictions_batch)
+            targets_batch = dataset.annotations[img_name]
+            targets.append(targets_batch)
+
+        confusion_matrix = ConfusionMatrix.from_detections(
+            predictions=predictions,
+            targets=targets,
+            classes=dataset.classes,
+            conf_threshold=conf_threshold,
+            iou_threshold=iou_threshold,
+        )
+
+        return cls.from_confusion_matrix(confusion_matrix=confusion_matrix.matrix)
