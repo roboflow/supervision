@@ -16,6 +16,12 @@
 [![python-version](https://img.shields.io/pypi/pyversions/supervision)](https://badge.fury.io/py/supervision)
 [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/roboflow/supervision/blob/main/demo.ipynb)
 
+<br>
+
+<p>More open source Roboflow projects:</p>
+
+[notebooks](https://github.com/roboflow/notebooks) | [collect](https://github.com/roboflow/roboflow-collect) | [autodistill](https://github.com/autodistill/autodistill) | [inference](https://github.com/roboflow/inference)
+
 </div>
 
 ## 👋 hello
@@ -292,15 +298,6 @@ Visit our [documentation](https://roboflow.github.io/supervision) page to learn 
 ## 🏆 contribution
 
 We love your input! Please see our [contributing guide](https://github.com/roboflow/supervision/blob/main/CONTRIBUTING.md) to get started. Thank you 🙏 to all our contributors!
-
-## 💻 Explore more Roboflow open source projects
-
-|Project | Description|
-|:---|:---|
-|[Autodistill](https://github.com/autodistill/autodistill) | Automatically label images for use in training computer vision models. |
-|[Inference](https://github.com/roboflow/inference) | An easy-to-use, production-ready inference server for computer vision supporting deployment of many popular model architectures and fine-tuned models.
-|[Notebooks](https://roboflow.com/notebooks) | Tutorials for computer vision tasks, from training state-of-the-art models to tracking objects to counting objects in a zone.
-|[Collect](https://github.com/roboflow/roboflow-collect) | Automated, intelligent data collection powered by CLIP.
 
 <br>
 
