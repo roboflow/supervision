@@ -125,7 +125,7 @@ class LineZoneAnnotator:
             np.ndarray: The image with the line drawn on it.
 
         """
-        
+
         def annotate_count(text, text_over=True):
             """
             Draws the counter for in/out counts aligned to the line.
@@ -143,12 +143,8 @@ class LineZoneAnnotator:
             background_dim = max(text_width, text_height) + 30
 
             # Create squared background images to place text and text box.
-            box_background = np.zeros(
-                (background_dim, background_dim), dtype=np.uint8
-            )
-            text_background = np.zeros(
-                (background_dim, background_dim), dtype=np.uint8
-            )
+            box_background = np.zeros((background_dim, background_dim), dtype=np.uint8)
+            text_background = np.zeros((background_dim, background_dim), dtype=np.uint8)
 
             text_position = (
                 (background_dim // 2) - (text_width // 2),
@@ -215,7 +211,7 @@ class LineZoneAnnotator:
                 text_background, rotation_matrix, (background_dim, background_dim)
             )
 
-            # Select position of the text alongside the line (move_along) and perpendicular to the line (move_perp).
+            # Set position of the text along and perpendicular to the line.
             text_insertion = list(end_point)
 
             move_along_x = int(
@@ -286,23 +282,35 @@ class LineZoneAnnotator:
             frame[y1:y2, x1:x2, 1][box_background_rotated > 95] = self.color.as_bgr()[1]
             frame[y1:y2, x1:x2, 2][box_background_rotated > 95] = self.color.as_bgr()[2]
 
-            frame[y1:y2, x1:x2, 0][text_background_rotated != 0] = self.text_color.as_bgr()[0] * (
+            frame[y1:y2, x1:x2, 0][
+                text_background_rotated != 0
+            ] = self.text_color.as_bgr()[0] * (
                 text_background_rotated[text_background_rotated != 0] / 255
-            ) + self.color.as_bgr()[0] * (
+            ) + self.color.as_bgr()[
+                0
+            ] * (
                 1 - (text_background_rotated[text_background_rotated != 0] / 255)
             )
-            frame[y1:y2, x1:x2, 1][text_background_rotated != 0] = self.text_color.as_bgr()[1] * (
+            frame[y1:y2, x1:x2, 1][
+                text_background_rotated != 0
+            ] = self.text_color.as_bgr()[1] * (
                 text_background_rotated[text_background_rotated != 0] / 255
-            ) + self.color.as_bgr()[1] * (
+            ) + self.color.as_bgr()[
+                1
+            ] * (
                 1 - (text_background_rotated[text_background_rotated != 0] / 255)
             )
-            frame[y1:y2, x1:x2, 2][text_background_rotated != 0] = self.text_color.as_bgr()[2] * (
+            frame[y1:y2, x1:x2, 2][
+                text_background_rotated != 0
+            ] = self.text_color.as_bgr()[2] * (
                 text_background_rotated[text_background_rotated != 0] / 255
-            ) + self.color.as_bgr()[2] * (
+            ) + self.color.as_bgr()[
+                2
+            ] * (
                 1 - (text_background_rotated[text_background_rotated != 0] / 255)
             )
 
-            return frame        
+            return frame
 
         # Draw line.
         cv2.line(
