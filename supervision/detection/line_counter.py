@@ -1,3 +1,4 @@
+import math
 from typing import Dict, Optional
 
 import cv2
@@ -13,19 +14,23 @@ class LineZone:
     Count the number of objects that cross a line.
     """
 
-    def __init__(self, start: Point, end: Point):
+    def __init__(self, start: Point, end: Point, direction="both"):
         """
         Initialize a LineCounter object.
 
         Attributes:
             start (Point): The starting point of the line.
             end (Point): The ending point of the line.
-
+            direction (str): What count of items crossing the line is displayed.
+                "in": Start point to the left, elements crossing up the line.
+                "out": Start point to the left, elements crossing down the line.
+                "both": Start point to the left, both "in" and "out" elements.
         """
         self.vector = Vector(start=start, end=end)
         self.tracker_state: Dict[str, bool] = {}
         self.in_count: int = 0
         self.out_count: int = 0
+        self.direction: str = direction
 
     def trigger(self, detections: Detections):
         """
@@ -120,6 +125,186 @@ class LineZoneAnnotator:
             np.ndarray: The image with the line drawn on it.
 
         """
+        
+        def annotate_count(text, text_over=True):
+            """
+            Draws the counter for in/out counts aligned to the line.
+
+            Attributes:
+                text (str): Line of text to annotate alongside the count.
+                text_over (Bool): Position of the text over/under the line.
+
+            Returns:
+                np.ndarray: Frame with the count annotated in it.
+            """
+            (text_width, text_height), _ = cv2.getTextSize(
+                text, cv2.FONT_HERSHEY_SIMPLEX, self.text_scale, self.text_thickness
+            )
+            background_dim = max(text_width, text_height) + 30
+
+            # Create squared background images to place text and text box.
+            box_background = np.zeros(
+                (background_dim, background_dim), dtype=np.uint8
+            )
+            text_background = np.zeros(
+                (background_dim, background_dim), dtype=np.uint8
+            )
+
+            text_position = (
+                (background_dim // 2) - (text_width // 2),
+                (background_dim // 2) + (text_height // 2),
+            )
+
+            # Draw text box.
+            text_box_background = Rect(
+                x=text_position[0],
+                y=text_position[1] - text_height,
+                width=text_width,
+                height=text_height,
+            ).pad(padding=self.text_padding)
+
+            cv2.rectangle(
+                box_background,
+                text_box_background.top_left.as_xy_int_tuple(),
+                text_box_background.bottom_right.as_xy_int_tuple(),
+                (255, 255, 255),
+                -1,
+            )
+
+            # Draw text.
+            cv2.putText(
+                text_background,
+                text,
+                text_position,
+                cv2.FONT_HERSHEY_SIMPLEX,
+                self.text_scale,
+                (255, 255, 255),
+                self.text_thickness,
+                cv2.LINE_AA,
+            )
+
+            # Rotate text and text box.
+            start_point = line_counter.vector.start.as_xy_int_tuple()
+            end_point = line_counter.vector.end.as_xy_int_tuple()
+
+            try:
+                line_angle = math.degrees(
+                    math.atan(
+                        (end_point[1] - start_point[1])
+                        / (end_point[0] - start_point[0])
+                    )
+                )
+                if (end_point[0] - start_point[0]) < 0:
+                    line_angle = 180 + line_angle
+            except ZeroDivisionError:
+                line_angle = 90
+                if (end_point[1] - start_point[1]) < 0:
+                    line_angle = 180 + line_angle
+
+            rotation_center = ((background_dim // 2), (background_dim // 2))
+            rotation_angle = -(line_angle)
+            rotation_scale = 1
+            rotation_matrix = cv2.getRotationMatrix2D(
+                rotation_center, rotation_angle, rotation_scale
+            )
+
+            box_background_rotated = cv2.warpAffine(
+                box_background, rotation_matrix, (background_dim, background_dim)
+            )
+            text_background_rotated = cv2.warpAffine(
+                text_background, rotation_matrix, (background_dim, background_dim)
+            )
+
+            # Select position of the text alongside the line (move_along) and perpendicular to the line (move_perp).
+            text_insertion = list(end_point)
+
+            move_along_x = int(
+                math.cos(math.radians(line_angle))
+                * (text_width / 2 + self.text_padding)
+            )
+            move_along_y = int(
+                math.sin(math.radians(line_angle))
+                * (text_width / 2 + self.text_padding)
+            )
+
+            move_perp_x = int(
+                math.sin(math.radians(line_angle))
+                * (text_height / 2 + self.text_padding * 2)
+            )
+            move_perp_y = int(
+                math.cos(math.radians(line_angle))
+                * (text_height / 2 + self.text_padding * 2)
+            )
+
+            text_insertion[0] -= move_along_x
+            text_insertion[1] -= move_along_y
+            if text_over:
+                text_insertion[0] += move_perp_x
+                text_insertion[1] -= move_perp_y
+            else:
+                text_insertion[0] -= move_perp_x
+                text_insertion[1] += move_perp_y
+
+            # Trim pixels of text and pixels of text box that are out of the frame.
+            y1 = max(text_insertion[1] - background_dim // 2, 0)
+            y2 = min(
+                text_insertion[1] + background_dim // 2 + background_dim % 2,
+                frame.shape[0],
+            )
+            x1 = max(text_insertion[0] - background_dim // 2, 0)
+            x2 = min(
+                text_insertion[0] + background_dim // 2 + background_dim % 2,
+                frame.shape[1],
+            )
+
+            if y2 - y1 != background_dim:
+                if y1 == 0:
+                    box_background_rotated = box_background_rotated[
+                        (background_dim - y2) :, :
+                    ]
+                    text_background_rotated = text_background_rotated[
+                        (background_dim - y2) :, :
+                    ]
+                elif y2 == frame.shape[0]:
+                    box_background_rotated = box_background_rotated[: (y2 - y1), :]
+                    text_background_rotated = text_background_rotated[: (y2 - y1), :]
+
+            if x2 - x1 != background_dim:
+                if x1 == 0:
+                    box_background_rotated = box_background_rotated[
+                        :, (background_dim - x2) :
+                    ]
+                    text_background_rotated = text_background_rotated[
+                        :, (background_dim - x2) :
+                    ]
+                elif x2 == frame.shape[1]:
+                    box_background_rotated = box_background_rotated[:, : (x2 - x1)]
+                    text_background_rotated = text_background_rotated[:, : (x2 - x1)]
+
+            # Annotate text and text box to orignal frame.
+            frame[y1:y2, x1:x2, 0][box_background_rotated > 95] = self.color.as_bgr()[0]
+            frame[y1:y2, x1:x2, 1][box_background_rotated > 95] = self.color.as_bgr()[1]
+            frame[y1:y2, x1:x2, 2][box_background_rotated > 95] = self.color.as_bgr()[2]
+
+            frame[y1:y2, x1:x2, 0][text_background_rotated != 0] = self.text_color.as_bgr()[0] * (
+                text_background_rotated[text_background_rotated != 0] / 255
+            ) + self.color.as_bgr()[0] * (
+                1 - (text_background_rotated[text_background_rotated != 0] / 255)
+            )
+            frame[y1:y2, x1:x2, 1][text_background_rotated != 0] = self.text_color.as_bgr()[1] * (
+                text_background_rotated[text_background_rotated != 0] / 255
+            ) + self.color.as_bgr()[1] * (
+                1 - (text_background_rotated[text_background_rotated != 0] / 255)
+            )
+            frame[y1:y2, x1:x2, 2][text_background_rotated != 0] = self.text_color.as_bgr()[2] * (
+                text_background_rotated[text_background_rotated != 0] / 255
+            ) + self.color.as_bgr()[2] * (
+                1 - (text_background_rotated[text_background_rotated != 0] / 255)
+            )
+
+            return frame        
+
+        # Draw line.
         cv2.line(
             frame,
             line_counter.vector.start.as_xy_int_tuple(),
@@ -146,6 +331,7 @@ class LineZoneAnnotator:
             lineType=cv2.LINE_AA,
         )
 
+        # Create in/out text.
         in_text = (
             f"{self.custom_in_text}: {line_counter.in_count}"
             if self.custom_in_text is not None
@@ -157,79 +343,14 @@ class LineZoneAnnotator:
             else f"out: {line_counter.out_count}"
         )
 
-        (in_text_width, in_text_height), _ = cv2.getTextSize(
-            in_text, cv2.FONT_HERSHEY_SIMPLEX, self.text_scale, self.text_thickness
-        )
-        (out_text_width, out_text_height), _ = cv2.getTextSize(
-            out_text, cv2.FONT_HERSHEY_SIMPLEX, self.text_scale, self.text_thickness
-        )
+        if line_counter.direction == "both":
+            frame = annotate_count(in_text, text_over=True)
+            frame = annotate_count(out_text, text_over=False)
+        elif line_counter.direction == "in":
+            frame = annotate_count(in_text, text_over=True)
+        elif line_counter.direction == "out":
+            frame = annotate_count(out_text, text_over=False)
+        else:
+            pass
 
-        in_text_x = int(
-            (line_counter.vector.end.x + line_counter.vector.start.x - in_text_width)
-            / 2
-        )
-        in_text_y = int(
-            (line_counter.vector.end.y + line_counter.vector.start.y + in_text_height)
-            / 2
-            - self.text_offset * in_text_height
-        )
-
-        out_text_x = int(
-            (line_counter.vector.end.x + line_counter.vector.start.x - out_text_width)
-            / 2
-        )
-        out_text_y = int(
-            (line_counter.vector.end.y + line_counter.vector.start.y + out_text_height)
-            / 2
-            + self.text_offset * out_text_height
-        )
-
-        in_text_background_rect = Rect(
-            x=in_text_x,
-            y=in_text_y - in_text_height,
-            width=in_text_width,
-            height=in_text_height,
-        ).pad(padding=self.text_padding)
-        out_text_background_rect = Rect(
-            x=out_text_x,
-            y=out_text_y - out_text_height,
-            width=out_text_width,
-            height=out_text_height,
-        ).pad(padding=self.text_padding)
-
-        cv2.rectangle(
-            frame,
-            in_text_background_rect.top_left.as_xy_int_tuple(),
-            in_text_background_rect.bottom_right.as_xy_int_tuple(),
-            self.color.as_bgr(),
-            -1,
-        )
-        cv2.rectangle(
-            frame,
-            out_text_background_rect.top_left.as_xy_int_tuple(),
-            out_text_background_rect.bottom_right.as_xy_int_tuple(),
-            self.color.as_bgr(),
-            -1,
-        )
-
-        cv2.putText(
-            frame,
-            in_text,
-            (in_text_x, in_text_y),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            self.text_scale,
-            self.text_color.as_bgr(),
-            self.text_thickness,
-            cv2.LINE_AA,
-        )
-        cv2.putText(
-            frame,
-            out_text,
-            (out_text_x, out_text_y),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            self.text_scale,
-            self.text_color.as_bgr(),
-            self.text_thickness,
-            cv2.LINE_AA,
-        )
         return frame
