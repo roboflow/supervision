@@ -317,16 +317,8 @@ class LineZoneAnnotator:
         cv2.circle(
             frame,
             line_counter.vector.start.as_xy_int_tuple(),
-            radius=5,
-            color=self.text_color.as_bgr(),
-            thickness=-1,
-            lineType=cv2.LINE_AA,
-        )
-        cv2.circle(
-            frame,
-            line_counter.vector.end.as_xy_int_tuple(),
-            radius=5,
-            color=self.text_color.as_bgr(),
+            radius=self.thickness,
+            color=self.color.as_bgr(),
             thickness=-1,
             lineType=cv2.LINE_AA,
         )
