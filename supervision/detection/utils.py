@@ -380,9 +380,10 @@ def process_roboflow_result(
 def move_boxes(xyxy: np.ndarray, offset: np.ndarray) -> np.ndarray:
     """
     Args:
-        xyxy (np.ndarray): An array of shape `(n, 4)` containing the bounding boxes coordinates in format
-        `[x1, y1, x2, y2]`
-        offset (np.array): An array of shape `(2,)` containing offset values in format is `[dx, dy]`.
+        xyxy (np.ndarray): An array of shape `(n, 4)` containing the bounding boxes
+            coordinates in format `[x1, y1, x2, y2]`
+        offset (np.array): An array of shape `(2,)` containing offset values in format
+            is `[dx, dy]`.
 
     Returns:
         (np.ndarray) repositioned bounding boxes
