@@ -377,14 +377,15 @@ def process_roboflow_result(
     return xyxy, confidence, class_id, masks
 
 
-def move_boxes(boxes: np.ndarray, offset: np.array) -> np.ndarray:
+def move_boxes(xyxy: np.ndarray, offset: np.ndarray) -> np.ndarray:
     """
     Args:
-        boxes (np.ndarray): boxes of model inference of the slice
-        offset (np.array): slice location at which inference was performed i.e. np.array([x1, y1, x2, y2])
+        xyxy (np.ndarray): An array of shape `(n, 4)` containing the bounding boxes
+            coordinates in format `[x1, y1, x2, y2]`
+        offset (np.array): An array of shape `(2,)` containing offset values in format
+            is `[dx, dy]`.
 
     Returns:
         (np.ndarray) repositioned bounding boxes
     """
-    offsets = np.array([offset[0], offset[1], offset[0], offset[1]])
-    return boxes + offsets
+    return xyxy + np.hstack([offset, offset])
