@@ -42,7 +42,8 @@ class Color:
         """
         Creates a Color instance from a color hex string
 
-        :param color_hex: str : The color hex string in the format of "fff", "ffffff", "#fff", or "#ffffff"
+        :param color_hex: str : The color hex string in the format
+            of "fff", "ffffff", "#fff", or "#ffffff"
         :return: Color : A Color instance representing the color
 
         Example:
@@ -105,7 +106,8 @@ class ColorPalette:
         """
         Creates a ColorPalette instance from a list of color hex strings
 
-        :param color_hex_list: List[str] : A list of color hex strings in the format of "fff", "ffffff", "#fff", or "#ffffff"
+        :param color_hex_list: List[str] : A list of color hex strings in the
+            format of "fff", "ffffff", "#fff", or "#ffffff"
         :return: ColorPalette : A ColorPalette instance representing the color palette
 
         Example:

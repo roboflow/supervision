@@ -113,7 +113,8 @@ class LineZoneAnnotator:
 
         Attributes:
             frame (np.ndarray): The image on which the line will be drawn.
-            line_counter (LineCounter): The line counter that will be used to draw the line.
+            line_counter (LineCounter): The line counter
+                that will be used to draw the line.
 
         Returns:
             np.ndarray: The image with the line drawn on it.

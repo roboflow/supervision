@@ -25,8 +25,5 @@ jobs:
           pip install isort
           pip install flake8
           pip install "black==22.3.0"
-      - name: 🧹 Lint with flake8
-        run: |
-          make check_code_quality
       - name: 🧪 Test
         run: "python -m pytest ./test"

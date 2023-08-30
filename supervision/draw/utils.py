@@ -115,15 +115,19 @@ def draw_text(
     Draw text with background on a scene.
 
     Parameters:
-        scene (np.ndarray): A 2-dimensional numpy ndarray representing an image or scene.
+        scene (np.ndarray): A 2-dimensional numpy ndarray representing an image or scene
         text (str): The text to be drawn.
-        text_anchor (Point): The anchor point for the text, represented as a Point object with x and y attributes.
+        text_anchor (Point): The anchor point for the text, represented as a
+            Point object with x and y attributes.
         text_color (Color, optional): The color of the text. Defaults to black.
         text_scale (float, optional): The scale of the text. Defaults to 0.5.
         text_thickness (int, optional): The thickness of the text. Defaults to 1.
-        text_padding (int, optional): The amount of padding to add around the text when drawing a rectangle in the background. Defaults to 10.
-        text_font (int, optional): The font to use for the text. Defaults to cv2.FONT_HERSHEY_SIMPLEX.
-        background_color (Color, optional): The color of the background rectangle, if one is to be drawn. Defaults to None.
+        text_padding (int, optional): The amount of padding to add around the text
+            when drawing a rectangle in the background. Defaults to 10.
+        text_font (int, optional): The font to use for the text.
+            Defaults to cv2.FONT_HERSHEY_SIMPLEX.
+        background_color (Color, optional): The color of the background rectangle,
+            if one is to be drawn. Defaults to None.
 
     Returns:
         np.ndarray: The input scene with the text drawn on it.
@@ -132,7 +136,7 @@ def draw_text(
         ```python
         >>> scene = np.zeros((100, 100, 3), dtype=np.uint8)
         >>> text_anchor = Point(x=50, y=50)
-        >>> scene = draw_text(scene=scene, text="Hello, world!", text_anchor=text_anchor)
+        >>> scene = draw_text(scene=scene, text="Hello, world!",text_anchor=text_anchor)
         ```
     """
     text_width, text_height = cv2.getTextSize(
