@@ -2,7 +2,7 @@ from typing import Callable, Optional, Tuple
 
 import numpy as np
 
-from supervision import crop_image
+from supervision.utils.image import crop_image
 from supervision.detection.core import Detections, validate_inference_callback
 from supervision.detection.utils import move_boxes
 
