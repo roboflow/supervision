@@ -1,3 +1,3 @@
-## Slicer
+## InferenceSlicer
 
-:::supervision.detection.tools.slicer.Slicer
+:::supervision.detection.tools.slicer.InferenceSlicer

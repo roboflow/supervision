@@ -7,6 +7,7 @@ import pytest
 from supervision.detection.utils import (
     clip_boxes,
     filter_polygons_by_area,
+    move_boxes,
     non_max_suppression,
     process_roboflow_result,
 )
@@ -444,3 +445,48 @@ def test_process_roboflow_result(
         assert (result[3] is None and expected_result[3] is None) or (
             np.array_equal(result[3], expected_result[3])
         )
+
+
+@pytest.mark.parametrize(
+    "xyxy, offset, expected_result, exception",
+    [
+        (
+            np.empty(shape=(0, 4)),
+            np.array([0, 0]),
+            np.empty(shape=(0, 4)),
+            DoesNotRaise(),
+        ),  # empty xyxy array
+        (
+            np.array([[0, 0, 10, 10]]),
+            np.array([0, 0]),
+            np.array([[0, 0, 10, 10]]),
+            DoesNotRaise(),
+        ),  # single box with zero offset
+        (
+            np.array([[0, 0, 10, 10]]),
+            np.array([10, 10]),
+            np.array([[10, 10, 20, 20]]),
+            DoesNotRaise(),
+        ),  # single box with non-zero offset
+        (
+            np.array([[0, 0, 10, 10], [0, 0, 10, 10]]),
+            np.array([10, 10]),
+            np.array([[10, 10, 20, 20], [10, 10, 20, 20]]),
+            DoesNotRaise(),
+        ),  # two boxes with non-zero offset
+        (
+            np.array([[0, 0, 10, 10], [0, 0, 10, 10]]),
+            np.array([-10, -10]),
+            np.array([[-10, -10, 0, 0], [-10, -10, 0, 0]]),
+            DoesNotRaise(),
+        ),  # two boxes with negative offset
+    ],
+)
+def test_move_boxes(
+    xyxy: np.ndarray,
+    offset: np.ndarray,
+    expected_result: np.ndarray,
+    exception: Exception,
+) -> None:
+    result = move_boxes(xyxy=xyxy, offset=offset)
+    assert np.array_equal(result, expected_result)
