@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 
 
-def crop(image: np.ndarray, xyxy: np.ndarray) -> np.ndarray:
+def crop_image(image: np.ndarray, xyxy: np.ndarray) -> np.ndarray:
     """
     Crops the given image based on the given bounding box.
 
@@ -25,7 +25,7 @@ def crop(image: np.ndarray, xyxy: np.ndarray) -> np.ndarray:
         >>> detection = sv.Detections(...)
         >>> with sv.ImageSink(target_dir_path='target/directory/path') as sink:
         ...     for xyxy in detection.xyxy:
-        ...         cropped_image = sv.crop(image=image, xyxy=xyxy)
+        ...         cropped_image = sv.crop_image(image=image, xyxy=xyxy)
         ...         sink.save_image(image=image)
         ```
     """

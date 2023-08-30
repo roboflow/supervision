@@ -4,4 +4,4 @@
 
 ## crop
 
-:::supervision.utils.image.crop
+:::supervision.utils.image.crop_image
