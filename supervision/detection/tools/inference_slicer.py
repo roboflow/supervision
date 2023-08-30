@@ -100,7 +100,7 @@ class InferenceSlicer:
         for offset in offsets:
             image_slice = crop_image(image=image, xyxy=offset)
             detections = self.callback(image_slice)
-            detections = move_detections(detections=detections, offset=offset)
+            detections = move_detections(detections=detections, offset=offset[:2])
             detections_list.append(detections)
         return Detections.merge(detections_list=detections_list).with_nms(
             threshold=self.iou_threshold
