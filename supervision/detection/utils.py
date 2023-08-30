@@ -375,3 +375,16 @@ def process_roboflow_result(
     masks = np.array(masks, dtype=bool) if len(masks) > 0 else None
 
     return xyxy, confidence, class_id, masks
+
+
+def move_boxes(boxes: np.ndarray, offset: np.array) -> np.ndarray:
+    """
+    Args:
+        boxes (np.ndarray): boxes of model inference of the slice
+        offset (np.array): slice location at which inference was performed i.e. np.array([x1, y1, x2, y2])
+
+    Returns:
+        (np.ndarray) repositioned bounding boxes
+    """
+    offsets = np.array([offset[0], offset[1], offset[0], offset[1]])
+    return boxes + offsets

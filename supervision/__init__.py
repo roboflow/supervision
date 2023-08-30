@@ -17,6 +17,7 @@ from supervision.detection.annotate import BoxAnnotator, MaskAnnotator
 from supervision.detection.core import Detections
 from supervision.detection.line_counter import LineZone, LineZoneAnnotator
 from supervision.detection.tools.polygon_zone import PolygonZone, PolygonZoneAnnotator
+from supervision.detection.tools.slicer import Slicer
 from supervision.detection.utils import (
     box_iou_batch,
     filter_polygons_by_area,
