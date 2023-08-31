@@ -18,7 +18,9 @@ We welcome contributions from the community in the form of examples, application
 2. Ensure that your project meets the following criteria:
    - Utilizes the `supervision` package.
    - Includes a `README.md` file with instructions on how to run the project.
+   - Includes visual results to demonstrate how the app should work.
    - Avoids adding large assets or dependencies unless absolutely necessary.
    - The contributor is expected to provide support for issues related to their examples.
+   - If the model you are showcasing has licensing issues, please explicitly mention them to prevent any potential confusion.
 
 If you have any questions or concerns about these requirements, please submit a PR, and we will be more than happy to guide you.
