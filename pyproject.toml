@@ -175,7 +175,7 @@ max-args = 20
 include-package-data = false
 
 [tool.setuptools.packages.find]
-exclude = ["docs*", "test*"]
+exclude = ["docs*", "test*","examples*"]
 
 [build-system]
 requires = ["poetry-core"]
