@@ -1,9 +1,9 @@
 import argparse
 
-import supervision as sv
-
-from ultralytics import YOLO
 from tqdm import tqdm
+from ultralytics import YOLO
+
+import supervision as sv
 
 
 def process_video(
@@ -11,7 +11,7 @@ def process_video(
     source_video_path: str,
     target_video_path: str,
     confidence_threshold: float = 0.3,
-    iou_threshold: float = 0.7
+    iou_threshold: float = 0.7,
 ) -> None:
     model = YOLO(source_weights_path)
 
@@ -22,43 +22,55 @@ def process_video(
 
     with sv.VideoSink(target_path=target_video_path, video_info=video_info) as sink:
         for frame in tqdm(frame_generator, total=video_info.total_frames):
-
             results = model(
-                frame, verbose=False, conf=confidence_threshold, iou=iou_threshold)[0]
+                frame, verbose=False, conf=confidence_threshold, iou=iou_threshold
+            )[0]
             detections = sv.Detections.from_ultralytics(results)
             detections = tracker.update_with_detections(detections)
 
             labels = [
                 f"#{tracker_id} {model.model.names[class_id]}"
-                for _, _, _, class_id, tracker_id
-                in detections]
+                for _, _, _, class_id, tracker_id in detections
+            ]
 
             annotated_frame = box_annotator.annotate(
-                scene=frame.copy(),
-                detections=detections,
-                labels=labels)
+                scene=frame.copy(), detections=detections, labels=labels
+            )
 
             sink.write_frame(frame=annotated_frame)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Video Processing with YOLO and ByteTrack")
+        description="Video Processing with YOLO and ByteTrack"
+    )
     parser.add_argument(
-        "--source_weights_path", required=True,
-        help="Path to the source weights file", type=str)
+        "--source_weights_path",
+        required=True,
+        help="Path to the source weights file",
+        type=str,
+    )
     parser.add_argument(
-        "--source_video_path", required=True,
-        help="Path to the source video file", type=str)
+        "--source_video_path",
+        required=True,
+        help="Path to the source video file",
+        type=str,
+    )
     parser.add_argument(
-        "--target_video_path", required=True,
-        help="Path to the target video file (output)", type=str)
+        "--target_video_path",
+        required=True,
+        help="Path to the target video file (output)",
+        type=str,
+    )
     parser.add_argument(
-        "--confidence_threshold", default=0.3,
-        help="Confidence threshold for the model", type=float)
+        "--confidence_threshold",
+        default=0.3,
+        help="Confidence threshold for the model",
+        type=float,
+    )
     parser.add_argument(
-        "--iou_threshold", default=0.7,
-        help="IOU threshold for the model", type=float)
+        "--iou_threshold", default=0.7, help="IOU threshold for the model", type=float
+    )
 
     args = parser.parse_args()
 
@@ -67,4 +79,5 @@ if __name__ == "__main__":
         source_video_path=args.source_video_path,
         target_video_path=args.target_video_path,
         confidence_threshold=args.confidence_threshold,
-        iou_threshold=args.iou_threshold)
+        iou_threshold=args.iou_threshold,
+    )
