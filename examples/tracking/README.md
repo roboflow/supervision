@@ -1,6 +1,6 @@
 ## 👋 hello
 
-This script provides functionality for processing videos using YOLOv8 for object 
+This script provides functionality for processing videos using YOLOv8 for object
 detection and Supervision for tracking and annotation.
 
 ## 💻 install
