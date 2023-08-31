@@ -33,13 +33,16 @@ class STrack(BaseTrack):
     @staticmethod
     def multi_predict(stracks):
         if len(stracks) > 0:
-            multi_mean = np.asarray([st.mean.copy() for st in stracks])
-            multi_covariance = np.asarray([st.covariance for st in stracks])
+            multi_mean = []
+            multi_covariance = []
             for i, st in enumerate(stracks):
+                multi_mean.append(st.mean.copy())
+                multi_covariance.append(st.covariance)
                 if st.state != TrackState.Tracked:
                     multi_mean[i][7] = 0
+
             multi_mean, multi_covariance = STrack.shared_kalman.multi_predict(
-                multi_mean, multi_covariance
+                np.asarray(multi_mean), np.asarray(multi_covariance)
             )
             for i, (mean, cov) in enumerate(zip(multi_mean, multi_covariance)):
                 stracks[i].mean = mean
@@ -148,7 +151,8 @@ def detections2boxes(detections: Detections) -> np.ndarray:
     Args:
         detections (Detections): Detections/Targets in the format of sv.Detections.
     Returns:
-        (np.ndarray): Detections as numpy tensors as in `(x_min, y_min, x_max, y_max, confidence, class_id)` order.
+        (np.ndarray): Detections as numpy tensors as in
+            `(x_min, y_min, x_max, y_max, confidence, class_id)` order.
     """
     return np.hstack(
         (
@@ -164,7 +168,8 @@ class ByteTrack:
     Initialize the ByteTrack object.
 
     Parameters:
-        track_thresh (float, optional): Detection confidence threshold for track activation.
+        track_thresh (float, optional): Detection confidence threshold
+            for track activation.
         track_buffer (int, optional): Number of frames to buffer when a track is lost.
         match_thresh (float, optional): Threshold for matching tracks with detections.
         frame_rate (int, optional): The frame rate of the video.
@@ -191,7 +196,8 @@ class ByteTrack:
 
     def update_with_detections(self, detections: Detections) -> Detections:
         """
-        Updates the tracker with the provided detections and returns the updated detection results.
+        Updates the tracker with the provided detections and
+            returns the updated detection results.
 
         Parameters:
             detections: The new detections to update with.
@@ -208,14 +214,15 @@ class ByteTrack:
 
             >>> def callback(frame: np.ndarray, index: int) -> np.ndarray:
             ...     results = model(frame)[0]
-            ...     detections = sv.Detections.from_yolov8(results)
-            ...     detections = byte_tracker.update_from_detections(detections=detections)
+            ...     detections = sv.Detections.from_ultralytics(results)
+            ...     detections = byte_tracker.update_with_detections(detections)
             ...     labels = [
             ...         f"#{tracker_id} {model.model.names[class_id]} {confidence:0.2f}"
             ...         for _, _, confidence, class_id, tracker_id
             ...         in detections
             ...     ]
-            ...     return annotator.annotate(scene=frame.copy(), detections=detections, labels=labels)
+            ...     return annotator.annotate(scene=frame.copy(),
+            ...                               detections=detections, labels=labels)
 
             >>> sv.process_video(
             ...     source_path='...',
@@ -410,7 +417,8 @@ def joint_tracks(
         track_list_b: Second list of tracks (with track_id attribute).
 
     Returns:
-        Combined list of tracks from track_list_a and track_list_b without duplicate track_id values.
+        Combined list of tracks from track_list_a and track_list_b
+            without duplicate track_id values.
     """
     seen_track_ids = set()
     result = []
@@ -430,7 +438,8 @@ def sub_tracks(track_list_a: List, track_list_b: List) -> List[int]:
 
     Parameters:
         track_list_a: List of tracks (with track_id attribute).
-        track_list_b: List of tracks (with track_id attribute) to be subtracted from track_list_a.
+        track_list_b: List of tracks (with track_id attribute) to
+            be subtracted from track_list_a.
     Returns:
         List of remaining tracks from track_list_a after subtraction.
     """

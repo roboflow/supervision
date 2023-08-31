@@ -10,13 +10,15 @@ import numpy as np
 @dataclass
 class VideoInfo:
     """
-    A class to store video information, including width, height, fps and total number of frames.
+    A class to store video information, including width, height, fps and
+        total number of frames.
 
     Attributes:
         width (int): width of the video in pixels
         height (int): height of the video in pixels
         fps (int): frames per second of the video
-        total_frames (int, optional): total number of frames in the video, default is None
+        total_frames (int, optional): total number of frames in the video,
+            default is None
 
     Examples:
         ```python
@@ -61,7 +63,8 @@ class VideoSink:
 
     Attributes:
         target_path (str): The path to the output file where the video will be saved.
-        video_info (VideoInfo): Information about the video resolution, fps, and total frame count.
+        video_info (VideoInfo): Information about the video resolution, fps,
+            and total frame count.
 
     Example:
         ```python
@@ -69,8 +72,10 @@ class VideoSink:
 
         >>> video_info = sv.VideoInfo.from_video_path(video_path='source_video.mp4')
 
-        >>> with sv.VideoSink(target_path='target_video.mp4', video_info=video_info) as sink:
-        ...     for frame in get_video_frames_generator(source_path='source_video.mp4', stride=2):
+        >>> with sv.VideoSink(target_path='target_video.mp4',
+        ...                   video_info=video_info) as sink:
+        ...     for frame in get_video_frames_generator(source_path='source_video.mp4',
+        ...                                             stride=2):
         ...         sink.write_frame(frame=frame)
         ```
     """
@@ -103,7 +108,7 @@ def _validate_and_setup_video(source_path: str, start: int, end: Optional[int]):
         raise Exception(f"Could not open video at {source_path}")
     total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
     if end is not None and end > total_frames:
-        raise Exception(f"Requested frames are outbound")
+        raise Exception("Requested frames are outbound")
     start = max(start, 0)
     end = min(end, total_frames) if end is not None else total_frames
     video.set(cv2.CAP_PROP_POS_FRAMES, start)
@@ -118,12 +123,16 @@ def get_video_frames_generator(
 
     Args:
         source_path (str): The path of the video file.
-        stride (int): Indicates the interval at which frames are returned, skipping stride - 1 frames between each.
-        start (int): Indicates the starting position from which video should generate frames
-        end (Optional[int]): Indicates the ending position at which video should stop generating frames. If None, video will be read to the end.
+        stride (int): Indicates the interval at which frames are returned,
+            skipping stride - 1 frames between each.
+        start (int): Indicates the starting position from which
+            video should generate frames
+        end (Optional[int]): Indicates the ending position at which video
+            should stop generating frames. If None, video will be read to the end.
 
     Returns:
-        (Generator[np.ndarray, None, None]): A generator that yields the frames of the video.
+        (Generator[np.ndarray, None, None]): A generator that yields the
+            frames of the video.
 
     Examples:
         ```python
@@ -154,12 +163,16 @@ def process_video(
     callback: Callable[[np.ndarray, int], np.ndarray],
 ) -> None:
     """
-    Process a video file by applying a callback function on each frame and saving the result to a target video file.
+    Process a video file by applying a callback function on each frame
+        and saving the result to a target video file.
 
     Args:
         source_path (str): The path to the source video file.
         target_path (str): The path to the target video file.
-        callback (Callable[[np.ndarray, int], np.ndarray]): A function that takes in a numpy ndarray representation of a video frame and an int index of the frame and returns a processed numpy ndarray representation of the frame.
+        callback (Callable[[np.ndarray, int], np.ndarray]): A function that takes in
+            a numpy ndarray representation of a video frame and an
+            int index of the frame and returns a processed numpy ndarray
+            representation of the frame.
 
     Examples:
         ```python
