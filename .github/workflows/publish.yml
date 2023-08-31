@@ -1,8 +1,13 @@
-name: Publish WorkFlow
-
+name: Supervision Releases to PyPi
 on:
-  release:
-    types: [created]
+  push:
+    tags:
+      - '[0-9]+.[0-9]+[0-9]+.[0-9]'
+      - '[0-9]+.[0-9]+[0-9]+.[0-9]'
+      - '[0-9]+.[0-9]+[0-9]+.[0-9]'
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
 
 jobs:
   build:
@@ -19,15 +24,6 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-      - name: 🦾 Install dependencies
-        run: |
-          python -m pip install --upgrade virtualenv
-          python -m pip install --upgrade pip
-          virtualenv venv
-          source venv/bin/activate
-          python -m pip install --upgrade pip
-          python -m pip install --upgrade poetry
-          poetry install
 
       - name:  🏗️ Build source and wheel distributions
         run: |
@@ -43,5 +39,5 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
-          user: ${{ secrets.PYPI_USERNAME }}
+          user: ${{ secrets.PYPI_TEST_USERNAME }}
           password: ${{ secrets.PYPI_TEST_PASSWORD }}
