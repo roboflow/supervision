@@ -179,9 +179,6 @@ class Detections:
         """
         yolov5_detections_predictions = yolov5_results.pred[0].cpu().cpu().numpy()
 
-        if np.asarray(yolov5_detections_predictions[:, :4]).shape[0] == 0:
-            return cls.empty()
-
         return cls(
             xyxy=yolov5_detections_predictions[:, :4],
             confidence=yolov5_detections_predictions[:, 4],
@@ -220,9 +217,6 @@ class Detections:
             >>> detections = sv.Detections.from_yolov8(result)
             ```
         """
-
-        if np.asarray(yolov8_results.boxes.xyxy.cpu().numpy()).shape[0] == 0:
-            return cls.empty()
 
         return cls(
             xyxy=yolov8_results.boxes.xyxy.cpu().numpy(),
@@ -263,9 +257,6 @@ class Detections:
             >>> detections = sv.Detections.from_ultralytics(result)
             ```
         """
-
-        if np.asarray(ultralytics_results.boxes.xyxy.cpu().numpy()).shape[0] == 0:
-            return cls.empty()
 
         return cls(
             xyxy=ultralytics_results.boxes.xyxy.cpu().numpy(),
@@ -378,9 +369,6 @@ class Detections:
             ```
         """
 
-        if np.asarray(mmdet_results.pred_instances.bboxes.cpu().numpy()).shape[0] == 0:
-            return cls.empty()
-
         return cls(
             xyxy=mmdet_results.pred_instances.bboxes.cpu().numpy(),
             confidence=mmdet_results.pred_instances.scores.cpu().numpy(),
@@ -396,9 +384,6 @@ class Detections:
         Returns:
             Detections: A new Detections object.
         """
-
-        if np.asarray(transformers_results["boxes"].cpu().numpy()).shape[0] == 0:
-            return cls.empty()
 
         return cls(
             xyxy=transformers_results["boxes"].cpu().numpy(),
@@ -436,14 +421,6 @@ class Detections:
             >>> detections = sv.Detections.from_detectron2(result)
             ```
         """
-
-        if (
-            np.asarray(
-                detectron2_results["instances"].pred_boxes.tensor.cpu().numpy()
-            ).shape[0]
-            == 0
-        ):
-            return cls.empty()
 
         return cls(
             xyxy=detectron2_results["instances"].pred_boxes.tensor.cpu().numpy(),
