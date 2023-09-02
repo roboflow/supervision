@@ -335,7 +335,7 @@ class Detections:
 
             >>> yolo_pipeline = Pipeline.create(
             ...     task="yolo",
-            ...     model_stub = "zoo:cv/detection/yolov5-l/pytorch/" \
+            ...     model_path = "zoo:cv/detection/yolov5-l/pytorch/" \
             ...                  "ultralytics/coco/pruned80_quant-none"
             >>> pipeline_outputs = yolo_pipeline(SOURCE_IMAGE_PATH,
             ...                         iou_thres=0.6, conf_thres=0.001)
