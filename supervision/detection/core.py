@@ -518,8 +518,13 @@ class Detections:
 
         xywh = np.array([mask["bbox"] for mask in sorted_generated_masks])
         mask = np.array([mask["segmentation"] for mask in sorted_generated_masks])
+        
 
-        return Detections(xyxy=xywh_to_xyxy(boxes_xywh=xywh), mask=mask)
+        if np.asarray(xywh).shape[0] == 0:
+            return cls.empty()
+
+        xyxy = xywh_to_xyxy(boxes_xywh=xywh)
+        return cls(xyxy=xyxy, mask=mask)
 
     @classmethod
     def from_paddledet(cls, paddledet_result) -> Detections:
