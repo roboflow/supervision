@@ -330,9 +330,13 @@ class Detections:
         if np.asarray(deepsparse_results.boxes[0]).shape[0] == 0:
             return cls.empty()
         else:
-            return cls(xyxy=np.array(deepsparse_results.boxes[0]),
-                        confidence=np.array(deepsparse_results.scores[0]),
-                        class_id=np.array(deepsparse_results.labels[0]).astype(float).astype(int))
+            return cls(
+                xyxy=np.array(deepsparse_results.boxes[0]),
+                confidence=np.array(deepsparse_results.scores[0]),
+                class_id=np.array(deepsparse_results.labels[0])
+                .astype(float)
+                .astype(int),
+            )
 
     @classmethod
     def from_mmdetection(cls, mmdet_results) -> Detections:
