@@ -518,7 +518,6 @@ class Detections:
 
         xywh = np.array([mask["bbox"] for mask in sorted_generated_masks])
         mask = np.array([mask["segmentation"] for mask in sorted_generated_masks])
-        
 
         if np.asarray(xywh).shape[0] == 0:
             return cls.empty()
