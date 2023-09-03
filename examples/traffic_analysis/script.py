@@ -1,5 +1,5 @@
 import argparse
-from typing import Optional, Union
+from typing import Tuple, List
 
 import cv2
 from tqdm import tqdm
@@ -7,11 +7,13 @@ from ultralytics import YOLO
 import supervision as sv
 import numpy as np
 
-from supervision import Color, ColorPalette, Position, draw_polygon
+from supervision import Color, Position, draw_polygon, ColorPalette
+from supervision.detection.annotate import TraceAnnotator
 
-COLOR = Color.white()
+DEFAULT_COLOR = Color.white()
+COLORS = ColorPalette.default()
 
-ZONE_POLYGONS = [
+POLYGONS = [
     np.array([[592, 282], [900, 282], [900, 82], [592, 82]]),
     np.array([[950, 282], [1250, 282], [1250, 82], [950, 82]]),
     np.array([[950, 860], [1250, 860], [1250, 1060], [950, 1060]]),
@@ -22,86 +24,33 @@ ZONE_POLYGONS = [
     np.array([[1250, 860], [1250, 560], [1450, 560], [1450, 860]])
 ]
 
-
-class Trace:
-
-    def __init__(
-        self,
-        max_size: Optional[int] = None,
-        start_frame_id: int = 0,
-        anchor: sv.Position = sv.Position.CENTER
-    ) -> None:
-        self.current_frame_id = start_frame_id
-        self.max_size = max_size
-        self.anchor = anchor
-
-        self.frame_id = np.array([], dtype=int)
-        self.xy = np.empty((0, 2), dtype=np.float32)
-        self.tracker_id = np.array([], dtype=int)
-
-    def put(self, detections: sv.Detections) -> None:
-        frame_id = np.full(len(detections), self.current_frame_id, dtype=int)
-        self.frame_id = np.concatenate([self.frame_id, frame_id])
-        self.xy = np.concatenate([
-            self.xy, detections.get_anchor_coordinates(self.anchor)])
-        self.tracker_id = np.concatenate([self.tracker_id, detections.tracker_id])
-
-        unique_frame_id = np.unique(self.frame_id)
-
-        if 0 < self.max_size < len(unique_frame_id):
-            max_allowed_frame_id = self.current_frame_id - self.max_size + 1
-            filtering_mask = self.frame_id >= max_allowed_frame_id
-            self.frame_id = self.frame_id[filtering_mask]
-            self.xy = self.xy[filtering_mask]
-            self.tracker_id = self.tracker_id[filtering_mask]
-
-        self.current_frame_id += 1
-
-    def get(self, tracker_id: int) -> np.ndarray:
-        return self.xy[self.tracker_id == tracker_id]
+DEFAULT_BOX_ANNOTATOR = sv.BoxAnnotator(color=DEFAULT_COLOR)
 
 
-class TraceAnnotator:
-
-    def __init__(
-            self,
-            color: Union[Color, ColorPalette] = ColorPalette.default(),
-            color_by_track: bool = False,
-            position: Optional[Position] = Position.CENTER,
-            trace_length: int = 30,
-            thickness: int = 2,
-
-    ):
-        self.color: Union[Color, ColorPalette] = color
-        self.color_by_track = color_by_track
-        self.position = position
-        self.trace = Trace(max_size=trace_length)
-        self.thickness = thickness
-
-    def annotate(self, scene: np.ndarray, detections: sv.Detections) -> np.ndarray:
-        self.trace.put(detections)
-
-        for i, (xyxy, mask, confidence, class_id, tracker_id) in enumerate(detections):
-            class_id = (
-                detections.class_id[i] if class_id is not None else None
-            )
-            idx = class_id if class_id is not None else i
-            color = (
-                self.color.by_idx(idx)
-                if isinstance(self.color, ColorPalette)
-                else self.color
-            )
-
-            xy = self.trace.get(tracker_id=tracker_id)
-            if len(xy) > 1:
-                scene = cv2.polylines(
-                    scene,
-                    [xy.astype(np.int32)],
-                    False,
-                    color=color.as_bgr(),
-                    thickness=self.thickness,
-                )
-        return scene
+def initiate_polygon_zones(
+    polygons: List[np.ndarray],
+    frame_resolution_wh: Tuple[int, int],
+    triggering_position: Position = Position.CENTER,
+) -> Tuple[List[sv.PolygonZone], List[sv.PolygonZoneAnnotator], List[sv.BoxAnnotator]]:
+    zones = [
+        sv.PolygonZone(
+            polygon=polygon,
+            frame_resolution_wh=frame_resolution_wh,
+            triggering_position=triggering_position,
+        )
+        for polygon in polygons
+    ]
+    zone_annotators = [
+        sv.PolygonZoneAnnotator(zone=zones[i], color=COLORS.colors[i], text_scale=1)
+        for i
+        in range(len(zones))
+    ]
+    box_annotators = [
+        sv.BoxAnnotator(color=COLORS.colors[i])
+        for i
+        in range(len(zones))
+    ]
+    return zones, zone_annotators, box_annotators
 
 
 def process_video(
@@ -113,24 +62,29 @@ def process_video(
 ) -> None:
     model = YOLO(source_weights_path)
     tracker = sv.ByteTrack()
-    box_annotator = sv.BoxAnnotator()
-    trace_annotator = TraceAnnotator(trace_length=100)
-    frame_generator = sv.get_video_frames_generator(source_path=source_video_path)
+    trace_annotator = TraceAnnotator(color=DEFAULT_COLOR)
+    frame_generator = sv.get_video_frames_generator(
+        source_path=source_video_path, stride=2)
     video_info = sv.VideoInfo.from_video_path(video_path=source_video_path)
+    zones, zone_annotators, box_annotators = initiate_polygon_zones(
+        polygons=POLYGONS,
+        frame_resolution_wh=video_info.resolution_wh,
+        triggering_position=Position.CENTER
+    )
 
     if target_video_path:
         with sv.VideoSink(target_path=target_video_path, video_info=video_info) as sink:
-            for frame in tqdm(frame_generator, total=video_info.total_frames):
+            for frame in tqdm(frame_generator, total=video_info.total_frames // 2):
                 annotated_frame = process_frame(
-                    frame, model, tracker, box_annotator,
-                    confidence_threshold, iou_threshold, trace_annotator
+                    frame, model, tracker, confidence_threshold, iou_threshold, zones,
+                    zone_annotators, box_annotators, trace_annotator
                 )
                 sink.write_frame(frame=annotated_frame)
     else:
-        for frame in tqdm(frame_generator, total=video_info.total_frames):
+        for frame in tqdm(frame_generator, total=video_info.total_frames // 2):
             annotated_frame = process_frame(
-                frame, model, tracker, box_annotator,
-                confidence_threshold, iou_threshold, trace_annotator
+                frame, model, tracker, confidence_threshold, iou_threshold, zones,
+                zone_annotators, box_annotators, trace_annotator
             )
             cv2.imshow('Processed Video', annotated_frame)
             if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -142,9 +96,11 @@ def process_frame(
     frame: np.ndarray,
     model: YOLO,
     tracker: sv.ByteTrack,
-    box_annotator: sv.BoxAnnotator,
     confidence_threshold: float,
     iou_threshold: float,
+    zones: List[sv.PolygonZone],
+    zone_annotators: List[sv.PolygonZoneAnnotator],
+    box_annotators: List[sv.BoxAnnotator],
     trace_annotator: TraceAnnotator
 ) -> np.ndarray:
     results = model(
@@ -153,20 +109,30 @@ def process_frame(
     detections = sv.Detections.from_ultralytics(results)
     detections.class_id = np.zeros(len(detections))
     detections = tracker.update_with_detections(detections)
-    labels = [
-        f"#{tracker_id}"
-        for _, _, confidence, class_id, tracker_id in detections
-    ]
-    annotated_frame = box_annotator.annotate(
-        scene=frame.copy(),
-        detections=detections,
-        labels=labels)
+
+    annotated_frame = frame.copy()
+
     annotated_frame = trace_annotator.annotate(
         scene=annotated_frame,
         detections=detections)
 
-    for zone in ZONE_POLYGONS:
-        annotated_frame = draw_polygon(scene=annotated_frame, polygon=zone, color=COLOR)
+    for i, zone in enumerate(zones):
+        is_in_zone = zone.trigger(detections=detections)
+        detections_in_zone = detections[is_in_zone]
+        detections = detections[~is_in_zone]
+        labels = [
+            f"#{tracker_id}"
+            for _, _, confidence, class_id, tracker_id in detections_in_zone
+        ]
+        annotated_frame = box_annotators[i].annotate(
+            scene=annotated_frame, detections=detections_in_zone, labels=labels)
+        annotated_frame = zone_annotators[i].annotate(scene=annotated_frame)
+    labels = [
+        f"#{tracker_id}"
+        for _, _, confidence, class_id, tracker_id in detections
+    ]
+    annotated_frame = DEFAULT_BOX_ANNOTATOR.annotate(
+        scene=annotated_frame, detections=detections, labels=labels)
     return annotated_frame
 
 
