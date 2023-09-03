@@ -78,7 +78,7 @@ class Detections:
     """
 
     xyxy: np.ndarray
-    mask: np.Optional[np.ndarray] = None
+    mask: Optional[np.ndarray] = None
     confidence: Optional[np.ndarray] = None
     class_id: Optional[np.ndarray] = None
     tracker_id: Optional[np.ndarray] = None
