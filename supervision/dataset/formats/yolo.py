@@ -5,7 +5,7 @@ from typing import Dict, List, Optional, Tuple
 import cv2
 import numpy as np
 
-from supervision.dataset.utils import approximate_mask_with_polygons
+from supervision.dataset.utils import approximate_mask_with_polygons, LazyLoadDict
 from supervision.detection.core import Detections
 from supervision.detection.utils import polygon_to_mask, polygon_to_xyxy
 from supervision.utils.file import (
@@ -135,7 +135,7 @@ def load_yolo_annotations(
     )
 
     classes = _extract_class_names(file_path=data_yaml_path)
-    images = {}
+    images = LazyLoadDict()
     annotations = {}
 
     for image_path in image_paths:
@@ -145,7 +145,7 @@ def load_yolo_annotations(
 
         annotation_path = os.path.join(annotations_directory_path, f"{image_stem}.txt")
         if not os.path.exists(annotation_path):
-            images[image_path] = image
+            images[image_path] = image_path
             annotations[image_path] = Detections.empty()
             continue
 
@@ -159,7 +159,7 @@ def load_yolo_annotations(
             lines=lines, resolution_wh=resolution_wh, with_masks=with_masks
         )
 
-        images[image_path] = image
+        images[image_path] = image_path
         annotations[image_path] = annotation
     return classes, images, annotations
 

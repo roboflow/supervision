@@ -29,6 +29,7 @@ from supervision.dataset.utils import (
     merge_class_lists,
     save_dataset_images,
     train_test_split,
+    LazyLoadDict,
 )
 from supervision.detection.core import Detections
 
@@ -53,7 +54,7 @@ class DetectionDataset(BaseDataset):
 
     Attributes:
         classes (List[str]): List containing dataset class names.
-        images (Dict[str, np.ndarray]): Dictionary mapping image name to image.
+        images (LazyLoadDict[str, str]): Dictionary mapping image name to image filename.
         annotations (Dict[str, Detections]): Dictionary mapping
             image name to annotations.
     """
@@ -138,12 +139,12 @@ class DetectionDataset(BaseDataset):
 
         train_dataset = DetectionDataset(
             classes=self.classes,
-            images={name: self.images[name] for name in train_names},
+            images=LazyLoadDict({name: self.images._data[name] for name in train_names}),
             annotations={name: self.annotations[name] for name in train_names},
         )
         test_dataset = DetectionDataset(
             classes=self.classes,
-            images={name: self.images[name] for name in test_names},
+            images=LazyLoadDict({name: self.images._data[name] for name in test_names}),
             annotations={name: self.annotations[name] for name in test_names},
         )
         return train_dataset, test_dataset
@@ -508,7 +509,7 @@ class DetectionDataset(BaseDataset):
             ['cat', 'dog', 'person']
             ```
         """
-        merged_images, merged_annotations = {}, {}
+        merged_images, merged_annotations = LazyLoadDict(), {}
         class_lists = [dataset.classes for dataset in dataset_list]
         merged_classes = merge_class_lists(class_lists=class_lists)
 
@@ -522,7 +523,7 @@ class DetectionDataset(BaseDataset):
                         f"Image name {image_name} is not unique across datasets."
                     )
 
-                merged_images[image_name] = image
+                merged_images[image_name] = dataset.images._data[image_name]
                 merged_annotations[image_name] = map_detections_class_id(
                     source_to_target_mapping=class_index_mapping,
                     detections=detections,
@@ -540,13 +541,14 @@ class ClassificationDataset(BaseDataset):
 
     Attributes:
         classes (List[str]): List containing dataset class names.
-        images (Dict[str, np.ndarray]): Dictionary mapping image name to image.
+        images (LazyLoadDict[str, str]): Dictionary mapping image name to image filename.
         annotations (Dict[str, Detections]): Dictionary mapping
             image name to annotations.
     """
 
     classes: List[str]
-    images: Dict[str, np.ndarray]
+    # images: Dict[str, np.ndarray]
+    images: LazyLoadDict
     annotations: Dict[str, Classifications]
 
     def __len__(self) -> int:
@@ -589,15 +591,14 @@ class ClassificationDataset(BaseDataset):
             random_state=random_state,
             shuffle=shuffle,
         )
-
         train_dataset = ClassificationDataset(
             classes=self.classes,
-            images={name: self.images[name] for name in train_names},
+            images=LazyLoadDict({name: self.images._data[name] for name in train_names}),
             annotations={name: self.annotations[name] for name in train_names},
         )
         test_dataset = ClassificationDataset(
             classes=self.classes,
-            images={name: self.images[name] for name in test_names},
+            images=LazyLoadDict({name: self.images._data[name] for name in test_names}),
             annotations={name: self.annotations[name] for name in test_names},
         )
         return train_dataset, test_dataset
@@ -660,7 +661,7 @@ class ClassificationDataset(BaseDataset):
         classes = os.listdir(root_directory_path)
         classes = sorted(set(classes))
 
-        images = {}
+        images = LazyLoadDict()
         annotations = {}
 
         for class_name in classes:
@@ -668,7 +669,7 @@ class ClassificationDataset(BaseDataset):
 
             for image in os.listdir(os.path.join(root_directory_path, class_name)):
                 image_path = str(os.path.join(root_directory_path, class_name, image))
-                images[image_path] = cv2.imread(image_path)
+                images[image_path] = image_path
                 annotations[image_path] = Classifications(
                     class_id=np.array([class_id]),
                 )

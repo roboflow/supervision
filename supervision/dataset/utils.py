@@ -6,6 +6,7 @@ from typing import Dict, List, Optional, Tuple, TypeVar
 
 import cv2
 import numpy as np
+from collections.abc import MutableMapping
 
 from supervision.detection.core import Detections
 from supervision.detection.utils import (
@@ -15,6 +16,28 @@ from supervision.detection.utils import (
 )
 
 T = TypeVar("T")
+
+
+class LazyLoadDict(MutableMapping):
+    def __init__(self, initial_data: Optional[Dict[str, str]]=None):
+        if initial_data is None:
+            initial_data = {}
+        self._data = initial_data
+
+    def __getitem__(self, key: str) -> np.ndarray:
+        return cv2.imread(self._data[key])
+
+    def __setitem__(self, key: str, value: str) -> None:
+        self._data[key] = value
+
+    def __delitem__(self, key: str) -> None:
+        del self._data[key]
+
+    def __iter__(self):
+        return iter(self._data)
+
+    def __len__(self):
+        return len(self._data)
 
 
 def approximate_mask_with_polygons(

@@ -7,7 +7,7 @@ from xml.etree.ElementTree import Element, SubElement, parse, tostring
 import cv2
 import numpy as np
 
-from supervision.dataset.utils import approximate_mask_with_polygons
+from supervision.dataset.utils import approximate_mask_with_polygons, LazyLoadDict
 from supervision.detection.core import Detections
 from supervision.detection.utils import polygon_to_mask, polygon_to_xyxy
 from supervision.utils.file import list_files_with_extensions
@@ -163,7 +163,7 @@ def load_pascal_voc_annotations(
     )
 
     classes = []
-    images = {}
+    images = LazyLoadDict()
     annotations = {}
 
     for image_path in image_paths:
@@ -173,7 +173,7 @@ def load_pascal_voc_annotations(
 
         annotation_path = os.path.join(annotations_directory_path, f"{image_name}.xml")
         if not os.path.exists(annotation_path):
-            images[image_path] = image
+            images[image_path] = image_path
             annotations[image_path] = Detections.empty()
             continue
 
@@ -185,7 +185,7 @@ def load_pascal_voc_annotations(
             root, classes, resolution_wh, force_masks
         )
 
-        images[image_path] = image
+        images[image_path] = image_path
         annotations[image_path] = annotation
 
     return classes, images, annotations
