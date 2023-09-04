@@ -19,14 +19,34 @@ T = TypeVar("T")
 
 
 class LazyLoadDict(MutableMapping):
-    def __init__(self, initial_data: Optional[Dict[str, str]]=None):
+    """
+    A dictionary-like class that lazily loads images from disk.
+    """
+
+    def __init__(self, initial_data: Optional[Dict[str, str]] = None):
+        """
+        Initializes LazyLoadDict.
+
+        Args:
+            initial_data: Initial key-value pairs, where keys are
+                          image names and values are file paths.
+        """
         if initial_data is None:
             initial_data = {}
         self._data = initial_data
 
     def __getitem__(self, key: str) -> np.ndarray:
-        return cv2.imread(self._data[key])
+        """
+        Retrieve an image as a numpy array given its key.
 
+        Args:
+            key: The image name.
+
+        Returns:
+            A numpy array of the image.
+        """
+        return cv2.imread(self._data[key])
+    
     def __setitem__(self, key: str, value: str) -> None:
         self._data[key] = value
 
