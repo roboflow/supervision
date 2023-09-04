@@ -5,7 +5,7 @@ from typing import Dict, List, Optional, Tuple
 import cv2
 import numpy as np
 
-from supervision.dataset.utils import approximate_mask_with_polygons, LazyLoadDict
+from supervision.dataset.utils import LazyLoadDict, approximate_mask_with_polygons
 from supervision.detection.core import Detections
 from supervision.detection.utils import polygon_to_mask, polygon_to_xyxy
 from supervision.utils.file import (

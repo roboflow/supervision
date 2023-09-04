@@ -3,16 +3,15 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Tuple
 
-import cv2
 import numpy as np
 
 from supervision.dataset.utils import (
+    LazyLoadDict,
     approximate_mask_with_polygons,
     map_detections_class_id,
 )
 from supervision.detection.core import Detections
 from supervision.detection.utils import polygon_to_mask
-from supervision.dataset.utils import LazyLoadDict
 from supervision.utils.file import read_json_file, save_json_file
 
 

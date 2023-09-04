@@ -24,12 +24,12 @@ from supervision.dataset.formats.yolo import (
     save_yolo_annotations,
 )
 from supervision.dataset.utils import (
+    LazyLoadDict,
     build_class_index_mapping,
     map_detections_class_id,
     merge_class_lists,
     save_dataset_images,
     train_test_split,
-    LazyLoadDict,
 )
 from supervision.detection.core import Detections
 
@@ -54,7 +54,7 @@ class DetectionDataset(BaseDataset):
 
     Attributes:
         classes (List[str]): List containing dataset class names.
-        images (LazyLoadDict[str, str]): Dictionary mapping image name to image filename.
+        images (LazyLoadDict[str, str]): Dictionary mapping image name to image path.
         annotations (Dict[str, Detections]): Dictionary mapping
             image name to annotations.
     """
@@ -139,7 +139,9 @@ class DetectionDataset(BaseDataset):
 
         train_dataset = DetectionDataset(
             classes=self.classes,
-            images=LazyLoadDict({name: self.images._data[name] for name in train_names}),
+            images=LazyLoadDict(
+                {name: self.images._data[name] for name in train_names}
+            ),
             annotations={name: self.annotations[name] for name in train_names},
         )
         test_dataset = DetectionDataset(
@@ -541,12 +543,12 @@ class ClassificationDataset(BaseDataset):
 
     Attributes:
         classes (List[str]): List containing dataset class names.
-        images (LazyLoadDict[str, str]): Dictionary mapping image name to image filename.
+        images (LazyLoadDict[str, str]): Dictionary mapping image name to image path.
         annotations (Dict[str, Detections]): Dictionary mapping
             image name to annotations.
     """
 
-    classes: List[str]    
+    classes: List[str]
     images: LazyLoadDict
     annotations: Dict[str, Classifications]
 
@@ -592,7 +594,9 @@ class ClassificationDataset(BaseDataset):
         )
         train_dataset = ClassificationDataset(
             classes=self.classes,
-            images=LazyLoadDict({name: self.images._data[name] for name in train_names}),
+            images=LazyLoadDict(
+                {name: self.images._data[name] for name in train_names}
+            ),
             annotations={name: self.annotations[name] for name in train_names},
         )
         test_dataset = ClassificationDataset(

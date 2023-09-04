@@ -1,12 +1,12 @@
 import copy
 import os
 import random
+from collections.abc import MutableMapping
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, TypeVar
 
 import cv2
 import numpy as np
-from collections.abc import MutableMapping
 
 from supervision.detection.core import Detections
 from supervision.detection.utils import (
@@ -46,7 +46,7 @@ class LazyLoadDict(MutableMapping):
             A numpy array of the image.
         """
         return cv2.imread(self._data[key])
-    
+
     def __setitem__(self, key: str, value: str) -> None:
         self._data[key] = value
 
