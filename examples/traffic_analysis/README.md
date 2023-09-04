@@ -1,6 +1,6 @@
 ## 👋 hello
 
-This script performs traffic flow analysis using YOLOv8, an object-detection method and ByteTrack, a simple yet effective online multi-object tracking method. It uses the supervision package for multiple tasks such as tracking, annotations, etc. 
+This script performs traffic flow analysis using YOLOv8, an object-detection method and ByteTrack, a simple yet effective online multi-object tracking method. It uses the supervision package for multiple tasks such as tracking, annotations, etc.
 
 ## 💻 install
 
@@ -17,15 +17,15 @@ This script performs traffic flow analysis using YOLOv8, an object-detection met
     python3 -m venv venv
     source venv/bin/activate
     ```
-  
+
 - install required dependencies
-    
+
     ```bash
     pip install -r requirements.txt
     ```
-  
+
 - download `traffic_analysis.pt` and `traffic_analysis.mov` files
-    
+
     ```bash
     ./setup.sh
     ```
