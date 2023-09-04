@@ -3,9 +3,9 @@ from typing import List, Optional, Union
 import cv2
 import numpy as np
 
-from supervision.geometry.core import Position
 from supervision.detection.core import Detections
 from supervision.draw.color import Color, ColorPalette
+from supervision.geometry.core import Position
 
 
 class BoxAnnotator:
@@ -206,12 +206,11 @@ class MaskAnnotator:
 
 
 class Trace:
-
     def __init__(
         self,
         max_size: Optional[int] = None,
         start_frame_id: int = 0,
-        anchor: Position = Position.CENTER
+        anchor: Position = Position.CENTER,
     ) -> None:
         self.current_frame_id = start_frame_id
         self.max_size = max_size
@@ -224,8 +223,9 @@ class Trace:
     def put(self, detections: Detections) -> None:
         frame_id = np.full(len(detections), self.current_frame_id, dtype=int)
         self.frame_id = np.concatenate([self.frame_id, frame_id])
-        self.xy = np.concatenate([
-            self.xy, detections.get_anchor_coordinates(self.anchor)])
+        self.xy = np.concatenate(
+            [self.xy, detections.get_anchor_coordinates(self.anchor)]
+        )
         self.tracker_id = np.concatenate([self.tracker_id, detections.tracker_id])
 
         unique_frame_id = np.unique(self.frame_id)
@@ -244,14 +244,12 @@ class Trace:
 
 
 class TraceAnnotator:
-
     def __init__(
-            self,
-            color: Union[Color, ColorPalette] = ColorPalette.default(),
-            position: Optional[Position] = Position.CENTER,
-            trace_length: int = 30,
-            thickness: int = 2,
-
+        self,
+        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        position: Optional[Position] = Position.CENTER,
+        trace_length: int = 30,
+        thickness: int = 2,
     ):
         self.color: Union[Color, ColorPalette] = color
         self.position = position
@@ -262,9 +260,7 @@ class TraceAnnotator:
         self.trace.put(detections)
 
         for i, (xyxy, mask, confidence, class_id, tracker_id) in enumerate(detections):
-            class_id = (
-                detections.class_id[i] if class_id is not None else None
-            )
+            class_id = detections.class_id[i] if class_id is not None else None
             idx = class_id if class_id is not None else i
             color = (
                 self.color.by_idx(idx)

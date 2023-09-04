@@ -1,5 +1,5 @@
 import argparse
-from typing import Tuple, List, Dict, Set
+from typing import Dict, List, Set, Tuple
 
 import cv2
 import numpy as np
@@ -21,12 +21,11 @@ ZONE_OUT_POLYGONS = [
     np.array([[950, 282], [1250, 282], [1250, 82], [950, 82]]),
     np.array([[592, 860], [900, 860], [900, 1060], [592, 1060]]),
     np.array([[592, 282], [592, 550], [392, 550], [392, 282]]),
-    np.array([[1250, 860], [1250, 560], [1450, 560], [1450, 860]])
+    np.array([[1250, 860], [1250, 560], [1450, 560], [1450, 860]]),
 ]
 
 
 class DetectionsManager:
-
     def __init__(self) -> None:
         self.tracker_id_to_zone_id: Dict[int, int] = {}
         self.counts: Dict[int, Dict[int, Set[int]]] = {}
@@ -35,7 +34,7 @@ class DetectionsManager:
         self,
         detections_all: sv.Detections,
         detections_in_zones: List[sv.Detections],
-        detections_out_zones: List[sv.Detections]
+        detections_out_zones: List[sv.Detections],
     ) -> sv.Detections:
         for zone_in_id, detections_in_zone in enumerate(detections_in_zones):
             for tracker_id in detections_in_zone.tracker_id:
@@ -77,7 +76,7 @@ class VideoProcessor:
         source_video_path: str,
         target_video_path: str = None,
         confidence_threshold: float = 0.3,
-        iou_threshold: float = 0.7
+        iou_threshold: float = 0.7,
     ) -> None:
         self.conf_threshold = confidence_threshold
         self.iou_threshold = iou_threshold
@@ -89,18 +88,22 @@ class VideoProcessor:
 
         self.video_info = sv.VideoInfo.from_video_path(source_video_path)
         self.zones_in = initiate_polygon_zones(
-            ZONE_IN_POLYGONS, self.video_info.resolution_wh, sv.Position.CENTER)
+            ZONE_IN_POLYGONS, self.video_info.resolution_wh, sv.Position.CENTER
+        )
         self.zones_out = initiate_polygon_zones(
-            ZONE_OUT_POLYGONS, self.video_info.resolution_wh, sv.Position.CENTER)
+            ZONE_OUT_POLYGONS, self.video_info.resolution_wh, sv.Position.CENTER
+        )
 
         self.box_annotator = sv.BoxAnnotator(color=COLORS)
         self.trace_annotator = sv.TraceAnnotator(
-            color=COLORS, position=sv.Position.CENTER, trace_length=100, thickness=2)
+            color=COLORS, position=sv.Position.CENTER, trace_length=100, thickness=2
+        )
         self.detections_manager = DetectionsManager()
 
     def process_video(self):
         frame_generator = sv.get_video_frames_generator(
-            source_path=self.source_video_path)
+            source_path=self.source_video_path
+        )
 
         if self.target_video_path:
             with sv.VideoSink(self.target_video_path, self.video_info) as sink:
@@ -110,24 +113,28 @@ class VideoProcessor:
         else:
             for frame in tqdm(frame_generator, total=self.video_info.total_frames):
                 annotated_frame = self.process_frame(frame)
-                cv2.imshow('Processed Video', annotated_frame)
-                if cv2.waitKey(1) & 0xFF == ord('q'):
+                cv2.imshow("Processed Video", annotated_frame)
+                if cv2.waitKey(1) & 0xFF == ord("q"):
                     break
             cv2.destroyAllWindows()
 
-    def annotate_frame(self, frame: np.ndarray, detections: sv.Detections) -> np.ndarray:
+    def annotate_frame(
+        self, frame: np.ndarray, detections: sv.Detections
+    ) -> np.ndarray:
         annotated_frame = frame.copy()
         for i, (zone_in, zone_out) in enumerate(zip(self.zones_in, self.zones_out)):
             annotated_frame = sv.draw_polygon(
-                annotated_frame, zone_in.polygon, COLORS.colors[i])
+                annotated_frame, zone_in.polygon, COLORS.colors[i]
+            )
             annotated_frame = sv.draw_polygon(
-                annotated_frame, zone_out.polygon, COLORS.colors[i])
+                annotated_frame, zone_out.polygon, COLORS.colors[i]
+            )
 
         labels = [f"#{tracker_id}" for tracker_id in detections.tracker_id]
-        annotated_frame = self.trace_annotator.annotate(
-            annotated_frame, detections)
+        annotated_frame = self.trace_annotator.annotate(annotated_frame, detections)
         annotated_frame = self.box_annotator.annotate(
-            annotated_frame, detections, labels)
+            annotated_frame, detections, labels
+        )
 
         for zone_out_id, zone_out in enumerate(self.zones_out):
             zone_center = sv.get_polygon_center(polygon=zone_out.polygon)
@@ -140,14 +147,15 @@ class VideoProcessor:
                         scene=annotated_frame,
                         text=str(count),
                         text_anchor=text_anchor,
-                        background_color=COLORS.colors[zone_in_id]
+                        background_color=COLORS.colors[zone_in_id],
                     )
 
         return annotated_frame
 
     def process_frame(self, frame: np.ndarray) -> np.ndarray:
         results = self.model(
-            frame, verbose=False, conf=self.conf_threshold, iou=self.iou_threshold)[0]
+            frame, verbose=False, conf=self.conf_threshold, iou=self.iou_threshold
+        )[0]
         detections = sv.Detections.from_ultralytics(results)
         detections.class_id = np.zeros(len(detections))
         detections = self.tracker.update_with_detections(detections)
@@ -162,33 +170,42 @@ class VideoProcessor:
             detections_out_zones.append(detections_out_zone)
 
         detections = self.detections_manager.update(
-            detections, detections_in_zones, detections_out_zones)
+            detections, detections_in_zones, detections_out_zones
+        )
         return self.annotate_frame(frame, detections)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Traffic Flow Analysis with YOLO and ByteTrack")
+        description="Traffic Flow Analysis with YOLO and ByteTrack"
+    )
 
     parser.add_argument(
-        "--source_weights_path", required=True,
-        help="Path to the source weights file", type=str
+        "--source_weights_path",
+        required=True,
+        help="Path to the source weights file",
+        type=str,
     )
     parser.add_argument(
-        "--source_video_path", required=True,
-        help="Path to the source video file", type=str
+        "--source_video_path",
+        required=True,
+        help="Path to the source video file",
+        type=str,
     )
     parser.add_argument(
-        "--target_video_path", default=None,
-        help="Path to the target video file (output)", type=str
+        "--target_video_path",
+        default=None,
+        help="Path to the target video file (output)",
+        type=str,
     )
     parser.add_argument(
-        "--confidence_threshold", default=0.3,
-        help="Confidence threshold for the model", type=float
+        "--confidence_threshold",
+        default=0.3,
+        help="Confidence threshold for the model",
+        type=float,
     )
     parser.add_argument(
-        "--iou_threshold", default=0.7,
-        help="IOU threshold for the model", type=float
+        "--iou_threshold", default=0.7, help="IOU threshold for the model", type=float
     )
 
     args = parser.parse_args()
