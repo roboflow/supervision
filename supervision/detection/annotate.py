@@ -250,10 +250,10 @@ class TraceAnnotator:
     Attributes:
         color (Union[Color, ColorPalette]): The color to draw the trace, can be
             a single color or a color palette.
-        position (Optional[Position]): The position of the trace. Defaults to CENTER.
+        position (Optional[Position]): The position of the trace. Defaults to `CENTER`.
         trace_length (int): The maximum length of the trace in terms of historical
-            points.
-        thickness (int): The thickness of the trace lines.
+            points. Defaults to `30`.
+        thickness (int): The thickness of the trace lines. Defaults to `2`.
 
     """
 
