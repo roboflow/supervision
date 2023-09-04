@@ -244,6 +244,19 @@ class Trace:
 
 
 class TraceAnnotator:
+    """
+    A class for drawing trace paths on an image based on detection coordinates.
+
+    Attributes:
+        color (Union[Color, ColorPalette]): The color to draw the trace, can be
+            a single color or a color palette.
+        position (Optional[Position]): The position of the trace. Defaults to CENTER.
+        trace_length (int): The maximum length of the trace in terms of historical
+            points.
+        thickness (int): The thickness of the trace lines.
+
+    """
+
     def __init__(
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
@@ -257,6 +270,31 @@ class TraceAnnotator:
         self.thickness = thickness
 
     def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
+        """
+        Draws trace paths on the frame based on the detection coordinates provided.
+
+        Args:
+            scene (np.ndarray): The image on which the traces will be drawn.
+            detections (Detections): The detections which include coordinates for
+                which the traces will be drawn.
+
+        Returns:
+            np.ndarray: The image with the trace paths drawn on it.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> image = ...
+            >>> detections = sv.Detections(...)
+
+            >>> trace_annotator = sv.TraceAnnotator()
+            >>> annotated_frame = trace_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
+            ```
+        """
         self.trace.put(detections)
 
         for i, (xyxy, mask, confidence, class_id, tracker_id) in enumerate(detections):
