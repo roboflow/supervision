@@ -7,11 +7,8 @@ from tqdm import tqdm
 from ultralytics import YOLO
 
 import supervision as sv
-from supervision import Position, draw_polygon, ColorPalette, get_polygon_center, \
-    draw_text
-from supervision.detection.annotate import TraceAnnotator
 
-COLORS = ColorPalette.default()
+COLORS = sv.ColorPalette.default()
 
 ZONE_IN_POLYGONS = [
     np.array([[592, 282], [900, 282], [900, 82], [592, 82]]),
@@ -61,7 +58,7 @@ class DetectionsManager:
 def initiate_polygon_zones(
     polygons: List[np.ndarray],
     frame_resolution_wh: Tuple[int, int],
-    triggering_position: Position = Position.CENTER,
+    triggering_position: sv.Position = sv.Position.CENTER,
 ) -> List[sv.PolygonZone]:
     return [
         sv.PolygonZone(
@@ -92,13 +89,13 @@ class VideoProcessor:
 
         self.video_info = sv.VideoInfo.from_video_path(source_video_path)
         self.zones_in = initiate_polygon_zones(
-            ZONE_IN_POLYGONS, self.video_info.resolution_wh, Position.CENTER)
+            ZONE_IN_POLYGONS, self.video_info.resolution_wh, sv.Position.CENTER)
         self.zones_out = initiate_polygon_zones(
-            ZONE_OUT_POLYGONS, self.video_info.resolution_wh, Position.CENTER)
+            ZONE_OUT_POLYGONS, self.video_info.resolution_wh, sv.Position.CENTER)
 
         self.box_annotator = sv.BoxAnnotator(color=COLORS)
-        self.trace_annotator = TraceAnnotator(
-            color=COLORS, position=Position.CENTER, trace_length=100, thickness=2)
+        self.trace_annotator = sv.TraceAnnotator(
+            color=COLORS, position=sv.Position.CENTER, trace_length=100, thickness=2)
         self.detections_manager = DetectionsManager()
 
     def process_video(self):
@@ -121,9 +118,9 @@ class VideoProcessor:
     def annotate_frame(self, frame: np.ndarray, detections: sv.Detections) -> np.ndarray:
         annotated_frame = frame.copy()
         for i, (zone_in, zone_out) in enumerate(zip(self.zones_in, self.zones_out)):
-            annotated_frame = draw_polygon(
+            annotated_frame = sv.draw_polygon(
                 annotated_frame, zone_in.polygon, COLORS.colors[i])
-            annotated_frame = draw_polygon(
+            annotated_frame = sv.draw_polygon(
                 annotated_frame, zone_out.polygon, COLORS.colors[i])
 
         labels = [f"#{tracker_id}" for tracker_id in detections.tracker_id]
@@ -133,13 +130,13 @@ class VideoProcessor:
             annotated_frame, detections, labels)
 
         for zone_out_id, zone_out in enumerate(self.zones_out):
-            zone_center = get_polygon_center(polygon=zone_out.polygon)
+            zone_center = sv.get_polygon_center(polygon=zone_out.polygon)
             if zone_out_id in self.detections_manager.counts:
                 counts = self.detections_manager.counts[zone_out_id]
                 for i, zone_in_id in enumerate(counts):
                     count = len(self.detections_manager.counts[zone_out_id][zone_in_id])
                     text_anchor = sv.Point(x=zone_center.x, y=zone_center.y + 40 * i)
-                    annotated_frame = draw_text(
+                    annotated_frame = sv.draw_text(
                         scene=annotated_frame,
                         text=str(count),
                         text_anchor=text_anchor,
