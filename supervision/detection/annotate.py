@@ -248,14 +248,12 @@ class TraceAnnotator:
     def __init__(
             self,
             color: Union[Color, ColorPalette] = ColorPalette.default(),
-            color_by_track: bool = False,
             position: Optional[Position] = Position.CENTER,
             trace_length: int = 30,
             thickness: int = 2,
 
     ):
         self.color: Union[Color, ColorPalette] = color
-        self.color_by_track = color_by_track
         self.position = position
         self.trace = Trace(max_size=trace_length)
         self.thickness = thickness
