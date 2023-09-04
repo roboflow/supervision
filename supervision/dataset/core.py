@@ -60,7 +60,7 @@ class DetectionDataset(BaseDataset):
     """
 
     classes: List[str]
-    images: Dict[str, np.ndarray]
+    images: LazyLoadDict
     annotations: Dict[str, Detections]
 
     def __len__(self) -> int:
@@ -546,8 +546,7 @@ class ClassificationDataset(BaseDataset):
             image name to annotations.
     """
 
-    classes: List[str]
-    # images: Dict[str, np.ndarray]
+    classes: List[str]    
     images: LazyLoadDict
     annotations: Dict[str, Classifications]
 
