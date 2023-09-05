@@ -178,6 +178,7 @@ class Detections:
             ```
         """
         yolov5_detections_predictions = yolov5_results.pred[0].cpu().cpu().numpy()
+
         return cls(
             xyxy=yolov5_detections_predictions[:, :4],
             confidence=yolov5_detections_predictions[:, 4],
@@ -216,6 +217,7 @@ class Detections:
             >>> detections = sv.Detections.from_yolov8(result)
             ```
         """
+
         return cls(
             xyxy=yolov8_results.boxes.xyxy.cpu().numpy(),
             confidence=yolov8_results.boxes.conf.cpu().numpy(),
@@ -255,6 +257,7 @@ class Detections:
             >>> detections = sv.Detections.from_ultralytics(result)
             ```
         """
+
         return cls(
             xyxy=ultralytics_results.boxes.xyxy.cpu().numpy(),
             confidence=ultralytics_results.boxes.conf.cpu().numpy(),
@@ -293,6 +296,9 @@ class Detections:
             >>> detections = sv.Detections.from_yolo_nas(result)
             ```
         """
+        if np.asarray(yolo_nas_results.bboxes_xyxy).shape[0] == 0:
+            return cls.empty()
+
         return cls(
             xyxy=yolo_nas_results.prediction.bboxes_xyxy,
             confidence=yolo_nas_results.prediction.confidence,
@@ -320,7 +326,7 @@ class Detections:
 
             >>> yolo_pipeline = Pipeline.create(
             ...     task="yolo",
-            ...     model_stub = "zoo:cv/detection/yolov5-l/pytorch/" \
+            ...     model_path = "zoo:cv/detection/yolov5-l/pytorch/" \
             ...                  "ultralytics/coco/pruned80_quant-none"
             >>> pipeline_outputs = yolo_pipeline(SOURCE_IMAGE_PATH,
             ...                         iou_thres=0.6, conf_thres=0.001)
@@ -329,14 +335,12 @@ class Detections:
         """
         if np.asarray(deepsparse_results.boxes[0]).shape[0] == 0:
             return cls.empty()
-        else:
-            return cls(
-                xyxy=np.array(deepsparse_results.boxes[0]),
-                confidence=np.array(deepsparse_results.scores[0]),
-                class_id=np.array(deepsparse_results.labels[0])
-                .astype(float)
-                .astype(int),
-            )
+
+        return cls(
+            xyxy=np.array(deepsparse_results.boxes[0]),
+            confidence=np.array(deepsparse_results.scores[0]),
+            class_id=np.array(deepsparse_results.labels[0]).astype(float).astype(int),
+        )
 
     @classmethod
     def from_mmdetection(cls, mmdet_results) -> Detections:
@@ -364,6 +368,7 @@ class Detections:
             >>> detections = sv.Detections.from_mmdet(mmdet_result)
             ```
         """
+
         return cls(
             xyxy=mmdet_results.pred_instances.bboxes.cpu().numpy(),
             confidence=mmdet_results.pred_instances.scores.cpu().numpy(),
@@ -379,6 +384,7 @@ class Detections:
         Returns:
             Detections: A new Detections object.
         """
+
         return cls(
             xyxy=transformers_results["boxes"].cpu().numpy(),
             confidence=transformers_results["scores"].cpu().numpy(),
@@ -415,6 +421,7 @@ class Detections:
             >>> detections = sv.Detections.from_detectron2(result)
             ```
         """
+
         return cls(
             xyxy=detectron2_results["instances"].pred_boxes.tensor.cpu().numpy(),
             confidence=detectron2_results["instances"].scores.cpu().numpy(),
@@ -465,7 +472,11 @@ class Detections:
         xyxy, confidence, class_id, masks = process_roboflow_result(
             roboflow_result=roboflow_result, class_list=class_list
         )
-        return Detections(
+
+        if np.asarray(xyxy).shape[0] == 0:
+            return cls.empty()
+
+        return cls(
             xyxy=xyxy,
             confidence=confidence,
             class_id=class_id,
@@ -508,7 +519,11 @@ class Detections:
         xywh = np.array([mask["bbox"] for mask in sorted_generated_masks])
         mask = np.array([mask["segmentation"] for mask in sorted_generated_masks])
 
-        return Detections(xyxy=xywh_to_xyxy(boxes_xywh=xywh), mask=mask)
+        if np.asarray(xywh).shape[0] == 0:
+            return cls.empty()
+
+        xyxy = xywh_to_xyxy(boxes_xywh=xywh)
+        return cls(xyxy=xyxy, mask=mask)
 
     @classmethod
     def from_paddledet(cls, paddledet_result) -> Detections:
@@ -542,6 +557,10 @@ class Detections:
             >>> detections = sv.Detections.from_paddledet(paddledet_result)
             ```
         """
+
+        if np.asarray(paddledet_result["bbox"][:, 2:6]).shape[0] == 0:
+            return cls.empty()
+
         return cls(
             xyxy=paddledet_result["bbox"][:, 2:6],
             confidence=paddledet_result["bbox"][:, 1],
