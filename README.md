@@ -279,6 +279,8 @@ Did you build something cool using supervision? [Let us know!](https://github.co
 
 https://user-images.githubusercontent.com/26109316/207858600-ee862b22-0353-440b-ad85-caa0c4777904.mp4
 
+https://github.com/roboflow/supervision/assets/26109316/c9436828-9fbf-4c25-ae8c-60e9c81b3900
+
 ## 🎬 tutorials
 
 <p align="left">
