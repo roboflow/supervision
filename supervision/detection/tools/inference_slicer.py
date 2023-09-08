@@ -1,3 +1,4 @@
+import concurrent.futures
 from typing import Callable, Optional, Tuple
 
 import numpy as np
@@ -5,8 +6,6 @@ import numpy as np
 from supervision.detection.core import Detections, validate_inference_callback
 from supervision.detection.utils import move_boxes
 from supervision.utils.image import crop_image
-
-import concurrent.futures
 
 
 def move_detections(detections: Detections, offset: np.array) -> Detections:
