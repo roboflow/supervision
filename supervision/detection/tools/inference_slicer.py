@@ -1,4 +1,4 @@
-import concurrent.futures
+from concurrent.futures import ThreadPoolExecutor,as_completed
 from typing import Callable, Optional, Tuple
 
 import numpy as np
@@ -98,11 +98,11 @@ class InferenceSlicer:
             overlap_ratio_wh=self.overlap_ratio_wh,
         )
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+        with ThreadPoolExecutor(max_workers=8) as executor:
             futures = [
                 executor.submit(self._run_callback, image, offset) for offset in offsets
             ]
-            for future in concurrent.futures.as_completed(futures):
+            for future in as_completed(futures):
                 detections_list.append(future.result())
 
         return Detections.merge(detections_list=detections_list).with_nms(
