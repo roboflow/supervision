@@ -117,7 +117,8 @@ class InferenceSlicer:
 
         Args:
             image (np.ndarray): The input image on which inference needs to run
-            offset (np.ndarray): An array of shape `(4,)` containing coordinates for the slice.
+            offset (np.ndarray): An array of shape `(4,)` containing coordinates
+                for the slice.
 
         Returns:
             Detections: A collection of detections for the slice.
