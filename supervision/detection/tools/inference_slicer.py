@@ -51,11 +51,13 @@ class InferenceSlicer:
         slice_wh: Tuple[int, int] = (320, 320),
         overlap_ratio_wh: Tuple[float, float] = (0.2, 0.2),
         iou_threshold: Optional[float] = 0.5,
+        thread_workers: int = 1,
     ):
         self.slice_wh = slice_wh
         self.overlap_ratio_wh = overlap_ratio_wh
         self.iou_threshold = iou_threshold
         self.callback = callback
+        self.thread_workers = thread_workers
         validate_inference_callback(callback=callback)
 
     def __call__(self, image: np.ndarray) -> Detections:
@@ -98,7 +100,7 @@ class InferenceSlicer:
             overlap_ratio_wh=self.overlap_ratio_wh,
         )
 
-        with ThreadPoolExecutor(max_workers=8) as executor:
+        with ThreadPoolExecutor(max_workers=self.thread_workers) as executor:
             futures = [
                 executor.submit(self._run_callback, image, offset) for offset in offsets
             ]
