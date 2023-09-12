@@ -831,6 +831,52 @@ class Detections:
 
         return self[filtered_indices]
 
+    def filter_by_box_dimensions(
+        self,
+        min_width: int = 0,
+        max_width: int = np.inf,
+        min_height: int = 0,
+        max_height: int = np.inf,
+    ) -> Detections:
+        """
+        Filter the Detections based on their bounding box dimensions.
+
+        Args:
+            min_width (int):
+                The minimum width of the subset of the Detections
+            max_width (int):
+                The maximum width of the subset of the Detections
+            min_height (int):
+                The minimum height of the subset of the Detections
+            max_height (int):
+                The maximum height of the subset of the Detections
+
+        Returns:
+            (Detections): A subset of the Detections object.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> detections = sv.Detections(...)
+
+            >>> big_detections = detections.filter_by_box_size(min_width=1000)
+
+            >>> small_detections = detections.filter_by_box_size(max_width=500)
+
+            >>> medium_detections = detections.filter_by_box_size(min_width=500,
+                                                                  max_width=1000)
+            ```
+        """
+        w = self.xyxy[:, 2] - self.xyxy[:, 0]
+        h = self.xyxy[:, 3] - self.xyxy[:, 1]
+
+        filtered_indices = (
+            (w >= min_width) & (w <= max_width) & (h >= min_height) & (h <= max_height)
+        )
+
+        return self[filtered_indices]
+
     def __getitem__(
         self, index: Union[int, slice, List[int], np.ndarray]
     ) -> Detections:
