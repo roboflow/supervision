@@ -787,6 +787,8 @@ class Detections:
         Filter the Detections based on their size relative to the image size.
 
         Args:
+            image_area (int):
+                The total area of the image (in pixels) used as reference
             min_relative_area (float):
                 The minimum relative area of the subset of the Detections
             max_relative_area (float):
