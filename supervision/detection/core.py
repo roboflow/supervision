@@ -699,6 +699,48 @@ class Detections:
 
         return self[filtered_indices]
 
+    def filter_by_confidence(
+        self,
+        min_conf: float = 0,
+        max_conf: float = 1,
+    ) -> Detections:
+        """
+        Filter the Detections based on their confidence.
+
+        Args:
+            min_conf (float):
+                The minimum confidence of the subset of the Detections
+            max_conf (float):
+                The maximum confidence of the subset of the Detections
+
+        Returns:
+            (Detections): A subset of the Detections object.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> detections = sv.Detections(...)
+
+            >>> high_confidence_detections = detections.filter_by_confidence(
+                    min_conf=0.8
+                )
+
+            >>> low_confidence_detections = detections.filter_by_confidence(
+                    max_conf=0.5
+                )
+
+            >>> medium_confidence_detections = detections.filter_by_confidence(
+                    min_conf=0.4,
+                    max_conf=0.8
+                )
+            ```
+        """
+
+        filtered_indices = (self.confidence >= min_conf) & (self.confidence <= max_conf)
+
+        return self[filtered_indices]
+
     def __getitem__(
         self, index: Union[int, slice, List[int], np.ndarray]
     ) -> Detections:
