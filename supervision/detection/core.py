@@ -741,6 +741,42 @@ class Detections:
 
         return self[filtered_indices]
 
+    def filter_by_area(
+        self,
+        min_area: int = 0,
+        max_area: int = np.inf,
+    ) -> Detections:
+        """
+        Filter the Detections based on their size.
+
+        Args:
+            min_area (int):
+                The minimum area of the subset of the Detections
+            max_area (int):
+                The maximum area of the subset of the Detections
+
+        Returns:
+            (Detections): A subset of the Detections object.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> detections = sv.Detections(...)
+
+            >>> big_detections = detections.filter_by_area(min_area=1000)
+
+            >>> small_detections = detections.filter_by_area(max_area=500)
+
+            >>> medium_detections = detections.filter_by_area(min_area=500,
+                                                              max_area=1000)
+            ```
+        """
+
+        filtered_indices = (self.area >= min_area) & (self.area <= max_area)
+
+        return self[filtered_indices]
+
     def __getitem__(
         self, index: Union[int, slice, List[int], np.ndarray]
     ) -> Detections:
