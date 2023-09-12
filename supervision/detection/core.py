@@ -690,7 +690,7 @@ class Detections:
 
             >>> class_0_detections = detections.filter_by_class(0)
 
-            >>> class_0_to_10_detections = detections.filter_by_class(list(range(10)))
+            >>> class_0_to_9_detections = detections.filter_by_class(list(range(10)))
 
             >>> class_0_and_1_detections = detections.filter_by_class([0, 1])
         """
