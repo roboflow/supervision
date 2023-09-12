@@ -668,6 +668,37 @@ class Detections:
 
         raise ValueError(f"{anchor} is not supported.")
 
+    def filter_by_class(
+        self,
+        cls: Union[int, List[int], np.ndarray],
+    ) -> Detections:
+        """
+        Filter the Detections object by class.
+
+        Args:
+            cls (Union[int, List[int], np.ndarray]):
+                The class or classes of the subset of the Detections
+
+        Returns:
+            (Detections): A subset of the Detections object.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> detections = sv.Detections(...)
+
+            >>> class_0_detections = detections.filter_by_class(0)
+
+            >>> class_0_to_10_detections = detections.filter_by_class(list(range(10)))
+
+            >>> class_0_and_1_detections = detections.filter_by_class([0, 1])
+        """
+        cls = np.asarray(cls)
+        filtered_indices = np.isin(self.class_id, cls)
+
+        return self[filtered_indices]
+
     def __getitem__(
         self, index: Union[int, slice, List[int], np.ndarray]
     ) -> Detections:
