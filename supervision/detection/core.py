@@ -777,6 +777,60 @@ class Detections:
 
         return self[filtered_indices]
 
+    def filter_by_relative_area(
+        self,
+        image_area: int,
+        min_relative_area: float = 0,
+        max_relative_area: float = 1,
+    ) -> Detections:
+        """
+        Filter the Detections based on their size relative to the image size.
+
+        Args:
+            min_relative_area (float):
+                The minimum relative area of the subset of the Detections
+            max_relative_area (float):
+                The maximum relative area of the subset of the Detections
+
+        Returns:
+            (Detections): A subset of the Detections object.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> detections = sv.Detections(...)
+
+            >>> image = ...
+
+            >>> height, width = image.shape[:2]
+
+            >>> image_area = height * width
+
+            >>> big_detections = detections.filter_by_relative_area(
+                    image_area=image_area,
+                    min_relative_area=0.8
+                )
+
+            >>> small_detections = detections.filter_by_relative_area(
+                    image_area=image_area,
+                    max_relative_area=0.3
+                )
+
+            >>> medium_detections = detections.filter_by_relative_area(
+                    image_area=image_area,
+                    min_relative_area=0.3,
+                    max_relative_area=0.7
+                )
+        """
+
+        relative_area = self.area / image_area
+        filtered_indices = (relative_area >= min_relative_area) & (
+            relative_area <= max_relative_area
+        )
+
+        return self[filtered_indices]
+
     def __getitem__(
         self, index: Union[int, slice, List[int], np.ndarray]
     ) -> Detections:
