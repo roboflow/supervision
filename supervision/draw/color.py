@@ -12,6 +12,7 @@ DEFAULT_COLOR_PALETTE = list(colors.CSS4_COLORS.values())
 
 # Create a function to calculate the contrast ratio between two colors
 def calculate_contrast_ratio(color1, color2):
+
     rgb1 = colors.hex2color(color1)
     rgb2 = colors.hex2color(color2)
 
@@ -27,12 +28,9 @@ def calculate_contrast_ratio(color1, color2):
 
 
 # Filter the colors that meet the contrast ratio threshold
-high_contrast_colors = [
-    color
-    for color in DEFAULT_COLOR_PALETTE
-    if calculate_contrast_ratio(color, "#000000") >= min_contrast_ratio
-]
-
+high_contrast_colors = [ color
+                        for color in DEFAULT_COLOR_PALETTE
+                        if calculate_contrast_ratio(color, "#000000") >= min_contrast_ratio]
 
 def _validate_color_hex(color_hex: str):
     color_hex = color_hex.lstrip("#")
