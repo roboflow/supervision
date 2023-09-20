@@ -375,3 +375,17 @@ def process_roboflow_result(
     masks = np.array(masks, dtype=bool) if len(masks) > 0 else None
 
     return xyxy, confidence, class_id, masks
+
+
+def move_boxes(xyxy: np.ndarray, offset: np.ndarray) -> np.ndarray:
+    """
+    Args:
+        xyxy (np.ndarray): An array of shape `(n, 4)` containing the bounding boxes
+            coordinates in format `[x1, y1, x2, y2]`
+        offset (np.array): An array of shape `(2,)` containing offset values in format
+            is `[dx, dy]`.
+
+    Returns:
+        (np.ndarray) repositioned bounding boxes
+    """
+    return xyxy + np.hstack([offset, offset])
