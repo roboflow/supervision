@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import List, Tuple
-import numpy as np
 import matplotlib.colors as colors
 
 min_contrast_ratio = 12.0
