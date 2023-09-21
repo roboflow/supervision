@@ -33,7 +33,8 @@ class ComposableAnnotator(ABC):
 
 class DetectionAnnotator(ComposableAnnotator):
     """
-    Highlevel API for drawing Object Detection output. This will use Box and Label Annotators
+    Highlevel API for drawing Object Detection output.
+        This will use Box and Label Annotators
     Example:
         ```python
         >>> import supervision as sv
@@ -63,7 +64,8 @@ class DetectionAnnotator(ComposableAnnotator):
 
 class SegmentationAnnotator(ComposableAnnotator):
     """
-    High level API for drawing segmentation mask, bounding box and labels on an image using provided detections.
+    High level API for drawing segmentation mask, bounding box and labels on an
+        image using provided detections.
     Example:
         ```python
         >>> import supervision as sv

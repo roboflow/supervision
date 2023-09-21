@@ -28,7 +28,8 @@ def resolve_color_idx(
 ) -> int:
     if detection_idx >= len(detections):
         raise ValueError(
-            f"Detection index {detection_idx} is out of bounds for detections of length {len(detections)}"
+            f"Detection index {detection_idx}"
+            f"is out of bounds for detections of length {len(detections)}"
         )
 
     if color_map == ColorMap.INDEX:
@@ -36,13 +37,15 @@ def resolve_color_idx(
     elif color_map == ColorMap.CLASS:
         if detections.class_id is None:
             raise ValueError(
-                "Could not resolve color by class because Detections do not have class_id"
+                "Could not resolve color by class because"
+                "Detections do not have class_id"
             )
         return detections.class_id[detection_idx]
     elif color_map == ColorMap.TRACK:
         if detections.tracker_id is None:
             raise ValueError(
-                "Could not resolve color by track because Detections do not have tracker_id"
+                "Could not resolve color by track because"
+                "Detections do not have tracker_id"
             )
         return detections.tracker_id[detection_idx]
 
@@ -73,7 +76,8 @@ class BoxLineAnnotator(BaseAnnotator):
     ):
         """
         Parameters:
-            color (Union[Color, ColorPalette]): The color to use for annotating detections.
+            color (Union[Color, ColorPalette]): The color to use for
+                annotating detections.
             thickness (int): The thickness of the bounding box lines.
             color_map (ColorMap): The color mapping to use for annotating detections.
         """
@@ -87,7 +91,8 @@ class BoxLineAnnotator(BaseAnnotator):
 
         Args:
             scene (np.ndarray): The image on which the bounding boxes will be drawn
-            detections (Detections): The detections for which the bounding boxes will be drawn
+            detections (Detections): The detections for which
+                the bounding boxes will be drawn
         Returns:
             np.ndarray: The image with the bounding boxes drawn on it.
 
@@ -128,7 +133,8 @@ class MaskAnnotator(BaseAnnotator):
     A class for overlaying masks on an image using detections provided.
 
     Attributes:
-        color (Union[Color, ColorPalette]): The color to fill the mask, can be a single color or a color palette
+        color (Union[Color, ColorPalette]): The color to fill the mask,
+            can be a single color or a color palette
         opacity (float): The opacity of the masks, between 0 and 1.
     """
 
@@ -146,7 +152,8 @@ class MaskAnnotator(BaseAnnotator):
         self, scene: np.ndarray, detections: Detections, **kwargs
     ) -> np.ndarray:
         """
-        Overlays the masks on the given image based on the provided detections, with a specified opacity.
+        Overlays the masks on the given image based on the provided detections,
+            with a specified opacity.
 
         Args:
             scene (np.ndarray): The image on which the masks will be overlaid
@@ -223,7 +230,8 @@ class LabelAnnotator(BaseAnnotator):
     A class for putting text on an image using provided detections.
 
     Attributes:
-        color (Union[Color, ColorPalette]): The color to text on the image, can be a single color or a color palette
+        color (Union[Color, ColorPalette]): The color to text on the image,
+            can be a single color or a color palette
     """
 
     def __init__(
@@ -243,7 +251,8 @@ class LabelAnnotator(BaseAnnotator):
         Args:
             color_by_track: pick color by tracker id
             classes: Optional list of class name
-            label_formatter: Optional callback function for label generator, avoided if classes is provided
+            label_formatter: Optional callback function for label generator,
+                avoided if classes is provided
         """
         self.color: Union[Color, ColorPalette] = color
         self.text_color: Color = text_color
@@ -264,7 +273,8 @@ class LabelAnnotator(BaseAnnotator):
 
         Args:
             scene (np.ndarray): The image on which the bounding boxes will be drawn
-            detections (Detections): The detections for which the bounding boxes will be drawn
+            detections (Detections): The detections for which
+                the bounding boxes will be drawn
         Returns:
             np.ndarray: The image with the bounding boxes drawn on it
 
@@ -377,7 +387,8 @@ class BoxMaskAnnotator(BaseAnnotator):
         detections: Detections,
     ) -> np.ndarray:
         """
-        Overlays the rectangle masks on the given image based on the provided detections, with a specified opacity.
+        Overlays the rectangle masks on the given image based on the
+            provided detections, with a specified opacity.
 
         Args:
             scene (np.ndarray): The image on which the masks will be overlaid
@@ -468,8 +479,11 @@ class LabelAdvancedAnnotator(BaseAnnotator):
 
         Args:
             scene (np.ndarray): The image on which the bounding boxes will be drawn
-            detections (Detections): The detections for which the bounding boxes will be drawn
-            labels (Optional[List[str]]): An optional list of labels corresponding to each detection. If `labels` are not provided, corresponding `class_id` will be used as label.
+            detections (Detections): The detections for which
+                the bounding boxes will be drawn
+            labels (Optional[List[str]]): An optional list of labels corresponding
+                to each detection. If `labels` are not provided,
+                corresponding `class_id` will be used as label.
         Returns:
             np.ndarray: The image with the bounding boxes drawn on it
 
@@ -574,7 +588,8 @@ class BoxCornerAnnotator(BaseAnnotator):
         Draws cornered bounding boxes on the frame using the detections provided.
         Args:
             scene (np.ndarray): The image on which the bounding boxes will be drawn
-            detections (Detections): The detections for which the bounding boxes will be drawn
+            detections (Detections): The detections for which
+                the bounding boxes will be drawn
         Returns:
             np.ndarray: The image with the bounding boxes drawn on it
         Example:
@@ -700,10 +715,12 @@ class EllipseAnnotator(BaseAnnotator):
         detections: Detections,
     ):
         """
-        Draws ellipse at bottom of the objects on the frame using the detections provided.
+        Draws ellipse at bottom of the objects on the frame using the detections
+            provided.
         Args:
             scene (np.ndarray): The image on which the bounding boxes will be drawn
-            detections (Detections): The detections for which the bounding boxes will be drawn
+            detections (Detections): The detections for which
+                the bounding boxes will be drawn
         Returns:
             np.ndarray: The image with the bounding boxes drawn on it
         Example:
@@ -764,9 +781,11 @@ class TraceAnnotator(BaseAnnotator):
     A class for drawing trajectory of a tracker on an image using detections provided.
 
     Attributes:
-        color (Union[Color, ColorPalette]): The color to draw the trajectory, can be a single color or a color palette
+        color (Union[Color, ColorPalette]): The color to draw the trajectory,
+            can be a single color or a color palette
         color_by_track (bool): Whther to use tracker id to pick the color
-        position (Optional[Position]): Choose position of trajectory such as center position, top left corner, etc
+        position (Optional[Position]): Choose position of trajectory such as
+            center position, top left corner, etc
         trace_length (int): Length of the previous points
         thickness (int): thickness of the line
     """
