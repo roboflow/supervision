@@ -285,13 +285,7 @@ class LabelAnnotator(BaseAnnotator):
             >>> classes = ['person', ...]
             >>> image = ...
             >>> detections = sv.Detections(...)
-
-            >>> label_annotator = sv.LabelAnnotator()
-            >>> labels = [
-            ...     f"{classes[class_id]} {confidence:0.2f}"
-            ...     for _, _, confidence, class_id, _
-            ...     in detections
-            ... ]
+            >>> label_annotator = sv.LabelAnnotator(classes=classes)
             >>> annotated_frame = label_annotator.annotate(
             ...     scene=image.copy(),
             ...     detections=detections,
