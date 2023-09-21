@@ -30,11 +30,13 @@ def process_video(
             detections = tracker.update_with_detections(detections)
 
             annotated_frame = box_annotator.annotate(
-                scene=frame.copy(), detections=detections)
-            
+                scene=frame.copy(), detections=detections
+            )
+
             annotated_labeled_frame = label_annotator.annotate(
-                scene=annotated_frame, detections=detections)
-            
+                scene=annotated_frame, detections=detections
+            )
+
             sink.write_frame(frame=annotated_labeled_frame)
 
 
