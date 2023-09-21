@@ -64,7 +64,7 @@ def build_class_index_mapping(
         if class_name not in target_classes:
             raise ValueError(
                 f"Class {class_name} not found in target classes. "
-                f"source_classes must be a subset of target_classes."
+                "source_classes must be a subset of target_classes."
             )
         corresponding_index = target_classes.index(class_name)
         index_mapping[i] = corresponding_index
@@ -83,9 +83,11 @@ def map_detections_class_id(
         )
 
     detections_copy = copy.deepcopy(detections)
-    detections_copy.class_id = np.vectorize(source_to_target_mapping.get)(
-        detections_copy.class_id
-    )
+
+    if len(detections) > 0:
+        detections_copy.class_id = np.vectorize(source_to_target_mapping.get)(
+            detections_copy.class_id
+        )
 
     return detections_copy
 
@@ -95,7 +97,8 @@ def save_dataset_images(
 ) -> None:
     Path(images_directory_path).mkdir(parents=True, exist_ok=True)
 
-    for image_name, image in images.items():
+    for image_path, image in images.items():
+        image_name = Path(image_path).name
         target_image_path = os.path.join(images_directory_path, image_name)
         cv2.imwrite(target_image_path, image)
 

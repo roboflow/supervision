@@ -31,7 +31,6 @@ from supervision.dataset.utils import (
     train_test_split,
 )
 from supervision.detection.core import Detections
-from supervision.utils.file import list_files_with_extensions
 
 
 @dataclass
@@ -55,7 +54,8 @@ class DetectionDataset(BaseDataset):
     Attributes:
         classes (List[str]): List containing dataset class names.
         images (Dict[str, np.ndarray]): Dictionary mapping image name to image.
-        annotations (Dict[str, Detections]): Dictionary mapping image name to annotations.
+        annotations (Dict[str, Detections]): Dictionary mapping
+            image name to annotations.
     """
 
     classes: List[str]
@@ -76,8 +76,9 @@ class DetectionDataset(BaseDataset):
         Iterate over the images and annotations in the dataset.
 
         Yields:
-            Iterator[Tuple[str, np.ndarray, Detections]]: An iterator that yields tuples containing the image name,
-                                                          the image data, and its corresponding annotation.
+            Iterator[Tuple[str, np.ndarray, Detections]]:
+                An iterator that yields tuples containing the image name,
+                the image data, and its corresponding annotation.
         """
         for image_name, image in self.images.items():
             yield image_name, image, self.annotations.get(image_name, None)
@@ -101,22 +102,27 @@ class DetectionDataset(BaseDataset):
         self, split_ratio=0.8, random_state=None, shuffle: bool = True
     ) -> Tuple[DetectionDataset, DetectionDataset]:
         """
-        Splits the dataset into two parts (training and testing) using the provided split_ratio.
+        Splits the dataset into two parts (training and testing)
+            using the provided split_ratio.
 
         Args:
-            split_ratio (float, optional): The ratio of the training set to the entire dataset.
-            random_state (int, optional): The seed for the random number generator. This is used for reproducibility.
+            split_ratio (float, optional): The ratio of the training
+                set to the entire dataset.
+            random_state (int, optional): The seed for the random number generator.
+                This is used for reproducibility.
             shuffle (bool, optional): Whether to shuffle the data before splitting.
 
         Returns:
-            Tuple[DetectionDataset, DetectionDataset]: A tuple containing the training and testing datasets.
+            Tuple[DetectionDataset, DetectionDataset]: A tuple containing
+                the training and testing datasets.
 
         Example:
             ```python
             >>> import supervision as sv
 
             >>> ds = sv.DetectionDataset(...)
-            >>> train_ds, test_ds = ds.split(split_ratio=0.7, random_state=42, shuffle=True)
+            >>> train_ds, test_ds = ds.split(split_ratio=0.7,
+            ...                              random_state=42, shuffle=True)
             >>> len(train_ds), len(test_ds)
             (700, 300)
             ```
@@ -151,37 +157,45 @@ class DetectionDataset(BaseDataset):
         approximation_percentage: float = 0.0,
     ) -> None:
         """
-        Exports the dataset to PASCAL VOC format. This method saves the images and their corresponding annotations in
-        PASCAL VOC format.
+        Exports the dataset to PASCAL VOC format. This method saves the images
+        and their corresponding annotations in PASCAL VOC format.
 
         Args:
-            images_directory_path (Optional[str]): The path to the directory where the images should be saved.
+            images_directory_path (Optional[str]): The path to the directory
+                where the images should be saved.
                 If not provided, images will not be saved.
-            annotations_directory_path (Optional[str]): The path to the directory where the annotations in
-                PASCAL VOC format should be saved. If not provided, annotations will not be saved.
-            min_image_area_percentage (float): The minimum percentage of detection area relative to
-                the image area for a detection to be included. Argument is used only for segmentation datasets.
-            max_image_area_percentage (float): The maximum percentage of detection area relative to
-                the image area for a detection to be included. Argument is used only for segmentation datasets.
-            approximation_percentage (float): The percentage of polygon points to be removed from the input polygon,
+            annotations_directory_path (Optional[str]): The path to
+            the directory where the annotations in
+                PASCAL VOC format should be saved. If not provided,
+                annotations will not be saved.
+            min_image_area_percentage (float): The minimum percentage of
+                detection area relative to
+                the image area for a detection to be included.
+                Argument is used only for segmentation datasets.
+            max_image_area_percentage (float): The maximum percentage
+                of detection area relative to
+                the image area for a detection to be included.
+                Argument is used only for segmentation datasets.
+            approximation_percentage (float): The percentage of
+                polygon points to be removed from the input polygon,
             in the range [0, 1). Argument is used only for segmentation datasets.
         """
         if images_directory_path:
-            images_path = Path(images_directory_path)
-            images_path.mkdir(parents=True, exist_ok=True)
-
+            save_dataset_images(
+                images_directory_path=images_directory_path, images=self.images
+            )
         if annotations_directory_path:
-            annotations_path = Path(annotations_directory_path)
-            annotations_path.mkdir(parents=True, exist_ok=True)
+            Path(annotations_directory_path).mkdir(parents=True, exist_ok=True)
 
-        for image_name, image in self.images.items():
-            detections = self.annotations[image_name]
-
-            if images_directory_path:
-                cv2.imwrite(str(images_path / image_name), image)
+        for image_path, image in self.images.items():
+            detections = self.annotations[image_path]
 
             if annotations_directory_path:
-                annotation_name = Path(image_name).stem
+                annotation_name = Path(image_path).stem
+                annotations_path = os.path.join(
+                    annotations_directory_path, f"{annotation_name}.xml"
+                )
+                image_name = Path(image_path).name
                 pascal_voc_xml = detections_to_pascal_voc(
                     detections=detections,
                     classes=self.classes,
@@ -192,22 +206,29 @@ class DetectionDataset(BaseDataset):
                     approximation_percentage=approximation_percentage,
                 )
 
-                with open(annotations_path / f"{annotation_name}.xml", "w") as f:
+                with open(annotations_path, "w") as f:
                     f.write(pascal_voc_xml)
 
     @classmethod
     def from_pascal_voc(
-        cls, images_directory_path: str, annotations_directory_path: str
+        cls,
+        images_directory_path: str,
+        annotations_directory_path: str,
+        force_masks: bool = False,
     ) -> DetectionDataset:
         """
         Creates a Dataset instance from PASCAL VOC formatted data.
 
         Args:
-            images_directory_path (str): The path to the directory containing the images.
-            annotations_directory_path (str): The path to the directory containing the PASCAL VOC XML annotations.
+            images_directory_path (str): Path to the directory containing the images.
+            annotations_directory_path (str): Path to the directory
+                containing the PASCAL VOC XML annotations.
+            force_masks (bool, optional): If True, forces masks to
+                be loaded for all annotations, regardless of whether they are present.
 
         Returns:
-            DetectionDataset: A DetectionDataset instance containing the loaded images and annotations.
+            DetectionDataset: A DetectionDataset instance containing
+                the loaded images and annotations.
 
         Example:
             ```python
@@ -222,7 +243,7 @@ class DetectionDataset(BaseDataset):
             >>> project = rf.workspace(WORKSPACE_ID).project(PROJECT_ID)
             >>> dataset = project.version(PROJECT_VERSION).download("voc")
 
-            >>> ds = sv.DetectionDataset.from_yolo(
+            >>> ds = sv.DetectionDataset.from_pascal_voc(
             ...     images_directory_path=f"{dataset.location}/train/images",
             ...     annotations_directory_path=f"{dataset.location}/train/labels"
             ... )
@@ -231,34 +252,13 @@ class DetectionDataset(BaseDataset):
             ['dog', 'person']
             ```
         """
-        image_paths = list_files_with_extensions(
-            directory=images_directory_path, extensions=["jpg", "jpeg", "png"]
+
+        classes, images, annotations = load_pascal_voc_annotations(
+            images_directory_path=images_directory_path,
+            annotations_directory_path=annotations_directory_path,
+            force_masks=force_masks,
         )
-        annotation_paths = list_files_with_extensions(
-            directory=annotations_directory_path, extensions=["xml"]
-        )
 
-        raw_annotations: List[Tuple[str, Detections, List[str]]] = [
-            load_pascal_voc_annotations(annotation_path=str(annotation_path))
-            for annotation_path in annotation_paths
-        ]
-
-        classes = []
-        for annotation in raw_annotations:
-            classes.extend(annotation[2])
-        classes = list(set(classes))
-
-        for annotation in raw_annotations:
-            class_id = [classes.index(class_name) for class_name in annotation[2]]
-            annotation[1].class_id = np.array(class_id)
-
-        images = {
-            image_path.name: cv2.imread(str(image_path)) for image_path in image_paths
-        }
-
-        annotations = {
-            image_name: detections for image_name, detections, _ in raw_annotations
-        }
         return DetectionDataset(classes=classes, images=images, annotations=annotations)
 
     @classmethod
@@ -273,13 +273,19 @@ class DetectionDataset(BaseDataset):
         Creates a Dataset instance from YOLO formatted data.
 
         Args:
-            images_directory_path (str): The path to the directory containing the images.
-            annotations_directory_path (str): The path to the directory containing the YOLO annotation files.
-            data_yaml_path (str): The path to the data YAML file containing class information.
-            force_masks (bool, optional): If True, forces masks to be loaded for all annotations, regardless of whether they are present.
+            images_directory_path (str): The path to the
+                directory containing the images.
+            annotations_directory_path (str): The path to the directory
+                containing the YOLO annotation files.
+            data_yaml_path (str): The path to the data
+                YAML file containing class information.
+            force_masks (bool, optional): If True, forces
+                masks to be loaded for all annotations,
+                regardless of whether they are present.
 
         Returns:
-            DetectionDataset: A DetectionDataset instance containing the loaded images and annotations.
+            DetectionDataset: A DetectionDataset instance
+                containing the loaded images and annotations.
 
         Example:
             ```python
@@ -322,23 +328,32 @@ class DetectionDataset(BaseDataset):
         approximation_percentage: float = 0.0,
     ) -> None:
         """
-        Exports the dataset to YOLO format. This method saves the images and their corresponding
-        annotations in YOLO format.
+        Exports the dataset to YOLO format. This method saves the
+        images and their corresponding annotations in YOLO format.
 
         Args:
-            images_directory_path (Optional[str]): The path to the directory where the images should be saved.
+            images_directory_path (Optional[str]): The path to the
+                directory where the images should be saved.
                 If not provided, images will not be saved.
-            annotations_directory_path (Optional[str]): The path to the directory where the annotations in
-                YOLO format should be saved. If not provided, annotations will not be saved.
-            data_yaml_path (Optional[str]): The path where the data.yaml file should be saved.
+            annotations_directory_path (Optional[str]): The path to the
+                directory where the annotations in
+                YOLO format should be saved. If not provided,
+                annotations will not be saved.
+            data_yaml_path (Optional[str]): The path where the data.yaml
+                file should be saved.
                 If not provided, the file will not be saved.
-            min_image_area_percentage (float): The minimum percentage of detection area relative to
-                the image area for a detection to be included. Argument is used only for segmentation datasets.
-            max_image_area_percentage (float): The maximum percentage of detection area relative to
-                the image area for a detection to be included. Argument is used only for segmentation datasets.
-            approximation_percentage (float): The percentage of polygon points to be removed from the input polygon,
-                in the range [0, 1). This is useful for simplifying the annotations. Argument is used only for
-                segmentation datasets.
+            min_image_area_percentage (float): The minimum percentage of
+                detection area relative to
+                the image area for a detection to be included.
+                Argument is used only for segmentation datasets.
+            max_image_area_percentage (float): The maximum percentage
+                of detection area relative to
+                the image area for a detection to be included.
+                Argument is used only for segmentation datasets.
+            approximation_percentage (float): The percentage of polygon points to
+                be removed from the input polygon, in the range [0, 1).
+                This is useful for simplifying the annotations.
+                Argument is used only for segmentation datasets.
         """
         if images_directory_path is not None:
             save_dataset_images(
@@ -367,12 +382,16 @@ class DetectionDataset(BaseDataset):
         Creates a Dataset instance from COCO formatted data.
 
         Args:
-            images_directory_path (str): The path to the directory containing the images.
+            images_directory_path (str): The path to the
+                directory containing the images.
             annotations_path (str): The path to the json annotation files.
-            force_masks (bool, optional): If True, forces masks to be loaded for all annotations, regardless of whether they are present.
+            force_masks (bool, optional): If True,
+                forces masks to be loaded for all annotations,
+                regardless of whether they are present.
 
         Returns:
-            DetectionDataset: A DetectionDataset instance containing the loaded images and annotations.
+            DetectionDataset: A DetectionDataset instance containing
+                the loaded images and annotations.
 
         Example:
             ```python
@@ -412,20 +431,26 @@ class DetectionDataset(BaseDataset):
         approximation_percentage: float = 0.0,
     ) -> None:
         """
-        Exports the dataset to COCO format. This method saves the images and their corresponding
-        annotations in COCO format.
+        Exports the dataset to COCO format. This method saves the
+        images and their corresponding annotations in COCO format.
 
         Args:
-            images_directory_path (Optional[str]): The path to the directory where the images should be saved.
+            images_directory_path (Optional[str]): The path to the directory
+                where the images should be saved.
                 If not provided, images will not be saved.
             annotations_path (Optional[str]): The path to COCO annotation file.
-            min_image_area_percentage (float): The minimum percentage of detection area relative to
-                the image area for a detection to be included. Argument is used only for segmentation datasets.
-            max_image_area_percentage (float): The maximum percentage of detection area relative to
-                the image area for a detection to be included. Argument is used only for segmentation datasets.
-            approximation_percentage (float): The percentage of polygon points to be removed from the input polygon,
-                in the range [0, 1). This is useful for simplifying the annotations. Argument is used only for
-                segmentation datasets.
+            min_image_area_percentage (float): The minimum percentage of
+                detection area relative to
+                the image area for a detection to be included.
+                Argument is used only for segmentation datasets.
+            max_image_area_percentage (float): The maximum percentage of
+                detection area relative to
+                the image area for a detection to be included.
+                Argument is used only for segmentation datasets.
+            approximation_percentage (float): The percentage of polygon points
+                to be removed from the input polygon,
+                in the range [0, 1). This is useful for simplifying the annotations.
+                Argument is used only for segmentation datasets.
         """
         if images_directory_path is not None:
             save_dataset_images(
@@ -445,16 +470,20 @@ class DetectionDataset(BaseDataset):
     @classmethod
     def merge(cls, dataset_list: List[DetectionDataset]) -> DetectionDataset:
         """
-        Merge a list of `DetectionDataset` objects into a single `DetectionDataset` object.
+        Merge a list of `DetectionDataset` objects into a single
+            `DetectionDataset` object.
 
-        This method takes a list of `DetectionDataset` objects and combines their respective fields (`classes`, `images`,
+        This method takes a list of `DetectionDataset` objects and combines
+        their respective fields (`classes`, `images`,
         `annotations`) into a single `DetectionDataset` object.
 
         Args:
-            dataset_list (List[DetectionDataset]): A list of `DetectionDataset` objects to merge.
+            dataset_list (List[DetectionDataset]): A list of `DetectionDataset`
+                objects to merge.
 
         Returns:
-            (DetectionDataset): A single `DetectionDataset` object containing the merged data from the input list.
+            (DetectionDataset): A single `DetectionDataset` object containing
+            the merged data from the input list.
 
         Example:
             ```python
@@ -512,7 +541,8 @@ class ClassificationDataset(BaseDataset):
     Attributes:
         classes (List[str]): List containing dataset class names.
         images (Dict[str, np.ndarray]): Dictionary mapping image name to image.
-        annotations (Dict[str, Detections]): Dictionary mapping image name to annotations.
+        annotations (Dict[str, Detections]): Dictionary mapping
+            image name to annotations.
     """
 
     classes: List[str]
@@ -526,22 +556,28 @@ class ClassificationDataset(BaseDataset):
         self, split_ratio=0.8, random_state=None, shuffle: bool = True
     ) -> Tuple[ClassificationDataset, ClassificationDataset]:
         """
-        Splits the dataset into two parts (training and testing) using the provided split_ratio.
+        Splits the dataset into two parts (training and testing)
+            using the provided split_ratio.
 
         Args:
-            split_ratio (float, optional): The ratio of the training set to the entire dataset.
-            random_state (int, optional): The seed for the random number generator. This is used for reproducibility.
+            split_ratio (float, optional): The ratio of the training
+                set to the entire dataset.
+            random_state (int, optional): The seed for the
+                random number generator.
+            This is used for reproducibility.
             shuffle (bool, optional): Whether to shuffle the data before splitting.
 
         Returns:
-            Tuple[ClassificationDataset, ClassificationDataset]: A tuple containing the training and testing datasets.
+            Tuple[ClassificationDataset, ClassificationDataset]: A tuple containing
+            the training and testing datasets.
 
         Example:
             ```python
             >>> import supervision as sv
 
             >>> cd = sv.ClassificationDataset(...)
-            >>> train_cd, test_cd = cd.split(split_ratio=0.7, random_state=42, shuffle=True)
+            >>> train_cd,test_cd = cd.split(split_ratio=0.7,
+            ...                             random_state=42,shuffle=True)
             >>> len(train_cd), len(test_cd)
             (700, 300)
             ```
@@ -571,16 +607,18 @@ class ClassificationDataset(BaseDataset):
         Saves the dataset as a multi-class folder structure.
 
         Args:
-            root_directory_path (str): The path to the directory where the dataset will be saved.
+            root_directory_path (str): The path to the directory
+                where the dataset will be saved.
         """
         os.makedirs(root_directory_path, exist_ok=True)
 
         for class_name in self.classes:
             os.makedirs(os.path.join(root_directory_path, class_name), exist_ok=True)
 
-        for image_name in self.images:
-            classification = self.annotations[image_name]
-            image = self.images[image_name]
+        for image_path in self.images:
+            classification = self.annotations[image_path]
+            image = self.images[image_path]
+            image_name = Path(image_path).name
             class_id = (
                 classification.class_id[0]
                 if classification.confidence is None
@@ -629,9 +667,9 @@ class ClassificationDataset(BaseDataset):
             class_id = classes.index(class_name)
 
             for image in os.listdir(os.path.join(root_directory_path, class_name)):
-                image_dir = os.path.join(root_directory_path, class_name, image)
-                images[image] = cv2.imread(image_dir)
-                annotations[image] = Classifications(
+                image_path = str(os.path.join(root_directory_path, class_name, image))
+                images[image_path] = cv2.imread(image_path)
+                annotations[image_path] = Classifications(
                     class_id=np.array([class_id]),
                 )
 
