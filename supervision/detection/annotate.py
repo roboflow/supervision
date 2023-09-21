@@ -135,17 +135,17 @@ class BoxAnnotator(BaseAnnotator):
 
 class CircleAnnotator(BaseAnnotator):
     """
-    A class for drawing bounding boxes on an image using detections provided.
+    A class for drawing circles on an image using detections provided.
 
     Attributes:
-        color (Union[Color, ColorPalette]): The color to draw the bounding box,
+        color (Union[Color, ColorPalette]): The color to draw the circle annatator,
             can be a single color or a color palette
-        thickness (int): The thickness of the bounding box lines, default is 2
-        text_color (Color): The color of the text on the bounding box, default is white
-        text_scale (float): The scale of the text on the bounding box, default is 0.5
-        text_thickness (int): The thickness of the text on the bounding box,
+        thickness (int): The thickness of the circle lines, default is 2
+        text_color (Color): The color of the text on the circle, default is white
+        text_scale (float): The scale of the text on the circle, default is 0.5
+        text_thickness (int): The thickness of the text on the circle,
             default is 1
-        text_padding (int): The padding around the text on the bounding box,
+        text_padding (int): The padding around the text on the circle,
             default is 5
 
     """
@@ -158,18 +158,18 @@ class CircleAnnotator(BaseAnnotator):
         skip_label: bool = False,
     ) -> np.ndarray:
         """
-        Draws bounding boxes on the frame using the detections provided.
+        Draws circles on the frame using the detections provided.
 
         Args:
-            scene (np.ndarray): The image on which the bounding boxes will be drawn
+            scene (np.ndarray): The image on which the circle will be drawn
             detections (Detections): The detections for which the
-                bounding boxes will be drawn
+                circle will be drawn
             labels (Optional[List[str]]): An optional list of labels
                 corresponding to each detection. If `labels` are not provided,
                 corresponding `class_id` will be used as label.
-            skip_label (bool): Is set to `True`, skips bounding box label annotation.
+            skip_label (bool): Is set to `True`, skips circle label annotation.
         Returns:
-            np.ndarray: The image with the bounding boxes drawn on it
+            np.ndarray: The image with the circle drawn on it
 
         Example:
             ```python
@@ -179,13 +179,13 @@ class CircleAnnotator(BaseAnnotator):
             >>> image = ...
             >>> detections = sv.Detections(...)
 
-            >>> box_annotator = sv.BoxAnnotator()
+            >>> circle_annotator = sv.CircleAnnotator()
             >>> labels = [
             ...     f"{classes[class_id]} {confidence:0.2f}"
             ...     for _, _, confidence, class_id, _
             ...     in detections
             ... ]
-            >>> annotated_frame = box_annotator.annotate(
+            >>> annotated_frame = circle_annotator.annotate(
             ...     scene=image.copy(),
             ...     detections=detections,
             ...     labels=labels
