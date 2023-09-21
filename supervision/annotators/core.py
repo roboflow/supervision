@@ -1,8 +1,8 @@
 import os.path
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from enum import Enum
 from typing import Callable, List, Optional, Union
-from collections import defaultdict
 
 import cv2
 import numpy as np
@@ -10,7 +10,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 from supervision.detection.core import Detections
 from supervision.draw.color import Color, ColorPalette
-from supervision.geometry.core import Position, Point
+from supervision.geometry.core import Position
 
 
 class ColorMap(Enum):
@@ -24,22 +24,26 @@ class ColorMap(Enum):
 
 
 def resolve_color_idx(
-    detections: Detections,
-    detection_idx: int,
-    color_map: ColorMap = ColorMap.CLASS
+    detections: Detections, detection_idx: int, color_map: ColorMap = ColorMap.CLASS
 ) -> int:
     if detection_idx >= len(detections):
-        raise ValueError(f"Detection index {detection_idx} is out of bounds for detections of length {len(detections)}")
+        raise ValueError(
+            f"Detection index {detection_idx} is out of bounds for detections of length {len(detections)}"
+        )
 
     if color_map == ColorMap.INDEX:
         return detection_idx
     elif color_map == ColorMap.CLASS:
         if detections.class_id is None:
-            raise ValueError("Could not resolve color by class because Detections do not have class_id")
+            raise ValueError(
+                "Could not resolve color by class because Detections do not have class_id"
+            )
         return detections.class_id[detection_idx]
     elif color_map == ColorMap.TRACK:
         if detections.tracker_id is None:
-            raise ValueError("Could not resolve color by track because Detections do not have tracker_id")
+            raise ValueError(
+                "Could not resolve color by track because Detections do not have tracker_id"
+            )
         return detections.tracker_id[detection_idx]
 
 
@@ -60,11 +64,12 @@ class BoxLineAnnotator(BaseAnnotator):
     """
     Basic line bounding box annotator.
     """
+
     def __init__(
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
         thickness: int = 2,
-        color_map: str = "class"
+        color_map: str = "class",
     ):
         """
         Parameters:
@@ -102,7 +107,11 @@ class BoxLineAnnotator(BaseAnnotator):
         """
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
-            idx = resolve_color_idx(detections=detections, detection_idx=detection_idx, color_map=self.color_map)
+            idx = resolve_color_idx(
+                detections=detections,
+                detection_idx=detection_idx,
+                color_map=self.color_map,
+            )
             color = resolve_color(color=self.color, idx=idx)
             cv2.rectangle(
                 img=scene,
@@ -770,7 +779,6 @@ class TraceAnnotator(BaseAnnotator):
         position: Optional[Position] = Position.CENTER,
         trace_length: int = 30,
         thickness: int = 2,
-
     ):
         self.color: Union[Color, ColorPalette] = color
         self.color_by_track = color_by_track
@@ -830,6 +838,12 @@ class TraceAnnotator(BaseAnnotator):
                 if isinstance(self.color, ColorPalette)
                 else self.color
             )
-            cv2.polylines(scene, [points], isClosed=False, color=color.as_bgr(), thickness=self.thickness)
+            cv2.polylines(
+                scene,
+                [points],
+                isClosed=False,
+                color=color.as_bgr(),
+                thickness=self.thickness,
+            )
 
         return scene
