@@ -16,7 +16,8 @@ def process_video(
     model = YOLO(source_weights_path)
 
     tracker = sv.ByteTrack()
-    box_annotator = sv.BoxAnnotator()
+    box_annotator = sv.BoxLineAnnotator()
+    label_annotator = sv.LabelAnnotator(classes=model.names)
     frame_generator = sv.get_video_frames_generator(source_path=source_video_path)
     video_info = sv.VideoInfo.from_video_path(video_path=source_video_path)
 
@@ -28,16 +29,13 @@ def process_video(
             detections = sv.Detections.from_ultralytics(results)
             detections = tracker.update_with_detections(detections)
 
-            labels = [
-                f"#{tracker_id} {model.model.names[class_id]}"
-                for _, _, _, class_id, tracker_id in detections
-            ]
-
             annotated_frame = box_annotator.annotate(
-                scene=frame.copy(), detections=detections, labels=labels
-            )
-
-            sink.write_frame(frame=annotated_frame)
+                scene=frame.copy(), detections=detections)
+            
+            annotated_labeled_frame = label_annotator.annotate(
+                scene=annotated_frame, detections=detections)
+            
+            sink.write_frame(frame=annotated_labeled_frame)
 
 
 if __name__ == "__main__":

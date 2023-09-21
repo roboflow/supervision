@@ -229,7 +229,6 @@ class LabelAnnotator(BaseAnnotator):
     def __init__(
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
-        thickness: int = 2,
         text_color: Color = Color.black(),
         text_scale: float = 0.5,
         text_thickness: int = 1,
