@@ -26,7 +26,7 @@ def calculate_contrast_ratio(color1, color2):
     return contrast_ratio
 
 
-# Filter the colors that meet the contrast ratio threshold
+# Only get color for higher than minimum thershold.
 high_contrast_colors = [
     color
     for color in DEFAULT_COLOR_PALETTE
