@@ -33,6 +33,7 @@ high_contrast_colors = [
     if calculate_contrast_ratio(color, "#000000") >= min_contrast_ratio
 ]
 
+
 def _validate_color_hex(color_hex: str):
     color_hex = color_hex.lstrip("#")
     if not all(c in "0123456789abcdefABCDEF" for c in color_hex):
