@@ -38,11 +38,14 @@ nav:
         - Tools:
             - Polygon Zone: detection/tools/polygon_zone.md
 <<<<<<< HEAD
+<<<<<<< HEAD
     - Trackers:
         - Core: tracker/core.md
 =======
             - Slicer: detection/tools/slicer.md
 >>>>>>> 0ed4046 (recommit everything)
+=======
+>>>>>>> 1e1ce3c (reverting mkdocs change)
     - Dataset:
         - Core: dataset/core.md
     - Metrics:
