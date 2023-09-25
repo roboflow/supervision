@@ -40,9 +40,13 @@ nav:
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
             - Inference Slicer: detection/tools/inference_slicer.md
 >>>>>>> bddd32d (refactor(inference_slicer): Update class and method docstrings)
+=======
+            - Inference Slicer: detection/tools/inference_slicer.md
+>>>>>>> refs/remotes/origin/draw_section
     - Trackers:
         - Core: tracker/core.md
 =======

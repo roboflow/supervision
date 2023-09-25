@@ -1,3 +1,7 @@
 supervision
 tqdm
+<<<<<<< HEAD
 ultralytics
+=======
+ultralytics
+>>>>>>> refs/remotes/origin/draw_section
