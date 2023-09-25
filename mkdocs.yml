@@ -37,8 +37,12 @@ nav:
         - Utils: detection/utils.md
         - Tools:
             - Polygon Zone: detection/tools/polygon_zone.md
+<<<<<<< HEAD
     - Trackers:
         - Core: tracker/core.md
+=======
+            - Slicer: detection/tools/slicer.md
+>>>>>>> 0ed4046 (recommit everything)
     - Dataset:
         - Core: dataset/core.md
     - Metrics:

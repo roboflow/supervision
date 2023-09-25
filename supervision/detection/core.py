@@ -29,6 +29,13 @@ def _validate_mask(mask: Any, n: int) -> None:
         raise ValueError("mask must be 3d np.ndarray with (n, H, W) shape")
 
 
+def validate_inference_callback(callback) -> None:
+    tmp_img = np.zeros((256, 256, 3), dtype=np.uint8)
+    res = callback(tmp_img)
+    if not isinstance(res, Detections):
+        raise ValueError("Callback function must return sv.Detection type")
+
+
 def _validate_class_id(class_id: Any, n: int) -> None:
     is_valid = class_id is None or (
         isinstance(class_id, np.ndarray) and class_id.shape == (n,)
