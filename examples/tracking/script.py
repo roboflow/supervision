@@ -1,15 +1,17 @@
 import argparse
 
 <<<<<<< HEAD
+from tqdm import tqdm
+from ultralytics import YOLO
+
 import supervision as sv
 
-from ultralytics import YOLO
-from tqdm import tqdm
 =======
 from tqdm import tqdm
 from ultralytics import YOLO
 
 import supervision as sv
+
 >>>>>>> refs/remotes/origin/draw_section
 
 
