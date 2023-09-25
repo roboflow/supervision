@@ -39,6 +39,10 @@ nav:
             - Polygon Zone: detection/tools/polygon_zone.md
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+            - Inference Slicer: detection/tools/inference_slicer.md
+>>>>>>> bddd32d (refactor(inference_slicer): Update class and method docstrings)
     - Trackers:
         - Core: tracker/core.md
 =======
