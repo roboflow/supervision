@@ -5,8 +5,33 @@ from typing import List, Tuple
 
 import matplotlib.colors as colors
 
+min_contrast_ratio = 12.0
+# Get the list of all CSS4 colors
 DEFAULT_COLOR_PALETTE = list(colors.CSS4_COLORS.values())
 
+
+# Create a function to calculate the contrast ratio between two colors
+def calculate_contrast_ratio(color1, color2):
+    rgb1 = colors.hex2color(color1)
+    rgb2 = colors.hex2color(color2)
+
+    luminance1 = 0.2126 * rgb1[0] + 0.7152 * rgb1[1] + 0.0722 * rgb1[2]
+    luminance2 = 0.2126 * rgb2[0] + 0.7152 * rgb2[1] + 0.0722 * rgb2[2]
+
+    brighter = max(luminance1, luminance2)
+    darker = min(luminance1, luminance2)
+
+    contrast_ratio = (brighter + 0.05) / (darker + 0.05)
+
+    return contrast_ratio
+
+
+# Only get color for higher than minimum thershold.
+high_contrast_colors = [
+    color
+    for color in DEFAULT_COLOR_PALETTE
+    if calculate_contrast_ratio(color, "#000000") >= min_contrast_ratio
+]
 
 def _validate_color_hex(color_hex: str):
     color_hex = color_hex.lstrip("#")
@@ -84,7 +109,7 @@ class ColorPalette:
 
     @classmethod
     def default(cls) -> ColorPalette:
-        return ColorPalette.from_hex(color_hex_list=DEFAULT_COLOR_PALETTE)
+        return ColorPalette.from_hex(color_hex_list=high_contrast_colors)
 
     @classmethod
     def from_hex(cls, color_hex_list: List[str]):
