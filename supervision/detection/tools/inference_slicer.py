@@ -23,8 +23,8 @@ def move_detections(detections: Detections, offset: np.array) -> Detections:
 class InferenceSlicer:
     """
     InferenceSlicer performs slicing-based inference for small target detection. This
-    method, often referred to as 
-    [Slicing Adaptive Inference (SAHI)](https://ieeexplore.ieee.org/document/9897990), 
+    method, often referred to as
+    [Slicing Adaptive Inference (SAHI)](https://ieeexplore.ieee.org/document/9897990),
     involves dividing a larger image into smaller slices, performing inference on each
     slice, and then merging the detections.
 
