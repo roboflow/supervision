@@ -65,6 +65,7 @@ class VideoSink:
         target_path (str): The path to the output file where the video will be saved.
         video_info (VideoInfo): Information about the video resolution, fps,
             and total frame count.
+        codec (str): FOURCC code for video format
 
     Example:
         ```python
@@ -73,20 +74,26 @@ class VideoSink:
         >>> video_info = sv.VideoInfo.from_video_path(video_path='source_video.mp4')
 
         >>> with sv.VideoSink(target_path='target_video.mp4',
-        ...                   video_info=video_info) as sink:
+        ...                   video_info=video_info,
+                              codec='H264') as sink:
         ...     for frame in get_video_frames_generator(source_path='source_video.mp4',
         ...                                             stride=2):
         ...         sink.write_frame(frame=frame)
         ```
     """
 
-    def __init__(self, target_path: str, video_info: VideoInfo):
+    def __init__(self, target_path: str, video_info: VideoInfo, codec: str = "mp4v"):
         self.target_path = target_path
         self.video_info = video_info
-        self.__fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+        self.__codec = codec
         self.__writer = None
 
     def __enter__(self):
+        try:
+            self.__fourcc = cv2.VideoWriter_fourcc(*self.__codec)
+        except TypeError as e:
+            print(str(e) + ". Defaulting to mp4v...")
+            self.__fourcc = cv2.VideoWriter_fourcc(*"mp4v")
         self.__writer = cv2.VideoWriter(
             self.target_path,
             self.__fourcc,
