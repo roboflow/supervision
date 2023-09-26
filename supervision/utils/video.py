@@ -80,13 +80,18 @@ class VideoSink:
         ```
     """
 
-    def __init__(self, target_path: str, video_info: VideoInfo):
+    def __init__(self, target_path: str, video_info: VideoInfo, /, codec: str = 'mp4v'):
         self.target_path = target_path
         self.video_info = video_info
-        self.__fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+        self.__codec = codec 
         self.__writer = None
 
     def __enter__(self):
+        try:
+            self.__fourcc = cv2.VideoWriter_fourcc(*self.__codec)
+        except:
+            print(f"{self.__codec} does not exist. Defaulting to mp4v...")
+            self.__fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         self.__writer = cv2.VideoWriter(
             self.target_path,
             self.__fourcc,
