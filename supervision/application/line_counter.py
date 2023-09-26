@@ -20,7 +20,7 @@ class LineZone:
         Attributes:
             start (Point): The starting point of the line.
             end (Point): The ending point of the line.
-            anchor (Position): The position of the anchor point of detectios for counting
+            anchor (Position): The position of the anchor point of detections for counting
         """
         self.vector = Vector(start=start, end=end)
         self.tracker_state: Dict[str, bool] = {}
