@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple
 
 import cv2
 import numpy as np
@@ -112,16 +112,23 @@ def load_yolo_annotations(
     force_masks: bool = False,
 ) -> Tuple[List[str], Dict[str, np.ndarray], Dict[str, Detections]]:
     """
-    Loads YOLO annotations and returns class names, images, and their corresponding detections.
+    Loads YOLO annotations and returns class names, images,
+        and their corresponding detections.
 
     Args:
         images_directory_path (str): The path to the directory containing the images.
-        annotations_directory_path (str): The path to the directory containing the YOLO annotation files.
-        data_yaml_path (str): The path to the data YAML file containing class information.
-        force_masks (bool, optional): If True, forces masks to be loaded for all annotations, regardless of whether they are present.
+        annotations_directory_path (str): The path to the directory
+            containing the YOLO annotation files.
+        data_yaml_path (str): The path to the data
+            YAML file containing class information.
+        force_masks (bool, optional): If True, forces masks to be loaded
+            for all annotations, regardless of whether they are present.
 
     Returns:
-        Tuple[List[str], Dict[str, np.ndarray], Dict[str, Detections]]: A tuple containing a list of class names, a dictionary with image names as keys and images as values, and a dictionary with image names as keys and corresponding Detections instances as values.
+        Tuple[List[str], Dict[str, np.ndarray], Dict[str, Detections]]:
+            A tuple containing a list of class names, a dictionary with
+            image names as keys and images as values, and a dictionary
+            with image names as keys and corresponding Detections instances as values.
     """
     image_paths = list_files_with_extensions(
         directory=images_directory_path, extensions=["jpg", "jpeg", "png"]
@@ -132,13 +139,14 @@ def load_yolo_annotations(
     annotations = {}
 
     for image_path in image_paths:
-        image_name = Path(image_path).stem
-        image = cv2.imread(str(image_path))
+        image_stem = Path(image_path).stem
+        image_path = str(image_path)
+        image = cv2.imread(image_path)
 
-        annotation_path = os.path.join(annotations_directory_path, f"{image_name}.txt")
+        annotation_path = os.path.join(annotations_directory_path, f"{image_stem}.txt")
         if not os.path.exists(annotation_path):
-            images[image_path.name] = image
-            annotations[image_path.name] = Detections.empty()
+            images[image_path] = image
+            annotations[image_path] = Detections.empty()
             continue
 
         lines = read_txt_file(str(annotation_path))
@@ -151,8 +159,8 @@ def load_yolo_annotations(
             lines=lines, resolution_wh=resolution_wh, with_masks=with_masks
         )
 
-        images[image_path.name] = image
-        annotations[image_path.name] = annotation
+        images[image_path] = image
+        annotations[image_path] = annotation
     return classes, images, annotations
 
 
@@ -220,8 +228,9 @@ def save_yolo_annotations(
     approximation_percentage: float = 0.75,
 ) -> None:
     Path(annotations_directory_path).mkdir(parents=True, exist_ok=True)
-    for image_name, image in images.items():
-        detections = annotations[image_name]
+    for image_path, image in images.items():
+        detections = annotations[image_path]
+        image_name = Path(image_path).name
         yolo_annotations_name = _image_name_to_annotation_name(image_name=image_name)
         yolo_annotations_path = os.path.join(
             annotations_directory_path, yolo_annotations_name

@@ -159,7 +159,7 @@ def load_coco_annotations(
         image_annotations = coco_annotations_groups.get(coco_image["id"], [])
         image_path = os.path.join(images_directory_path, image_name)
 
-        image = cv2.imread(str(image_path))
+        image = cv2.imread(image_path)
         annotation = coco_annotations_to_detections(
             image_annotations=image_annotations,
             resolution_wh=(image_width, image_height),
@@ -170,8 +170,8 @@ def load_coco_annotations(
             detections=annotation,
         )
 
-        images[image_name] = image
-        annotations[image_name] = annotation
+        images[image_path] = image
+        annotations[image_path] = annotation
 
     return classes, images, annotations
 
@@ -200,9 +200,9 @@ def save_coco_annotations(
     coco_categories = classes_to_coco_categories(classes=classes)
 
     image_id, annotation_id = 1, 1
-    for image_name, image in images.items():
+    for image_path, image in images.items():
         image_height, image_width, _ = image.shape
-
+        image_name = f"{Path(image_path).stem}{Path(image_path).suffix}"
         coco_image = {
             "id": image_id,
             "license": 1,
@@ -213,9 +213,9 @@ def save_coco_annotations(
         }
 
         coco_images.append(coco_image)
-        detections = annotations[image_name]
+        detections = annotations[image_path]
 
-        coco_annotation, label_id = detections_to_coco_annotations(
+        coco_annotation, annotation_id = detections_to_coco_annotations(
             detections=detections,
             image_id=image_id,
             annotation_id=annotation_id,

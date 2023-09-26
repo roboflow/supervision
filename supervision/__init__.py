@@ -15,8 +15,14 @@ from supervision.dataset.core import (
     ClassificationDataset,
     DetectionDataset,
 )
-from supervision.detection.annotate import AnchorAnnotator, BoxAnnotator, MaskAnnotator
+from supervision.detection.annotate import (
+    AnchorAnnotator,
+    BoxAnnotator,
+    MaskAnnotator,
+    TraceAnnotator,
+)
 from supervision.detection.core import Detections
+from supervision.detection.tools.inference_slicer import InferenceSlicer
 from supervision.detection.utils import (
     box_iou_batch,
     filter_polygons_by_area,
@@ -30,9 +36,10 @@ from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import draw_filled_rectangle, draw_polygon, draw_text
 from supervision.geometry.core import Point, Position, Rect
 from supervision.geometry.utils import get_polygon_center
-from supervision.metrics.detection import ConfusionMatrix
+from supervision.metrics.detection import ConfusionMatrix, MeanAveragePrecision
+from supervision.tracker.byte_tracker.core import ByteTrack
 from supervision.utils.file import list_files_with_extensions
-from supervision.utils.image import ImageSink, crop
+from supervision.utils.image import ImageSink, crop_image
 from supervision.utils.notebook import plot_image, plot_images_grid
 from supervision.utils.video import (
     VideoInfo,

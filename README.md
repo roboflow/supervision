@@ -10,11 +10,15 @@
 
   <br>
 
-[![version](https://badge.fury.io/py/supervision.svg)](https://badge.fury.io/py/supervision)
-[![downloads](https://img.shields.io/pypi/dm/supervision)](https://pypistats.org/packages/supervision)
-[![license](https://img.shields.io/pypi/l/supervision)](https://github.com/roboflow/supervision/blob/main/LICENSE.md)
-[![python-version](https://img.shields.io/pypi/pyversions/supervision)](https://badge.fury.io/py/supervision)
-[![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/roboflow/supervision/blob/main/demo.ipynb)
+  [notebooks](https://github.com/roboflow/notebooks) | [inference](https://github.com/roboflow/inference) | [autodistill](https://github.com/autodistill/autodistill) | [collect](https://github.com/roboflow/roboflow-collect)
+
+  <br>
+
+  [![version](https://badge.fury.io/py/supervision.svg)](https://badge.fury.io/py/supervision)
+  [![downloads](https://img.shields.io/pypi/dm/supervision)](https://pypistats.org/packages/supervision)
+  [![license](https://img.shields.io/pypi/l/supervision)](https://github.com/roboflow/supervision/blob/main/LICENSE.md)
+  [![python-version](https://img.shields.io/pypi/pyversions/supervision)](https://badge.fury.io/py/supervision)
+  [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/roboflow/supervision/blob/main/demo.ipynb)
 
 </div>
 
@@ -31,7 +35,7 @@ Pip install the supervision package in a
 pip install supervision[desktop]
 ```
 
-Read more about desktop, headless and local installation in our [guide](https://roboflow.github.io/supervision/).
+Read more about desktop, headless, and local installation in our [guide](https://roboflow.github.io/supervision/).
 
 ## 🔥 quickstart
 
@@ -43,7 +47,7 @@ Read more about desktop, headless and local installation in our [guide](https://
 
 >>> model = YOLO('yolov8s.pt')
 >>> result = model(IMAGE)[0]
->>> detections = sv.Detections.from_yolov8(result)
+>>> detections = sv.Detections.from_ultralytics(result)
 
 >>> len(detections)
 5
@@ -51,9 +55,9 @@ Read more about desktop, headless and local installation in our [guide](https://
 
 <details close>
 <summary>👉 more detections utils</summary>
-  
-- Easily switch inference pipeline between supported object detection / instance segmentation models
-  
+
+- Easily switch inference pipeline between supported object detection/instance segmentation models
+
     ```python
     >>> import supervision as sv
     >>> from segment_anything import sam_model_registry, SamAutomaticMaskGenerator
@@ -63,17 +67,17 @@ Read more about desktop, headless and local installation in our [guide](https://
     >>> sam_result = mask_generator.generate(IMAGE)
     >>> detections = sv.Detections.from_sam(sam_result=sam_result)
     ```
- 
+
 - [Advanced filtering](https://roboflow.github.io/supervision/quickstart/detections/)
-  
+
     ```python
     >>> detections = detections[detections.class_id == 0]
     >>> detections = detections[detections.confidence > 0.5]
     >>> detections = detections[detections.area > 1000]
     ```
-  
+
 - Image annotation
-  
+
     ```python
     >>> import supervision as sv
 
@@ -83,7 +87,7 @@ Read more about desktop, headless and local installation in our [guide](https://
     ...     detections=detections
     ... )
     ```
-  
+
 </details>
 
 ### [datasets processing](https://roboflow.github.io/supervision/dataset/core/)
@@ -107,7 +111,7 @@ Read more about desktop, headless and local installation in our [guide](https://
 <details close>
 <summary>👉 more dataset utils</summary>
 
-- Load object detection / instance segmentation datasets in one of supported formats
+- Load object detection/instance segmentation datasets in one of the supported formats
 
     ```python
     >>> dataset = sv.DetectionDataset.from_yolo(
@@ -126,7 +130,7 @@ Read more about desktop, headless and local installation in our [guide](https://
     ...     annotations_path='...'
     ... )
     ```
-  
+
 - Loop over dataset entries
 
     ```python
@@ -137,18 +141,18 @@ Read more about desktop, headless and local installation in our [guide](https://
            [155.      , 497.      , 404.      , 833.5     ],
            [ 20.154999, 347.825   , 416.125   , 915.895   ]], dtype=float32)
     ```
-  
-- Split dataset for training, testing and validation
-  
+
+- Split dataset for training, testing, and validation
+
     ```python
     >>> train_dataset, test_dataset = dataset.split(split_ratio=0.7)
     >>> test_dataset, valid_dataset = test_dataset.split(split_ratio=0.5)
-  
+
     >>> len(train_dataset), len(test_dataset), len(valid_dataset)
     (700, 150, 150)
     ```
-  
-- Merge multiple datasets together
+
+- Merge multiple datasets
 
     ```python
     >>> ds_1 = sv.DetectionDataset(...)
@@ -156,22 +160,22 @@ Read more about desktop, headless and local installation in our [guide](https://
     100
     >>> ds_1.classes
     ['dog', 'person']
-  
+
     >>> ds_2 = sv.DetectionDataset(...)
     >>> len(ds_2)
     200
     >>> ds_2.classes
     ['cat']
-  
+
     >>> ds_merged = sv.DetectionDataset.merge([ds_1, ds_2])
     >>> len(ds_merged)
     300
     >>> ds_merged.classes
     ['cat', 'dog', 'person']
     ```
-  
-- Save object detection / instance segmentation datasets in one of supported formats
-  
+
+- Save object detection/instance segmentation datasets in one of the supported formats
+
     ```python
     >>> dataset.as_yolo(
     ...     images_directory_path='...',
@@ -189,9 +193,9 @@ Read more about desktop, headless and local installation in our [guide](https://
     ...     annotations_path='...'
     ... )
     ```
-  
+
 - Convert labels between supported formats
-  
+
     ```python
     >>> sv.DetectionDataset.from_yolo(
     ...     images_directory_path='...',
@@ -202,8 +206,8 @@ Read more about desktop, headless and local installation in our [guide](https://
     ...     annotations_directory_path='...'
     ... )
     ```
-  
-- Load classification datasets in one of supported formats
+
+- Load classification datasets in one of the supported formats
 
     ```python
     >>> cs = sv.ClassificationDataset.from_folder_structure(
@@ -211,7 +215,7 @@ Read more about desktop, headless and local installation in our [guide](https://
     ... )
     ```
 
-- Save classification datasets in one of supported formats
+- Save classification datasets in one of the supported formats
 
     ```python
     >>> cs.as_folder_structure(
@@ -245,25 +249,57 @@ array([
 ])
 ```
 
+<details close>
+<summary>👉 more metrics</summary>
+
+- Mean average precision (mAP) for object detection tasks.
+
+    ```python
+    >>> import supervision as sv
+
+    >>> dataset = sv.DetectionDataset.from_yolo(...)
+
+    >>> def callback(image: np.ndarray) -> sv.Detections:
+    ...     ...
+
+    >>> mean_average_precision = sv.MeanAveragePrecision.benchmark(
+    ...     dataset = dataset,
+    ...     callback = callback
+    ... )
+
+    >>> mean_average_precision.map50_95
+    0.433
+    ```
+
+</details>
+
 ## 🎬 tutorials
 
 <p align="left">
-<a href="https://youtu.be/oEQYStnF2l8" title="Accelerate Image Annotation with SAM and Grounding DINO"><img src="https://github.com/SkalskiP/SkalskiP/assets/26109316/ae1ca38e-40b7-4b35-8582-e8ea5de3806e" alt="Accelerate Image Annotation with SAM and Grounding DINO" width="300px" align="left" /></a>
-<a href="https://youtu.be/oEQYStnF2l8" title="Accelerate Image Annotation with SAM and Grounding DINO"><strong>Accelerate Image Annotation with SAM and Grounding DINO</strong></a>
-<div><strong>Created: 20 Apr 2023</strong> | <strong>Updated: 20 Apr 2023</strong></div>
-<br/> Discover how to speed up your image annotation process using Grounding DINO and Segment Anything Model (SAM). Learn how to convert object detection datasets into instance segmentation datasets, and see the potential of using these models to automatically annotate your datasets for real-time detectors like YOLOv8... </p> 
+<a href="https://youtu.be/4Q3ut7vqD5o" title="Traffic Analysis with YOLOv8 and ByteTrack - Vehicle Detection and Tracking"><img src="https://github.com/roboflow/supervision/assets/26109316/54afdf1c-218c-4451-8f12-627fb85f1682" alt="Traffic Analysis with YOLOv8 and ByteTrack - Vehicle Detection and Tracking" width="300px" align="left" /></a>
+<a href="https://youtu.be/4Q3ut7vqD5o" title="Traffic Analysis with YOLOv8 and ByteTrack - Vehicle Detection and Tracking"><strong>Traffic Analysis with YOLOv8 and ByteTrack - Vehicle Detection and Tracking</strong></a>
+<div><strong>Created: 6 Sep 2023</strong> | <strong>Updated: 6 Sep 2023</strong></div>
+<br/> In this video, we explore real-time traffic analysis using YOLOv8 and ByteTrack to detect and track vehicles on aerial images. Harnessing the power of Python and Supervision, we delve deep into assigning cars to specific entry zones and understanding their direction of movement. By visualizing their paths, we gain insights into traffic flow across bustling roundabouts... </p>
 
-<br/> 
+<br/>
 
 <p align="left">
-<a href="https://youtu.be/oEQYStnF2l8" title="SAM - Segment Anything Model by Meta AI: Complete Guide"><img src="https://github.com/SkalskiP/SkalskiP/assets/26109316/6913ff11-53c6-4341-8d90-eaff3023c3fd" alt="SAM - Segment Anything Model by Meta AI: Complete Guide" width="300px" align="left" /></a>
-<a href="https://youtu.be/oEQYStnF2l8" title="SAM - Segment Anything Model by Meta AI: Complete Guide"><strong>SAM - Segment Anything Model by Meta AI: Complete Guide</strong></a>
+<a href="https://youtu.be/D-D6ZmadzPE" title="SAM - Segment Anything Model by Meta AI: Complete Guide"><img src="https://github.com/SkalskiP/SkalskiP/assets/26109316/6913ff11-53c6-4341-8d90-eaff3023c3fd" alt="SAM - Segment Anything Model by Meta AI: Complete Guide" width="300px" align="left" /></a>
+<a href="https://youtu.be/D-D6ZmadzPE" title="SAM - Segment Anything Model by Meta AI: Complete Guide"><strong>SAM - Segment Anything Model by Meta AI: Complete Guide</strong></a>
 <div><strong>Created: 11 Apr 2023</strong> | <strong>Updated: 11 Apr 2023</strong></div>
 <br/> Discover the incredible potential of Meta AI's Segment Anything Model (SAM)! We dive into SAM, an efficient and promptable model for image segmentation, which has revolutionized computer vision tasks. With over 1 billion masks on 11M licensed and privacy-respecting images, SAM's zero-shot performance is often competitive with or even superior to prior fully supervised results... </p>
 
+## 💜 built with supervision
+
+Did you build something cool using supervision? [Let us know!](https://github.com/roboflow/supervision/discussions/categories/built-with-supervision)
+
+https://user-images.githubusercontent.com/26109316/207858600-ee862b22-0353-440b-ad85-caa0c4777904.mp4
+
+https://github.com/roboflow/supervision/assets/26109316/c9436828-9fbf-4c25-ae8c-60e9c81b3900
+
 ## 📚 documentation
 
-Visit our [documentation](https://roboflow.github.io/supervision) page to learn how supervision can help you build computer vision applications faster and more reliably. 
+Visit our [documentation](https://roboflow.github.io/supervision) page to learn how supervision can help you build computer vision applications faster and more reliably.
 
 ## 🏆 contribution
 

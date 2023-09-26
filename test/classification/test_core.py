@@ -1,8 +1,8 @@
-from typing import List, Optional, Tuple
 from contextlib import ExitStack as DoesNotRaise
+from typing import Optional, Tuple
 
-import pytest
 import numpy as np
+import pytest
 
 from supervision.classification.core import Classifications
 

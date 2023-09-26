@@ -17,9 +17,11 @@ class PolygonZone:
     A class for defining a polygon-shaped zone within a frame for detecting objects.
 
     Attributes:
-        polygon (np.ndarray): A polygon represented by a numpy array of shape `(N, 2)`, containing the `x`, `y` coordinates of the points.
+        polygon (np.ndarray): A polygon represented by a numpy array of shape
+            `(N, 2)`, containing the `x`, `y` coordinates of the points.
         frame_resolution_wh (Tuple[int, int]): The frame resolution (width, height)
-        triggering_position (Position): The position within the bounding box that triggers the zone (default: Position.BOTTOM_CENTER)
+        triggering_position (Position): The position within the bounding
+            box that triggers the zone (default: Position.BOTTOM_CENTER)
         current_count (int): The current count of detected objects within the zone
         mask (np.ndarray): The 2D bool mask for the polygon zone
     """
@@ -45,10 +47,12 @@ class PolygonZone:
         Determines if the detections are within the polygon zone.
 
         Parameters:
-            detections (Detections): The detections to be checked against the polygon zone
+            detections (Detections): The detections
+                to be checked against the polygon zone
 
         Returns:
-            np.ndarray: A boolean numpy array indicating if each detection is within the polygon zone
+            np.ndarray: A boolean numpy array indicating
+                if each detection is within the polygon zone
         """
 
         clipped_xyxy = clip_boxes(
@@ -59,13 +63,14 @@ class PolygonZone:
             clipped_detections.get_anchor_coordinates(anchor=self.triggering_position)
         ).astype(int)
         is_in_zone = self.mask[clipped_anchors[:, 1], clipped_anchors[:, 0]]
-        self.current_count = np.sum(is_in_zone)
+        self.current_count = int(np.sum(is_in_zone))
         return is_in_zone.astype(bool)
 
 
 class PolygonZoneAnnotator:
     """
-    A class for annotating a polygon-shaped zone within a frame with a count of detected objects.
+    A class for annotating a polygon-shaped zone within a
+        frame with a count of detected objects.
 
     Attributes:
         zone (PolygonZone): The polygon zone to be annotated
@@ -75,7 +80,8 @@ class PolygonZoneAnnotator:
         text_scale (float): The scale of the text on the polygon, default is 0.5
         text_thickness (int): The thickness of the text on the polygon, default is 1
         text_padding (int): The padding around the text on the polygon, default is 10
-        font (int): The font type for the text on the polygon, default is cv2.FONT_HERSHEY_SIMPLEX
+        font (int): The font type for the text on the polygon,
+            default is cv2.FONT_HERSHEY_SIMPLEX
         center (Tuple[int, int]): The center of the polygon for text placement
     """
 
@@ -105,7 +111,8 @@ class PolygonZoneAnnotator:
 
         Parameters:
             scene (np.ndarray): The image on which the polygon zone will be annotated
-            label (Optional[str]): An optional label for the count of detected objects within the polygon zone (default: None)
+            label (Optional[str]): An optional label for the count of detected objects
+                within the polygon zone (default: None)
 
         Returns:
             np.ndarray: The image with the polygon zone and count of detected objects

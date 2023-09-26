@@ -20,7 +20,8 @@ class LineZone:
         Attributes:
             start (Point): The starting point of the line.
             end (Point): The ending point of the line.
-            anchor (Position): The position of the anchor point of detections for counting
+            anchor (Position): The position of the anchor point of detections
+                for counting
         """
         self.vector = Vector(start=start, end=end)
         self.tracker_state: Dict[str, bool] = {}
@@ -98,8 +99,8 @@ class LineZone:
 
     def get_in_out_detections(self) -> Tuple[Detections, Detections]:
         """
-        Returns:
-            (sv.Detections, sv.Detections) : return detections going in and out as sv.Detection objects
+        Returns: (sv.Detections, sv.Detections) : return detections going
+                in and out as sv.Detection objects
         """
         in_track_ids = self.counted_tracker_ids["in"]
         out_track_ids = self.counted_tracker_ids["out"]
@@ -178,7 +179,8 @@ class LineZoneAnnotator:
 
         Attributes:
             frame (np.ndarray): The image on which the line will be drawn.
-            line_counter (LineCounter): The line counter that will be used to draw the line.
+            line_counter (LineCounter): The line counter
+                that will be used to draw the line.
 
         Returns:
             np.ndarray: The image with the line drawn on it.
