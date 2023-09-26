@@ -91,8 +91,8 @@ class VideoSink:
     def __enter__(self):
         try:
             self.__fourcc = cv2.VideoWriter_fourcc(*self.__codec)
-        except:
-            print(f"{self.__codec} does not exist. Defaulting to mp4v...")
+        except TypeError as e:
+            print(str(e)+". Defaulting to mp4v...")
             self.__fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         self.__writer = cv2.VideoWriter(
             self.target_path,
