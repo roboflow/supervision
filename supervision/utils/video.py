@@ -82,10 +82,10 @@ class VideoSink:
         ```
     """
 
-    def __init__(self, target_path: str, video_info: VideoInfo, codec: str = 'mp4v'):
+    def __init__(self, target_path: str, video_info: VideoInfo, codec: str = "mp4v"):
         self.target_path = target_path
         self.video_info = video_info
-        self.__codec = codec 
+        self.__codec = codec
         self.__writer = None
 
     def __enter__(self):
