@@ -9,6 +9,7 @@ class Position(Enum):
     """
     Enum representing the position of an anchor point.
     """
+
     CENTER = "CENTER"
     CENTER_LEFT = "CENTER_LEFT"
     CENTER_RIGHT = "CENTER_RIGHT"
