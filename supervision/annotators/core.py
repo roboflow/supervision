@@ -17,6 +17,7 @@ class BoundingBoxAnnotator(BaseAnnotator):
     """
     A class for drawing bounding boxes on an image using provided detections.
     """
+
     def __init__(
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
@@ -82,6 +83,7 @@ class MaskAnnotator(BaseAnnotator):
     """
     A class for drawing masks on an image using provided detections.
     """
+
     def __init__(
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
