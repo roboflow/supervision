@@ -45,7 +45,7 @@ class BoundingBoxAnnotator(BaseAnnotator):
             detections (Detections): Object detections to annotate.
 
         Returns:
-            The annotated image.
+            np.ndarray: The annotated image.
 
         Example:
             ```python
@@ -111,7 +111,7 @@ class MaskAnnotator(BaseAnnotator):
             detections (Detections): Object detections to annotate.
 
         Returns:
-            The annotated image.
+            np.ndarray: The annotated image.
 
         Example:
             ```python
@@ -137,7 +137,6 @@ class MaskAnnotator(BaseAnnotator):
                 color_map=self.color_map,
             )
             color = resolve_color(color=self.color, idx=idx)
-
             mask = detections.mask[detection_idx]
             colored_mask = np.zeros_like(scene, dtype=np.uint8)
             colored_mask[:] = color.as_bgr()
@@ -146,6 +145,84 @@ class MaskAnnotator(BaseAnnotator):
                 np.expand_dims(mask, axis=-1),
                 np.uint8(self.opacity * colored_mask + (1 - self.opacity) * scene),
                 scene,
+            )
+        return scene
+
+
+class EllipseAnnotator(BaseAnnotator):
+    """
+    A class for drawing ellipses on an image using provided detections.
+    """
+    def __init__(
+        self,
+        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        thickness: int = 2,
+        color_map: str = "class",
+        start_angle: int = -45,
+        end_angle: int = 360,
+    ):
+        """
+        Args:
+            color (Union[Color, ColorPalette]): The color or color palette to use for
+                annotating detections.
+            thickness (int): Thickness of the ellipse lines.
+            color_map (str): Strategy for mapping colors to annotations.
+                Options are `index`, `class`, or `track`.
+            start_angle (int): Starting angle of the ellipse.
+            end_angle (int): Ending angle of the ellipse.
+        """
+        self.color: Union[Color, ColorPalette] = color
+        self.thickness: int = thickness
+        self.color_map: ColorMap = ColorMap(color_map)
+        self.start_angle = start_angle
+        self.end_angle = end_angle
+
+    def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
+        """
+        Annotates the given scene with ellipses based on the provided detections.
+
+        Args:
+            scene (np.ndarray): The image where ellipses will be drawn.
+            detections (Detections): Object detections to annotate.
+
+        Returns:
+            np.ndarray: The annotated image.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> image = ...
+            >>> detections = sv.Detections(...)
+
+            >>> ellipse_annotator = sv.EllipseAnnotator()
+            >>> annotated_frame = ellipse_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
+            ```
+        """
+        for detection_idx in range(len(detections)):
+            x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
+            idx = resolve_color_idx(
+                detections=detections,
+                detection_idx=detection_idx,
+                color_map=self.color_map,
+            )
+            color = resolve_color(color=self.color, idx=idx)
+
+            center = (int((x1 + x2) / 2), y2)
+            width = x2 - x1
+            cv2.ellipse(
+                scene,
+                center=center,
+                axes=(int(width), int(0.35 * width)),
+                angle=0.0,
+                startAngle=self.start_angle,
+                endAngle=self.end_angle,
+                color=color.as_bgr(),
+                thickness=self.thickness,
+                lineType=cv2.LINE_4,
             )
         return scene
 
@@ -546,88 +623,6 @@ class BoxCornerAnnotator(BaseAnnotator):
                 (x2, y2),
                 color.as_bgr(),
                 thickness=line_thickness,
-            )
-
-        return scene
-
-
-class EllipseAnnotator(BaseAnnotator):
-    def __init__(
-        self,
-        color: Union[Color, ColorPalette] = ColorPalette.default(),
-        thickness: int = 2,
-        color_by_track: bool = False,
-        start_angle: int = -45,
-        end_angle: int = 360,
-    ):
-        self.color: Union[Color, ColorPalette] = color
-        self.thickness: int = thickness
-        self.color_by_track = color_by_track
-        self.start_angle = start_angle
-        self.end_angle = end_angle
-
-    def annotate(
-        self,
-        scene: np.ndarray,
-        detections: Detections,
-    ):
-        """
-        Draws ellipse at bottom of the objects on the frame using the detections
-            provided.
-        Args:
-            scene (np.ndarray): The image on which the bounding boxes will be drawn
-            detections (Detections): The detections for which
-                the bounding boxes will be drawn
-        Returns:
-            np.ndarray: The image with the bounding boxes drawn on it
-        Example:
-            ```python
-            >>> import supervision as sv
-            >>> classes = ['person', ...]
-            >>> image = ...
-            >>> detections = sv.Detections(...)
-            >>> ellipse_annotator = sv.EllipseAnotator()
-            >>> annotated_frame = ellipse_annotator.annotate(
-            ...     scene=image.copy(),
-            ...     detections=detections,
-            ...     labels=labels
-            ... )
-            ```
-        """
-
-        for i in range(len(detections)):
-            x1, y1, x2, y2 = detections.xyxy[i].astype(int)
-            if self.color_by_track:
-                tracker_id = (
-                    detections.tracker_id[i]
-                    if detections.tracker_id is not None
-                    else None
-                )
-                idx = tracker_id if tracker_id is not None else i
-            else:
-                class_id = (
-                    detections.class_id[i] if detections.class_id is not None else None
-                )
-                idx = class_id if class_id is not None else i
-            color = (
-                self.color.by_idx(idx)
-                if isinstance(self.color, ColorPalette)
-                else self.color
-            )
-
-            center = (int((x1 + x2) / 2), y2)
-            width = x2 - x1
-
-            cv2.ellipse(
-                scene,
-                center=center,
-                axes=(int(width), int(0.35 * width)),
-                angle=0.0,
-                startAngle=self.start_angle,
-                endAngle=self.end_angle,
-                color=color.as_bgr(),
-                thickness=self.thickness,
-                lineType=cv2.LINE_4,
             )
 
         return scene
