@@ -13,3 +13,7 @@
 ## BoxCornerAnnotator
 
 :::supervision.annotators.core.BoxCornerAnnotator
+
+## LabelAnnotator
+
+:::supervision.annotators.core.LabelAnnotator
