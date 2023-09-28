@@ -63,7 +63,7 @@ class BaseAnnotator(ABC):
         pass
 
 
-class BoxLineAnnotator(BaseAnnotator):
+class BoundingBoxAnnotator(BaseAnnotator):
     """
     Basic line bounding box annotator.
     """
@@ -103,7 +103,7 @@ class BoxLineAnnotator(BaseAnnotator):
             >>> image = ...
             >>> detections = sv.Detections(...)
 
-            >>> box_line_annotator = sv.BoxLineAnnotator()
+            >>> box_line_annotator = sv.BoundingBoxAnnotator()
             >>> annotated_frame = box_line_annotator.annotate(
             ...     scene=image.copy(),
             ...     detections=detections

@@ -3,7 +3,7 @@ from typing import List, Optional
 
 import numpy as np
 
-from supervision.annotators.core import BoxLineAnnotator, LabelAnnotator, MaskAnnotator
+from supervision.annotators.core import BoundingBoxAnnotator, LabelAnnotator, MaskAnnotator
 from supervision.detection.core import Detections
 
 
@@ -57,7 +57,7 @@ class DetectionAnnotator(ComposableAnnotator):
         skip_label: bool = False,
     ):
         super().__init__()
-        self.annotators = [BoxLineAnnotator(color_by_track=color_by_track)]
+        self.annotators = [BoundingBoxAnnotator(color_by_track=color_by_track)]
         if not skip_label:
             self.annotators.append(LabelAnnotator(color_by_track=color_by_track))
 
@@ -89,7 +89,7 @@ class SegmentationAnnotator(ComposableAnnotator):
     ):
         super().__init__()
         self.annotators = [
-            BoxLineAnnotator(color_by_track=color_by_track),
+            BoundingBoxAnnotator(color_by_track=color_by_track),
             MaskAnnotator(color_by_track=color_by_track),
         ]
         if not skip_label:
