@@ -13,7 +13,7 @@ from supervision.annotators.core import (
     LabelAdvancedAnnotator,
     LabelAnnotator,
     MaskAnnotator,
-    TraceAnnotator
+    TraceAnnotator,
 )
 from supervision.classification.core import Classifications
 from supervision.dataset.core import (
