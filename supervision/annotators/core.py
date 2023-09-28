@@ -1,66 +1,16 @@
 import os.path
-from abc import ABC, abstractmethod
 from collections import defaultdict
-from enum import Enum
 from typing import Callable, List, Optional, Union
 
 import cv2
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
+from supervision.annotators.base import BaseAnnotator, ColorMap, resolve_color_idx, \
+    resolve_color
 from supervision.detection.core import Detections
 from supervision.draw.color import Color, ColorPalette
 from supervision.geometry.core import Position
-
-
-class ColorMap(Enum):
-    """
-    Enum for annotator color mapping.
-    """
-
-    INDEX = "index"
-    CLASS = "class"
-    TRACK = "track"
-
-
-def resolve_color_idx(
-    detections: Detections, detection_idx: int, color_map: ColorMap = ColorMap.CLASS
-) -> int:
-    if detection_idx >= len(detections):
-        raise ValueError(
-            f"Detection index {detection_idx}"
-            f"is out of bounds for detections of length {len(detections)}"
-        )
-
-    if color_map == ColorMap.INDEX:
-        return detection_idx
-    elif color_map == ColorMap.CLASS:
-        if detections.class_id is None:
-            raise ValueError(
-                "Could not resolve color by class because"
-                "Detections do not have class_id"
-            )
-        return detections.class_id[detection_idx]
-    elif color_map == ColorMap.TRACK:
-        if detections.tracker_id is None:
-            raise ValueError(
-                "Could not resolve color by track because"
-                "Detections do not have tracker_id"
-            )
-        return detections.tracker_id[detection_idx]
-
-
-def resolve_color(color: Union[Color, ColorPalette], idx: int) -> Color:
-    if isinstance(color, ColorPalette):
-        return color.by_idx(idx)
-    else:
-        return color
-
-
-class BaseAnnotator(ABC):
-    @abstractmethod
-    def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
-        pass
 
 
 class BoundingBoxAnnotator(BaseAnnotator):
@@ -347,81 +297,6 @@ class LabelAnnotator(BaseAnnotator):
                 thickness=self.text_thickness,
                 lineType=cv2.LINE_AA,
             )
-        return scene
-
-
-class BoxMaskAnnotator(BaseAnnotator):
-    def __init__(
-        self,
-        color: Union[Color, ColorPalette] = ColorPalette.default(),
-        opacity: float = 0.5,
-        color_by_track: bool = False,
-    ):
-        self.color: Union[Color, ColorPalette] = color
-        self.opacity = opacity
-        self.color_by_track = color_by_track
-
-    def annotate(
-        self,
-        scene: np.ndarray,
-        detections: Detections,
-    ) -> np.ndarray:
-        """
-        Overlays the rectangle masks on the given image based on the
-            provided detections, with a specified opacity.
-
-        Args:
-            scene (np.ndarray): The image on which the masks will be overlaid
-            detections (Detections): The detections for which the masks will be overlaid
-        Returns:
-            np.ndarray: The image with the masks overlaid
-        Example:
-            ```python
-            >>> import supervision as sv
-
-            >>> classes = ['person', ...]
-            >>> image = ...
-            >>> detections = sv.Detections(...)
-
-            >>> box_mask_annotator = sv.MaskAnnotator()
-            >>> annotated_frame = box_mask_annotator.annotate(
-            ...     scene=image.copy(),
-            ...     detections=detections
-            ... )
-            ```
-        """
-        overlay_img = np.zeros_like(scene, np.uint8)
-        for i in range(len(detections)):
-            x1, y1, x2, y2 = detections.xyxy[i].astype(int)
-            if self.color_by_track:
-                tracker_id = (
-                    detections.tracker_id[i]
-                    if detections.tracker_id is not None
-                    else None
-                )
-                idx = tracker_id if tracker_id is not None else i
-            else:
-                class_id = (
-                    detections.class_id[i] if detections.class_id is not None else None
-                )
-                idx = class_id if class_id is not None else i
-            color = (
-                self.color.by_idx(idx)
-                if isinstance(self.color, ColorPalette)
-                else self.color
-            )
-            cv2.rectangle(
-                img=overlay_img,
-                pt1=(x1, y1),
-                pt2=(x2, y2),
-                color=color.as_bgr(),
-                thickness=-1,
-            )
-
-        mask = overlay_img.astype(bool)
-        scene[mask] = cv2.addWeighted(
-            scene, self.opacity, overlay_img, 1 - self.opacity, 0
-        )[mask]
         return scene
 
 

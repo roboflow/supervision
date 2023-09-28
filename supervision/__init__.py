@@ -11,7 +11,6 @@ from supervision.annotators.composable import DetectionAnnotator, SegmentationAn
 from supervision.annotators.core import (
     BoundingBoxAnnotator,
     BoxCornerAnnotator,
-    BoxMaskAnnotator,
     EllipseAnnotator,
     LabelAdvancedAnnotator,
     LabelAnnotator,
