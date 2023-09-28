@@ -3,7 +3,11 @@ from typing import List, Optional
 
 import numpy as np
 
-from supervision.annotators.core import BoundingBoxAnnotator, LabelAnnotator, MaskAnnotator
+from supervision.annotators.core import (
+    BoundingBoxAnnotator,
+    LabelAnnotator,
+    MaskAnnotator,
+)
 from supervision.detection.core import Detections
 
 

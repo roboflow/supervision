@@ -9,8 +9,8 @@ except importlib_metadata.PackageNotFoundError:
 
 from supervision.annotators.composable import DetectionAnnotator, SegmentationAnnotator
 from supervision.annotators.core import (
-    BoxCornerAnnotator,
     BoundingBoxAnnotator,
+    BoxCornerAnnotator,
     BoxMaskAnnotator,
     EllipseAnnotator,
     LabelAdvancedAnnotator,
