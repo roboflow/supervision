@@ -1,6 +1,6 @@
 import os.path
 from collections import defaultdict
-from typing import List, Optional, Union, Tuple
+from typing import List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
