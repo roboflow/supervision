@@ -290,62 +290,23 @@ class BoxCornerAnnotator(BaseAnnotator):
                 color_map=self.color_map,
             )
             color = resolve_color(color=self.color, idx=idx)
-            cv2.line(
-                scene,
-                (x1, y1),
-                (x1 + self.corner_length, y1),
-                color.as_bgr(),
-                thickness=self.thickness,
-            )
-            cv2.line(
-                scene,
-                (x2 - self.corner_length, y1),
-                (x2, y1),
-                color.as_bgr(),
-                thickness=self.thickness,
-            )
-            cv2.line(
-                scene,
-                (x1, y2),
-                (x1 + self.corner_length, y2),
-                color.as_bgr(),
-                thickness=self.thickness,
-            )
-            cv2.line(
-                scene,
-                (x2 - self.corner_length, y2),
-                (x2, y2),
-                color.as_bgr(),
-                thickness=self.thickness,
-            )
-            cv2.line(
-                scene,
-                (x1, y1),
-                (x1, y1 + self.corner_length),
-                color.as_bgr(),
-                thickness=self.thickness,
-            )
-            cv2.line(
-                scene,
-                (x2, y1 + self.corner_length),
-                (x2, y1),
-                color.as_bgr(),
-                thickness=self.thickness,
-            )
-            cv2.line(
-                scene,
-                (x1, y2 - self.corner_length),
-                (x1, y2),
-                color.as_bgr(),
-                thickness=self.thickness,
-            )
-            cv2.line(
-                scene,
-                (x2, y2 - self.corner_length),
-                (x2, y2),
-                color.as_bgr(),
-                thickness=self.thickness,
-            )
+            corners = [
+                (x1, y1), (x2, y1),
+                (x1, y2), (x2, y2)
+            ]
+
+            for x, y in corners:
+                x_end = x + self.corner_length if x == x1 else x - self.corner_length
+                cv2.line(
+                    scene, (x, y), (x_end, y),
+                    color.as_bgr(), thickness=self.thickness
+                )
+
+                y_end = y + self.corner_length if y == y1 else y - self.corner_length
+                cv2.line(
+                    scene, (x, y), (x, y_end),
+                    color.as_bgr(), thickness=self.thickness
+                )
         return scene
 
 
