@@ -291,22 +291,17 @@ class BoxCornerAnnotator(BaseAnnotator):
                 color_map=self.color_map,
             )
             color = resolve_color(color=self.color, idx=idx)
-            corners = [
-                (x1, y1), (x2, y1),
-                (x1, y2), (x2, y2)
-            ]
+            corners = [(x1, y1), (x2, y1), (x1, y2), (x2, y2)]
 
             for x, y in corners:
                 x_end = x + self.corner_length if x == x1 else x - self.corner_length
                 cv2.line(
-                    scene, (x, y), (x_end, y),
-                    color.as_bgr(), thickness=self.thickness
+                    scene, (x, y), (x_end, y), color.as_bgr(), thickness=self.thickness
                 )
 
                 y_end = y + self.corner_length if y == y1 else y - self.corner_length
                 cv2.line(
-                    scene, (x, y), (x, y_end),
-                    color.as_bgr(), thickness=self.thickness
+                    scene, (x, y), (x, y_end), color.as_bgr(), thickness=self.thickness
                 )
         return scene
 
