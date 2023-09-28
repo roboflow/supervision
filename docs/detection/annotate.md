@@ -9,3 +9,7 @@
 ## EllipseAnnotator
 
 :::supervision.annotators.core.EllipseAnnotator
+
+## BoxCornerAnnotator
+
+:::supervision.annotators.core.BoxCornerAnnotator

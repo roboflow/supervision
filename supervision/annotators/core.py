@@ -232,6 +232,123 @@ class EllipseAnnotator(BaseAnnotator):
         return scene
 
 
+class BoxCornerAnnotator(BaseAnnotator):
+    """
+    A class for drawing box corners on an image using provided detections.
+    """
+    def __init__(
+        self,
+        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        thickness: int = 4,
+        color_map: str = "class",
+        corner_length: int = 25,
+    ):
+        """
+        Args:
+            color (Union[Color, ColorPalette]): The color or color palette to use for
+                annotating detections.
+            thickness (int): Thickness of the corner lines.
+            color_map (str): Strategy for mapping colors to annotations.
+                Options are `index`, `class`, or `track`.
+            corner_length (int): Length of each corner line.
+        """
+        self.color: Union[Color, ColorPalette] = color
+        self.thickness: int = thickness
+        self.color_map: ColorMap = ColorMap(color_map)
+        self.corner_length = corner_length
+
+    def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
+        """
+        Annotates the given scene with box corners based on the provided detections.
+
+        Args:
+            scene (np.ndarray): The image where box corners will be drawn.
+            detections (Detections): Object detections to annotate.
+
+        Returns:
+            np.ndarray: The annotated image.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> image = ...
+            >>> detections = sv.Detections(...)
+
+            >>> corner_annotator = sv.BoxCornerAnnotator()
+            >>> annotated_frame = corner_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
+            ```
+        """
+        for detection_idx in range(len(detections)):
+            x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
+            idx = resolve_color_idx(
+                detections=detections,
+                detection_idx=detection_idx,
+                color_map=self.color_map,
+            )
+            color = resolve_color(color=self.color, idx=idx)
+            cv2.line(
+                scene,
+                (x1, y1),
+                (x1 + self.corner_length, y1),
+                color.as_bgr(),
+                thickness=self.thickness,
+            )
+            cv2.line(
+                scene,
+                (x2 - self.corner_length, y1),
+                (x2, y1),
+                color.as_bgr(),
+                thickness=self.thickness,
+            )
+            cv2.line(
+                scene,
+                (x1, y2),
+                (x1 + self.corner_length, y2),
+                color.as_bgr(),
+                thickness=self.thickness,
+            )
+            cv2.line(
+                scene,
+                (x2 - self.corner_length, y2),
+                (x2, y2),
+                color.as_bgr(),
+                thickness=self.thickness,
+            )
+            cv2.line(
+                scene,
+                (x1, y1),
+                (x1, y1 + self.corner_length),
+                color.as_bgr(),
+                thickness=self.thickness,
+            )
+            cv2.line(
+                scene,
+                (x2, y1 + self.corner_length),
+                (x2, y1),
+                color.as_bgr(),
+                thickness=self.thickness,
+            )
+            cv2.line(
+                scene,
+                (x1, y2 - self.corner_length),
+                (x1, y2),
+                color.as_bgr(),
+                thickness=self.thickness,
+            )
+            cv2.line(
+                scene,
+                (x2, y2 - self.corner_length),
+                (x2, y2),
+                color.as_bgr(),
+                thickness=self.thickness,
+            )
+        return scene
+
+
 def default_label_formatter(
     detections: Detections,
 ) -> List[str]:
@@ -504,132 +621,6 @@ class LabelAdvancedAnnotator(BaseAnnotator):
             draw.text((text_x, text_y), text, font=self.font, fill=text_color)
 
         scene = np.asarray(pil_image)
-        return scene
-
-
-class BoxCornerAnnotator(BaseAnnotator):
-    def __init__(
-        self,
-        color: Union[Color, ColorPalette] = ColorPalette.default(),
-        thickness: int = 2,
-        color_by_track: bool = False,
-    ):
-        self.color: Union[Color, ColorPalette] = color
-        self.thickness: int = thickness
-        self.color_by_track = color_by_track
-
-    def annotate(
-        self,
-        scene: np.ndarray,
-        detections: Detections,
-    ):
-        """
-        Draws cornered bounding boxes on the frame using the detections provided.
-        Args:
-            scene (np.ndarray): The image on which the bounding boxes will be drawn
-            detections (Detections): The detections for which
-                the bounding boxes will be drawn
-        Returns:
-            np.ndarray: The image with the bounding boxes drawn on it
-        Example:
-            ```python
-            >>> import supervision as sv
-            >>> classes = ['person', ...]
-            >>> image = ...
-            >>> detections = sv.Detections(...)
-            >>> corner_box_annotator = sv.CorneredBoxAnotator()
-            >>> annotated_frame = corner_box_annotator.annotate(
-            ...     scene=image.copy(),
-            ...     detections=detections,
-            ...     labels=labels
-            ... )
-            ```
-        """
-
-        line_thickness = self.thickness + 2
-        for i in range(len(detections)):
-            x1, y1, x2, y2 = detections.xyxy[i].astype(int)
-            if self.color_by_track:
-                tracker_id = (
-                    detections.tracker_id[i]
-                    if detections.tracker_id is not None
-                    else None
-                )
-                idx = tracker_id if tracker_id is not None else i
-            else:
-                class_id = (
-                    detections.class_id[i] if detections.class_id is not None else None
-                )
-                idx = class_id if class_id is not None else i
-            color = (
-                self.color.by_idx(idx)
-                if isinstance(self.color, ColorPalette)
-                else self.color
-            )
-
-            box_width = x2 - x1
-            box_height = y2 - y1
-
-            cv2.line(
-                scene,
-                (x1, y1),
-                (x1 + int(0.2 * box_width), y1),
-                color.as_bgr(),
-                thickness=line_thickness,
-            )
-            cv2.line(
-                scene,
-                (x2 - int(0.2 * box_width), y1),
-                (x2, y1),
-                color.as_bgr(),
-                thickness=line_thickness,
-            )
-
-            cv2.line(
-                scene,
-                (x1, y2),
-                (x1 + int(0.2 * box_width), y2),
-                color.as_bgr(),
-                thickness=line_thickness,
-            )
-            cv2.line(
-                scene,
-                (x2 - int(0.2 * box_width), y2),
-                (x2, y2),
-                color.as_bgr(),
-                thickness=line_thickness,
-            )
-
-            cv2.line(
-                scene,
-                (x1, y1),
-                (x1, y1 + int(0.2 * box_height)),
-                color.as_bgr(),
-                thickness=line_thickness,
-            )
-            cv2.line(
-                scene,
-                (x2, y1 + int(0.2 * box_height)),
-                (x2, y1),
-                color.as_bgr(),
-                thickness=line_thickness,
-            )
-
-            cv2.line(
-                scene,
-                (x1, y2 - int(0.2 * box_height)),
-                (x1, y2),
-                color.as_bgr(),
-                thickness=line_thickness,
-            )
-            cv2.line(
-                scene,
-                (x2, y2 - int(0.2 * box_height)),
-                (x2, y2),
-                color.as_bgr(),
-                thickness=line_thickness,
-            )
-
         return scene
 
 
