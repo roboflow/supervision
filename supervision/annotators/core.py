@@ -157,6 +157,7 @@ class EllipseAnnotator(BaseAnnotator):
     """
     A class for drawing ellipses on an image using provided detections.
     """
+
     def __init__(
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
