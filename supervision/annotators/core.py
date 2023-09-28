@@ -65,9 +65,8 @@ class BaseAnnotator(ABC):
 
 class BoundingBoxAnnotator(BaseAnnotator):
     """
-    Basic line bounding box annotator.
+    A class for drawing bounding boxes on an image using provided detections.
     """
-
     def __init__(
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
@@ -75,11 +74,12 @@ class BoundingBoxAnnotator(BaseAnnotator):
         color_map: str = "class",
     ):
         """
-        Parameters:
-            color (Union[Color, ColorPalette]): The color to use for
+        Args:
+            color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating detections.
-            thickness (int): The thickness of the bounding box lines.
-            color_map (ColorMap): The color mapping to use for annotating detections.
+            thickness (int): Thickness of the bounding box lines.
+            color_map (str): Strategy for mapping colors to annotations.
+                Options are `index`, `class`, or `track`.
         """
         self.color: Union[Color, ColorPalette] = color
         self.thickness: int = thickness
@@ -87,14 +87,14 @@ class BoundingBoxAnnotator(BaseAnnotator):
 
     def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
         """
-        Draws bounding boxes on the frame using the detections provided.
+        Annotates the given scene with bounding boxes based on the provided detections.
 
         Args:
-            scene (np.ndarray): The image on which the bounding boxes will be drawn
-            detections (Detections): The detections for which
-                the bounding boxes will be drawn
+            scene (np.ndarray): The image where bounding boxes will be drawn.
+            detections (Detections): Object detections to annotate.
+
         Returns:
-            np.ndarray: The image with the bounding boxes drawn on it.
+            The annotated image.
 
         Example:
             ```python
@@ -103,8 +103,8 @@ class BoundingBoxAnnotator(BaseAnnotator):
             >>> image = ...
             >>> detections = sv.Detections(...)
 
-            >>> box_line_annotator = sv.BoundingBoxAnnotator()
-            >>> annotated_frame = box_line_annotator.annotate(
+            >>> bounding_box_annotator = sv.BoundingBoxAnnotator()
+            >>> annotated_frame = bounding_box_annotator.annotate(
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
@@ -130,42 +130,41 @@ class BoundingBoxAnnotator(BaseAnnotator):
 
 class MaskAnnotator(BaseAnnotator):
     """
-    A class for overlaying masks on an image using detections provided.
-
-    Attributes:
-        color (Union[Color, ColorPalette]): The color to fill the mask,
-            can be a single color or a color palette
-        opacity (float): The opacity of the masks, between 0 and 1.
+    A class for drawing masks on an image using provided detections.
     """
-
     def __init__(
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
         opacity: float = 0.5,
-        color_by_track: bool = False,
+        color_map: str = "class",
     ):
+        """
+        Args:
+            color (Union[Color, ColorPalette]): The color or color palette to use for
+                annotating detections.
+            opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.
+            color_map (str): Strategy for mapping colors to annotations.
+                Options are `index`, `class`, or `track`.
+        """
         self.color: Union[Color, ColorPalette] = color
         self.opacity = opacity
-        self.color_by_track = color_by_track
+        self.color_map: ColorMap = ColorMap(color_map)
 
-    def annotate(
-        self, scene: np.ndarray, detections: Detections, **kwargs
-    ) -> np.ndarray:
+    def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
         """
-        Overlays the masks on the given image based on the provided detections,
-            with a specified opacity.
+        Annotates the given scene with masks based on the provided detections.
 
         Args:
-            scene (np.ndarray): The image on which the masks will be overlaid
-            detections (Detections): The detections for which the masks will be overlaid
+            scene (np.ndarray): The image where masks will be drawn.
+            detections (Detections): Object detections to annotate.
 
         Returns:
-            np.ndarray: The image with the masks overlaid
+            The annotated image.
+
         Example:
             ```python
             >>> import supervision as sv
 
-            >>> classes = ['person', ...]
             >>> image = ...
             >>> detections = sv.Detections(...)
 
@@ -179,27 +178,15 @@ class MaskAnnotator(BaseAnnotator):
         if detections.mask is None:
             return scene
 
-        for i in np.flip(np.argsort(detections.area)):
-            if self.color_by_track:
-                tracker_id = (
-                    detections.tracker_id[i]
-                    if detections.tracker_id is not None
-                    else None
-                )
-                idx = tracker_id if tracker_id is not None else i
-            else:
-                class_id = (
-                    detections.class_id[i] if detections.class_id is not None else None
-                )
-                idx = class_id if class_id is not None else i
-
-            color = (
-                self.color.by_idx(idx)
-                if isinstance(self.color, ColorPalette)
-                else self.color
+        for detection_idx in np.flip(np.argsort(detections.area)):
+            idx = resolve_color_idx(
+                detections=detections,
+                detection_idx=detection_idx,
+                color_map=self.color_map,
             )
+            color = resolve_color(color=self.color, idx=idx)
 
-            mask = detections.mask[i]
+            mask = detections.mask[detection_idx]
             colored_mask = np.zeros_like(scene, dtype=np.uint8)
             colored_mask[:] = color.as_bgr()
 
@@ -208,7 +195,6 @@ class MaskAnnotator(BaseAnnotator):
                 np.uint8(self.opacity * colored_mask + (1 - self.opacity) * scene),
                 scene,
             )
-
         return scene
 
 

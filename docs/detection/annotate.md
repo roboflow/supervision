@@ -1,11 +1,7 @@
-## BoxAnnotator
+## BoundingBoxAnnotator
 
-:::supervision.detection.annotate.BoxAnnotator
+:::supervision.annotators.core.BoundingBoxAnnotator
 
 ## MaskAnnotator
 
-:::supervision.detection.annotate.MaskAnnotator
-
-## TraceAnnotator
-
-:::supervision.detection.annotate.TraceAnnotator
+:::supervision.annotators.core.MaskAnnotator
