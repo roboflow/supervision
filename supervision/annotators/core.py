@@ -1,6 +1,6 @@
 import os.path
 from collections import defaultdict
-from typing import Callable, List, Optional, Union
+from typing import List, Optional, Union, Tuple
 
 import cv2
 import numpy as np
@@ -162,25 +162,25 @@ class EllipseAnnotator(BaseAnnotator):
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
         thickness: int = 2,
-        color_map: str = "class",
         start_angle: int = -45,
         end_angle: int = 235,
+        color_map: str = "class",
     ):
         """
         Args:
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating detections.
             thickness (int): Thickness of the ellipse lines.
-            color_map (str): Strategy for mapping colors to annotations.
-                Options are `index`, `class`, or `track`.
             start_angle (int): Starting angle of the ellipse.
             end_angle (int): Ending angle of the ellipse.
+            color_map (str): Strategy for mapping colors to annotations.
+                Options are `index`, `class`, or `track`.
         """
         self.color: Union[Color, ColorPalette] = color
         self.thickness: int = thickness
+        self.start_angle: int = start_angle
+        self.end_angle: int = end_angle
         self.color_map: ColorMap = ColorMap(color_map)
-        self.start_angle = start_angle
-        self.end_angle = end_angle
 
     def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
         """
@@ -241,22 +241,22 @@ class BoxCornerAnnotator(BaseAnnotator):
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
         thickness: int = 4,
-        color_map: str = "class",
         corner_length: int = 25,
+        color_map: str = "class",
     ):
         """
         Args:
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating detections.
             thickness (int): Thickness of the corner lines.
+            corner_length (int): Length of each corner line.
             color_map (str): Strategy for mapping colors to annotations.
                 Options are `index`, `class`, or `track`.
-            corner_length (int): Length of each corner line.
         """
         self.color: Union[Color, ColorPalette] = color
         self.thickness: int = thickness
+        self.corner_length: int = corner_length
         self.color_map: ColorMap = ColorMap(color_map)
-        self.corner_length = corner_length
 
     def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
         """
@@ -311,28 +311,7 @@ class BoxCornerAnnotator(BaseAnnotator):
         return scene
 
 
-def default_label_formatter(
-    detections: Detections,
-) -> List[str]:
-    return [str(class_id) for class_id in detections.class_id]
-
-
-def build_label_formatter(classes: List[str]) -> Callable[[Detections], List[str]]:
-    def default_label_formatter(detections: Detections) -> List[str]:
-        return [classes[class_id] for class_id in detections.class_id]
-
-    return default_label_formatter
-
-
-class LabelAnnotator(BaseAnnotator):
-    """
-    A class for putting text on an image using provided detections.
-
-    Attributes:
-        color (Union[Color, ColorPalette]): The color to text on the image,
-            can be a single color or a color palette
-    """
-
+class LabelAnnotator:
     def __init__(
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
@@ -340,113 +319,70 @@ class LabelAnnotator(BaseAnnotator):
         text_scale: float = 0.5,
         text_thickness: int = 1,
         text_padding: int = 10,
-        color_by_track: bool = False,
-        classes: Optional[List[str]] = None,
-        label_formatter: Optional[
-            Callable[[Detections], List[str]]
-        ] = default_label_formatter,
+        text_position: Position = Position.TOP_LEFT,
+        color_map: str = "class",
     ):
-        """
-        Args:
-            color_by_track: pick color by tracker id
-            classes: Optional list of class name
-            label_formatter: Optional callback function for label generator,
-                avoided if classes is provided
-        """
         self.color: Union[Color, ColorPalette] = color
         self.text_color: Color = text_color
         self.text_scale: float = text_scale
         self.text_thickness: int = text_thickness
         self.text_padding: int = text_padding
-        self.color_by_track = color_by_track
-        self.classes = classes
-        self.label_formatter = label_formatter
+        self.text_position: Position = text_position
+        self.color_map: ColorMap = ColorMap(color_map)
+
+    @staticmethod
+    def resolve_text_background_xyxy(
+        detection_xyxy: Tuple[int, int, int, int],
+        text_wh: Tuple[int, int],
+        text_padding: int,
+        position: Position,
+    ) -> Tuple[int, int, int, int]:
+        padded_text_wh = (text_wh[0] + 2 * text_padding, text_wh[1] + 2 * text_padding)
+        x1, y1, x2, y2 = detection_xyxy
+        if position == Position.TOP_LEFT:
+            return x1, y1 - padded_text_wh[1], x1 + padded_text_wh[0], y1
 
     def annotate(
         self,
         scene: np.ndarray,
         detections: Detections,
+        labels: List[str] = None,
     ) -> np.ndarray:
-        """
-        Draws text on the frame using the detections provided and label.
-
-        Args:
-            scene (np.ndarray): The image on which the bounding boxes will be drawn
-            detections (Detections): The detections for which
-                the bounding boxes will be drawn
-        Returns:
-            np.ndarray: The image with the bounding boxes drawn on it
-
-        Example:
-            ```python
-            >>> import supervision as sv
-
-            >>> classes = ['person', ...]
-            >>> image = ...
-            >>> detections = sv.Detections(...)
-            >>> label_annotator = sv.LabelAnnotator(classes=classes)
-            >>> annotated_frame = label_annotator.annotate(
-            ...     scene=image.copy(),
-            ...     detections=detections,
-            ... )
-            ```
-        """
         font = cv2.FONT_HERSHEY_SIMPLEX
-
-        labels = None
-        if self.classes:
-            label_formatter = build_label_formatter(self.classes)
-            labels = label_formatter(detections)
-        else:
-            labels = self.label_formatter(detections=detections)
-
-        for i in range(len(detections)):
-            x1, y1, x2, y2 = detections.xyxy[i].astype(int)
-            if self.color_by_track:
-                tracker_id = (
-                    detections.tracker_id[i]
-                    if detections.tracker_id is not None
-                    else None
-                )
-                idx = tracker_id if tracker_id is not None else i
-            else:
-                class_id = (
-                    detections.class_id[i] if detections.class_id is not None else None
-                )
-                idx = class_id if class_id is not None else i
-
-            color = (
-                self.color.by_idx(idx)
-                if isinstance(self.color, ColorPalette)
-                else self.color
+        for detection_idx in range(len(detections)):
+            detection_xyxy = detections.xyxy[detection_idx].astype(int)
+            idx = resolve_color_idx(
+                detections=detections,
+                detection_idx=detection_idx,
+                color_map=self.color_map,
             )
-
+            color = resolve_color(color=self.color, idx=idx)
             text = (
-                f"{idx}"
+                f"{detections.class_id[detection_idx]}"
                 if (labels is None or len(detections) != len(labels))
-                else labels[i]
+                else labels[detection_idx]
             )
-
-            text_width, text_height = cv2.getTextSize(
+            text_wh = cv2.getTextSize(
                 text=text,
                 fontFace=font,
                 fontScale=self.text_scale,
                 thickness=self.text_thickness,
             )[0]
 
-            text_x = x1 + self.text_padding
-            text_y = y1 - self.text_padding
+            text_background_xyxy = self.resolve_text_background_xyxy(
+                detection_xyxy=detection_xyxy,
+                text_wh=text_wh,
+                text_padding=self.text_padding,
+                position=self.text_position,
+            )
 
-            text_background_x1 = x1
-            text_background_y1 = y1 - 2 * self.text_padding - text_height
-
-            text_background_x2 = x1 + 2 * self.text_padding + text_width
-            text_background_y2 = y1
+            text_x = text_background_xyxy[0] + self.text_padding
+            text_y = text_background_xyxy[1] + self.text_padding + text_wh[1]
 
             cv2.rectangle(
                 img=scene,
-                pt1=(text_background_x1, text_background_y1),
-                pt2=(text_background_x2, text_background_y2),
+                pt1=(text_background_xyxy[0], text_background_xyxy[1]),
+                pt2=(text_background_xyxy[2], text_background_xyxy[3]),
                 color=color.as_bgr(),
                 thickness=cv2.FILLED,
             )
@@ -461,10 +397,6 @@ class LabelAnnotator(BaseAnnotator):
                 lineType=cv2.LINE_AA,
             )
         return scene
-
-
-def default_label_formatter(detections: Detections) -> List[str]:
-    return [str(class_id) for class_id in detections.class_id]
 
 
 class LabelAdvancedAnnotator(BaseAnnotator):
