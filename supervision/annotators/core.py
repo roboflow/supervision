@@ -334,8 +334,32 @@ class LabelAnnotator:
     ) -> Tuple[int, int, int, int]:
         padded_text_wh = (text_wh[0] + 2 * text_padding, text_wh[1] + 2 * text_padding)
         x1, y1, x2, y2 = detection_xyxy
+        center_x = (x1 + x2) // 2
+        center_y = (y1 + y2) // 2
+
         if position == Position.TOP_LEFT:
             return x1, y1 - padded_text_wh[1], x1 + padded_text_wh[0], y1
+        elif position == Position.TOP_RIGHT:
+            return x2 - padded_text_wh[0], y1 - padded_text_wh[1], x2, y1
+        elif position == Position.TOP_CENTER:
+            return (
+                center_x - padded_text_wh[0] // 2, y1 - padded_text_wh[1],
+                center_x + padded_text_wh[0] // 2, y1
+            )
+        elif position == Position.CENTER:
+            return (
+                center_x - padded_text_wh[0] // 2, center_y - padded_text_wh[1] // 2,
+                center_x + padded_text_wh[0] // 2, center_y + padded_text_wh[1] // 2
+            )
+        elif position == Position.BOTTOM_LEFT:
+            return x1, y2, x1 + padded_text_wh[0], y2 + padded_text_wh[1]
+        elif position == Position.BOTTOM_RIGHT:
+            return x2 - padded_text_wh[0], y2, x2, y2 + padded_text_wh[1]
+        elif position == Position.BOTTOM_CENTER:
+            return (
+                center_x - padded_text_wh[0] // 2, y2,
+                center_x + padded_text_wh[0] // 2, y2 + padded_text_wh[1]
+            )
 
     def annotate(
         self,
