@@ -317,8 +317,9 @@ class BoxCornerAnnotator(BaseAnnotator):
 
 class LabelAnnotator:
     """
-   A class for annotating labels on an image using provided detections.
-   """
+    A class for annotating labels on an image using provided detections.
+    """
+
     def __init__(
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
