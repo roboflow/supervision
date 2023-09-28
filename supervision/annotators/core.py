@@ -343,13 +343,17 @@ class LabelAnnotator:
             return x2 - padded_text_wh[0], y1 - padded_text_wh[1], x2, y1
         elif position == Position.TOP_CENTER:
             return (
-                center_x - padded_text_wh[0] // 2, y1 - padded_text_wh[1],
-                center_x + padded_text_wh[0] // 2, y1
+                center_x - padded_text_wh[0] // 2,
+                y1 - padded_text_wh[1],
+                center_x + padded_text_wh[0] // 2,
+                y1,
             )
         elif position == Position.CENTER:
             return (
-                center_x - padded_text_wh[0] // 2, center_y - padded_text_wh[1] // 2,
-                center_x + padded_text_wh[0] // 2, center_y + padded_text_wh[1] // 2
+                center_x - padded_text_wh[0] // 2,
+                center_y - padded_text_wh[1] // 2,
+                center_x + padded_text_wh[0] // 2,
+                center_y + padded_text_wh[1] // 2,
             )
         elif position == Position.BOTTOM_LEFT:
             return x1, y2, x1 + padded_text_wh[0], y2 + padded_text_wh[1]
@@ -357,8 +361,10 @@ class LabelAnnotator:
             return x2 - padded_text_wh[0], y2, x2, y2 + padded_text_wh[1]
         elif position == Position.BOTTOM_CENTER:
             return (
-                center_x - padded_text_wh[0] // 2, y2,
-                center_x + padded_text_wh[0] // 2, y2 + padded_text_wh[1]
+                center_x - padded_text_wh[0] // 2,
+                y2,
+                center_x + padded_text_wh[0] // 2,
+                y2 + padded_text_wh[1],
             )
 
     def annotate(
