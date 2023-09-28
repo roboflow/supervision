@@ -163,7 +163,7 @@ class EllipseAnnotator(BaseAnnotator):
         thickness: int = 2,
         color_map: str = "class",
         start_angle: int = -45,
-        end_angle: int = 360,
+        end_angle: int = 235,
     ):
         """
         Args:
