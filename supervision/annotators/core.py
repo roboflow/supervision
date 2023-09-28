@@ -61,6 +61,9 @@ class BoundingBoxAnnotator(BaseAnnotator):
             ...     detections=detections
             ... )
             ```
+
+        ![bounding-box-annotator-example](https://media.roboflow.com/
+        supervision-annotator-examples/bounding-box-annotator-example.png)
         """
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
@@ -127,6 +130,9 @@ class MaskAnnotator(BaseAnnotator):
             ...     detections=detections
             ... )
             ```
+
+        ![mask-annotator-example](https://media.roboflow.com/
+        supervision-annotator-examples/mask-annotator-example.png)
         """
         if detections.mask is None:
             return scene
@@ -203,6 +209,9 @@ class EllipseAnnotator(BaseAnnotator):
             ...     detections=detections
             ... )
             ```
+
+        ![ellipse-annotator-example](https://media.roboflow.com/
+        supervision-annotator-examples/ellipse-annotator-example.png)
         """
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
@@ -279,6 +288,9 @@ class BoxCornerAnnotator(BaseAnnotator):
             ...     detections=detections
             ... )
             ```
+
+        ![box-corner-annotator-example](https://media.roboflow.com/
+        supervision-annotator-examples/box-corner-annotator-example.png)
         """
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
@@ -305,9 +317,8 @@ class BoxCornerAnnotator(BaseAnnotator):
 
 class LabelAnnotator:
     """
-    A class for annotating labels on an image using provided detections.
-    """
-
+   A class for annotating labels on an image using provided detections.
+   """
     def __init__(
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
@@ -405,12 +416,15 @@ class LabelAnnotator:
             >>> image = ...
             >>> detections = sv.Detections(...)
 
-            >>> label_annotator = sv.LabelAnnotator()
+            >>> label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER)
             >>> annotated_frame = label_annotator.annotate(
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
             ```
+
+        ![label-annotator-example](https://media.roboflow.com/
+        supervision-annotator-examples/label-annotator-example-2.png)
         """
         font = cv2.FONT_HERSHEY_SIMPLEX
         for detection_idx in range(len(detections)):
