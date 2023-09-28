@@ -6,18 +6,6 @@ try:
 except importlib_metadata.PackageNotFoundError:
     __version__ = "development"
 
-
-from supervision.annotators.composable import DetectionAnnotator, SegmentationAnnotator
-from supervision.annotators.core import (
-    BoundingBoxAnnotator,
-    BoxCornerAnnotator,
-    EllipseAnnotator,
-    LabelAdvancedAnnotator,
-    LabelAnnotator,
-    MaskAnnotator,
-    TraceAnnotator,
-    build_label_formatter,
-)
 from supervision.classification.core import Classifications
 from supervision.dataset.core import (
     BaseDataset,
