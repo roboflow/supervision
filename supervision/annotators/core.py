@@ -1,10 +1,7 @@
-import os.path
-from collections import defaultdict
-from typing import List, Optional, Tuple, Union
+from typing import List, Tuple, Union
 
 import cv2
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
 
 from supervision.annotators.base import (
     BaseAnnotator,
@@ -308,8 +305,9 @@ class BoxCornerAnnotator(BaseAnnotator):
 
 class LabelAnnotator:
     """
-   A class for annotating labels on an image using provided detections.
-   """
+    A class for annotating labels on an image using provided detections.
+    """
+
     def __init__(
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
