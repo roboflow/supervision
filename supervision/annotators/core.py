@@ -6,8 +6,12 @@ import cv2
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
-from supervision.annotators.base import BaseAnnotator, ColorMap, resolve_color_idx, \
-    resolve_color
+from supervision.annotators.base import (
+    BaseAnnotator,
+    ColorMap,
+    resolve_color,
+    resolve_color_idx,
+)
 from supervision.detection.core import Detections
 from supervision.draw.color import Color, ColorPalette
 from supervision.geometry.core import Position
