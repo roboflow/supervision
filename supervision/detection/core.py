@@ -644,15 +644,23 @@ class Detections:
 
     def get_anchor_coordinates(self, anchor: Position) -> np.ndarray:
         """
-        Returns the bounding box coordinates for a specific anchor.
+        Calculates and returns the coordinates of a specific anchor point
+        within the bounding boxes defined by the `xyxy` attribute. The anchor
+        point can be any of the predefined positions in the `Position` enum,
+        such as `CENTER`, `CENTER_LEFT`, `BOTTOM_RIGHT`, etc.
 
         Args:
-            anchor (Position): Position of bounding box anchor
-                for which to return the coordinates.
+            anchor (Position): An enum specifying the position of the anchor point
+                within the bounding box. Supported positions are defined in the
+                `Position` enum.
 
         Returns:
-            np.ndarray: An array of shape `(n, 2)` containing the bounding
-                box anchor coordinates in format `[x, y]`.
+            np.ndarray: An array of shape `(n, 2)`, where `n` is the number of bounding
+                boxes. Each row contains the `[x, y]` coordinates of the specified
+                anchor point for the corresponding bounding box.
+
+        Raises:
+            ValueError: If the provided `anchor` is not supported.
         """
         if anchor == Position.CENTER:
             return np.array(
@@ -661,10 +669,36 @@ class Detections:
                     (self.xyxy[:, 1] + self.xyxy[:, 3]) / 2,
                 ]
             ).transpose()
+        elif anchor == Position.CENTER_LEFT:
+            return np.array(
+                [
+                    self.xyxy[:, 0],
+                    (self.xyxy[:, 1] + self.xyxy[:, 3]) / 2,
+                ]
+            ).transpose()
+        elif anchor == Position.CENTER_RIGHT:
+            return np.array(
+                [
+                    self.xyxy[:, 2],
+                    (self.xyxy[:, 1] + self.xyxy[:, 3]) / 2,
+                ]
+            ).transpose()
         elif anchor == Position.BOTTOM_CENTER:
             return np.array(
                 [(self.xyxy[:, 0] + self.xyxy[:, 2]) / 2, self.xyxy[:, 3]]
             ).transpose()
+        elif anchor == Position.BOTTOM_LEFT:
+            return np.array([self.xyxy[:, 0], self.xyxy[:, 3]]).transpose()
+        elif anchor == Position.BOTTOM_RIGHT:
+            return np.array([self.xyxy[:, 2], self.xyxy[:, 3]]).transpose()
+        elif anchor == Position.TOP_CENTER:
+            return np.array(
+                [(self.xyxy[:, 0] + self.xyxy[:, 2]) / 2, self.xyxy[:, 1]]
+            ).transpose()
+        elif anchor == Position.TOP_LEFT:
+            return np.array([self.xyxy[:, 0], self.xyxy[:, 1]]).transpose()
+        elif anchor == Position.TOP_RIGHT:
+            return np.array([self.xyxy[:, 2], self.xyxy[:, 1]]).transpose()
 
         raise ValueError(f"{anchor} is not supported.")
 

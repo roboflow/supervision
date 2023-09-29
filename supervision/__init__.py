@@ -6,14 +6,20 @@ try:
 except importlib_metadata.PackageNotFoundError:
     __version__ = "development"
 
-
+from supervision.annotators.core import (
+    BoundingBoxAnnotator,
+    BoxCornerAnnotator,
+    EllipseAnnotator,
+    LabelAnnotator,
+    MaskAnnotator,
+)
 from supervision.classification.core import Classifications
 from supervision.dataset.core import (
     BaseDataset,
     ClassificationDataset,
     DetectionDataset,
 )
-from supervision.detection.annotate import BoxAnnotator, MaskAnnotator, TraceAnnotator
+from supervision.detection.annotate import BoxAnnotator, TraceAnnotator
 from supervision.detection.core import Detections
 from supervision.detection.line_counter import LineZone, LineZoneAnnotator
 from supervision.detection.tools.inference_slicer import InferenceSlicer
