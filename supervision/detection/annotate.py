@@ -292,7 +292,6 @@ class TriangleAnnotator:
         self.text_scale: float = text_scale
         self.text_thickness: int = text_thickness
         self.text_padding: int = text_padding
-        self.triangle_height: int = 10
         self.triangle_margin: int = 5
 
     def annotate(
@@ -352,9 +351,9 @@ class TriangleAnnotator:
             # Calculate triangle vertices based on x1, y1, x2, y2 coordinates
             # Modify this part to define your triangle vertices based on x1, y1, x2, y2
             triangle_vertices = [
-                (x1 + (x2 - x1) // 4, y1 - self.triangle_height - self.triangle_margin),
+                (x1 + (x2 - x1) // 4, y1 - (x2 - x1) // 4 - self.triangle_margin),
                 ((x1 + x2) // 2, y1 - self.triangle_margin),
-                (x2 - (x2 - x1) // 4, y1 - self.triangle_height - self.triangle_margin),
+                (x2 - (x2 - x1) // 4, y1 - (x2 - x1) // 4 - self.triangle_margin),
             ]
 
             # Modify this part to draw the triangle and label
@@ -381,14 +380,20 @@ class TriangleAnnotator:
                 thickness=self.text_thickness,
             )[0]
 
-            text_x = x1 + self.text_padding
-            text_y = y1 - self.text_padding
+            text_x = (x1 + (x2 - x1) // 4) + self.text_padding
+            text_y = (y1 - (x2 - x1) // 4 - self.triangle_margin) - self.text_padding
 
-            text_background_x1 = x1
-            text_background_y1 = y1 - 2 * self.text_padding - text_height
+            text_background_x1 = x1 + (x2 - x1) // 4
+            text_background_y1 = (
+                (y1 - (x2 - x1) // 4 - self.triangle_margin)
+                - 2 * self.text_padding
+                - text_height
+            )
 
-            text_background_x2 = x1 + 2 * self.text_padding + text_width
-            text_background_y2 = y1
+            text_background_x2 = (
+                (x1 + (x2 - x1) // 4) + 2 * self.text_padding + text_width
+            )
+            text_background_y2 = (y1 - (x2 - x1) // 4 - self.triangle_margin) - 2
 
             cv2.rectangle(
                 img=scene,
