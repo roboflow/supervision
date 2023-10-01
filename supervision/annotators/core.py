@@ -1,3 +1,4 @@
+from math import sqrt
 from typing import List, Tuple, Union
 
 import cv2
@@ -312,6 +313,86 @@ class BoxCornerAnnotator(BaseAnnotator):
                 cv2.line(
                     scene, (x, y), (x, y_end), color.as_bgr(), thickness=self.thickness
                 )
+        return scene
+
+
+class CircleAnnotator(BaseAnnotator):
+    """
+    A class for drawing circle on an image using provided detections.
+    """
+
+    def __init__(
+        self,
+        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        thickness: int = 4,
+        color_map: str = "class",
+    ):
+        """
+        Args:
+            color (Union[Color, ColorPalette]): The color or color palette to use for
+                annotating detections.
+            thickness (int): Thickness of the circle line.
+            color_map (str): Strategy for mapping colors to annotations.
+                Options are `index`, `class`, or `track`.
+        """
+
+        self.color: Union[Color, ColorPalette] = color
+        self.thickness: int = thickness
+        self.color_map: ColorMap = ColorMap(color_map)
+
+    def annotate(
+        self,
+        scene: np.ndarray,
+        detections: Detections,
+    ) -> np.ndarray:
+        """
+        Draws circle on the frame using the detections provided.
+        Args:
+            scene (np.ndarray): The image on which the circle will be drawn
+            detections (Detections): The detections for which the
+                circle will be drawn
+        Returns:
+            np.ndarray: The image with the circle drawn on it
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> image = ...
+            >>> detections = sv.Detections(...)
+
+            >>> circle_annotator = sv.CircleAnnotator()
+            >>> annotated_frame = circle_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
+            ```
+        """
+
+        for detection_idx in range(len(detections)):
+            x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
+            center = ((x1 + x2) // 2, (y1 + y2) // 2)
+            distance = sqrt((x1 - center[0]) ** 2 + (y1 - center[1]) ** 2)
+
+            idx = resolve_color_idx(
+                detections=detections,
+                detection_idx=detection_idx,
+                color_map=self.color_map,
+            )
+
+            color = (
+                self.color.by_idx(idx)
+                if isinstance(self.color, ColorPalette)
+                else self.color
+            )
+
+            cv2.circle(
+                img=scene,
+                center=center,
+                radius=int(distance),
+                color=color.as_bgr(),
+                thickness=self.thickness,
+            )
+
         return scene
 
 

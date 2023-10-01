@@ -9,6 +9,7 @@ except importlib_metadata.PackageNotFoundError:
 from supervision.annotators.core import (
     BoundingBoxAnnotator,
     BoxCornerAnnotator,
+    CircleAnnotator,
     EllipseAnnotator,
     LabelAnnotator,
     MaskAnnotator,
