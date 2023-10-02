@@ -366,8 +366,11 @@ class CircleAnnotator(BaseAnnotator):
             ...     detections=detections
             ... )
             ```
-        """
 
+
+        ![circle-annotator-example](https://media.roboflow.com/
+        supervision-annotator-examples/circle-annotator-example.png)
+        """
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
             center = ((x1 + x2) // 2, (y1 + y2) // 2)
