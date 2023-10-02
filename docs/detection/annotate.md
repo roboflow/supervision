@@ -14,6 +14,10 @@
 
 :::supervision.annotators.core.BoxCornerAnnotator
 
+## CircleAnnotator
+
+:::supervision.annotators.core.CircleAnnotator
+
 ## LabelAnnotator
 
 :::supervision.annotators.core.LabelAnnotator
