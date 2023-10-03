@@ -15,7 +15,7 @@ class LineZone:
 
     def __init__(self, start: Point, end: Point, anchor: Position = Position.CENTER):
         """
-        Initialize a LineCounter object.
+        Initialize a LineZone object.
 
         Attributes:
             start (Point): The starting point of the line.
@@ -86,7 +86,7 @@ class LineZone:
                             self.counted_tracker_ids["in"].append(track_id)
                         if track_id in self.counted_tracker_ids["out"]:
                             self.counted_tracker_ids["out"].remove(track_id)
-                    elif not tracker_state:
+                    else:
                         self.total_counts["out"] += 1
                         self.counts[class_id]["out"] += 1
                         self.new_trigger = True

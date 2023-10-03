@@ -8,6 +8,7 @@ except importlib_metadata.PackageNotFoundError:
 
 
 from supervision.annotators.core import (
+    AnchorAnnotator,
     BoundingBoxAnnotator,
     BoxCornerAnnotator,
     CircleAnnotator,
@@ -23,7 +24,7 @@ from supervision.dataset.core import (
     ClassificationDataset,
     DetectionDataset,
 )
-from supervision.detection.annotate import AnchorAnnotator, BoxAnnotator, TraceAnnotator
+from supervision.detection.annotate import BoxAnnotator, TraceAnnotator
 from supervision.detection.core import Detections
 from supervision.detection.tools.inference_slicer import InferenceSlicer
 from supervision.detection.utils import (
