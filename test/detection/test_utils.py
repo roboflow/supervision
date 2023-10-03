@@ -264,7 +264,6 @@ def test_filter_polygons_by_area(
     [
         (
             {"predictions": [], "image": {"width": 1000, "height": 1000}},
-            ["person", "car", "truck"],
             (np.empty((0, 4)), np.empty(0), np.empty(0), None),
             DoesNotRaise(),
         ),  # empty result
@@ -282,7 +281,6 @@ def test_filter_polygons_by_area(
                 ],
                 "image": {"width": 1000, "height": 1000},
             },
-            ["person", "car", "truck"],
             (
                 np.array([[175.0, 275.0, 225.0, 325.0]]),
                 np.array([0.9]),
@@ -313,7 +311,6 @@ def test_filter_polygons_by_area(
                 ],
                 "image": {"width": 1000, "height": 1000},
             },
-            ["person", "car", "truck"],
             (
                 np.array([[175.0, 275.0, 225.0, 325.0], [450.0, 450.0, 550.0, 550.0]]),
                 np.array([0.9, 0.8]),
@@ -337,7 +334,6 @@ def test_filter_polygons_by_area(
                 ],
                 "image": {"width": 1000, "height": 1000},
             },
-            ["person", "car", "truck"],
             (np.empty((0, 4)), np.empty(0), np.empty(0), None),
             DoesNotRaise(),
         ),  # single incorrect instance segmentation result with no points
@@ -356,7 +352,6 @@ def test_filter_polygons_by_area(
                 ],
                 "image": {"width": 1000, "height": 1000},
             },
-            ["person", "car", "truck"],
             (np.empty((0, 4)), np.empty(0), np.empty(0), None),
             DoesNotRaise(),
         ),  # single incorrect instance segmentation result with no enough points
@@ -380,7 +375,6 @@ def test_filter_polygons_by_area(
                 ],
                 "image": {"width": 1000, "height": 1000},
             },
-            ["person", "car", "truck"],
             (
                 np.array([[175.0, 275.0, 225.0, 325.0]]),
                 np.array([0.9]),
@@ -418,7 +412,6 @@ def test_filter_polygons_by_area(
                 ],
                 "image": {"width": 1000, "height": 1000},
             },
-            ["person", "car", "truck"],
             (
                 np.array([[175.0, 275.0, 225.0, 325.0]]),
                 np.array([0.9]),
@@ -437,7 +430,7 @@ def test_process_roboflow_result(
 ) -> None:
     with exception:
         result = process_roboflow_result(
-            roboflow_result=roboflow_result, class_list=class_list
+            roboflow_result=roboflow_result
         )
         assert np.array_equal(result[0], expected_result[0])
         assert np.array_equal(result[1], expected_result[1])
