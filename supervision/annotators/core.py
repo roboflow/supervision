@@ -346,13 +346,15 @@ class CircleAnnotator(BaseAnnotator):
         detections: Detections,
     ) -> np.ndarray:
         """
-        Draws circle on the frame using the detections provided.
+        Annotates the given scene with circles based on the provided detections.
+
         Args:
-            scene (np.ndarray): The image on which the circle will be drawn
-            detections (Detections): The detections for which the
-                circle will be drawn
+            scene (np.ndarray): The image where box corners will be drawn.
+            detections (Detections): Object detections to annotate.
+
         Returns:
-            np.ndarray: The image with the circle drawn on it
+            np.ndarray: The annotated image.
+
         Example:
             ```python
             >>> import supervision as sv
