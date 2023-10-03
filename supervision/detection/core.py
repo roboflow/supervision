@@ -467,7 +467,7 @@ class Detections:
             ```
         """
         xyxy, confidence, class_id, masks = process_roboflow_result(
-            roboflow_result=roboflow_result 
+            roboflow_result=roboflow_result
         )
 
         if np.asarray(xyxy).shape[0] == 0:
