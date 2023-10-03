@@ -332,7 +332,7 @@ def extract_ultralytics_masks(yolov8_results) -> Optional[np.ndarray]:
 
 
 def process_roboflow_result(
-    roboflow_result: dict
+    roboflow_result: dict,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, Optional[np.ndarray]]:
     if not roboflow_result["predictions"]:
         return np.empty((0, 4)), np.empty(0), np.empty(0), None
