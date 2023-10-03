@@ -63,7 +63,7 @@ class PolygonZone:
             clipped_detections.get_anchor_coordinates(anchor=self.triggering_position)
         ).astype(int)
         is_in_zone = self.mask[clipped_anchors[:, 1], clipped_anchors[:, 0]]
-        self.current_count = np.sum(is_in_zone)
+        self.current_count = int(np.sum(is_in_zone))
         return is_in_zone.astype(bool)
 
 

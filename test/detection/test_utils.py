@@ -7,9 +7,13 @@ import pytest
 from supervision.detection.utils import (
     clip_boxes,
     filter_polygons_by_area,
+    move_boxes,
     non_max_suppression,
     process_roboflow_result,
 )
+
+TEST_MASK = np.zeros((1, 1000, 1000), dtype=bool)
+TEST_MASK[:, 300:351, 200:251] = True
 
 
 @pytest.mark.parametrize(
@@ -286,7 +290,143 @@ def test_filter_polygons_by_area(
                 None,
             ),
             DoesNotRaise(),
-        ),  # single bounding box
+        ),  # single correct object detection result
+        (
+            {
+                "predictions": [
+                    {
+                        "x": 200.0,
+                        "y": 300.0,
+                        "width": 50.0,
+                        "height": 50.0,
+                        "confidence": 0.9,
+                        "class": "person",
+                    },
+                    {
+                        "x": 500.0,
+                        "y": 500.0,
+                        "width": 100.0,
+                        "height": 100.0,
+                        "confidence": 0.8,
+                        "class": "truck",
+                    },
+                ],
+                "image": {"width": 1000, "height": 1000},
+            },
+            ["person", "car", "truck"],
+            (
+                np.array([[175.0, 275.0, 225.0, 325.0], [450.0, 450.0, 550.0, 550.0]]),
+                np.array([0.9, 0.8]),
+                np.array([0, 2]),
+                None,
+            ),
+            DoesNotRaise(),
+        ),  # two correct object detection result
+        (
+            {
+                "predictions": [
+                    {
+                        "x": 200.0,
+                        "y": 300.0,
+                        "width": 50.0,
+                        "height": 50.0,
+                        "confidence": 0.9,
+                        "class": "person",
+                        "points": [],
+                    }
+                ],
+                "image": {"width": 1000, "height": 1000},
+            },
+            ["person", "car", "truck"],
+            (np.empty((0, 4)), np.empty(0), np.empty(0), None),
+            DoesNotRaise(),
+        ),  # single incorrect instance segmentation result with no points
+        (
+            {
+                "predictions": [
+                    {
+                        "x": 200.0,
+                        "y": 300.0,
+                        "width": 50.0,
+                        "height": 50.0,
+                        "confidence": 0.9,
+                        "class": "person",
+                        "points": [{"x": 200.0, "y": 300.0}, {"x": 250.0, "y": 300.0}],
+                    }
+                ],
+                "image": {"width": 1000, "height": 1000},
+            },
+            ["person", "car", "truck"],
+            (np.empty((0, 4)), np.empty(0), np.empty(0), None),
+            DoesNotRaise(),
+        ),  # single incorrect instance segmentation result with no enough points
+        (
+            {
+                "predictions": [
+                    {
+                        "x": 200.0,
+                        "y": 300.0,
+                        "width": 50.0,
+                        "height": 50.0,
+                        "confidence": 0.9,
+                        "class": "person",
+                        "points": [
+                            {"x": 200.0, "y": 300.0},
+                            {"x": 250.0, "y": 300.0},
+                            {"x": 250.0, "y": 350.0},
+                            {"x": 200.0, "y": 350.0},
+                        ],
+                    }
+                ],
+                "image": {"width": 1000, "height": 1000},
+            },
+            ["person", "car", "truck"],
+            (
+                np.array([[175.0, 275.0, 225.0, 325.0]]),
+                np.array([0.9]),
+                np.array([0]),
+                TEST_MASK,
+            ),
+            DoesNotRaise(),
+        ),  # single incorrect instance segmentation result with no enough points
+        (
+            {
+                "predictions": [
+                    {
+                        "x": 200.0,
+                        "y": 300.0,
+                        "width": 50.0,
+                        "height": 50.0,
+                        "confidence": 0.9,
+                        "class": "person",
+                        "points": [
+                            {"x": 200.0, "y": 300.0},
+                            {"x": 250.0, "y": 300.0},
+                            {"x": 250.0, "y": 350.0},
+                            {"x": 200.0, "y": 350.0},
+                        ],
+                    },
+                    {
+                        "x": 500.0,
+                        "y": 500.0,
+                        "width": 100.0,
+                        "height": 100.0,
+                        "confidence": 0.8,
+                        "class": "truck",
+                        "points": [],
+                    },
+                ],
+                "image": {"width": 1000, "height": 1000},
+            },
+            ["person", "car", "truck"],
+            (
+                np.array([[175.0, 275.0, 225.0, 325.0]]),
+                np.array([0.9]),
+                np.array([0]),
+                TEST_MASK,
+            ),
+            DoesNotRaise(),
+        ),  # two instance segmentation results - one correct, one incorrect
     ],
 )
 def test_process_roboflow_result(
@@ -305,3 +445,48 @@ def test_process_roboflow_result(
         assert (result[3] is None and expected_result[3] is None) or (
             np.array_equal(result[3], expected_result[3])
         )
+
+
+@pytest.mark.parametrize(
+    "xyxy, offset, expected_result, exception",
+    [
+        (
+            np.empty(shape=(0, 4)),
+            np.array([0, 0]),
+            np.empty(shape=(0, 4)),
+            DoesNotRaise(),
+        ),  # empty xyxy array
+        (
+            np.array([[0, 0, 10, 10]]),
+            np.array([0, 0]),
+            np.array([[0, 0, 10, 10]]),
+            DoesNotRaise(),
+        ),  # single box with zero offset
+        (
+            np.array([[0, 0, 10, 10]]),
+            np.array([10, 10]),
+            np.array([[10, 10, 20, 20]]),
+            DoesNotRaise(),
+        ),  # single box with non-zero offset
+        (
+            np.array([[0, 0, 10, 10], [0, 0, 10, 10]]),
+            np.array([10, 10]),
+            np.array([[10, 10, 20, 20], [10, 10, 20, 20]]),
+            DoesNotRaise(),
+        ),  # two boxes with non-zero offset
+        (
+            np.array([[0, 0, 10, 10], [0, 0, 10, 10]]),
+            np.array([-10, -10]),
+            np.array([[-10, -10, 0, 0], [-10, -10, 0, 0]]),
+            DoesNotRaise(),
+        ),  # two boxes with negative offset
+    ],
+)
+def test_move_boxes(
+    xyxy: np.ndarray,
+    offset: np.ndarray,
+    expected_result: np.ndarray,
+    exception: Exception,
+) -> None:
+    result = move_boxes(xyxy=xyxy, offset=offset)
+    assert np.array_equal(result, expected_result)

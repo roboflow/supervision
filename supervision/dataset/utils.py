@@ -97,7 +97,8 @@ def save_dataset_images(
 ) -> None:
     Path(images_directory_path).mkdir(parents=True, exist_ok=True)
 
-    for image_name, image in images.items():
+    for image_path, image in images.items():
+        image_name = Path(image_path).name
         target_image_path = os.path.join(images_directory_path, image_name)
         cv2.imwrite(target_image_path, image)
 

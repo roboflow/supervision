@@ -181,21 +181,21 @@ class DetectionDataset(BaseDataset):
             in the range [0, 1). Argument is used only for segmentation datasets.
         """
         if images_directory_path:
-            images_path = Path(images_directory_path)
-            images_path.mkdir(parents=True, exist_ok=True)
-
+            save_dataset_images(
+                images_directory_path=images_directory_path, images=self.images
+            )
         if annotations_directory_path:
-            annotations_path = Path(annotations_directory_path)
-            annotations_path.mkdir(parents=True, exist_ok=True)
+            Path(annotations_directory_path).mkdir(parents=True, exist_ok=True)
 
-        for image_name, image in self.images.items():
-            detections = self.annotations[image_name]
-
-            if images_directory_path:
-                cv2.imwrite(str(images_path / image_name), image)
+        for image_path, image in self.images.items():
+            detections = self.annotations[image_path]
 
             if annotations_directory_path:
-                annotation_name = Path(image_name).stem
+                annotation_name = Path(image_path).stem
+                annotations_path = os.path.join(
+                    annotations_directory_path, f"{annotation_name}.xml"
+                )
+                image_name = Path(image_path).name
                 pascal_voc_xml = detections_to_pascal_voc(
                     detections=detections,
                     classes=self.classes,
@@ -206,7 +206,7 @@ class DetectionDataset(BaseDataset):
                     approximation_percentage=approximation_percentage,
                 )
 
-                with open(annotations_path / f"{annotation_name}.xml", "w") as f:
+                with open(annotations_path, "w") as f:
                     f.write(pascal_voc_xml)
 
     @classmethod
@@ -615,9 +615,10 @@ class ClassificationDataset(BaseDataset):
         for class_name in self.classes:
             os.makedirs(os.path.join(root_directory_path, class_name), exist_ok=True)
 
-        for image_name in self.images:
-            classification = self.annotations[image_name]
-            image = self.images[image_name]
+        for image_path in self.images:
+            classification = self.annotations[image_path]
+            image = self.images[image_path]
+            image_name = Path(image_path).name
             class_id = (
                 classification.class_id[0]
                 if classification.confidence is None
@@ -666,9 +667,9 @@ class ClassificationDataset(BaseDataset):
             class_id = classes.index(class_name)
 
             for image in os.listdir(os.path.join(root_directory_path, class_name)):
-                image_dir = os.path.join(root_directory_path, class_name, image)
-                images[image] = cv2.imread(image_dir)
-                annotations[image] = Classifications(
+                image_path = str(os.path.join(root_directory_path, class_name, image))
+                images[image_path] = cv2.imread(image_path)
+                annotations[image_path] = Classifications(
                     class_id=np.array([class_id]),
                 )
 

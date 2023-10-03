@@ -20,6 +20,7 @@ def polygon_to_mask(polygon: np.ndarray, resolution_wh: Tuple[int, int]) -> np.n
     """
     width, height = resolution_wh
     mask = np.zeros((height, width))
+
     cv2.fillPoly(mask, [polygon], color=1)
     return mask
 
@@ -354,23 +355,37 @@ def process_roboflow_result(
         x_max = x_min + width
         y_max = y_min + height
 
-        xyxy.append([x_min, y_min, x_max, y_max])
-        class_id.append(class_list.index(prediction["class"]))
-        confidence.append(prediction["confidence"])
-
         if "points" not in prediction:
-            continue
+            xyxy.append([x_min, y_min, x_max, y_max])
+            class_id.append(class_list.index(prediction["class"]))
+            confidence.append(prediction["confidence"])
+        elif len(prediction["points"]) >= 3:
+            polygon = np.array(
+                [[point["x"], point["y"]] for point in prediction["points"]], dtype=int
+            )
+            mask = polygon_to_mask(polygon, resolution_wh=(image_width, image_height))
+            xyxy.append([x_min, y_min, x_max, y_max])
+            class_id.append(class_list.index(prediction["class"]))
+            confidence.append(prediction["confidence"])
+            masks.append(mask)
 
-        polygon = np.array(
-            [[point["x"], point["y"]] for point in prediction["points"]], dtype=int
-        )
-
-        mask = polygon_to_mask(polygon, resolution_wh=(image_width, image_height))
-        masks.append(mask)
-
-    xyxy = np.array(xyxy)
-    confidence = np.array(confidence)
-    class_id = np.array(class_id).astype(int)
+    xyxy = np.array(xyxy) if len(xyxy) > 0 else np.empty((0, 4))
+    confidence = np.array(confidence) if len(confidence) > 0 else np.empty(0)
+    class_id = np.array(class_id).astype(int) if len(class_id) > 0 else np.empty(0)
     masks = np.array(masks, dtype=bool) if len(masks) > 0 else None
 
     return xyxy, confidence, class_id, masks
+
+
+def move_boxes(xyxy: np.ndarray, offset: np.ndarray) -> np.ndarray:
+    """
+    Args:
+        xyxy (np.ndarray): An array of shape `(n, 4)` containing the bounding boxes
+            coordinates in format `[x1, y1, x2, y2]`
+        offset (np.array): An array of shape `(2,)` containing offset values in format
+            is `[dx, dy]`.
+
+    Returns:
+        (np.ndarray) repositioned bounding boxes
+    """
+    return xyxy + np.hstack([offset, offset])

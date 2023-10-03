@@ -28,29 +28,28 @@ nav:
   - Home: index.md
   - Quickstart:
     - Detections: quickstart/detections.md
-  - API reference:
-    - Classifications:
-        - Core: classification/core.md
-    - Detections:
-        - Core: detection/core.md
-        - Annotate: detection/annotate.md
-        - Utils: detection/utils.md
-        - Tools:
-            - Polygon Zone: detection/tools/polygon_zone.md
-    - Trackers:
-        - Core: tracker/core.md
-    - Dataset:
-        - Core: dataset/core.md
-    - Metrics:
-      - Detection Models: metrics/detection.md
-    - Draw:
-        - Utils: draw/utils.md
-    - Utils:
-        - Video: utils/video.md
-        - Image: utils/image.md
-        - Notebook: utils/notebook.md
-        - File: utils/file.md
-        - FPS: utils/fps.md
+  - Classifications:
+      - Core: classification/core.md
+  - Detections:
+      - Core: detection/core.md
+      - Annotate: detection/annotate.md
+      - Utils: detection/utils.md
+      - Tools:
+          - Polygon Zone: detection/tools/polygon_zone.md
+          - Inference Slicer: detection/tools/inference_slicer.md
+  - Annotators: annotators.md
+  - Trackers: trackers.md
+  - Datasets: datasets.md
+  - Metrics:
+    - Object Detection: metrics/detection.md
+  - Draw:
+      - Utils: draw/utils.md
+  - Utils:
+      - Video: utils/video.md
+      - Image: utils/image.md
+      - Notebook: utils/notebook.md
+      - File: utils/file.md
+      - FPS: utils/fps.md
   - Changelog: changelog.md
 
 theme:
