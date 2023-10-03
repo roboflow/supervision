@@ -12,7 +12,8 @@ def crop(image: np.ndarray, xyxy: np.ndarray) -> np.ndarray:
 
     Args:
         image (np.ndarray): The image to be cropped, represented as a numpy array.
-        xyxy (np.ndarray): A numpy array containing the bounding box coordinates in the format (x1, y1, x2, y2).
+        xyxy (np.ndarray): A numpy array containing the bounding box coordinates
+            in the format (x1, y1, x2, y2).
 
     Returns:
         (np.ndarray): The cropped image as a numpy array.
@@ -47,18 +48,23 @@ class ImageSink:
 
         Args:
             target_dir_path (str): The target directory where images will be saved.
-            overwrite (bool, optional): Whether to overwrite the existing directory. Defaults to False.
-            image_name_pattern (str, optional): The image file name pattern. Defaults to "image_{:05d}.png".
+            overwrite (bool, optional): Whether to overwrite the existing directory.
+                Defaults to False.
+            image_name_pattern (str, optional): The image file name pattern.
+                Defaults to "image_{:05d}.png".
 
         Examples:
             ```python
             >>> import supervision as sv
 
-            >>> with sv.ImageSink(target_dir_path='target/directory/path', overwrite=True) as sink:
-            ...     for image in sv.get_video_frames_generator(source_path='source_video.mp4', stride=2):
+            >>> with sv.ImageSink(target_dir_path='target/directory/path',
+            ...                   overwrite=True) as sink:
+            ...     for image in sv.get_video_frames_generator(
+            ...         source_path='source_video.mp4', stride=2):
             ...         sink.save_image(image=image)
             ```
         """
+
         self.target_dir_path = target_dir_path
         self.overwrite = overwrite
         self.image_name_pattern = image_name_pattern
@@ -80,7 +86,9 @@ class ImageSink:
 
         Args:
             image (np.ndarray): The image to be saved.
-            image_name (str, optional): The name to use for the saved image. If not provided, a name will be generated using the `image_name_pattern`.
+            image_name (str, optional): The name to use for the saved image.
+                If not provided, a name will be
+                generated using the `image_name_pattern`.
         """
         if image_name is None:
             image_name = self.image_name_pattern.format(self.image_count)
