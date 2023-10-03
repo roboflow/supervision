@@ -429,9 +429,7 @@ def test_process_roboflow_result(
     exception: Exception,
 ) -> None:
     with exception:
-        result = process_roboflow_result(
-            roboflow_result=roboflow_result
-        )
+        result = process_roboflow_result(roboflow_result=roboflow_result)
         assert np.array_equal(result[0], expected_result[0])
         assert np.array_equal(result[1], expected_result[1])
         assert np.array_equal(result[2], expected_result[2])
