@@ -614,7 +614,7 @@ class BlurAnnotator(BaseAnnotator):
             roi = scene[y1:y2, x1:x2]
 
             roi = cv2.GaussianBlur(
-                img=roi, size=self.kernel_size, sigmax=self.sigmax, sigmay=self.sigmay
+                img=roi, size=(5,5), sigmax=self.sigmax, sigmay=self.sigmay
             )
             scene[y1:y2, x1:x2] = roi
 
