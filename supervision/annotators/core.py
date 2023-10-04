@@ -565,6 +565,54 @@ class LabelAnnotator:
         return scene
 
 
+class BlurAnnotator(BaseAnnotator):
+    """
+    A class for blurring annotator.
+    """
+
+    def __init__(self, kernel_size: int = 15):
+        """
+        Args:
+            kernel_size: the size of the average pooling kernel used for blurring
+        """
+        self.kernel_size: int = kernel_size
+
+    def annotate(
+        self,
+        scene: np.ndarray,
+        detections: Detections,
+    ) -> np.ndarray:
+        """
+        Annotates the given scene with circles based on the provided detections.
+        Args:
+            scene (np.ndarray): The image where box corners will be drawn.
+            detections (Detections): Object detections to annotate.
+        Returns:
+            np.ndarray: The annotated image.
+        Example:
+            ```python
+            >>> import supervision as sv
+            >>> image = ...
+            >>> detections = sv.Detections(...)
+            >>> blue_annotator = sv.BlurAnnotator()
+            >>> annotated_frame = blur_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
+            ```
+        ![circle-annotator-example](https://media.roboflow.com/
+        supervision-annotator-examples/circle-annotator-example.png)
+        """
+        for detection_idx in range(len(detections)):
+            x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
+            roi = scene[y1:y2, x1:x2]
+
+            roi = cv2.blur(roi, (self.kernel_size, self.kernel_size))
+            scene[y1:y2, x1:x2] = roi
+
+        return scene
+
+
 class TraceAnnotator:
     """
     A class for drawing trace paths on an image based on detection coordinates.
