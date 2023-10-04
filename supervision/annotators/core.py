@@ -570,7 +570,7 @@ class BlurAnnotator(BaseAnnotator):
     A class for blurring annotator.
     """
 
-    def __init__(self, kernel_size: int = 5, sigmax: int = 0, sigmay: int = 0):
+    def __init__(self, kernel_size: int = 15):
         """
         Args:
             color (Union[Color, ColorPalette]): The color or color palette to use for
@@ -580,8 +580,7 @@ class BlurAnnotator(BaseAnnotator):
                 Options are `index`, `class`, or `track`.
         """
         self.kernel_size: int = kernel_size
-        self.sigmax = sigmax
-        self.sigmay = sigmay
+        
 
     def annotate(
         self,
@@ -613,8 +612,8 @@ class BlurAnnotator(BaseAnnotator):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
             roi = scene[y1:y2, x1:x2]
 
-            roi = cv2.GaussianBlur(
-                img=roi, size=(5, 5), sigmax=self.sigmax, sigmay=self.sigmay
+            roi = cv2.blur(
+                roi, (kernel_size, kernel_size)
             )
             scene[y1:y2, x1:x2] = roi
 
