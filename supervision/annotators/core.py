@@ -580,7 +580,6 @@ class BlurAnnotator(BaseAnnotator):
                 Options are `index`, `class`, or `track`.
         """
         self.kernel_size: int = kernel_size
-        
 
     def annotate(
         self,
@@ -612,9 +611,7 @@ class BlurAnnotator(BaseAnnotator):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
             roi = scene[y1:y2, x1:x2]
 
-            roi = cv2.blur(
-                roi, (kernel_size, kernel_size)
-            )
+            roi = cv2.blur(roi, (kernel_size, kernel_size))
             scene[y1:y2, x1:x2] = roi
 
         return scene
