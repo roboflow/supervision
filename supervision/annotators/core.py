@@ -611,7 +611,7 @@ class BlurAnnotator(BaseAnnotator):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
             roi = scene[y1:y2, x1:x2]
 
-            roi = cv2.blur(roi, (kernel_size, kernel_size))
+            roi = cv2.blur(roi, (self.kernel_size, self.kernel_size))
             scene[y1:y2, x1:x2] = roi
 
         return scene
