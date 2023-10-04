@@ -1,12 +1,16 @@
 from math import sqrt
-from typing import List, Tuple, Union, Optional
+from typing import List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
 
 from supervision.annotators.base import BaseAnnotator
-from supervision.annotators.utils import ColorMap, resolve_color, resolve_color_idx, \
-    Trace
+from supervision.annotators.utils import (
+    ColorMap,
+    Trace,
+    resolve_color,
+    resolve_color_idx,
+)
 from supervision.detection.core import Detections
 from supervision.draw.color import Color, ColorPalette
 from supervision.geometry.core import Position
@@ -565,6 +569,7 @@ class TraceAnnotator:
     """
     A class for drawing trace paths on an image based on detection coordinates.
     """
+
     def __init__(
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
