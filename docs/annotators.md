@@ -141,7 +141,7 @@
 
     <div class="result" markdown>
 
-    ![label-annotator-example](https://media.roboflow.com/supervision-annotator-examples/label-annotator-example-2.png){ align=center width="800" }
+    ![trace-annotator-example](https://media.roboflow.com/supervision-annotator-examples/trace-annotator-example.png){ align=center width="800" }
 
     </div>
 

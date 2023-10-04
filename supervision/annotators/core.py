@@ -568,6 +568,12 @@ class LabelAnnotator:
 class TraceAnnotator:
     """
     A class for drawing trace paths on an image based on detection coordinates.
+
+    !!! warning
+
+        This annotator utilizes the `tracker_id`. Read
+        [here](https://supervision.roboflow.com/trackers/) to learn how to plug
+        tracking into your inference pipeline.
     """
 
     def __init__(
@@ -617,6 +623,9 @@ class TraceAnnotator:
             ...     detections=detections
             ... )
             ```
+
+        ![trace-annotator-example](https://media.roboflow.com/
+        supervision-annotator-examples/trace-annotator-example.png)
         """
         self.trace.put(detections)
 
