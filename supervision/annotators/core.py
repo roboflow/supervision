@@ -1,12 +1,13 @@
 from math import sqrt
-from typing import List, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
 
-from supervision.annotators.base import (
-    BaseAnnotator,
+from supervision.annotators.base import BaseAnnotator
+from supervision.annotators.utils import (
     ColorMap,
+    Trace,
     resolve_color,
     resolve_color_idx,
 )
@@ -589,29 +590,22 @@ class BlurAnnotator(BaseAnnotator):
     ) -> np.ndarray:
         """
         Annotates the given scene with circles based on the provided detections.
-
         Args:
             scene (np.ndarray): The image where box corners will be drawn.
             detections (Detections): Object detections to annotate.
-
         Returns:
             np.ndarray: The annotated image.
-
         Example:
             ```python
             >>> import supervision as sv
-
             >>> image = ...
             >>> detections = sv.Detections(...)
-
             >>> circle_annotator = sv.CircleAnnotator()
             >>> annotated_frame = circle_annotator.annotate(
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
             ```
-
-
         ![circle-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/circle-annotator-example.png)
         """
@@ -624,4 +618,89 @@ class BlurAnnotator(BaseAnnotator):
             )
             scene[y1:y2, x1:x2] = roi
 
+        return scene
+      
+
+class TraceAnnotator:
+    """
+    A class for drawing trace paths on an image based on detection coordinates.
+
+    !!! warning
+
+        This annotator utilizes the `tracker_id`. Read
+        [here](https://supervision.roboflow.com/trackers/) to learn how to plug
+        tracking into your inference pipeline.
+    """
+
+    def __init__(
+        self,
+        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        position: Optional[Position] = Position.CENTER,
+        trace_length: int = 30,
+        thickness: int = 2,
+    ):
+        """
+        Args:
+            color (Union[Color, ColorPalette]): The color to draw the trace, can be
+                a single color or a color palette.
+            position (Optional[Position]): The position of the trace.
+                Defaults to `CENTER`.
+            trace_length (int): The maximum length of the trace in terms of historical
+                points. Defaults to `30`.
+            thickness (int): The thickness of the trace lines. Defaults to `2`.
+        """
+        self.color: Union[Color, ColorPalette] = color
+        self.position = position
+        self.trace = Trace(max_size=trace_length)
+        self.thickness = thickness
+
+    def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
+        """
+        Draws trace paths on the frame based on the detection coordinates provided.
+
+        Args:
+            scene (np.ndarray): The image on which the traces will be drawn.
+            detections (Detections): The detections which include coordinates for
+                which the traces will be drawn.
+
+        Returns:
+            np.ndarray: The image with the trace paths drawn on it.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> image = ...
+            >>> detections = sv.Detections(...)
+
+            >>> trace_annotator = sv.TraceAnnotator()
+            >>> annotated_frame = trace_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
+            ```
+
+        ![trace-annotator-example](https://media.roboflow.com/
+        supervision-annotator-examples/trace-annotator-example.png)
+        """
+        self.trace.put(detections)
+
+        for i, (xyxy, mask, confidence, class_id, tracker_id) in enumerate(detections):
+            class_id = detections.class_id[i] if class_id is not None else None
+            idx = class_id if class_id is not None else i
+            color = (
+                self.color.by_idx(idx)
+                if isinstance(self.color, ColorPalette)
+                else self.color
+            )
+
+            xy = self.trace.get(tracker_id=tracker_id)
+            if len(xy) > 1:
+                scene = cv2.polylines(
+                    scene,
+                    [xy.astype(np.int32)],
+                    False,
+                    color=color.as_bgr(),
+                    thickness=self.thickness,
+                )
         return scene

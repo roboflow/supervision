@@ -13,6 +13,7 @@ from supervision.annotators.core import (
     EllipseAnnotator,
     LabelAnnotator,
     MaskAnnotator,
+    TraceAnnotator,
 )
 from supervision.classification.core import Classifications
 from supervision.dataset.core import (
@@ -20,7 +21,7 @@ from supervision.dataset.core import (
     ClassificationDataset,
     DetectionDataset,
 )
-from supervision.detection.annotate import BoxAnnotator, TraceAnnotator
+from supervision.detection.annotate import BoxAnnotator
 from supervision.detection.core import Detections
 from supervision.detection.line_counter import LineZone, LineZoneAnnotator
 from supervision.detection.tools.inference_slicer import InferenceSlicer
