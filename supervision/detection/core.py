@@ -456,6 +456,7 @@ class Detections:
             ...             "y": 0.5,
             ...             "width": 0.2,
             ...             "height": 0.3,
+            ...             "class_id": 0,
             ...             "class": "person",
             ...             "confidence": 0.9
             ...         },

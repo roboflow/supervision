@@ -260,7 +260,7 @@ def test_filter_polygons_by_area(
 
 
 @pytest.mark.parametrize(
-    "roboflow_result, class_list, expected_result, exception",
+    "roboflow_result, expected_result, exception",
     [
         (
             {"predictions": [], "image": {"width": 1000, "height": 1000}},
@@ -276,6 +276,7 @@ def test_filter_polygons_by_area(
                         "width": 50.0,
                         "height": 50.0,
                         "confidence": 0.9,
+                        "class_id": 0,
                         "class": "person",
                     }
                 ],
@@ -298,6 +299,7 @@ def test_filter_polygons_by_area(
                         "width": 50.0,
                         "height": 50.0,
                         "confidence": 0.9,
+                        "class_id": 0,
                         "class": "person",
                     },
                     {
@@ -306,6 +308,7 @@ def test_filter_polygons_by_area(
                         "width": 100.0,
                         "height": 100.0,
                         "confidence": 0.8,
+                        "class_id": 7,
                         "class": "truck",
                     },
                 ],
@@ -314,7 +317,7 @@ def test_filter_polygons_by_area(
             (
                 np.array([[175.0, 275.0, 225.0, 325.0], [450.0, 450.0, 550.0, 550.0]]),
                 np.array([0.9, 0.8]),
-                np.array([0, 2]),
+                np.array([0, 7]),
                 None,
             ),
             DoesNotRaise(),
@@ -328,6 +331,7 @@ def test_filter_polygons_by_area(
                         "width": 50.0,
                         "height": 50.0,
                         "confidence": 0.9,
+                        "class_id": 0,
                         "class": "person",
                         "points": [],
                     }
@@ -346,6 +350,7 @@ def test_filter_polygons_by_area(
                         "width": 50.0,
                         "height": 50.0,
                         "confidence": 0.9,
+                        "class_id": 0,
                         "class": "person",
                         "points": [{"x": 200.0, "y": 300.0}, {"x": 250.0, "y": 300.0}],
                     }
@@ -364,6 +369,7 @@ def test_filter_polygons_by_area(
                         "width": 50.0,
                         "height": 50.0,
                         "confidence": 0.9,
+                        "class_id": 0,
                         "class": "person",
                         "points": [
                             {"x": 200.0, "y": 300.0},
@@ -392,6 +398,7 @@ def test_filter_polygons_by_area(
                         "width": 50.0,
                         "height": 50.0,
                         "confidence": 0.9,
+                        "class_id": 0,
                         "class": "person",
                         "points": [
                             {"x": 200.0, "y": 300.0},
@@ -406,6 +413,7 @@ def test_filter_polygons_by_area(
                         "width": 100.0,
                         "height": 100.0,
                         "confidence": 0.8,
+                        "class_id": 7,
                         "class": "truck",
                         "points": [],
                     },
@@ -424,7 +432,6 @@ def test_filter_polygons_by_area(
 )
 def test_process_roboflow_result(
     roboflow_result: dict,
-    class_list: List[str],
     expected_result: Tuple[np.ndarray, np.ndarray, np.ndarray, Optional[np.ndarray]],
     exception: Exception,
 ) -> None:

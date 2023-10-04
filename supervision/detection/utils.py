@@ -357,7 +357,7 @@ def process_roboflow_result(
 
         if "points" not in prediction:
             xyxy.append([x_min, y_min, x_max, y_max])
-            class_id.append(int(prediction["class"]))
+            class_id.append(prediction["class_id"])
             confidence.append(prediction["confidence"])
         elif len(prediction["points"]) >= 3:
             polygon = np.array(
@@ -365,7 +365,7 @@ def process_roboflow_result(
             )
             mask = polygon_to_mask(polygon, resolution_wh=(image_width, image_height))
             xyxy.append([x_min, y_min, x_max, y_max])
-            class_id.append(int(prediction["class"]))
+            class_id.append(prediction["class_id"])
             confidence.append(prediction["confidence"])
             masks.append(mask)
 
