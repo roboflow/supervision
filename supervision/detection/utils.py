@@ -332,7 +332,7 @@ def extract_ultralytics_masks(yolov8_results) -> Optional[np.ndarray]:
 
 
 def process_roboflow_result(
-    roboflow_result: dict, class_list: List[str]
+    roboflow_result: dict,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, Optional[np.ndarray]]:
     if not roboflow_result["predictions"]:
         return np.empty((0, 4)), np.empty(0), np.empty(0), None
@@ -357,7 +357,7 @@ def process_roboflow_result(
 
         if "points" not in prediction:
             xyxy.append([x_min, y_min, x_max, y_max])
-            class_id.append(class_list.index(prediction["class"]))
+            class_id.append(prediction["class_id"])
             confidence.append(prediction["confidence"])
         elif len(prediction["points"]) >= 3:
             polygon = np.array(
@@ -365,7 +365,7 @@ def process_roboflow_result(
             )
             mask = polygon_to_mask(polygon, resolution_wh=(image_width, image_height))
             xyxy.append([x_min, y_min, x_max, y_max])
-            class_id.append(class_list.index(prediction["class"]))
+            class_id.append(prediction["class_id"])
             confidence.append(prediction["confidence"])
             masks.append(mask)
 

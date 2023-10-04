@@ -432,7 +432,7 @@ class Detections:
         )
 
     @classmethod
-    def from_roboflow(cls, roboflow_result: dict, class_list: List[str]) -> Detections:
+    def from_roboflow(cls, roboflow_result: dict) -> Detections:
         """
         Create a Detections object from the [Roboflow](https://roboflow.com/)
             API inference result.
@@ -440,8 +440,6 @@ class Detections:
         Args:
             roboflow_result (dict): The result from the
                 Roboflow API containing predictions.
-            class_list (List[str]): A list of class names
-                corresponding to the class IDs in the API result.
 
         Returns:
             (Detections): A Detections object containing the bounding boxes, class IDs,
@@ -458,19 +456,19 @@ class Detections:
             ...             "y": 0.5,
             ...             "width": 0.2,
             ...             "height": 0.3,
+            ...             "class_id": 0,
             ...             "class": "person",
             ...             "confidence": 0.9
             ...         },
             ...         # ... more predictions ...
             ...     ]
             ... }
-            >>> class_list = ["person", "car", "dog"]
 
-            >>> detections = sv.Detections.from_roboflow(roboflow_result, class_list)
+            >>> detections = sv.Detections.from_roboflow(roboflow_result)
             ```
         """
         xyxy, confidence, class_id, masks = process_roboflow_result(
-            roboflow_result=roboflow_result, class_list=class_list
+            roboflow_result=roboflow_result
         )
 
         if np.asarray(xyxy).shape[0] == 0:
