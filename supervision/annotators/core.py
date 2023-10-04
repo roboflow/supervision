@@ -582,7 +582,7 @@ class TraceAnnotator:
         position: Optional[Position] = Position.CENTER,
         trace_length: int = 30,
         thickness: int = 2,
-        color_map: str = "class"
+        color_map: str = "class",
     ):
         """
         Args:
