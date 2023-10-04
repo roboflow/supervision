@@ -582,6 +582,7 @@ class TraceAnnotator:
         position: Optional[Position] = Position.CENTER,
         trace_length: int = 30,
         thickness: int = 2,
+        color_map: str = "class"
     ):
         """
         Args:
@@ -592,11 +593,14 @@ class TraceAnnotator:
             trace_length (int): The maximum length of the trace in terms of historical
                 points. Defaults to `30`.
             thickness (int): The thickness of the trace lines. Defaults to `2`.
+            color_map (str): Strategy for mapping colors to annotations.
+                Options are `index`, `class`, or `track`.
         """
         self.color: Union[Color, ColorPalette] = color
         self.position = position
         self.trace = Trace(max_size=trace_length)
         self.thickness = thickness
+        self.color_map: ColorMap = ColorMap(color_map)
 
     def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
         """
@@ -629,15 +633,14 @@ class TraceAnnotator:
         """
         self.trace.put(detections)
 
-        for i, (xyxy, mask, confidence, class_id, tracker_id) in enumerate(detections):
-            class_id = detections.class_id[i] if class_id is not None else None
-            idx = class_id if class_id is not None else i
-            color = (
-                self.color.by_idx(idx)
-                if isinstance(self.color, ColorPalette)
-                else self.color
+        for detection_idx in range(len(detections)):
+            tracker_id = int(detections.tracker_id[detection_idx])
+            idx = resolve_color_idx(
+                detections=detections,
+                detection_idx=detection_idx,
+                color_map=self.color_map,
             )
-
+            color = resolve_color(color=self.color, idx=idx)
             xy = self.trace.get(tracker_id=tracker_id)
             if len(xy) > 1:
                 scene = cv2.polylines(
