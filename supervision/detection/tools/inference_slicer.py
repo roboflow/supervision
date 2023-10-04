@@ -28,15 +28,16 @@ class InferenceSlicer:
     larger image into smaller slices, performing inference on each slice, and then
     merging the detections.
 
-    Attributes:
+    Args:
         slice_wh (Tuple[int, int]): Dimensions of each slice in the format
             `(width, height)`.
         overlap_ratio_wh (Tuple[float, float]): Overlap ratio between consecutive
             slices in the format `(width_ratio, height_ratio)`.
-        iou_threshold (Optional[float]): Intersection over Union (IoU) threshold used
-            for non-max suppression.
-        callback (Callable): A function that performs inference on a given image slice
-            and returns detections.
+        iou_threshold (Optional[float]): Intersection over Union (IoU) threshold
+            used for non-max suppression.
+        callback (Callable): A function that performs inference on a given image
+            slice and returns detections.
+        thread_workers (int): Number of threads for parallel execution.
 
     Note:
         The class ensures that slices do not exceed the boundaries of the original
