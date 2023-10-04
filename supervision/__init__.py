@@ -7,9 +7,9 @@ except importlib_metadata.PackageNotFoundError:
     __version__ = "development"
 
 from supervision.annotators.core import (
+    BlurAnnotator,
     BoundingBoxAnnotator,
     BoxCornerAnnotator,
-    BlurAnnotator,
     CircleAnnotator,
     EllipseAnnotator,
     LabelAnnotator,
