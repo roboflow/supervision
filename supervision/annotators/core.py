@@ -567,13 +567,13 @@ class LabelAnnotator:
 
 class BlurAnnotator(BaseAnnotator):
     """
-    A class for blurring annotator.
+    A class for blurring regions in an image using provided detections.
     """
 
     def __init__(self, kernel_size: int = 15):
         """
         Args:
-            kernel_size: the size of the average pooling kernel used for blurring
+            kernel_size (int): The size of the average pooling kernel used for blurring.
         """
         self.kernel_size: int = kernel_size
 
@@ -583,25 +583,31 @@ class BlurAnnotator(BaseAnnotator):
         detections: Detections,
     ) -> np.ndarray:
         """
-        Annotates the given scene with circles based on the provided detections.
+        Annotates the given scene by blurring regions based on the provided detections.
+
         Args:
-            scene (np.ndarray): The image where box corners will be drawn.
+            scene (np.ndarray): The image where blurring will be applied.
             detections (Detections): Object detections to annotate.
+
         Returns:
             np.ndarray: The annotated image.
+
         Example:
             ```python
             >>> import supervision as sv
+
             >>> image = ...
             >>> detections = sv.Detections(...)
-            >>> blue_annotator = sv.BlurAnnotator()
+
+            >>> blur_annotator = sv.BlurAnnotator()
             >>> annotated_frame = blur_annotator.annotate(
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
             ```
-        ![circle-annotator-example](https://media.roboflow.com/
-        supervision-annotator-examples/circle-annotator-example.png)
+
+        ![blur-annotator-example](https://media.roboflow.com/
+        supervision-annotator-examples/blur-annotator-example-2.png)
         """
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
