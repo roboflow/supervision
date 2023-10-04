@@ -619,7 +619,7 @@ class BlurAnnotator(BaseAnnotator):
             scene[y1:y2, x1:x2] = roi
 
         return scene
-      
+
 
 class TraceAnnotator:
     """
