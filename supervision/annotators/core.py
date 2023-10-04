@@ -562,3 +562,66 @@ class LabelAnnotator:
                 lineType=cv2.LINE_AA,
             )
         return scene
+
+
+class BlurAnnotator(BaseAnnotator):
+    """
+    A class for blurring annotator.
+    """
+
+    def __init__(self, kernel_size: int = 5, sigmax: int = 0, sigmay: int = 0):
+        """
+        Args:
+            color (Union[Color, ColorPalette]): The color or color palette to use for
+                annotating detections.
+            thickness (int): Thickness of the circle line.
+            color_map (str): Strategy for mapping colors to annotations.
+                Options are `index`, `class`, or `track`.
+        """
+        self.kernel_size: int = kernel_size
+        self.sigmax = sigmax
+        self.sigmay = sigmay
+
+    def annotate(
+        self,
+        scene: np.ndarray,
+        detections: Detections,
+    ) -> np.ndarray:
+        """
+        Annotates the given scene with circles based on the provided detections.
+
+        Args:
+            scene (np.ndarray): The image where box corners will be drawn.
+            detections (Detections): Object detections to annotate.
+
+        Returns:
+            np.ndarray: The annotated image.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> image = ...
+            >>> detections = sv.Detections(...)
+
+            >>> circle_annotator = sv.CircleAnnotator()
+            >>> annotated_frame = circle_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
+            ```
+
+
+        ![circle-annotator-example](https://media.roboflow.com/
+        supervision-annotator-examples/circle-annotator-example.png)
+        """
+        for detection_idx in range(len(detections)):
+            x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
+            roi = scene[y1:y2, x1:x2]
+
+            roi = cv2.GaussianBlur(
+                img=roi, size=self.kernel_size, sigmax=self.sigmax, sigmay=self.sigmay
+            )
+            scene[y1:y2, x1:x2] = roi
+
+        return scene
