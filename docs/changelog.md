@@ -31,7 +31,7 @@
 
 - Changed [#381](https://github.com/roboflow/supervision/pull/381): [`sv.VideoSink`](https://supervision.roboflow.com/utils/video/#videosink) now allows to customize the output codec.
 
-- Changed [#361](https://github.com/roboflow/supervision/pull/361): [`sv.InferenceSlicer`](https://supervision.roboflow.com/detection/tools/inference_slicer/#supervision.detection.tools.inference_slicer.InferenceSlicer) can now operate in multithreading mode. 
+- Changed [#361](https://github.com/roboflow/supervision/pull/361): [`sv.InferenceSlicer`](https://supervision.roboflow.com/detection/tools/inference_slicer/#supervision.detection.tools.inference_slicer.InferenceSlicer) can now operate in multithreading mode.
 
 - Fixed [#348](https://github.com/roboflow/supervision/pull/348): [`sv.Detections.from_deepsparse`](https://supervision.roboflow.com/detection/core/#supervision.detection.core.Detections.from_deepsparse) to allow processing empty [deepsparse](https://github.com/neuralmagic/deepsparse) result object.
 
