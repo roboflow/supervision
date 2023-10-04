@@ -573,11 +573,7 @@ class BlurAnnotator(BaseAnnotator):
     def __init__(self, kernel_size: int = 15):
         """
         Args:
-            color (Union[Color, ColorPalette]): The color or color palette to use for
-                annotating detections.
-            thickness (int): Thickness of the circle line.
-            color_map (str): Strategy for mapping colors to annotations.
-                Options are `index`, `class`, or `track`.
+            kernel_size: the size of the average pooling kernel used for blurring
         """
         self.kernel_size: int = kernel_size
 
@@ -598,8 +594,8 @@ class BlurAnnotator(BaseAnnotator):
             >>> import supervision as sv
             >>> image = ...
             >>> detections = sv.Detections(...)
-            >>> circle_annotator = sv.CircleAnnotator()
-            >>> annotated_frame = circle_annotator.annotate(
+            >>> blue_annotator = sv.BlurAnnotator()
+            >>> annotated_frame = blur_annotator.annotate(
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
