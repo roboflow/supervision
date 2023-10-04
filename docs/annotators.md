@@ -124,6 +124,27 @@
 
     </div>
 
+=== "Trace"
+
+    ```python
+    >>> import supervision as sv
+
+    >>> image = ...
+    >>> detections = sv.Detections(...)
+
+    >>> trace_annotator = sv.TraceAnnotator()
+    >>> annotated_frame = trace_annotator.annotate(
+    ...     scene=image.copy(),
+    ...     detections=detections
+    ... )
+    ```
+
+    <div class="result" markdown>
+
+    ![trace-annotator-example](https://media.roboflow.com/supervision-annotator-examples/trace-annotator-example.png){ align=center width="800" }
+
+    </div>
+
 ## BoundingBoxAnnotator
 
 :::supervision.annotators.core.BoundingBoxAnnotator
@@ -147,3 +168,7 @@
 ## LabelAnnotator
 
 :::supervision.annotators.core.LabelAnnotator
+
+## TraceAnnotator
+
+:::supervision.annotators.core.TraceAnnotator

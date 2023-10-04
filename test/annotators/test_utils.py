@@ -4,7 +4,7 @@ from typing import Optional
 
 import pytest
 
-from supervision.annotators.core import ColorMap, resolve_color_idx
+from supervision.annotators.utils import ColorMap, resolve_color_idx
 from supervision.detection.core import Detections
 
 
