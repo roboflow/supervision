@@ -124,6 +124,27 @@
 
     </div>
 
+=== "Blur"
+
+    ```python
+    >>> import supervision as sv
+
+    >>> image = ...
+    >>> detections = sv.Detections(...)
+
+    >>> blur_annotator = sv.BlurAnnotator()
+    >>> annotated_frame = blur_annotator.annotate(
+    ...     scene=image.copy(),
+    ...     detections=detections
+    ... )
+    ```
+
+    <div class="result" markdown>
+
+    ![blur-annotator-example](https://media.roboflow.com/supervision-annotator-examples/blur-annotator-example-2.png){ align=center width="800" }
+
+    </div>
+
 === "Trace"
 
     ```python
@@ -172,3 +193,7 @@
 ## TraceAnnotator
 
 :::supervision.annotators.core.TraceAnnotator
+
+## BlurAnnotator
+
+:::supervision.annotators.core.BlurAnnotator
