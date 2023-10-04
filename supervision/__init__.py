@@ -6,7 +6,9 @@ try:
 except importlib_metadata.PackageNotFoundError:
     __version__ = "development"
 
+
 from supervision.annotators.core import (
+    AnchorAnnotator,
     BoundingBoxAnnotator,
     BoxCornerAnnotator,
     CircleAnnotator,
@@ -15,6 +17,8 @@ from supervision.annotators.core import (
     MaskAnnotator,
     TraceAnnotator,
 )
+from supervision.application.line_counter import LineZone, LineZoneAnnotator
+from supervision.application.polygon_zone import PolygonZone, PolygonZoneAnnotator
 from supervision.classification.core import Classifications
 from supervision.dataset.core import (
     BaseDataset,
@@ -23,9 +27,7 @@ from supervision.dataset.core import (
 )
 from supervision.detection.annotate import BoxAnnotator
 from supervision.detection.core import Detections
-from supervision.detection.line_counter import LineZone, LineZoneAnnotator
 from supervision.detection.tools.inference_slicer import InferenceSlicer
-from supervision.detection.tools.polygon_zone import PolygonZone, PolygonZoneAnnotator
 from supervision.detection.utils import (
     box_iou_batch,
     filter_polygons_by_area,

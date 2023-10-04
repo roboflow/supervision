@@ -402,6 +402,78 @@ class CircleAnnotator(BaseAnnotator):
         return scene
 
 
+class AnchorAnnotator(BaseAnnotator):
+    """
+    A class for drawing anchor points on an image using detections provided.
+
+    Attributes:
+        color (Union[Color, ColorPalette]): The color to fill the mask,
+            can be a single color or a color palette
+        anchor (Position): Position of the anchor i.e. Position.CENTER
+        radius (int): radius of the circle
+        thickness (int): thickness of the circle, -1 for filled circle
+    """
+
+    def __init__(
+        self,
+        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        anchor: Optional[Position] = Position.CENTER,
+        radius: int = 5,
+        thickness: int = -1,
+    ):
+        self.color: Union[Color, ColorPalette] = color
+        self.radius = radius
+        self.anchor = anchor
+        self.thickness = thickness
+
+    def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
+        """
+        Draws anchor points on the frame using the detections provided.
+
+        Args:
+            scene (np.ndarray): The image on which the bounding boxes will be drawn
+            detections (Detections): The detections for which the
+                bounding boxes will be drawn
+        Returns:
+            np.ndarray: The image with the bounding boxes drawn on it
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> image = ...
+            >>> detections = sv.Detections(...)
+
+            >>> anchor_annotator = sv.AnchorAnnotator()
+            >>> annotated_frame = anchor_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections,
+            ... )
+            ```
+        """
+        anchors = detections.get_anchor_coordinates(anchor=self.anchor).astype(int)
+        for i, anchor in enumerate(anchors):
+            class_id = (
+                detections.class_id[i] if detections.class_id is not None else None
+            )
+            idx = class_id if class_id is not None else i
+            color = (
+                self.color.by_idx(idx)
+                if isinstance(self.color, ColorPalette)
+                else self.color
+            )
+
+            cv2.circle(
+                scene,
+                (anchor[0], anchor[1]),
+                radius=self.radius,
+                color=color.as_bgr(),
+                thickness=self.thickness,
+                lineType=cv2.LINE_AA,
+            )
+        return scene
+
+
 class LabelAnnotator:
     """
     A class for annotating labels on an image using provided detections.
