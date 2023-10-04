@@ -83,6 +83,7 @@ class LineZoneAnnotator:
         text_padding: int = 10,
         custom_in_text: Optional[str] = None,
         custom_out_text: Optional[str] = None,
+        display_out: bool = True,
     ):
         """
         Initialize the LineCounterAnnotator object with default values.
@@ -106,6 +107,7 @@ class LineZoneAnnotator:
         self.text_padding: int = text_padding
         self.custom_in_text: str = custom_in_text
         self.custom_out_text: str = custom_out_text
+        self.display_out = display_out
 
     def annotate(self, frame: np.ndarray, line_counter: LineZone) -> np.ndarray:
         """
@@ -190,24 +192,11 @@ class LineZoneAnnotator:
             width=in_text_width,
             height=in_text_height,
         ).pad(padding=self.text_padding)
-        out_text_background_rect = Rect(
-            x=out_text_x,
-            y=out_text_y - out_text_height,
-            width=out_text_width,
-            height=out_text_height,
-        ).pad(padding=self.text_padding)
 
         cv2.rectangle(
             frame,
             in_text_background_rect.top_left.as_xy_int_tuple(),
             in_text_background_rect.bottom_right.as_xy_int_tuple(),
-            self.color.as_bgr(),
-            -1,
-        )
-        cv2.rectangle(
-            frame,
-            out_text_background_rect.top_left.as_xy_int_tuple(),
-            out_text_background_rect.bottom_right.as_xy_int_tuple(),
             self.color.as_bgr(),
             -1,
         )
@@ -222,14 +211,31 @@ class LineZoneAnnotator:
             self.text_thickness,
             cv2.LINE_AA,
         )
-        cv2.putText(
-            frame,
-            out_text,
-            (out_text_x, out_text_y),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            self.text_scale,
-            self.text_color.as_bgr(),
-            self.text_thickness,
-            cv2.LINE_AA,
-        )
+
+        if self.display_out:
+            out_text_background_rect = Rect(
+                x=out_text_x,
+                y=out_text_y - out_text_height,
+                width=out_text_width,
+                height=out_text_height,
+            ).pad(padding=self.text_padding)
+
+            cv2.rectangle(
+                frame,
+                out_text_background_rect.top_left.as_xy_int_tuple(),
+                out_text_background_rect.bottom_right.as_xy_int_tuple(),
+                self.color.as_bgr(),
+                -1,
+            )
+
+            cv2.putText(
+                frame,
+                out_text,
+                (out_text_x, out_text_y),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                self.text_scale,
+                self.text_color.as_bgr(),
+                self.text_thickness,
+                cv2.LINE_AA,
+            )
         return frame
