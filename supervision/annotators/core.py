@@ -151,12 +151,14 @@ class MaskAnnotator(BaseAnnotator):
             colored_mask = np.zeros_like(scene, dtype=np.uint8)
             color_bgr = color.as_bgr()
             colored_mask[:] = color_bgr
-            colored_scene = cv2.addWeighted(colored_mask, self.opacity, scene, 1 - self.opacity, 0)
-            empty = np.zeros((mask.shape[0],mask.shape[1],1), dtype=np.uint8) 
-            empty[mask]=255
+            colored_scene = cv2.addWeighted(
+                colored_mask, self.opacity, scene, 1 - self.opacity, 0
+            )
+            empty = np.zeros((mask.shape[0], mask.shape[1], 1), dtype=np.uint8)
+            empty[mask] = 255
             scene = cv2.bitwise_and(scene, scene, mask=cv2.bitwise_not(empty))
             top = cv2.bitwise_and(colored_scene, colored_scene, mask=empty)
-            scene = cv2.add(top,scene)
+            scene = cv2.add(top, scene)
         return scene
 
 
