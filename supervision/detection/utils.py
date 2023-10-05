@@ -273,14 +273,16 @@ def approximate_polygon(
     Parameters:
         polygon (np.ndarray): A 2D NumPy array of shape `(N, 2)` containing
             the `x`, `y` coordinates of the input polygon's points.
-        percentage (float): The percentage of points to be removed from the input polygon,
-            in the range `[0, 1)`.
+        percentage (float): The percentage of points to be removed from the input
+            polygon, in the range `[0, 1)`.
         epsilon_step (float): Approximation accuracy step.
-            Epsilon is the maximum distance between the original curve and its approximation.
+            Epsilon is the maximum distance between the original curve and its
+            approximation.
 
     Returns:
-        np.ndarray: A new 2D NumPy array of shape `(M, 2)`, where `M <= N * (1 - percentage)`,
-            containing the `x`, `y` coordinates of the approximated polygon's points.
+        np.ndarray: A new 2D NumPy array of shape `(M, 2)`, where
+            `M <= N * (1 - percentage)`, containing the `x`, `y` coordinates of the
+            approximated polygon's points.
     """
 
     if percentage < 0 or percentage >= 1:
@@ -312,7 +314,8 @@ def extract_ultralytics_masks(yolov8_results) -> Optional[np.ndarray]:
         yolov8_results: The yolov8_results object containing the masks data.
 
     Returns:
-        Optional[np.ndarray]: A numpy array of boolean masks or None if no masks are available.
+        Optional[np.ndarray]: A numpy array of boolean masks or None if no masks are
+            available.
     """
     if not yolov8_results.masks:
         return None
@@ -361,7 +364,8 @@ def process_roboflow_result(
         roboflow_result (dict): The Roboflow result dictionary.
 
     Returns:
-        Tuple[np.ndarray, np.ndarray, np.ndarray, Optional[np.ndarray]]: The processed results.
+        Tuple[np.ndarray, np.ndarray, np.ndarray, Optional[np.ndarray]]: The processed
+            results.
     """
     if not roboflow_result["predictions"]:
         return np.empty((0, 4)), np.empty(0), np.empty(0), None
@@ -411,9 +415,10 @@ def move_boxes(xyxy: np.ndarray, offset: np.ndarray) -> np.ndarray:
     Reposition bounding boxes by adding an offset.
 
     Args:
-        xyxy (np.ndarray): An array of shape `(n, 4)` containing the bounding boxes coordinates
-            in format `[x1, y1, x2, y2]`.
-        offset (np.array): An array of shape `(2,)` containing offset values in format `[dx, dy]`.
+        xyxy (np.ndarray): An array of shape `(n, 4)` containing the bounding boxes
+            coordinates in format `[x1, y1, x2, y2]`.
+        offset (np.array): An array of shape `(2,)` containing offset values in format
+            `[dx, dy]`.
 
     Returns:
         (np.ndarray): Repositioned bounding boxes

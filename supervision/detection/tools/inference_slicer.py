@@ -69,7 +69,8 @@ class InferenceSlicer:
             Defaults to (320, 320).
             overlap_ratio_wh (Tuple[float, float], optional): The overlap ratios
                 for width and height. Defaults to (0.2, 0.2).
-            iou_threshold (Optional[float], optional): The IOU threshold. Defaults to 0.5.
+            iou_threshold (Optional[float], optional): The IOU threshold. Defaults to
+                0.5.
             thread_workers (int, optional): The number of thread workers. Defaults to 1.
         """
         self.slice_wh = slice_wh
@@ -86,7 +87,8 @@ class InferenceSlicer:
 
         Args:
             image (np.ndarray): The input image on which inference needs to be
-                performed. The image should be in the format `(height, width, channels)`.
+                performed. The image should be in the format `(height, width,
+                 channels)`.
 
         Returns:
             Detections: A collection of detections for the entire image after merging

@@ -19,7 +19,8 @@ from supervision.utils.file import (
 
 def _parse_box(values: List[str]) -> np.ndarray:
     """
-    Parse a list of string values representing a bounding box and return as a numpy array.
+    Parse a list of string values representing a bounding box and return as a numpy
+    array.
 
     Args:
         values: A list of string values representing a bounding box in the format
@@ -359,7 +360,8 @@ def save_yolo_annotations(
 
     Args:
         annotations_directory_path (str): Path to the directory to save the annotations.
-        images (Dict[str, np.ndarray]): A dictionary mapping image paths to image arrays.
+        images (Dict[str, np.ndarray]): A dictionary mapping image paths to image
+            arrays.
         annotations (Dict[str, Detections]): A dictionary mapping image paths
             to detection objects.
         min_image_area_percentage (float, optional): The minimum image area

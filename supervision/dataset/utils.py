@@ -98,7 +98,8 @@ def build_class_index_mapping(
         target_classes (List[str]): A list of target class names.
 
     Returns:
-        Dict[int, int]: A dictionary mapping source class indices to target class indices.
+        Dict[int, int]: A dictionary mapping source class indices to target class
+            indices.
 
     Raises:
         ValueError: If a class name in source_classes is not found in target_classes.
@@ -160,7 +161,8 @@ def save_dataset_images(
     images in the directory.
 
     Args:
-        images_directory_path (str): The path to the directory where the images will be saved.
+        images_directory_path (str): The path to the directory where the images will be
+            saved.
         images (Dict[str, np.ndarray]): A dictionary containing image paths as
             keys and corresponding image arrays as values.
     """

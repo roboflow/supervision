@@ -88,7 +88,8 @@ class ImageSink:
         Args:
             image (np.ndarray): The image to be saved.
             image_name (str, optional): The name to use for the saved image.
-                If not provided, a name will be generated using the `image_name_pattern`.
+                If not provided, a name will be generated using the
+                `image_name_pattern`.
         """
         if image_name is None:
             image_name = self.image_name_pattern.format(self.image_count)

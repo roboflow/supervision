@@ -202,8 +202,8 @@ class Detections:
         [YOLOv5](https://github.com/ultralytics/yolov5) inference result.
 
         Args:
-            yolov5_results (yolov5.models.common.Detections): The output Detections instance
-                from YOLOv5.
+            yolov5_results (yolov5.models.common.Detections): The output Detections
+                instance from YOLOv5.
 
         Returns:
             Detections: A new Detections object.
@@ -242,8 +242,8 @@ class Detections:
         [YOLOv8](https://github.com/ultralytics/ultralytics) inference result.
 
         Args:
-            yolov8_results (ultralytics.yolo.engine.results.Results): The output Results instance
-                from YOLOv8
+            yolov8_results (ultralytics.yolo.engine.results.Results): The output Results
+                instance from YOLOv8.
 
         Returns:
             Detections: A new Detections object.
@@ -275,8 +275,8 @@ class Detections:
             [YOLOv8](https://github.com/ultralytics/ultralytics) inference result.
 
         Args:
-            ultralytics_results (ultralytics.yolo.engine.results.Results): The output Results
-                instance from YOLOv8
+            ultralytics_results (ultralytics.yolo.engine.results.Results): The output
+                Results instance from YOLOv8
 
         Returns:
             Detections: A new Detections object.
@@ -319,8 +319,8 @@ class Detections:
         inference result.
 
         Args:
-            yolo_nas_results (ImageDetectionPrediction): The output Results instance from YOLO-NAS
-                ImageDetectionPrediction is coming from
+            yolo_nas_results (ImageDetectionPrediction): The output Results instance
+                from YOLO-NAS ImageDetectionPrediction is coming from
                 'super_gradients.training.models.prediction_results'
 
         Returns:
@@ -355,8 +355,8 @@ class Detections:
         inference result.
 
         Args:
-            deepsparse_results (deepsparse.yolo.schemas.YOLOOutput): The output Results instance
-                from DeepSparse.
+            deepsparse_results (deepsparse.yolo.schemas.YOLOOutput): The output Results
+                instance from DeepSparse.
 
         Returns:
             Detections: A new Detections object.
@@ -392,8 +392,8 @@ class Detections:
         Also supported for [mmyolo](https://github.com/open-mmlab/mmyolo)
 
         Args:
-            mmdet_results (mmdet.structures.DetDataSample): The output Results instance from
-                MMDetection.
+            mmdet_results (mmdet.structures.DetDataSample): The output Results instance
+                from MMDetection.
 
         Returns:
             Detections: A new Detections object.
@@ -440,8 +440,8 @@ class Detections:
         [Detectron2](https://github.com/facebookresearch/detectron2) inference result.
 
         Args:
-            detectron2_results: The output of a Detectron2 model containing instances with
-                prediction data.
+            detectron2_results: The output of a Detectron2 model containing instances
+                with prediction data.
 
         Returns:
             (Detections): A Detections object containing the bounding boxes,

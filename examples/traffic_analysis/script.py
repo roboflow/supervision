@@ -29,6 +29,7 @@ class DetectionsManager:
     """
     A class responsible for managing detections.
     """
+
     def __init__(self) -> None:
         self.tracker_id_to_zone_id: Dict[int, int] = {}
         self.counts: Dict[int, Dict[int, Set[int]]] = {}
@@ -68,7 +69,8 @@ def initiate_polygon_zones(
 
     Args:
         polygons (List[np.ndarray]): A list of numpy arrays representing polygons.
-        frame_resolution_wh (Tuple[int, int]): A tuple of frame resolution width and height.
+        frame_resolution_wh (Tuple[int, int]): A tuple of frame resolution width and
+            height.
         triggering_position (sv.Position, optional): The triggering position
             for the polygon zones. Defaults to sv.Position.CENTER.
 
