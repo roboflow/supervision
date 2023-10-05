@@ -5,6 +5,9 @@ import numpy as np
 
 
 class TrackState(Enum):
+    """
+    An enumeration class representing the state of a track.
+    """
     New = 0
     Tracked = 1
     Lost = 2
@@ -12,6 +15,9 @@ class TrackState(Enum):
 
 
 class BaseTrack:
+    """
+    A base class representing a generic track.
+    """
     _count = 0
 
     def __init__(self):

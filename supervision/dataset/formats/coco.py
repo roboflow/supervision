@@ -16,6 +16,7 @@ from supervision.utils.file import read_json_file, save_json_file
 
 
 def coco_categories_to_classes(coco_categories: List[dict]) -> List[str]:
+    """Converts a list of COCO categories to a list of class names."""
     return [
         category["name"]
         for category in sorted(coco_categories, key=lambda category: category["id"])
@@ -25,6 +26,7 @@ def coco_categories_to_classes(coco_categories: List[dict]) -> List[str]:
 def build_coco_class_index_mapping(
     coco_categories: List[dict], target_classes: List[str]
 ) -> Dict[int, int]:
+    """Builds a mapping from COCO class IDs to target class indices."""
     source_class_to_index = {
         category["name"]: category["id"] for category in coco_categories
     }
@@ -35,6 +37,7 @@ def build_coco_class_index_mapping(
 
 
 def classes_to_coco_categories(classes: List[str]) -> List[dict]:
+    """Converts a list of class names to a list of COCO categories."""
     return [
         {
             "id": class_id,
@@ -48,6 +51,20 @@ def classes_to_coco_categories(classes: List[str]) -> List[dict]:
 def group_coco_annotations_by_image_id(
     coco_annotations: List[dict],
 ) -> Dict[int, List[dict]]:
+    """
+    Group COCO annotations by image ID.
+
+    This function takes a list of COCO annotations as input and returns a dictionary
+    where the keys are image IDs and the values are lists of annotations
+    associated with each image ID.
+
+    Args:
+        coco_annotations (List[dict]): A list of COCO annotations.
+
+    Returns:
+        Dict[int, List[dict]]: A dictionary where the keys are image IDs
+        and the values are lists of annotations.
+    """
     annotations = {}
     for annotation in coco_annotations:
         image_id = annotation["image_id"]
@@ -60,6 +77,20 @@ def group_coco_annotations_by_image_id(
 def _polygons_to_masks(
     polygons: List[np.ndarray], resolution_wh: Tuple[int, int]
 ) -> np.ndarray:
+    """
+    Convert polygons to binary masks.
+
+    This function takes a list of polygons and a resolution as input and converts
+    the polygons into binary masks by calling the 'polygon_to_mask' function
+    for each polygon.
+
+    Args:
+        polygons (List[np.ndarray]): A list of polygons.
+        resolution_wh (Tuple[int, int]): The resolution of the masks.
+
+    Returns:
+        np.ndarray: An array of binary masks.
+    """
     return np.array(
         [
             polygon_to_mask(polygon=polygon, resolution_wh=resolution_wh)
@@ -105,6 +136,27 @@ def detections_to_coco_annotations(
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.75,
 ) -> Tuple[List[Dict], int]:
+    """
+    Convert detections to COCO annotations.
+
+    This function takes in detections, image ID, annotation ID, and other optional
+    parameters to generate COCO annotations for each detection. The COCO
+    annotations are returned as a list along with the updated annotation ID.
+
+    Args:
+        detections (Detections): The detections object.
+        image_id (int): The ID of the image.
+        annotation_id (int): The ID of the annotation.
+        min_image_area_percentage (float, optional): The minimum image area percentage.
+        Defaults to 0.0.
+        max_image_area_percentage (float, optional): The maximum image area percentage.
+        Defaults to 1.0.
+        approximation_percentage (float, optional): The approximation percentage.
+        Defaults to 0.75.
+
+    Returns:
+        Tuple[List[Dict], int]: The COCO annotations and the updated annotation ID.
+    """
     coco_annotations = []
     for xyxy, mask, _, class_id, _ in detections:
         box_width, box_height = xyxy[2] - xyxy[0], xyxy[3] - xyxy[1]
@@ -137,6 +189,26 @@ def load_coco_annotations(
     annotations_path: str,
     force_masks: bool = False,
 ) -> Tuple[List[str], Dict[str, np.ndarray], Dict[str, Detections]]:
+    """
+    Load COCO annotations from a specified directory and annotations file.
+
+    This function reads the annotations data from the JSON file specified by
+    'annotations_path', processes the data to extract useful information, and
+    returns a tuple containing three items: a list of classes, a dictionary of
+    images, and a dictionary of annotations.
+
+    Args:
+        images_directory_path (str): The path to the directory containing the images.
+        annotations_path (str): The path to the annotations file.
+        force_masks (bool, optional): Whether to use masks. Defaults to False.
+
+    Returns:
+        Tuple[List[str], Dict[str, np.ndarray], Dict[str, Detections]]: A tuple
+        containing three items:
+            1. A list of classes.
+            2. A dictionary of images.
+            3. A dictionary of annotations.
+    """
     coco_data = read_json_file(file_path=annotations_path)
     classes = coco_categories_to_classes(coco_categories=coco_data["categories"])
     class_index_mapping = build_coco_class_index_mapping(
@@ -185,6 +257,7 @@ def save_coco_annotations(
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.75,
 ) -> None:
+    """Save annotations in COCO format to the specified path."""
     Path(annotation_path).parent.mkdir(parents=True, exist_ok=True)
     info = {}
     licenses = [

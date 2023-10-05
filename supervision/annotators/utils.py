@@ -21,6 +21,23 @@ class ColorMap(Enum):
 def resolve_color_idx(
     detections: Detections, detection_idx: int, color_map: ColorMap = ColorMap.CLASS
 ) -> int:
+    """
+    Resolve the color index for a given detection based on the specified color mapping.
+
+    This function takes in a 'Detections' object, an integer 'detection_idx', and
+    an optional 'color_map' parameter.
+    It returns the index of the color to be used for the specified detection index
+    based on the selected color mapping.
+
+    Args:
+        detections (Detections): A 'Detections' object containing detection information.
+        detection_idx (int): The index of the detection.
+        color_map (ColorMap, optional): The color mapping option to use
+            (default is 'ColorMap.CLASS').
+
+    Returns:
+        int: The index of the color to be used for the specified detection index.
+    """
     if detection_idx >= len(detections):
         raise ValueError(
             f"Detection index {detection_idx}"
@@ -46,12 +63,29 @@ def resolve_color_idx(
 
 
 def resolve_color(color: Union[Color, ColorPalette], idx: int) -> Color:
+    """
+    Resolve the color for a given index based on the specified color object or palette.
+
+    This function takes in a 'Color' object or 'ColorPalette', and an integer 'idx',
+    and returns the color to be used for the specified index.
+
+    Args:
+        color (Union[Color, ColorPalette]): The 'Color' object or
+            'ColorPalette' to use for color resolution.
+        idx (int): The index of the color.
+
+    Returns:
+        Color: The color to be used for the specified index.
+    """
     if isinstance(color, ColorPalette):
         return color.by_idx(idx)
     return color
 
 
 class Trace:
+    """
+    A class representing a trace of object detections over time.
+    """
     def __init__(
         self,
         max_size: Optional[int] = None,

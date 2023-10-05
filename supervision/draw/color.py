@@ -24,6 +24,19 @@ DEFAULT_COLOR_PALETTE = [
 
 
 def _validate_color_hex(color_hex: str):
+    """Validate a color hex code.
+
+    This function removes the '#' character from the beginning of the hex code and
+    checks if all characters are valid hexadecimal characters. It also checks
+    if the length of the hex code is either 3 or 6.
+
+    Args:
+        color_hex (str): The color hex code.
+
+    Raises:
+        ValueError: If the color hex code contains invalid characters or has an
+            invalid length.
+    """
     color_hex = color_hex.lstrip("#")
     if not all(c in "0123456789abcdefABCDEF" for c in color_hex):
         raise ValueError("Invalid characters in color hash")
@@ -86,15 +99,28 @@ class Color:
 
     @classmethod
     def green(cls) -> Color:
+        """
+        Class method to create a 'Color' instance with the color value '#00ff00'.
+
+        Returns:
+            Color: A 'Color' instance with the color value '#00ff00'.
+        """
         return Color.from_hex(color_hex="#00ff00")
 
     @classmethod
     def blue(cls) -> Color:
+        """
+        Class method to create a 'Color' instance with the color value '#0000ff'.
+
+        Returns:
+            Color: A 'Color' instance with the color value '#0000ff'.
+        """
         return Color.from_hex(color_hex="#0000ff")
 
 
 @dataclass
 class ColorPalette:
+    """Class representing a collection of colors."""
     colors: List[Color]
 
     @classmethod

@@ -7,6 +7,9 @@ import yaml
 
 
 class NumpyJsonEncoder(json.JSONEncoder):
+    """
+    Custom JSONEncoder class to serialize numpy objects to JSON.
+    """
     def default(self, obj):
         if isinstance(obj, np.integer):
             return int(obj)
@@ -107,9 +110,9 @@ def save_json_file(data: dict, file_path: str, indent: int = 3) -> None:
     Write a dict to a json file.
 
     Args:
-        indent:
         data (dict): dict with unique keys and value as pair.
         file_path (str): The path to the json file.
+        indent (int): The number of spaces used for indentation in the JSON file.
     """
     with open(file_path, "w") as fp:
         json.dump(data, fp, cls=NumpyJsonEncoder, indent=indent)

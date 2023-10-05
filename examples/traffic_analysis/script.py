@@ -26,6 +26,9 @@ ZONE_OUT_POLYGONS = [
 
 
 class DetectionsManager:
+    """
+    A class responsible for managing detections.
+    """
     def __init__(self) -> None:
         self.tracker_id_to_zone_id: Dict[int, int] = {}
         self.counts: Dict[int, Dict[int, Set[int]]] = {}
@@ -59,6 +62,19 @@ def initiate_polygon_zones(
     frame_resolution_wh: Tuple[int, int],
     triggering_position: sv.Position = sv.Position.CENTER,
 ) -> List[sv.PolygonZone]:
+    """
+    Initialize polygon zones based on provided polygons, frame resolution, and
+    triggering position.
+
+    Args:
+        polygons (List[np.ndarray]): A list of numpy arrays representing polygons.
+        frame_resolution_wh (Tuple[int, int]): A tuple of frame resolution width and height.
+        triggering_position (sv.Position, optional): The triggering position
+            for the polygon zones. Defaults to sv.Position.CENTER.
+
+    Returns:
+        List[sv.PolygonZone]: A list of initialized 'sv.PolygonZone' objects.
+    """
     return [
         sv.PolygonZone(
             polygon=polygon,
@@ -101,6 +117,14 @@ class VideoProcessor:
         self.detections_manager = DetectionsManager()
 
     def process_video(self):
+        """
+        Process the video by generating frames and processing each frame.
+
+        If a target video path is provided, write annotated frames to the target video
+        using 'VideoSink'.
+        If no target video path is provided, display the annotated frames using
+        OpenCV's 'imshow'.
+        """
         frame_generator = sv.get_video_frames_generator(
             source_path=self.source_video_path
         )
@@ -153,6 +177,14 @@ class VideoProcessor:
         return annotated_frame
 
     def process_frame(self, frame: np.ndarray) -> np.ndarray:
+        """Process a frame by performing object detection, tracking, and annotation.
+
+        Args:
+            frame (np.ndarray): An input image frame represented as a numpy array.
+
+        Returns:
+            np.ndarray: An annotated image frame represented as a numpy array.
+        """
         results = self.model(
             frame, verbose=False, conf=self.conf_threshold, iou=self.iou_threshold
         )[0]

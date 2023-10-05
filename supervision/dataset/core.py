@@ -35,6 +35,9 @@ from supervision.detection.core import Detections
 
 @dataclass
 class BaseDataset(ABC):
+    """
+    This is an abstract base class for datasets.
+    """
     @abstractmethod
     def __len__(self) -> int:
         pass
@@ -84,6 +87,22 @@ class DetectionDataset(BaseDataset):
             yield image_name, image, self.annotations.get(image_name, None)
 
     def __eq__(self, other):
+        """
+        Compare two instances of the DetectionDataset class.
+
+        This method checks if the 'other' object is an instance of DetectionDataset, if
+        the 'classes' attribute of both objects are the same, and if the 'images'
+        and 'annotations' dictionaries of both objects are equal. If all these
+        conditions are met, the method returns True indicating that the two
+        instances are equal.
+        Otherwise, it returns False.
+
+        Args:
+            other (object): The object to compare with.
+
+        Returns:
+            bool: True if the two instances are equal, False otherwise.
+        """
         if not isinstance(other, DetectionDataset):
             return False
 

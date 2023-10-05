@@ -72,6 +72,7 @@ class LineZone:
 
 
 class LineZoneAnnotator:
+    """Annotates line zones with specified attributes."""
     def __init__(
         self,
         thickness: float = 2,

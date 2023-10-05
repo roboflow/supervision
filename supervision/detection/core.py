@@ -45,6 +45,19 @@ def _validate_class_id(class_id: Any, n: int) -> None:
 
 
 def _validate_confidence(confidence: Any, n: int) -> None:
+    """
+    Validate the confidence input.
+
+    This function checks whether the confidence input is either None or a 1D numpy array
+    with shape (n,).
+
+    Args:
+        confidence (Any): The confidence input to validate.
+        n (int): The expected length of confidence.
+
+    Raises:
+        ValueError: If the confidence input is not valid.
+    """
     is_valid = confidence is None or (
         isinstance(confidence, np.ndarray) and confidence.shape == (n,)
     )
@@ -53,6 +66,19 @@ def _validate_confidence(confidence: Any, n: int) -> None:
 
 
 def _validate_tracker_id(tracker_id: Any, n: int) -> None:
+    """
+    Validate the tracker_id input.
+
+    This function checks whether the tracker_id input is either None or a 1D numpy array
+    with shape (n,).
+
+    Args:
+        tracker_id (Any): The tracker_id input to validate.
+        n (int): The expected length of tracker_id.
+
+    Raises:
+        ValueError: If the tracker_id input is not valid.
+    """
     is_valid = tracker_id is None or (
         isinstance(tracker_id, np.ndarray) and tracker_id.shape == (n,)
     )
@@ -122,6 +148,23 @@ class Detections:
             )
 
     def __eq__(self, other: Detections):
+        """
+        Compare two Detections instances for equality.
+
+        Two Detections instances are considered equal if all of the following
+        conditions are True:
+        - The xyxy arrays are equal.
+        - The mask arrays are equal or both None.
+        - The class_id arrays are equal or both None.
+        - The confidence arrays are equal or both None.
+        - The tracker_id arrays are equal or both None.
+
+        Args:
+            other (Detections): The Detections instance to compare with.
+
+        Returns:
+            bool: True if the instances are equal, False otherwise.
+        """
         return all(
             [
                 np.array_equal(self.xyxy, other.xyxy),
@@ -159,8 +202,8 @@ class Detections:
         [YOLOv5](https://github.com/ultralytics/yolov5) inference result.
 
         Args:
-            yolov5_results (yolov5.models.common.Detections):
-                The output Detections instance from YOLOv5
+            yolov5_results (yolov5.models.common.Detections): The output Detections instance
+                from YOLOv5.
 
         Returns:
             Detections: A new Detections object.
@@ -199,8 +242,8 @@ class Detections:
         [YOLOv8](https://github.com/ultralytics/ultralytics) inference result.
 
         Args:
-            yolov8_results (ultralytics.yolo.engine.results.Results):
-                The output Results instance from YOLOv8
+            yolov8_results (ultralytics.yolo.engine.results.Results): The output Results instance
+                from YOLOv8
 
         Returns:
             Detections: A new Detections object.
@@ -232,8 +275,8 @@ class Detections:
             [YOLOv8](https://github.com/ultralytics/ultralytics) inference result.
 
         Args:
-            ultralytics_results (ultralytics.yolo.engine.results.Results):
-                The output Results instance from YOLOv8
+            ultralytics_results (ultralytics.yolo.engine.results.Results): The output Results
+                instance from YOLOv8
 
         Returns:
             Detections: A new Detections object.
@@ -276,8 +319,7 @@ class Detections:
         inference result.
 
         Args:
-            yolo_nas_results (ImageDetectionPrediction):
-                The output Results instance from YOLO-NAS
+            yolo_nas_results (ImageDetectionPrediction): The output Results instance from YOLO-NAS
                 ImageDetectionPrediction is coming from
                 'super_gradients.training.models.prediction_results'
 
@@ -313,8 +355,8 @@ class Detections:
         inference result.
 
         Args:
-            deepsparse_results (deepsparse.yolo.schemas.YOLOOutput):
-                The output Results instance from DeepSparse.
+            deepsparse_results (deepsparse.yolo.schemas.YOLOOutput): The output Results instance
+                from DeepSparse.
 
         Returns:
             Detections: A new Detections object.
@@ -350,8 +392,8 @@ class Detections:
         Also supported for [mmyolo](https://github.com/open-mmlab/mmyolo)
 
         Args:
-            mmdet_results (mmdet.structures.DetDataSample):
-                The output Results instance from MMDetection.
+            mmdet_results (mmdet.structures.DetDataSample): The output Results instance from
+                MMDetection.
 
         Returns:
             Detections: A new Detections object.
@@ -398,8 +440,8 @@ class Detections:
         [Detectron2](https://github.com/facebookresearch/detectron2) inference result.
 
         Args:
-            detectron2_results: The output of a
-                Detectron2 model containing instances with prediction data.
+            detectron2_results: The output of a Detectron2 model containing instances with
+                prediction data.
 
         Returns:
             (Detections): A Detections object containing the bounding boxes,
@@ -439,7 +481,7 @@ class Detections:
 
         Args:
             roboflow_result (dict): The result from the
-                Roboflow API containing predictions.
+                    Roboflow API containing predictions.
 
         Returns:
             (Detections): A Detections object containing the bounding boxes, class IDs,
@@ -593,8 +635,9 @@ class Detections:
         Merge a list of Detections objects into a single Detections object.
 
         This method takes a list of Detections objects and combines their
-        respective fields (`xyxy`, `mask`, `confidence`, `class_id`, and `tracker_id`)
-        into a single Detections object. If all elements in a field are not
+        respective fields (`xyxy`, `mask`, `confidence`, `class_id`, and
+        `tracker_id`) into a single Detections object. If all elements in a field
+        are not
         `None`, the corresponding field will be stacked.
         Otherwise, the field will be set to `None`.
 
@@ -708,7 +751,7 @@ class Detections:
 
         Args:
             index (Union[int, slice, List[int], np.ndarray]):
-                The index or indices of the subset of the Detections
+                    The index or indices of the subset of the Detections
 
         Returns:
             (Detections): A subset of the Detections object.

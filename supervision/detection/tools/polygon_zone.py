@@ -95,6 +95,18 @@ class PolygonZoneAnnotator:
         text_thickness: int = 1,
         text_padding: int = 10,
     ):
+        """
+        Initialize the object with the provided arguments.
+
+        Args:
+            zone (PolygonZone): The polygon zone.
+            color (Color): The color.
+            thickness (int, optional): The thickness. Defaults to 2.
+            text_color (Color, optional): The text color. Defaults to Color.black().
+            text_scale (float, optional): The text scale. Defaults to 0.5.
+            text_thickness (int, optional): The text thickness. Defaults to 1.
+            text_padding (int, optional): The text padding. Defaults to 10.
+        """
         self.zone = zone
         self.color = color
         self.thickness = thickness

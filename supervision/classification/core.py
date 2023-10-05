@@ -11,6 +11,13 @@ from supervision.utils.internal import deprecated
 def _validate_class_ids(class_id: Any, n: int) -> None:
     """
     Ensure that class_id is a 1d np.ndarray with (n, ) shape.
+
+    Args:
+        class_id (Any): The array to be validated.
+        n (int): The expected length of the array.
+
+    Raises:
+        ValueError: If class_id is not a 1d np.ndarray with (n, ) shape.
     """
     is_valid = isinstance(class_id, np.ndarray) and class_id.shape == (n,)
     if not is_valid:
@@ -20,6 +27,13 @@ def _validate_class_ids(class_id: Any, n: int) -> None:
 def _validate_confidence(confidence: Any, n: int) -> None:
     """
     Ensure that confidence is a 1d np.ndarray with (n, ) shape.
+
+    Args:
+        confidence (Any): The array to be validated.
+        n (int): The expected length of the array.
+
+    Raises:
+        ValueError: If confidence is not a 1d np.ndarray with (n, ) shape.
     """
     if confidence is not None:
         is_valid = isinstance(confidence, np.ndarray) and confidence.shape == (n,)
@@ -29,6 +43,14 @@ def _validate_confidence(confidence: Any, n: int) -> None:
 
 @dataclass
 class Classifications:
+    """
+    This is a data class representing classifications.
+
+    Attributes:
+        class_id (np.ndarray): The array of class IDs.
+        confidence (Optional[np.ndarray], optional): The array of confidence scores.
+        Defaults to None.
+    """
     class_id: np.ndarray
     confidence: Optional[np.ndarray] = None
 
@@ -84,7 +106,7 @@ class Classifications:
 
         Args:
             ultralytics_results (ultralytics.engine.results.Results):
-            The output Results instance from ultralytics model
+                The output Results instance from ultralytics model
 
         Returns:
             Classifications: A new Classifications object.

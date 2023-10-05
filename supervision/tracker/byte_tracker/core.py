@@ -9,6 +9,7 @@ from supervision.tracker.byte_tracker.kalman_filter import KalmanFilter
 
 
 class STrack(BaseTrack):
+    """This class represents a single track of an object in a video stream."""
     shared_kalman = KalmanFilter()
 
     def __init__(self, tlwh, score, class_ids):
@@ -127,29 +128,43 @@ class STrack(BaseTrack):
         return ret
 
     def to_xyah(self):
+        """Convert current bounding box to format `(center x, center y, aspect ratio,
+        height)`, where the aspect ratio is `width / height`.
+        """
         return self.tlwh_to_xyah(self.tlwh)
 
     @staticmethod
     def tlbr_to_tlwh(tlbr):
+        """Convert bounding box to format `(top left x, top left y, width, height)`.
+        """
         ret = np.asarray(tlbr).copy()
         ret[2:] -= ret[:2]
         return ret
 
     @staticmethod
     def tlwh_to_tlbr(tlwh):
+        """Convert bounding box to format `(min x, min y, max x, max y)`.
+        """
         ret = np.asarray(tlwh).copy()
         ret[2:] += ret[:2]
         return ret
 
     def __repr__(self):
+        """Return a string representation of the object.
+
+        Returns:
+            str: A string representing the object.
+        """
         return "OT_{}_({}-{})".format(self.track_id, self.start_frame, self.end_frame)
 
 
 def detections2boxes(detections: Detections) -> np.ndarray:
     """
     Convert Supervision Detections to numpy tensors for further computation.
+
     Args:
         detections (Detections): Detections/Targets in the format of sv.Detections.
+
     Returns:
         (np.ndarray): Detections as numpy tensors as in
             `(x_min, y_min, x_max, y_max, confidence, class_id)` order.
@@ -453,6 +468,27 @@ def sub_tracks(track_list_a: List, track_list_b: List) -> List[int]:
 
 
 def remove_duplicate_tracks(tracks_a: List, tracks_b: List) -> Tuple[List, List]:
+    """
+    Remove duplicate tracks from two lists of tracks.
+
+    This function removes duplicate tracks from two input lists of tracks. It
+    calculates the pairwise distance between the tracks in the two lists using
+    the iou_distance function from the matching module. It then finds the
+    matching pairs of tracks with a pairwise distance below 0.15. For each
+    matching pair, it determines which track occurred first in time and adds
+    the corresponding track index to the duplicates_a set if it occurred first
+    or to the duplicates_b set if it occurred second. Finally, it creates two
+    result lists by excluding the tracks with indices in the duplicates_a and
+    duplicates_b sets from the tracks_a and tracks_b lists, respectively.
+
+    Args:
+        tracks_a (List): The first list of tracks.
+        tracks_b (List): The second list of tracks.
+
+    Returns:
+        Tuple[List, List]: A tuple of two lists containing the tracks from tracks_a and
+        tracks_b with duplicate tracks removed.
+    """
     pairwise_distance = matching.iou_distance(tracks_a, tracks_b)
     matching_pairs = np.where(pairwise_distance < 0.15)
 

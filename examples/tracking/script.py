@@ -13,6 +13,19 @@ def process_video(
     confidence_threshold: float = 0.3,
     iou_threshold: float = 0.7,
 ) -> None:
+    """
+    Process a video file by performing object detection, tracking, and annotation
+    on each frame.
+
+    Args:
+        source_weights_path (str): The path to the source weights file.
+        source_video_path (str): The path to the source video file.
+        target_video_path (str): The path to the target video file.
+        confidence_threshold (float, optional): The confidence threshold for
+            object detection. Defaults to 0.3.
+        iou_threshold (float, optional): The IOU threshold for object detection.
+        Defaults to 0.7.
+    """
     model = YOLO(source_weights_path)
 
     tracker = sv.ByteTrack()

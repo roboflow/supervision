@@ -136,6 +136,19 @@ def clip_boxes(
 
 
 def xywh_to_xyxy(boxes_xywh: np.ndarray) -> np.ndarray:
+    """
+    Convert bounding boxes from `(x, y, width, height)` format to `(x_min, y_min,
+    x_max, y_max)` format.
+
+    Args:
+        boxes_xywh (np.ndarray): A numpy array of shape `(N, 4)` where each
+            row corresponds to a bounding box in the format `(x, y, width,
+            height)`.
+
+    Returns:
+        np.ndarray: A numpy array of shape `(N, 4)` where each row corresponds
+            to a bounding box in the format `(x_min, y_min, x_max, y_max)`.
+    """
     xyxy = boxes_xywh.copy()
     xyxy[:, 2] = boxes_xywh[:, 0] + boxes_xywh[:, 2]
     xyxy[:, 3] = boxes_xywh[:, 1] + boxes_xywh[:, 3]
@@ -204,16 +217,16 @@ def filter_polygons_by_area(
 
     Parameters:
         polygons (List[np.ndarray]): A list of polygons, where each polygon is
-            represented by a NumPy array of shape `(N, 2)`,
-            containing the `x`, `y` coordinates of the points.
+            represented by a NumPy array of shape `(N, 2)`, containing the `x`,
+            `y` coordinates of the points.
         min_area (Optional[float]): The minimum area threshold.
             Only polygons with an area greater than or equal to this value
-            will be included in the output. If set to None,
-            no minimum area constraint will be applied.
+            will be included in the output. If set to None, no minimum area
+            constraint will be applied.
         max_area (Optional[float]): The maximum area threshold.
             Only polygons with an area less than or equal to this value
-            will be included in the output. If set to None,
-            no maximum area constraint will be applied.
+            will be included in the output. If set to None, no maximum area
+            constraint will be applied.
 
     Returns:
         List[np.ndarray]: A new list of polygons containing only those with
@@ -260,17 +273,14 @@ def approximate_polygon(
     Parameters:
         polygon (np.ndarray): A 2D NumPy array of shape `(N, 2)` containing
             the `x`, `y` coordinates of the input polygon's points.
-        percentage (float): The percentage of points to be removed from the
-            input polygon, in the range `[0, 1)`.
+        percentage (float): The percentage of points to be removed from the input polygon,
+            in the range `[0, 1)`.
         epsilon_step (float): Approximation accuracy step.
-            Epsilon is the maximum distance between the original curve
-            and its approximation.
+            Epsilon is the maximum distance between the original curve and its approximation.
 
     Returns:
-        np.ndarray: A new 2D NumPy array of shape `(M, 2)`,
-            where `M <= N * (1 - percentage)`, containing
-            the `x`, `y` coordinates of the
-            approximated polygon's points.
+        np.ndarray: A new 2D NumPy array of shape `(M, 2)`, where `M <= N * (1 - percentage)`,
+            containing the `x`, `y` coordinates of the approximated polygon's points.
     """
 
     if percentage < 0 or percentage >= 1:
@@ -295,6 +305,15 @@ def approximate_polygon(
 
 
 def extract_ultralytics_masks(yolov8_results) -> Optional[np.ndarray]:
+    """
+    Extracts masks from the given yolov8_results object.
+
+    Args:
+        yolov8_results: The yolov8_results object containing the masks data.
+
+    Returns:
+        Optional[np.ndarray]: A numpy array of boolean masks or None if no masks are available.
+    """
     if not yolov8_results.masks:
         return None
 
@@ -334,6 +353,16 @@ def extract_ultralytics_masks(yolov8_results) -> Optional[np.ndarray]:
 def process_roboflow_result(
     roboflow_result: dict,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, Optional[np.ndarray]]:
+    """
+    Process the Roboflow result to extract bounding box coordinates, confidence scores,
+    class IDs, and masks.
+
+    Args:
+        roboflow_result (dict): The Roboflow result dictionary.
+
+    Returns:
+        Tuple[np.ndarray, np.ndarray, np.ndarray, Optional[np.ndarray]]: The processed results.
+    """
     if not roboflow_result["predictions"]:
         return np.empty((0, 4)), np.empty(0), np.empty(0), None
 
@@ -379,13 +408,14 @@ def process_roboflow_result(
 
 def move_boxes(xyxy: np.ndarray, offset: np.ndarray) -> np.ndarray:
     """
+    Reposition bounding boxes by adding an offset.
+
     Args:
-        xyxy (np.ndarray): An array of shape `(n, 4)` containing the bounding boxes
-            coordinates in format `[x1, y1, x2, y2]`
-        offset (np.array): An array of shape `(2,)` containing offset values in format
-            is `[dx, dy]`.
+        xyxy (np.ndarray): An array of shape `(n, 4)` containing the bounding boxes coordinates
+            in format `[x1, y1, x2, y2]`.
+        offset (np.array): An array of shape `(2,)` containing offset values in format `[dx, dy]`.
 
     Returns:
-        (np.ndarray) repositioned bounding boxes
+        (np.ndarray): Repositioned bounding boxes
     """
     return xyxy + np.hstack([offset, offset])

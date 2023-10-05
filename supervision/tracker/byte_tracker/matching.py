@@ -36,6 +36,22 @@ def linear_assignment(
 
 
 def iou_distance(atracks: List, btracks: List) -> np.ndarray:
+    """
+    Calculate the intersection over union (IoU) distance between two sets of
+    bounding boxes.
+
+    If the input tracks are numpy arrays, use them directly. Otherwise, extract the
+    bounding boxes from the tracks.
+    Then, calculate the IoU distance using the 'box_iou_batch' function and return
+    the resulting cost matrix.
+
+    Args:
+        atracks (List): The first set of tracks.
+        btracks (List): The second set of tracks.
+
+    Returns:
+        np.ndarray: The cost matrix representing the IoU distance.
+    """
     if (len(atracks) > 0 and isinstance(atracks[0], np.ndarray)) or (
         len(btracks) > 0 and isinstance(btracks[0], np.ndarray)
     ):
@@ -54,6 +70,23 @@ def iou_distance(atracks: List, btracks: List) -> np.ndarray:
 
 
 def fuse_score(cost_matrix: np.ndarray, detections: List) -> np.ndarray:
+    """
+    Calculate the fusion cost matrix based on the input cost matrix and a list of
+    detections.
+
+    If the cost matrix is empty, return it directly.
+    Then, calculate the IoU similarity matrix and expand the detection scores to
+    match the dimensions of the cost matrix.
+    Finally, compute the fusion cost matrix by multiplying the IoU similarity
+    matrix with the expanded detection scores and return it.
+
+    Args:
+        cost_matrix (np.ndarray): The input cost matrix.
+        detections (List): The list of detections.
+
+    Returns:
+        np.ndarray: The fusion cost matrix.
+    """
     if cost_matrix.size == 0:
         return cost_matrix
     iou_sim = 1 - cost_matrix

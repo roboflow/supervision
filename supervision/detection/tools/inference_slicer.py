@@ -10,12 +10,15 @@ from supervision.utils.image import crop_image
 
 def move_detections(detections: Detections, offset: np.array) -> Detections:
     """
+    Move the given Detections object by the specified offset.
+
     Args:
-        detections (sv.Detections): Detections object to be moved.
-        offset (np.array): An array of shape `(2,)` containing offset values in format
-            is `[dx, dy]`.
+        detections (Detections): The Detections object to be moved.
+        offset (np.array): An array of shape (2,) containing offset values in
+            the format [dx, dy].
+
     Returns:
-        (sv.Detections) repositioned Detections object.
+        Detections: The repositioned Detections object.
     """
     detections.xyxy = move_boxes(xyxy=detections.xyxy, offset=offset)
     return detections
@@ -26,25 +29,26 @@ class InferenceSlicer:
     InferenceSlicer performs slicing-based inference for small target detection. This
     method, often referred to as
     [Slicing Adaptive Inference (SAHI)](https://ieeexplore.ieee.org/document/9897990),
-    involves dividing a larger image into smaller slices, performing inference on each
-    slice, and then merging the detections.
+    involves dividing a larger image into smaller slices, performing inference
+    on each slice, and then merging the detections.
 
     Args:
         slice_wh (Tuple[int, int]): Dimensions of each slice in the format
             `(width, height)`.
-        overlap_ratio_wh (Tuple[float, float]): Overlap ratio between consecutive
-            slices in the format `(width_ratio, height_ratio)`.
-        iou_threshold (Optional[float]): Intersection over Union (IoU) threshold
-            used for non-max suppression.
-        callback (Callable): A function that performs inference on a given image
-            slice and returns detections.
+        overlap_ratio_wh (Tuple[float, float]): Overlap ratio between
+            consecutive slices in the format `(width_ratio, height_ratio)`.
+        iou_threshold (Optional[float]): Intersection over Union (IoU)
+            threshold used for non-max suppression.
+        callback (Callable): A function that performs inference on a given
+            image slice and returns detections.
         thread_workers (int): Number of threads for parallel execution.
 
     Note:
         The class ensures that slices do not exceed the boundaries of the original
-        image. As a result, the final slices in the row and column dimensions might be
-        smaller than the specified slice dimensions if the image's width or height is
-        not a multiple of the slice's width or height minus the overlap.
+        image. As a result, the final slices in the row and column dimensions
+        might be smaller than the specified slice dimensions if the image's
+        width or height is not a multiple of the slice's width or height minus
+        the overlap.
     """
 
     def __init__(
@@ -55,6 +59,19 @@ class InferenceSlicer:
         iou_threshold: Optional[float] = 0.5,
         thread_workers: int = 1,
     ):
+        """
+        Initialize the object with the given parameters.
+
+        Args:
+            callback (Callable[[np.ndarray], Detections]): The callback function
+                to be used for inference.
+            slice_wh (Tuple[int, int], optional): The width and height of the slices.
+            Defaults to (320, 320).
+            overlap_ratio_wh (Tuple[float, float], optional): The overlap ratios
+                for width and height. Defaults to (0.2, 0.2).
+            iou_threshold (Optional[float], optional): The IOU threshold. Defaults to 0.5.
+            thread_workers (int, optional): The number of thread workers. Defaults to 1.
+        """
         self.slice_wh = slice_wh
         self.overlap_ratio_wh = overlap_ratio_wh
         self.iou_threshold = iou_threshold
@@ -69,8 +86,7 @@ class InferenceSlicer:
 
         Args:
             image (np.ndarray): The input image on which inference needs to be
-                performed. The image should be in the format
-                `(height, width, channels)`.
+                performed. The image should be in the format `(height, width, channels)`.
 
         Returns:
             Detections: A collection of detections for the entire image after merging

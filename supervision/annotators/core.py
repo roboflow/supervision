@@ -418,9 +418,11 @@ class LabelAnnotator:
         color_map: str = "class",
     ):
         """
+        Initialize the object with specified attributes.
+
         Args:
-            color (Union[Color, ColorPalette]): The color or color palette to use for
-                annotating the text background.
+            color (Union[Color, ColorPalette]): The color or color palette to use
+                for annotating the text background.
             text_color (Color): The color to use for the text.
             text_scale (float): Font scale for the text.
             text_thickness (int): Thickness of the text characters.
@@ -445,6 +447,20 @@ class LabelAnnotator:
         text_padding: int,
         position: Position,
     ) -> Tuple[int, int, int, int]:
+        """
+        Resolve the coordinates of the background for the text based on the detection
+        coordinates and desired position.
+
+        Args:
+            detection_xyxy (Tuple[int, int, int, int]): The coordinates of the
+                detection bounding box.
+            text_wh (Tuple[int, int]): The width and height of the text.
+            text_padding (int): The padding around the text.
+            position (Position): The desired position of the text background.
+
+        Returns:
+            Tuple[int, int, int, int]: The coordinates of the text background.
+        """
         padded_text_wh = (text_wh[0] + 2 * text_padding, text_wh[1] + 2 * text_padding)
         x1, y1, x2, y2 = detection_xyxy
         center_x = (x1 + x2) // 2

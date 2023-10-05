@@ -23,6 +23,29 @@ def approximate_mask_with_polygons(
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.75,
 ) -> List[np.ndarray]:
+    """
+    Approximate a binary mask with polygons.
+
+    This function takes in a binary mask and approximates it with polygons. It
+    calculates the area of the input mask and defines the minimum and maximum
+    detection area based on the provided image area percentages. It then
+    converts the mask into polygons and filters them based on their area,
+    keeping only the ones within the defined range. Finally, it approximates
+    each polygon using a specified percentage and returns the resulting
+    polygons as a list.
+
+    Args:
+        mask (np.ndarray): The binary mask to be approximated.
+        min_image_area_percentage (float, optional): The minimum image area
+            percentage for detection. Defaults to 0.0.
+        max_image_area_percentage (float, optional): The maximum image area
+            percentage for detection. Defaults to 1.0.
+        approximation_percentage (float, optional): The approximation
+            percentage for each polygon. Defaults to 0.75.
+
+    Returns:
+        List[np.ndarray]: A list of polygons approximating the input mask.
+    """
     height, width = mask.shape
     image_area = height * width
     minimum_detection_area = min_image_area_percentage * image_area
@@ -46,6 +69,15 @@ def approximate_mask_with_polygons(
 
 
 def merge_class_lists(class_lists: List[List[str]]) -> List[str]:
+    """
+    Merge multiple lists of class names into a single list of unique class names.
+
+    Args:
+        class_lists (List[List[str]]): A list of lists of class names.
+
+    Returns:
+        List[str]: A sorted list of unique class names.
+    """
     unique_classes = set()
 
     for class_list in class_lists:
@@ -58,6 +90,19 @@ def merge_class_lists(class_lists: List[List[str]]) -> List[str]:
 def build_class_index_mapping(
     source_classes: List[str], target_classes: List[str]
 ) -> Dict[int, int]:
+    """
+    Build a dictionary mapping source class indices to target class indices.
+
+    Args:
+        source_classes (List[str]): A list of source class names.
+        target_classes (List[str]): A list of target class names.
+
+    Returns:
+        Dict[int, int]: A dictionary mapping source class indices to target class indices.
+
+    Raises:
+        ValueError: If a class name in source_classes is not found in target_classes.
+    """
     index_mapping = {}
 
     for i, class_name in enumerate(source_classes):
@@ -75,6 +120,21 @@ def build_class_index_mapping(
 def map_detections_class_id(
     source_to_target_mapping: Dict[int, int], detections: Detections
 ) -> Detections:
+    """
+    Map the class IDs of Detections according to the given source-to-target mapping.
+
+    Args:
+        source_to_target_mapping (Dict[int, int]): A dictionary mapping source
+            class indices to target class indices.
+        detections (Detections): The input Detections object.
+
+    Returns:
+        Detections: A copy of the input Detections object with modified class IDs.
+
+    Raises:
+        ValueError: If detections.class_id is None or not a subset of
+        source_to_target_mapping keys.
+    """
     if detections.class_id is None:
         raise ValueError("Detections must have class_id attribute.")
     if set(np.unique(detections.class_id)) - set(source_to_target_mapping.keys()):
@@ -95,6 +155,15 @@ def map_detections_class_id(
 def save_dataset_images(
     images_directory_path: str, images: Dict[str, np.ndarray]
 ) -> None:
+    """
+    Creates a directory at the specified path if it doesn't exist and saves the
+    images in the directory.
+
+    Args:
+        images_directory_path (str): The path to the directory where the images will be saved.
+        images (Dict[str, np.ndarray]): A dictionary containing image paths as
+            keys and corresponding image arrays as values.
+    """
     Path(images_directory_path).mkdir(parents=True, exist_ok=True)
 
     for image_path, image in images.items():

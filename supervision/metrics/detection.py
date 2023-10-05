@@ -17,12 +17,16 @@ def detections_to_tensor(
 ) -> np.ndarray:
     """
     Convert Supervision Detections to numpy tensors for further computation
+
     Args:
-        detections (sv.Detections): Detections/Targets in the format of sv.Detections
-        with_confidence (bool): Whether to include confidence in the tensor
+        detections (Detections): Detections/Targets in the format of Detections.
+        with_confidence (bool): Whether to include confidence in the tensor.
+
     Returns:
-        (np.ndarray): Detections as numpy tensors as in (xyxy, class_id,
-            confidence) order
+        np.ndarray: Detections as numpy tensors in (xyxy, class_id, confidence) order
+
+    Raises:
+        ValueError: If class_id or confidence attributes are missing in the Detections object
     """
     if detections.class_id is None:
         raise ValueError(
@@ -89,7 +93,6 @@ class ConfusionMatrix:
     classes: List[str]
     conf_threshold: float
     iou_threshold: float
-
     @classmethod
     def from_detections(
         cls,
@@ -173,13 +176,11 @@ class ConfusionMatrix:
 
         Args:
             predictions (List[np.ndarray]): Each element of the list describes a single
-                image and has `shape = (M, 6)` where `M` is the number of detected
-                objects. Each row is expected to be in
-                `(x_min, y_min, x_max, y_max, class, conf)` format.
+                image and has `shape = (M, 6)` where `M` is the number of detected objects.
+                Each row is expected to be in `(x_min, y_min, x_max, y_max, class, conf)` format.
             targets (List[np.ndarray]): Each element of the list describes a single
-                image and has `shape = (N, 5)` where `N` is the number of
-                ground-truth objects. Each row is expected to be in
-                `(x_min, y_min, x_max, y_max, class)` format.
+                image and has `shape = (N, 5)` where `N` is the number of ground-truth objects.
+                Each row is expected to be in `(x_min, y_min, x_max, y_max, class)` format.
             classes (List[str]): Model class names.
             conf_threshold (float): Detection confidence threshold between `0` and `1`.
                 Detections with lower confidence will be excluded.
@@ -264,14 +265,12 @@ class ConfusionMatrix:
         Calculate confusion matrix for a batch of detections for a single image.
 
         Args:
-            predictions (np.ndarray): Batch prediction. Describes a single image and
-                has `shape = (M, 6)` where `M` is the number of detected objects.
-                Each row is expected to be in
-                `(x_min, y_min, x_max, y_max, class, conf)` format.
-            targets (np.ndarray): Batch target labels. Describes a single image and
-                has `shape = (N, 5)` where `N` is the number of ground-truth objects.
-                Each row is expected to be in
-                `(x_min, y_min, x_max, y_max, class)` format.
+            predictions (np.ndarray): Batch prediction. Describes a single image and has
+                `shape = (M, 6)` where `M` is the number of detected objects. Each row is
+                expected to be in `(x_min, y_min, x_max, y_max, class, conf)` format.
+            targets (np.ndarray): Batch target labels. Describes a single image and has
+                `shape = (N, 5)` where `N` is the number of ground-truth objects. Each row
+                is expected to be in `(x_min, y_min, x_max, y_max, class)` format.
             num_classes (int): Number of classes.
             conf_threshold (float): Detection confidence threshold between `0` and `1`.
                 Detections with lower confidence will be excluded.
@@ -332,6 +331,12 @@ class ConfusionMatrix:
         """
         Deduplicate matches. If there are multiple matches for the same true or
         predicted box, only the one with the highest IoU is kept.
+
+        Args:
+            matches (np.ndarray): Numpy array containing the matches.
+
+        Returns:
+            np.ndarray: Deduplicated matches array.
         """
         if matches.shape[0] > 0:
             matches = matches[matches[:, 2].argsort()[::-1]]
@@ -353,8 +358,8 @@ class ConfusionMatrix:
 
         Args:
             dataset (DetectionDataset): Object detection dataset used for evaluation.
-            callback (Callable[[np.ndarray], Detections]): Function that takes an image
-                as input and returns Detections object.
+            callback (Callable[[np.ndarray], Detections]): Function that takes an
+                image as input and returns Detections object.
             conf_threshold (float): Detection confidence threshold between `0` and `1`.
                 Detections with lower confidence will be excluded.
             iou_threshold (float): Detection IoU threshold between `0` and `1`.
@@ -368,11 +373,11 @@ class ConfusionMatrix:
             >>> import supervision as sv
             >>> from ultralytics import YOLO
 
-            >>> dataset = sv.DetectionDataset.from_yolo(...)
+            >>> dataset = sv.DetectionDataset.from_yolo(...) # Existing comment
 
             >>> model = YOLO(...)
             >>> def callback(image: np.ndarray) -> sv.Detections:
-            ...     result = model(image)[0]
+            ...     result = model(image)[0] # Existing comment
             ...     return sv.Detections.from_ultralytics(result)
 
             >>> confusion_matrix = sv.ConfusionMatrix.benchmark(
@@ -514,7 +519,6 @@ class MeanAveragePrecision:
     map50: float
     map75: float
     per_class_ap50_95: np.ndarray
-
     @classmethod
     def from_detections(
         cls,
@@ -754,14 +758,13 @@ class MeanAveragePrecision:
         Match predictions with target labels based on IoU levels.
 
         Args:
-            predictions (np.ndarray): Batch prediction. Describes a single image and
-                has `shape = (M, 6)` where `M` is the number of detected objects.
-                Each row is expected to be in
-                `(x_min, y_min, x_max, y_max, class, conf)` format.
-            targets (np.ndarray): Batch target labels. Describes a single image and
-                has `shape = (N, 5)` where `N` is the number of ground-truth objects.
-                Each row is expected to be in
-                `(x_min, y_min, x_max, y_max, class)` format.
+            predictions (np.ndarray): Batch prediction. Describes a single image
+                and has `shape = (M, 6)` where `M` is the number of detected objects.
+                Each row is expected to be in `(x_min, y_min, x_max, y_max, class, conf)` format.
+            targets (np.ndarray): Batch target labels. Describes a single image
+                and has `shape = (N, 5)` where `N` is the number of ground-truth
+                objects.
+                Each row is expected to be in `(x_min, y_min, x_max, y_max, class)` format.
             iou_thresholds (np.ndarray): Array contains different IoU thresholds.
 
         Returns:

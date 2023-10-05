@@ -16,6 +16,23 @@ from supervision.utils.file import list_files_with_extensions
 def object_to_pascal_voc(
     xyxy: np.ndarray, name: str, polygon: Optional[np.ndarray] = None
 ) -> Element:
+    """
+    Convert object coordinates and metadata to Pascal VOC XML format.
+
+    This function takes in a numpy array containing the object coordinates (xyxy), the
+    object name (name), and an optional numpy array containing the object polygon points
+    (polygon). It returns an Element object representing the XML structure.
+
+    Args:
+        xyxy (np.ndarray): Numpy array containing the object coordinates in the format
+            [xmin, ymin, xmax, ymax].
+        name (str): Name of the object.
+        polygon (Optional[np.ndarray], optional): Numpy array containing the
+            object polygon points. Defaults to None.
+
+    Returns:
+        Element: XML representation of the object in Pascal VOC format.
+    """
     root = Element("object")
 
     object_name = SubElement(root, "name")
@@ -278,6 +295,19 @@ def detections_from_xml_obj(
 
 
 def parse_polygon_points(polygon: Element) -> np.ndarray:
+    """
+    Parse the points of a polygon and return them as a NumPy array.
+
+    This function takes a parameter 'polygon' of type 'Element' and returns a NumPy
+    array representing the points of the polygon. The 'polygon' parameter
+    should be an XML element containing the coordinates of the polygon.
+
+    Args:
+        polygon (Element): An XML element containing the coordinates of the polygon.
+
+    Returns:
+        np.ndarray: A NumPy array of tuples representing the points of the polygon.
+    """
     coordinates = [int(coord.text) for coord in polygon.findall(".//*")]
     return np.array(
         [(coordinates[i], coordinates[i + 1]) for i in range(0, len(coordinates), 2)]

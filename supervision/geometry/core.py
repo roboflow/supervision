@@ -27,6 +27,9 @@ class Position(Enum):
 
 @dataclass
 class Point:
+    """
+    Class representing a point in a 2D space.
+    """
     x: float
     y: float
 
@@ -39,6 +42,9 @@ class Point:
 
 @dataclass
 class Vector:
+    """
+    Class representing a vector in a 2D space.
+    """
     start: Point
     end: Point
 
@@ -53,6 +59,7 @@ class Vector:
 
 @dataclass
 class Rect:
+    """This class represents a rectangle."""
     x: float
     y: float
     width: float

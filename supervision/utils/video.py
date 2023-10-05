@@ -89,6 +89,13 @@ class VideoSink:
         self.__writer = None
 
     def __enter__(self):
+        """
+        Enter method for the context manager. Initializes the video writer with the
+        specified codec and target path.
+
+        Returns:
+            self: The current instance.
+        """
         try:
             self.__fourcc = cv2.VideoWriter_fourcc(*self.__codec)
         except TypeError as e:
@@ -103,13 +110,47 @@ class VideoSink:
         return self
 
     def write_frame(self, frame: np.ndarray):
+        """
+        Write a frame to the video.
+
+        Args:
+            frame (np.ndarray): The frame to be written.
+        """
         self.__writer.write(frame)
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
+        """
+        Exit method for the context manager. Releases the video writer.
+
+        Args:
+            exc_type: The exception type.
+            exc_value: The exception value.
+            exc_traceback: The traceback of the exception.
+        """
         self.__writer.release()
 
 
 def _validate_and_setup_video(source_path: str, start: int, end: Optional[int]):
+    """
+    Validate and setup a video object.
+
+    This function opens a video file using OpenCV and performs validations on the video.
+    If the video cannot be opened, an exception is raised.
+    If the requested end frame is greater than the total number of frames in the
+    video, an exception is raised.
+    The start frame is set to the maximum of 0 and the provided start frame.
+    The end frame is set to the minimum of the provided end frame and the total
+    number of frames in the video.
+
+    Args:
+        source_path (str): The path to the video file.
+        start (int): The start frame.
+        end (Optional[int]): The end frame.
+
+    Returns:
+        Tuple[cv2.VideoCapture, int, int]: A tuple containing the video capture object,
+        start frame, and end frame.
+    """
     video = cv2.VideoCapture(source_path)
     if not video.isOpened():
         raise Exception(f"Could not open video at {source_path}")
