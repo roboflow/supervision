@@ -10,6 +10,7 @@ from supervision.annotators.core import (
     BlurAnnotator,
     BoundingBoxAnnotator,
     BoxCornerAnnotator,
+    BoxMaskAnnotator,
     CircleAnnotator,
     EllipseAnnotator,
     LabelAnnotator,
