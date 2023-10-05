@@ -51,6 +51,7 @@ class Classifications:
         confidence (Optional[np.ndarray], optional): The array of confidence scores.
         Defaults to None.
     """
+
     class_id: np.ndarray
     confidence: Optional[np.ndarray] = None
 

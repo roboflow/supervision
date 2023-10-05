@@ -29,6 +29,7 @@ class DetectionsManager:
     """
     A class responsible for managing detections.
     """
+
     def __init__(self) -> None:
         self.tracker_id_to_zone_id: Dict[int, int] = {}
         self.counts: Dict[int, Dict[int, Set[int]]] = {}

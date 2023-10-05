@@ -86,6 +86,7 @@ class Trace:
     """
     A class representing a trace of object detections over time.
     """
+
     def __init__(
         self,
         max_size: Optional[int] = None,

@@ -38,6 +38,7 @@ class BaseDataset(ABC):
     """
     This is an abstract base class for datasets.
     """
+
     @abstractmethod
     def __len__(self) -> int:
         pass

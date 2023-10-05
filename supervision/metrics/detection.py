@@ -93,6 +93,7 @@ class ConfusionMatrix:
     classes: List[str]
     conf_threshold: float
     iou_threshold: float
+
     @classmethod
     def from_detections(
         cls,
@@ -519,6 +520,7 @@ class MeanAveragePrecision:
     map50: float
     map75: float
     per_class_ap50_95: np.ndarray
+
     @classmethod
     def from_detections(
         cls,

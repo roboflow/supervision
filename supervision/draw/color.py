@@ -121,6 +121,7 @@ class Color:
 @dataclass
 class ColorPalette:
     """Class representing a collection of colors."""
+
     colors: List[Color]
 
     @classmethod
