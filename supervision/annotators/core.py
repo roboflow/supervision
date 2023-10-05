@@ -95,6 +95,7 @@ class MaskAnnotator(BaseAnnotator):
         color: Union[Color, ColorPalette] = ColorPalette.default(),
         opacity: float = 0.5,
         color_map: str = "class",
+        ver: str = "v1",
     ):
         """
         Args:
