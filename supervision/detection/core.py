@@ -296,7 +296,7 @@ class Detections:
             >>> detections = sv.Detections.from_yolo_nas(result)
             ```
         """
-        if np.asarray(yolo_nas_results.bboxes_xyxy).shape[0] == 0:
+        if np.asarray(yolo_nas_results.prediction.bboxes_xyxy).shape[0] == 0:
             return cls.empty()
 
         return cls(
