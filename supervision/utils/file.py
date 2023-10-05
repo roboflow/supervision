@@ -10,6 +10,7 @@ class NumpyJsonEncoder(json.JSONEncoder):
     """
     Custom JSONEncoder class to serialize numpy objects to JSON.
     """
+
     def default(self, obj):
         if isinstance(obj, np.integer):
             return int(obj)

@@ -10,6 +10,7 @@ from supervision.tracker.byte_tracker.kalman_filter import KalmanFilter
 
 class STrack(BaseTrack):
     """This class represents a single track of an object in a video stream."""
+
     shared_kalman = KalmanFilter()
 
     def __init__(self, tlwh, score, class_ids):
@@ -135,16 +136,14 @@ class STrack(BaseTrack):
 
     @staticmethod
     def tlbr_to_tlwh(tlbr):
-        """Convert bounding box to format `(top left x, top left y, width, height)`.
-        """
+        """Convert bounding box to format `(top left x, top left y, width, height)`."""
         ret = np.asarray(tlbr).copy()
         ret[2:] -= ret[:2]
         return ret
 
     @staticmethod
     def tlwh_to_tlbr(tlwh):
-        """Convert bounding box to format `(min x, min y, max x, max y)`.
-        """
+        """Convert bounding box to format `(min x, min y, max x, max y)`."""
         ret = np.asarray(tlwh).copy()
         ret[2:] += ret[:2]
         return ret

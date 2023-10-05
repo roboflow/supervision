@@ -38,6 +38,7 @@ def crop_image(image: np.ndarray, xyxy: np.ndarray) -> np.ndarray:
 
 class ImageSink:
     """This class represents a context manager for saving images."""
+
     def __init__(
         self,
         target_dir_path: str,
