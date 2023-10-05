@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "supervision"
-version = "0.14.0"
+version = "0.15.0"
 description = "A set of easy-to-use utils that will come in handy in any Computer Vision project"
 authors = ["Piotr Skalski <piotr.skalski92@gmail.com>"]
 maintainers = ["Piotr Skalski <piotr.skalski92@gmail.com>"]
@@ -13,7 +13,9 @@ documentation = "https://github.com/roboflow/supervision/blob/main/README.md"
 keywords = ["machine-learning", "deep-learning", "vision", "ML", "DL", "AI", "YOLOv5", "YOLOv8", "Roboflow"]
 
 classifiers=[
+    'Development Status :: 4 - Beta',
     'Intended Audience :: Developers',
+    'Intended Audience :: Education',
     'Intended Audience :: Science/Research',
     'License :: OSI Approved :: MIT License',
     'Programming Language :: Python :: 3',
@@ -28,8 +30,7 @@ classifiers=[
     "Topic :: Scientific/Engineering :: Image Recognition",
     'Typing :: Typed',
     'Operating System :: Microsoft :: Windows',
-    'Operating System :: POSIX',
-    'Operating System :: Unix',
+    'Operating System :: POSIX :: Linux',
     'Operating System :: MacOS'
 ]
 
@@ -38,7 +39,7 @@ python = ">=3.8,<3.12.0"
 numpy = "^1.20.0"
 matplotlib = "^3.7.1"
 pyyaml = "^6.0"
-pillow = "^9.4.0"
+pillow = ">=9.4,<11.0"
 opencv-python = { version = "^4.8.0.74", optional = true }
 opencv-python-headless = "^4.8.0.74"
 scipy = "^1.9.0"
