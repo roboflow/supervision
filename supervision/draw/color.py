@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import List, Tuple
 
 DEFAULT_COLOR_PALETTE = [
+    "#a351fb",
     "#e6194b",
     "#3cb44b",
     "#ffe119",
