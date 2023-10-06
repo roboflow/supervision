@@ -138,7 +138,10 @@ class MaskAnnotator(BaseAnnotator):
         """
         if detections.mask is None:
             return scene
-
+        colored_mask = np.zeros_like(scene, dtype=np.uint8)
+        fmask = np.array(
+            [False]*scene.shape[0]*scene.shape[1]
+            ).reshape(scene.shape[0],scene.shape[1])
         for detection_idx in np.flip(np.argsort(detections.area)):
             idx = resolve_color_idx(
                 detections=detections,
@@ -146,15 +149,14 @@ class MaskAnnotator(BaseAnnotator):
                 color_map=self.color_map,
             )
             color = resolve_color(color=self.color, idx=idx)
+            color_bgr = color.as_bgr()
             mask = detections.mask[detection_idx]
-            colored_mask = np.zeros_like(scene, dtype=np.uint8)
-            colored_mask[:] = color.as_bgr()
+            colored_mask[mask] = color_bgr
+            fmask = np.logical_or(fmask,mask)
 
-            scene = np.where(
-                np.expand_dims(mask, axis=-1),
-                np.uint8(self.opacity * colored_mask + (1 - self.opacity) * scene),
-                scene,
-            )
+        scene[fmask] = cv2.addWeighted(
+            colored_mask, self.opacity, scene, 1-self.opacity , 0
+            )[fmask]
         return scene
 
 
