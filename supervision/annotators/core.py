@@ -94,8 +94,7 @@ class MaskAnnotator(BaseAnnotator):
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
         opacity: float = 0.5,
-        color_map: str = "class",
-        ver: str = "v1",
+        color_map: str = "class"
     ):
         """
         Args:
@@ -151,14 +150,10 @@ class MaskAnnotator(BaseAnnotator):
             colored_mask = np.zeros_like(scene, dtype=np.uint8)
             color_bgr = color.as_bgr()
             colored_mask[:] = color_bgr
-            colored_scene = cv2.addWeighted(
+            scene[mask] = cv2.addWeighted(
                 colored_mask, self.opacity, scene, 1 - self.opacity, 0
-            )
-            empty = np.zeros((mask.shape[0], mask.shape[1], 1), dtype=np.uint8)
-            empty[mask] = 255
-            scene = cv2.bitwise_and(scene, scene, mask=cv2.bitwise_not(empty))
-            top = cv2.bitwise_and(colored_scene, colored_scene, mask=empty)
-            scene = cv2.add(top, scene)
+            )[mask]
+            
         return scene
 
 
