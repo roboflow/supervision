@@ -250,7 +250,7 @@ class ByteTrack:
                 [t.score for t in tracks], dtype=np.float32
             )
         else:
-            return np.array([], dtype=int)
+            detections.tracker_id = np.array([], dtype=int)
 
         return detections
 
