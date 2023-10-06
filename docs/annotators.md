@@ -19,7 +19,7 @@
 
     </div>
 
-=== "Mask"
+=== "BoxCorner"
 
     ```python
     >>> import supervision as sv
@@ -27,8 +27,8 @@
     >>> image = ...
     >>> detections = sv.Detections(...)
 
-    >>> mask_annotator = sv.MaskAnnotator()
-    >>> annotated_frame = mask_annotator.annotate(
+    >>> corner_annotator = sv.BoxCornerAnnotator()
+    >>> annotated_frame = corner_annotator.annotate(
     ...     scene=image.copy(),
     ...     detections=detections
     ... )
@@ -36,7 +36,49 @@
 
     <div class="result" markdown>
 
-    ![mask-annotator-example](https://media.roboflow.com/supervision-annotator-examples/mask-annotator-example.png){ align=center width="800" }
+    ![box-corner-annotator-example](https://media.roboflow.com/supervision-annotator-examples/box-corner-annotator-example.png){ align=center width="800" }
+
+    </div>
+
+=== "BoxMaskAnnotator"
+
+    ```python
+    >>> import supervision as sv
+
+    >>> image = ...
+    >>> detections = sv.Detections(...)
+
+    >>> box_mask_annotator = sv.BoxMaskAnnotator()
+    >>> annotated_frame = box_mask_annotator.annotate(
+    ...     scene=image.copy(),
+    ...     detections=detections
+    ... )
+    ```
+
+    <div class="result" markdown>
+
+    ![box-mask-annotator-example](https://media.roboflow.com/supervision-annotator-examples/box-mask-annotator-example.png){ align=center width="800" }
+
+    </div>
+
+=== "Circle"
+
+    ```python
+    >>> import supervision as sv
+
+    >>> image = ...
+    >>> detections = sv.Detections(...)
+
+    >>> circle_annotator = sv.CircleAnnotator()
+    >>> annotated_frame = circle_annotator.annotate(
+    ...     scene=image.copy(),
+    ...     detections=detections
+    ... )
+    ```
+
+    <div class="result" markdown>
+
+    ![circle-annotator-example](https://media.roboflow.com/supervision-annotator-examples/circle-annotator-example.png){ align=center width="800" }
 
     </div>
 
@@ -61,7 +103,7 @@
 
     </div>
 
-=== "BoxCorner"
+=== "Mask"
 
     ```python
     >>> import supervision as sv
@@ -69,8 +111,8 @@
     >>> image = ...
     >>> detections = sv.Detections(...)
 
-    >>> corner_annotator = sv.BoxCornerAnnotator()
-    >>> annotated_frame = corner_annotator.annotate(
+    >>> mask_annotator = sv.MaskAnnotator()
+    >>> annotated_frame = mask_annotator.annotate(
     ...     scene=image.copy(),
     ...     detections=detections
     ... )
@@ -78,28 +120,7 @@
 
     <div class="result" markdown>
 
-    ![box-corner-annotator-example](https://media.roboflow.com/supervision-annotator-examples/box-corner-annotator-example.png){ align=center width="800" }
-
-    </div>
-
-=== "Circle"
-
-    ```python
-    >>> import supervision as sv
-
-    >>> image = ...
-    >>> detections = sv.Detections(...)
-
-    >>> circle_annotator = sv.CircleAnnotator()
-    >>> annotated_frame = circle_annotator.annotate(
-    ...     scene=image.copy(),
-    ...     detections=detections
-    ... )
-    ```
-
-    <div class="result" markdown>
-
-    ![circle-annotator-example](https://media.roboflow.com/supervision-annotator-examples/circle-annotator-example.png){ align=center width="800" }
+    ![mask-annotator-example](https://media.roboflow.com/supervision-annotator-examples/mask-annotator-example.png){ align=center width="800" }
 
     </div>
 
@@ -170,30 +191,34 @@
 
 :::supervision.annotators.core.BoundingBoxAnnotator
 
-## MaskAnnotator
-
-:::supervision.annotators.core.MaskAnnotator
-
-## EllipseAnnotator
-
-:::supervision.annotators.core.EllipseAnnotator
-
 ## BoxCornerAnnotator
 
 :::supervision.annotators.core.BoxCornerAnnotator
+
+## BoxMaskAnnotator
+
+:::supervision.annotators.core.BoxMaskAnnotator
 
 ## CircleAnnotator
 
 :::supervision.annotators.core.CircleAnnotator
 
+## EllipseAnnotator
+
+:::supervision.annotators.core.EllipseAnnotator
+
+## MaskAnnotator
+
+:::supervision.annotators.core.MaskAnnotator
+
 ## LabelAnnotator
 
 :::supervision.annotators.core.LabelAnnotator
 
-## TraceAnnotator
-
-:::supervision.annotators.core.TraceAnnotator
-
 ## BlurAnnotator
 
 :::supervision.annotators.core.BlurAnnotator
+
+## TraceAnnotator
+
+:::supervision.annotators.core.TraceAnnotator

@@ -156,6 +156,79 @@ class MaskAnnotator(BaseAnnotator):
         return scene
 
 
+class BoxMaskAnnotator(BaseAnnotator):
+    """
+    A class for drawing box masks on an image using provided detections.
+    """
+
+    def __init__(
+        self,
+        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        opacity: float = 0.5,
+        color_map: str = "class",
+    ):
+        """
+        Args:
+            color (Union[Color, ColorPalette]): The color or color palette to use for
+                annotating detections.
+            opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.
+            color_map (str): Strategy for mapping colors to annotations.
+                Options are `index`, `class`, or `track`.
+        """
+        self.color: Union[Color, ColorPalette] = color
+        self.color_map: ColorMap = ColorMap(color_map)
+        self.opacity = opacity
+
+    def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
+        """
+        Annotates the given scene with box masks based on the provided detections.
+
+        Args:
+            scene (np.ndarray): The image where bounding boxes will be drawn.
+            detections (Detections): Object detections to annotate.
+
+        Returns:
+            np.ndarray: The annotated image.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> image = ...
+            >>> detections = sv.Detections(...)
+
+            >>> box_mask_annotator = sv.BoxMaskAnnotator()
+            >>> annotated_frame = box_mask_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
+            ```
+
+        ![box-mask-annotator-example](https://media.roboflow.com/
+        supervision-annotator-examples/box-mask-annotator-example.png)
+        """
+        mask_image = scene.copy()
+        for detection_idx in range(len(detections)):
+            x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
+            idx = resolve_color_idx(
+                detections=detections,
+                detection_idx=detection_idx,
+                color_map=self.color_map,
+            )
+            color = resolve_color(color=self.color, idx=idx)
+            cv2.rectangle(
+                img=scene,
+                pt1=(x1, y1),
+                pt2=(x2, y2),
+                color=color.as_bgr(),
+                thickness=-1,
+            )
+        scene = cv2.addWeighted(
+            scene, self.opacity, mask_image, 1 - self.opacity, gamma=0
+        )
+        return scene
+
+
 class EllipseAnnotator(BaseAnnotator):
     """
     A class for drawing ellipses on an image using provided detections.
