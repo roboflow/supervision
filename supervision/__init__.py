@@ -16,6 +16,7 @@ from supervision.annotators.core import (
     MaskAnnotator,
     TraceAnnotator,
 )
+from supervision.annotators.utils import ColorMap
 from supervision.classification.core import Classifications
 from supervision.dataset.core import (
     BaseDataset,
