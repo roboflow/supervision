@@ -205,8 +205,8 @@ class BoxMaskAnnotator(BaseAnnotator):
             ... )
             ```
 
-        ![bounding-box-annotator-example](https://media.roboflow.com/
-        supervision-annotator-examples/bounding-box-annotator-example.png)
+        ![box-mask-annotator-example](https://media.roboflow.com/
+        supervision-annotator-examples/box-mask-annotator-example.png)
         """
         mask_image = scene.copy()
         for detection_idx in range(len(detections)):
