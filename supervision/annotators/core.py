@@ -157,6 +157,85 @@ class MaskAnnotator(BaseAnnotator):
             )
         return scene
 
+class HaloAnnotator(BaseAnnotator):
+    """
+    A class for drawing Halos on an image using provided detections.
+    """
+
+    def __init__(
+        self,
+        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        opacity: float = .8,
+        color_map: str = "class",
+    ):
+        """
+        Args:
+            color (Union[Color, ColorPalette]): The color or color palette to use for
+                annotating detections.
+            opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.
+            color_map (str): Strategy for mapping colors to annotations.
+                Options are `index`, `class`, or `track`.
+        """
+        self.color: Union[Color, ColorPalette] = color
+        self.opacity = opacity
+        self.color_map: ColorMap = ColorMap(color_map)
+
+    def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
+        """
+        Annotates the given scene with halos based on the provided detections.
+
+        Args:
+            scene (np.ndarray): The image where masks will be drawn.
+            detections (Detections): Object detections to annotate.
+
+        Returns:
+            np.ndarray: The annotated image.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> image = ...
+            >>> detections = sv.Detections(...)
+
+            >>> halo_annotator = sv.HaloAnnotator()
+            >>> annotated_frame = halo_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
+            ```
+
+        ![halo-annotator-example](https://media.roboflow.com/
+        supervision-annotator-examples/halo-annotator-example.png)
+        """
+        if detections.mask is None:
+            return scene
+        colored_mask = np.zeros_like(scene, dtype=np.uint8)
+        fmask = np.array(
+            [False]*scene.shape[0]*scene.shape[1]
+            ).reshape(scene.shape[0],scene.shape[1])
+
+
+        for detection_idx in np.flip(np.argsort(detections.area)):
+            idx = resolve_color_idx(
+                detections=detections,
+                detection_idx=detection_idx,
+                color_map=self.color_map,
+            )
+            color = resolve_color(color=self.color, idx=idx)
+            mask = detections.mask[detection_idx]
+            fmask = np.logical_or(fmask,mask)
+            color_bgr = color.as_bgr()
+            colored_mask[mask] = color_bgr
+        colored_mask = cv2.blur(colored_mask,(20,20))
+        colored_mask[fmask] = [0,0,0]
+        gray = cv2.cvtColor(colored_mask, cv2.COLOR_BGR2GRAY)
+        _, tresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY)
+        mask = tresh>0
+        scene[mask] = cv2.addWeighted(colored_mask, self.opacity, scene, 1, 0)[mask]
+
+            
+        return scene
 
 class EllipseAnnotator(BaseAnnotator):
     """

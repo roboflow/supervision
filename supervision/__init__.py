@@ -15,6 +15,7 @@ from supervision.annotators.core import (
     LabelAnnotator,
     MaskAnnotator,
     TraceAnnotator,
+    HaloAnnotator,
 )
 from supervision.classification.core import Classifications
 from supervision.dataset.core import (
