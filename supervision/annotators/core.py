@@ -94,7 +94,7 @@ class MaskAnnotator(BaseAnnotator):
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
         opacity: float = 0.5,
-        color_map: str = "class"
+        color_map: str = "class",
     ):
         """
         Args:
@@ -153,7 +153,7 @@ class MaskAnnotator(BaseAnnotator):
             scene[mask] = cv2.addWeighted(
                 colored_mask, self.opacity, scene, 1 - self.opacity, 0
             )[mask]
-            
+
         return scene
 
 
