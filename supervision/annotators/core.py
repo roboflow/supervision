@@ -148,13 +148,12 @@ class MaskAnnotator(BaseAnnotator):
             color = resolve_color(color=self.color, idx=idx)
             mask = detections.mask[detection_idx]
             colored_mask = np.zeros_like(scene, dtype=np.uint8)
-            colored_mask[:] = color.as_bgr()
+            color_bgr = color.as_bgr()
+            colored_mask[:] = color_bgr
+            scene[mask] = cv2.addWeighted(
+                colored_mask, self.opacity, scene, 1 - self.opacity, 0
+            )[mask]
 
-            scene = np.where(
-                np.expand_dims(mask, axis=-1),
-                np.uint8(self.opacity * colored_mask + (1 - self.opacity) * scene),
-                scene,
-            )
         return scene
 
 
