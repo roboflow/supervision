@@ -162,7 +162,6 @@ class BoxMaskAnnotator(BaseAnnotator):
     """
     A class for drawing box masks on an image using provided detections.
     """
-
     def __init__(
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
@@ -173,6 +172,7 @@ class BoxMaskAnnotator(BaseAnnotator):
         Args:
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating detections.
+            opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.
             color_map (str): Strategy for mapping colors to annotations.
                 Options are `index`, `class`, or `track`.
         """
