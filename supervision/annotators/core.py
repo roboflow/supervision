@@ -157,6 +157,7 @@ class MaskAnnotator(BaseAnnotator):
             )
         return scene
 
+
 class HaloAnnotator(BaseAnnotator):
     """
     A class for drawing Halos on an image using provided detections.
@@ -165,7 +166,7 @@ class HaloAnnotator(BaseAnnotator):
     def __init__(
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
-        opacity: float = .8,
+        opacity: float = 0.8,
         color_map: str = "class",
     ):
         """
@@ -211,10 +212,9 @@ class HaloAnnotator(BaseAnnotator):
         if detections.mask is None:
             return scene
         colored_mask = np.zeros_like(scene, dtype=np.uint8)
-        fmask = np.array(
-            [False]*scene.shape[0]*scene.shape[1]
-            ).reshape(scene.shape[0],scene.shape[1])
-
+        fmask = np.array([False] * scene.shape[0] * scene.shape[1]).reshape(
+            scene.shape[0], scene.shape[1]
+        )
 
         for detection_idx in np.flip(np.argsort(detections.area)):
             idx = resolve_color_idx(
@@ -224,18 +224,18 @@ class HaloAnnotator(BaseAnnotator):
             )
             color = resolve_color(color=self.color, idx=idx)
             mask = detections.mask[detection_idx]
-            fmask = np.logical_or(fmask,mask)
+            fmask = np.logical_or(fmask, mask)
             color_bgr = color.as_bgr()
             colored_mask[mask] = color_bgr
-        colored_mask = cv2.blur(colored_mask,(20,20))
-        colored_mask[fmask] = [0,0,0]
+        colored_mask = cv2.blur(colored_mask, (20, 20))
+        colored_mask[fmask] = [0, 0, 0]
         gray = cv2.cvtColor(colored_mask, cv2.COLOR_BGR2GRAY)
         _, tresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY)
-        mask = tresh>0
+        mask = tresh > 0
         scene[mask] = cv2.addWeighted(colored_mask, self.opacity, scene, 1, 0)[mask]
 
-            
         return scene
+
 
 class EllipseAnnotator(BaseAnnotator):
     """

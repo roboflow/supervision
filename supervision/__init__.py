@@ -12,10 +12,10 @@ from supervision.annotators.core import (
     BoxCornerAnnotator,
     CircleAnnotator,
     EllipseAnnotator,
+    HaloAnnotator,
     LabelAnnotator,
     MaskAnnotator,
     TraceAnnotator,
-    HaloAnnotator,
 )
 from supervision.classification.core import Classifications
 from supervision.dataset.core import (
