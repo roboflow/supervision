@@ -47,9 +47,9 @@ from supervision.utils.file import list_files_with_extensions
 from supervision.utils.image import ImageSink, crop_image
 from supervision.utils.notebook import plot_image, plot_images_grid
 from supervision.utils.video import (
+    FPSMonitor,
     VideoInfo,
     VideoSink,
     get_video_frames_generator,
     process_video,
-    FPSMonitor
 )

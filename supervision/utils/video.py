@@ -208,6 +208,7 @@ class FPSMonitor:
     """
     A class for monitoring frames per second (FPS) to benchmark latency.
     """
+
     def __init__(self, sample_size: int = 30):
         """
         Args:

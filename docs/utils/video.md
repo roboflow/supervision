@@ -17,5 +17,3 @@
 ## process_video
 
 :::supervision.utils.video.process_video
-
-
