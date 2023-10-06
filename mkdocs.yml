@@ -49,7 +49,6 @@ nav:
       - Image: utils/image.md
       - Notebook: utils/notebook.md
       - File: utils/file.md
-      - FPS: utils/fps.md
   - Changelog: changelog.md
 
 theme:

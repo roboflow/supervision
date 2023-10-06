@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import time
+from collections import deque
 from dataclasses import dataclass
 from typing import Callable, Generator, Optional, Tuple
 
@@ -71,13 +73,11 @@ class VideoSink:
         ```python
         >>> import supervision as sv
 
-        >>> video_info = sv.VideoInfo.from_video_path(video_path='source_video.mp4')
+        >>> video_info = sv.VideoInfo.from_video_path('source.mp4')
+        >>> frames_generator = get_video_frames_generator('source.mp4')
 
-        >>> with sv.VideoSink(target_path='target_video.mp4',
-        ...                   video_info=video_info,
-                              codec='H264') as sink:
-        ...     for frame in get_video_frames_generator(source_path='source_video.mp4',
-        ...                                             stride=2):
+        >>> with sv.VideoSink(target_path='target.mp4', video_info=video_info) as sink:
+        ...     for frame in frames_generator:
         ...         sink.write_frame(frame=frame)
         ```
     """
@@ -202,3 +202,54 @@ def process_video(
         ):
             result_frame = callback(frame, index)
             sink.write_frame(frame=result_frame)
+
+
+class FPSMonitor:
+    """
+    A class for monitoring frames per second (FPS) to benchmark latency.
+    """
+    def __init__(self, sample_size: int = 30):
+        """
+        Args:
+            sample_size (int): The maximum number of observations for latency
+            benchmarking.
+
+        Examples:
+            ```python
+            >>> import supervision as sv
+
+            >>> frames_generator = sv.get_video_frames_generator('source.mp4')
+            >>> fps_monitor = sv.FPSMonitor()
+
+            >>> for frame in frames_generator:
+            ...     # your processing code here
+            ...     fps_monitor.tick()
+            ...     fps = fps_monitor()
+            ```
+        """
+        self.all_timestamps = deque(maxlen=sample_size)
+
+    def __call__(self) -> float:
+        """
+        Computes and returns the average FPS based on the stored time stamps.
+
+        Returns:
+            float: The average FPS. Returns 0.0 if no time stamps are stored.
+        """
+
+        if not self.all_timestamps:
+            return 0.0
+        taken_time = self.all_timestamps[-1] - self.all_timestamps[0]
+        return (len(self.all_timestamps)) / taken_time if taken_time != 0 else 0.0
+
+    def tick(self) -> None:
+        """
+        Adds a new time stamp to the deque for FPS calculation.
+        """
+        self.all_timestamps.append(time.monotonic())
+
+    def reset(self) -> None:
+        """
+        Clears all the time stamps from the deque.
+        """
+        self.all_timestamps.clear()
