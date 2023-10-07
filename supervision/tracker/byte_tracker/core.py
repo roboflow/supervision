@@ -235,8 +235,7 @@ class ByteTrack:
             ```
         """
         tracks = self.update_with_tensors(
-            tensors=detections2boxes(detections=detections),
-            masks = detections.mask
+            tensors=detections2boxes(detections=detections), masks=detections.mask
         )
         detections = Detections.empty()
         if len(tracks) > 0:
@@ -252,16 +251,16 @@ class ByteTrack:
             detections.confidence = np.array(
                 [t.score for t in tracks], dtype=np.float32
             )
-            detections.mask = np.array(
-                [t.mask for t in tracks], dtype=bool
-            )
+            detections.mask = np.array([t.mask for t in tracks], dtype=bool)
 
         else:
             detections.tracker_id = np.array([], dtype=int)
 
         return detections
 
-    def update_with_tensors(self, tensors: np.ndarray, masks:np.ndarray = None) -> List[STrack]:
+    def update_with_tensors(
+        self, tensors: np.ndarray, masks: np.ndarray = None
+    ) -> List[STrack]:
         """
         Updates the tracker with the provided tensors and returns the updated tracks.
 
@@ -292,8 +291,8 @@ class ByteTrack:
             masks_hs = masks[remain_inds]
             masks_ls = masks[inds_second]
         else:
-            masks_hs = np.array([None]*len(remain_inds))
-            masks_ls = np.array([None]*len(inds_second))
+            masks_hs = np.array([None] * len(remain_inds))
+            masks_ls = np.array([None] * len(inds_second))
         scores_keep = scores[remain_inds]
         scores_second = scores[inds_second]
 
@@ -303,8 +302,8 @@ class ByteTrack:
         if len(dets) > 0:
             """Detections"""
             detections = [
-                STrack(STrack.tlbr_to_tlwh(tlbr), s, c,m)
-                for (tlbr, s, c,m) in zip(dets, scores_keep, class_ids_keep,masks_hs)
+                STrack(STrack.tlbr_to_tlwh(tlbr), s, c, m)
+                for (tlbr, s, c, m) in zip(dets, scores_keep, class_ids_keep, masks_hs)
             ]
         else:
             detections = []
@@ -344,8 +343,10 @@ class ByteTrack:
         if len(dets_second) > 0:
             """Detections"""
             detections_second = [
-                STrack(STrack.tlbr_to_tlwh(tlbr), s, c,m)
-                for (tlbr, s, c, m) in zip(dets_second, scores_second, class_ids_second,masks_ls)
+                STrack(STrack.tlbr_to_tlwh(tlbr), s, c, m)
+                for (tlbr, s, c, m) in zip(
+                    dets_second, scores_second, class_ids_second, masks_ls
+                )
             ]
         else:
             detections_second = []
