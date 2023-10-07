@@ -168,6 +168,7 @@ class HaloAnnotator(BaseAnnotator):
         color: Union[Color, ColorPalette] = ColorPalette.default(),
         opacity: float = 0.8,
         color_map: str = "class",
+        kernel_size: int = 40,
     ):
         """
         Args:
@@ -176,10 +177,12 @@ class HaloAnnotator(BaseAnnotator):
             opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.
             color_map (str): Strategy for mapping colors to annotations.
                 Options are `index`, `class`, or `track`.
+            kernel_size (int): The size of the average pooling kernel used for creating the halo.
         """
         self.color: Union[Color, ColorPalette] = color
         self.opacity = opacity
         self.color_map: ColorMap = ColorMap(color_map)
+        self.kernel_size: int = kernel_size
 
     def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
         """
@@ -212,10 +215,10 @@ class HaloAnnotator(BaseAnnotator):
         if detections.mask is None:
             return scene
         colored_mask = np.zeros_like(scene, dtype=np.uint8)
-        fmask = np.array([False] * scene.shape[0] * scene.shape[1]).reshape(
-            scene.shape[0], scene.shape[1]
-        )
-
+        fmask = np.array(
+            [False]*scene.shape[0]*scene.shape[1]
+            ).reshape(scene.shape[0],scene.shape[1])
+        
         for detection_idx in np.flip(np.argsort(detections.area)):
             idx = resolve_color_idx(
                 detections=detections,
@@ -227,13 +230,13 @@ class HaloAnnotator(BaseAnnotator):
             fmask = np.logical_or(fmask, mask)
             color_bgr = color.as_bgr()
             colored_mask[mask] = color_bgr
-        colored_mask = cv2.blur(colored_mask, (20, 20))
+
+        colored_mask = cv2.blur(colored_mask, (self.kernel_size, self.kernel_size))
         colored_mask[fmask] = [0, 0, 0]
         gray = cv2.cvtColor(colored_mask, cv2.COLOR_BGR2GRAY)
-        _, tresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY)
-        mask = tresh > 0
-        scene[mask] = cv2.addWeighted(colored_mask, self.opacity, scene, 1, 0)[mask]
-
+        alpha = self.opacity*gray/gray.max()
+        alpha_mask = alpha[:,:,np.newaxis]
+        scene= np.uint8(scene*(1-alpha_mask)+colored_mask*self.opacity)
         return scene
 
 
