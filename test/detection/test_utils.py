@@ -439,7 +439,9 @@ def test_filter_polygons_by_area(
 )
 def test_process_roboflow_result(
     roboflow_result: dict,
-    expected_result: Tuple[np.ndarray, np.ndarray, np.ndarray, Optional[np.ndarray], np.ndarray],
+    expected_result: Tuple[
+        np.ndarray, np.ndarray, np.ndarray, Optional[np.ndarray], np.ndarray
+    ],
     exception: Exception,
 ) -> None:
     with exception:
@@ -453,6 +455,7 @@ def test_process_roboflow_result(
         assert (result[4] is None and expected_result[4] is None) or (
             np.array_equal(result[4], expected_result[4])
         )
+
 
 @pytest.mark.parametrize(
     "xyxy, offset, expected_result, exception",
