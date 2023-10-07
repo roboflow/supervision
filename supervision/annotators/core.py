@@ -215,10 +215,10 @@ class HaloAnnotator(BaseAnnotator):
         if detections.mask is None:
             return scene
         colored_mask = np.zeros_like(scene, dtype=np.uint8)
-        fmask = np.array(
-            [False]*scene.shape[0]*scene.shape[1]
-            ).reshape(scene.shape[0],scene.shape[1])
-        
+        fmask = np.array([False] * scene.shape[0] * scene.shape[1]).reshape(
+            scene.shape[0], scene.shape[1]
+        )
+
         for detection_idx in np.flip(np.argsort(detections.area)):
             idx = resolve_color_idx(
                 detections=detections,
@@ -234,9 +234,9 @@ class HaloAnnotator(BaseAnnotator):
         colored_mask = cv2.blur(colored_mask, (self.kernel_size, self.kernel_size))
         colored_mask[fmask] = [0, 0, 0]
         gray = cv2.cvtColor(colored_mask, cv2.COLOR_BGR2GRAY)
-        alpha = self.opacity*gray/gray.max()
-        alpha_mask = alpha[:,:,np.newaxis]
-        scene= np.uint8(scene*(1-alpha_mask)+colored_mask*self.opacity)
+        alpha = self.opacity * gray / gray.max()
+        alpha_mask = alpha[:, :, np.newaxis]
+        scene = np.uint8(scene * (1 - alpha_mask) + colored_mask * self.opacity)
         return scene
 
 
