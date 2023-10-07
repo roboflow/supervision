@@ -75,7 +75,7 @@ class STrack(BaseTrack):
         if new_id:
             self.track_id = self.next_id()
         self.score = new_track.score
-        self.mask = new_track.mask if new_track.mask is not None else None
+        self.mask = new_track.mask
 
     def update(self, new_track, frame_id):
         """
@@ -97,8 +97,7 @@ class STrack(BaseTrack):
 
         self.score = new_track.score
 
-        self.mask = new_track.mask if new_track.mask is not None else None
-
+        self.mask = new_track.mask 
     @property
     def tlwh(self):
         """Get current position in bounding box format `(top left x, top left y,
