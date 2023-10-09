@@ -213,7 +213,7 @@ class FPSMonitor:
         """
         Args:
             sample_size (int): The maximum number of observations for latency
-            benchmarking.
+                benchmarking.
 
         Examples:
             ```python

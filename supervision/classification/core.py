@@ -47,7 +47,7 @@ class Classifications:
 
         Args:
             ultralytics_results (ultralytics.engine.results.Results):
-            The output Results instance from ultralytics model
+                The output Results instance from ultralytics model
 
         Returns:
             Classifications: A new Classifications object.
