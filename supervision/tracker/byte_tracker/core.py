@@ -1,4 +1,4 @@
-from typing import List, Tuple, Optional
+from typing import List, Optional, Tuple
 
 import numpy as np
 
@@ -11,7 +11,7 @@ from supervision.tracker.byte_tracker.kalman_filter import KalmanFilter
 class STrack(BaseTrack):
     shared_kalman = KalmanFilter()
 
-    def __init__(self, tlwh, score, class_ids, mask:Optional[np.array] = None):
+    def __init__(self, tlwh, score, class_ids, mask: Optional[np.array] = None):
         # wait activate
         self._tlwh = np.asarray(tlwh, dtype=np.float32)
         self.kalman_filter = None
@@ -305,7 +305,9 @@ class ByteTrack:
             """Detections"""
             detections = [
                 STrack(STrack.tlbr_to_tlwh(tlbr), s, c, m)
-                for (tlbr, s, c, m) in zip(dets, scores_keep, class_ids_keep, masks_keep)
+                for (tlbr, s, c, m) in zip(
+                    dets, scores_keep, class_ids_keep, masks_keep
+                )
             ]
         else:
             detections = []
