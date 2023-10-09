@@ -426,7 +426,7 @@ class Detections:
             >>> detections = sv.Detections.from_roboflow(roboflow_result)
             ```
         """
-        xyxy, confidence, class_id, masks = process_roboflow_result(
+        xyxy, confidence, class_id, masks, trackers = process_roboflow_result(
             roboflow_result=roboflow_result
         )
 
@@ -438,6 +438,7 @@ class Detections:
             confidence=confidence,
             class_id=class_id,
             mask=masks,
+            tracker_id=trackers,
         )
 
     @classmethod
