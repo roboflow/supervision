@@ -13,6 +13,7 @@ from supervision.annotators.core import (
     BoxMaskAnnotator,
     CircleAnnotator,
     EllipseAnnotator,
+    HaloAnnotator,
     LabelAnnotator,
     MaskAnnotator,
     TraceAnnotator,
