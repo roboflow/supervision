@@ -97,7 +97,8 @@ class STrack(BaseTrack):
 
         self.score = new_track.score
 
-        self.mask = new_track.mask 
+        self.mask = new_track.mask
+
     @property
     def tlwh(self):
         """Get current position in bounding box format `(top left x, top left y,
