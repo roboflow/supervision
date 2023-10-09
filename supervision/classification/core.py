@@ -6,7 +6,6 @@ from typing import Any, Optional, Tuple
 import numpy as np
 
 
-
 def _validate_class_ids(class_id: Any, n: int) -> None:
     """
     Ensure that class_id is a 1d np.ndarray with (n, ) shape.
