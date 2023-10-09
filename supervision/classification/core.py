@@ -5,7 +5,6 @@ from typing import Any, Optional, Tuple
 
 import numpy as np
 
-from supervision.utils.internal import deprecated
 
 
 def _validate_class_ids(class_id: Any, n: int) -> None:
