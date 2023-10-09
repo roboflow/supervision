@@ -248,7 +248,8 @@ class HaloAnnotator(BaseAnnotator):
             opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.
             color_map (str): Strategy for mapping colors to annotations.
                 Options are `index`, `class`, or `track`.
-            kernel_size (int): The size of the average pooling kernel used for creating the halo.
+            kernel_size (int): The size of the average pooling kernel used for creating
+                the halo.
         """
         self.color: Union[Color, ColorPalette] = color
         self.opacity = opacity
