@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 import numpy as np
 
@@ -11,7 +11,7 @@ from supervision.tracker.byte_tracker.kalman_filter import KalmanFilter
 class STrack(BaseTrack):
     shared_kalman = KalmanFilter()
 
-    def __init__(self, tlwh, score, class_ids, mask=None):
+    def __init__(self, tlwh, score, class_ids, mask:Optional[np.array] = None):
         # wait activate
         self._tlwh = np.asarray(tlwh, dtype=np.float32)
         self.kalman_filter = None
@@ -259,13 +259,14 @@ class ByteTrack:
         return detections
 
     def update_with_tensors(
-        self, tensors: np.ndarray, masks: np.ndarray = None
+        self, tensors: np.ndarray, masks: Optional[np.array] = None
     ) -> List[STrack]:
         """
         Updates the tracker with the provided tensors and returns the updated tracks.
 
         Parameters:
             tensors: The new tensors to update with.
+            masks: The new masks associated to new tensors
 
         Returns:
             List[STrack]: Updated tracks.
@@ -288,11 +289,11 @@ class ByteTrack:
         dets_second = bboxes[inds_second]
         dets = bboxes[remain_inds]
         if masks is not None:
-            masks_hs = masks[remain_inds]
-            masks_ls = masks[inds_second]
+            masks_keep = masks[remain_inds]
+            masks_second = masks[inds_second]
         else:
-            masks_hs = np.array([None] * len(remain_inds))
-            masks_ls = np.array([None] * len(inds_second))
+            masks_keep = np.array([None] * len(remain_inds))
+            masks_second = np.array([None] * len(inds_second))
         scores_keep = scores[remain_inds]
         scores_second = scores[inds_second]
 
@@ -303,7 +304,7 @@ class ByteTrack:
             """Detections"""
             detections = [
                 STrack(STrack.tlbr_to_tlwh(tlbr), s, c, m)
-                for (tlbr, s, c, m) in zip(dets, scores_keep, class_ids_keep, masks_hs)
+                for (tlbr, s, c, m) in zip(dets, scores_keep, class_ids_keep, masks_keep)
             ]
         else:
             detections = []
@@ -345,7 +346,7 @@ class ByteTrack:
             detections_second = [
                 STrack(STrack.tlbr_to_tlwh(tlbr), s, c, m)
                 for (tlbr, s, c, m) in zip(
-                    dets_second, scores_second, class_ids_second, masks_ls
+                    dets_second, scores_second, class_ids_second, masks_second
                 )
             ]
         else:
