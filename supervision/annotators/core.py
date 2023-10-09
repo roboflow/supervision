@@ -65,7 +65,7 @@ class BoundingBoxAnnotator(BaseAnnotator):
             ```
 
         ![bounding-box-annotator-example](https://media.roboflow.com/
-        supervision-annotator-examples/bounding-box-annotator-example.png)
+        supervision-annotator-examples/bounding-box-annotator-example-purple.png)
         """
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
@@ -134,7 +134,7 @@ class MaskAnnotator(BaseAnnotator):
             ```
 
         ![mask-annotator-example](https://media.roboflow.com/
-        supervision-annotator-examples/mask-annotator-example.png)
+        supervision-annotator-examples/mask-annotator-example-purple.png)
         """
         if detections.mask is None:
             return scene
@@ -205,7 +205,7 @@ class BoxMaskAnnotator(BaseAnnotator):
             ```
 
         ![box-mask-annotator-example](https://media.roboflow.com/
-        supervision-annotator-examples/box-mask-annotator-example.png)
+        supervision-annotator-examples/box-mask-annotator-example-purple.png)
         """
         mask_image = scene.copy()
         for detection_idx in range(len(detections)):
@@ -238,8 +238,8 @@ class HaloAnnotator(BaseAnnotator):
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
         opacity: float = 0.8,
-        color_map: str = "class",
         kernel_size: int = 40,
+        color_map: str = "class"
     ):
         """
         Args:
@@ -281,7 +281,7 @@ class HaloAnnotator(BaseAnnotator):
             ```
 
         ![halo-annotator-example](https://media.roboflow.com/
-        supervision-annotator-examples/halo-annotator-example.png)
+        supervision-annotator-examples/halo-annotator-example-purple.png)
         """
         if detections.mask is None:
             return scene
@@ -366,7 +366,7 @@ class EllipseAnnotator(BaseAnnotator):
             ```
 
         ![ellipse-annotator-example](https://media.roboflow.com/
-        supervision-annotator-examples/ellipse-annotator-example.png)
+        supervision-annotator-examples/ellipse-annotator-example-purple.png)
         """
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
@@ -402,7 +402,7 @@ class BoxCornerAnnotator(BaseAnnotator):
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
         thickness: int = 4,
-        corner_length: int = 25,
+        corner_length: int = 15,
         color_map: str = "class",
     ):
         """
@@ -445,7 +445,7 @@ class BoxCornerAnnotator(BaseAnnotator):
             ```
 
         ![box-corner-annotator-example](https://media.roboflow.com/
-        supervision-annotator-examples/box-corner-annotator-example.png)
+        supervision-annotator-examples/box-corner-annotator-example-purple.png)
         """
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
@@ -525,7 +525,7 @@ class CircleAnnotator(BaseAnnotator):
 
 
         ![circle-annotator-example](https://media.roboflow.com/
-        supervision-annotator-examples/circle-annotator-example.png)
+        supervision-annotator-examples/circle-annotator-example-purple.png)
         """
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
@@ -665,7 +665,7 @@ class LabelAnnotator:
             ```
 
         ![label-annotator-example](https://media.roboflow.com/
-        supervision-annotator-examples/label-annotator-example-2.png)
+        supervision-annotator-examples/label-annotator-example-purple.png)
         """
         font = cv2.FONT_HERSHEY_SIMPLEX
         for detection_idx in range(len(detections)):
@@ -760,7 +760,7 @@ class BlurAnnotator(BaseAnnotator):
             ```
 
         ![blur-annotator-example](https://media.roboflow.com/
-        supervision-annotator-examples/blur-annotator-example-2.png)
+        supervision-annotator-examples/blur-annotator-example-purple.png)
         """
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
@@ -836,7 +836,7 @@ class TraceAnnotator:
             ```
 
         ![trace-annotator-example](https://media.roboflow.com/
-        supervision-annotator-examples/trace-annotator-example.png)
+        supervision-annotator-examples/trace-annotator-example-purple.png)
         """
         self.trace.put(detections)
 
