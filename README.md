@@ -310,7 +310,7 @@ Visit our [documentation](https://roboflow.github.io/supervision) page to learn 
 
 We love your input! Please see our [contributing guide](https://github.com/roboflow/supervision/blob/main/CONTRIBUTING.md) to get started. Thank you 🙏 to all our contributors!
 
-<p align="center"> 
+<p align="center">
     <a href="https://github.com/roboflow/supervision/graphs/contributors">
       <img src="https://contrib.rocks/image?repo=roboflow/supervision" />
     </a>
