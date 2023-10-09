@@ -239,7 +239,7 @@ class HaloAnnotator(BaseAnnotator):
         color: Union[Color, ColorPalette] = ColorPalette.default(),
         opacity: float = 0.8,
         kernel_size: int = 40,
-        color_map: str = "class"
+        color_map: str = "class",
     ):
         """
         Args:
