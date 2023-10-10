@@ -34,11 +34,6 @@ repos:
   #       name: Upgrade code
   #       args: [--py38-plus]
 
-  - repo: https://github.com/PyCQA/isort
-    rev: 5.12.0
-    hooks:
-      - id: isort
-        name: Sort imports
 
   - repo: https://github.com/PyCQA/flake8
     rev: 6.1.0
