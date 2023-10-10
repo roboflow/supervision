@@ -1,5 +1,5 @@
-from typing import Optional, Union
 import os
+from typing import Optional, Union
 
 import cv2
 import numpy as np
@@ -170,6 +170,7 @@ def draw_text(
     )
     return scene
 
+
 def draw_image(
     scene: np.ndarray, image: Union[str, np.ndarray], opacity: float, rect: Rect
 ) -> np.ndarray:
@@ -178,9 +179,12 @@ def draw_image(
 
     Args:
         scene (np.ndarray): The background image onto which the image will be drawn.
-        image (Union[str, np.ndarray]): The image to be drawn. Can be either a file path or a NumPy array.
-        opacity (float): The opacity level of the image to be drawn, ranging from 0.0 to 1.0.
-        rect (Rect): A Rect object specifying the dimensions and position where the image will be drawn.
+        image (Union[str, np.ndarray]): The image to be drawn.
+            Can be either a file path or a NumPy array.
+        opacity (float): The opacity level of the image to be drawn,
+            ranging from 0.0 to 1.0.
+        rect (Rect): A Rect object specifying the dimensions and
+            position where the image will be drawn.
 
     Returns:
         np.ndarray: The scene with the image drawn onto it.
