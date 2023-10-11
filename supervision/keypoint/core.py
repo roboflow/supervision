@@ -88,10 +88,10 @@ class Keypoints:
         """
         Creates a Keypoints instance from a
         (https://developers.google.com/mediapipe/solutions/vision/pose_landmarker/python)
-        MediaPipe result. # noqa
+        MediaPipe result.
 
         Args:
-            mediapipe_results(mediapipe.tasks.python.vision.pose_landmarker.PoseLandmarkerResults): # noqa
+            mediapipe_results(mediapipe.pose_landmarker.PoseLandmarkerResult): 
                 The output Results instance from MediaPipe model
 
         Returns:
