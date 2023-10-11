@@ -8,6 +8,9 @@ from ultralytics import YOLO
 import supervision as sv
 
 
+ZONE_POLYGON = np.array([[640, 860], [640, 420], [1280, 420], [1280, 860]])
+
+
 class VideoProcessor:
     def __init__(
         self,
@@ -31,9 +34,17 @@ class VideoProcessor:
         self.frame_generator = tqdm(frame_generator, total=self.video_info.total_frames)
         self.ellipse_annotator = sv.EllipseAnnotator()
         self.trace_annotator = sv.TraceAnnotator()
+        self.label_annotator = sv.LabelAnnotator(
+            text_position=sv.Position.BOTTOM_CENTER)
+        self.zone = sv.PolygonZone(
+            polygon=ZONE_POLYGON,
+            frame_resolution_wh=self.video_info.resolution_wh,
+            triggering_position=sv.Position.BOTTOM_CENTER,
+        )
 
     def process_video(self):
-        if not self.target_video_path:
+        print(self.video_info)
+        if self.target_video_path:
             with sv.VideoSink(self.target_video_path, self.video_info) as sink:
                 for frame in self.frame_generator:
                     annotated_frame = self.process_frame(frame)
@@ -50,6 +61,7 @@ class VideoProcessor:
         results = self.model(
             frame, verbose=False, conf=self.conf_threshold, iou=self.iou_threshold)[0]
         detections = sv.Detections.from_ultralytics(results)
+        detections = detections[detections.class_id == 0]
         detections = self.tracker.update_with_detections(detections=detections)
         return self.annotate_frame(frame, detections)
 
@@ -57,10 +69,15 @@ class VideoProcessor:
         self, frame: np.ndarray, detections: sv.Detections
     ) -> np.ndarray:
         annotated_frame = frame.copy()
+        # annotated_frame = sv.draw_polygon(
+        #     annotated_frame, self.zone.polygon, sv.Color.red())
         annotated_frame = self.ellipse_annotator.annotate(
             scene=annotated_frame, detections=detections)
         annotated_frame = self.trace_annotator.annotate(
             scene=annotated_frame, detections=detections)
+        labels = [f"#{tracker_id}" for tracker_id in detections.tracker_id]
+        annotated_frame = self.label_annotator.annotate(
+            scene=annotated_frame, detections=detections, labels=labels)
         return annotated_frame
 
 
