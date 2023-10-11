@@ -146,4 +146,3 @@ class Keypoints:
             keypoints=np.empty((0, 0, 2), dtype=np.float32),
             confidence=np.empty((0, 0), dtype=np.float32),
         )
-
