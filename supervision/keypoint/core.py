@@ -91,7 +91,7 @@ class Keypoints:
         MediaPipe result.
 
         Args:
-            mediapipe_results(mediapipe.pose_landmarker.PoseLandmarkerResult): 
+            mediapipe_results(mediapipe.pose_landmarker.PoseLandmarkerResult):
                 The output Results instance from MediaPipe model
 
         Returns:
