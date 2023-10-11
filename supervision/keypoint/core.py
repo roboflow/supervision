@@ -82,6 +82,50 @@ class Keypoints:
         ]
 
         return cls(keypoints=np.array(xy)[0], confidence=np.array(confidence)[0])
+    
+    @classmethod
+    def from_mediapipe(cls, mediapipe_results) -> Keypoints:
+        """
+        Creates a Keypoints instance from a
+        (https://developers.google.com/mediapipe/solutions/vision/pose_landmarker/python) MediaPipe result.
+
+        Args:
+            mediapipe_results (mediapipe.tasks.python.vision.pose_landmarker.PoseLandmarkerResults):
+                The output Results instance from MediaPipe model
+
+        Returns:
+            Keypoints: A new Keypoints object.
+
+        Example:
+            ```python
+            >>> import mediapipe as mp
+            >>> from mediapipe.tasks import python
+            >>> from mediapipe.tasks.python import vision
+            >>> import supervision as sv
+
+            >>> base_options = python.BaseOptions(model_asset_path='pose_landmarker.task')
+            >>> options = vision.PoseLandmarkerOptions(
+            ...     base_options=base_options,
+            ...     output_segmentation_masks=True
+            ... )
+            >>> detector = vision.PoseLandmarker.create_from_options(options)
+
+            >>> image = mp.Image.create_from_file("image.jpg")
+
+            >>> detection_result = detector.detect(image)
+
+            >>> pose_landmarks = sv.Keypoints.from_mediapipe(detection_result)
+            ```
+        """
+        
+        xyz = []
+        confidence = []
+
+        for pose_landmarks in mediapipe_results.pose_landmarks:
+            xyz.append([[item.x, item.y, item.z] for item in pose_landmarks])
+            confidence.append([item.visibility for item in pose_landmarks])
+
+        return cls(keypoints=np.array(xyz), confidence=np.array(confidence))
 
     @classmethod
     def empty(cls) -> Keypoints:

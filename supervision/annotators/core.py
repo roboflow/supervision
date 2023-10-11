@@ -914,8 +914,21 @@ class PoseAnnotator(BaseAnnotator):
         supervision-annotator-examples/bounding-box-annotator-example-purple.png)
         """
         for keypoint_idx in range(len(keypoints)):
-            for point in keypoints.keypoints[keypoint_idx].astype(int):
-                x, y = point.tolist()
+            for point in keypoints.keypoints[keypoint_idx]:
+                print(point)
+                if len(point) == 3:
+                    x, y, _ = point.tolist()
+                else:
+                    x, y = point.tolist()
+
+                # if points are 0-1 scale, convert to pixel coordinates
+                if x < 1:
+                    x = x * scene.shape[1]
+                if y < 1:
+                    y = y * scene.shape[0]
+
+                x, y = int(x), int(y)
+
                 color = resolve_color(color=self.color, idx=keypoint_idx)
 
                 cv2.circle(
