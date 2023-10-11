@@ -17,6 +17,7 @@ from supervision.annotators.core import (
     LabelAnnotator,
     MaskAnnotator,
     TraceAnnotator,
+    PoseAnnotator
 )
 from supervision.annotators.utils import ColorMap
 from supervision.classification.core import Classifications
@@ -27,6 +28,7 @@ from supervision.dataset.core import (
 )
 from supervision.detection.annotate import BoxAnnotator
 from supervision.detection.core import Detections
+from supervision.keypoint.core import Keypoints
 from supervision.detection.line_counter import LineZone, LineZoneAnnotator
 from supervision.detection.tools.inference_slicer import InferenceSlicer
 from supervision.detection.tools.polygon_zone import PolygonZone, PolygonZoneAnnotator
