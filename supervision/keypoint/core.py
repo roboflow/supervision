@@ -82,7 +82,7 @@ class Keypoints:
         ]
 
         return cls(keypoints=np.array(xy)[0], confidence=np.array(confidence)[0])
-    
+
     @classmethod
     def from_mediapipe(cls, mediapipe_results) -> Keypoints:
         """
@@ -117,7 +117,7 @@ class Keypoints:
             >>> pose_landmarks = sv.Keypoints.from_mediapipe(detection_result)
             ```
         """
-        
+
         xyz = []
         confidence = []
 
