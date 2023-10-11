@@ -12,9 +12,9 @@ from supervision.annotators.utils import (
     resolve_color_idx,
 )
 from supervision.detection.core import Detections
-from supervision.keypoint.core import Keypoints
 from supervision.draw.color import Color, ColorPalette
 from supervision.geometry.core import Position
+from supervision.keypoint.core import Keypoints
 
 
 class BoundingBoxAnnotator(BaseAnnotator):
@@ -860,6 +860,7 @@ class TraceAnnotator:
                     thickness=self.thickness,
                 )
         return scene
+
 
 class PoseAnnotator(BaseAnnotator):
     """

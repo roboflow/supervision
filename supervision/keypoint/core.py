@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Optional, Tuple
+from typing import Any, Optional
 
 import numpy as np
 
@@ -10,11 +10,14 @@ def _validate_keypoint_structure(keypoint: Any, n: int, m: int = 2) -> None:
     """
     Ensure that keypoint structure is a (N, M, 2) or (N, M, 3) shape.
     """
-    is_valid = isinstance(keypoint, np.ndarray) and (keypoint.shape == (n, m, 2) or keypoint.shape == (n, m, 3))
+    is_valid = isinstance(keypoint, np.ndarray) and (
+        keypoint.shape == (n, m, 2) or keypoint.shape == (n, m, 3)
+    )
 
     if not is_valid:
         raise ValueError("keypoint structure must be a (N, M, 2) or (N, M, 3) shape")
-    
+
+
 def _validate_confidence(confidence: Any, n: int, m: int) -> None:
     """
     Ensure that confidence is a (N, M) shape.
@@ -24,6 +27,7 @@ def _validate_confidence(confidence: Any, n: int, m: int) -> None:
         is_valid = isinstance(confidence, np.ndarray) and confidence.shape == (n, m)
         if not is_valid:
             raise ValueError("confidence must be a (N, M) shape")
+
 
 @dataclass
 class Keypoints:
@@ -45,7 +49,7 @@ class Keypoints:
 
         _validate_keypoint_structure(self.keypoints, n, m)
         _validate_confidence(self.confidence, n, m)
-        
+
     @classmethod
     def from_ultralytics(cls, ultralytics_results) -> Keypoints:
         """
@@ -73,7 +77,9 @@ class Keypoints:
             ```
         """
         xy = [item.keypoints.xy.data.cpu().numpy() for item in ultralytics_results]
-        confidence = [item.keypoints.conf.data.cpu().numpy() for item in ultralytics_results]
+        confidence = [
+            item.keypoints.conf.data.cpu().numpy() for item in ultralytics_results
+        ]
 
         return cls(keypoints=np.array(xy)[0], confidence=np.array(confidence)[0])
 
