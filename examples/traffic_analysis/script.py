@@ -158,7 +158,11 @@ class VideoProcessor:
         )[0]
         detections = sv.Detections.from_ultralytics(results)
         detections.class_id = np.zeros(len(detections))
+        print(detections.xyxy.shape)
+        print(detections.mask.shape if detections.mask is not None else None)
         detections = self.tracker.update_with_detections(detections)
+        print(detections.xyxy.shape)
+        print(detections.mask.shape if detections.mask is not None else None)
 
         detections_in_zones = []
         detections_out_zones = []
