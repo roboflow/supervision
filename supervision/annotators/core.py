@@ -864,7 +864,8 @@ class TraceAnnotator:
 
 class PoseAnnotator(BaseAnnotator):
     """
-    A class for drawing pose estimation keypoints on an image using provided keypoint detections.
+    A class for drawing pose estimation keypoints on an image using provided
+    keypoint detections.
     """
 
     def __init__(

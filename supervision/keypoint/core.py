@@ -87,10 +87,11 @@ class Keypoints:
     def from_mediapipe(cls, mediapipe_results) -> Keypoints:
         """
         Creates a Keypoints instance from a
-        (https://developers.google.com/mediapipe/solutions/vision/pose_landmarker/python) MediaPipe result.
+        (https://developers.google.com/mediapipe/solutions/vision/pose_landmarker/python)
+        MediaPipe result. # noqa
 
         Args:
-            mediapipe_results (mediapipe.tasks.python.vision.pose_landmarker.PoseLandmarkerResults):
+            mediapipe_results(mediapipe.tasks.python.vision.pose_landmarker.PoseLandmarkerResults): # noqa
                 The output Results instance from MediaPipe model
 
         Returns:
@@ -103,7 +104,9 @@ class Keypoints:
             >>> from mediapipe.tasks.python import vision
             >>> import supervision as sv
 
-            >>> base_options = python.BaseOptions(model_asset_path='pose_landmarker.task')
+            >>> base_options = python.BaseOptions(
+            ... model_asset_path='pose_landmarker.task'
+            >>> )
             >>> options = vision.PoseLandmarkerOptions(
             ...     base_options=base_options,
             ...     output_segmentation_masks=True
