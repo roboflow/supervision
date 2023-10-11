@@ -8,6 +8,7 @@ interfaces with diverse applications.
 |:--------------------------------------:|:----------------------------------------:|
 |         [Tracking](./tracking)         | [@SkalskiP](https://github.com/SkalskiP) |
 | [Traffic Analysis](./traffic_analysis) | [@SkalskiP](https://github.com/SkalskiP) |
+|     [Time in Zone](./time_in_zone)     | [@SkalskiP](https://github.com/SkalskiP) |
 
 
 ## Guidelines for Contributing
