@@ -1,26 +1,31 @@
-## Supervision Example Applications
+## Supervision Examples
 
-This repository features a collection of real-world applications and walkthroughs, provided as either Python files or notebooks. Explore the examples below to see how Supervision can be integrated into various applications.
+This repository is packed with real-world use-cases, provided through Python scripts or 
+interactive notebooks. Browse through to understand how the Supervision library 
+interfaces with diverse applications.
+
+|               **Title**                |             **Contributor**              |
+|:--------------------------------------:|:----------------------------------------:|
+|         [Tracking](./tracking)         | [@SkalskiP](https://github.com/SkalskiP) |
+| [Traffic Analysis](./traffic_analysis) | [@SkalskiP](https://github.com/SkalskiP) |
 
 
+## Guidelines for Contributing
 
-| Title | Contributor |
-| ----- | ----------- |
-|[Supervision Tracking and Annotation](./tracking)         | [Piotr Skalski](https://github.com/SkalskiP) |
-|       |             |
+We welcome contributions from the community in the form of examples, applications, and 
+guides. To contribute, please follow these steps:
 
-
-### How to Contribute
-
-We welcome contributions from the community in the form of examples, applications, and guides. To contribute, please follow these steps:
-
-1. Create a pull request (PR) with the `[Example]` prefix in the title, adding your project folder to the `examples/` directory in the repository.
-2. Ensure that your project meets the following criteria:
-   - Utilizes the `supervision` package.
-   - Includes a `README.md` file with instructions on how to run the project.
-   - Includes visual results to demonstrate how the app should work.
+1. Create a pull request (PR) with the `[Example]` prefix in the title, adding your 
+project folder to the `examples/` directory in the repository.
+2. Confirm your project aligns with the following standards:
+   - Incorporates the `supervision` package.
+   - Provides a `README.md` file, detailing the instructions to execute the project.
+   - Showcases visual results, demonstrating the app's functionality.
    - Avoids adding large assets or dependencies unless absolutely necessary.
-   - The contributor is expected to provide support for issues related to their examples.
-   - If the model you are showcasing has licensing issues, please explicitly mention them to prevent any potential confusion.
+   - The contributor is expected to provide support for issues related to their 
+examples.
+   - In case the presented model has licensing complications, kindly specify them to 
+circumvent potential misunderstandings.
 
-If you have any questions or concerns about these requirements, please submit a PR, and we will be more than happy to guide you.
+For inquiries or concerns about these prerequisites, feel free to raise a PR. We are 
+committed to assist and guide you.
