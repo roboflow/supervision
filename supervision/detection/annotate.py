@@ -260,7 +260,7 @@ class TraceAnnotator:
         return scene
 
 
-class TriangleAnnotator:
+class TriangleMarkerAnnotator:
     """
     A class for drawing triangles on an image using detections provided.
 
@@ -281,25 +281,22 @@ class TriangleAnnotator:
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
         thickness: int = 2,
-        text_color: Color = Color.black(),
-        text_scale: float = 0.5,
-        text_thickness: int = 1,
-        text_padding: int = 10,
+        position: Position = Position.TOP_CENTER,
+        triangle_marker_width: int = 20,
+        triangle_marker_height: int = 20,
+        triangle_marker_margin: int = 10,
     ):
         self.color: Union[Color, ColorPalette] = color
         self.thickness: int = thickness
-        self.text_color: Color = text_color
-        self.text_scale: float = text_scale
-        self.text_thickness: int = text_thickness
-        self.text_padding: int = text_padding
-        self.triangle_margin: int = 5
+        self.triangle_marker_margin: int = triangle_marker_margin
+        self.triangle_marker_height: int = triangle_marker_height
+        self.triangle_marker_width: int = triangle_marker_width
+        self.position = position
 
     def annotate(
         self,
         scene: np.ndarray,
         detections: Detections,
-        labels: Optional[List[str]] = None,
-        skip_label: bool = False,
     ) -> np.ndarray:
         """
         Draws triangles on the frame using the detections provided.
@@ -336,9 +333,8 @@ class TriangleAnnotator:
             ... )
             ```
         """
-        font = cv2.FONT_HERSHEY_SIMPLEX
         for i in range(len(detections)):
-            x1, y1, x2, y2 = detections.xyxy[i].astype(int)
+            x, y = detections.get_anchor_coordinates(self.position)
             class_id = (
                 detections.class_id[i] if detections.class_id is not None else None
             )
@@ -348,68 +344,32 @@ class TriangleAnnotator:
                 if isinstance(self.color, ColorPalette)
                 else self.color
             )
-            # Calculate triangle vertices based on x1, y1, x2, y2 coordinates
-            # Modify this part to define your triangle vertices based on x1, y1, x2, y2
+
             triangle_vertices = [
-                (x1 + (x2 - x1) // 4, y1 - (x2 - x1) // 4 - self.triangle_margin),
-                ((x1 + x2) // 2, y1 - self.triangle_margin),
-                (x2 - (x2 - x1) // 4, y1 - (x2 - x1) // 4 - self.triangle_margin),
+                (
+                    x - self.triangle_marker_width // 2,
+                    y - self.triangle_marker_height - self.triangle_marker_margin,
+                ),
+                (x, y - self.triangle_marker_margin),
+                (
+                    x + self.triangle_marker_width // 2,
+                    y - self.triangle_marker_height - self.triangle_marker_margin,
+                ),
             ]
 
-            # Modify this part to draw the triangle and label
+            cv2.drawContours(
+                image=scene,
+                contours=[np.array(triangle_vertices, dtype=np.int32)],
+                contourIdx=0,
+                color=color.as_bgr(),
+                thickness=self.thickness,
+            )
+
             cv2.drawContours(
                 image=scene,
                 contours=[np.array(triangle_vertices, dtype=np.int32)],
                 contourIdx=0,
                 color=color.as_bgr(),
                 thickness=-1,
-            )
-            if skip_label:
-                continue
-
-            text = (
-                f"{class_id}"
-                if (labels is None or len(detections) != len(labels))
-                else labels[i]
-            )
-
-            text_width, text_height = cv2.getTextSize(
-                text=text,
-                fontFace=font,
-                fontScale=self.text_scale,
-                thickness=self.text_thickness,
-            )[0]
-
-            text_x = (x1 + (x2 - x1) // 4) + self.text_padding
-            text_y = (y1 - (x2 - x1) // 4 - self.triangle_margin) - self.text_padding
-
-            text_background_x1 = x1 + (x2 - x1) // 4
-            text_background_y1 = (
-                (y1 - (x2 - x1) // 4 - self.triangle_margin)
-                - 2 * self.text_padding
-                - text_height
-            )
-
-            text_background_x2 = (
-                (x1 + (x2 - x1) // 4) + 2 * self.text_padding + text_width
-            )
-            text_background_y2 = (y1 - (x2 - x1) // 4 - self.triangle_margin) - 2
-
-            cv2.rectangle(
-                img=scene,
-                pt1=(text_background_x1, text_background_y1),
-                pt2=(text_background_x2, text_background_y2),
-                color=color.as_bgr(),
-                thickness=cv2.FILLED,
-            )
-            cv2.putText(
-                img=scene,
-                text=text,
-                org=(text_x, text_y),
-                fontFace=font,
-                fontScale=self.text_scale,
-                color=self.text_color.as_rgb(),
-                thickness=self.text_thickness,
-                lineType=cv2.LINE_AA,
             )
         return scene
