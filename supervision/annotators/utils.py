@@ -8,18 +8,19 @@ from supervision.draw.color import Color, ColorPalette
 from supervision.geometry.core import Position
 
 
-class ColorMap(Enum):
+class ColorLookup(Enum):
     """
-    Enum for annotator color mapping.
+    Enum for annotator color lookup.
     """
-
     INDEX = "index"
     CLASS = "class"
     TRACK = "track"
 
 
 def resolve_color_idx(
-    detections: Detections, detection_idx: int, color_map: ColorMap = ColorMap.CLASS
+    detections: Detections,
+    detection_idx: int,
+    color_lookup: Union[ColorLookup, np.ndarray] = ColorLookup.CLASS
 ) -> int:
     if detection_idx >= len(detections):
         raise ValueError(
@@ -27,16 +28,23 @@ def resolve_color_idx(
             f"is out of bounds for detections of length {len(detections)}"
         )
 
-    if color_map == ColorMap.INDEX:
+    if isinstance(color_lookup, np.ndarray):
+        if len(color_lookup) != len(detections):
+            raise ValueError(
+                f"Length of color lookup {len(color_lookup)}"
+                f"does not match length of detections {len(detections)}"
+            )
+        return color_lookup[detection_idx]
+    elif color_lookup == ColorLookup.INDEX:
         return detection_idx
-    elif color_map == ColorMap.CLASS:
+    elif color_lookup == ColorLookup.CLASS:
         if detections.class_id is None:
             raise ValueError(
                 "Could not resolve color by class because"
                 "Detections do not have class_id"
             )
         return detections.class_id[detection_idx]
-    elif color_map == ColorMap.TRACK:
+    elif color_lookup == ColorLookup.TRACK:
         if detections.tracker_id is None:
             raise ValueError(
                 "Could not resolve color by track because"
@@ -45,10 +53,24 @@ def resolve_color_idx(
         return detections.tracker_id[detection_idx]
 
 
-def resolve_color(color: Union[Color, ColorPalette], idx: int) -> Color:
+def get_color_by_index(color: Union[Color, ColorPalette], idx: int) -> Color:
     if isinstance(color, ColorPalette):
         return color.by_idx(idx)
     return color
+
+
+def resolve_color(
+    color: Union[Color, ColorPalette],
+    detections: Detections,
+    detection_idx: int,
+    color_lookup: Union[ColorLookup, np.ndarray] = ColorLookup.CLASS
+) -> Color:
+    idx = resolve_color_idx(
+        detections=detections,
+        detection_idx=detection_idx,
+        color_lookup=color_lookup,
+    )
+    return get_color_by_index(color=color, idx=idx)
 
 
 class Trace:
