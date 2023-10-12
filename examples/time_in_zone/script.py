@@ -1,4 +1,5 @@
 import argparse
+from typing import Optional
 
 import cv2
 import numpy as np
@@ -8,7 +9,8 @@ from ultralytics import YOLO
 import supervision as sv
 
 
-ZONE_POLYGON = np.array([[640, 860], [640, 420], [1280, 420], [1280, 860]])
+ZONE_POLYGON = np.array([[956, 742], [104, 757], [328, 330], [944, 310]])
+ZONE_COLOR = sv.ColorPalette.default().by_idx(1)
 
 
 class VideoProcessor:
@@ -41,6 +43,7 @@ class VideoProcessor:
             frame_resolution_wh=self.video_info.resolution_wh,
             triggering_position=sv.Position.BOTTOM_CENTER,
         )
+        self.custom_color_lookup = Optional[np.ndarray]
 
     def process_video(self):
         print(self.video_info)
@@ -63,21 +66,30 @@ class VideoProcessor:
         detections = sv.Detections.from_ultralytics(results)
         detections = detections[detections.class_id == 0]
         detections = self.tracker.update_with_detections(detections=detections)
+
+        custom_color_lookup = np.zeros(len(detections), dtype=int)
+        in_zone = self.zone.trigger(detections=detections)
+        custom_color_lookup[in_zone] = 1
+        self.custom_color_lookup = custom_color_lookup
+
         return self.annotate_frame(frame, detections)
 
     def annotate_frame(
         self, frame: np.ndarray, detections: sv.Detections
     ) -> np.ndarray:
         annotated_frame = frame.copy()
-        # annotated_frame = sv.draw_polygon(
-        #     annotated_frame, self.zone.polygon, sv.Color.red())
+        annotated_frame = sv.draw_polygon(
+            annotated_frame, self.zone.polygon, sv.Color.red())
         annotated_frame = self.ellipse_annotator.annotate(
-            scene=annotated_frame, detections=detections)
+            scene=annotated_frame, detections=detections,
+            custom_color_lookup=self.custom_color_lookup)
         annotated_frame = self.trace_annotator.annotate(
-            scene=annotated_frame, detections=detections)
+            scene=annotated_frame, detections=detections,
+            custom_color_lookup=self.custom_color_lookup)
         labels = [f"#{tracker_id}" for tracker_id in detections.tracker_id]
         annotated_frame = self.label_annotator.annotate(
-            scene=annotated_frame, detections=detections, labels=labels)
+            scene=annotated_frame, detections=detections, labels=labels,
+            custom_color_lookup=self.custom_color_lookup)
         return annotated_frame
 
 
