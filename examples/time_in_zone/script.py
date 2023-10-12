@@ -1,5 +1,5 @@
 import argparse
-from typing import Optional
+from typing import Optional, List, Tuple
 
 import cv2
 import numpy as np
@@ -9,8 +9,36 @@ from ultralytics import YOLO
 import supervision as sv
 
 
-ZONE_POLYGON = np.array([[956, 742], [104, 757], [328, 330], [944, 310]])
-ZONE_COLOR = sv.ColorPalette.default().by_idx(1)
+ZONE_POLYGONS = [
+    np.array([[956, 742], [104, 757], [328, 330], [944, 310]]),
+    np.array([[956, 742], [944, 310], [1560, 300], [1810, 724]]),
+]
+
+ZONE_COLORS = [
+    sv.ColorPalette.default().by_idx(1),
+    sv.ColorPalette.default().by_idx(2)
+]
+
+DETECTIONS_COLORS = [
+    sv.ColorPalette.default().by_idx(0),
+    sv.ColorPalette.default().by_idx(1),
+    sv.ColorPalette.default().by_idx(2)
+]
+
+
+def initiate_polygon_zones(
+    polygons: List[np.ndarray],
+    frame_resolution_wh: Tuple[int, int],
+    triggering_position: sv.Position = sv.Position.CENTER,
+) -> List[sv.PolygonZone]:
+    return [
+        sv.PolygonZone(
+            polygon=polygon,
+            frame_resolution_wh=frame_resolution_wh,
+            triggering_position=triggering_position,
+        )
+        for polygon in polygons
+    ]
 
 
 class VideoProcessor:
@@ -38,10 +66,8 @@ class VideoProcessor:
         self.trace_annotator = sv.TraceAnnotator()
         self.label_annotator = sv.LabelAnnotator(
             text_position=sv.Position.BOTTOM_CENTER)
-        self.zone = sv.PolygonZone(
-            polygon=ZONE_POLYGON,
-            frame_resolution_wh=self.video_info.resolution_wh,
-            triggering_position=sv.Position.BOTTOM_CENTER,
+        self.zones = initiate_polygon_zones(
+            ZONE_POLYGONS, self.video_info.resolution_wh, sv.Position.BOTTOM_CENTER
         )
         self.custom_color_lookup = Optional[np.ndarray]
 
@@ -68,8 +94,9 @@ class VideoProcessor:
         detections = self.tracker.update_with_detections(detections=detections)
 
         custom_color_lookup = np.zeros(len(detections), dtype=int)
-        in_zone = self.zone.trigger(detections=detections)
-        custom_color_lookup[in_zone] = 1
+        for index, zone in enumerate(self.zones, start=1):
+            in_zone = zone.trigger(detections=detections)
+            custom_color_lookup[in_zone] = index
         self.custom_color_lookup = custom_color_lookup
 
         return self.annotate_frame(frame, detections)
@@ -78,8 +105,9 @@ class VideoProcessor:
         self, frame: np.ndarray, detections: sv.Detections
     ) -> np.ndarray:
         annotated_frame = frame.copy()
-        annotated_frame = sv.draw_polygon(
-            annotated_frame, self.zone.polygon, sv.Color.red())
+        for color, zone in zip(ZONE_COLORS, self.zones):
+            annotated_frame = sv.draw_polygon(
+                annotated_frame, zone.polygon, color)
         annotated_frame = self.ellipse_annotator.annotate(
             scene=annotated_frame, detections=detections,
             custom_color_lookup=self.custom_color_lookup)
