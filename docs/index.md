@@ -46,6 +46,7 @@ You can install `supervision` with pip in a
         # setup python environment and activate it
         python3 -m venv venv
         source venv/bin/activate
+        pip install --upgrade pip
 
         # headless install
         pip install -e "."
