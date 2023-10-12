@@ -84,18 +84,19 @@ class BoundingBoxAnnotator(BaseAnnotator):
             )
         return scene
 
+
 class HeatmapAnnotator:
     """
     A class for drawing heatmap on an image using provided detections.
     Heat is accumulated over time. Drawn as a semi-transparent overlay as blured circles.
     """
+
     def __init__(
         self,
         position: Optional[Position] = Position.BOTTOM_CENTER,
         opacity: float = 0.2,
         radius: int = 40,
-        kernel_size: Optional[int]  = 25,
-        
+        kernel_size: Optional[int] = 25,
     ):
         """
         Args:
@@ -110,28 +111,29 @@ class HeatmapAnnotator:
         self.radius = radius
         self.kernel_size = kernel_size
         self.heatmask = None
-        
 
-    def get_xy(self, xyxy: Tuple[int, int, int, int],position: Optional[Position]) -> Tuple[int, int, int, int]:
+    def get_xy(
+        self, xyxy: Tuple[int, int, int, int], position: Optional[Position]
+    ) -> Tuple[int, int, int, int]:
         """
         Returns the xy coordinates of the heatmap based on the provided position.
         """
         if (position is None) or (position == Position.TOP_LEFT):
             return xyxy[0], xyxy[1]
         elif position == Position.TOP_CENTER:
-            return int((xyxy[0]+xyxy[2])/2), int(xyxy[1])
+            return int((xyxy[0] + xyxy[2]) / 2), int(xyxy[1])
         elif position == Position.TOP_RIGHT:
             return int(xyxy[2]), int(xyxy[1])
         elif position == Position.CENTER_LEFT:
-            return int(xyxy[0]), int((xyxy[1]+xyxy[3])/2)
+            return int(xyxy[0]), int((xyxy[1] + xyxy[3]) / 2)
         elif position == Position.CENTER:
-            return int((xyxy[0]+xyxy[2])/2), int((xyxy[1]+xyxy[3])/2)
+            return int((xyxy[0] + xyxy[2]) / 2), int((xyxy[1] + xyxy[3]) / 2)
         elif position == Position.CENTER_RIGHT:
-            return int(xyxy[2]), int((xyxy[1]+xyxy[3])/2)
+            return int(xyxy[2]), int((xyxy[1] + xyxy[3]) / 2)
         elif position == Position.BOTTOM_LEFT:
             return int(xyxy[0]), int(xyxy[3])
         elif position == Position.BOTTOM_CENTER:
-            return (int((xyxy[0]+xyxy[2])/2), int(xyxy[3]))
+            return (int((xyxy[0] + xyxy[2]) / 2), int(xyxy[3]))
         elif position == Position.BOTTOM_RIGHT:
             return int(xyxy[2]), int(xyxy[3])
 
@@ -142,7 +144,7 @@ class HeatmapAnnotator:
         Args:
             scene (np.ndarray): The image where heatmap will be drawn.
             detections (Detections): Object detections to annotate.
-        
+
         Returns:
             np.ndarray: The annotated image.
 
@@ -175,23 +177,25 @@ class HeatmapAnnotator:
         if self.heatmask is None:
             self.heatmask = np.zeros(scene.shape[:2])
         mask = np.zeros(scene.shape[:2])
-        for xyxy,_,_,_,_ in detections:
-            cv2.circle(mask, self.get_xy(xyxy,self.position), self.radius, 1, -1)
-        self.heatmask = mask+self.heatmask        
+        for xyxy, _, _, _, _ in detections:
+            cv2.circle(mask, self.get_xy(xyxy, self.position), self.radius, 1, -1)
+        self.heatmask = mask + self.heatmask
         temp = self.heatmask.copy()
-        temp = 100-temp/temp.max()*90
+        temp = 100 - temp / temp.max() * 90
         temp = temp.astype(np.uint8)
         if self.kernel_size is not None:
-            temp = cv2.GaussianBlur(temp,(self.kernel_size,self.kernel_size),0)
+            temp = cv2.GaussianBlur(temp, (self.kernel_size, self.kernel_size), 0)
         hsv = np.zeros(scene.shape)
-        hsv[...,0] = temp
-        hsv[...,1] = 255
-        hsv[...,2] = 255
-        mask = temp>0
+        hsv[..., 0] = temp
+        hsv[..., 1] = 255
+        hsv[..., 2] = 255
+        mask = temp > 0
         temp = cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2BGR)
-        scene[mask] = cv2.addWeighted( temp, self.opacity,scene, 1-self.opacity, 0)[mask]
+        scene[mask] = cv2.addWeighted(temp, self.opacity, scene, 1 - self.opacity, 0)[
+            mask
+        ]
         return scene
-    
+
 
 class MaskAnnotator(BaseAnnotator):
     """
