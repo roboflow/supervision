@@ -5,11 +5,7 @@ import cv2
 import numpy as np
 
 from supervision.annotators.base import BaseAnnotator
-from supervision.annotators.utils import (
-    ColorLookup,
-    Trace,
-    resolve_color,
-)
+from supervision.annotators.utils import ColorLookup, Trace, resolve_color
 from supervision.detection.core import Detections
 from supervision.draw.color import Color, ColorPalette
 from supervision.geometry.core import Position
@@ -42,7 +38,7 @@ class BoundingBoxAnnotator(BaseAnnotator):
         self,
         scene: np.ndarray,
         detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None
+        custom_color_lookup: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         """
         Annotates the given scene with bounding boxes based on the provided detections.
@@ -79,8 +75,9 @@ class BoundingBoxAnnotator(BaseAnnotator):
                 color=self.color,
                 detections=detections,
                 detection_idx=detection_idx,
-                color_lookup=self.color_lookup if
-                custom_color_lookup is None else custom_color_lookup
+                color_lookup=self.color_lookup
+                if custom_color_lookup is None
+                else custom_color_lookup,
             )
             cv2.rectangle(
                 img=scene,
@@ -119,7 +116,7 @@ class MaskAnnotator(BaseAnnotator):
         self,
         scene: np.ndarray,
         detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None
+        custom_color_lookup: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         """
         Annotates the given scene with masks based on the provided detections.
@@ -158,8 +155,9 @@ class MaskAnnotator(BaseAnnotator):
                 color=self.color,
                 detections=detections,
                 detection_idx=detection_idx,
-                color_lookup=self.color_lookup if
-                custom_color_lookup is None else custom_color_lookup
+                color_lookup=self.color_lookup
+                if custom_color_lookup is None
+                else custom_color_lookup,
             )
             mask = detections.mask[detection_idx]
             colored_mask = np.zeros_like(scene, dtype=np.uint8)
@@ -198,7 +196,7 @@ class BoxMaskAnnotator(BaseAnnotator):
         self,
         scene: np.ndarray,
         detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None
+        custom_color_lookup: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         """
         Annotates the given scene with box masks based on the provided detections.
@@ -236,8 +234,9 @@ class BoxMaskAnnotator(BaseAnnotator):
                 color=self.color,
                 detections=detections,
                 detection_idx=detection_idx,
-                color_lookup=self.color_lookup if
-                custom_color_lookup is None else custom_color_lookup
+                color_lookup=self.color_lookup
+                if custom_color_lookup is None
+                else custom_color_lookup,
             )
             cv2.rectangle(
                 img=scene,
@@ -283,7 +282,7 @@ class HaloAnnotator(BaseAnnotator):
         self,
         scene: np.ndarray,
         detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None
+        custom_color_lookup: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         """
         Annotates the given scene with halos based on the provided detections.
@@ -326,8 +325,9 @@ class HaloAnnotator(BaseAnnotator):
                 color=self.color,
                 detections=detections,
                 detection_idx=detection_idx,
-                color_lookup=self.color_lookup if
-                custom_color_lookup is None else custom_color_lookup
+                color_lookup=self.color_lookup
+                if custom_color_lookup is None
+                else custom_color_lookup,
             )
             mask = detections.mask[detection_idx]
             fmask = np.logical_or(fmask, mask)
@@ -376,7 +376,7 @@ class EllipseAnnotator(BaseAnnotator):
         self,
         scene: np.ndarray,
         detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None
+        custom_color_lookup: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         """
         Annotates the given scene with ellipses based on the provided detections.
@@ -413,8 +413,9 @@ class EllipseAnnotator(BaseAnnotator):
                 color=self.color,
                 detections=detections,
                 detection_idx=detection_idx,
-                color_lookup=self.color_lookup if
-                custom_color_lookup is None else custom_color_lookup
+                color_lookup=self.color_lookup
+                if custom_color_lookup is None
+                else custom_color_lookup,
             )
             center = (int((x1 + x2) / 2), y2)
             width = x2 - x1
@@ -462,7 +463,7 @@ class BoxCornerAnnotator(BaseAnnotator):
         self,
         scene: np.ndarray,
         detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None
+        custom_color_lookup: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         """
         Annotates the given scene with box corners based on the provided detections.
@@ -499,8 +500,9 @@ class BoxCornerAnnotator(BaseAnnotator):
                 color=self.color,
                 detections=detections,
                 detection_idx=detection_idx,
-                color_lookup=self.color_lookup if
-                custom_color_lookup is None else custom_color_lookup
+                color_lookup=self.color_lookup
+                if custom_color_lookup is None
+                else custom_color_lookup,
             )
             corners = [(x1, y1), (x2, y1), (x1, y2), (x2, y2)]
 
@@ -545,7 +547,7 @@ class CircleAnnotator(BaseAnnotator):
         self,
         scene: np.ndarray,
         detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None
+        custom_color_lookup: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         """
         Annotates the given scene with circles based on the provided detections.
@@ -585,8 +587,9 @@ class CircleAnnotator(BaseAnnotator):
                 color=self.color,
                 detections=detections,
                 detection_idx=detection_idx,
-                color_lookup=self.color_lookup if
-                custom_color_lookup is None else custom_color_lookup
+                color_lookup=self.color_lookup
+                if custom_color_lookup is None
+                else custom_color_lookup,
             )
             cv2.circle(
                 img=scene,
@@ -682,7 +685,7 @@ class LabelAnnotator:
         scene: np.ndarray,
         detections: Detections,
         labels: List[str] = None,
-        custom_color_lookup: Optional[np.ndarray] = None
+        custom_color_lookup: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         """
         Annotates the given scene with labels based on the provided detections.
@@ -721,8 +724,9 @@ class LabelAnnotator:
                 color=self.color,
                 detections=detections,
                 detection_idx=detection_idx,
-                color_lookup=self.color_lookup if
-                custom_color_lookup is None else custom_color_lookup
+                color_lookup=self.color_lookup
+                if custom_color_lookup is None
+                else custom_color_lookup,
             )
             text = (
                 f"{detections.class_id[detection_idx]}"
@@ -861,7 +865,7 @@ class TraceAnnotator:
         self,
         scene: np.ndarray,
         detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None
+        custom_color_lookup: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         """
         Draws trace paths on the frame based on the detection coordinates provided.
@@ -901,8 +905,9 @@ class TraceAnnotator:
                 color=self.color,
                 detections=detections,
                 detection_idx=detection_idx,
-                color_lookup=self.color_lookup if
-                custom_color_lookup is None else custom_color_lookup
+                color_lookup=self.color_lookup
+                if custom_color_lookup is None
+                else custom_color_lookup,
             )
             xy = self.trace.get(tracker_id=tracker_id)
             if len(xy) > 1:

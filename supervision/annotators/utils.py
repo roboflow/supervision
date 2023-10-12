@@ -12,6 +12,7 @@ class ColorLookup(Enum):
     """
     Enum for annotator color lookup.
     """
+
     INDEX = "index"
     CLASS = "class"
     TRACK = "track"
@@ -20,7 +21,7 @@ class ColorLookup(Enum):
 def resolve_color_idx(
     detections: Detections,
     detection_idx: int,
-    color_lookup: Union[ColorLookup, np.ndarray] = ColorLookup.CLASS
+    color_lookup: Union[ColorLookup, np.ndarray] = ColorLookup.CLASS,
 ) -> int:
     if detection_idx >= len(detections):
         raise ValueError(
@@ -63,7 +64,7 @@ def resolve_color(
     color: Union[Color, ColorPalette],
     detections: Detections,
     detection_idx: int,
-    color_lookup: Union[ColorLookup, np.ndarray] = ColorLookup.CLASS
+    color_lookup: Union[ColorLookup, np.ndarray] = ColorLookup.CLASS,
 ) -> Color:
     idx = resolve_color_idx(
         detections=detections,
