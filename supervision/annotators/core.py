@@ -88,6 +88,11 @@ class BoundingBoxAnnotator(BaseAnnotator):
 class MaskAnnotator(BaseAnnotator):
     """
     A class for drawing masks on an image using provided detections.
+
+    !!! warning
+
+        This annotator utilizes the `Detections.mask`. You need to run segmentation
+        model to use it.
     """
 
     def __init__(
@@ -232,6 +237,11 @@ class BoxMaskAnnotator(BaseAnnotator):
 class HaloAnnotator(BaseAnnotator):
     """
     A class for drawing Halos on an image using provided detections.
+
+    !!! warning
+
+        This annotator utilizes the `Detections.mask`. You need to run segmentation
+        model to use it.
     """
 
     def __init__(
@@ -779,7 +789,7 @@ class TraceAnnotator:
 
     !!! warning
 
-        This annotator utilizes the `tracker_id`. Read
+        This annotator utilizes the `Detections.tracker_id`. Read
         [here](https://supervision.roboflow.com/trackers/) to learn how to plug
         tracking into your inference pipeline.
     """
