@@ -15,6 +15,8 @@ jobs:
         uses: actions/checkout@v3
       - name: 🐍 Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
+        # id based on python version
+        id: python-setup
         with:
           python-version: ${{ matrix.python-version }}
           check-latest: true
