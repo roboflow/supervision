@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import cv2
 import numpy as np
@@ -108,6 +108,194 @@ def non_max_suppression(
         keep = keep & ~condition
 
     return keep[sort_index.argsort()]
+
+
+def greedy_nmm(predictions: np.ndarray, threshold: float = 0.5) -> Dict[int, List[int]]:
+    """
+    Apply greedy version of non-maximum merging to avoid detecting too many
+    overlapping bounding boxes for a given object.
+
+    Args:
+        predictions (np.ndarray): An array of shape `(n, 5)` containing
+            the bounding boxes coordinates in format `[x1, y1, x2, y2]`
+            and the confidence scores.
+        threshold (float, optional): The intersection-over-union threshold
+            to use for non-maximum suppression. Defaults to 0.5.
+
+    Returns:
+        Dict[int, List[int]]: Mapping from prediction indices
+        to keep to a list of prediction indices to be merged.
+    """
+    keep_to_merge_list = {}
+
+    x1 = predictions[:, 0]
+    y1 = predictions[:, 1]
+    x2 = predictions[:, 2]
+    y2 = predictions[:, 3]
+
+    scores = predictions[:, 4]
+
+    areas = (x2 - x1) * (y2 - y1)
+
+    order = scores.argsort()
+
+    keep = []
+
+    while len(order) > 0:
+        idx = order[-1]
+
+        keep.append(idx.tolist())
+
+        order = order[:-1]
+
+        if len(order) == 0:
+            keep_to_merge_list[idx.tolist()] = []
+            break
+
+        xx1 = np.take(x1, axis=0, indices=order)
+        xx2 = np.take(x2, axis=0, indices=order)
+        yy1 = np.take(y1, axis=0, indices=order)
+        yy2 = np.take(y2, axis=0, indices=order)
+
+        xx1 = np.maximum(xx1, x1[idx])
+        yy1 = np.maximum(yy1, y1[idx])
+        xx2 = np.minimum(xx2, x2[idx])
+        yy2 = np.minimum(yy2, y2[idx])
+
+        w = np.maximum(0.0, xx2 - xx1)
+        h = np.maximum(0.0, yy2 - yy1)
+
+        inter = w * h
+
+        rem_areas = np.take(areas, axis=0, indices=order)
+
+        union = (rem_areas - inter) + areas[idx]
+        match_metric_value = inter / union
+
+        mask = match_metric_value < threshold
+        mask = mask.astype(np.uint8)
+        matched_box_indices = np.flip(order[np.where(mask == 0)[0]])
+        unmatched_indices = order[np.where(mask == 1)[0]]
+
+        order = unmatched_indices[scores[unmatched_indices].argsort()]
+
+        keep_to_merge_list[idx.tolist()] = []
+
+        for matched_box_ind in matched_box_indices.tolist():
+            keep_to_merge_list[idx.tolist()].append(matched_box_ind)
+
+    return keep_to_merge_list
+
+
+def batched_greedy_nmm(
+    predictions: np.ndarray, threshold: float = 0.5
+) -> Dict[int, List[int]]:
+    """
+    Apply greedy version of non-maximum merging per category to avoid detecting
+    too many overlapping bounding boxes for a given object.
+
+    Args:
+        predictions (np.ndarray): An array of shape `(n, 6)` containing
+            the bounding boxes coordinates in format `[x1, y1, x2, y2]`,
+            the confidence scores and class_ids.
+        threshold (float, optional): The intersection-over-union threshold
+            to use for non-maximum suppression. Defaults to 0.5.
+
+    Returns:
+        Dict[int, List[int]]: Mapping from prediction indices
+        to keep to a list of prediction indices to be merged.
+    """
+    category_ids = predictions[:, 5]
+    keep_to_merge_list = {}
+    for category_id in np.unique(category_ids):
+        curr_indices = np.where(category_ids == category_id)[0]
+        curr_keep_to_merge_list = greedy_nmm(predictions[curr_indices], threshold)
+        curr_indices_list = curr_indices.tolist()
+        for curr_keep, curr_merge_list in curr_keep_to_merge_list.items():
+            keep = curr_indices_list[curr_keep]
+            merge_list = [curr_indices_list[i] for i in curr_merge_list]
+            keep_to_merge_list[keep] = merge_list
+    return keep_to_merge_list
+
+
+def get_merged_bbox(bbox1: np.ndarray, bbox2: np.ndarray) -> np.ndarray:
+    """
+    Merges two bounding boxes into one.
+
+    Args:
+        bbox1 (np.ndarray): A numpy array of shape `(, 4)` where the
+            row corresponds to a bounding box in
+            the format `(x_min, y_min, x_max, y_max)`.
+        bbox2 (np.ndarray): A numpy array of shape `(, 4)` where the
+            row corresponds to a bounding box in
+            the format `(x_min, y_min, x_max, y_max)`.
+
+    Returns:
+        np.ndarray: A numpy array of shape `(, 4)` where the new
+            bounding box is the merged bounding box of `bbox1` and `bbox2`.
+    """
+    left_top = np.minimum(bbox1[:2], bbox2[:2])
+    right_bottom = np.maximum(bbox1[2:], bbox2[2:])
+    return np.concatenate([left_top, right_bottom])
+
+
+def get_merged_class_id(id1: int, id2: int) -> int:
+    """
+    Merges two class ids into one.
+
+    Args:
+        id1 (int): The first class id.
+        id2 (int): The second class id.
+
+    Returns:
+        int: The merged class id.
+    """
+    return max(id1, id2)
+
+
+def get_merged_confidence(confidence1: float, confidence2: float) -> float:
+    """
+    Merges two confidences into one.
+
+    Args:
+        confidence1 (float): The first confidence.
+        confidence2 (float): The second confidence.
+
+    Returns:
+        float: The merged confidence.
+    """
+    return max(confidence1, confidence2)
+
+
+def get_merged_mask(mask1: np.ndarray, mask2: np.ndarray) -> np.ndarray:
+    """
+    Merges two masks into one.
+
+    Args:
+        mask1 (np.ndarray): A numpy array of shape `(H, W)` where `H` and `W`
+            are the height and width of the mask, respectively.
+        mask2 (np.ndarray): A numpy array of shape `(H, W)` where `H` and `W`
+            are the height and width of the mask, respectively.
+
+    Returns:
+        np.ndarray: A numpy array of shape `(H, W)` where the new mask is the
+            merged mask of `mask1` and `mask2`.
+    """
+    return np.logical_or(mask1, mask2)
+
+
+def get_merged_tracker_id(tracker_id1: int, tracker_id2: int) -> int:
+    """
+    Merges two tracker ids into one.
+
+    Args:
+        tracker_id1 (int): The first tracker id.
+        tracker_id2 (int): The second tracker id.
+
+    Returns:
+        int: The merged tracker id.
+    """
+    return max(tracker_id1, tracker_id2)
 
 
 def clip_boxes(
