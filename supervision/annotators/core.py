@@ -931,7 +931,7 @@ class PercentageBarAnnotator(BaseAnnotator):
         color: Union[Color, ColorPalette] = ColorPalette.default(),
         border_color: Color = Color.black(),
         position: Position = Position.TOP_CENTER,
-        thickness: int = 20,
+        thickness: int = 15,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
         """
@@ -996,7 +996,7 @@ class PercentageBarAnnotator(BaseAnnotator):
                 else custom_color_lookup,
             )
 
-            border = int(self.thickness * 0.2)
+            border = int(self.thickness * 0.15)
             cv2.rectangle(
                 img=scene,
                 pt1=(x1, y1),
