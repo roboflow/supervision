@@ -16,8 +16,8 @@ from supervision.annotators.core import (
     HaloAnnotator,
     LabelAnnotator,
     MaskAnnotator,
-    TraceAnnotator,
     PercentageBarAnnotator,
+    TraceAnnotator,
 )
 from supervision.annotators.utils import ColorLookup
 from supervision.classification.core import Classifications
