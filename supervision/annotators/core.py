@@ -7,6 +7,7 @@ import numpy as np
 from supervision.annotators.base import BaseAnnotator
 from supervision.annotators.utils import ColorLookup, Trace, resolve_color
 from supervision.detection.core import Detections
+from supervision.classification.core import Classifications
 from supervision.draw.color import Color, ColorPalette
 from supervision.geometry.core import Position
 
@@ -918,4 +919,128 @@ class TraceAnnotator:
                     color=color.as_bgr(),
                     thickness=self.thickness,
                 )
+        return scene
+
+
+class ClassificationAnnotator:
+    """
+    Annotate classification results on an image.
+    """
+
+    def __init__(
+        self,
+        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        text_color: Color = Color.black(),
+        text_scale: float = 0.5,
+        text_thickness: int = 1,
+        text_padding: int = 10,
+        text_position: Position = Position.TOP_LEFT,
+        color_lookup: ColorLookup = ColorLookup.CLASS,
+    ):
+        """
+        Args:
+            color (Union[Color, ColorPalette]): The color or color palette to use for
+                annotating the text background.
+            text_color (Color): The color to use for the text.
+            text_scale (float): Font scale for the text.
+            text_thickness (int): Thickness of the text characters.
+            text_position (Position): Position of the text relative to the image.
+                Possible values are defined in the `Position` enum.
+            color_lookup (str): Strategy for mapping colors to annotations.
+                Options are `INDEX`, `CLASS`, `TRACE`.
+        """
+        self.color: Union[Color, ColorPalette] = color
+        self.text_color: Color = text_color
+        self.text_scale: float = text_scale
+        self.text_thickness: int = text_thickness
+        self.text_position: Position = text_position
+        self.color_lookup: ColorLookup = color_lookup
+        self.text_padding: int = text_padding
+
+    def annotate(
+        self,
+        scene: np.ndarray,
+        classifications: Classifications,
+        labels: List[str] = None,
+        custom_color_lookup: Optional[np.ndarray] = None,
+    ) -> np.ndarray:
+        """
+        Annotates the given scene with labels based on the provided detections.
+
+        Args:
+            scene (np.ndarray): The image where labels will be drawn.
+            detections (Detections): Object detections to annotate.
+            labels (List[str]): Optional. Custom labels for each detection.
+            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
+                Allows to override the default color mapping strategy.
+
+        Returns:
+            np.ndarray: The annotated image.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> image = ...
+            >>> detections = sv.Detections(...)
+
+            >>> classification_annotator = sv.ClassificationAnnotator(text_position=sv.Position.CENTER)
+            >>> annotated_frame = classification_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
+            ```
+        """
+        font = cv2.FONT_HERSHEY_SIMPLEX
+
+        classification = classifications.get_top_k(k=1)
+        classification_idx = classification[0][0]
+
+        color = resolve_color(
+            color=self.color,
+            detections=classifications,
+            detection_idx=classification_idx,
+            color_lookup=self.color_lookup
+            if custom_color_lookup is None
+            else custom_color_lookup,
+        )
+
+        self.text_color = color
+
+        text = f"{labels[classification_idx]} ({classifications.confidence[classification_idx] * 100:.2f}%)"
+
+        text_wh = cv2.getTextSize(
+            text=text,
+            fontFace=font,
+            fontScale=self.text_scale,
+            thickness=self.text_thickness,
+        )[0]
+
+        if self.text_position == Position.BOTTOM_LEFT:
+            text_x = self.text_padding
+            text_y = scene.shape[0] - self.text_padding
+        elif self.text_position == Position.BOTTOM_RIGHT:
+            text_x = scene.shape[1] - text_wh[0] - self.text_padding
+            text_y = scene.shape[0] - self.text_padding
+        elif self.text_position == Position.TOP_LEFT:
+            text_x = self.text_padding
+            text_y = text_wh[1] + self.text_padding
+        elif self.text_position == Position.TOP_RIGHT:
+            text_x = scene.shape[1] - text_wh[0] - self.text_padding
+            text_y = text_wh[1] + self.text_padding
+        else:
+            raise ValueError(
+                f"Invalid position {self.text_position} for classification annotator."
+            )
+
+        cv2.putText(
+            img=scene,
+            text=text,
+            org=(text_x, text_y),
+            fontFace=font,
+            fontScale=self.text_scale,
+            color=self.text_color.as_rgb(),
+            thickness=self.text_thickness,
+            lineType=cv2.LINE_AA,
+        )
         return scene

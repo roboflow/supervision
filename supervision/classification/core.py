@@ -39,6 +39,43 @@ class Classifications:
         _validate_class_ids(self.class_id, n)
         _validate_confidence(self.confidence, n)
 
+    def __len__(self) -> int:
+        """
+        Returns the number of classifications.
+        """
+        return len(self.class_id)
+
+    @classmethod
+    def from_clip(cls, clip_results) -> Classifications:
+        """
+        Creates a Classifications instance from a
+        (https://github.com/openai/clip) inference result.
+
+        Args:
+            clip_results (np.ndarray): The output result from clip model
+
+        Returns:
+            Classifications: A new Classifications object.
+
+        Example:
+            ```python
+            >>> import cv2
+            >>> import clip
+            >>> import supervision as sv
+
+            >>> image = cv2.imread(SOURCE_IMAGE_PATH)
+            >>> model, preprocess = clip.load('ViT-B/32')
+            >>> text = clip.tokenize(["a diagram", "a dog", "a cat"])
+            >>> classifications = sv.Classifications.from_clip(model(image, text))
+            ```
+        """
+
+        probs = clip_results.softmax(dim=-1).cpu().numpy()
+        class_ids = np.arange(probs.shape[1])
+        confidence = probs[0]
+
+        return cls(class_id=class_ids, confidence=confidence)
+
     @classmethod
     def from_ultralytics(cls, ultralytics_results) -> Classifications:
         """
