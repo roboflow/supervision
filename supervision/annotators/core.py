@@ -112,31 +112,6 @@ class HeatmapAnnotator:
         self.kernel_size = kernel_size
         self.heatmask = None
 
-    def get_xy(
-        self, xyxy: Tuple[int, int, int, int], position: Optional[Position]
-    ) -> Tuple[int, int, int, int]:
-        """
-        Returns the xy coordinates of the heatmap based on the provided position.
-        """
-        if (position is None) or (position == Position.TOP_LEFT):
-            return xyxy[0], xyxy[1]
-        elif position == Position.TOP_CENTER:
-            return int((xyxy[0] + xyxy[2]) / 2), int(xyxy[1])
-        elif position == Position.TOP_RIGHT:
-            return int(xyxy[2]), int(xyxy[1])
-        elif position == Position.CENTER_LEFT:
-            return int(xyxy[0]), int((xyxy[1] + xyxy[3]) / 2)
-        elif position == Position.CENTER:
-            return int((xyxy[0] + xyxy[2]) / 2), int((xyxy[1] + xyxy[3]) / 2)
-        elif position == Position.CENTER_RIGHT:
-            return int(xyxy[2]), int((xyxy[1] + xyxy[3]) / 2)
-        elif position == Position.BOTTOM_LEFT:
-            return int(xyxy[0]), int(xyxy[3])
-        elif position == Position.BOTTOM_CENTER:
-            return (int((xyxy[0] + xyxy[2]) / 2), int(xyxy[3]))
-        elif position == Position.BOTTOM_RIGHT:
-            return int(xyxy[2]), int(xyxy[3])
-
     def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
         """
         Annotates the given scene with heatmap based on the provided detections.
@@ -177,8 +152,8 @@ class HeatmapAnnotator:
         if self.heatmask is None:
             self.heatmask = np.zeros(scene.shape[:2])
         mask = np.zeros(scene.shape[:2])
-        for xyxy, _, _, _, _ in detections:
-            cv2.circle(mask, self.get_xy(xyxy, self.position), self.radius, 1, -1)
+        for xy in detections.get_anchor_coordinates(self.position):
+            cv2.circle(mask, (int(xy[0]), int(xy[1])), self.radius, 1, -1)
         self.heatmask = mask + self.heatmask
         temp = self.heatmask.copy()
         temp = 100 - temp / temp.max() * 90
