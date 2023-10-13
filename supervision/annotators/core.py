@@ -921,7 +921,6 @@ class TraceAnnotator:
         return scene
 
 
-
 class PercentageBarAnnotator(BaseAnnotator):
     """
     A class for drawing percentage bar on an image using provided detections.
@@ -949,9 +948,12 @@ class PercentageBarAnnotator(BaseAnnotator):
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
 
-    def annotate(self, scene: np.ndarray,
-                detections: Detections,
-                custom_color_lookup: Optional[np.ndarray] = None,) -> np.ndarray:
+    def annotate(
+        self,
+        scene: np.ndarray,
+        detections: Detections,
+        custom_color_lookup: Optional[np.ndarray] = None,
+    ) -> np.ndarray:
         """
         Annotates the given scene with percentage bar presenting condidence based
         on the provided detections.
@@ -990,23 +992,27 @@ class PercentageBarAnnotator(BaseAnnotator):
                 else custom_color_lookup,
             )
 
-            border = int(self.thickness*0.2)
+            border = int(self.thickness * 0.2)
             cv2.rectangle(
                 img=scene,
                 pt1=(x1, y1),
-                pt2=(x2,y1-self.thickness),
+                pt2=(x2, y1 - self.thickness),
                 color=self.border_color.as_bgr(),
                 thickness=border,
             )
 
             cv2.rectangle(
                 img=scene,
-                pt1=(x1+(2*border),y1-(2*border)),
-                pt2=((x1+(2*border))
-                    +(((x2-(2*border))
-                    -(x1+(2*border)))*detections.confidence[detection_idx]).astype(int),
-                    y1-(self.thickness-(2*border))),
+                pt1=(x1 + (2 * border), y1 - (2 * border)),
+                pt2=(
+                    (x1 + (2 * border))
+                    + (
+                        ((x2 - (2 * border)) - (x1 + (2 * border)))
+                        * detections.confidence[detection_idx]
+                    ).astype(int),
+                    y1 - (self.thickness - (2 * border)),
+                ),
                 color=color.as_bgr(),
-                thickness=-1
+                thickness=-1,
             )
         return scene
