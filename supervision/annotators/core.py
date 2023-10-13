@@ -6,8 +6,8 @@ import numpy as np
 
 from supervision.annotators.base import BaseAnnotator
 from supervision.annotators.utils import ColorLookup, Trace, resolve_color
-from supervision.detection.core import Detections
 from supervision.classification.core import Classifications
+from supervision.detection.core import Detections
 from supervision.draw.color import Color, ColorPalette
 from supervision.geometry.core import Position
 

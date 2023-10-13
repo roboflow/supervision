@@ -12,12 +12,12 @@ from supervision.annotators.core import (
     BoxCornerAnnotator,
     BoxMaskAnnotator,
     CircleAnnotator,
+    ClassificationAnnotator,
     EllipseAnnotator,
     HaloAnnotator,
     LabelAnnotator,
     MaskAnnotator,
     TraceAnnotator,
-    ClassificationAnnotator
 )
 from supervision.annotators.utils import ColorLookup
 from supervision.classification.core import Classifications
