@@ -925,21 +925,28 @@ class PercentageBarAnnotator(BaseAnnotator):
             )
             color = resolve_color(color=self.color, idx=idx)
 
-            border = int(self.thickness*0.2)
+            border = int(self.thickness * 0.2)
             cv2.rectangle(
                 img=scene,
                 pt1=(x1, y1),
-                pt2=(x2,y1-self.thickness),
+                pt2=(x2, y1 - self.thickness),
                 color=self.border_color.as_bgr(),
                 thickness=border,
             )
 
             cv2.rectangle(
                 img=scene,
-                pt1=(x1+(2*border),y1-(2*border)),
-                pt2=((x1+(2*border))+(((x2-(2*border))-(x1+(2*border)))*detections.confidence[detection_idx]).astype(int),y1-(self.thickness-(2*border))),
+                pt1=(x1 + (2 * border), y1 - (2 * border)),
+                pt2=(
+                    (x1 + (2 * border))
+                    + (
+                        ((x2 - (2 * border)) - (x1 + (2 * border)))
+                        * detections.confidence[detection_idx]
+                    ).astype(int),
+                    y1 - (self.thickness - (2 * border)),
+                ),
                 color=color.as_bgr(),
-                thickness=-1
+                thickness=-1,
             )
         return scene
         
