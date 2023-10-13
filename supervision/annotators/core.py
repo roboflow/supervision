@@ -949,4 +949,3 @@ class PercentageBarAnnotator(BaseAnnotator):
                 thickness=-1,
             )
         return scene
-        
