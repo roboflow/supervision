@@ -63,6 +63,6 @@ def callback(frame: np.ndarray, index: int) -> np.ndarray:
   return trace_annotator.annotate(scene=frame, detections=detections)
 sv.process_video(source_path=VIDEO_PATH, target_path=f"result.mp4", callback=process_frame)
 ```
-Check out this [video](https://drive.google.com/file/d/10xaHXz9rpdXkaRni9YzOihhF3S7-Zs4p/view?usp=sharing) to see the end results. 
+Check out this [video](https://drive.google.com/file/d/10xaHXz9rpdXkaRni9YzOihhF3S7-Zs4p/view?usp=sharing) to see the end results.
 ### Conclusion and further ideas
 This brings us to the end of the tutorial. The users are strongly encouraged to try out other models for detection and play around with annotators. Check out this [post](https://blog.roboflow.com/yolov8-tracking-and-counting/#object-tracking-with-bytetrack)("Piotr Skalski." Roboflow Blog, Feb 1, 2023. https://blog.roboflow.com/yolov8-tracking-and-counting/) for some more cool stuff. The post was quite useful creation of this tutorial.
