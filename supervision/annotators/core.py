@@ -938,8 +938,10 @@ class PercentageBarAnnotator(BaseAnnotator):
         Args:
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating detections.
-            thickness (int): Thickness of the bounding box lines.
-            color_map (str): Strategy for mapping colors to annotations.
+            border_color (Color): The color of the border box.
+            position (Position): The position of the percentage bar.
+            thickness (int): Thickness of the total height of bar.
+            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `index`, `class`, or `track`.
         """
         self.color: Union[Color, ColorPalette] = color
@@ -961,6 +963,8 @@ class PercentageBarAnnotator(BaseAnnotator):
         Args:
             scene (np.ndarray): The image where bounding boxes will be drawn.
             detections (Detections): Object detections to annotate.
+            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
+                Allows to override the default color mapping strategy.
 
         Returns:
             np.ndarray: The annotated image.
