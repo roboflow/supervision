@@ -919,3 +919,91 @@ class TraceAnnotator:
                     thickness=self.thickness,
                 )
         return scene
+
+
+
+class PercentageBarAnnotator(BaseAnnotator):
+    """
+    A class for drawing percentage bar on an image using provided detections.
+    """
+
+    def __init__(
+        self,
+        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        border_color: Color = Color.black(),
+        position: Position = Position.TOP_CENTER,
+        thickness: int = 20,
+        color_lookup: ColorLookup = ColorLookup.CLASS,
+    ):
+        """
+        Args:
+            color (Union[Color, ColorPalette]): The color or color palette to use for
+                annotating detections.
+            thickness (int): Thickness of the bounding box lines.
+            color_map (str): Strategy for mapping colors to annotations.
+                Options are `index`, `class`, or `track`.
+        """
+        self.color: Union[Color, ColorPalette] = color
+        self.position: Position = position
+        self.border_color: Color = border_color
+        self.thickness: int = thickness
+        self.color_lookup: ColorLookup = color_lookup
+
+    def annotate(self, scene: np.ndarray,
+                detections: Detections,
+                custom_color_lookup: Optional[np.ndarray] = None,) -> np.ndarray:
+        """
+        Annotates the given scene with percentage bar presenting condidence based
+        on the provided detections.
+
+        Args:
+            scene (np.ndarray): The image where bounding boxes will be drawn.
+            detections (Detections): Object detections to annotate.
+
+        Returns:
+            np.ndarray: The annotated image.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> image = ...
+            >>> detections = sv.Detections(...)
+
+            >>> percentage_bar_annotator = sv.PercentageBarAnnotator()
+            >>> annotated_frame = percentage_bar_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
+            ```
+
+        !Example to be included)
+        """
+        for detection_idx in range(len(detections)):
+            x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
+            color = resolve_color(
+                color=self.color,
+                detections=detections,
+                detection_idx=detection_idx,
+                color_lookup=self.color_lookup
+                if custom_color_lookup is None
+                else custom_color_lookup,
+            )
+
+            border = int(self.thickness*0.2)
+            cv2.rectangle(
+                img=scene,
+                pt1=(x1, y1),
+                pt2=(x2,y1-self.thickness),
+                color=self.border_color.as_bgr(),
+                thickness=border,
+            )
+
+            cv2.rectangle(
+                img=scene,
+                pt1=(x1+(2*border),y1-(2*border)),
+                pt2=((x1+(2*border))+(((x2-(2*border))-(x1+(2*border)))*detections.confidence[detection_idx]).astype(int),y1-(self.thickness-(2*border))),
+                color=color.as_bgr(),
+                thickness=-1
+            )
+        return scene
