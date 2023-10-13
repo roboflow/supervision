@@ -5,7 +5,12 @@ import cv2
 import numpy as np
 
 from supervision.annotators.base import BaseAnnotator
-from supervision.annotators.utils import ColorLookup, Trace, resolve_color
+from supervision.annotators.utils import (
+    ColorMap,
+    Trace,
+    resolve_color,
+    resolve_color_idx,
+)
 from supervision.detection.core import Detections
 from supervision.draw.color import Color, ColorPalette
 from supervision.geometry.core import Position
@@ -20,34 +25,27 @@ class BoundingBoxAnnotator(BaseAnnotator):
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
         thickness: int = 2,
-        color_lookup: ColorLookup = ColorLookup.CLASS,
+        color_map: str = "class",
     ):
         """
         Args:
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating detections.
             thickness (int): Thickness of the bounding box lines.
-            color_lookup (str): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACE`.
+            color_map (str): Strategy for mapping colors to annotations.
+                Options are `index`, `class`, or `track`.
         """
         self.color: Union[Color, ColorPalette] = color
         self.thickness: int = thickness
-        self.color_lookup: ColorLookup = color_lookup
+        self.color_map: ColorMap = ColorMap(color_map)
 
-    def annotate(
-        self,
-        scene: np.ndarray,
-        detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None,
-    ) -> np.ndarray:
+    def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
         """
         Annotates the given scene with bounding boxes based on the provided detections.
 
         Args:
             scene (np.ndarray): The image where bounding boxes will be drawn.
             detections (Detections): Object detections to annotate.
-            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
-                Allows to override the default color mapping strategy.
 
         Returns:
             np.ndarray: The annotated image.
@@ -71,14 +69,12 @@ class BoundingBoxAnnotator(BaseAnnotator):
         """
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
-            color = resolve_color(
-                color=self.color,
+            idx = resolve_color_idx(
                 detections=detections,
                 detection_idx=detection_idx,
-                color_lookup=self.color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
+                color_map=self.color_map,
             )
+            color = resolve_color(color=self.color, idx=idx)
             cv2.rectangle(
                 img=scene,
                 pt1=(x1, y1),
@@ -98,34 +94,27 @@ class MaskAnnotator(BaseAnnotator):
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
         opacity: float = 0.5,
-        color_lookup: ColorLookup = ColorLookup.CLASS,
+        color_map: str = "class",
     ):
         """
         Args:
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating detections.
             opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.
-            color_lookup (str): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACE`.
+            color_map (str): Strategy for mapping colors to annotations.
+                Options are `index`, `class`, or `track`.
         """
         self.color: Union[Color, ColorPalette] = color
         self.opacity = opacity
-        self.color_lookup: ColorLookup = color_lookup
+        self.color_map: ColorMap = ColorMap(color_map)
 
-    def annotate(
-        self,
-        scene: np.ndarray,
-        detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None,
-    ) -> np.ndarray:
+    def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
         """
         Annotates the given scene with masks based on the provided detections.
 
         Args:
             scene (np.ndarray): The image where masks will be drawn.
             detections (Detections): Object detections to annotate.
-            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
-                Allows to override the default color mapping strategy.
 
         Returns:
             np.ndarray: The annotated image.
@@ -151,14 +140,12 @@ class MaskAnnotator(BaseAnnotator):
             return scene
 
         for detection_idx in np.flip(np.argsort(detections.area)):
-            color = resolve_color(
-                color=self.color,
+            idx = resolve_color_idx(
                 detections=detections,
                 detection_idx=detection_idx,
-                color_lookup=self.color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
+                color_map=self.color_map,
             )
+            color = resolve_color(color=self.color, idx=idx)
             mask = detections.mask[detection_idx]
             colored_mask = np.zeros_like(scene, dtype=np.uint8)
             colored_mask[:] = color.as_bgr()
@@ -178,34 +165,27 @@ class BoxMaskAnnotator(BaseAnnotator):
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
         opacity: float = 0.5,
-        color_lookup: ColorLookup = ColorLookup.CLASS,
+        color_map: str = "class",
     ):
         """
         Args:
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating detections.
             opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.
-            color_lookup (str): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACE`.
+            color_map (str): Strategy for mapping colors to annotations.
+                Options are `index`, `class`, or `track`.
         """
         self.color: Union[Color, ColorPalette] = color
-        self.color_lookup: ColorLookup = color_lookup
+        self.color_map: ColorMap = ColorMap(color_map)
         self.opacity = opacity
 
-    def annotate(
-        self,
-        scene: np.ndarray,
-        detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None,
-    ) -> np.ndarray:
+    def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
         """
         Annotates the given scene with box masks based on the provided detections.
 
         Args:
             scene (np.ndarray): The image where bounding boxes will be drawn.
             detections (Detections): Object detections to annotate.
-            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
-                Allows to override the default color mapping strategy.
 
         Returns:
             np.ndarray: The annotated image.
@@ -230,14 +210,12 @@ class BoxMaskAnnotator(BaseAnnotator):
         mask_image = scene.copy()
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
-            color = resolve_color(
-                color=self.color,
+            idx = resolve_color_idx(
                 detections=detections,
                 detection_idx=detection_idx,
-                color_lookup=self.color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
+                color_map=self.color_map,
             )
+            color = resolve_color(color=self.color, idx=idx)
             cv2.rectangle(
                 img=scene,
                 pt1=(x1, y1),
@@ -261,37 +239,30 @@ class HaloAnnotator(BaseAnnotator):
         color: Union[Color, ColorPalette] = ColorPalette.default(),
         opacity: float = 0.8,
         kernel_size: int = 40,
-        color_lookup: ColorLookup = ColorLookup.CLASS,
+        color_map: str = "class",
     ):
         """
         Args:
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating detections.
             opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.
+            color_map (str): Strategy for mapping colors to annotations.
+                Options are `index`, `class`, or `track`.
             kernel_size (int): The size of the average pooling kernel used for creating
                 the halo.
-            color_lookup (str): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACE`.
         """
         self.color: Union[Color, ColorPalette] = color
         self.opacity = opacity
-        self.color_lookup: ColorLookup = color_lookup
+        self.color_map: ColorMap = ColorMap(color_map)
         self.kernel_size: int = kernel_size
 
-    def annotate(
-        self,
-        scene: np.ndarray,
-        detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None,
-    ) -> np.ndarray:
+    def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
         """
         Annotates the given scene with halos based on the provided detections.
 
         Args:
             scene (np.ndarray): The image where masks will be drawn.
             detections (Detections): Object detections to annotate.
-            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
-                Allows to override the default color mapping strategy.
 
         Returns:
             np.ndarray: The annotated image.
@@ -321,14 +292,12 @@ class HaloAnnotator(BaseAnnotator):
         )
 
         for detection_idx in np.flip(np.argsort(detections.area)):
-            color = resolve_color(
-                color=self.color,
+            idx = resolve_color_idx(
                 detections=detections,
                 detection_idx=detection_idx,
-                color_lookup=self.color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
+                color_map=self.color_map,
             )
+            color = resolve_color(color=self.color, idx=idx)
             mask = detections.mask[detection_idx]
             fmask = np.logical_or(fmask, mask)
             color_bgr = color.as_bgr()
@@ -354,7 +323,7 @@ class EllipseAnnotator(BaseAnnotator):
         thickness: int = 2,
         start_angle: int = -45,
         end_angle: int = 235,
-        color_lookup: ColorLookup = ColorLookup.CLASS,
+        color_map: str = "class",
     ):
         """
         Args:
@@ -363,29 +332,22 @@ class EllipseAnnotator(BaseAnnotator):
             thickness (int): Thickness of the ellipse lines.
             start_angle (int): Starting angle of the ellipse.
             end_angle (int): Ending angle of the ellipse.
-            color_lookup (str): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACE`.
+            color_map (str): Strategy for mapping colors to annotations.
+                Options are `index`, `class`, or `track`.
         """
         self.color: Union[Color, ColorPalette] = color
         self.thickness: int = thickness
         self.start_angle: int = start_angle
         self.end_angle: int = end_angle
-        self.color_lookup: ColorLookup = color_lookup
+        self.color_map: ColorMap = ColorMap(color_map)
 
-    def annotate(
-        self,
-        scene: np.ndarray,
-        detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None,
-    ) -> np.ndarray:
+    def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
         """
         Annotates the given scene with ellipses based on the provided detections.
 
         Args:
             scene (np.ndarray): The image where ellipses will be drawn.
             detections (Detections): Object detections to annotate.
-            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
-                Allows to override the default color mapping strategy.
 
         Returns:
             np.ndarray: The annotated image.
@@ -409,14 +371,13 @@ class EllipseAnnotator(BaseAnnotator):
         """
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
-            color = resolve_color(
-                color=self.color,
+            idx = resolve_color_idx(
                 detections=detections,
                 detection_idx=detection_idx,
-                color_lookup=self.color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
+                color_map=self.color_map,
             )
+            color = resolve_color(color=self.color, idx=idx)
+
             center = (int((x1 + x2) / 2), y2)
             width = x2 - x1
             cv2.ellipse(
@@ -443,7 +404,7 @@ class BoxCornerAnnotator(BaseAnnotator):
         color: Union[Color, ColorPalette] = ColorPalette.default(),
         thickness: int = 4,
         corner_length: int = 15,
-        color_lookup: ColorLookup = ColorLookup.CLASS,
+        color_map: str = "class",
     ):
         """
         Args:
@@ -451,28 +412,21 @@ class BoxCornerAnnotator(BaseAnnotator):
                 annotating detections.
             thickness (int): Thickness of the corner lines.
             corner_length (int): Length of each corner line.
-            color_lookup (str): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACE`.
+            color_map (str): Strategy for mapping colors to annotations.
+                Options are `index`, `class`, or `track`.
         """
         self.color: Union[Color, ColorPalette] = color
         self.thickness: int = thickness
         self.corner_length: int = corner_length
-        self.color_lookup: ColorLookup = color_lookup
+        self.color_map: ColorMap = ColorMap(color_map)
 
-    def annotate(
-        self,
-        scene: np.ndarray,
-        detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None,
-    ) -> np.ndarray:
+    def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
         """
         Annotates the given scene with box corners based on the provided detections.
 
         Args:
             scene (np.ndarray): The image where box corners will be drawn.
             detections (Detections): Object detections to annotate.
-            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
-                Allows to override the default color mapping strategy.
 
         Returns:
             np.ndarray: The annotated image.
@@ -496,14 +450,12 @@ class BoxCornerAnnotator(BaseAnnotator):
         """
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
-            color = resolve_color(
-                color=self.color,
+            idx = resolve_color_idx(
                 detections=detections,
                 detection_idx=detection_idx,
-                color_lookup=self.color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
+                color_map=self.color_map,
             )
+            color = resolve_color(color=self.color, idx=idx)
             corners = [(x1, y1), (x2, y1), (x1, y2), (x2, y2)]
 
             for x, y in corners:
@@ -527,27 +479,26 @@ class CircleAnnotator(BaseAnnotator):
     def __init__(
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
-        thickness: int = 2,
-        color_lookup: ColorLookup = ColorLookup.CLASS,
+        thickness: int = 4,
+        color_map: str = "class",
     ):
         """
         Args:
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating detections.
             thickness (int): Thickness of the circle line.
-            color_lookup (str): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACE`.
+            color_map (str): Strategy for mapping colors to annotations.
+                Options are `index`, `class`, or `track`.
         """
 
         self.color: Union[Color, ColorPalette] = color
         self.thickness: int = thickness
-        self.color_lookup: ColorLookup = color_lookup
+        self.color_map: ColorMap = ColorMap(color_map)
 
     def annotate(
         self,
         scene: np.ndarray,
         detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         """
         Annotates the given scene with circles based on the provided detections.
@@ -555,8 +506,6 @@ class CircleAnnotator(BaseAnnotator):
         Args:
             scene (np.ndarray): The image where box corners will be drawn.
             detections (Detections): Object detections to annotate.
-            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
-                Allows to override the default color mapping strategy.
 
         Returns:
             np.ndarray: The annotated image.
@@ -583,14 +532,19 @@ class CircleAnnotator(BaseAnnotator):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
             center = ((x1 + x2) // 2, (y1 + y2) // 2)
             distance = sqrt((x1 - center[0]) ** 2 + (y1 - center[1]) ** 2)
-            color = resolve_color(
-                color=self.color,
+
+            idx = resolve_color_idx(
                 detections=detections,
                 detection_idx=detection_idx,
-                color_lookup=self.color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
+                color_map=self.color_map,
             )
+
+            color = (
+                self.color.by_idx(idx)
+                if isinstance(self.color, ColorPalette)
+                else self.color
+            )
+
             cv2.circle(
                 img=scene,
                 center=center,
@@ -615,7 +569,7 @@ class LabelAnnotator:
         text_thickness: int = 1,
         text_padding: int = 10,
         text_position: Position = Position.TOP_LEFT,
-        color_lookup: ColorLookup = ColorLookup.CLASS,
+        color_map: str = "class",
     ):
         """
         Args:
@@ -627,8 +581,8 @@ class LabelAnnotator:
             text_padding (int): Padding around the text within its background box.
             text_position (Position): Position of the text relative to the detection.
                 Possible values are defined in the `Position` enum.
-            color_lookup (str): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACE`.
+            color_map (str): Strategy for mapping colors to annotations.
+                Options are `index`, `class`, or `track`.
         """
         self.color: Union[Color, ColorPalette] = color
         self.text_color: Color = text_color
@@ -636,7 +590,7 @@ class LabelAnnotator:
         self.text_thickness: int = text_thickness
         self.text_padding: int = text_padding
         self.text_position: Position = text_position
-        self.color_lookup: ColorLookup = color_lookup
+        self.color_map: ColorMap = ColorMap(color_map)
 
     @staticmethod
     def resolve_text_background_xyxy(
@@ -685,7 +639,6 @@ class LabelAnnotator:
         scene: np.ndarray,
         detections: Detections,
         labels: List[str] = None,
-        custom_color_lookup: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         """
         Annotates the given scene with labels based on the provided detections.
@@ -694,8 +647,6 @@ class LabelAnnotator:
             scene (np.ndarray): The image where labels will be drawn.
             detections (Detections): Object detections to annotate.
             labels (List[str]): Optional. Custom labels for each detection.
-            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
-                Allows to override the default color mapping strategy.
 
         Returns:
             np.ndarray: The annotated image.
@@ -720,14 +671,12 @@ class LabelAnnotator:
         font = cv2.FONT_HERSHEY_SIMPLEX
         for detection_idx in range(len(detections)):
             detection_xyxy = detections.xyxy[detection_idx].astype(int)
-            color = resolve_color(
-                color=self.color,
+            idx = resolve_color_idx(
                 detections=detections,
                 detection_idx=detection_idx,
-                color_lookup=self.color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
+                color_map=self.color_map,
             )
+            color = resolve_color(color=self.color, idx=idx)
             text = (
                 f"{detections.class_id[detection_idx]}"
                 if (labels is None or len(detections) != len(labels))
@@ -841,7 +790,7 @@ class TraceAnnotator:
         position: Optional[Position] = Position.CENTER,
         trace_length: int = 30,
         thickness: int = 2,
-        color_lookup: ColorLookup = ColorLookup.CLASS,
+        color_map: str = "class",
     ):
         """
         Args:
@@ -852,21 +801,16 @@ class TraceAnnotator:
             trace_length (int): The maximum length of the trace in terms of historical
                 points. Defaults to `30`.
             thickness (int): The thickness of the trace lines. Defaults to `2`.
-            color_lookup (str): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACE`.
+            color_map (str): Strategy for mapping colors to annotations.
+                Options are `index`, `class`, or `track`.
         """
         self.color: Union[Color, ColorPalette] = color
         self.position = position
         self.trace = Trace(max_size=trace_length)
         self.thickness = thickness
-        self.color_lookup: ColorLookup = color_lookup
+        self.color_map: ColorMap = ColorMap(color_map)
 
-    def annotate(
-        self,
-        scene: np.ndarray,
-        detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None,
-    ) -> np.ndarray:
+    def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
         """
         Draws trace paths on the frame based on the detection coordinates provided.
 
@@ -874,8 +818,6 @@ class TraceAnnotator:
             scene (np.ndarray): The image on which the traces will be drawn.
             detections (Detections): The detections which include coordinates for
                 which the traces will be drawn.
-            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
-                Allows to override the default color mapping strategy.
 
         Returns:
             np.ndarray: The image with the trace paths drawn on it.
@@ -901,14 +843,12 @@ class TraceAnnotator:
 
         for detection_idx in range(len(detections)):
             tracker_id = int(detections.tracker_id[detection_idx])
-            color = resolve_color(
-                color=self.color,
+            idx = resolve_color_idx(
                 detections=detections,
                 detection_idx=detection_idx,
-                color_lookup=self.color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
+                color_map=self.color_map,
             )
+            color = resolve_color(color=self.color, idx=idx)
             xy = self.trace.get(tracker_id=tracker_id)
             if len(xy) > 1:
                 scene = cv2.polylines(
@@ -919,3 +859,87 @@ class TraceAnnotator:
                     thickness=self.thickness,
                 )
         return scene
+
+
+class PercentageBarAnnotator(BaseAnnotator):
+    """
+    A class for drawing percentage bar on an image using provided detections.
+    """
+
+    def __init__(
+        self,
+        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        border_color: Color = Color.black(),
+        position: Position = Position.TOP_CENTER,
+        thickness: int = 20,
+        color_map: str = "class",
+    ):
+        """
+        Args:
+            color (Union[Color, ColorPalette]): The color or color palette to use for
+                annotating detections.
+            thickness (int): Thickness of the bounding box lines.
+            color_map (str): Strategy for mapping colors to annotations.
+                Options are `index`, `class`, or `track`.
+        """
+        self.color: Union[Color, ColorPalette] = color
+        self.position: Position = position
+        self.border_color: Color = border_color
+        self.thickness: int = thickness
+        self.color_map: ColorMap = ColorMap(color_map)
+
+    def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
+        """
+        Annotates the given scene with percentage bar presenting condidence based
+        on the provided detections.
+
+        Args:
+            scene (np.ndarray): The image where bounding boxes will be drawn.
+            detections (Detections): Object detections to annotate.
+
+        Returns:
+            np.ndarray: The annotated image.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> image = ...
+            >>> detections = sv.Detections(...)
+
+            >>> percentage_bar_annotator = sv.PercentageBarAnnotator()
+            >>> annotated_frame = percentage_bar_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
+            ```
+
+        !Example to be included)
+        """
+        for detection_idx in range(len(detections)):
+            x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
+            idx = resolve_color_idx(
+                detections=detections,
+                detection_idx=detection_idx,
+                color_map=self.color_map,
+            )
+            color = resolve_color(color=self.color, idx=idx)
+
+            border = int(self.thickness*0.2)
+            cv2.rectangle(
+                img=scene,
+                pt1=(x1, y1),
+                pt2=(x2,y1-self.thickness),
+                color=self.border_color.as_bgr(),
+                thickness=border,
+            )
+
+            cv2.rectangle(
+                img=scene,
+                pt1=(x1+(2*border),y1-(2*border)),
+                pt2=((x1+(2*border))+(((x2-(2*border))-(x1+(2*border)))*detections.confidence[detection_idx]).astype(int),y1-(self.thickness-(2*border))),
+                color=color.as_bgr(),
+                thickness=-1
+            )
+        return scene
+        
