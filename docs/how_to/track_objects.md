@@ -36,46 +36,33 @@ for frame in frame_generator:
 The objects being tracked can be annotated with any [annotator provided by supervision](https://supervision.roboflow.com/annotators/#labelannotator). But, we are going to use label annotator and label the object being tracked with their tracking ids.
 ```
 label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER)
-for frame in frame_generator:
-    results = model(frame)[0]
-    detections = sv.Detections.from_ultralytics(results)
-    detections = tracker.update_with_detections(detections)
-    labels = detections.tracker_id
-    annotator.annotate(scene=frame.copy(), detections=detections, labels=labels)
+
 ```
 ### Step 4:Tracing the path of the detections
-Further, the path of the tracked objects can be traced using [TraceAnnotator](https://supervision.roboflow.com/annotators/#traceannotator) of supervision.
+Further, the path of the tracked objects can be traced using [TraceAnnotator](https://supervision.roboflow.com/annotators/#traceannotator) of supervision. To use tracce annotator ensure that the same detections remain in all the frames of the video.
 ```
 
 label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER)
 trace_annotator = sv.TraceAnnotator()
-for frame in frame_generator:
-    results = model(frame)[0]
-    detections = sv.Detections.from_ultralytics(results)
-    detections = tracker.update_with_detections(detections)
-    labels = detections.tracker_id
-    label_annotator.annotate(scene=frame.copy(), detections=detections, labels=labels)
-    trace_annotator.annotate(scene=frame.copy(), detections=detections)
 ```
 ### Step 5:Integrating the previous steps and processing the video
 At the end, we want to see the output on our video. In order to do that, we'll be passing the annotations from previous iterations into a callback to be used by [sv.process_video](https://supervision.roboflow.com/utils/video/#process_video).
 ```
 from ultralytics import YOLO
-model = YOLO(...)
+model = YOLO(...) ##We  YOLO('yolov8n.pt')
 frame_generator = sv.get_video_frames_generator(source_path=source_video_path)
 tracker = sv.ByteTrack()
 label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER)
 trace_annotator = sv.TraceAnnotator()
 def callback(frame: np.ndarray, index: int) -> np.ndarray:
-    for frame in frame_generator:
-        results = model(frame)[0]
-        detections = sv.Detections.from_ultralytics(results)
-        detections = tracker.update_with_detections(detections)
-        labels = detections.tracker_id
-        label_annotator.annotate(scene=frame.copy(), detections=detections, labels=labels)
-        trace_annotator.annotate(scene=frame.copy(), detections=detections)
+  results = model(frame)[0]
+  detections = sv.Detections.from_ultralytics(results)
+  detections = tracker.update_with_detections(detections)
+  labels = f"{detections.tracker_id}"
+  label_annotator.annotate(scene=frame, detections=detections, labels=labels)
+  return trace_annotator.annotate(scene=frame, detections=detections)
 sv.process_video(source_path=VIDEO_PATH, target_path=f"result.mp4", callback=process_frame)
 ```
-Results with label annotator and trace annotator are show below in sequential frames from a video.
+Check out this [video](https://drive.google.com/file/d/10xaHXz9rpdXkaRni9YzOihhF3S7-Zs4p/view?usp=sharing) to see the end results. 
 ### Conclusion and further ideas
 This brings us to the end of the tutorial. The users are strongly encouraged to try out other models for detection and play around with annotators. Check out this [post](https://blog.roboflow.com/yolov8-tracking-and-counting/#object-tracking-with-bytetrack)("Piotr Skalski." Roboflow Blog, Feb 1, 2023. https://blog.roboflow.com/yolov8-tracking-and-counting/) for some more cool stuff. The post was quite useful creation of this tutorial.
