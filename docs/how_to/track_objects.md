@@ -11,7 +11,7 @@ and import it:
 import supervision as sv
 '''
 ### Step 1:Building a detection pipeline for videos
-First to track objects we need to load the data and make it usable. We are going to do it by generating the frames from the video and using an object detection model, using [sv.get_video_frames_generator()](https://supervision.roboflow.com/utils/video/#get_video_frames_generator). In this tutorial we are going to do it using YOLOv8. 
+First to track objects we need to load the data and make it usable. We are going to do it by generating the frames from the video and using an object detection model, using [sv.get_video_frames_generator()](https://supervision.roboflow.com/utils/video/#get_video_frames_generator). In this tutorial we are going to do it using YOLOv8.
 First install ultralytics, import it and initialize the frame_generator.
 '''
 pip install ultralytics
@@ -35,7 +35,7 @@ for frame in frame_generator:
 ### Step 3:Label the detections being tracked
 The objects being tracked can be annotated with any [annotator provided by supervision](https://supervision.roboflow.com/annotators/#labelannotator). But, we are going to use label annotator and label the object being tracked with their tracking ids.
 '''
-label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER) 
+label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER)
 for frame in frame_generator:
     results = model(frame)[0]
     detections = sv.Detections.from_ultralytics(results)
@@ -47,7 +47,7 @@ for frame in frame_generator:
 Further, the path of the tracked objects can be traced using [TraceAnnotator](https://supervision.roboflow.com/annotators/#traceannotator) of supervision.
 '''
 
-label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER) 
+label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER)
 trace_annotator = sv.TraceAnnotator()
 for frame in frame_generator:
     results = model(frame)[0]
@@ -63,7 +63,7 @@ from ultralytics import YOLO
 model = YOLO(...)
 frame_generator = sv.get_video_frames_generator(source_path=source_video_path)
 tracker = sv.ByteTrack()
-label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER) 
+label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER)
 trace_annotator = sv.TraceAnnotator()
 def callback(frame: np.ndarray, index: int) -> np.ndarray:
     for frame in frame_generator:
