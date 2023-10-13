@@ -754,7 +754,7 @@ class BlurAnnotator(BaseAnnotator):
             >>> detections = sv.Detections(...)
 
             >>> blur_annotator = sv.BlurAnnotator()
-            >>> annotated_frame = blur_annotator.annotate(
+            >>> annotated_frame = circle_annotator.annotate(
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
