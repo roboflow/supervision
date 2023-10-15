@@ -34,7 +34,7 @@ class LineZone:
 
         Attributes:
             detections (Detections): The detections for which to update the counts.
-        
+
         Returns:
             np.ndarray: A boolean array indicating
             which detection has crossed the line on the either sides
