@@ -26,9 +26,8 @@ class LineZone:
         self.tracker_state: Dict[str, bool] = {}
         self.in_count: int = 0
         self.out_count: int = 0
-        self.crossed = []
 
-    def trigger(self, detections: Detections):
+    def trigger(self, detections: Detections) -> np.ndarray:
         """
         Update the in_count and out_count for the detections that cross the line.
 
@@ -39,7 +38,7 @@ class LineZone:
             np.ndarray: A boolean array indicating
             which detection has crossed the line on the either sides
         """
-        self.crossed = [False] * len(detections)
+        crossed = np.full(len(detections), False)
 
         for i, (xyxy, _, confidence, class_id, tracker_id) in enumerate(detections):
             # handle detections with no tracker_id
@@ -73,13 +72,13 @@ class LineZone:
             self.tracker_state[tracker_id] = tracker_state
             if tracker_state:
                 self.in_count += 1
-                self.crossed[i] = True
+                crossed[i] = True
 
             else:
                 self.out_count += 1
-                self.crossed[i] = True
+                crossed[i] = True
 
-        return self.crossed
+        return crossed
 
 
 class LineZoneAnnotator:
