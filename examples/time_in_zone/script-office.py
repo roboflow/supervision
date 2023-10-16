@@ -10,19 +10,16 @@ import supervision as sv
 
 
 ZONE_POLYGONS = [
-    np.array([[956, 742], [104, 757], [328, 330], [944, 310]]),
-    np.array([[956, 742], [944, 310], [1560, 300], [1810, 724]]),
+    np.array([[418, 158], [622, 226], [414, 406], [186, 230]])
 ]
 
 ZONE_COLORS = [
-    sv.ColorPalette.default().by_idx(1),
-    sv.ColorPalette.default().by_idx(2)
+    sv.ColorPalette.default().by_idx(1)
 ]
 
 DETECTIONS_COLORS = [
     sv.ColorPalette.default().by_idx(0),
-    sv.ColorPalette.default().by_idx(1),
-    sv.ColorPalette.default().by_idx(2)
+    sv.ColorPalette.default().by_idx(1)
 ]
 
 
@@ -80,15 +77,16 @@ class VideoProcessor:
 
         self.model = YOLO(source_weights_path)
 
-        self.tracker = sv.ByteTrack()
         self.video_info = sv.VideoInfo.from_video_path(source_video_path)
+        self.tracker = sv.ByteTrack(frame_rate=self.video_info.fps)
         frame_generator = sv.get_video_frames_generator(
             source_path=self.source_video_path)
         self.frame_generator = tqdm(frame_generator, total=self.video_info.total_frames)
-        self.ellipse_annotator = sv.EllipseAnnotator()
-        self.trace_annotator = sv.TraceAnnotator(trace_length=100)
+        self.box_corner_annotation = sv.BoxCornerAnnotator(thickness=2, corner_length=10)
+        # self.blur_annotator = sv.BlurAnnotator()
+        self.trace_annotator = sv.TraceAnnotator()
         self.label_annotator = sv.LabelAnnotator(
-            text_position=sv.Position.BOTTOM_CENTER)
+            text_position=sv.Position.CENTER)
 
         self.zones = initiate_polygon_zones(
             ZONE_POLYGONS, self.video_info.resolution_wh, sv.Position.BOTTOM_CENTER
@@ -114,7 +112,7 @@ class VideoProcessor:
 
     def process_frame(self, frame: np.ndarray) -> np.ndarray:
         results = self.model(
-            frame, verbose=False, conf=self.conf_threshold, iou=self.iou_threshold, imgsz=1920)[0]
+            frame, verbose=False, conf=self.conf_threshold, iou=self.iou_threshold, imgsz=1280)[0]
         detections = sv.Detections.from_ultralytics(results)
         detections = detections[detections.class_id == 0]
         detections = self.tracker.update_with_detections(detections=detections)
@@ -136,7 +134,9 @@ class VideoProcessor:
         for color, zone in zip(ZONE_COLORS, self.zones):
             annotated_frame = sv.draw_polygon(
                 annotated_frame, zone.polygon, color)
-        annotated_frame = self.ellipse_annotator.annotate(
+        # annotated_frame = self.blur_annotator.annotate(
+        #     scene=annotated_frame, detections=detections)
+        annotated_frame = self.box_corner_annotation.annotate(
             scene=annotated_frame, detections=detections,
             custom_color_lookup=self.custom_color_lookup)
         annotated_frame = self.trace_annotator.annotate(
