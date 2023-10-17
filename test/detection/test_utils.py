@@ -260,12 +260,11 @@ def test_filter_polygons_by_area(
 
 
 @pytest.mark.parametrize(
-    "roboflow_result, class_list, expected_result, exception",
+    "roboflow_result, expected_result, exception",
     [
         (
             {"predictions": [], "image": {"width": 1000, "height": 1000}},
-            ["person", "car", "truck"],
-            (np.empty((0, 4)), np.empty(0), np.empty(0), None),
+            (np.empty((0, 4)), np.empty(0), np.empty(0), None, None),
             DoesNotRaise(),
         ),  # empty result
         (
@@ -277,16 +276,17 @@ def test_filter_polygons_by_area(
                         "width": 50.0,
                         "height": 50.0,
                         "confidence": 0.9,
+                        "class_id": 0,
                         "class": "person",
                     }
                 ],
                 "image": {"width": 1000, "height": 1000},
             },
-            ["person", "car", "truck"],
             (
                 np.array([[175.0, 275.0, 225.0, 325.0]]),
                 np.array([0.9]),
                 np.array([0]),
+                None,
                 None,
             ),
             DoesNotRaise(),
@@ -300,7 +300,9 @@ def test_filter_polygons_by_area(
                         "width": 50.0,
                         "height": 50.0,
                         "confidence": 0.9,
+                        "class_id": 0,
                         "class": "person",
+                        "tracker_id": 1,
                     },
                     {
                         "x": 500.0,
@@ -308,17 +310,19 @@ def test_filter_polygons_by_area(
                         "width": 100.0,
                         "height": 100.0,
                         "confidence": 0.8,
+                        "class_id": 7,
                         "class": "truck",
+                        "tracker_id": 2,
                     },
                 ],
                 "image": {"width": 1000, "height": 1000},
             },
-            ["person", "car", "truck"],
             (
                 np.array([[175.0, 275.0, 225.0, 325.0], [450.0, 450.0, 550.0, 550.0]]),
                 np.array([0.9, 0.8]),
-                np.array([0, 2]),
+                np.array([0, 7]),
                 None,
+                np.array([1, 2]),
             ),
             DoesNotRaise(),
         ),  # two correct object detection result
@@ -331,14 +335,15 @@ def test_filter_polygons_by_area(
                         "width": 50.0,
                         "height": 50.0,
                         "confidence": 0.9,
+                        "class_id": 0,
                         "class": "person",
                         "points": [],
+                        "tracker_id": None,
                     }
                 ],
                 "image": {"width": 1000, "height": 1000},
             },
-            ["person", "car", "truck"],
-            (np.empty((0, 4)), np.empty(0), np.empty(0), None),
+            (np.empty((0, 4)), np.empty(0), np.empty(0), None, None),
             DoesNotRaise(),
         ),  # single incorrect instance segmentation result with no points
         (
@@ -350,14 +355,14 @@ def test_filter_polygons_by_area(
                         "width": 50.0,
                         "height": 50.0,
                         "confidence": 0.9,
+                        "class_id": 0,
                         "class": "person",
                         "points": [{"x": 200.0, "y": 300.0}, {"x": 250.0, "y": 300.0}],
                     }
                 ],
                 "image": {"width": 1000, "height": 1000},
             },
-            ["person", "car", "truck"],
-            (np.empty((0, 4)), np.empty(0), np.empty(0), None),
+            (np.empty((0, 4)), np.empty(0), np.empty(0), None, None),
             DoesNotRaise(),
         ),  # single incorrect instance segmentation result with no enough points
         (
@@ -369,6 +374,7 @@ def test_filter_polygons_by_area(
                         "width": 50.0,
                         "height": 50.0,
                         "confidence": 0.9,
+                        "class_id": 0,
                         "class": "person",
                         "points": [
                             {"x": 200.0, "y": 300.0},
@@ -380,12 +386,12 @@ def test_filter_polygons_by_area(
                 ],
                 "image": {"width": 1000, "height": 1000},
             },
-            ["person", "car", "truck"],
             (
                 np.array([[175.0, 275.0, 225.0, 325.0]]),
                 np.array([0.9]),
                 np.array([0]),
                 TEST_MASK,
+                None,
             ),
             DoesNotRaise(),
         ),  # single incorrect instance segmentation result with no enough points
@@ -398,6 +404,7 @@ def test_filter_polygons_by_area(
                         "width": 50.0,
                         "height": 50.0,
                         "confidence": 0.9,
+                        "class_id": 0,
                         "class": "person",
                         "points": [
                             {"x": 200.0, "y": 300.0},
@@ -412,18 +419,19 @@ def test_filter_polygons_by_area(
                         "width": 100.0,
                         "height": 100.0,
                         "confidence": 0.8,
+                        "class_id": 7,
                         "class": "truck",
                         "points": [],
                     },
                 ],
                 "image": {"width": 1000, "height": 1000},
             },
-            ["person", "car", "truck"],
             (
                 np.array([[175.0, 275.0, 225.0, 325.0]]),
                 np.array([0.9]),
                 np.array([0]),
                 TEST_MASK,
+                None,
             ),
             DoesNotRaise(),
         ),  # two instance segmentation results - one correct, one incorrect
@@ -431,19 +439,21 @@ def test_filter_polygons_by_area(
 )
 def test_process_roboflow_result(
     roboflow_result: dict,
-    class_list: List[str],
-    expected_result: Tuple[np.ndarray, np.ndarray, np.ndarray, Optional[np.ndarray]],
+    expected_result: Tuple[
+        np.ndarray, np.ndarray, np.ndarray, Optional[np.ndarray], np.ndarray
+    ],
     exception: Exception,
 ) -> None:
     with exception:
-        result = process_roboflow_result(
-            roboflow_result=roboflow_result, class_list=class_list
-        )
+        result = process_roboflow_result(roboflow_result=roboflow_result)
         assert np.array_equal(result[0], expected_result[0])
         assert np.array_equal(result[1], expected_result[1])
         assert np.array_equal(result[2], expected_result[2])
         assert (result[3] is None and expected_result[3] is None) or (
             np.array_equal(result[3], expected_result[3])
+        )
+        assert (result[4] is None and expected_result[4] is None) or (
+            np.array_equal(result[4], expected_result[4])
         )
 
 

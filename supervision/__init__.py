@@ -7,20 +7,25 @@ except importlib_metadata.PackageNotFoundError:
     __version__ = "development"
 
 from supervision.annotators.core import (
+    BlurAnnotator,
     BoundingBoxAnnotator,
     BoxCornerAnnotator,
+    BoxMaskAnnotator,
     CircleAnnotator,
     EllipseAnnotator,
+    HaloAnnotator,
     LabelAnnotator,
     MaskAnnotator,
+    TraceAnnotator,
 )
+from supervision.annotators.utils import ColorLookup
 from supervision.classification.core import Classifications
 from supervision.dataset.core import (
     BaseDataset,
     ClassificationDataset,
     DetectionDataset,
 )
-from supervision.detection.annotate import BoxAnnotator, TraceAnnotator
+from supervision.detection.annotate import BoxAnnotator
 from supervision.detection.core import Detections
 from supervision.detection.line_counter import LineZone, LineZoneAnnotator
 from supervision.detection.tools.inference_slicer import InferenceSlicer
@@ -44,6 +49,7 @@ from supervision.utils.file import list_files_with_extensions
 from supervision.utils.image import ImageSink, crop_image
 from supervision.utils.notebook import plot_image, plot_images_grid
 from supervision.utils.video import (
+    FPSMonitor,
     VideoInfo,
     VideoSink,
     get_video_frames_generator,
