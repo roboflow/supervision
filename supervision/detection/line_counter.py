@@ -14,23 +14,22 @@ class LineZone:
     Count the number of objects that cross a line.
     """
 
-    def __init__(self, start: Point, end: Point, direction="both"):
+    def __init__(self, start: Point, end: Point, trigger_in: bool = True, trigger_out: bool = True):
         """
         Initialize a LineCounter object.
 
         Attributes:
             start (Point): The starting point of the line.
             end (Point): The ending point of the line.
-            direction (str): What count of items crossing the line is displayed.
-                "in": Start point to the left, elements crossing up the line.
-                "out": Start point to the left, elements crossing down the line.
-                "both": Start point to the left, both "in" and "out" elements.
+            trigger_in (bool): Count object crossing in the line.
+            trigger_out (bool): Count object crossing out the line.
         """
         self.vector = Vector(start=start, end=end)
         self.tracker_state: Dict[str, bool] = {}
         self.in_count: int = 0
         self.out_count: int = 0
-        self.direction: str = direction
+        self.trigger_in = trigger_in
+        self.trigger_out = trigger_out
 
     def trigger(self, detections: Detections):
         """
@@ -342,14 +341,9 @@ class LineZoneAnnotator:
             else f"out: {line_counter.out_count}"
         )
 
-        if line_counter.direction == "both":
+        if line_counter.trigger_in:
             frame = annotate_count(in_text, text_over=True)
+        if line_counter.trigger_out:
             frame = annotate_count(out_text, text_over=False)
-        elif line_counter.direction == "in":
-            frame = annotate_count(in_text, text_over=True)
-        elif line_counter.direction == "out":
-            frame = annotate_count(out_text, text_over=False)
-        else:
-            pass
 
         return frame
