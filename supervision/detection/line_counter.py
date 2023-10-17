@@ -14,7 +14,13 @@ class LineZone:
     Count the number of objects that cross a line.
     """
 
-    def __init__(self, start: Point, end: Point, trigger_in: bool = True, trigger_out: bool = True):
+    def __init__(
+        self,
+        start: Point,
+        end: Point,
+        trigger_in: bool = True,
+        trigger_out: bool = True,
+    ):
         """
         Initialize a LineCounter object.
 
