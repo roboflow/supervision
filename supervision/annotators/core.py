@@ -603,6 +603,11 @@ class CircleAnnotator(BaseAnnotator):
 
 
 class DotAnnotator(BaseAnnotator):
+    """
+    A class for drawing dots on an image at specific coordinates based on provided
+    detections.
+    """
+
     def __init__(
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
@@ -610,6 +615,15 @@ class DotAnnotator(BaseAnnotator):
         position: Position = Position.CENTER,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
+        """
+        Args:
+            color (Union[Color, ColorPalette]): The color or color palette to use for
+                annotating detections.
+            radius (int): Radius of the drawn dots.
+            position (Position): The anchor position for placing the dot.
+            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
+                Options are `INDEX`, `CLASS`, `TRACE`.
+        """
         self.color: Union[Color, ColorPalette] = color
         self.radius: int = radius
         self.position: Position = position
@@ -621,6 +635,35 @@ class DotAnnotator(BaseAnnotator):
         detections: Detections,
         custom_color_lookup: Optional[np.ndarray] = None,
     ) -> np.ndarray:
+        """
+        Annotates the given scene with dots based on the provided detections.
+
+        Args:
+            scene (np.ndarray): The image where dots will be drawn.
+            detections (Detections): Object detections to annotate.
+            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
+                Allows to override the default color mapping strategy.
+
+        Returns:
+            np.ndarray: The annotated image.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> image = ...
+            >>> detections = sv.Detections(...)
+
+            >>> dot_annotator = sv.DotAnnotator()
+            >>> annotated_frame = dot_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
+            ```
+
+        ![dot-annotator-example](https://media.roboflow.com/
+        supervision-annotator-examples/dot-annotator-example-purple.png)
+        """
         xy = detections.get_anchor_coordinates(anchor=self.position)
         for detection_idx in range(len(detections)):
             color = resolve_color(

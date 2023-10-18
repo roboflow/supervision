@@ -34,6 +34,15 @@ def _validate_color_hex(color_hex: str):
 
 @dataclass
 class Color:
+    """
+    Represents a color in RGB format.
+
+    Attributes:
+        r (int): Red channel.
+        g (int): Green channel.
+        b (int): Blue channel.
+    """
+
     r: int
     g: int
     b: int
@@ -41,14 +50,19 @@ class Color:
     @classmethod
     def from_hex(cls, color_hex: str):
         """
-        Creates a Color instance from a color hex string
+        Create a Color instance from a hex string.
 
-        :param color_hex: str : The color hex string in the format
-            of "fff", "ffffff", "#fff", or "#ffffff"
-        :return: Color : A Color instance representing the color
+        Args:
+            color_hex (str): Hex string of the color.
+
+        Returns:
+            Color: Instance representing the color.
 
         Example:
-        color = Color.from_hex('#ff00ff')
+            ```
+            >>> Color.from_hex('#ff00ff')
+            Color(r=255, g=0, b=255)
+            ```
         """
         _validate_color_hex(color_hex)
         color_hex = color_hex.lstrip("#")
@@ -59,17 +73,31 @@ class Color:
 
     def as_rgb(self) -> Tuple[int, int, int]:
         """
-        Returns the color as a tuple of integers in the RGB format
+        Returns the color as an RGB tuple.
 
-        :return: Tuple[int, int, int] : The color in the RGB format
+        Returns:
+            Tuple[int, int, int]: RGB tuple.
+
+        Example:
+            ```
+            >>> color.as_rgb()
+            (255, 0, 255)
+            ```
         """
         return self.r, self.g, self.b
 
     def as_bgr(self) -> Tuple[int, int, int]:
         """
-        Returns the color as a tuple of integers in the BGR format
+        Returns the color as a BGR tuple.
 
-        :return: Tuple[int, int, int] : The color in the BGR format
+        Returns:
+            Tuple[int, int, int]: BGR tuple.
+
+        Example:
+            ```
+            >>> color.as_bgr()
+            (255, 0, 255)
+            ```
         """
         return self.b, self.g, self.r
 
@@ -100,33 +128,55 @@ class ColorPalette:
 
     @classmethod
     def default(cls) -> ColorPalette:
+        """
+        Returns a default color palette.
+
+        Returns:
+            ColorPalette: A ColorPalette instance with default colors.
+
+        Example:
+            ```
+            >>> ColorPalette.default()
+            ColorPalette(colors=[Color(r=255, g=0, b=0), Color(r=0, g=255, b=0), ...])
+            ```
+        """
         return ColorPalette.from_hex(color_hex_list=DEFAULT_COLOR_PALETTE)
 
     @classmethod
     def from_hex(cls, color_hex_list: List[str]):
         """
-        Creates a ColorPalette instance from a list of color hex strings
+        Create a ColorPalette instance from a list of hex strings.
 
-        :param color_hex_list: List[str] : A list of color hex strings in the
-            format of "fff", "ffffff", "#fff", or "#ffffff"
-        :return: ColorPalette : A ColorPalette instance representing the color palette
+        Args:
+            color_hex_list (List[str]): List of color hex strings.
+
+        Returns:
+            ColorPalette: A ColorPalette instance.
 
         Example:
-        color_palette = ColorPalette.from_hex(['#ff0000', '#00ff00', '#0000ff'])
+            ```
+            >>> ColorPalette.from_hex(['#ff0000', '#00ff00', '#0000ff'])
+            ColorPalette(colors=[Color(r=255, g=0, b=0), Color(r=0, g=255, b=0), ...])
+            ```
         """
         colors = [Color.from_hex(color_hex) for color_hex in color_hex_list]
         return cls(colors)
 
     def by_idx(self, idx: int) -> Color:
         """
-        Returns the color at a given index in the color palette.
+        Return the color at a given index in the palette.
 
-        :param idx: int : The index of the color in the color palette
-        :return: Color : The color at the given index
+        Args:
+            idx (int): Index of the color in the palette.
+
+        Returns:
+            Color: Color at the given index.
 
         Example:
-        color_palette = ColorPalette.from_hex(['#ff0000', '#00ff00', '#0000ff'])
-        color = color_palette.by_idx(1)
+            ```
+            >>> color_palette.by_idx(1)
+            Color(r=0, g=255, b=0)
+            ```
         """
         if idx < 0:
             raise ValueError("idx argument should not be negative")

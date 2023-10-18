@@ -48,6 +48,7 @@ nav:
     - Metrics:
       - Object Detection: metrics/detection.md
     - Draw:
+        - Color: draw/color.md
         - Utils: draw/utils.md
     - Utils:
         - Video: utils/video.md
