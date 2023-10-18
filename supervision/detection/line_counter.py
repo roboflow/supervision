@@ -162,9 +162,9 @@ class LineZoneAnnotator:
         )
 
         if line_counter.trigger_in:
-            frame = self._annotate_count(in_text, text_over=True)
+            frame = self._annotate_count(frame, line_counter, in_text, text_over=True)
         if line_counter.trigger_out:
-            frame = self._annotate_count(out_text, text_over=False)
+            frame = self._annotate_count(frame, line_counter, out_text, text_over=False)
 
         return frame
 
