@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import astuple, dataclass
-from typing import Any, Iterator, List, Optional, Tuple, Union
+from dataclasses import astuple, dataclass, field
+from typing import Any, Iterator, List, Optional, Tuple, Union, Dict
 
 import numpy as np
 
@@ -12,6 +12,17 @@ from supervision.detection.utils import (
     xywh_to_xyxy,
 )
 from supervision.geometry.core import Position
+
+
+def _validate_array(value: Any, n: int, name: str) -> None:
+    """
+    Validates an array ensuring it's either None or a numpy array with its first dimension being n.
+    """
+    is_valid = value is None or (
+        isinstance(value, np.ndarray) and value.shape[0] == n
+    )
+    if not is_valid:
+        raise ValueError(f"{name} must be None or np.ndarray with its first dimension being n.")
 
 
 def _validate_xyxy(xyxy: Any, n: int) -> None:
@@ -58,6 +69,9 @@ def _validate_tracker_id(tracker_id: Any, n: int) -> None:
     if not is_valid:
         raise ValueError("tracker_id must be None or 1d np.ndarray with (n,) shape")
 
+def _validate_data_payload(data_payload: Dict[str, np.ndarray], n: int) -> None:
+    for key, value in data_payload.items():
+        _validate_array(value, n, f"array in data payload - ({key})")
 
 @dataclass
 class Detections:
@@ -74,6 +88,8 @@ class Detections:
             `(n,)` containing the class ids of the detections.
         tracker_id (Optional[np.ndarray]): An array of shape
             `(n,)` containing the tracker ids of the detections.
+        data (Dict[str, np.ndarray]): A dictionary to support custom payload. This 
+            can store detection-related metadata.
     """
 
     xyxy: np.ndarray
@@ -81,6 +97,7 @@ class Detections:
     confidence: Optional[np.ndarray] = None
     class_id: Optional[np.ndarray] = None
     tracker_id: Optional[np.ndarray] = None
+    data: Dict[str, np.ndarray] = field(default_factory=dict)
 
     def __post_init__(self):
         n = len(self.xyxy)
@@ -89,6 +106,7 @@ class Detections:
         _validate_class_id(class_id=self.class_id, n=n)
         _validate_confidence(confidence=self.confidence, n=n)
         _validate_tracker_id(tracker_id=self.tracker_id, n=n)
+        _validate_data_payload(data_payload=self.data, n=n)
 
     def __len__(self):
         """
@@ -105,22 +123,34 @@ class Detections:
             Optional[float],
             Optional[int],
             Optional[int],
+            Dict[str, np.ndarray]
         ]
     ]:
         """
         Iterates over the Detections object and yield a tuple of
-        `(xyxy, mask, confidence, class_id, tracker_id)` for each detection.
+        `(xyxy, mask, confidence, class_id, tracker_id, data)` for each detection.
         """
         for i in range(len(self.xyxy)):
+            data_for_i = {key: value[i] if value is not None else None for key, value in self.data.items()}
             yield (
                 self.xyxy[i],
                 self.mask[i] if self.mask is not None else None,
                 self.confidence[i] if self.confidence is not None else None,
                 self.class_id[i] if self.class_id is not None else None,
                 self.tracker_id[i] if self.tracker_id is not None else None,
+                data_for_i
             )
 
     def __eq__(self, other: Detections):
+        # check equality for the data dictionary
+        data_equalities = [
+            any([
+                self.data[key] is None and other.data[key] is None,
+                np.array_equal(self.data[key], other.data[key])
+            ])
+            for key in self.data
+        ]
+        
         return all(
             [
                 np.array_equal(self.xyxy, other.xyxy),
@@ -148,7 +178,9 @@ class Detections:
                         np.array_equal(self.tracker_id, other.tracker_id),
                     ]
                 ),
-            ]
+
+            ] + data_equalities  # Adding data dictionary comparisons
+
         )
 
     @classmethod
@@ -579,7 +611,7 @@ class Detections:
             return Detections.empty()
 
         detections_tuples_list = [astuple(detection) for detection in detections_list]
-        xyxy, mask, confidence, class_id, tracker_id = [
+        xyxy, mask, confidence, class_id, tracker_id, data_list = [
             list(field) for field in zip(*detections_tuples_list)
         ]
 
@@ -592,12 +624,26 @@ class Detections:
         class_id = np.hstack(class_id) if __all_not_none(class_id) else None
         tracker_id = np.hstack(tracker_id) if __all_not_none(tracker_id) else None
 
+        # Extract all unique keys from the data_list
+        all_keys = set().union(*(d.keys() for d in data_list))
+
+        merged_data = {}
+        for key in all_keys:
+            # Get arrays from all detections that contain the current key
+            arrays_to_merge = [d[key] for d in data_list if key in d and d[key] is not None]
+            if arrays_to_merge:
+                merged_data[key] = np.concatenate(arrays_to_merge, axis=0)
+            else:
+                merged_data[key] = None
+
+
         return cls(
             xyxy=xyxy,
             mask=mask,
             confidence=confidence,
             class_id=class_id,
             tracker_id=tracker_id,
+            data=merged_data
         )
 
     def get_anchor_coordinates(self, anchor: Position) -> np.ndarray:
@@ -692,12 +738,15 @@ class Detections:
         """
         if isinstance(index, int):
             index = [index]
+        # Indexing the custom data dictionary
+        data_subset = {key: value[index] for key, value in self.data.items()}
         return Detections(
             xyxy=self.xyxy[index],
             mask=self.mask[index] if self.mask is not None else None,
             confidence=self.confidence[index] if self.confidence is not None else None,
             class_id=self.class_id[index] if self.class_id is not None else None,
             tracker_id=self.tracker_id[index] if self.tracker_id is not None else None,
+            data=data_subset
         )
 
     @property
