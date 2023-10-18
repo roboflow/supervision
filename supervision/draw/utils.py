@@ -178,57 +178,56 @@ def draw_image(
     Draws an image onto a given scene with specified opacity and dimensions.
 
     Args:
-        scene (np.ndarray): The background image onto which the image will be drawn.
-        image (Union[str, np.ndarray]): The image to be drawn.
-            Can be either a file path or a NumPy array.
-        opacity (float): The opacity level of the image to be drawn,
-            ranging from 0.0 to 1.0.
-        rect (Rect): A Rect object specifying the dimensions and
-            position where the image will be drawn.
+        scene (np.ndarray): Background image where the new image will be drawn.
+        image (Union[str, np.ndarray]): Image to draw.
+        opacity (float): Opacity of the image to be drawn.
+        rect (Rect): Rectangle specifying where to draw the image.
 
     Returns:
-        np.ndarray: The scene with the image drawn onto it.
+        np.ndarray: The updated scene.
 
-    Example:
-        >>> scene = np.zeros((400, 400, 3), dtype=np.uint8)
-        >>> image_path = "path/to/image.jpg"
-        >>> opacity = 0.5
-        >>> rect = Rect(x=50, y=50, width=200, height=200)
-        >>> new_scene = draw_image(scene, image_path, opacity, rect)
+    Raises:
+        FileNotFoundError: If the image path does not exist.
+        ValueError: For invalid opacity or rectangle dimensions.
     """
+
+    # Validate and load image
     if isinstance(image, str):
-        assert os.path.exists(image), f'The specified path ("{image}") does not exist.'
+        if not os.path.exists(image):
+            raise FileNotFoundError(f"Image path ('{image}') does not exist.")
         image = cv2.imread(image, cv2.IMREAD_UNCHANGED)
 
-    assert 0.0 <= opacity <= 1.0, "The opacity has to be between 0.0 and 1.0."
+    # Validate opacity
+    if not 0.0 <= opacity <= 1.0:
+        raise ValueError("Opacity must be between 0.0 and 1.0.")
 
-    assert (
-        rect.x >= 0 and rect.y >= 0
-    ), "The top left coordinates of the rectangle have to be positive."
-    assert (
-        rect.x + rect.width <= scene.shape[1] and rect.y + rect.height <= scene.shape[0]
-    ), "The image you are trying to draw exceeds the bounds of the scene."
+    # Validate rectangle dimensions
+    if (
+        rect.x < 0
+        or rect.y < 0
+        or rect.x + rect.width > scene.shape[1]
+        or rect.y + rect.height > scene.shape[0]
+    ):
+        raise ValueError("Invalid rectangle dimensions.")
 
+    # Resize and isolate alpha channel
     image = cv2.resize(image, (rect.width, rect.height))
+    alpha_channel = (
+        image[:, :, 3]
+        if image.shape[2] == 4
+        else np.ones((rect.height, rect.width), dtype=image.dtype) * 255
+    )
+    alpha_scaled = cv2.convertScaleAbs(alpha_channel * opacity)
 
-    # watermark with transparent background
-    if image.shape[2] == 4:
-        b, g, r, a = cv2.split(image)
-        b = cv2.bitwise_and(b, b, mask=a)
-        g = cv2.bitwise_and(g, g, mask=a)
-        r = cv2.bitwise_and(r, r, mask=a)
-        image = cv2.merge([b, g, r, a])
-        del b, g, r, a  # immediately free up memory
+    # Perform blending
+    scene_roi = scene[rect.y : rect.y + rect.height, rect.x : rect.x + rect.width]
+    alpha_float = alpha_scaled.astype(np.float32) / 255.0
+    blended_roi = cv2.convertScaleAbs(
+        (1 - alpha_float[..., np.newaxis]) * scene_roi
+        + alpha_float[..., np.newaxis] * image[:, :, :3]
+    )
 
-        if scene.shape[2] == 3:
-            scene = np.dstack([scene, np.ones(scene.shape[:2], dtype=np.uint8) * 255])
+    # Update the scene
+    scene[rect.y : rect.y + rect.height, rect.x : rect.x + rect.width] = blended_roi
 
-    scene_h, scene_w, channels = scene.shape[:3]
-    water_h, water_w = image.shape[:2]
-
-    overlay = np.zeros((scene_h, scene_w, channels), dtype="uint8")
-    overlay[rect.y : rect.y + water_h, rect.x : rect.x + water_w] = image
-
-    cv2.addWeighted(overlay, opacity, scene, 1.0, 0, scene)
-
-    return scene[:, :, :3]
+    return scene
