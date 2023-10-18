@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import astuple, dataclass, field
-from typing import Any, Iterator, List, Optional, Tuple, Union, Dict
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -18,11 +18,11 @@ def _validate_array(value: Any, n: int, name: str) -> None:
     """
     Checks if the array is either `None` or a numpy array with the first dimension of size `n`.
     """
-    is_valid = value is None or (
-        isinstance(value, np.ndarray) and value.shape[0] == n
-    )
+    is_valid = value is None or (isinstance(value, np.ndarray) and value.shape[0] == n)
     if not is_valid:
-        raise ValueError(f"{name} must be None or np.ndarray with its first dimension being n.")
+        raise ValueError(
+            f"{name} must be None or np.ndarray with its first dimension being n."
+        )
 
 
 def _validate_xyxy(xyxy: Any, n: int) -> None:
@@ -69,9 +69,11 @@ def _validate_tracker_id(tracker_id: Any, n: int) -> None:
     if not is_valid:
         raise ValueError("tracker_id must be None or 1d np.ndarray with (n,) shape")
 
+
 def _validate_data_payload(data_payload: Dict[str, np.ndarray], n: int) -> None:
     for key, value in data_payload.items():
         _validate_array(value, n, f"array in data payload - ({key})")
+
 
 @dataclass
 class Detections:
@@ -88,7 +90,7 @@ class Detections:
             `(n,)` containing the class ids of the detections.
         tracker_id (Optional[np.ndarray]): An array of shape
             `(n,)` containing the tracker ids of the detections.
-        data (Dict[str, np.ndarray]): A dictionary to support custom payload. This 
+        data (Dict[str, np.ndarray]): A dictionary to support custom payload. This
             can store detection-related metadata.
     """
 
@@ -123,7 +125,7 @@ class Detections:
             Optional[float],
             Optional[int],
             Optional[int],
-            Dict[str, np.ndarray]
+            Dict[str, np.ndarray],
         ]
     ]:
         """
@@ -131,26 +133,31 @@ class Detections:
         `(xyxy, mask, confidence, class_id, tracker_id, data)` for each detection.
         """
         for i in range(len(self.xyxy)):
-            data_for_i = {key: value[i] if value is not None else None for key, value in self.data.items()}
+            data_for_i = {
+                key: value[i] if value is not None else None
+                for key, value in self.data.items()
+            }
             yield (
                 self.xyxy[i],
                 self.mask[i] if self.mask is not None else None,
                 self.confidence[i] if self.confidence is not None else None,
                 self.class_id[i] if self.class_id is not None else None,
                 self.tracker_id[i] if self.tracker_id is not None else None,
-                data_for_i
+                data_for_i,
             )
 
     def __eq__(self, other: Detections):
         # check equality for the data dictionary
         data_equalities = [
-            any([
-                self.data[key] is None and other.data[key] is None,
-                np.array_equal(self.data[key], other.data[key])
-            ])
+            any(
+                [
+                    self.data[key] is None and other.data[key] is None,
+                    np.array_equal(self.data[key], other.data[key]),
+                ]
+            )
             for key in self.data
         ]
-        
+
         return all(
             [
                 np.array_equal(self.xyxy, other.xyxy),
@@ -178,9 +185,8 @@ class Detections:
                         np.array_equal(self.tracker_id, other.tracker_id),
                     ]
                 ),
-
-            ] + data_equalities  # Adding data dictionary comparisons
-
+            ]
+            + data_equalities  # Adding data dictionary comparisons
         )
 
     @classmethod
@@ -630,12 +636,13 @@ class Detections:
         merged_data = {}
         for key in all_keys:
             # Get arrays from all detections that contain the current key
-            arrays_to_merge = [d[key] for d in data_list if key in d and d[key] is not None]
+            arrays_to_merge = [
+                d[key] for d in data_list if key in d and d[key] is not None
+            ]
             if arrays_to_merge:
                 merged_data[key] = np.concatenate(arrays_to_merge, axis=0)
             else:
                 merged_data[key] = None
-
 
         return cls(
             xyxy=xyxy,
@@ -643,7 +650,7 @@ class Detections:
             confidence=confidence,
             class_id=class_id,
             tracker_id=tracker_id,
-            data=merged_data
+            data=merged_data,
         )
 
     def get_anchor_coordinates(self, anchor: Position) -> np.ndarray:
@@ -746,7 +753,7 @@ class Detections:
             confidence=self.confidence[index] if self.confidence is not None else None,
             class_id=self.class_id[index] if self.class_id is not None else None,
             tracker_id=self.tracker_id[index] if self.tracker_id is not None else None,
-            data=data_subset
+            data=data_subset,
         )
 
     @property
