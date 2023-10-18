@@ -264,7 +264,7 @@
 
     <div class="result" markdown>
 
-    ![trace-annotator-example](https://media.roboflow.com/supervision-annotator-examples/trace-annotator-example-purple.png){ align=center width="800" }
+    ![trace-annotator-example](https://media.roboflow.com/supervision-annotator-examples/heat-map-annotator-example-purple.png){ align=center width="800" }
 
     </div>
 

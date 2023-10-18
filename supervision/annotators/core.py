@@ -1076,7 +1076,7 @@ class HeatMapAnnotator:
             ```
 
         ![heatmap-annotator-example](https://media.roboflow.com/
-        supervision-annotator-examples/heatmap-annotator-example.png)
+        supervision-annotator-examples/heat-map-annotator-example-purple.png)
         """
 
         if self.heat_mask is None:
