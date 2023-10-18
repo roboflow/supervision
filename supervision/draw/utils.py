@@ -209,8 +209,9 @@ def draw_image(
     scene_roi = scene[rect.y : rect.y + rect.height, rect.x : rect.x + rect.width]
 
     # Alpha blending
-    blended_roi = cv2.addWeighted(scene_roi, 1 - (alpha_channel / 255.0), image,
-                                  (alpha_channel / 255.0), 0)
+    blended_roi = cv2.addWeighted(
+        scene_roi, 1 - (alpha_channel / 255.0), image, (alpha_channel / 255.0), 0
+    )
 
     # Apply the blended ROI to the scene
     scene[rect.y : rect.y + rect.height, rect.x : rect.x + rect.width] = blended_roi
