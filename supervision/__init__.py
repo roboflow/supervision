@@ -42,7 +42,14 @@ from supervision.detection.utils import (
     polygon_to_xyxy,
 )
 from supervision.draw.color import Color, ColorPalette
-from supervision.draw.utils import draw_filled_rectangle, draw_polygon, draw_text
+from supervision.draw.utils import (
+    draw_filled_rectangle,
+    draw_polygon,
+    draw_text,
+    draw_image,
+    draw_line,
+    draw_rectangle
+)
 from supervision.geometry.core import Point, Position, Rect
 from supervision.geometry.utils import get_polygon_center
 from supervision.metrics.detection import ConfusionMatrix, MeanAveragePrecision

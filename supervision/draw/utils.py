@@ -190,11 +190,13 @@ def draw_image(
         np.ndarray: The scene with the image drawn onto it.
 
     Example:
+        ```python
         >>> scene = np.zeros((400, 400, 3), dtype=np.uint8)
         >>> image_path = "path/to/image.jpg"
         >>> opacity = 0.5
         >>> rect = Rect(x=50, y=50, width=200, height=200)
         >>> new_scene = draw_image(scene, image_path, opacity, rect)
+        ```
     """
     if isinstance(image, str):
         assert os.path.exists(image), f'The specified path ("{image}") does not exist.'
@@ -211,14 +213,13 @@ def draw_image(
 
     image = cv2.resize(image, (rect.width, rect.height))
 
-    # watermark with transparent background
     if image.shape[2] == 4:
         b, g, r, a = cv2.split(image)
         b = cv2.bitwise_and(b, b, mask=a)
         g = cv2.bitwise_and(g, g, mask=a)
         r = cv2.bitwise_and(r, r, mask=a)
         image = cv2.merge([b, g, r, a])
-        del b, g, r, a  # immediately free up memory
+        del b, g, r, a
 
         if scene.shape[2] == 3:
             scene = np.dstack([scene, np.ones(scene.shape[:2], dtype=np.uint8) * 255])
