@@ -252,7 +252,9 @@ class LineZoneAnnotator:
         """
         return np.zeros((background_dim, background_dim), dtype=np.uint8)
 
-    def _get_text_position(self, background_dim: int, text_width: int, text_height: int):
+    def _get_text_position(
+        self, background_dim: int, text_width: int, text_height: int
+    ):
         """
         Get insertion point to center text in background image.
 
