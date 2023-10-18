@@ -343,7 +343,7 @@ class LineZoneAnnotator:
 
     def _rotate_img(self, img: np.ndarray, line_counter: LineZone):
         """
-        Rotate img using line counter angle..
+        Rotate img using line counter angle.
 
         Attributes:
             img (np.ndarray): Original image to rotate.
