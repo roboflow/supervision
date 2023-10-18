@@ -635,6 +635,7 @@ class DotAnnotator(BaseAnnotator):
             cv2.circle(scene, center, self.radius, color.as_bgr(), -1)
         return scene
 
+
 class LabelAnnotator:
     """
     A class for annotating labels on an image using provided detections.
