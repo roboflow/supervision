@@ -63,7 +63,7 @@ You can install `supervision` with pip in a
         cd supervision
 
         # setup python environment and activate it
-        poetry env use python 3.10
+        poetry env use python3.10
         poetry shell
 
         # headless install
