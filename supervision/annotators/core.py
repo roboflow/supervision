@@ -89,101 +89,6 @@ class BoundingBoxAnnotator(BaseAnnotator):
         return scene
 
 
-class HeatmapAnnotator:
-    """
-    A class for drawing heatmap on an image using provided detections.
-    Heat is accumulated over time. Drawn as a semi-transparent overlay as blured circles.
-    """
-
-    def __init__(
-        self,
-        position: Optional[Position] = Position.BOTTOM_CENTER,
-        opacity: float = 0.2,
-        radius: int = 40,
-        kernel_size: Optional[int] = 25,
-        top_hue: int = 0,  # red
-        low_hue: int = 125,  # blue
-    ):
-        """
-        Args:
-            position (Optional[Position]): The position of the heatmap.
-                Defaults to `BOTTOM_CENTER`.
-            opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.
-            radius (int): Radius of the heat circle.
-            kernel_size (Optional[int]): Kernel size for blurring the heatmap.
-            top_hue (int): Hue of the top of the heatmap.
-                Defaults to `0` (red).
-            low_hue (int): Hue of the bottom of the heatmap.
-                Defaults to `125` (blue).
-        """
-        self.position = position
-        self.opacity = opacity
-        self.radius = radius
-        self.kernel_size = kernel_size
-        self.heatmask = None
-        self.top_hue = top_hue
-        self.low_hue = low_hue
-
-    def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
-        """
-        Annotates the given scene with heatmap based on the provided detections.
-
-        Args:
-            scene (np.ndarray): The image where heatmap will be drawn.
-            detections (Detections): Object detections to annotate.
-
-        Returns:
-            np.ndarray: The annotated image.
-
-        Example:
-            ```python
-            >>> import supervision as sv
-            >>> model = YOLO('yolov8s.pt')
-            >>> video_info = sv.VideoInfo.from_video_path(video_path=video_path)
-            >>> hma = HeatmapAnnotator(
-            ...    position=Position.BOTTOM_CENTER,
-            ...    opacity=0.2,
-            ...    radius=40,
-            ...    kernel_size=25,
-            ...)
-            >>> with sv.VideoSink(target_path=target_path, video_info=video_info) as sink:
-            ...    for result in tqdm(model(source=video_path, agnostic_nms=True, verbose=False), total=video_info.total_frames):
-            ...        frame = result.orig_img
-            ...        detections = sv.Detections.from_ultralytics(result)
-            ...        detections = detections[detections.class_id == 0]
-            ...        annotated_frame = hma.annotate(
-            ...            scene=frame.copy(),
-            ...            detections=detections)
-            ...        sink.write_frame(frame=annotated_frame)
-            ```
-
-        ![heatmap-annotator-example](https://media.roboflow.com/
-        supervision-annotator-examples/heatmap-annotator-example.png)
-        """
-
-        if self.heatmask is None:
-            self.heatmask = np.zeros(scene.shape[:2])
-        mask = np.zeros(scene.shape[:2])
-        for xy in detections.get_anchor_coordinates(self.position):
-            cv2.circle(mask, (int(xy[0]), int(xy[1])), self.radius, 1, -1)
-        self.heatmask = mask + self.heatmask
-        temp = self.heatmask.copy()
-        temp = self.low_hue - temp / temp.max() * (self.low_hue - self.top_hue)
-        temp = temp.astype(np.uint8)
-        if self.kernel_size is not None:
-            temp = cv2.blur(temp, (self.kernel_size, self.kernel_size))
-        hsv = np.zeros(scene.shape)
-        hsv[..., 0] = temp
-        hsv[..., 1] = 255
-        hsv[..., 2] = 255
-        temp = cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2BGR)
-        mask = cv2.cvtColor(self.heatmask.astype(np.uint8), cv2.COLOR_GRAY2BGR) > 0
-        scene[mask] = cv2.addWeighted(temp, self.opacity, scene, 1 - self.opacity, 0)[
-            mask
-        ]
-        return scene
-
-
 class MaskAnnotator(BaseAnnotator):
     """
     A class for drawing masks on an image using provided detections.
@@ -1010,7 +915,7 @@ class TraceAnnotator:
     def __init__(
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
-        position: Optional[Position] = Position.CENTER,
+        position: Position = Position.CENTER,
         trace_length: int = 30,
         thickness: int = 2,
         color_lookup: ColorLookup = ColorLookup.CLASS,
@@ -1019,7 +924,7 @@ class TraceAnnotator:
         Args:
             color (Union[Color, ColorPalette]): The color to draw the trace, can be
                 a single color or a color palette.
-            position (Optional[Position]): The position of the trace.
+            position (Position): The position of the trace.
                 Defaults to `CENTER`.
             trace_length (int): The maximum length of the trace in terms of historical
                 points. Defaults to `30`.
@@ -1055,15 +960,25 @@ class TraceAnnotator:
         Example:
             ```python
             >>> import supervision as sv
+            >>> from ultralytics import YOLO
 
-            >>> image = ...
-            >>> detections = sv.Detections(...)
+            >>> model = YOLO('yolov8x.pt')
 
             >>> trace_annotator = sv.TraceAnnotator()
-            >>> annotated_frame = trace_annotator.annotate(
-            ...     scene=image.copy(),
-            ...     detections=detections
-            ... )
+
+            >>> video_info = sv.VideoInfo.from_video_path(video_path='...')
+            >>> frames_generator = sv.get_video_frames_generator(source_path='...')
+            >>> tracker = sv.ByteTrack()
+
+            >>> with sv.VideoSink(target_path='...', video_info=video_info) as sink:
+            ...    for frame in frames_generator:
+            ...        result = model(frame)[0]
+            ...        detections = sv.Detections.from_ultralytics(result)
+            ...        detections = tracker.update_with_detections(detections)
+            ...        annotated_frame = trace_annotator.annotate(
+            ...            scene=frame.copy(),
+            ...            detections=detections)
+            ...        sink.write_frame(frame=annotated_frame)
             ```
 
         ![trace-annotator-example](https://media.roboflow.com/
@@ -1090,4 +1005,98 @@ class TraceAnnotator:
                     color=color.as_bgr(),
                     thickness=self.thickness,
                 )
+        return scene
+
+
+class HeatMapAnnotator:
+    """
+    A class for drawing heatmaps on an image based on provided detections.
+    Heat accumulates over time and is drawn as a semi-transparent overlay
+    of blurred circles.
+    """
+
+    def __init__(
+        self,
+        position: Position = Position.BOTTOM_CENTER,
+        opacity: float = 0.2,
+        radius: int = 40,
+        kernel_size: int = 25,
+        top_hue: int = 0,
+        low_hue: int = 125,
+    ):
+        """
+        Args:
+            position (Position): The position of the heatmap. Defaults to
+                `BOTTOM_CENTER`.
+            opacity (float): Opacity of the overlay mask, between 0 and 1.
+            radius (int): Radius of the heat circle.
+            kernel_size (int): Kernel size for blurring the heatmap.
+            top_hue (int): Hue at the top of the heatmap. Defaults to 0 (red).
+            low_hue (int): Hue at the bottom of the heatmap. Defaults to 125 (blue).
+        """
+        self.position = position
+        self.opacity = opacity
+        self.radius = radius
+        self.kernel_size = kernel_size
+        self.heat_mask = None
+        self.top_hue = top_hue
+        self.low_hue = low_hue
+
+    def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
+        """
+        Annotates the scene with a heatmap based on the provided detections.
+
+        Args:
+            scene (np.ndarray): The image where the heatmap will be drawn.
+            detections (Detections): Object detections to annotate.
+
+        Returns:
+            np.ndarray: Annotated image.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+            >>> from ultralytics import YOLO
+
+            >>> model = YOLO('yolov8x.pt')
+
+            >>> heat_map_annotator = sv.HeatMapAnnotator()
+
+            >>> video_info = sv.VideoInfo.from_video_path(video_path='...')
+            >>> frames_generator = get_video_frames_generator(source_path='...')
+
+            >>> with sv.VideoSink(target_path='...', video_info=video_info) as sink:
+            ...    for frame in frames_generator:
+            ...        result = model(frame)[0]
+            ...        detections = sv.Detections.from_ultralytics(result)
+            ...        annotated_frame = heat_map_annotator.annotate(
+            ...            scene=frame.copy(),
+            ...            detections=detections)
+            ...        sink.write_frame(frame=annotated_frame)
+            ```
+
+        ![heatmap-annotator-example](https://media.roboflow.com/
+        supervision-annotator-examples/heat-map-annotator-example-purple.png)
+        """
+
+        if self.heat_mask is None:
+            self.heat_mask = np.zeros(scene.shape[:2])
+        mask = np.zeros(scene.shape[:2])
+        for xy in detections.get_anchor_coordinates(self.position):
+            cv2.circle(mask, (int(xy[0]), int(xy[1])), self.radius, 1, -1)
+        self.heat_mask = mask + self.heat_mask
+        temp = self.heat_mask.copy()
+        temp = self.low_hue - temp / temp.max() * (self.low_hue - self.top_hue)
+        temp = temp.astype(np.uint8)
+        if self.kernel_size is not None:
+            temp = cv2.blur(temp, (self.kernel_size, self.kernel_size))
+        hsv = np.zeros(scene.shape)
+        hsv[..., 0] = temp
+        hsv[..., 1] = 255
+        hsv[..., 2] = 255
+        temp = cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2BGR)
+        mask = cv2.cvtColor(self.heat_mask.astype(np.uint8), cv2.COLOR_GRAY2BGR) > 0
+        scene[mask] = cv2.addWeighted(temp, self.opacity, scene, 1 - self.opacity, 0)[
+            mask
+        ]
         return scene
