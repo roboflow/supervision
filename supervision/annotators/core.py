@@ -9,6 +9,7 @@ from supervision.annotators.utils import ColorLookup, Trace, resolve_color
 from supervision.detection.core import Detections
 from supervision.draw.color import Color, ColorPalette
 from supervision.geometry.core import Position
+from supervision.keypoint.core import Keypoints
 
 
 class BoundingBoxAnnotator(BaseAnnotator):
@@ -951,5 +952,85 @@ class TraceAnnotator:
                     False,
                     color=color.as_bgr(),
                     thickness=self.thickness,
+                )
+        return scene
+
+
+class PoseAnnotator(BaseAnnotator):
+    """
+    A class for drawing pose estimation keypoints on an image using provided
+    keypoint detections.
+    """
+
+    def __init__(
+        self,
+        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        radius: int = 3,
+        color_map: str = "class",
+    ):
+        """
+        Args:
+            color (Union[Color, ColorPalette]): The color or color palette to use for
+                annotating detections.
+            thickness (int): Thickness of the bounding box lines.
+            color_map (str): Strategy for mapping colors to annotations.
+                Options are `index`, `class`, or `track`.
+        """
+        self.color: Union[Color, ColorPalette] = color
+        self.radius: int = radius
+        self.color_map: ColorMap = ColorMap(color_map)
+
+    def annotate(self, scene: np.ndarray, keypoints: Keypoints) -> np.ndarray:
+        """
+        Annotates the given scene with keypoint points based on the provided keypoints.
+
+        Args:
+            scene (np.ndarray): The image where points will be drawn.
+            keypoints (Keypoints): Keypoints to annotate.
+
+        Returns:
+            np.ndarray: The annotated image.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> image = ...
+            >>> keypoints = sv.Keypoints(...)
+
+            >>> pose_annotator = sv.PoseAnnotator()
+            >>> annotated_frame = pose_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     keypoints=keypoints
+            ... )
+            ```
+
+        ![bounding-box-annotator-example](https://media.roboflow.com/
+        supervision-annotator-examples/bounding-box-annotator-example-purple.png)
+        """
+        for keypoint_idx in range(len(keypoints)):
+            for point in keypoints.keypoints[keypoint_idx]:
+                print(point)
+                if len(point) == 3:
+                    x, y, _ = point.tolist()
+                else:
+                    x, y = point.tolist()
+
+                # if points are 0-1 scale, convert to pixel coordinates
+                if x < 1:
+                    x = x * scene.shape[1]
+                if y < 1:
+                    y = y * scene.shape[0]
+
+                x, y = int(x), int(y)
+
+                color = resolve_color(color=self.color, idx=keypoint_idx)
+
+                cv2.circle(
+                    img=scene,
+                    center=(x, y),
+                    radius=self.radius,
+                    color=color.as_bgr(),
+                    thickness=-1,
                 )
         return scene
