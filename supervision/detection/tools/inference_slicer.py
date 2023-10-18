@@ -38,8 +38,10 @@ class InferenceSlicer:
             used for non-max suppression.
         merge_detections (Optional[bool]): Whether to merge the detection from all
             slices or simply concatenate them. If `True`, Non-Maximum Merging (NMM),
-            otherwise Non-Maximum Suppression (NMS),
-            is applied to the final detections.
+            otherwise Non-Maximum Suppression (NMS), is applied to the detections.
+        perform_standard_pred (Optional[bool]): Whether to perform inference on the
+            whole image in addition to the slices to increase the accuracy of
+            large object detection.
         callback (Callable): A function that performs inference on a given image
             slice and returns detections.
         thread_workers (int): Number of threads for parallel execution.
@@ -58,12 +60,14 @@ class InferenceSlicer:
         overlap_ratio_wh: Tuple[float, float] = (0.2, 0.2),
         iou_threshold: Optional[float] = 0.5,
         merge_detections: Optional[bool] = False,
+        perform_standard_pred: Optional[bool] = False,
         thread_workers: int = 1,
     ):
         self.slice_wh = slice_wh
         self.overlap_ratio_wh = overlap_ratio_wh
         self.iou_threshold = iou_threshold
         self.merge_detections = merge_detections
+        self.perform_standard_pred = perform_standard_pred
         self.callback = callback
         self.thread_workers = thread_workers
 
@@ -113,6 +117,9 @@ class InferenceSlicer:
             ]
             for future in as_completed(futures):
                 detections_list.append(future.result())
+
+        if self.perform_standard_pred:
+            detections_list.append(self.callback(image))
 
         if self.merge_detections:
             return Detections.merge(detections_list=detections_list).with_nmm(
