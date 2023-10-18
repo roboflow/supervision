@@ -29,6 +29,27 @@ from supervision.utils.internal import deprecated
 from supervision.validators import validate_detections_fields
 
 
+def _merge_object_detection_pair(pred1: Detections, pred2: Detections) -> Detections:
+    merged_bbox = get_merged_bbox(pred1.xyxy, pred2.xyxy)
+    merged_conf = get_merged_confidence(pred1.confidence, pred2.confidence)
+    merged_class_id = get_merged_class_id(pred1.class_id, pred2.class_id)
+    merged_tracker_id = None
+    merged_mask = None
+
+    if pred1.mask and pred2.mask:
+        merged_mask = get_merged_mask(pred1.mask, pred2.mask)
+    if pred1.tracker_id and pred2.tracker_id:
+        merged_tracker_id = get_merged_tracker_id(pred1.tracker_id, pred2.tracker_id)
+
+    return Detections(
+        xyxy=merged_bbox,
+        mask=merged_mask,
+        confidence=merged_conf,
+        class_id=merged_class_id,
+        tracker_id=merged_tracker_id,
+    )
+
+
 @dataclass
 class Detections:
     """
@@ -986,6 +1007,38 @@ class Detections:
 
         raise ValueError(f"{anchor} is not supported.")
 
+    def __setitem__(
+        self, index: Union[int, slice, List[int], np.ndarray], value: Detections
+    ) -> None:
+        """
+        Set a subset of the Detections object.
+
+        Args:
+            index (Union[int, slice, List[int], np.ndarray]):
+                The index or indices of the subset of the Detections
+            value (Detections): The new value of the subset of the Detections
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> detections = sv.Detections(...)
+
+            >>> detections[0] = sv.Detections(...)
+            ```
+        """
+        if isinstance(index, int):
+            index = [index]
+        self.xyxy[index] = value.xyxy
+        if self.mask is not None:
+            self.mask[index] = value.mask
+        if self.confidence is not None:
+            self.confidence[index] = value.confidence
+        if self.class_id is not None:
+            self.class_id[index] = value.class_id
+        if self.tracker_id is not None:
+            self.tracker_id[index] = value.tracker_id
+
     def __getitem__(
         self, index: Union[int, slice, List[int], np.ndarray, str]
     ) -> Union[Detections, List, np.ndarray, None]:
@@ -1121,6 +1174,8 @@ class Detections:
         if len(self) == 0:
             return self
 
+        assert 0.0 <= threshold <= 1.0, "Threshold must be between 0 and 1."
+
         assert (
             self.confidence is not None
         ), "Detections confidence must be given for NMM to be executed."
@@ -1146,54 +1201,11 @@ class Detections:
                     box_iou_batch(self[keep_ind].xyxy, self[merge_ind].xyxy).item()
                     > threshold
                 ):
-                    self[keep_ind].xyxy = np.vstack(
-                        (
-                            self[keep_ind].xyxy,
-                            get_merged_bbox(self.xyxy[keep_ind], self.xyxy[merge_ind]),
-                        )
+                    self[keep_ind] = _merge_object_detection_pair(
+                        self[keep_ind], self[merge_ind]
                     )
-                    self[keep_ind].class_id = np.hstack(
-                        (
-                            self[keep_ind].class_id,
-                            get_merged_class_id(
-                                self.class_id[keep_ind].item(),
-                                self.class_id[merge_ind].item(),
-                            ),
-                        )
-                    )
-                    self[keep_ind].confidence = np.hstack(
-                        (
-                            self[keep_ind].confidence,
-                            get_merged_confidence(
-                                self.confidence[keep_ind].item(),
-                                self.confidence[merge_ind].item(),
-                            ),
-                        )
-                    )
-                    if self.mask is not None:
-                        merged_mask = get_merged_mask(
-                            self.mask[keep_ind], self.mask[merge_ind]
-                        )
-                        if self[keep_ind].mask is None:
-                            self[keep_ind].mask = np.array([merged_mask])
-                        else:
-                            self[keep_ind].mask = np.vstack(
-                                (self[keep_ind].mask, merged_mask[np.newaxis])
-                            )
-                    if self.tracker_id is not None:
-                        merged_tracker_id = get_merged_tracker_id(
-                            self.tracker_id[keep_ind].item(),
-                            self.tracker_id[merge_ind].item(),
-                        )
-                        if self[keep_ind].tracker_id is None:
-                            self[keep_ind].tracker_id = np.array(
-                                [merged_tracker_id], dtype=int
-                            )
-                        else:
-                            self[keep_ind].tracker_id = np.hstack(
-                                (self[keep_ind].tracker_id, merged_tracker_id)
-                            )
             result.append(self[keep_ind])
+
         return Detections.merge(result)
 
     def with_nms(
