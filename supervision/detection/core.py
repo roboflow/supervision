@@ -15,9 +15,6 @@ from supervision.geometry.core import Position
 
 
 def _validate_array(value: Any, n: int, name: str) -> None:
-    """
-    Checks if the array is either `None` or a numpy array with the first dimension of size `n`.
-    """
     is_valid = value is None or (isinstance(value, np.ndarray) and value.shape[0] == n)
     if not is_valid:
         raise ValueError(
