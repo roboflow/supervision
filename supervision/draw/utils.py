@@ -172,17 +172,20 @@ def draw_text(
 
 
 def draw_image(
-        scene: np.ndarray, image: Union[str, np.ndarray], opacity: float, rect: Rect
+    scene: np.ndarray, image: Union[str, np.ndarray], opacity: float, rect: Rect
 ) -> np.ndarray:
     """
     Draws an image onto a given scene with specified opacity and dimensions.
     """
     # Input checks
     assert 0.0 <= opacity <= 1.0, "Opacity has to be between 0.0 and 1.0."
-    assert rect.x >= 0 and rect.y >= 0, "Top left coordinates of the rect must be positive."
+    assert (
+        rect.x >= 0 and rect.y >= 0
+    ), "Top left coordinates of the rect must be positive."
     assert rect.width > 0 and rect.height > 0, "Rect dimensions should be positive."
-    assert rect.x + rect.width <= scene.shape[1] and rect.y + rect.height <= \
-           scene.shape[0], "Image exceeds scene bounds."
+    assert (
+        rect.x + rect.width <= scene.shape[1] and rect.y + rect.height <= scene.shape[0]
+    ), "Image exceeds scene bounds."
 
     # Read image if a path is provided
     if isinstance(image, str):
@@ -203,7 +206,7 @@ def draw_image(
     alpha_channel = cv2.convertScaleAbs(alpha_channel * opacity)
 
     # Get ROI from the scene
-    scene_roi = scene[rect.y:rect.y + rect.height, rect.x:rect.x + rect.width]
+    scene_roi = scene[rect.y : rect.y + rect.height, rect.x : rect.x + rect.width]
 
     # Alpha blending
     alpha_float = alpha_channel.astype(np.float32) / 255.0
@@ -212,10 +215,10 @@ def draw_image(
         1.0 - alpha_float[..., np.newaxis],
         image,
         alpha_float[..., np.newaxis],
-        0
+        0,
     )
 
     # Apply the blended ROI to the scene
-    scene[rect.y:rect.y + rect.height, rect.x:rect.x + rect.width] = blended_roi
+    scene[rect.y : rect.y + rect.height, rect.x : rect.x + rect.width] = blended_roi
 
     return scene
