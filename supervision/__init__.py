@@ -44,11 +44,11 @@ from supervision.detection.utils import (
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import (
     draw_filled_rectangle,
-    draw_polygon,
-    draw_text,
     draw_image,
     draw_line,
-    draw_rectangle
+    draw_polygon,
+    draw_rectangle,
+    draw_text,
 )
 from supervision.geometry.core import Point, Position, Rect
 from supervision.geometry.utils import get_polygon_center
