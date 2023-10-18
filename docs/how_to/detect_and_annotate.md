@@ -35,7 +35,7 @@ In this code, we import `supervision`, `ultralytics`, and `cv2` (OpenCV). We loa
 
 Now that we have predictions from a model, we can load them into supervision.
 
-We can do so using the `sv.Detections.from_ultralytics` method, which accepts model results from Ultralytics models. See a list of other supported data loaders.
+We can do so using the `sv.Detections.from_ultralytics` method, which accepts model results from Ultralytics models. [See a list of other supported data loaders](https://supervision.roboflow.com/detection/core/#supervision.detection.core.Detections.from_deepsparse).
 
 ```python
 detections = sv.Detections.from_ultralytics(results[0])
