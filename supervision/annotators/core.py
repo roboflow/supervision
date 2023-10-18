@@ -602,6 +602,39 @@ class CircleAnnotator(BaseAnnotator):
         return scene
 
 
+class DotAnnotator(BaseAnnotator):
+    def __init__(
+        self,
+        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        radius: int = 4,
+        position: Position = Position.CENTER,
+        color_lookup: ColorLookup = ColorLookup.CLASS,
+    ):
+        self.color: Union[Color, ColorPalette] = color
+        self.radius: int = radius
+        self.position: Position = position
+        self.color_lookup: ColorLookup = color_lookup
+
+    def annotate(
+        self,
+        scene: np.ndarray,
+        detections: Detections,
+        custom_color_lookup: Optional[np.ndarray] = None,
+    ) -> np.ndarray:
+        xy = detections.get_anchor_coordinates(anchor=self.position)
+        for detection_idx in range(len(detections)):
+            color = resolve_color(
+                color=self.color,
+                detections=detections,
+                detection_idx=detection_idx,
+                color_lookup=self.color_lookup
+                if custom_color_lookup is None
+                else custom_color_lookup,
+            )
+            center = (int(xy[detection_idx, 0]), int(xy[detection_idx, 1]))
+            cv2.circle(scene, center, self.radius, color.as_bgr(), -1)
+        return scene
+
 class LabelAnnotator:
     """
     A class for annotating labels on an image using provided detections.
