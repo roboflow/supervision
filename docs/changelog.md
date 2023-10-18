@@ -1,6 +1,6 @@
 ### 0.16.0 <small>October 19, 2023</small>
 
-- Added [#422](https://github.com/roboflow/supervision/pull/422): [`sv.BoxMaskAnnotator`](https://supervision.roboflow.com/annotators/#supervision.annotators.core.BoxMaskAnnotator) allowing to annotate images and videos with mox masks. 
+- Added [#422](https://github.com/roboflow/supervision/pull/422): [`sv.BoxMaskAnnotator`](https://supervision.roboflow.com/annotators/#supervision.annotators.core.BoxMaskAnnotator) allowing to annotate images and videos with mox masks.
 
 - Added [#433](https://github.com/roboflow/supervision/pull/433): [`sv.HaloAnnotator`](https://supervision.roboflow.com/annotators/#supervision.annotators.core.HaloAnnotator) allowing to annotate images and videos with halo effect.
 
