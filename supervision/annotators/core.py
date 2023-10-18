@@ -604,7 +604,8 @@ class CircleAnnotator(BaseAnnotator):
 
 class DotAnnotator(BaseAnnotator):
     """
-    A class for drawing dots on an image at specific coordinates based on provided detections.
+    A class for drawing dots on an image at specific coordinates based on provided
+    detections.
     """
 
     def __init__(
