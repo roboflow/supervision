@@ -192,22 +192,22 @@ def draw_image(
     # Resize the image
     image = cv2.resize(image, (rect.width, rect.height))
 
-    # If image has an alpha channel, extract it
-    alpha_channel = None
+    # Handle alpha channel for transparent PNG
     if image.shape[2] == 4:
         alpha_channel = image[:, :, 3]
         image = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
+    else:
+        alpha_channel = np.ones(image.shape[:2], dtype=image.dtype) * 255
 
     # Apply opacity to the alpha channel
-    if alpha_channel is None:
-        alpha_channel = np.ones(image.shape[:2], dtype=image.dtype) * 255
     alpha_channel = cv2.convertScaleAbs(alpha_channel * opacity)
 
     # Get ROI from the scene
     scene_roi = scene[rect.y:rect.y + rect.height, rect.x:rect.x + rect.width]
 
-    # Blend the image and the ROI
-    blended_roi = cv2.addWeighted(scene_roi, 1 - opacity, image, opacity, 0)
+    # Alpha blending
+    blended_roi = cv2.addWeighted(scene_roi, 1 - (alpha_channel / 255.0), image,
+                                  (alpha_channel / 255.0), 0)
 
     # Apply the blended ROI to the scene
     scene[rect.y:rect.y + rect.height, rect.x:rect.x + rect.width] = blended_roi
