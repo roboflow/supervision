@@ -162,9 +162,9 @@ class LineZoneAnnotator:
         )
 
         if line_counter.trigger_in:
-            frame = self._annotate_count(in_text, text_over=True)
+            frame = self._annotate_count(frame, line_counter, in_text, text_over=True)
         if line_counter.trigger_out:
-            frame = self._annotate_count(out_text, text_over=False)
+            frame = self._annotate_count(frame, line_counter, out_text, text_over=False)
 
         return frame
 
@@ -218,7 +218,7 @@ class LineZoneAnnotator:
 
         return frame
 
-    def _create_background_img(background_dim: int):
+    def _create_background_img(self, background_dim: int):
         """
         Create squared background image to place text or text-box.
 
@@ -230,7 +230,7 @@ class LineZoneAnnotator:
         """
         return np.zeros((background_dim, background_dim), dtype=np.uint8)
 
-    def _get_text_position(background_dim: int, text_width: int, text_height: int):
+    def _get_text_position(self, background_dim: int, text_width: int, text_height: int):
         """
         Get insertion point to center text in background image.
 
@@ -312,7 +312,7 @@ class LineZoneAnnotator:
 
         return text_background_img
 
-    def _get_line_angle(line_counter: LineZone):
+    def _get_line_angle(self, line_counter: LineZone):
         """
         Calculate the line counter angle using trigonometry.
 
@@ -415,7 +415,7 @@ class LineZoneAnnotator:
 
         return img_position
 
-    def _get_img_bbox(img: np.ndarray, frame: np.ndarray, img_position: list):
+    def _get_img_bbox(self, img: np.ndarray, frame: np.ndarray, img_position: list):
         """
         Calculate xyxy insertion bbox in the frame for the text/text-box images.
 
@@ -442,7 +442,7 @@ class LineZoneAnnotator:
 
         return (x1, y1, x2, y2)
 
-    def _trim_img(img, frame, img_bbox):
+    def _trim_img(self, img, frame, img_bbox):
         """
         Trim text/text-box images to the limits of the frame if needed.
 
