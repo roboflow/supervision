@@ -1,4 +1,3 @@
-import os
 from typing import Optional, Union
 
 import cv2
@@ -196,20 +195,16 @@ def draw_image(
     alpha_channel = cv2.convertScaleAbs(alpha_channel * opacity)
 
     # Get the ROI from the scene
-    scene_roi = scene[rect.y:rect.y + rect.height, rect.x:rect.x + rect.width]
+    scene_roi = scene[rect.y : rect.y + rect.height, rect.x : rect.x + rect.width]
 
     # Manually apply alpha blending
     alpha_float = alpha_channel.astype(np.float32) / 255.0
-    blended_roi = ((1.0 - alpha_float[..., np.newaxis]) * scene_roi.astype(np.float32)) + (alpha_float[..., np.newaxis] * image.astype(np.float32))
+    blended_roi = (
+        (1.0 - alpha_float[..., np.newaxis]) * scene_roi.astype(np.float32)
+    ) + (alpha_float[..., np.newaxis] * image.astype(np.float32))
     blended_roi = blended_roi.astype(np.uint8)
 
     # Insert blended ROI back into the scene
-    scene[rect.y:rect.y + rect.height, rect.x:rect.x + rect.width] = blended_roi
+    scene[rect.y : rect.y + rect.height, rect.x : rect.x + rect.width] = blended_roi
 
     return scene
-
-
-
-
-
-
