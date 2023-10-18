@@ -82,6 +82,27 @@
 
     </div>
 
+=== "Dot"
+
+    ```python
+    >>> import supervision as sv
+
+    >>> image = ...
+    >>> detections = sv.Detections(...)
+
+    >>> dot_annotator = sv.DotAnnotator()
+    >>> annotated_frame = dot_annotator.annotate(
+    ...     scene=image.copy(),
+    ...     detections=detections
+    ... )
+    ```
+
+    <div class="result" markdown>
+
+    ![circle-annotator-example](https://media.roboflow.com/supervision-annotator-examples/dot-annotator-example-purple.png){ align=center width="800" }
+
+    </div>
+
 === "Ellipse"
 
     ```python
@@ -224,6 +245,10 @@
 
 :::supervision.annotators.core.CircleAnnotator
 
+## DotAnnotator
+
+:::supervision.annotators.core.DotAnnotator
+
 ## EllipseAnnotator
 
 :::supervision.annotators.core.EllipseAnnotator
@@ -247,3 +272,7 @@
 ## TraceAnnotator
 
 :::supervision.annotators.core.TraceAnnotator
+
+## ColorLookup
+
+:::supervision.annotators.utils.ColorLookup
