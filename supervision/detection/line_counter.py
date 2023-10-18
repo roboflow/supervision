@@ -282,7 +282,7 @@ class LineZoneAnnotator:
         Draw text-box centered in the background image.
 
         Attributes:
-            box_background_img (np.ndarray): Array representing an empty background image.
+            box_background_img (np.ndarray): Empty background image.
             text_width (int): Text width.
             text_height (int): Text height.
             text_position (int, int): xy point to center text insertion.
@@ -314,9 +314,9 @@ class LineZoneAnnotator:
         Draw text-box centered in the background image.
 
         Attributes:
-            text_background_img (np.ndarray): Array representing an empty background image.
+            text_background_img (np.ndarray): Empty background image.
             text (str): Text to draw in the background image.
-            text_position (int, int): xy insertion point to center text in background image.
+            text_position (int, int): xy insertion point to center text in background.
 
         Returns:
             np.ndarray: Background image with text drawed in it.
@@ -443,11 +443,11 @@ class LineZoneAnnotator:
 
         Attributes:
             img (np.ndarray): text/text-box image.
-            frame (np.ndarray): The base image on which to insert the text/text-box images.
-            img_position (list): xy insertion point to place text/text-box images in frame.
+            frame (np.ndarray): Frame in which to insert the text/text-box images.
+            img_position (list): xy insertion point to place text/text-box images.
 
         Returns:
-            (int, int, int, int): xyxy insertion bbox to place text/text-box images in frame.
+            (int, int, int, int): xyxy insertion bbox to place text/text-box images.
         """
         img_dim = img.shape[0]
 
@@ -470,8 +470,8 @@ class LineZoneAnnotator:
 
         Attributes:
             img (np.ndarray): text/text-box image.
-            frame (np.ndarray): The base image on which to insert the text/text-box images.
-            img_bbox (list): xyxy insertion bbox to place text/text-box images in frame.
+            frame (np.ndarray): Frame in which to insert the text/text-box images.
+            img_bbox (list): xyxy insertion bbox to place text/text-box images.
 
         Returns:
             np.ndarray: Trimmed text/text-box images.
