@@ -162,8 +162,8 @@ def greedy_nmm(predictions: np.ndarray, threshold: float = 0.5) -> Dict[int, Lis
         xx2 = np.minimum(xx2, x2[idx])
         yy2 = np.minimum(yy2, y2[idx])
 
-        w = np.maximum(0.0, xx2 - xx1)
-        h = np.maximum(0.0, yy2 - yy1)
+        w = np.maximum(0, xx2 - xx1)
+        h = np.maximum(0, yy2 - yy1)
 
         inter = w * h
 
@@ -234,37 +234,39 @@ def get_merged_bbox(bbox1: np.ndarray, bbox2: np.ndarray) -> np.ndarray:
         np.ndarray: A numpy array of shape `(, 4)` where the new
             bounding box is the merged bounding box of `bbox1` and `bbox2`.
     """
-    left_top = np.minimum(bbox1[:2], bbox2[:2])
-    right_bottom = np.maximum(bbox1[2:], bbox2[2:])
-    return np.concatenate([left_top, right_bottom])
+    left_top = np.minimum(bbox1[0][:2], bbox2[0][:2])
+    right_bottom = np.maximum(bbox1[0][2:], bbox2[0][2:])
+    return np.array([np.concatenate([left_top, right_bottom])])
 
 
-def get_merged_class_id(id1: int, id2: int) -> int:
+def get_merged_class_id(id1: np.ndarray, id2: np.ndarray) -> np.ndarray:
     """
     Merges two class ids into one.
 
     Args:
-        id1 (int): The first class id.
-        id2 (int): The second class id.
+        id1 (np.ndarray): The first class id.
+        id2 (np.ndarray): The second class id.
 
     Returns:
-        int: The merged class id.
+        np.ndarray: The merged class id.
     """
-    return max(id1, id2)
+    return np.array([max(id1.item(), id2.item())])
 
 
-def get_merged_confidence(confidence1: float, confidence2: float) -> float:
+def get_merged_confidence(
+    confidence1: np.ndarray, confidence2: np.ndarray
+) -> np.ndarray:
     """
     Merges two confidences into one.
 
     Args:
-        confidence1 (float): The first confidence.
-        confidence2 (float): The second confidence.
+        confidence1 (np.ndarray): The first confidence.
+        confidence2 (np.ndarray): The second confidence.
 
     Returns:
-        float: The merged confidence.
+        np.ndarray: The merged confidence.
     """
-    return max(confidence1, confidence2)
+    return np.array([max(confidence1.item(), confidence2.item())])
 
 
 def get_merged_mask(mask1: np.ndarray, mask2: np.ndarray) -> np.ndarray:
