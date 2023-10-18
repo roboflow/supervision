@@ -1,9 +1,10 @@
 from typing import Union
-import numpy as np
-import cv2
-from supervision import Color, ColorPalette, Position, Detections
-from supervision.annotators.base import BaseAnnotator
 
+import cv2
+import numpy as np
+
+from supervision import Color, ColorPalette, Detections, Position
+from supervision.annotators.base import BaseAnnotator
 
 
 class DotMarkerAnnotator(BaseAnnotator):
@@ -43,4 +44,3 @@ class DotMarkerAnnotator(BaseAnnotator):
             return self.color[detection.track_id % len(self.color)]
         else:
             raise ValueError("Invalid color mapping strategy")
-
