@@ -1,3 +1,47 @@
+### 0.16.0 <small>October 19, 2023</small>
+
+- Added [#422](https://github.com/roboflow/supervision/pull/422): [`sv.BoxMaskAnnotator`](https://supervision.roboflow.com/annotators/#supervision.annotators.core.BoxMaskAnnotator) allowing to annotate images and videos with mox masks. 
+
+- Added [#433](https://github.com/roboflow/supervision/pull/433): [`sv.HaloAnnotator`](https://supervision.roboflow.com/annotators/#supervision.annotators.core.HaloAnnotator) allowing to annotate images and videos with halo effect.
+
+```python
+>>> import supervision as sv
+
+>>> image = ...
+>>> detections = sv.Detections(...)
+
+>>> halo_annotator = sv.HaloAnnotator()
+>>> annotated_frame = halo_annotator.annotate(
+...     scene=image.copy(),
+...     detections=detections
+... )
+```
+
+- Added [#466](https://github.com/roboflow/supervision/pull/466): [`sv.HeatMapAnnotator`](https://supervision.roboflow.com/annotators/#supervision.annotators.core.HeatMapAnnotator) allowing to annotate videos with heat maps.
+
+- Added [#492](https://github.com/roboflow/supervision/pull/492): [`sv.DotAnnotator`](https://supervision.roboflow.com/annotators/#supervision.annotators.core.DotAnnotator) allowing to annotate images and videos with dots.
+
+- Added [#449](https://github.com/roboflow/supervision/pull/449): [`sv.draw_image`](https://supervision.roboflow.com/draw/utils/#supervision.draw.utils.draw_image) allowing to draw an image onto a given scene with specified opacity and dimensions.
+
+- Added [#280](https://github.com/roboflow/supervision/pull/280): [`sv.FPSMonitor`](https://supervision.roboflow.com/utils/video/#supervision.utils.video.FPSMonitor) for monitoring frames per second (FPS) to benchmark latency.
+
+- Added [#454](https://github.com/roboflow/supervision/pull/454): 🤗 Hugging Face Annotators [space](https://huggingface.co/spaces/Roboflow/Annotators).
+
+- Changed [#482](https://github.com/roboflow/supervision/pull/482): [`sv.LineZone.tigger`](https://supervision.roboflow.com/detection/tools/line_zone/#supervision.detection.line_counter.LineZone.trigger) now return `Tuple[np.ndarray, np.ndarray]`. The first array indicates which detections have crossed the line from outside to inside. The second array indicates which detections have crossed the line from inside to outside.
+
+- Changed [#465](https://github.com/roboflow/supervision/pull/465): Annotator argument name from `color_map: str` to `color_lookup: ColorLookup` enum to increase type safety.
+
+- Changed [#426](https://github.com/roboflow/supervision/pull/426): [`sv.MaskAnnotator`](https://supervision.roboflow.com/annotators/#supervision.annotators.core.MaskAnnotator) allowing 2x faster annotation.
+
+- Fixed [#477](https://github.com/roboflow/supervision/pull/477): Poetry env definition allowing proper local installation.
+
+- Fixed [#430](https://github.com/roboflow/supervision/pull/430):  [`sv.ByteTrack`](https://supervision.roboflow.com/trackers/#supervision.tracker.byte_tracker.core.ByteTrack) to return `np.array([], dtype=int)` when `svDetections` is empty.
+
+!!! warning
+
+    `sv.Detections.from_yolov8` and `sv.Classifications.from_yolov8` as those are now replaced by [`sv.Detections.from_ultralytics`](https://supervision.roboflow.com/detection/core/#supervision.detection.core.Detections.from_ultralytics) and [`sv.Classifications.from_ultralytics`](https://supervision.roboflow.com/classification/core/#supervision.classification.core.Classifications.from_ultralytics).
+
+
 ### 0.15.0 <small>October 5, 2023</small>
 
 - Added [#170](https://github.com/roboflow/supervision/pull/170): [`sv.BoundingBoxAnnotator`](https://supervision.roboflow.com/annotators/#supervision.annotators.core.BoundingBoxAnnotator) allowing to annotate images and videos with bounding boxes.
