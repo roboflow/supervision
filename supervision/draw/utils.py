@@ -1,4 +1,5 @@
-from typing import Optional
+import os
+from typing import Optional, Union
 
 import cv2
 import numpy as np
@@ -168,3 +169,66 @@ def draw_text(
         lineType=cv2.LINE_AA,
     )
     return scene
+
+
+def draw_image(
+    scene: np.ndarray, image: Union[str, np.ndarray], opacity: float, rect: Rect
+) -> np.ndarray:
+    """
+    Draws an image onto a given scene with specified opacity and dimensions.
+
+    Args:
+        scene (np.ndarray): The background image onto which the image will be drawn.
+        image (Union[str, np.ndarray]): The image to be drawn.
+            Can be either a file path or a NumPy array.
+        opacity (float): The opacity level of the image to be drawn,
+            ranging from 0.0 to 1.0.
+        rect (Rect): A Rect object specifying the dimensions and
+            position where the image will be drawn.
+
+    Returns:
+        np.ndarray: The scene with the image drawn onto it.
+
+    Example:
+        >>> scene = np.zeros((400, 400, 3), dtype=np.uint8)
+        >>> image_path = "path/to/image.jpg"
+        >>> opacity = 0.5
+        >>> rect = Rect(x=50, y=50, width=200, height=200)
+        >>> new_scene = draw_image(scene, image_path, opacity, rect)
+    """
+    if isinstance(image, str):
+        assert os.path.exists(image), f'The specified path ("{image}") does not exist.'
+        image = cv2.imread(image, cv2.IMREAD_UNCHANGED)
+
+    assert 0.0 <= opacity <= 1.0, "The opacity has to be between 0.0 and 1.0."
+
+    assert (
+        rect.x >= 0 and rect.y >= 0
+    ), "The top left coordinates of the rectangle have to be positive."
+    assert (
+        rect.x + rect.width <= scene.shape[1] and rect.y + rect.height <= scene.shape[0]
+    ), "The image you are trying to draw exceeds the bounds of the scene."
+
+    image = cv2.resize(image, (rect.width, rect.height))
+
+    # watermark with transparent background
+    if image.shape[2] == 4:
+        b, g, r, a = cv2.split(image)
+        b = cv2.bitwise_and(b, b, mask=a)
+        g = cv2.bitwise_and(g, g, mask=a)
+        r = cv2.bitwise_and(r, r, mask=a)
+        image = cv2.merge([b, g, r, a])
+        del b, g, r, a  # immediately free up memory
+
+        if scene.shape[2] == 3:
+            scene = np.dstack([scene, np.ones(scene.shape[:2], dtype=np.uint8) * 255])
+
+    scene_h, scene_w, channels = scene.shape[:3]
+    water_h, water_w = image.shape[:2]
+
+    overlay = np.zeros((scene_h, scene_w, channels), dtype="uint8")
+    overlay[rect.y : rect.y + water_h, rect.x : rect.x + water_w] = image
+
+    cv2.addWeighted(overlay, opacity, scene, 1.0, 0, scene)
+
+    return scene[:, :, :3]
