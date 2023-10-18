@@ -97,8 +97,8 @@ class HeatmapAnnotator:
         opacity: float = 0.2,
         radius: int = 40,
         kernel_size: Optional[int] = 25,
-        top_hue: int = 0, #red
-        low_hue: int = 125, #blue
+        top_hue: int = 0,  # red
+        low_hue: int = 125,  # blue
     ):
         """
         Args:
@@ -107,7 +107,7 @@ class HeatmapAnnotator:
             opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.
             radius (int): Radius of the heat circle.
             kernel_size (Optional[int]): Kernel size for blurring the heatmap.
-            top_hue (int): Hue of the top of the heatmap. 
+            top_hue (int): Hue of the top of the heatmap.
                 Defaults to `0` (red).
             low_hue (int): Hue of the bottom of the heatmap.
                 Defaults to `125` (blue).
@@ -119,7 +119,6 @@ class HeatmapAnnotator:
         self.heatmask = None
         self.top_hue = top_hue
         self.low_hue = low_hue
-        
 
     def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
         """
@@ -165,7 +164,7 @@ class HeatmapAnnotator:
             cv2.circle(mask, (int(xy[0]), int(xy[1])), self.radius, 1, -1)
         self.heatmask = mask + self.heatmask
         temp = self.heatmask.copy()
-        temp = self.low_hue-temp/temp.max()*(self.low_hue-self.top_hue)
+        temp = self.low_hue - temp / temp.max() * (self.low_hue - self.top_hue)
         temp = temp.astype(np.uint8)
         if self.kernel_size is not None:
             temp = cv2.blur(temp, (self.kernel_size, self.kernel_size))
@@ -174,8 +173,10 @@ class HeatmapAnnotator:
         hsv[..., 1] = 255
         hsv[..., 2] = 255
         temp = cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2BGR)
-        mask = cv2.cvtColor(self.heatmask.astype(np.uint8), cv2.COLOR_GRAY2BGR)>0
-        scene[mask] = cv2.addWeighted( temp, self.opacity,scene, 1-self.opacity, 0)[mask]
+        mask = cv2.cvtColor(self.heatmask.astype(np.uint8), cv2.COLOR_GRAY2BGR) > 0
+        scene[mask] = cv2.addWeighted(temp, self.opacity, scene, 1 - self.opacity, 0)[
+            mask
+        ]
         return scene
 
 
