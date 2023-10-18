@@ -172,20 +172,20 @@ def draw_text(
 
 
 def draw_image(
-        scene: np.ndarray, image: Union[str, np.ndarray], opacity: float, rect: Rect
+    scene: np.ndarray, image: Union[str, np.ndarray], opacity: float, rect: Rect
 ) -> np.ndarray:
     """
     Draws an image onto a given scene with specified opacity and dimensions.
     """
 
-    # Read image if a path is provided
+    # Load image if a path is provided
     if isinstance(image, str):
         image = cv2.imread(image, cv2.IMREAD_UNCHANGED)
 
     # Resize the image
     image = cv2.resize(image, (rect.width, rect.height))
 
-    # If the image has an alpha channel, extract it and remove from the image
+    # Separate the alpha channel if present
     if image.shape[2] == 4:
         alpha_channel = image[:, :, 3]
         image = image[:, :, :3]
@@ -195,11 +195,21 @@ def draw_image(
     # Apply opacity to the alpha channel
     alpha_channel = cv2.convertScaleAbs(alpha_channel * opacity)
 
-    # Define the ROI and blend the image onto the scene
-    roi = scene[rect.y: rect.y + rect.height, rect.x: rect.x + rect.width]
+    # Get the ROI from the scene
+    scene_roi = scene[rect.y:rect.y + rect.height, rect.x:rect.x + rect.width]
 
-    for c in range(0, 3):
-        roi[:, :, c] = roi[:, :, c] * (1 - alpha_channel / 255.0) + image[:, :, c] * (
-                    alpha_channel / 255.0)
+    # Manually apply alpha blending
+    alpha_float = alpha_channel.astype(np.float32) / 255.0
+    blended_roi = ((1.0 - alpha_float[..., np.newaxis]) * scene_roi.astype(np.float32)) + (alpha_float[..., np.newaxis] * image.astype(np.float32))
+    blended_roi = blended_roi.astype(np.uint8)
+
+    # Insert blended ROI back into the scene
+    scene[rect.y:rect.y + rect.height, rect.x:rect.x + rect.width] = blended_roi
 
     return scene
+
+
+
+
+
+
