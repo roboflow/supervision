@@ -964,13 +964,13 @@ class TraceAnnotator:
 
             >>> model = YOLO('yolov8x.pt')
 
-            >>> heat_map_annotator = sv.TraceAnnotator()
+            >>> trace_annotator = sv.TraceAnnotator()
 
-            >>> video_info = sv.VideoInfo.from_video_path(video_path=...)
-            >>> frames_generator = get_video_frames_generator(source_path=...)
+            >>> video_info = sv.VideoInfo.from_video_path(video_path='...')
+            >>> frames_generator = sv.get_video_frames_generator(source_path='...')
             >>> tracker = sv.ByteTrack()
 
-            >>> with sv.VideoSink(target_path=..., video_info=video_info) as sink:
+            >>> with sv.VideoSink(target_path='...', video_info=video_info) as sink:
             ...    for frame in frames_generator:
             ...        result = model(frame)[0]
             ...        detections = sv.Detections.from_ultralytics(result)
@@ -1062,10 +1062,10 @@ class HeatMapAnnotator:
 
             >>> heat_map_annotator = sv.HeatMapAnnotator()
 
-            >>> video_info = sv.VideoInfo.from_video_path(video_path=...)
-            >>> frames_generator = get_video_frames_generator(source_path=...)
+            >>> video_info = sv.VideoInfo.from_video_path(video_path='...')
+            >>> frames_generator = get_video_frames_generator(source_path='...')
 
-            >>> with sv.VideoSink(target_path=..., video_info=video_info) as sink:
+            >>> with sv.VideoSink(target_path='...', video_info=video_info) as sink:
             ...    for frame in frames_generator:
             ...        result = model(frame)[0]
             ...        detections = sv.Detections.from_ultralytics(result)
