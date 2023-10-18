@@ -177,45 +177,29 @@ def draw_image(
     """
     Draws an image onto a given scene with specified opacity and dimensions.
     """
-    # Input checks
-    assert 0.0 <= opacity <= 1.0, "Opacity has to be between 0.0 and 1.0."
-    assert rect.x >= 0 and rect.y >= 0, "Top left coordinates of the rect must be positive."
-    assert rect.width > 0 and rect.height > 0, "Rect dimensions should be positive."
-    assert rect.x + rect.width <= scene.shape[1] and rect.y + rect.height <= \
-           scene.shape[0], "Image exceeds scene bounds."
 
     # Read image if a path is provided
     if isinstance(image, str):
-        assert os.path.exists(image), f"The specified path '{image}' does not exist."
         image = cv2.imread(image, cv2.IMREAD_UNCHANGED)
 
     # Resize the image
     image = cv2.resize(image, (rect.width, rect.height))
 
-    # Handle alpha channel for transparent PNG
+    # If the image has an alpha channel, extract it and remove from the image
     if image.shape[2] == 4:
         alpha_channel = image[:, :, 3]
-        image = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
+        image = image[:, :, :3]
     else:
-        alpha_channel = np.ones(image.shape[:2], dtype=image.dtype) * 255
+        alpha_channel = np.ones((rect.height, rect.width), dtype=np.uint8) * 255
 
     # Apply opacity to the alpha channel
     alpha_channel = cv2.convertScaleAbs(alpha_channel * opacity)
 
-    # Get ROI from the scene
-    scene_roi = scene[rect.y:rect.y + rect.height, rect.x:rect.x + rect.width]
+    # Define the ROI and blend the image onto the scene
+    roi = scene[rect.y: rect.y + rect.height, rect.x: rect.x + rect.width]
 
-    # Alpha blending
-    alpha_float = alpha_channel.astype(np.float32) / 255.0
-    blended_roi = cv2.addWeighted(
-        scene_roi,
-        1.0 - alpha_float[..., np.newaxis],
-        image,
-        alpha_float[..., np.newaxis],
-        0
-    )
-
-    # Apply the blended ROI to the scene
-    scene[rect.y:rect.y + rect.height, rect.x:rect.x + rect.width] = blended_roi
+    for c in range(0, 3):
+        roi[:, :, c] = roi[:, :, c] * (1 - alpha_channel / 255.0) + image[:, :, c] * (
+                    alpha_channel / 255.0)
 
     return scene
