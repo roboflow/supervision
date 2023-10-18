@@ -42,6 +42,7 @@ class Color:
         g (int): Green channel.
         b (int): Blue channel.
     """
+
     r: int
     g: int
     b: int
