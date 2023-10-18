@@ -1,54 +1,59 @@
-## How to Detect and Annotate
+With Supervision, you can easily [annotate](https://supervision.roboflow.com/annotators/) predictions obtained from a variety of object detection and segmentation models. This document outlines how to run inference using the [Ultralytics](https://github.com/ultralytics/ultralytics) YOLOv8 model, load these predictions into Supervision, and annotate the image.
 
-Supervision enables you to annotate predictions from object detection and segmentation models in a few lines of code.
+## Run Inference
 
-The `sv.BoxAnnotator` class lets you annotate images with bounding boxes, while the `sv.MaskAnnotator` class lets you annotate images with segmentation masks. `sv.MaskAnnotator` is a drop-in replacement for `sv.BoxAnnotator`, so you don't need to update any other code if you want to switch between the two.
-
-In this guide, we run inference on an Ultralytics YOLOv8 object detection model and plot the predictions with the `sv.BoxAnnotator` class. You can also load predictions using:
-
-- `from_deepsparse` (Deepsparse)
-- `from_detectron2` (Detectron2)
-- `from_mmdetection` (MMDetection)
-- `from_ultralytics` (Ultralytics)
-- `from_roboflow` (Roboflow)
-- `from_sam` (Segment Anything Model)
-- `from_transformers` (Hugging Face Transformers)
-- `from_yolo_nas` (YOLO-NAS)
-
-## Load a Model and Retrieve Predictions
-
-First, we need to retrieve predictions from a model. For this guide, we will retrieve predictions from a YOLOv8 model. See a list of all models from which you can load predictions into supervision.
-
+First, you'll need to obtain predictions from your object detection or segmentation model.
 ```python
-import supervision as sv
-from ultralytics import YOLO
 import cv2
+from ultralytics import YOLO
 
 model = YOLO("yolov8n.pt")
-
-results = model("image.jpg")
+image = cv2.imread("image.jpg")
+results = model(image)[0]
 ```
-
-In this code, we import `supervision`, `ultralytics`, and `cv2` (OpenCV). We load then load a YOLOv8 object detection model, then run inference on an image called `image.jpg`. The image is loaded using OpenCV. The `results` variable contains the predictions from the model.
 
 ## Load Predictions into Supervision
 
-Now that we have predictions from a model, we can load them into supervision.
-
-We can do so using the `sv.Detections.from_ultralytics` method, which accepts model results from Ultralytics models. [See a list of other supported data loaders](https://supervision.roboflow.com/detection/core/#supervision.detection.core.Detections.from_deepsparse).
+Now that we have predictions from a model, we can load them into Supervision. We can do so using the [`sv.Detections.from_ultralytics`](https://supervision.roboflow.com/detection/core/#supervision.detection.core.Detections.from_ultralytics) method, which accepts model results from both detection and segmentation models. 
 
 ```python
-detections = sv.Detections.from_ultralytics(results[0])
+import cv2
+from ultralytics import YOLO
+import supervision as sv
+
+model = YOLO("yolov8n.pt")
+image = cv2.imread("image.jpg")
+results = model(image)[0]
+detections = sv.Detections.from_ultralytics(results)
 ```
+
+You can conveniently load predictions from other computer vision frameworks and libraries using:
+
+- [`from_deepsparse`](https://supervision.roboflow.com/detection/core/#supervision.detection.core.Detections.from_deepsparse) ([Deepsparse](https://github.com/neuralmagic/deepsparse))
+- [`from_detectron2`](https://supervision.roboflow.com/detection/core/#supervision.detection.core.Detections.from_detectron2) ([Detectron2](https://github.com/facebookresearch/detectron2))
+- [`from_mmdetection`](https://supervision.roboflow.com/detection/core/#supervision.detection.core.Detections.from_mmdetection) ([MMDetection](https://github.com/open-mmlab/mmdetection))
+- [`from_roboflow`](https://supervision.roboflow.com/detection/core/#supervision.detection.core.Detections.from_roboflow) ([Roboflow Inference](https://github.com/roboflow/inference))
+- [`from_sam`](https://supervision.roboflow.com/detection/core/#supervision.detection.core.Detections.from_sam) ([Segment Anything Model](https://github.com/facebookresearch/segment-anything))
+- [`from_transformers`](https://supervision.roboflow.com/detection/core/#supervision.detection.core.Detections.from_transformers) ([HuggingFace Transformers](https://github.com/huggingface/transformers))
+- [`from_yolo_nas`](https://supervision.roboflow.com/detection/core/#supervision.detection.core.Detections.from_yolo_nas) ([YOLO-NAS](https://github.com/Deci-AI/super-gradients/blob/master/YOLONAS.md))
+
 
 ## Annotate Image
 
-Next, we can annotate the image with the predictions returned by our model. Since we are working with an object detection model, we will use the `sv.BoxAnnotator` class to annotate an image with predictions.
+Finally, we can annotate the image with the predictions. Since we are working with an object detection model, we will use the [`sv.BoundingBoxAnnotator`](https://supervision.roboflow.com/annotators/#supervision.annotators.core.BoundingBoxAnnotator) and [`sv.LabelAnnotator`](https://supervision.roboflow.com/annotators/#supervision.annotators.core.LabelAnnotator) classes. If you are running the segmentation model [`sv.MaskAnnotator`](https://supervision.roboflow.com/annotators/#supervision.annotators.core.MaskAnnotator) is a drop-in replacement for [`sv.BoundingBoxAnnotator`](https://supervision.roboflow.com/annotators/#supervision.annotators.core.BoundingBoxAnnotator) that will allow you to draw masks instead of boxes. 
 
 ```python
-image = cv2.imread("image.jpg")
+import cv2
+from ultralytics import YOLO
+import supervision as sv
 
-annotator = sv.BoxAnnotator()
+model = YOLO("yolov8n.pt")
+image = cv2.imread("image.jpg")
+results = model(image)[0]
+detections = sv.Detections.from_ultralytics(results)
+
+bounding_box_annotator = sv.BoundingBoxAnnotator()
+label_annotator = sv.LabelAnnotator()
 
 labels = [
     results.names[class_id]
@@ -56,24 +61,18 @@ labels = [
     in detections.class_id
 ]
 
-annotated_image = annotator.annotate(image, detections, labels)
+annotated_image = bounding_box_annotator.annotate(
+    scene=image, detections=detections)
+annotated_image = label_annotator.annotate(
+    scene=annotated_image, detections=detections, labels=labels)
 ```
 
-In this code, we:
-
-1. Load the image to annotate.
-2. Create a `sv.BoxAnnotator` object to annotate the image.
-3. Create a list of labels for each prediction. In this example, we get the class name associated with each class ID using the `results[0].names` attribute available in the `results` object`
-3. Use the `annotate` method to annotate the image with the predictions.
+![Predictions plotted on an image](https://media.roboflow.com/supervision_annotate_example.png)
 
 ## Display Annotated Image
 
-Finally, we can display the annotated image:
+To display the annotated image in Jupyter Notebook or Google Colab, use the [`sv.plot_image`](https://supervision.roboflow.com/utils/notebook/#supervision.utils.notebook.plot_image) function.
 
 ```python
 sv.plot_image(annotated_image)
 ```
-
-Here is the result:
-
-![Predictions plotted on an image](https://media.roboflow.com/supervision_annotate_example.png)
