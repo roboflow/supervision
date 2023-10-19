@@ -19,8 +19,14 @@
   [![license](https://img.shields.io/pypi/l/supervision)](https://github.com/roboflow/supervision/blob/main/LICENSE.md)
   [![python-version](https://img.shields.io/pypi/pyversions/supervision)](https://badge.fury.io/py/supervision)
   [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/roboflow/supervision/blob/main/demo.ipynb)
+  [![Gradio](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/Roboflow/Annotators)
+  [![Discord](https://img.shields.io/discord/1159501506232451173)](https://discord.gg/GbfgXGJ8Bk)
 
 </div>
+
+<a href="https://github.com/roboflow/supervision/issues?q=is%3Aissue+label%3Ahacktoberfest+">
+  <img width="100%" src="https://media.roboflow.com/open-source/supervision/hacktoberfest-banner-3.png">
+</a>
 
 ## 👋 hello
 
@@ -305,6 +311,12 @@ Visit our [documentation](https://roboflow.github.io/supervision) page to learn 
 
 We love your input! Please see our [contributing guide](https://github.com/roboflow/supervision/blob/main/CONTRIBUTING.md) to get started. Thank you 🙏 to all our contributors!
 
+<p align="center">
+    <a href="https://github.com/roboflow/supervision/graphs/contributors">
+      <img src="https://contrib.rocks/image?repo=roboflow/supervision" />
+    </a>
+</p>
+
 <br>
 
 <div align="center">
@@ -352,5 +364,4 @@ We love your input! Please see our [contributing guide](https://github.com/robof
       </a>
       </a>
   </div>
-
 </div>

@@ -12,7 +12,6 @@ from supervision.detection.utils import (
     xywh_to_xyxy,
 )
 from supervision.geometry.core import Position
-from supervision.utils.internal import deprecated
 
 
 def _validate_xyxy(xyxy: Any, n: int) -> None:
@@ -186,46 +185,6 @@ class Detections:
         )
 
     @classmethod
-    @deprecated(
-        """
-        This method is deprecated and removed in 0.15.0 release.
-        Use sv.Detections.from_ultralytics() instead as it is more generic and
-        can be used for detections from any ultralytics.engine.results.Results Object
-        """
-    )
-    def from_yolov8(cls, yolov8_results) -> Detections:
-        """
-        Creates a Detections instance from a
-        [YOLOv8](https://github.com/ultralytics/ultralytics) inference result.
-
-        Args:
-            yolov8_results (ultralytics.yolo.engine.results.Results):
-                The output Results instance from YOLOv8
-
-        Returns:
-            Detections: A new Detections object.
-
-        Example:
-            ```python
-            >>> import cv2
-            >>> from ultralytics import YOLO
-            >>> import supervision as sv
-
-            >>> image = cv2.imread(SOURCE_IMAGE_PATH)
-            >>> model = YOLO('yolov8s.pt')
-            >>> result = model(image)[0]
-            >>> detections = sv.Detections.from_yolov8(result)
-            ```
-        """
-
-        return cls(
-            xyxy=yolov8_results.boxes.xyxy.cpu().numpy(),
-            confidence=yolov8_results.boxes.conf.cpu().numpy(),
-            class_id=yolov8_results.boxes.cls.cpu().numpy().astype(int),
-            mask=extract_ultralytics_masks(yolov8_results),
-        )
-
-    @classmethod
     def from_ultralytics(cls, ultralytics_results) -> Detections:
         """
         Creates a Detections instance from a
@@ -296,7 +255,7 @@ class Detections:
             >>> detections = sv.Detections.from_yolo_nas(result)
             ```
         """
-        if np.asarray(yolo_nas_results.bboxes_xyxy).shape[0] == 0:
+        if np.asarray(yolo_nas_results.prediction.bboxes_xyxy).shape[0] == 0:
             return cls.empty()
 
         return cls(
@@ -467,7 +426,7 @@ class Detections:
             >>> detections = sv.Detections.from_roboflow(roboflow_result)
             ```
         """
-        xyxy, confidence, class_id, masks = process_roboflow_result(
+        xyxy, confidence, class_id, masks, trackers = process_roboflow_result(
             roboflow_result=roboflow_result
         )
 
@@ -479,6 +438,7 @@ class Detections:
             confidence=confidence,
             class_id=class_id,
             mask=masks,
+            tracker_id=trackers,
         )
 
     @classmethod

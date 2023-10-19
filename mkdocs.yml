@@ -1,5 +1,5 @@
 site_name: Supervision
-site_url: https://roboflow.github.io/supervision
+site_url: https://supervision.roboflow.com/
 site_author: Roboflow
 site_description: A set of easy-to-use utils that will come in handy in any Computer Vision project
 repo_name: roboflow/supervision
@@ -26,29 +26,35 @@ extra_css:
 
 nav:
   - Home: index.md
-  - Quickstart:
-    - Detections: quickstart/detections.md
-  - Classifications:
-      - Core: classification/core.md
-  - Detections:
-      - Core: detection/core.md
-      - Annotate: detection/annotate.md
-      - Utils: detection/utils.md
-      - Tools:
-          - Polygon Zone: detection/tools/polygon_zone.md
-          - Inference Slicer: detection/tools/inference_slicer.md
-  - Annotators: annotators.md
-  - Trackers: trackers.md
-  - Datasets: datasets.md
-  - Metrics:
-    - Object Detection: metrics/detection.md
-  - Draw:
-      - Utils: draw/utils.md
-  - Utils:
-      - Video: utils/video.md
-      - Image: utils/image.md
-      - Notebook: utils/notebook.md
-      - File: utils/file.md
+  - How to:
+      - Detect and Annotate: how_to/detect_and_annotate.md
+      - Process Video: how_to/process_video.md
+      - Track Objects: how_to/track_objects.md
+      - Filter Detections: how_to/filter_detections.md
+      - Evaluate Model: how_to/evaluate_model.md
+  - API:
+    - Classifications:
+        - Core: classification/core.md
+    - Detections:
+        - Core: detection/core.md
+        - Utils: detection/utils.md
+    - Tools:
+        - Line Zone: detection/tools/line_zone.md
+        - Polygon Zone: detection/tools/polygon_zone.md
+        - Inference Slicer: detection/tools/inference_slicer.md
+    - Annotators: annotators.md
+    - Trackers: trackers.md
+    - Datasets: datasets.md
+    - Metrics:
+      - Object Detection: metrics/detection.md
+    - Draw:
+        - Color: draw/color.md
+        - Utils: draw/utils.md
+    - Utils:
+        - Video: utils/video.md
+        - Image: utils/image.md
+        - Notebook: utils/notebook.md
+        - File: utils/file.md
   - Changelog: changelog.md
 
 theme:

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "supervision"
-version = "0.15.0"
+version = "0.16.0"
 description = "A set of easy-to-use utils that will come in handy in any Computer Vision project"
 authors = ["Piotr Skalski <piotr.skalski92@gmail.com>"]
 maintainers = ["Piotr Skalski <piotr.skalski92@gmail.com>"]
@@ -176,7 +176,7 @@ max-args = 20
 include-package-data = false
 
 [tool.setuptools.packages.find]
-exclude = ["docs*", "test*"]
+exclude = ["docs*", "test*","examples*"]
 
 [build-system]
 requires = ["poetry-core"]

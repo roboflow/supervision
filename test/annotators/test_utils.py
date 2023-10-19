@@ -2,14 +2,15 @@ from contextlib import ExitStack as DoesNotRaise
 from test.utils import mock_detections
 from typing import Optional
 
+import numpy as np
 import pytest
 
-from supervision.annotators.utils import ColorMap, resolve_color_idx
+from supervision.annotators.utils import ColorLookup, resolve_color_idx
 from supervision.detection.core import Detections
 
 
 @pytest.mark.parametrize(
-    "detections, detection_idx, color_map, expected_result, exception",
+    "detections, detection_idx, color_lookup, expected_result, exception",
     [
         (
             mock_detections(
@@ -18,10 +19,10 @@ from supervision.detection.core import Detections
                 tracker_id=[2, 6],
             ),
             0,
-            ColorMap.INDEX,
+            ColorLookup.INDEX,
             0,
             DoesNotRaise(),
-        ),  # multiple detections; index mapping
+        ),  # multiple detections; index lookup
         (
             mock_detections(
                 xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]],
@@ -29,10 +30,10 @@ from supervision.detection.core import Detections
                 tracker_id=[2, 6],
             ),
             0,
-            ColorMap.CLASS,
+            ColorLookup.CLASS,
             5,
             DoesNotRaise(),
-        ),  # multiple detections; class mapping
+        ),  # multiple detections; class lookup
         (
             mock_detections(
                 xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]],
@@ -40,17 +41,17 @@ from supervision.detection.core import Detections
                 tracker_id=[2, 6],
             ),
             0,
-            ColorMap.TRACK,
+            ColorLookup.TRACK,
             2,
             DoesNotRaise(),
-        ),  # multiple detections; track mapping
+        ),  # multiple detections; track lookup
         (
             Detections.empty(),
             0,
-            ColorMap.INDEX,
+            ColorLookup.INDEX,
             None,
             pytest.raises(ValueError),
-        ),  # no detections; index mapping; out of bounds
+        ),  # no detections; index lookup; out of bounds
         (
             mock_detections(
                 xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]],
@@ -58,30 +59,44 @@ from supervision.detection.core import Detections
                 tracker_id=[2, 6],
             ),
             2,
-            ColorMap.INDEX,
+            ColorLookup.INDEX,
             None,
             pytest.raises(ValueError),
-        ),  # multiple detections; index mapping; out of bounds
+        ),  # multiple detections; index lookup; out of bounds
         (
             mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
             0,
-            ColorMap.CLASS,
+            ColorLookup.CLASS,
             None,
             pytest.raises(ValueError),
-        ),  # multiple detections; class mapping; no class_id
+        ),  # multiple detections; class lookup; no class_id
         (
             mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
             0,
-            ColorMap.TRACK,
+            ColorLookup.TRACK,
             None,
             pytest.raises(ValueError),
-        ),  # multiple detections; class mapping; no track_id
+        ),  # multiple detections; class lookup; no track_id
+        (
+            mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
+            0,
+            np.array([1, 0]),
+            1,
+            DoesNotRaise(),
+        ),  # multiple detections; custom lookup; correct length
+        (
+            mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
+            0,
+            np.array([1]),
+            None,
+            pytest.raises(ValueError),
+        ),  # multiple detections; custom lookup; wrong length
     ],
 )
 def test_resolve_color_idx(
     detections: Detections,
     detection_idx: int,
-    color_map: ColorMap,
+    color_lookup: ColorLookup,
     expected_result: Optional[int],
     exception: Exception,
 ) -> None:
@@ -89,6 +104,6 @@ def test_resolve_color_idx(
         result = resolve_color_idx(
             detections=detections,
             detection_idx=detection_idx,
-            color_map=color_map,
+            color_lookup=color_lookup,
         )
         assert result == expected_result

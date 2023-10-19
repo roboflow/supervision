@@ -7,7 +7,7 @@ ci:
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v4.5.0
     hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
@@ -22,6 +22,7 @@ repos:
       - id: detect-private-key
       - id: forbid-new-submodules
       - id: pretty-format-json
+        exclude: demo.ipynb
         args: ['--autofix', '--no-sort-keys', '--indent=4']
       - id: end-of-file-fixer
       - id: mixed-line-ending
@@ -33,11 +34,6 @@ repos:
   #       name: Upgrade code
   #       args: [--py38-plus]
 
-  - repo: https://github.com/PyCQA/isort
-    rev: 5.12.0
-    hooks:
-      - id: isort
-        name: Sort imports
 
   - repo: https://github.com/PyCQA/flake8
     rev: 6.1.0

@@ -10,12 +10,17 @@ from supervision.annotators.core import (
     BlurAnnotator,
     BoundingBoxAnnotator,
     BoxCornerAnnotator,
+    BoxMaskAnnotator,
     CircleAnnotator,
+    DotAnnotator,
     EllipseAnnotator,
+    HaloAnnotator,
+    HeatMapAnnotator,
     LabelAnnotator,
     MaskAnnotator,
     TraceAnnotator,
 )
+from supervision.annotators.utils import ColorLookup
 from supervision.classification.core import Classifications
 from supervision.dataset.core import (
     BaseDataset,
@@ -37,7 +42,14 @@ from supervision.detection.utils import (
     polygon_to_xyxy,
 )
 from supervision.draw.color import Color, ColorPalette
-from supervision.draw.utils import draw_filled_rectangle, draw_polygon, draw_text
+from supervision.draw.utils import (
+    draw_filled_rectangle,
+    draw_image,
+    draw_line,
+    draw_polygon,
+    draw_rectangle,
+    draw_text,
+)
 from supervision.geometry.core import Point, Position, Rect
 from supervision.geometry.utils import get_polygon_center
 from supervision.metrics.detection import ConfusionMatrix, MeanAveragePrecision
@@ -46,6 +58,7 @@ from supervision.utils.file import list_files_with_extensions
 from supervision.utils.image import ImageSink, crop_image
 from supervision.utils.notebook import plot_image, plot_images_grid
 from supervision.utils.video import (
+    FPSMonitor,
     VideoInfo,
     VideoSink,
     get_video_frames_generator,
