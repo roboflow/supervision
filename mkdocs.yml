@@ -1,5 +1,5 @@
 site_name: Supervision
-site_url: https://roboflow.github.io/supervision
+site_url: https://supervision.roboflow.com/
 site_author: Roboflow
 site_description: A set of easy-to-use utils that will come in handy in any Computer Vision project
 repo_name: roboflow/supervision
@@ -39,6 +39,7 @@ nav:
         - Core: detection/core.md
         - Utils: detection/utils.md
     - Tools:
+        - Line Zone: detection/tools/line_zone.md
         - Polygon Zone: detection/tools/polygon_zone.md
         - Inference Slicer: detection/tools/inference_slicer.md
     - Annotators: annotators.md
@@ -47,6 +48,7 @@ nav:
     - Metrics:
       - Object Detection: metrics/detection.md
     - Draw:
+        - Color: draw/color.md
         - Utils: draw/utils.md
     - Utils:
         - Video: utils/video.md

@@ -10,12 +10,21 @@ from supervision.geometry.core import Position
 
 class ColorLookup(Enum):
     """
-    Enum for annotator color lookup.
+    Enumeration class to define strategies for mapping colors to annotations.
+
+    This enum supports three different lookup strategies:
+        - `INDEX`: Colors are determined by the index of the detection within the scene.
+        - `CLASS`: Colors are determined by the class label of the detected object.
+        - `TRACK`: Colors are determined by the tracking identifier of the object.
     """
 
     INDEX = "index"
     CLASS = "class"
     TRACK = "track"
+
+    @classmethod
+    def list(cls):
+        return list(map(lambda c: c.value, cls))
 
 
 def resolve_color_idx(

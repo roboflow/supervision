@@ -17,3 +17,7 @@
 ## draw_text
 
 :::supervision.draw.utils.draw_text
+
+## draw_image
+
+:::supervision.draw.utils.draw_image
