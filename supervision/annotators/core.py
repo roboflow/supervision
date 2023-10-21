@@ -988,6 +988,35 @@ class TraceAnnotator:
 
         for detection_idx in range(len(detections)):
             tracker_id = int(detections.tracker_id[detection_idx])
+
+            x_min, y_min, x_max, y_max = detections.xyxy[detection_idx]
+
+            center_x = (x_min + x_max) / 2
+            center_y = (y_min + y_max) / 2
+
+            if self.position == Position.TOP_LEFT:
+                offset_x, offset_y = x_min - center_x, y_min - center_y
+            elif self.position == Position.TOP_CENTER:
+                offset_x, offset_y = 0, y_min - center_y
+            elif self.position == Position.TOP_RIGHT:
+                offset_x, offset_y = x_max - center_x, y_min - center_y
+            elif self.position == Position.CENTER_LEFT:
+                offset_x, offset_y = x_min - center_x, 0
+            elif self.position == Position.CENTER:
+                offset_x, offset_y = 0, 0
+            elif self.position == Position.CENTER_RIGHT:
+                offset_x, offset_y = x_max - center_x, 0
+            elif self.position == Position.BOTTOM_LEFT:
+                offset_x, offset_y = x_min - center_x, y_max - center_y
+            elif self.position == Position.BOTTOM_CENTER:
+                offset_x, offset_y = 0, y_max - center_y
+            elif self.position == Position.BOTTOM_RIGHT:
+                offset_x, offset_y = x_max - center_x, y_max - center_y
+
+            xy = self.trace.get(tracker_id=tracker_id)
+            xy[:, 0] += offset_x
+            xy[:, 1] += offset_y
+
             color = resolve_color(
                 color=self.color,
                 detections=detections,
@@ -996,7 +1025,7 @@ class TraceAnnotator:
                 if custom_color_lookup is None
                 else custom_color_lookup,
             )
-            xy = self.trace.get(tracker_id=tracker_id)
+
             if len(xy) > 1:
                 scene = cv2.polylines(
                     scene,
