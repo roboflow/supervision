@@ -1,6 +1,6 @@
 supervision enables you to both process detections from a model and datasets. Dataset processing is implemented in the `sv.DetectionDataset` (object detection and segmentation) and `sv.ClassificationDataset` (classification) APIs.
 
-The supervision `sv.DetectionDataset` and `sv.ClassificationDataset` APIs enables you to: 
+The supervision `sv.DetectionDataset` and `sv.ClassificationDataset` APIs enables you to:
 
 1. Load full datasets into supervision
 2. Split datasets into train/test sets
