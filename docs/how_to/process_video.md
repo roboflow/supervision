@@ -30,10 +30,10 @@ def callback(scene: np.ndarray, index: int) -> np.ndarray:
 
     annotated_image = bounding_box_annotator.annotate(
         scene=scene, detections=detections)
-    
+
     annotated_image = label_annotator.annotate(
         scene=annotated_image, detections=detections, labels=labels)
-    
+
     return annotated_image
 ```
 
