@@ -32,6 +32,7 @@ nav:
       - Track Objects: how_to/track_objects.md
       - Filter Detections: how_to/filter_detections.md
       - Evaluate Model: how_to/evaluate_model.md
+      - Process Datasets: how_to/process_datasets.md
   - API:
     - Classifications:
         - Core: classification/core.md
