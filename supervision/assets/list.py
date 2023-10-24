@@ -1,6 +1,7 @@
 from enum import Enum
 from typing import Dict, Tuple
 
+
 BASE_VIDEO_URL = "https://media.roboflow.com/supervision/video-examples/"
 
 

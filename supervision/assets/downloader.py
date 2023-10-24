@@ -4,8 +4,7 @@ from pathlib import Path
 from shutil import copyfileobj
 from typing import Union
 
-from supervision.assets import VideoAssets
-from supervision.assets.list import VIDEO_ASSETS
+from supervision.assets.list import VIDEO_ASSETS, VideoAssets
 
 try:
     from requests import get
@@ -51,6 +50,14 @@ def download_assets(asset_name: Union[VideoAssets, str]) -> str:
 
     Returns:
         str: The filename of the downloaded asset.
+
+    Example:
+        ```python
+        >>> from supervision.assets import download_assets, VideoAssets
+
+        >>> download_assets(VideoAssets.VEHICLES)
+        "vehicles.mp4"
+        ```
     """
 
     filename = asset_name.value if isinstance(asset_name, VideoAssets) else asset_name
