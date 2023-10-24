@@ -53,7 +53,7 @@ def download_assets(asset_name: Union[VideoAssets, str]) -> str:
     if not path_exists(filename) and filename in VIDEO_ASSETS:
         print(f"Downloading {filename} assets \n")
         res: Response = get(
-            VIDEO_ASSETS[asset_name][0], stream=True, allow_redirects=True
+            VIDEO_ASSETS[filename][0], stream=True, allow_redirects=True
         )
         if res.status_code != 200:
             res.raise_for_status()
