@@ -8,7 +8,7 @@ from supervision.assets import VideoAssets
 from supervision.assets.list import VIDEO_ASSETS
 
 try:
-    from requests import Response, get
+    from requests import get
     from tqdm.auto import tqdm
 except ImportError:
     raise ValueError(
