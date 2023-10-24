@@ -16,7 +16,7 @@ jobs:
 
     steps:
       - name: Checkout source
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: 🐍 Set up Python 3.8 environment for build
         uses: actions/setup-python@v4
