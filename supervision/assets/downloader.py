@@ -5,7 +5,7 @@ from shutil import copyfileobj
 from typing import Union
 
 from supervision.assets import VideoAssets
-from supervision.assets.asset_list import VIDEO_ASSETS
+from supervision.assets.list import VIDEO_ASSETS
 
 try:
     from requests import Response, get

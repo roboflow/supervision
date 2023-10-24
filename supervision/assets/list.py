@@ -5,6 +5,20 @@ BASE_VIDEO_URL = "https://media.roboflow.com/supervision/video-examples/"
 
 
 class VideoAssets(Enum):
+    """ #noqa
+    Each member of this enum represents a video asset. The value associated with each
+    member is the filename of the video.
+
+    | Enum Member            | Video Filename             | Video URL                                                                             |
+    |------------------------|----------------------------|---------------------------------------------------------------------------------------|
+    | `VEHICLES`             | `vehicles.mp4`             | [Link](https://media.roboflow.com/supervision/video-examples/vehicles.mp4)            |
+    | `MILK_BOTTLING_PLANT`  | `milk-bottling-plant.mp4`  | [Link](https://media.roboflow.com/supervision/video-examples/milk-bottling-plant.mp4) |
+    | `VEHICLES_2`           | `vehicles-2.mp4`           | [Link](https://media.roboflow.com/supervision/video-examples/vehicles-2.mp4)          |
+    | `GROCERY_STORE`        | `grocery-store.mp4`        | [Link](https://media.roboflow.com/supervision/video-examples/grocery-store.mp4)       |
+    | `SUBWAY`               | `subway.mp4`               | [Link](https://media.roboflow.com/supervision/video-examples/subway.mp4)              |
+    | `MARKET_SQUARE`        | `market-square.mp4`        | [Link](https://media.roboflow.com/supervision/video-examples/market-square.mp4)       |
+    | `PEOPLE_WALKING`       | `people-walking.mp4`       | [Link](https://media.roboflow.com/supervision/video-examples/people-walking.mp4)      |
+    """
     VEHICLES = "vehicles.mp4"
     MILK_BOTTLING_PLANT = "milk-bottling-plant.mp4"
     VEHICLES_2 = "vehicles-2.mp4"
