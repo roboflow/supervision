@@ -55,6 +55,7 @@ nav:
         - Image: utils/image.md
         - Notebook: utils/notebook.md
         - File: utils/file.md
+  - Assets: assets.md
   - Changelog: changelog.md
 
 theme:
