@@ -3,7 +3,7 @@ that you can use in your demos.
 
 ## install extra
 
-To install the Supervision assets utility, you can use pip. This utility is available
+To install the Supervision assets utility, you can use `pip`. This utility is available
 as an extra within the Supervision package.
 
 !!! example "pip install"
