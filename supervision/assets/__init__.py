@@ -1,2 +1,2 @@
-from .downloader import download_assets
-from .list import VideoAssets
+from supervision.assets.downloader import download_assets
+from supervision.assets.list import VideoAssets
