@@ -79,8 +79,9 @@ def download_assets(asset_name: Union[VideoAssets, str]) -> str:
         print(f"{filename} asset download complete. \n")
 
     else:
-        valid_assets = ', '.join(asset.value for asset in VideoAssets)
+        valid_assets = ", ".join(asset.value for asset in VideoAssets)
         raise ValueError(
-            f"Invalid asset. It should be one of the following: {valid_assets}.")
+            f"Invalid asset. It should be one of the following: {valid_assets}."
+        )
 
     return filename
