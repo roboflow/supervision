@@ -67,9 +67,7 @@ def download_assets(asset_name: Union[VideoAssets, str]) -> str:
         folder_path.parent.mkdir(parents=True, exist_ok=True)
 
         desc = "(Unknown total file size)" if file_size == 0 else ""
-        res.raw.read = partial(
-            res.raw.read, decode_content=True
-        )
+        res.raw.read = partial(res.raw.read, decode_content=True)
         with tqdm.wrapattr(
             res.raw,
             "read",
