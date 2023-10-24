@@ -50,7 +50,7 @@ def download_assets(asset_name: Union[VideoAssets, str]) -> str:
     """
 
     filename = asset_name.value if isinstance(asset_name, VideoAssets) else asset_name
-    if not path_exists(filename) and asset_name in VIDEO_ASSETS:
+    if not path_exists(filename) and filename in VIDEO_ASSETS:
         print(f"Downloading {filename} assets \n")
         res: Response = get(
             VIDEO_ASSETS[asset_name][0], stream=True, allow_redirects=True
