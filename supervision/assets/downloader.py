@@ -79,7 +79,7 @@ def download_assets(asset_name: Union[VideoAssets, str]) -> str:
                 copyfileobj(r_raw, f)
 
     elif path_exists(filename):
-        if not is_md5_hash_matching(filename, VIDEO_ASSETS[filename][2]):
+        if not is_md5_hash_matching(filename, VIDEO_ASSETS[filename][1]):
             print("File corrupted. Re-downloading... \n")
             os_remove(filename)
             download_assets(filename)
