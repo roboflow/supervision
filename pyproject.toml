@@ -81,6 +81,7 @@ extend-ignore = """
 """
 per-file-ignores = """
     __init__.py: F401
+    supervision/assets/list.py: E501
 """
 
 [tool.isort]
@@ -151,6 +152,7 @@ exclude = [
     "yarn-error.log",
     "yarn.lock",
     "docs",
+    "supervision/assets/list.py"
 ]
 
 # Same as Black.
@@ -169,6 +171,7 @@ convention = "google"
 
 [tool.ruff.per-file-ignores]
 "__init__.py" = ["E402","F401"]
+"supervision/assets/list.py" = ["E501"]
 
 [tool.ruff.pylint]
 max-args = 20

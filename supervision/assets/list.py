@@ -5,7 +5,7 @@ BASE_VIDEO_URL = "https://media.roboflow.com/supervision/video-examples/"
 
 
 class VideoAssets(Enum):
-    """#noqa
+    """
     Each member of this enum represents a video asset. The value associated with each
     member is the filename of the video.
 
