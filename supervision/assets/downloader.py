@@ -1,8 +1,5 @@
 import os
-from functools import partial
 from hashlib import md5
-from os import remove as os_remove
-from os.path import exists as path_exists
 from pathlib import Path
 from shutil import copyfileobj
 from typing import Union
@@ -46,48 +43,44 @@ def is_md5_hash_matching(filename: str, original_md5_hash: str) -> bool:
 
 def download_assets(asset_name: Union[VideoAssets, str]) -> str:
     """
-    asset_name: VIDEO_ASSETS,  name of the file to download
+    Download a specified asset if it doesn't already exist or is corrupted.
+
+    Parameters:
+        asset_name (Union[VideoAssets, str]): The name or type of the asset to be
+            downloaded.
+
+    Returns:
+        str: The filename of the downloaded asset.
     """
 
     filename = asset_name.value if isinstance(asset_name, VideoAssets) else asset_name
-    if not path_exists(filename) and filename in VIDEO_ASSETS:
-        print(f"Downloading {filename} assets \n")
-        res: Response = get(
-            VIDEO_ASSETS[filename][0], stream=True, allow_redirects=True
-        )
-        if res.status_code != 200:
-            res.raise_for_status()
-            raise RuntimeError(
-                f"Request to {VIDEO_ASSETS[asset_name][0]} "
-                f"returned status code {res.status_code}"
-            )
 
-        file_size: int = int(res.headers.get("Content-Length", 0))
-        folder_path: Path = Path(filename).expanduser().resolve()
+    if not Path(filename).exists() and filename in VIDEO_ASSETS:
+        print(f"Downloading {filename} assets \n")
+        response = get(VIDEO_ASSETS[filename][0], stream=True, allow_redirects=True)
+        response.raise_for_status()
+
+        file_size = int(response.headers.get("Content-Length", 0))
+        folder_path = Path(filename).expanduser().resolve()
         folder_path.parent.mkdir(parents=True, exist_ok=True)
 
-        desc = "(Unknown total file size)" if file_size == 0 else ""
-        res.raw.read = partial(res.raw.read, decode_content=True)
         with tqdm.wrapattr(
-            res.raw,
-            "read",
-            total=file_size,
-            desc=desc,
-            colour="#a351fb",
-        ) as r_raw:
-            with folder_path.open("wb") as f:
-                copyfileobj(r_raw, f)
+            response.raw, "read", total=file_size, desc="", colour="#a351fb"
+        ) as raw_resp:
+            with folder_path.open("wb") as file:
+                copyfileobj(raw_resp, file)
 
-    elif path_exists(filename):
+    elif Path(filename).exists():
         if not is_md5_hash_matching(filename, VIDEO_ASSETS[filename][1]):
             print("File corrupted. Re-downloading... \n")
-            os_remove(filename)
-            download_assets(filename)
+            os.remove(filename)
+            return download_assets(filename)
 
         print(f"{filename} asset download complete. \n")
+
     else:
+        valid_assets = ', '.join(asset.value for asset in VideoAssets)
         raise ValueError(
-            f"Invalid asset. It should be one of the following: {VideoAssets.list()}."
-        )
+            f"Invalid asset. It should be one of the following: {valid_assets}.")
 
     return filename
