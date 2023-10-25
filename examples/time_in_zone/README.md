@@ -35,8 +35,8 @@ TODO
 ```bash
 python script.py \
 --source_weights_path yolov8x.pt \
---source_video_path data/people_walking.mp4 \
+--source_video_path data/people-walking.mp4 \
 --confidence_threshold 0.3 \
 --iou_threshold 0.5 \
---target_video_path data/people_walking_result.mp4
+--target_video_path data/people-walking-result.mp4
 ```

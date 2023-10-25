@@ -10,4 +10,4 @@ else
     echo "'data' directory already exists."
 fi
 
-curl -o "$DIR/data/people_walking.mp4" "https://media.roboflow.com/supervision/video-examples/people-walking-bw.mp4"
+curl -o "$DIR/data/people-walking.mp4" "https://media.roboflow.com/supervision/video-examples/people-walking.mp4"
