@@ -97,7 +97,7 @@ class Detections:
     confidence: Optional[np.ndarray] = None
     class_id: Optional[np.ndarray] = None
     tracker_id: Optional[np.ndarray] = None
-    data: Dict[str, np.ndarray] = field(default_factory=dict)
+    data: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
         n = len(self.xyxy)
