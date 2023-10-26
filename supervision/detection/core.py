@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import astuple, dataclass, field
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
+import warnings
 import numpy as np
 
 from supervision.detection.utils import (
@@ -67,7 +68,7 @@ def _validate_tracker_id(tracker_id: Any, n: int) -> None:
         raise ValueError("tracker_id must be None or 1d np.ndarray with (n,) shape")
 
 
-def _validate_data_payload(data_payload: Dict[str, np.ndarray], n: int) -> None:
+def _validate_data(data_payload: Dict[str, np.ndarray], n: int) -> None:
     for key, value in data_payload.items():
         _validate_array(value, n, f"array in data payload - ({key})")
 
@@ -105,7 +106,7 @@ class Detections:
         _validate_class_id(class_id=self.class_id, n=n)
         _validate_confidence(confidence=self.confidence, n=n)
         _validate_tracker_id(tracker_id=self.tracker_id, n=n)
-        _validate_data_payload(data_payload=self.data, n=n)
+        _validate_data(data_payload=self.data, n=n)
 
     def __len__(self):
         """
@@ -627,19 +628,19 @@ class Detections:
         class_id = np.hstack(class_id) if __all_not_none(class_id) else None
         tracker_id = np.hstack(tracker_id) if __all_not_none(tracker_id) else None
 
-        # Extract all unique keys from the data_list
-        all_keys = set().union(*(d.keys() for d in data_list))
-
-        merged_data = {}
-        for key in all_keys:
-            # Get arrays from all detections that contain the current key
-            arrays_to_merge = [
-                d[key] for d in data_list if key in d and d[key] is not None
-            ]
-            if arrays_to_merge:
-                merged_data[key] = np.concatenate(arrays_to_merge, axis=0)
-            else:
-                merged_data[key] = None
+        keys_list = [set(d.keys()) for d in data_list]
+        if all(k == keys_list[0] for k in keys_list):
+            merged_data = {}
+            for key in keys_list[0]:  
+                arrays_to_merge = [
+                    d[key] for d in data_list if d[key] is not None
+                ]
+                if arrays_to_merge:
+                    merged_data[key] = np.concatenate(arrays_to_merge, axis=0)
+                else:
+                    merged_data[key] = None
+        else:
+            warnings.warn("All data payload dictionaries in Detections object do not have the same keys!")
 
         return cls(
             xyxy=xyxy,
@@ -742,7 +743,6 @@ class Detections:
         """
         if isinstance(index, int):
             index = [index]
-        # Indexing the custom data dictionary
         data_subset = {key: value[index] for key, value in self.data.items()}
         return Detections(
             xyxy=self.xyxy[index],
