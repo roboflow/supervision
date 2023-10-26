@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import warnings
 from dataclasses import astuple, dataclass, field
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
-import warnings
 import numpy as np
 
 from supervision.detection.utils import (
@@ -631,16 +631,16 @@ class Detections:
         keys_list = [set(d.keys()) for d in data_list]
         if all(k == keys_list[0] for k in keys_list):
             merged_data = {}
-            for key in keys_list[0]:  
-                arrays_to_merge = [
-                    d[key] for d in data_list if d[key] is not None
-                ]
+            for key in keys_list[0]:
+                arrays_to_merge = [d[key] for d in data_list if d[key] is not None]
                 if arrays_to_merge:
                     merged_data[key] = np.concatenate(arrays_to_merge, axis=0)
                 else:
                     merged_data[key] = None
         else:
-            warnings.warn("All data payload dictionaries in Detections object do not have the same keys!")
+            warnings.warn(
+                "All data payload dictionaries in Detections object do not have the same keys!"
+            )
 
         return cls(
             xyxy=xyxy,
