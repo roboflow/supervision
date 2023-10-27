@@ -1,68 +1,183 @@
-## How To: Track Objects
-This is a tutorial to track object in a video using [ByteTrack](https://supervision.roboflow.com/trackers/#supervision.tracker.byte_tracker.core.ByteTrack).
-### What is Tracking?
-Tracking is an essential application of computer vision, which is used in mainly in videos or set of images which contain a sequence of events(the set of images could be simply frames of a video). It takes an initial set of detections from a video as per the requirement of the project, provides some unique identification to the detections and tracks as the position changes with time in a video. Supervision provides some powerful tools to track object in videos. This tutorial would cover how to make detections in a video, track those detections and then label them for unique identification using Supervision. Further, it would also cover how to trace the path covered by the detections.
-Before proceeding remember to install Supervision:
-```
-pip install supervision
-```
-and import it:
-```
-import supervision as sv
-```
-### Step 1:Building a detection pipeline for videos
-First to track objects we need to load the data and make it usable. We are going to do it by generating the frames from the video and using an object detection model, using [sv.get_video_frames_generator()](https://supervision.roboflow.com/utils/video/#get_video_frames_generator). In this tutorial we are going to do it using YOLOv8.
-First install ultralytics, import it and initialize the frame_generator.
-```
-pip install ultralytics
-```
-```
-from ultralytics import YOLO
-model = YOLO(...)
-frame_generator = sv.get_video_frames_generator(source_path=source_video_path)
-```
-Replace '...' with the path of v8 model
-### Step 2:Tracking the detections
-To track the detections we are going to use [ByteTrack](https://supervision.roboflow.com/trackers/#supervision.tracker.byte_tracker.core.ByteTrack). Further, the detections in each frame are going tbe passed into [sv.Detections.from_ultralytics()](https://supervision.roboflow.com/detection/core/), whose output would be passed on to ByteTrack.
-```
-tracker = sv.ByteTrack()
+Utilize Supervision to elevate your video analysis capabilities by effortlessly 
+[tracking](https://supervision.roboflow.com/trackers/) objects identified by various 
+object detection and segmentation models. This guide will walk you through the process 
+of running inference using the [Ultralytics](https://github.com/ultralytics/ultralytics)
+YOLOv8 model, subsequently tracking these objects, and annotating the video.
 
-for frame in frame_generator:
+To make it easier for you to follow our tutorial download the video we will use as an 
+example. You can do this using 
+[`supervision[assets]`](https://supervision.roboflow.com/assets/) extension.
+
+```python
+from supervision.assets import download_assets, VideoAssets
+
+download_assets(VideoAssets.PEOPLE_WALKING)
+```
+
+<video controls>
+    <source src="https://media.roboflow.com/supervision/video-examples/people-walking.mp4" type="video/mp4">
+</video>
+
+## Run Inference
+
+First, you'll need to obtain predictions from your object detection or segmentation 
+model. In this tutorial, we are using the YOLOv8 model as an example. However, 
+Supervision is versatile and compatible with various models. Check this 
+[link](https://supervision.roboflow.com/how_to/detect_and_annotate/#load-predictions-into-supervision) 
+for guidance on how to plug in other models.
+
+We will define a `callback` function, which will process each frame of the video
+by obtaining model predictions and then annotating the frame based on these predictions.
+This `callback` function will be essential in the subsequent steps of the tutorial, as 
+it will be modified to include tracking, labeling, and trace annotations.
+
+```{ .py }
+import numpy as np
+import supervision as sv
+from ultralytics import YOLO
+
+model = YOLO("yolov8n.pt")
+box_annotator = sv.BoundingBoxAnnotator()
+
+def callback(frame: np.ndarray, _: int) -> np.ndarray:
+    results = model(frame)[0]
+    detections = sv.Detections.from_ultralytics(results)
+    return box_annotator.annotate(frame.copy(), detections=detections)
+
+sv.process_video(
+    source_path="people-walking.mp4",
+    target_path="result.mp4",
+    callback=callback
+)
+```
+
+<video controls>
+    <source src="https://media.roboflow.com/supervision/video-examples/how-to/track-objects/run-inference.mp4" type="video/mp4">
+</video>
+
+## Tracking
+
+After running inference and obtaining predictions, the next step is to track the 
+detected objects throughout the video. Utilizing Supervision’s 
+[`sv.ByteTrack`](https://supervision.roboflow.com/trackers/#supervision.tracker.byte_tracker.core.ByteTrack) 
+functionality, each detected object is assigned a unique tracker ID, 
+enabling the continuous following of the object's motion path across different frames.
+
+```{ .py hl_lines="6 12" }
+import numpy as np
+import supervision as sv
+from ultralytics import YOLO
+
+model = YOLO("yolov8n.pt")
+tracker = sv.ByteTrack()
+box_annotator = sv.BoundingBoxAnnotator()
+
+def callback(frame: np.ndarray, _: int) -> np.ndarray:
     results = model(frame)[0]
     detections = sv.Detections.from_ultralytics(results)
     detections = tracker.update_with_detections(detections)
-```
-### Step 3:Label the detections being tracked
-The objects being tracked can be annotated with any [annotator provided by supervision](https://supervision.roboflow.com/annotators/#labelannotator). But, we are going to use label annotator and label the object being tracked with their tracking ids.
-```
-label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER)
+    return box_annotator.annotate(frame.copy(), detections=detections)
 
-```
-### Step 4:Tracing the path of the detections
-Further, the path of the tracked objects can be traced using [TraceAnnotator](https://supervision.roboflow.com/annotators/#traceannotator) of supervision. To use tracce annotator ensure that the same detections remain in all the frames of the video.
+sv.process_video(
+    source_path="people-walking.mp4",
+    target_path="result.mp4",
+    callback=callback
+)
 ```
 
-label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER)
-trace_annotator = sv.TraceAnnotator()
-```
-### Step 5:Integrating the previous steps and processing the video
-At the end, we want to see the output on our video. In order to do that, we'll be passing the annotations from previous iterations into a callback to be used by [sv.process_video](https://supervision.roboflow.com/utils/video/#process_video).
-```
+## Annotate Video with Tracking IDs
+
+Annotating the video with tracking IDs helps in distinguishing and following each object
+distinctly. With the 
+[`sv.LabelAnnotator`](https://supervision.roboflow.com/annotators/#supervision.annotators.core.LabelAnnotator) 
+in Supervision, we can overlay the tracker IDs and class labels on the detected objects,
+offering a clear visual representation of each object's class and unique identifier.
+
+```{ .py hl_lines="8 15-19 23-24" }
+import numpy as np
+import supervision as sv
 from ultralytics import YOLO
-model = YOLO(...) ##We  YOLO('yolov8n.pt')
-frame_generator = sv.get_video_frames_generator(source_path=source_video_path)
+
+model = YOLO("yolov8n.pt")
 tracker = sv.ByteTrack()
-label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER)
-trace_annotator = sv.TraceAnnotator()
-def callback(frame: np.ndarray, index: int) -> np.ndarray:
-  results = model(frame)[0]
-  detections = sv.Detections.from_ultralytics(results)
-  detections = tracker.update_with_detections(detections)
-  labels = f"{detections.tracker_id}"
-  label_annotator.annotate(scene=frame, detections=detections, labels=labels)
-  return trace_annotator.annotate(scene=frame, detections=detections)
-sv.process_video(source_path=VIDEO_PATH, target_path=f"result.mp4", callback=process_frame)
+box_annotator = sv.BoundingBoxAnnotator()
+label_annotator = sv.LabelAnnotator()
+
+def callback(frame: np.ndarray, _: int) -> np.ndarray:
+    results = model(frame)[0]
+    detections = sv.Detections.from_ultralytics(results)
+    detections = tracker.update_with_detections(detections)
+    
+    labels = [
+        f"#{tracker_id} {results.names[class_id]}"
+        for class_id, tracker_id
+        in zip(detections.class_id, detections.tracker_id)
+    ]
+    
+    annotated_frame = box_annotator.annotate(
+        frame.copy(), detections=detections)
+    return label_annotator.annotate(
+        annotated_frame, detections=detections, labels=labels)
+
+sv.process_video(
+    source_path="people-walking.mp4",
+    target_path="result.mp4",
+    callback=callback
+)
 ```
-Check out this [video](https://drive.google.com/file/d/10xaHXz9rpdXkaRni9YzOihhF3S7-Zs4p/view?usp=sharing) to see the end results.
-### Conclusion and further ideas
-This brings us to the end of the tutorial. The users are strongly encouraged to try out other models for detection and play around with annotators. Check out this [post](https://blog.roboflow.com/yolov8-tracking-and-counting/#object-tracking-with-bytetrack)("Piotr Skalski." Roboflow Blog, Feb 1, 2023. https://blog.roboflow.com/yolov8-tracking-and-counting/) for some more cool stuff. The post was quite useful creation of this tutorial.
+
+<video controls>
+    <source src="https://media.roboflow.com/supervision/video-examples/how-to/track-objects/annotate-video-with-tracking-ids.mp4" type="video/mp4">
+</video>
+
+## Annotate Video with Traces
+
+Adding traces to the video involves overlaying the historical paths of the detected 
+objects. This feature, powered by the 
+[`sv.TraceAnnotator`](https://supervision.roboflow.com/annotators/#supervision.annotators.core.TraceAnnotator),
+allows for visualizing the trajectories of objects, helping in understanding the 
+movement patterns and interactions between objects in the video.
+
+```{ .py hl_lines="9 26-27" }
+import numpy as np
+import supervision as sv
+from ultralytics import YOLO
+
+model = YOLO("yolov8n.pt")
+tracker = sv.ByteTrack()
+box_annotator = sv.BoundingBoxAnnotator()
+label_annotator = sv.LabelAnnotator()
+trace_annotator = sv.TraceAnnotator()
+
+def callback(frame: np.ndarray, _: int) -> np.ndarray:
+    results = model(frame)[0]
+    detections = sv.Detections.from_ultralytics(results)
+    detections = tracker.update_with_detections(detections)
+    
+    labels = [
+        f"#{tracker_id} {results.names[class_id]}"
+        for class_id, tracker_id
+        in zip(detections.class_id, detections.tracker_id)
+    ]
+    
+    annotated_frame = box_annotator.annotate(
+        frame.copy(), detections=detections)
+    annotated_frame = label_annotator.annotate(
+        annotated_frame, detections=detections, labels=labels)
+    return trace_annotator.annotate(
+        annotated_frame, detections=detections)
+
+sv.process_video(
+    source_path="people-walking.mp4",
+    target_path="result.mp4",
+    callback=callback
+)
+```
+
+<video controls>
+    <source src="https://media.roboflow.com/supervision/video-examples/how-to/track-objects/annotate-video-with-traces.mp4" type="video/mp4">
+</video>
+
+This structured walkthrough should give a detailed pathway to annotate videos 
+effectively using Supervision’s various functionalities, including object tracking and 
+trace annotations.
