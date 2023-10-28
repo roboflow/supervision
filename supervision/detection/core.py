@@ -6,7 +6,15 @@ from typing import Any, Iterator, List, Optional, Tuple, Union
 import numpy as np
 
 from supervision.detection.utils import (
+    batched_greedy_nmm,
+    box_iou_batch,
     extract_ultralytics_masks,
+    get_merged_bbox,
+    get_merged_class_id,
+    get_merged_confidence,
+    get_merged_mask,
+    get_merged_tracker_id,
+    greedy_nmm,
     non_max_suppression,
     process_roboflow_result,
     xywh_to_xyxy,
@@ -57,6 +65,27 @@ def _validate_tracker_id(tracker_id: Any, n: int) -> None:
     )
     if not is_valid:
         raise ValueError("tracker_id must be None or 1d np.ndarray with (n,) shape")
+
+
+def _merge_object_detection_pair(pred1: Detections, pred2: Detections) -> Detections:
+    merged_bbox = get_merged_bbox(pred1.xyxy, pred2.xyxy)
+    merged_conf = get_merged_confidence(pred1.confidence, pred2.confidence)
+    merged_class_id = get_merged_class_id(pred1.class_id, pred2.class_id)
+    merged_tracker_id = None
+    merged_mask = None
+
+    if pred1.mask and pred2.mask:
+        merged_mask = get_merged_mask(pred1.mask, pred2.mask)
+    if pred1.tracker_id and pred2.tracker_id:
+        merged_tracker_id = get_merged_tracker_id(pred1.tracker_id, pred2.tracker_id)
+
+    return Detections(
+        xyxy=merged_bbox,
+        mask=merged_mask,
+        confidence=merged_conf,
+        class_id=merged_class_id,
+        tracker_id=merged_tracker_id,
+    )
 
 
 @dataclass
@@ -660,6 +689,38 @@ class Detections:
 
         raise ValueError(f"{anchor} is not supported.")
 
+    def __setitem__(
+        self, index: Union[int, slice, List[int], np.ndarray], value: Detections
+    ) -> None:
+        """
+        Set a subset of the Detections object.
+
+        Args:
+            index (Union[int, slice, List[int], np.ndarray]):
+                The index or indices of the subset of the Detections
+            value (Detections): The new value of the subset of the Detections
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> detections = sv.Detections(...)
+
+            >>> detections[0] = sv.Detections(...)
+            ```
+        """
+        if isinstance(index, int):
+            index = [index]
+        self.xyxy[index] = value.xyxy
+        if self.mask is not None:
+            self.mask[index] = value.mask
+        if self.confidence is not None:
+            self.confidence[index] = value.confidence
+        if self.class_id is not None:
+            self.class_id[index] = value.class_id
+        if self.tracker_id is not None:
+            self.tracker_id[index] = value.tracker_id
+
     def __getitem__(
         self, index: Union[int, slice, List[int], np.ndarray]
     ) -> Detections:
@@ -728,6 +789,64 @@ class Detections:
                 where n is the number of detections.
         """
         return (self.xyxy[:, 3] - self.xyxy[:, 1]) * (self.xyxy[:, 2] - self.xyxy[:, 0])
+
+    def with_nmm(
+        self, threshold: float = 0.5, class_agnostic: bool = False
+    ) -> Detections:
+        """
+        Perform non-maximum merging on the current set of object detections.
+
+        Args:
+            threshold (float, optional): The intersection-over-union threshold
+                to use for non-maximum merging. Defaults to 0.5.
+            class_agnostic (bool, optional): Whether to perform class-agnostic
+                non-maximum merging. If True, the class_id of each detection
+                will be ignored. Defaults to False.
+
+        Returns:
+            Detections: A new Detections object containing the subset of detections
+                after non-maximum merging.
+
+        Raises:
+            AssertionError: If `confidence` is None and class_agnostic is False.
+                If `class_id` is None and class_agnostic is False.
+        """
+        if len(self) == 0:
+            return self
+
+        assert 0.0 <= threshold <= 1.0, "Threshold must be between 0 and 1."
+
+        assert (
+            self.confidence is not None
+        ), "Detections confidence must be given for NMM to be executed."
+
+        if class_agnostic:
+            predictions = np.hstack((self.xyxy, self.confidence.reshape(-1, 1)))
+            keep_to_merge_list = greedy_nmm(predictions, threshold)
+        else:
+            predictions = np.hstack(
+                (
+                    self.xyxy,
+                    self.confidence.reshape(-1, 1),
+                    self.class_id.reshape(-1, 1),
+                )
+            )
+            keep_to_merge_list = batched_greedy_nmm(predictions, threshold)
+
+        result = []
+
+        for keep_ind, merge_ind_list in keep_to_merge_list.items():
+            for merge_ind in merge_ind_list:
+                if (
+                    box_iou_batch(self[keep_ind].xyxy, self[merge_ind].xyxy).item()
+                    > threshold
+                ):
+                    self[keep_ind] = _merge_object_detection_pair(
+                        self[keep_ind], self[merge_ind]
+                    )
+            result.append(self[keep_ind])
+
+        return Detections.merge(result)
 
     def with_nms(
         self, threshold: float = 0.5, class_agnostic: bool = False
