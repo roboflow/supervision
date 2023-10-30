@@ -7,4 +7,4 @@ document.addEventListener("DOMContentLoaded", function () {
     script.setAttribute("data-project-logo", "https:/media.roboflow.com/chat.png");
     script.async = true;
     document.head.appendChild(script);
-});  
+});
