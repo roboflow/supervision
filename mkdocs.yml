@@ -94,3 +94,7 @@ markdown_extensions:
       alternate_style: true
   - toc:
       permalink: true
+
+extra_javascript:
+  - "https://widget.kapa.ai/kapa-widget.bundle.js"
+  - "javascript/init_kapa_widget.js"
