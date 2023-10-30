@@ -892,7 +892,7 @@ class BlurAnnotator(BaseAnnotator):
         supervision-annotator-examples/blur-annotator-example-purple.png)
         """
         for detection_idx in range(len(detections)):
-            x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
+            x1, y1, x2, y2 = np.maximum(detections.xyxy[detection_idx].astype(int),0)
             roi = scene[y1:y2, x1:x2]
 
             roi = cv2.blur(roi, (self.kernel_size, self.kernel_size))
