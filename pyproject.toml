@@ -54,7 +54,7 @@ assets = ["requests","tqdm"]
 [tool.poetry.group.dev.dependencies]
 twine = "^4.0.2"
 pytest = "^7.2.2"
-wheel = "^0.40.0"
+wheel = ">=0.40,<0.42"
 notebook = "^6.5.3"
 build = ">=0.10,<1.1"
 ruff = ">=0.0.280,<0.1.3"
