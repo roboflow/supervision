@@ -1,5 +1,5 @@
-With Supervision, you can load and manipulate classification, object detection, and 
-segmentation datasets. This tutorial will walk you through how to load, split, merge, 
+With Supervision, you can load and manipulate classification, object detection, and
+segmentation datasets. This tutorial will walk you through how to load, split, merge,
 and visualize datasets in Supervision.
 
 ## Download Dataset
@@ -71,7 +71,7 @@ TODO
 
 >>> train_ds, test_ds = ds.split(
 ...     split_ratio=0.7,
-...     random_state=42, 
+...     random_state=42,
 ...     shuffle=True
 ... )
 ```
