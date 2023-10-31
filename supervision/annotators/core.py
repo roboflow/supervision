@@ -894,8 +894,8 @@ class BlurAnnotator(BaseAnnotator):
         """
         image_height, image_width = scene.shape[:2]
         clipped_xyxy = clip_boxes(
-            xyxy=detections.xyxy,
-            resolution_wh=(image_width, image_height)).astype(int)
+            xyxy=detections.xyxy, resolution_wh=(image_width, image_height)
+        ).astype(int)
 
         for x1, y1, x2, y2 in clipped_xyxy:
             roi = scene[y1:y2, x1:x2]
