@@ -7,6 +7,7 @@ import numpy as np
 from supervision.annotators.base import BaseAnnotator
 from supervision.annotators.utils import ColorLookup, Trace, resolve_color
 from supervision.detection.core import Detections
+from supervision.detection.utils import clip_boxes
 from supervision.draw.color import Color, ColorPalette
 from supervision.geometry.core import Position
 
@@ -891,10 +892,13 @@ class BlurAnnotator(BaseAnnotator):
         ![blur-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/blur-annotator-example-purple.png)
         """
-        for detection_idx in range(len(detections)):
-            x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
-            roi = scene[y1:y2, x1:x2]
+        image_height, image_width = scene.shape[:2]
+        clipped_xyxy = clip_boxes(
+            xyxy=detections.xyxy, resolution_wh=(image_width, image_height)
+        ).astype(int)
 
+        for x1, y1, x2, y2 in clipped_xyxy:
+            roi = scene[y1:y2, x1:x2]
             roi = cv2.blur(roi, (self.kernel_size, self.kernel_size))
             scene[y1:y2, x1:x2] = roi
 
