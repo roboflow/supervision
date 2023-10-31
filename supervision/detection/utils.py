@@ -110,17 +110,15 @@ def non_max_suppression(
     return keep[sort_index.argsort()]
 
 
-def clip_boxes(
-    boxes_xyxy: np.ndarray, frame_resolution_wh: Tuple[int, int]
-) -> np.ndarray:
+def clip_boxes(xyxy: np.ndarray, resolution_wh: Tuple[int, int]) -> np.ndarray:
     """
     Clips bounding boxes coordinates to fit within the frame resolution.
 
     Args:
-        boxes_xyxy (np.ndarray): A numpy array of shape `(N, 4)` where each
+        xyxy (np.ndarray): A numpy array of shape `(N, 4)` where each
             row corresponds to a bounding box in
         the format `(x_min, y_min, x_max, y_max)`.
-        frame_resolution_wh (Tuple[int, int]): A tuple of the form `(width, height)`
+        resolution_wh (Tuple[int, int]): A tuple of the form `(width, height)`
             representing the resolution of the frame.
 
     Returns:
@@ -128,8 +126,8 @@ def clip_boxes(
             corresponds to a bounding box with coordinates clipped to fit
             within the frame resolution.
     """
-    result = np.copy(boxes_xyxy)
-    width, height = frame_resolution_wh
+    result = np.copy(xyxy)
+    width, height = resolution_wh
     result[:, [0, 2]] = result[:, [0, 2]].clip(0, width)
     result[:, [1, 3]] = result[:, [1, 3]].clip(0, height)
     return result

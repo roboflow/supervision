@@ -122,7 +122,7 @@ def test_non_max_suppression(
 
 
 @pytest.mark.parametrize(
-    "boxes_xyxy, frame_resolution_wh, expected_result",
+    "xyxy, resolution_wh, expected_result",
     [
         (
             np.empty(shape=(0, 4)),
@@ -157,11 +157,11 @@ def test_non_max_suppression(
     ],
 )
 def test_clip_boxes(
-    boxes_xyxy: np.ndarray,
-    frame_resolution_wh: Tuple[int, int],
+    xyxy: np.ndarray,
+    resolution_wh: Tuple[int, int],
     expected_result: np.ndarray,
 ) -> None:
-    result = clip_boxes(boxes_xyxy=boxes_xyxy, frame_resolution_wh=frame_resolution_wh)
+    result = clip_boxes(xyxy=xyxy, resolution_wh=resolution_wh)
     assert np.array_equal(result, expected_result)
 
 

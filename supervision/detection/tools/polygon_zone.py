@@ -56,7 +56,7 @@ class PolygonZone:
         """
 
         clipped_xyxy = clip_boxes(
-            boxes_xyxy=detections.xyxy, frame_resolution_wh=self.frame_resolution_wh
+            xyxy=detections.xyxy, resolution_wh=self.frame_resolution_wh
         )
         clipped_detections = replace(detections, xyxy=clipped_xyxy)
         clipped_anchors = np.ceil(
