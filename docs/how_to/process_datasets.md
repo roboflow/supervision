@@ -1,3 +1,110 @@
+With Supervision, you can load and manipulate classification, object detection, and 
+segmentation datasets. This tutorial will walk you through how to load, split, merge, 
+and visualize datasets in Supervision.
+
+## Download Dataset
+
+TODO
+
+```bash
+pip install roboflow
+```
+
+TODO
+
+```python
+>>> import roboflow
+
+>>> roboflow.login()
+
+>>> rf = roboflow.Roboflow()
+>>> project = rf.workspace(WORKSPACE_ID).project(PROJECT_ID)
+>>> dataset = project.version(PROJECT_VERSION).download("coco")
+```
+
+## Load Dataset
+
+- [`DetectionDataset.from_coco`](https://supervision.roboflow.com/datasets/#supervision.dataset.core.DetectionDataset.from_coco) ([COCO](https://roboflow.com/formats/coco-json))
+- [`DetectionDataset.from_yolo`](https://supervision.roboflow.com/datasets/#supervision.dataset.core.DetectionDataset.from_yolo) ([YOLO](https://roboflow.com/formats/yolov8-pytorch-txt))
+- [`DetectionDataset.from_pascal`](https://supervision.roboflow.com/datasets/#supervision.dataset.core.DetectionDataset.from_pascal) ([Pascal](https://roboflow.com/formats/pascal-voc-xml))
+
+TODO
+
+```python
+>>> import supervision as sv
+
+>>> ds = sv.DetectionDataset.from_coco(
+...     images_directory_path=f"{dataset.location}/train",
+...     annotations_path=f"{dataset.location}/train/_annotations.coco.json",
+... )
+
+>>> ds.classes
+['dog', 'person']
+```
+
+## Visualize Dataset
+
+TODO
+
+```python
+>>> import supervision as sv
+```
+
+## Save Dataset
+
+- [`DetectionDataset.as_coco`](https://supervision.roboflow.com/datasets/#supervision.dataset.core.DetectionDataset.as_coco)
+- [`DetectionDataset.as_yolo`](https://supervision.roboflow.com/datasets/#supervision.dataset.core.DetectionDataset.as_yolo)
+- [`DetectionDataset.as_pascal`](https://supervision.roboflow.com/datasets/#supervision.dataset.core.DetectionDataset.as_pascal)
+
+TODO
+
+```python
+>>> import supervision as sv
+```
+
+## Split Dataset
+
+TODO
+
+```python
+>>> import supervision as sv
+
+>>> train_ds, test_ds = ds.split(
+...     split_ratio=0.7,
+...     random_state=42, 
+...     shuffle=True
+... )
+```
+
+## Merge Dataset
+
+TODO
+
+```python
+>>> import supervision as sv
+```
+
+## Classification Dataset
+
+TODO
+
+```python
+>>> import roboflow
+>>> import supervision as sv
+
+>>> roboflow.login()
+
+>>> rf = roboflow.Roboflow()
+>>> project = rf.workspace(WORKSPACE_ID).project(PROJECT_ID)
+>>> dataset = project.version(PROJECT_VERSION).download("folder")
+
+>>> cd = sv.ClassificationDataset.from_folder_structure(
+...     root_directory_path=f"{dataset.location}/train"
+... )
+```
+
+---
+
 supervision enables you to both process detections from a model and datasets. Dataset processing is implemented in the `sv.DetectionDataset` (object detection and segmentation) and `sv.ClassificationDataset` (classification) APIs.
 
 The supervision `sv.DetectionDataset` and `sv.ClassificationDataset` APIs enables you to:
