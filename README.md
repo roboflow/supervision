@@ -38,10 +38,10 @@ Pip install the supervision package in a
 [**3.11>=Python>=3.8**](https://www.python.org/) environment.
 
 ```bash
-pip install supervision[desktop]
+pip install supervision
 ```
 
-Read more about desktop, headless, and local installation in our [guide](https://roboflow.github.io/supervision/).
+Read more about installation in our [guide](https://roboflow.github.io/supervision/).
 
 ## 🔥 quickstart
 
