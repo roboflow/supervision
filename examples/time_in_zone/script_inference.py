@@ -1,9 +1,11 @@
+import sys
+sys.path.append('/Users/skalskip/Documents/work/inference/')
+
 import argparse
 from typing import Optional, List, Tuple, Dict
 
 import cv2
 import numpy as np
-from inference.core.env import API_KEY
 from inference.models.utils import get_roboflow_model
 from tqdm import tqdm
 
@@ -67,7 +69,7 @@ def initiate_timers(count: int, fps: int) -> List[Timer]:
 class VideoProcessor:
     def __init__(
         self,
-        source_weights_path: str,
+        model_id: str,
         source_video_path: str,
         target_video_path: str = None,
         confidence_threshold: float = 0.3,
@@ -78,8 +80,7 @@ class VideoProcessor:
         self.source_video_path = source_video_path
         self.target_video_path = target_video_path
 
-        self.model = get_roboflow_model(
-            model_id="coco/3", api_key=API_KEY)
+        self.model = get_roboflow_model(model_id=model_id)
 
         self.tracker = sv.ByteTrack()
         self.video_info = sv.VideoInfo.from_video_path(source_video_path)
@@ -99,7 +100,6 @@ class VideoProcessor:
         self.custom_color_lookup = Optional[np.ndarray]
 
     def process_video(self):
-        print(self.video_info)
         if self.target_video_path:
             with sv.VideoSink(self.target_video_path, self.video_info) as sink:
                 for frame in self.frame_generator:
@@ -117,7 +117,6 @@ class VideoProcessor:
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         result = self.model.infer(
             frame_rgb, confidence=self.conf_threshold, iou_threshold=self.iou_threshold)[0]
-        # result = self.model.make_response(predictions,img_dims)
         result = np.array(result)
         if len(result) == 0:
             detections = sv.Detections.empty()
@@ -127,8 +126,6 @@ class VideoProcessor:
                 confidence=result[:, 4],
                 class_id=result[:, 6].astype(int),
             )
-
-        # detections = sv.Detections.from_ultralytics(result)
         detections = detections[detections.class_id == 0]
         detections = self.tracker.update_with_detections(detections=detections)
 
@@ -171,9 +168,9 @@ if __name__ == "__main__":
         description="Time in Zone Analysis with YOLO and ByteTrack"
     )
     parser.add_argument(
-        "--source_weights_path",
-        default="yolov8x.pt",
-        help="Path to the source weights file",
+        "--model_id",
+        default="coco/5",
+        help="Model ID from Roboflow Universe",
         type=str,
     )
     parser.add_argument(
@@ -200,7 +197,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     processor = VideoProcessor(
-        source_weights_path=args.source_weights_path,
+        model_id=args.model_id,
         source_video_path=args.source_video_path,
         target_video_path=args.target_video_path,
         confidence_threshold=args.confidence_threshold,
