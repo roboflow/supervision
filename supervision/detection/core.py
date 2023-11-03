@@ -487,7 +487,8 @@ class Detections:
     def from_rekognition_detectlabels(cls, rekognition_det) -> Detections:
         """
         Creates a Detections instance from
-            [AWS Rekognition DetectLabels](https://docs.aws.amazon.com/rekognition/latest/dg/labels-detect-labels-image.html)
+            AWS Rekognition DetectLabels
+            (https://docs.aws.amazon.com/rekognition/latest/dg/labels-detect-labels-image.html)
             inference result.
 
         Args:
