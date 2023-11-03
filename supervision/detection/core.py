@@ -482,6 +482,70 @@ class Detections:
 
         xyxy = xywh_to_xyxy(boxes_xywh=xywh)
         return cls(xyxy=xyxy, mask=mask)
+    
+    @classmethod
+    def from_rekognition(cls, rekognition_det) -> Detections:
+        """
+        Creates a Detections instance from
+            [AWS Rekognition DetectLabels](https://docs.aws.amazon.com/rekognition/latest/dg/labels-detect-labels-image.html)
+            inference result.
+
+        Args:
+            rekognition_det (List[dict]): The output from AWS Rekognition DetectLabels
+
+        Returns:
+            Detections: A new Detections object.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+            >>> import boto3
+            >>> from PIL import Image
+
+            >>> session = boto3.Session()
+            >>> client = self.session.client("rekognition")
+
+            >>> with Image.open(input) as image:
+            >>>    buffered = io.BytesIO()
+            >>>    image.save(buffered, format=image.format)
+            >>>    image_bytes = buffered.getvalue()
+
+            >>> response = client.detect_labels(Image={"Bytes": image_bytes})
+
+            >>> detections = sv.Detections.from_rekognition(response)
+            ```
+        """
+
+        xyxys, confidences, class_ids = [], [], {}
+
+        for label in rekognition_det["Labels"]:
+            if len(label["Instances"]) == 0:
+                continue
+
+            for box in label["Instances"]:
+                x0 = box["BoundingBox"]["Left"]
+                y0 = box["BoundingBox"]["Top"]
+                x1 = x0 + box["BoundingBox"]["Width"]
+                y1 = y0 + box["BoundingBox"]["Height"]
+                xyxys.append([x0, y0, x1, y1])
+
+                confidences.append(box["Confidence"])
+
+                label_name = label["Name"]
+
+                if class_ids.get(label_name) is None:
+                    class_ids[label_name] = len(class_ids)
+
+                class_ids.append(class_ids[label_name])
+
+        if len(xyxys) == 0:
+            return cls.empty()
+
+        return Detections(
+            xyxy=np.array(xyxys),
+            class_id=np.array(class_ids),
+            confidence=np.array(confidences),
+        )
 
     @classmethod
     def from_paddledet(cls, paddledet_result) -> Detections:
