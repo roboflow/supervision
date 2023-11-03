@@ -482,7 +482,7 @@ class Detections:
 
         xyxy = xywh_to_xyxy(boxes_xywh=xywh)
         return cls(xyxy=xyxy, mask=mask)
-    
+
     @classmethod
     def from_rekognition_detectlabels(cls, rekognition_det) -> Detections:
         """
