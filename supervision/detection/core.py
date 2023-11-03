@@ -502,13 +502,17 @@ class Detections:
             >>> image = open(input, "rb").read()
 
             >>> endpoint = "https://.cognitiveservices.azure.com/"
+            >>> subscription_key = "..."
 
-            >>> self.headers = {
+            >>> headers = {
             ...    "Content-Type": "application/octet-stream",
-            ...    "Ocp-Apim-Subscription-Key": self.subscription_key,
+            ...    "Ocp-Apim-Subscription-Key": subscription_key
             ... }
 
-            >>> response = requests.post(endpoint, headers=self.headers, data=image).json()
+            >>> response = requests.post(endpoint,
+            ...     headers=self.headers,
+            ...     data=image
+            ... ).json()
 
             >>> detections = sv.Detections.from_azure_analyze_image(response)
         """
