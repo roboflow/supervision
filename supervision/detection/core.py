@@ -484,6 +484,68 @@ class Detections:
         return cls(xyxy=xyxy, mask=mask)
 
     @classmethod
+    def from_azure_analyze_image(cls, azure_result: dict) -> Detections:
+        """
+        Creates a Detections instance from Azure Image Analysis 4.0
+        (https://learn.microsoft.com/en-us/azure/ai-services/computer-vision/concept-object-detection-40)
+
+        Args:
+            azure_result (dict): The output Results instance from Azure Image Analysis
+
+        Returns:
+            Detections: A new Detections object.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+            >>> import requests
+            >>> image = open(input, "rb").read()
+
+            >>> endpoint = "https://.cognitiveservices.azure.com/"
+
+            >>> self.headers = {
+            ...    "Content-Type": "application/octet-stream",
+            ...    "Ocp-Apim-Subscription-Key": self.subscription_key,
+            ... }
+
+            >>> response = requests.post(endpoint, headers=self.headers, data=image).json()
+
+            >>> detections = sv.Detections.from_azure_analyze_image(response)
+        """
+
+        xyxys, confidences, class_ids = [], [], {}
+
+        for detection in azure_result["objectsResult"]["values"]:
+            bbox = detection["boundingBox"]
+
+            tags = detection["tags"]
+
+            x0 = bbox["x"]
+            y0 = bbox["y"]
+            x1 = x0 + bbox["w"]
+            y1 = y0 + bbox["h"]
+
+            for tag in tags:
+                xyxys.append([x0, y0, x1, y1])
+                confidences.append(tag["confidence"])
+
+                class_name = tag["name"]
+
+                if class_name not in class_ids:
+                    class_ids[class_name] = len(class_ids)
+
+                class_ids.append(class_ids[class_name])
+
+        if len(xyxys) == 0:
+            return Detections.empty()
+
+        return cls(
+            xyxy=np.array(xyxys),
+            class_id=np.array(class_ids),
+            confidence=np.array(confidences),
+        )
+
+    @classmethod
     def from_paddledet(cls, paddledet_result) -> Detections:
         """
         Creates a Detections instance from
