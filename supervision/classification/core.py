@@ -69,6 +69,47 @@ class Classifications:
         confidence = ultralytics_results.probs.data.cpu().numpy()
         return cls(class_id=np.arange(confidence.shape[0]), confidence=confidence)
 
+    @classmethod
+    def from_timm(cls, timm_results) -> Classifications:
+        """
+        Creates a Classifications instance from a
+        timm (https://huggingface.co/docs/hub/timm) model.
+
+        Args:
+            timm: The output Results instance from timm model
+
+        Returns:
+            Classifications: A new Classifications object.
+
+        Example:
+            ```python
+            >>> import timm
+            >>> from PIL import Image
+            >>> from timm.data import resolve_data_config
+            >>> from timm.data.transforms_factory import create_transform
+
+            >>> model = timm.create_model('hf-hub:nateraw/resnet50-oxford-iiit-pet', pretrained=True)
+            >>> model.eval()
+
+            >>> config = resolve_data_config({}, model=model)
+            >>> transform = create_transform(**config)
+
+            >>> image = Image.open('../image.jpg').convert('RGB')
+            >>> x = transform(image).unsqueeze(0)
+
+            >>> output = model(x)
+
+            >>> predictions = sv.Classifications.from_timm(output)
+            ```
+        """
+        confidence = timm_results.data.cpu().numpy()[0]
+        class_ids = list(range(len(confidence)))
+
+        if len(class_ids) == 0:
+            return cls(class_id=np.array([]), confidence=np.array([]))
+
+        return cls(class_id=np.array(class_ids), confidence=confidence)
+
     def get_top_k(self, k: int) -> Tuple[np.ndarray, np.ndarray]:
         """
         Retrieve the top k class IDs and confidences,
