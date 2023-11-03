@@ -318,7 +318,7 @@ class Detections:
         return cls(
             xyxy=boxes,
             confidence=tensorflow_hub_results["detection_scores"].numpy(),
-            class_id=tensorflow_hub_results["detection_class_labels"].numpy(),
+            class_id=tensorflow_hub_results["detection_classes"].numpy(),
         )
 
     @classmethod
