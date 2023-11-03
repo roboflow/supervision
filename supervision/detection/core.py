@@ -265,6 +265,63 @@ class Detections:
         )
 
     @classmethod
+    def from_tensorflow_hub(cls, tensorflow_hub_results, image_size) -> Detections:
+        """
+        Creates a Detections instance from a
+        [Tensorflow Hub](https://www.tensorflow.org/hub/tutorials/object_detection)
+        inference result.
+
+        Args:
+            tensorflow_hub_results (dict):
+                The output results from Tensorflow Hub.
+
+        Returns:
+            Detections: A new Detections object.
+
+        Example:
+            ```python
+            >>> import tensorflow as tf
+            >>> from super_gradients.training import models
+            >>> import tensorflow_hub as hub
+
+            >>> module_handle = "..."
+
+            >>> detector = hub.load(module_handle).signatures['default']
+
+            >>> # follow https://www.tensorflow.org/hub/tutorials/object_detection to load an image
+            >>> img = ...
+
+            >>> result = detector(img)
+
+            >>> detections = sv.Detections.from_tensorflow_hub(result)
+            ```
+        """
+        if np.asarray(tensorflow_hub_results["detection_boxes"]).shape[0] == 0:
+            return cls.empty()
+
+        boxes = tensorflow_hub_results["detection_boxes"].numpy()
+
+        # convert boxes from normalized to pixel coordinates
+        boxes[:, [0, 2]] *= image_size[0]
+        boxes[:, [1, 3]] *= image_size[1]
+
+        # convert ymin, xmin, ymax, xmax, to x[x1, y1, x2, y2
+        boxes = np.array(
+            [
+                boxes[:, 1],
+                boxes[:, 0],
+                boxes[:, 3],
+                boxes[:, 2],
+            ]
+        ).transpose()
+
+        return cls(
+            xyxy=boxes,
+            confidence=tensorflow_hub_results["detection_scores"].numpy(),
+            class_id=tensorflow_hub_results["detection_class_labels"].numpy(),
+        )
+
+    @classmethod
     def from_deepsparse(cls, deepsparse_results) -> Detections:
         """
         Creates a Detections instance from a
