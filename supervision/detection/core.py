@@ -484,7 +484,7 @@ class Detections:
         return cls(xyxy=xyxy, mask=mask)
     
     @classmethod
-    def from_rekognition(cls, rekognition_det) -> Detections:
+    def from_rekognition_detectlabels(cls, rekognition_det) -> Detections:
         """
         Creates a Detections instance from
             [AWS Rekognition DetectLabels](https://docs.aws.amazon.com/rekognition/latest/dg/labels-detect-labels-image.html)
@@ -512,7 +512,7 @@ class Detections:
 
             >>> response = client.detect_labels(Image={"Bytes": image_bytes})
 
-            >>> detections = sv.Detections.from_rekognition(response)
+            >>> detections = sv.Detections.from_rekognition_detectlabels(response)
             ```
         """
 
