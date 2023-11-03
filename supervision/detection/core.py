@@ -503,7 +503,7 @@ class Detections:
             >>> from PIL import Image
 
             >>> session = boto3.Session()
-            >>> client = self.session.client("rekognition")
+            >>> client = session.client("rekognition")
 
             >>> with Image.open(input) as image:
             >>>    buffered = io.BytesIO()
