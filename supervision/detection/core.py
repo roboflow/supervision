@@ -288,7 +288,7 @@ class Detections:
 
             >>> detector = hub.load(module_handle).signatures['default']
 
-            >>> # follow https://www.tensorflow.org/hub/tutorials/object_detection to load an image
+            >>> # https://www.tensorflow.org/hub/tutorials/object_detection
             >>> img = ...
 
             >>> result = detector(img)
