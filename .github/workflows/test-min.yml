@@ -1,11 +1,11 @@
-name: Python 3.8 - Min Test WorkFlow
+name: Python 3.8 - Min Dep Test WorkFlow
 
 on:
   pull_request:
     branches: [main, develop]
 
 jobs:
-  build:
+  build-min-dep-test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
