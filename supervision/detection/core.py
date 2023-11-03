@@ -299,13 +299,12 @@ class Detections:
         if np.asarray(tensorflow_hub_results["detection_boxes"]).shape[0] == 0:
             return cls.empty()
 
-        boxes = tensorflow_hub_results["detection_boxes"].numpy()
+        boxes = tensorflow_hub_results["detection_boxes"][0].numpy()
 
-        # convert boxes from normalized to pixel coordinates
         boxes[:, [0, 2]] *= image_size[0]
         boxes[:, [1, 3]] *= image_size[1]
 
-        # convert ymin, xmin, ymax, xmax, to x[x1, y1, x2, y2
+        # convert ymin, xmin, ymax, xmax, to x1, y1, x2, y2
         boxes = np.array(
             [
                 boxes[:, 1],
@@ -317,8 +316,8 @@ class Detections:
 
         return cls(
             xyxy=boxes,
-            confidence=tensorflow_hub_results["detection_scores"].numpy(),
-            class_id=tensorflow_hub_results["detection_classes"].numpy(),
+            confidence=tensorflow_hub_results["detection_scores"][0].numpy(),
+            class_id=tensorflow_hub_results["detection_classes"][0].numpy().astype(int),
         )
 
     @classmethod
