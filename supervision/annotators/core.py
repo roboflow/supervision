@@ -1104,3 +1104,104 @@ class HeatMapAnnotator:
             mask
         ]
         return scene
+
+class IconAnnotator(BaseAnnotator):
+    """
+    A class for drawing box masks on an image using provided detections.
+    """
+
+    def __init__(
+        self,
+        icon_path: str,
+        position: Position = Position.TOP_CENTER,
+        icon_size: float = 0.2,
+        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        opacity: float = 0.5,
+        color_lookup: ColorLookup = ColorLookup.CLASS,
+    ):
+        """
+        Args:
+            color (Union[Color, ColorPalette]): The color or color palette to use for
+                annotating detections.
+            opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.
+            color_lookup (str): Strategy for mapping colors to annotations.
+                Options are `INDEX`, `CLASS`, `TRACE`.
+        """
+        self.color: Union[Color, ColorPalette] = color
+        self.color_lookup: ColorLookup = color_lookup
+        self.position = position
+        self.icon = cv.imread(icon_path)
+        self.icon_size = icon_size
+
+    @staticmethod
+    def draw_icon(
+        self,
+        icon: np.ndarray,
+        color: Color,
+        scene: np.ndarray,
+        position: Position,
+
+    )-> np.ndarray:
+        new_color = color
+        new_icon = np.ones_like(icon) * new_color
+        new_icon[:, :, 3] = icon[:, :, 3]
+        x, y = position
+
+        # Get the dimensions of the icon
+        icon_height, icon_width, _ = new_icon.shape
+        
+        # Extract the alpha channel from the icon
+        alpha_channel = new_icon[:, :, 3]
+
+        # Create a copy of the background region where the icon will be pasted
+        bg_region = scene[y:y+icon_height, x:x+icon_width].copy()
+
+        # Apply alpha blending to combine the icon and the background
+        for c in range(3):  # Iterate over RGB channels
+            bg_region[:, :, c] = (1 - alpha_channel / 255.0) * bg_region[:, :, c] + (alpha_channel / 255.0) * new_image[:, :, c]
+
+        # Paste the blended icon region back into the background
+        scene[y:y+icon_height, x:x+icon_width] = bg_region
+        return scene
+    def annotate(
+        self,
+        scene: np.ndarray,
+        detections: Detections,
+        custom_color_lookup: Optional[np.ndarray] = None,
+    ) -> np.ndarray:
+        """
+        Annotates the given scene with box masks based on the provided detections.
+
+        Args:
+            scene (np.ndarray): The image where bounding boxes will be drawn.
+            detections (Detections): Object detections to annotate.
+            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
+                Allows to override the default color mapping strategy.
+
+        Returns:
+            np.ndarray: The annotated image.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> image = ...
+            >>> detections = sv.Detections(...)
+
+            >>> box_mask_annotator = sv.BoxMaskAnnotator()
+            >>> annotated_frame = box_mask_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
+            ```
+
+        ![box-mask-annotator-example](https://media.roboflow.com/
+        supervision-annotator-examples/box-mask-annotator-example-purple.png)
+        """
+        mask_image = scene.copy()
+        resized_icon = cv2.resize(icon,(int(icon.shape[0]*self.icon_size),int(icon.shape[1]*self.icon_size)),interpolation = cv2.INTER_AREA)
+        xy = detections.get_anchor_coordinates(anchor=self.position)
+        for detection_idx in range(len(detections)):
+            center = (int(xy[detection_idx, 0]), int(xy[detection_idx, 1]))
+            scene = self.draw_icon(resized_icon,color,scene,center)
+        return scene
