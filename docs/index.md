@@ -20,18 +20,8 @@ You can install `supervision` with pip in a
 
 !!! example "pip install (recommended)"
 
-    === "headless"
-        The headless installation of `supervision` is designed for environments where graphical user interfaces (GUI) are not needed, making it more lightweight and suitable for server-side applications.
-
         ```bash
         pip install supervision
-        ```
-
-    === "desktop"
-        If you require the full version of `supervision` with GUI support you can install the desktop version. This version includes the GUI components of OpenCV, allowing you to display images and videos on the screen.
-
-        ```bash
-        pip install supervision[desktop]
         ```
 
 !!! example "git clone (for development)"
@@ -48,11 +38,8 @@ You can install `supervision` with pip in a
         source venv/bin/activate
         pip install --upgrade pip
 
-        # headless install
+        # installation
         pip install -e "."
-
-        # desktop install
-        pip install -e ".[desktop]"
         ```
 
     === "poetry"
@@ -66,9 +53,7 @@ You can install `supervision` with pip in a
         poetry env use python3.10
         poetry shell
 
-        # headless install
+        # dev installation
         poetry install
 
-        # desktop install
-        poetry install --extras "desktop"
         ```
