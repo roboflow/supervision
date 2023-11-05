@@ -1107,7 +1107,7 @@ class HeatMapAnnotator:
 
 class IconAnnotator(BaseAnnotator):
     """
-    A class for drawing box masks on an image using provided detections.
+    A class for drawing icon on an image using provided detections.
     """
 
     def __init__(
@@ -1125,8 +1125,8 @@ class IconAnnotator(BaseAnnotator):
                 `TOP_CENTER`.
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating detections.
-            icon_size (float): Fraction of the size of icon. Defaults to
-                `0.2`.
+            icon_size (float): Represents the fraction of the original icon size to
+              be displayed, with a default value of 0.2 (equivalent to 20% of the original size).
             color (Union[Color, ColorPalette]): The color to draw the trace, can be
                 a single color or a color palette.
             color_lookup (str): Strategy for mapping colors to annotations.
@@ -1139,6 +1139,7 @@ class IconAnnotator(BaseAnnotator):
         if self.icon is None:
             print(f"Error: Couldn't load the icon image from {icon_path}")
             return
+        
         self.icon_size = icon_size
 
     @staticmethod
@@ -1153,15 +1154,17 @@ class IconAnnotator(BaseAnnotator):
         new_icon[:, :, 3] = icon[:, :, 3]
         x, y = cordinates
 
-        # Get the dimensions of the icon
+        
         icon_height, icon_width, _ = new_icon.shape
         scene_height,scene_width,_ = scene.shape
         w = min(icon_width, scene_width, icon_width + x, scene_width - x)
         h = min(icon_height, scene_height, icon_height + y, scene_height - y)
 
-        if w < 1 or h < 1: return
+        if w < 1 or h < 1: 
+            print('Icon size too small')
+            return
 
-        # clip foreground and background images to the overlapping regions
+        # clip icon and scene  to the overlapping regions
         icon_x = max(0, x)
         icon_y = max(0, y)
         scene_x = max(0, x * -1)
@@ -1188,7 +1191,7 @@ class IconAnnotator(BaseAnnotator):
         custom_color_lookup: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         """
-        Annotates the given scene with box masks based on the provided detections.
+        Annotates the given scene with icons based on the provided detections.
 
         Args:
             scene (np.ndarray): The image where bounding boxes will be drawn.
@@ -1206,17 +1209,15 @@ class IconAnnotator(BaseAnnotator):
             >>> image = ...
             >>> detections = sv.Detections(...)
 
-            >>> icon_annotator = sv.IconAnnotator()
+            >>> icon_annotator = sv.IconAnnotator(icon_path='path_of_icon')
             >>> annotated_frame = icon_annotator.annotate(
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
             ```
 
-        ![box-mask-annotator-example](https://media.roboflow.com/
-        supervision-annotator-examples/box-mask-annotator-example-purple.png)
+        
         """
-        mask_image = scene.copy()
         resized_icon_h,resized_icon_w = int(self.icon.shape[0]*self.icon_size),int(self.icon.shape[1]*self.icon_size) 
         resized_icon = cv2.resize(self.icon,(resized_icon_h,resized_icon_w),interpolation = cv2.INTER_AREA)
         xy = detections.get_anchor_coordinates(anchor=self.position)
@@ -1230,6 +1231,6 @@ class IconAnnotator(BaseAnnotator):
                 else custom_color_lookup,
             )
             cordinates = (int(xy[detection_idx, 0]-resized_icon_w/2), int(xy[detection_idx, 1]-resized_icon_h))
-            new_color = list(color.as_bgr()) + [255]
+            new_color = list(color.as_bgr()) + [1] # [1](alpha) is added to convert the color to BGRA format 
             scene = self.draw_icon(resized_icon,new_color,scene,cordinates)
         return scene
