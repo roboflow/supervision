@@ -1116,14 +1116,19 @@ class IconAnnotator(BaseAnnotator):
         position: Position = Position.TOP_CENTER,
         icon_size: float = 0.2,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
-        opacity: float = 0.5,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
         """
         Args:
+            icon_path (str): path of the icon in png format.
+            position (Position): The position of the heatmap. Defaults to
+                `TOP_CENTER`.
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating detections.
-            opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.
+            icon_size (float): Fraction of the size of icon. Defaults to
+                `0.2`.
+            color (Union[Color, ColorPalette]): The color to draw the trace, can be
+                a single color or a color palette.
             color_lookup (str): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACE`.
         """
@@ -1131,6 +1136,9 @@ class IconAnnotator(BaseAnnotator):
         self.color_lookup: ColorLookup = color_lookup
         self.position = position
         self.icon = cv2.imread(icon_path, cv2.IMREAD_UNCHANGED)
+        if self.icon is None:
+            print(f"Error: Couldn't load the icon image from {icon_path}")
+            return
         self.icon_size = icon_size
 
     @staticmethod
@@ -1147,19 +1155,31 @@ class IconAnnotator(BaseAnnotator):
 
         # Get the dimensions of the icon
         icon_height, icon_width, _ = new_icon.shape
+        scene_height,scene_width,_ = scene.shape
+        w = min(icon_width, scene_width, icon_width + x, scene_width - x)
+        h = min(icon_height, scene_height, icon_height + y, scene_height - y)
+
+        if w < 1 or h < 1: return
+
+        # clip foreground and background images to the overlapping regions
+        icon_x = max(0, x)
+        icon_y = max(0, y)
+        scene_x = max(0, x * -1)
+        scene_y = max(0, y * -1)
+        
+
+        # Create a copy of the background region where the icon will be pasted
+        new_icon = new_icon[scene_y:scene_y + h, scene_x:scene_x + w]
+        bg_region = scene[icon_y:icon_y + h, icon_x:icon_x + w].copy()
         
         # Extract the alpha channel from the icon
         alpha_channel = new_icon[:, :, 3]
-
-        # Create a copy of the background region where the icon will be pasted
-        bg_region = scene[y:y+icon_height, x:x+icon_width].copy()
-
         # Apply alpha blending to combine the icon and the background
         for c in range(3):  # Iterate over RGB channels
             bg_region[:, :, c] = (1 - alpha_channel / 255.0) * bg_region[:, :, c] + (alpha_channel / 255.0) * new_icon[:, :, c]
 
         # Paste the blended icon region back into the background
-        scene[y:y+icon_height, x:x+icon_width] = bg_region
+        scene[icon_y:icon_y + h, icon_x:icon_x + w] = bg_region
         return scene
     def annotate(
         self,
@@ -1197,7 +1217,8 @@ class IconAnnotator(BaseAnnotator):
         supervision-annotator-examples/box-mask-annotator-example-purple.png)
         """
         mask_image = scene.copy()
-        resized_icon = cv2.resize(self.icon,(int(self.icon.shape[0]*self.icon_size),int(self.icon.shape[1]*self.icon_size)),interpolation = cv2.INTER_AREA)
+        resized_icon_h,resized_icon_w = int(self.icon.shape[0]*self.icon_size),int(self.icon.shape[1]*self.icon_size) 
+        resized_icon = cv2.resize(self.icon,(resized_icon_h,resized_icon_w),interpolation = cv2.INTER_AREA)
         xy = detections.get_anchor_coordinates(anchor=self.position)
         for detection_idx in range(len(detections)):
             color = resolve_color(
@@ -1208,7 +1229,7 @@ class IconAnnotator(BaseAnnotator):
                 if custom_color_lookup is None
                 else custom_color_lookup,
             )
-            cordinates = (int(xy[detection_idx, 0]), int(xy[detection_idx, 1]))
+            cordinates = (int(xy[detection_idx, 0]-resized_icon_w/2), int(xy[detection_idx, 1]-resized_icon_h))
             new_color = list(color.as_bgr()) + [255]
             scene = self.draw_icon(resized_icon,new_color,scene,cordinates)
         return scene
