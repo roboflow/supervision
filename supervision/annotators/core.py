@@ -1130,22 +1130,20 @@ class IconAnnotator(BaseAnnotator):
         self.color: Union[Color, ColorPalette] = color
         self.color_lookup: ColorLookup = color_lookup
         self.position = position
-        self.icon = cv.imread(icon_path)
+        self.icon = cv2.imread(icon_path, cv2.IMREAD_UNCHANGED)
         self.icon_size = icon_size
 
     @staticmethod
     def draw_icon(
-        self,
         icon: np.ndarray,
-        color: Color,
+        new_color: List,
         scene: np.ndarray,
-        position: Position,
+        cordinates: Tuple[int, int],
 
     )-> np.ndarray:
-        new_color = color
         new_icon = np.ones_like(icon) * new_color
         new_icon[:, :, 3] = icon[:, :, 3]
-        x, y = position
+        x, y = cordinates
 
         # Get the dimensions of the icon
         icon_height, icon_width, _ = new_icon.shape
@@ -1158,7 +1156,7 @@ class IconAnnotator(BaseAnnotator):
 
         # Apply alpha blending to combine the icon and the background
         for c in range(3):  # Iterate over RGB channels
-            bg_region[:, :, c] = (1 - alpha_channel / 255.0) * bg_region[:, :, c] + (alpha_channel / 255.0) * new_image[:, :, c]
+            bg_region[:, :, c] = (1 - alpha_channel / 255.0) * bg_region[:, :, c] + (alpha_channel / 255.0) * new_icon[:, :, c]
 
         # Paste the blended icon region back into the background
         scene[y:y+icon_height, x:x+icon_width] = bg_region
@@ -1188,8 +1186,8 @@ class IconAnnotator(BaseAnnotator):
             >>> image = ...
             >>> detections = sv.Detections(...)
 
-            >>> box_mask_annotator = sv.BoxMaskAnnotator()
-            >>> annotated_frame = box_mask_annotator.annotate(
+            >>> icon_annotator = sv.IconAnnotator()
+            >>> annotated_frame = icon_annotator.annotate(
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
@@ -1199,9 +1197,18 @@ class IconAnnotator(BaseAnnotator):
         supervision-annotator-examples/box-mask-annotator-example-purple.png)
         """
         mask_image = scene.copy()
-        resized_icon = cv2.resize(icon,(int(icon.shape[0]*self.icon_size),int(icon.shape[1]*self.icon_size)),interpolation = cv2.INTER_AREA)
+        resized_icon = cv2.resize(self.icon,(int(self.icon.shape[0]*self.icon_size),int(self.icon.shape[1]*self.icon_size)),interpolation = cv2.INTER_AREA)
         xy = detections.get_anchor_coordinates(anchor=self.position)
         for detection_idx in range(len(detections)):
-            center = (int(xy[detection_idx, 0]), int(xy[detection_idx, 1]))
-            scene = self.draw_icon(resized_icon,color,scene,center)
+            color = resolve_color(
+                color=self.color,
+                detections=detections,
+                detection_idx=detection_idx,
+                color_lookup=self.color_lookup
+                if custom_color_lookup is None
+                else custom_color_lookup,
+            )
+            cordinates = (int(xy[detection_idx, 0]), int(xy[detection_idx, 1]))
+            new_color = list(color.as_bgr()) + [255]
+            scene = self.draw_icon(resized_icon,new_color,scene,cordinates)
         return scene
