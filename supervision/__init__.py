@@ -16,10 +16,10 @@ from supervision.annotators.core import (
     EllipseAnnotator,
     HaloAnnotator,
     HeatMapAnnotator,
+    IconAnnotator,
     LabelAnnotator,
     MaskAnnotator,
     TraceAnnotator,
-    IconAnnotator
 )
 from supervision.annotators.utils import ColorLookup
 from supervision.classification.core import Classifications

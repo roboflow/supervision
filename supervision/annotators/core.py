@@ -1105,6 +1105,7 @@ class HeatMapAnnotator:
         ]
         return scene
 
+
 class IconAnnotator(BaseAnnotator):
     """
     A class for drawing icon on an image using provided detections.
@@ -1126,7 +1127,8 @@ class IconAnnotator(BaseAnnotator):
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating detections.
             icon_size (float): Represents the fraction of the original icon size to
-              be displayed, with a default value of 0.2 (equivalent to 20% of the original size).
+              be displayed, with a default value of 0.2
+              (equivalent to 20% of the original size).
             color (Union[Color, ColorPalette]): The color to draw the trace, can be
                 a single color or a color palette.
             color_lookup (str): Strategy for mapping colors to annotations.
@@ -1139,7 +1141,7 @@ class IconAnnotator(BaseAnnotator):
         if self.icon is None:
             print(f"Error: Couldn't load the icon image from {icon_path}")
             return
-        
+
         self.icon_size = icon_size
 
     @staticmethod
@@ -1148,20 +1150,18 @@ class IconAnnotator(BaseAnnotator):
         new_color: List,
         scene: np.ndarray,
         cordinates: Tuple[int, int],
-
-    )-> np.ndarray:
+    ) -> np.ndarray:
         new_icon = np.ones_like(icon) * new_color
         new_icon[:, :, 3] = icon[:, :, 3]
         x, y = cordinates
 
-        
         icon_height, icon_width, _ = new_icon.shape
-        scene_height,scene_width,_ = scene.shape
+        scene_height, scene_width, _ = scene.shape
         w = min(icon_width, scene_width, icon_width + x, scene_width - x)
         h = min(icon_height, scene_height, icon_height + y, scene_height - y)
 
-        if w < 1 or h < 1: 
-            print('Icon size too small')
+        if w < 1 or h < 1:
+            print("Icon size too small")
             return
 
         # clip icon and scene  to the overlapping regions
@@ -1169,21 +1169,23 @@ class IconAnnotator(BaseAnnotator):
         icon_y = max(0, y)
         scene_x = max(0, x * -1)
         scene_y = max(0, y * -1)
-        
 
         # Create a copy of the background region where the icon will be pasted
-        new_icon = new_icon[scene_y:scene_y + h, scene_x:scene_x + w]
-        bg_region = scene[icon_y:icon_y + h, icon_x:icon_x + w].copy()
-        
+        new_icon = new_icon[scene_y : scene_y + h, scene_x : scene_x + w]
+        bg_region = scene[icon_y : icon_y + h, icon_x : icon_x + w].copy()
+
         # Extract the alpha channel from the icon
         alpha_channel = new_icon[:, :, 3]
         # Apply alpha blending to combine the icon and the background
         for c in range(3):  # Iterate over RGB channels
-            bg_region[:, :, c] = (1 - alpha_channel / 255.0) * bg_region[:, :, c] + (alpha_channel / 255.0) * new_icon[:, :, c]
+            bg_region[:, :, c] = (1 - alpha_channel / 255.0) * bg_region[:, :, c] + (
+                alpha_channel / 255.0
+            ) * new_icon[:, :, c]
 
         # Paste the blended icon region back into the background
-        scene[icon_y:icon_y + h, icon_x:icon_x + w] = bg_region
+        scene[icon_y : icon_y + h, icon_x : icon_x + w] = bg_region
         return scene
+
     def annotate(
         self,
         scene: np.ndarray,
@@ -1216,10 +1218,14 @@ class IconAnnotator(BaseAnnotator):
             ... )
             ```
 
-        
+
         """
-        resized_icon_h,resized_icon_w = int(self.icon.shape[0]*self.icon_size),int(self.icon.shape[1]*self.icon_size) 
-        resized_icon = cv2.resize(self.icon,(resized_icon_h,resized_icon_w),interpolation = cv2.INTER_AREA)
+        resized_icon_h, resized_icon_w = int(self.icon.shape[0] * self.icon_size), int(
+            self.icon.shape[1] * self.icon_size
+        )
+        resized_icon = cv2.resize(
+            self.icon, (resized_icon_h, resized_icon_w), interpolation=cv2.INTER_AREA
+        )
         xy = detections.get_anchor_coordinates(anchor=self.position)
         for detection_idx in range(len(detections)):
             color = resolve_color(
@@ -1230,7 +1236,12 @@ class IconAnnotator(BaseAnnotator):
                 if custom_color_lookup is None
                 else custom_color_lookup,
             )
-            cordinates = (int(xy[detection_idx, 0]-resized_icon_w/2), int(xy[detection_idx, 1]-resized_icon_h))
-            new_color = list(color.as_bgr()) + [1] # [1](alpha) is added to convert the color to BGRA format 
-            scene = self.draw_icon(resized_icon,new_color,scene,cordinates)
+            cordinates = (
+                int(xy[detection_idx, 0] - resized_icon_w / 2),
+                int(xy[detection_idx, 1] - resized_icon_h),
+            )
+            new_color = list(color.as_bgr()) + [
+                1
+            ]  # [1](alpha) is added to convert the color to BGRA format
+            scene = self.draw_icon(resized_icon, new_color, scene, cordinates)
         return scene
