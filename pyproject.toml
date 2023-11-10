@@ -82,7 +82,6 @@ extend-ignore = """
 per-file-ignores = """
     __init__.py: F401
     supervision/assets/list.py: E501
-    test/utils/test_file.py: W291
 """
 
 [tool.isort]
@@ -173,7 +172,7 @@ convention = "google"
 [tool.ruff.per-file-ignores]
 "__init__.py" = ["E402","F401"]
 "supervision/assets/list.py" = ["E501"]
-"test/utils/test_file.py" = ["W291"]
+
 
 [tool.ruff.pylint]
 max-args = 20
