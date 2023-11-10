@@ -1,18 +1,17 @@
+import os
 from contextlib import ExitStack as DoesNotRaise
 from typing import List, Optional
 
 import pytest
-import os
 
 from supervision.utils.file import read_txt_file
-
 
 FILE_1_CONTENT = """Line 1
 Line 2
 Line 3
 """
 
-FILE_2_CONTENT = """   
+FILE_2_CONTENT = """
 Line 2
 
 Line 4
@@ -46,49 +45,19 @@ def setup_and_teardown_files():
 @pytest.mark.parametrize(
     "file_name, skip_empty, expected_result, exception",
     [
-        (
-            "file_1.txt",
-            False,
-            ["Line 1", "Line 2", "Line 3"],
-            DoesNotRaise()
-        ),
-        (
-            "file_2.txt",
-            True,
-            ["Line 2", "Line 4"],
-            DoesNotRaise()
-        ),
-        (
-            "file_2.txt",
-            False,
-            ["   ", "Line 2", "", "Line 4", ""],
-            DoesNotRaise()
-        ),
-        (
-            "file_3.txt",
-            True,
-            ["Line 2", "Line 4"],
-            DoesNotRaise()
-        ),
-        (
-            "file_3.txt",
-            False,
-            ["", "Line 2", "", "Line 4", ""],
-            DoesNotRaise()
-        ),
-        (
-            "file_4.txt",
-            True,
-            None,
-            pytest.raises(FileNotFoundError)
-        )
-    ]
+        ("file_1.txt", False, ["Line 1", "Line 2", "Line 3"], DoesNotRaise()),
+        ("file_2.txt", True, ["Line 2", "Line 4"], DoesNotRaise()),
+        ("file_2.txt", False, ["   ", "Line 2", "", "Line 4", ""], DoesNotRaise()),
+        ("file_3.txt", True, ["Line 2", "Line 4"], DoesNotRaise()),
+        ("file_3.txt", False, ["", "Line 2", "", "Line 4", ""], DoesNotRaise()),
+        ("file_4.txt", True, None, pytest.raises(FileNotFoundError)),
+    ],
 )
 def test_read_txt_file(
     file_name: str,
     skip_empty: bool,
     expected_result: Optional[List[str]],
-    exception: Exception
+    exception: Exception,
 ):
     with exception:
         result = read_txt_file(file_name, skip_empty)
