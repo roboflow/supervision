@@ -79,7 +79,7 @@ def yolo_annotations_to_detections(
     w, h = resolution_wh
     for line in lines:
         values = line.split()
-        if(len(values)==0):
+        if len(values) == 0:
             continue
         class_id.append(int(values[0]))
         if len(values) == 5:
