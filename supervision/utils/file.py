@@ -57,19 +57,24 @@ def list_files_with_extensions(
     return files_with_extensions
 
 
-def read_txt_file(file_path: str) -> List[str]:
+def read_txt_file(file_path: str, skip_empty: bool = False) -> List[str]:
     """
     Read a text file and return a list of strings without newline characters.
+    Optionally skip empty lines.
 
     Args:
         file_path (str): The path to the text file.
+        skip_empty (bool): If True, skip lines that are empty or contain only
+            whitespace. Default is False.
 
     Returns:
         List[str]: A list of strings representing the lines in the text file.
     """
     with open(file_path, "r") as file:
-        lines = file.readlines()
-        lines = [line.rstrip("\n") for line in lines]
+        if skip_empty:
+            lines = [line.rstrip("\n") for line in file if line.strip()]
+        else:
+            lines = [line.rstrip("\n") for line in file]
 
     return lines
 
