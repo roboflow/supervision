@@ -3,10 +3,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Tuple
 
-import cv2
 import numpy as np
 
 from supervision.dataset.utils import (
+    LazyLoadDict,
     approximate_mask_with_polygons,
     map_detections_class_id,
 )
@@ -147,7 +147,7 @@ def load_coco_annotations(
         coco_annotations=coco_data["annotations"]
     )
 
-    images = {}
+    images = LazyLoadDict()
     annotations = {}
 
     for coco_image in coco_images:
@@ -159,7 +159,6 @@ def load_coco_annotations(
         image_annotations = coco_annotations_groups.get(coco_image["id"], [])
         image_path = os.path.join(images_directory_path, image_name)
 
-        image = cv2.imread(image_path)
         annotation = coco_annotations_to_detections(
             image_annotations=image_annotations,
             resolution_wh=(image_width, image_height),
@@ -170,7 +169,7 @@ def load_coco_annotations(
             detections=annotation,
         )
 
-        images[image_path] = image
+        images[image_path] = image_path
         annotations[image_path] = annotation
 
     return classes, images, annotations

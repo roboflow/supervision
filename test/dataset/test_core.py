@@ -1,11 +1,14 @@
 from contextlib import ExitStack as DoesNotRaise
+from pathlib import Path
 from test.utils import mock_detections
 from typing import List, Optional
 
-import numpy as np
 import pytest
 
 from supervision import DetectionDataset
+from supervision.dataset.utils import LazyLoadDict
+
+TEST_IMG_PATH = str(Path(__file__).parent.parent / "empty_image.png")
 
 
 @pytest.mark.parametrize(
@@ -43,10 +46,12 @@ from supervision import DetectionDataset
             [
                 DetectionDataset(
                     classes=["dog", "person"],
-                    images={
-                        "image-1.png": np.zeros((100, 100, 3), dtype=np.uint8),
-                        "image-2.png": np.zeros((100, 100, 3), dtype=np.uint8),
-                    },
+                    images=LazyLoadDict(
+                        {
+                            "image-1.png": TEST_IMG_PATH,
+                            "image-2.png": TEST_IMG_PATH,
+                        }
+                    ),
                     annotations={
                         "image-1.png": mock_detections(
                             xyxy=[[0, 0, 10, 10]], class_id=[0]
@@ -60,10 +65,12 @@ from supervision import DetectionDataset
             ],
             DetectionDataset(
                 classes=["dog", "person"],
-                images={
-                    "image-1.png": np.zeros((100, 100, 3), dtype=np.uint8),
-                    "image-2.png": np.zeros((100, 100, 3), dtype=np.uint8),
-                },
+                images=LazyLoadDict(
+                    {
+                        "image-1.png": TEST_IMG_PATH,
+                        "image-2.png": TEST_IMG_PATH,
+                    }
+                ),
                 annotations={
                     "image-1.png": mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[0]),
                     "image-2.png": mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[1]),
@@ -75,10 +82,12 @@ from supervision import DetectionDataset
             [
                 DetectionDataset(
                     classes=["dog", "person"],
-                    images={
-                        "image-1.png": np.zeros((100, 100, 3), dtype=np.uint8),
-                        "image-2.png": np.zeros((100, 100, 3), dtype=np.uint8),
-                    },
+                    images=LazyLoadDict(
+                        {
+                            "image-1.png": TEST_IMG_PATH,
+                            "image-2.png": TEST_IMG_PATH,
+                        }
+                    ),
                     annotations={
                         "image-1.png": mock_detections(
                             xyxy=[[0, 0, 10, 10]], class_id=[0]
@@ -92,10 +101,12 @@ from supervision import DetectionDataset
             ],
             DetectionDataset(
                 classes=["cat", "dog", "person"],
-                images={
-                    "image-1.png": np.zeros((100, 100, 3), dtype=np.uint8),
-                    "image-2.png": np.zeros((100, 100, 3), dtype=np.uint8),
-                },
+                images=LazyLoadDict(
+                    {
+                        "image-1.png": TEST_IMG_PATH,
+                        "image-2.png": TEST_IMG_PATH,
+                    }
+                ),
                 annotations={
                     "image-1.png": mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[1]),
                     "image-2.png": mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[2]),
@@ -107,10 +118,12 @@ from supervision import DetectionDataset
             [
                 DetectionDataset(
                     classes=["dog", "person"],
-                    images={
-                        "image-1.png": np.zeros((100, 100, 3), dtype=np.uint8),
-                        "image-2.png": np.zeros((100, 100, 3), dtype=np.uint8),
-                    },
+                    images=LazyLoadDict(
+                        {
+                            "image-1.png": TEST_IMG_PATH,
+                            "image-2.png": TEST_IMG_PATH,
+                        }
+                    ),
                     annotations={
                         "image-1.png": mock_detections(
                             xyxy=[[0, 0, 10, 10]], class_id=[0]
@@ -122,9 +135,11 @@ from supervision import DetectionDataset
                 ),
                 DetectionDataset(
                     classes=["cat"],
-                    images={
-                        "image-3.png": np.zeros((100, 100, 3), dtype=np.uint8),
-                    },
+                    images=LazyLoadDict(
+                        {
+                            "image-3.png": TEST_IMG_PATH,
+                        }
+                    ),
                     annotations={
                         "image-3.png": mock_detections(
                             xyxy=[[0, 0, 10, 10]], class_id=[0]
@@ -134,11 +149,13 @@ from supervision import DetectionDataset
             ],
             DetectionDataset(
                 classes=["cat", "dog", "person"],
-                images={
-                    "image-1.png": np.zeros((100, 100, 3), dtype=np.uint8),
-                    "image-2.png": np.zeros((100, 100, 3), dtype=np.uint8),
-                    "image-3.png": np.zeros((100, 100, 3), dtype=np.uint8),
-                },
+                images=LazyLoadDict(
+                    {
+                        "image-1.png": TEST_IMG_PATH,
+                        "image-2.png": TEST_IMG_PATH,
+                        "image-3.png": TEST_IMG_PATH,
+                    }
+                ),
                 annotations={
                     "image-1.png": mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[1]),
                     "image-2.png": mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[2]),
@@ -151,10 +168,12 @@ from supervision import DetectionDataset
             [
                 DetectionDataset(
                     classes=["dog", "person"],
-                    images={
-                        "image-1.png": np.zeros((100, 100, 3), dtype=np.uint8),
-                        "image-2.png": np.zeros((100, 100, 3), dtype=np.uint8),
-                    },
+                    images=LazyLoadDict(
+                        {
+                            "image-1.png": TEST_IMG_PATH,
+                            "image-2.png": TEST_IMG_PATH,
+                        }
+                    ),
                     annotations={
                         "image-1.png": mock_detections(
                             xyxy=[[0, 0, 10, 10]], class_id=[0]
@@ -166,10 +185,12 @@ from supervision import DetectionDataset
                 ),
                 DetectionDataset(
                     classes=["dog", "person"],
-                    images={
-                        "image-2.png": np.zeros((100, 100, 3), dtype=np.uint8),
-                        "image-3.png": np.zeros((100, 100, 3), dtype=np.uint8),
-                    },
+                    images=LazyLoadDict(
+                        {
+                            "image-2.png": TEST_IMG_PATH,
+                            "image-3.png": TEST_IMG_PATH,
+                        }
+                    ),
                     annotations={
                         "image-2.png": mock_detections(
                             xyxy=[[0, 0, 10, 10]], class_id=[0]
