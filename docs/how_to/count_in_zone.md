@@ -7,7 +7,7 @@ To make it easier for you to follow our tutorial download the video we will use 
 ```python
 from supervision.assets import download_assets, VideoAssets
 
-download_assets(VideoAssets.TRAFFIC)
+download_assets(VideoAssets.VEHICLES_2)
 ```
 
 ## Initialize a Model and Load Video
@@ -27,7 +27,6 @@ VIDEO = "video.mp4"
 
 colors = sv.ColorPalette.default()
 video_info = sv.VideoInfo.from_video_path(VIDEO)
-
 ```
 
 ## Calculate Coordinates
