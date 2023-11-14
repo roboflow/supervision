@@ -2,6 +2,14 @@ With supervision, you can count the number of objects in a zone in an image or v
 
 [View the notebook that accompanies this tutorial](https://github.com/roboflow/notebooks/blob/main/notebooks/how-to-use-polygonzone-annotate-and-supervision.ipynb).
 
+To make it easier for you to follow our tutorial download the video we will use as an example. You can do this using supervision[assets] extension.
+
+```python
+from supervision.assets import download_assets, VideoAssets
+
+download_assets(VideoAssets.TRAFFIC)
+```
+
 ## Initialize a Model and Load Video
 
 First, we need to initialize a model. Let's use a YOLOv8 model with the default COCO checkpoint. We also need to load a video on which to run inference.
@@ -19,7 +27,6 @@ VIDEO = "video.mp4"
 
 colors = sv.ColorPalette.default()
 video_info = sv.VideoInfo.from_video_path(VIDEO)
-video_info
 
 ```
 
@@ -97,9 +104,9 @@ box_annotators = [
 
 ## Run Inference
 
-We can run inference on a video using the `sv.process_video` function. This function accepts a callback that runs inference on each frame and compiles the results into a video.
+We can run inference on a video using the [sv.process_video](https://supervision.roboflow.com/utils/video/#process_video) function. This function accepts a callback that runs inference on each frame and compiles the results into a video.
 
-Below, we can call our YOLOv8 model, annotate predictions and zones, then savethe results to a file called `result.mp4`.
+Below, we can call our YOLOv8 model, annotate predictions and zones, then save the results to a file called `result.mp4`.
 
 ```python
 def process_frame(frame: np.ndarray, i) -> np.ndarray:
@@ -116,3 +123,9 @@ def process_frame(frame: np.ndarray, i) -> np.ndarray:
 
 sv.process_video(source_path=VIDEO, target_path="result.mp4", callback=process_frame)
 ```
+
+Here is an example of inference run on the video:
+
+<video width="100%" loop muted autoplay>
+  <source src="https://blog.roboflow.com/content/media/2023/03/trim-counting.mp4" type="video/mp4">
+</video>
