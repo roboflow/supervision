@@ -7,8 +7,9 @@ import numpy as np
 from supervision.annotators.base import BaseAnnotator
 from supervision.annotators.utils import ColorLookup, Trace, resolve_color
 from supervision.detection.core import Detections
-from supervision.detection.utils import clip_boxes
+from supervision.detection.utils import clip_boxes, mask_to_polygons
 from supervision.draw.color import Color, ColorPalette
+from supervision.draw.utils import draw_polygon
 from supervision.geometry.core import Position
 
 
@@ -51,7 +52,7 @@ class BoundingBoxAnnotator(BaseAnnotator):
                 Allows to override the default color mapping strategy.
 
         Returns:
-            np.ndarray: The annotated image.
+            The annotated image.
 
         Example:
             ```python
@@ -93,6 +94,10 @@ class BoundingBoxAnnotator(BaseAnnotator):
 class MaskAnnotator(BaseAnnotator):
     """
     A class for drawing masks on an image using provided detections.
+
+    !!! warning
+
+        This annotator utilizes the `sv.Detections.mask`.
     """
 
     def __init__(
@@ -129,7 +134,7 @@ class MaskAnnotator(BaseAnnotator):
                 Allows to override the default color mapping strategy.
 
         Returns:
-            np.ndarray: The annotated image.
+            The annotated image.
 
         Example:
             ```python
@@ -166,6 +171,89 @@ class MaskAnnotator(BaseAnnotator):
             scene[mask] = cv2.addWeighted(
                 colored_mask, self.opacity, scene, 1 - self.opacity, 0
             )[mask]
+
+        return scene
+
+
+class PolygonAnnotator(BaseAnnotator):
+    """
+    A class for drawing polygons on an image using provided detections.
+
+    !!! warning
+
+        This annotator utilizes the `sv.Detections.mask`.
+    """
+
+    def __init__(
+        self,
+        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        thickness: int = 2,
+        color_lookup: ColorLookup = ColorLookup.CLASS,
+    ):
+        """
+        Args:
+            color (Union[Color, ColorPalette]): The color or color palette to use for
+                annotating detections.
+            thickness (int): Thickness of the polygon lines.
+            color_lookup (str): Strategy for mapping colors to annotations.
+                Options are `INDEX`, `CLASS`, `TRACE`.
+        """
+        self.color: Union[Color, ColorPalette] = color
+        self.thickness: int = thickness
+        self.color_lookup: ColorLookup = color_lookup
+
+    def annotate(
+        self,
+        scene: np.ndarray,
+        detections: Detections,
+        custom_color_lookup: Optional[np.ndarray] = None
+    ) -> np.ndarray:
+        """
+        Annotates the given scene with polygons based on the provided detections.
+
+        Args:
+            scene (np.ndarray): The image where polygons will be drawn.
+            detections (Detections): Object detections to annotate.
+            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
+                Allows to override the default color mapping strategy.
+
+        Returns:
+            The annotated image.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> image = ...
+            >>> detections = sv.Detections(...)
+
+            >>> polygon_annotator = sv.PolygonAnnotator()
+            >>> annotated_frame = polygon_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
+            ```
+        """
+        if detections.mask is None:
+            return scene
+
+        for detection_idx in range(len(detections)):
+            mask = detections.mask[detection_idx]
+            color = resolve_color(
+                color=self.color,
+                detections=detections,
+                detection_idx=detection_idx,
+                color_lookup=self.color_lookup
+                if custom_color_lookup is None
+                else custom_color_lookup,
+            )
+            for polygon in mask_to_polygons(mask=mask):
+                scene = draw_polygon(
+                    scene=scene,
+                    polygon=polygon,
+                    color=color,
+                    thickness=self.thickness,
+                )
 
         return scene
 
@@ -209,7 +297,7 @@ class BoxMaskAnnotator(BaseAnnotator):
                 Allows to override the default color mapping strategy.
 
         Returns:
-            np.ndarray: The annotated image.
+            The annotated image.
 
         Example:
             ```python
@@ -295,7 +383,7 @@ class HaloAnnotator(BaseAnnotator):
                 Allows to override the default color mapping strategy.
 
         Returns:
-            np.ndarray: The annotated image.
+            The annotated image.
 
         Example:
             ```python
@@ -389,7 +477,7 @@ class EllipseAnnotator(BaseAnnotator):
                 Allows to override the default color mapping strategy.
 
         Returns:
-            np.ndarray: The annotated image.
+            The annotated image.
 
         Example:
             ```python
@@ -476,7 +564,7 @@ class BoxCornerAnnotator(BaseAnnotator):
                 Allows to override the default color mapping strategy.
 
         Returns:
-            np.ndarray: The annotated image.
+            The annotated image.
 
         Example:
             ```python
@@ -560,7 +648,7 @@ class CircleAnnotator(BaseAnnotator):
                 Allows to override the default color mapping strategy.
 
         Returns:
-            np.ndarray: The annotated image.
+            The annotated image.
 
         Example:
             ```python
@@ -646,7 +734,7 @@ class DotAnnotator(BaseAnnotator):
                 Allows to override the default color mapping strategy.
 
         Returns:
-            np.ndarray: The annotated image.
+            The annotated image.
 
         Example:
             ```python
@@ -776,7 +864,7 @@ class LabelAnnotator:
                 Allows to override the default color mapping strategy.
 
         Returns:
-            np.ndarray: The annotated image.
+            The annotated image.
 
         Example:
             ```python
@@ -873,7 +961,7 @@ class BlurAnnotator(BaseAnnotator):
             detections (Detections): Object detections to annotate.
 
         Returns:
-            np.ndarray: The annotated image.
+            The annotated image.
 
         Example:
             ```python
@@ -911,7 +999,7 @@ class TraceAnnotator:
 
     !!! warning
 
-        This annotator utilizes the `tracker_id`. Read
+        This annotator utilizes the `sv.Detections.tracker_id`. Read
         [here](https://supervision.roboflow.com/trackers/) to learn how to plug
         tracking into your inference pipeline.
     """
@@ -959,7 +1047,7 @@ class TraceAnnotator:
                 Allows to override the default color mapping strategy.
 
         Returns:
-            np.ndarray: The image with the trace paths drawn on it.
+            The annotated image.
 
         Example:
             ```python
@@ -1055,7 +1143,7 @@ class HeatMapAnnotator:
             detections (Detections): Object detections to annotate.
 
         Returns:
-            np.ndarray: Annotated image.
+            Annotated image.
 
         Example:
             ```python
