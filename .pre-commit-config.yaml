@@ -11,6 +11,7 @@ repos:
     hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
+        exclude: test/.*\.py
       - id: check-yaml
       - id: check-docstring-first
       - id: check-executables-have-shebangs
