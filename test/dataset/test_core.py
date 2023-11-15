@@ -1,5 +1,5 @@
 from contextlib import ExitStack as DoesNotRaise
-from test.utils import mock_detections
+from test.test_utils import mock_detections
 from typing import List, Optional
 
 import numpy as np
