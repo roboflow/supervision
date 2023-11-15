@@ -233,6 +233,9 @@ class PolygonAnnotator(BaseAnnotator):
             ...     detections=detections
             ... )
             ```
+
+        ![polygon-annotator-example](https://media.roboflow.com/
+        supervision-annotator-examples/polygon-annotator-example-purple.png)
         """
         if detections.mask is None:
             return scene
@@ -343,6 +346,10 @@ class BoxMaskAnnotator(BaseAnnotator):
 class HaloAnnotator(BaseAnnotator):
     """
     A class for drawing Halos on an image using provided detections.
+
+    !!! warning
+
+        This annotator utilizes the `sv.Detections.mask`.
     """
 
     def __init__(
