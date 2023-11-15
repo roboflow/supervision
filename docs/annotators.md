@@ -304,6 +304,10 @@
 
 :::supervision.annotators.core.MaskAnnotator
 
+## PolygonAnnotator
+
+:::supervision.annotators.core.PolygonAnnotator
+
 ## LabelAnnotator
 
 :::supervision.annotators.core.LabelAnnotator
