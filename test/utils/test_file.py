@@ -11,12 +11,12 @@ Line 2
 Line 3
 """
 
-FILE_2_CONTENT = """
+FILE_2_CONTENT = """   
 Line 2
 
 Line 4
 
-"""
+"""  # noqa
 
 FILE_3_CONTENT = """
 Line 2
