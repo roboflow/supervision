@@ -206,7 +206,7 @@ class PolygonAnnotator(BaseAnnotator):
         self,
         scene: np.ndarray,
         detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None
+        custom_color_lookup: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         """
         Annotates the given scene with polygons based on the provided detections.
