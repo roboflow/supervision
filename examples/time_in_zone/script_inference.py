@@ -117,15 +117,10 @@ class VideoProcessor:
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         result = self.model.infer(
             frame_rgb, confidence=self.conf_threshold, iou_threshold=self.iou_threshold)[0]
-        result = np.array(result)
-        if len(result) == 0:
-            detections = sv.Detections.empty()
-        else:
-            detections = sv.Detections(
-                xyxy=result[:, :4],
-                confidence=result[:, 4],
-                class_id=result[:, 6].astype(int),
-            )
+
+        detections = sv.Detections.from_roboflow(
+            result.dict(by_alias=True, exclude_none=True)
+        )
         detections = detections[detections.class_id == 0]
         detections = self.tracker.update_with_detections(detections=detections)
 
