@@ -173,6 +173,7 @@ convention = "google"
 "__init__.py" = ["E402","F401"]
 "supervision/assets/list.py" = ["E501"]
 
+
 [tool.ruff.pylint]
 max-args = 20
 

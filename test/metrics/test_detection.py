@@ -1,5 +1,5 @@
 from contextlib import ExitStack as DoesNotRaise
-from test.utils import assert_almost_equal, mock_detections
+from test.test_utils import assert_almost_equal, mock_detections
 from typing import Optional, Union
 
 import numpy as np
