@@ -166,6 +166,27 @@
 
     </div>
 
+=== "Polygon"
+
+    ```python
+    >>> import supervision as sv
+
+    >>> image = ...
+    >>> detections = sv.Detections(...)
+
+    >>> polygon_annotator = sv.PolygonAnnotator()
+    >>> annotated_frame = polygon_annotator.annotate(
+    ...     scene=image.copy(),
+    ...     detections=detections
+    ... )
+    ```
+
+    <div class="result" markdown>
+
+    ![polygon-annotator-example](https://media.roboflow.com/supervision-annotator-examples/polygon-annotator-example-purple.png){ align=center width="800" }
+
+    </div>
+
 === "Label"
 
     ```python
@@ -303,6 +324,10 @@
 ## MaskAnnotator
 
 :::supervision.annotators.core.MaskAnnotator
+
+## PolygonAnnotator
+
+:::supervision.annotators.core.PolygonAnnotator
 
 ## LabelAnnotator
 
