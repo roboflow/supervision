@@ -6,6 +6,12 @@ on:
       - master
       - main
       - develop
+
+permissions:
+  contents: write
+  pages: write
+  pull-requests: write
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
