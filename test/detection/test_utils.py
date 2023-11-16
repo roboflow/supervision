@@ -10,6 +10,7 @@ from supervision.detection.utils import (
     move_boxes,
     non_max_suppression,
     process_roboflow_result,
+    calculate_centroids,
 )
 
 TEST_MASK = np.zeros((1, 1000, 1000), dtype=bool)
@@ -498,5 +499,98 @@ def test_move_boxes(
     expected_result: np.ndarray,
     exception: Exception,
 ) -> None:
-    result = move_boxes(xyxy=xyxy, offset=offset)
-    assert np.array_equal(result, expected_result)
+    with exception:
+        result = move_boxes(xyxy=xyxy, offset=offset)
+        assert np.array_equal(result, expected_result)
+
+
+@pytest.mark.parametrize(
+    "masks, expected_result, exception",
+    [
+        (
+            np.array([
+                [
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                ]
+            ]),
+            np.array([
+                [0, 0]
+            ]),
+            DoesNotRaise(),
+        ),  # single mask with all zeros
+        (
+            np.array([
+                [
+                    [1, 1, 1, 1],
+                    [1, 1, 1, 1],
+                    [1, 1, 1, 1],
+                    [1, 1, 1, 1],
+                ]
+            ]),
+            np.array([
+                [2, 2]
+            ]),
+            DoesNotRaise(),
+        ),  # single mask with all ones
+        (
+            np.array([
+                [
+                    [0, 1, 1, 0],
+                    [1, 1, 1, 1],
+                    [1, 1, 1, 1],
+                    [0, 1, 1, 0],
+                ]
+            ]),
+            np.array([
+                [2, 2]
+            ]),
+            DoesNotRaise(),
+        ),  # single mask with symmetric ones
+        (
+            np.array([
+                [
+                    [0, 0, 0, 0],
+                    [0, 0, 1, 1],
+                    [0, 0, 1, 1],
+                    [0, 0, 0, 0],
+                ]
+            ]),
+            np.array([
+                [3, 2]
+            ]),
+            DoesNotRaise(),
+        ),  # single mask with asymmetric ones
+        (
+            np.array([
+                [
+                    [0, 1, 1, 0],
+                    [1, 1, 1, 1],
+                    [1, 1, 1, 1],
+                    [0, 1, 1, 0],
+                ],
+                [
+                    [0, 0, 0, 0],
+                    [0, 0, 1, 1],
+                    [0, 0, 1, 1],
+                    [0, 0, 0, 0],
+                ]
+            ]),
+            np.array([
+                [2, 2],
+                [3, 2]
+            ]),
+            DoesNotRaise(),
+        ),  # two masks
+    ]
+)
+def test_calculate_centroids(
+    masks: np.ndarray,
+    expected_result: np.ndarray,
+    exception: Exception,
+) -> None:
+    with exception:
+        result = calculate_centroids(masks=masks)
+        assert np.array_equal(result, expected_result)

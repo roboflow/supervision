@@ -9,7 +9,7 @@ from supervision.detection.utils import (
     extract_ultralytics_masks,
     non_max_suppression,
     process_roboflow_result,
-    xywh_to_xyxy,
+    xywh_to_xyxy, calculate_centroids,
 )
 from supervision.geometry.core import Position
 
@@ -627,6 +627,15 @@ class Detections:
                     (self.xyxy[:, 1] + self.xyxy[:, 3]) / 2,
                 ]
             ).transpose()
+        if anchor == Position.CENTER_OF_MASS:
+            if self.mask is None:
+                return np.array(
+                    [
+                        (self.xyxy[:, 0] + self.xyxy[:, 2]) / 2,
+                        (self.xyxy[:, 1] + self.xyxy[:, 3]) / 2,
+                    ]
+                ).transpose()
+            return calculate_centroids(masks=self.mask)
         elif anchor == Position.CENTER_LEFT:
             return np.array(
                 [
