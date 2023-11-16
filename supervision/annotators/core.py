@@ -760,7 +760,7 @@ class DotAnnotator(BaseAnnotator):
         ![dot-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/dot-annotator-example-purple.png)
         """
-        xy = detections.get_anchor_coordinates(anchor=self.position)
+        xy = detections.get_anchors_coordinates(anchor=self.position)
         for detection_idx in range(len(detections)):
             color = resolve_color(
                 color=self.color,
@@ -808,49 +808,46 @@ class LabelAnnotator:
         self.text_scale: float = text_scale
         self.text_thickness: int = text_thickness
         self.text_padding: int = text_padding
-        self.text_position: Position = text_position
+        self.text_anchor: Position = text_position
         self.color_lookup: ColorLookup = color_lookup
 
     @staticmethod
     def resolve_text_background_xyxy(
-        detection_xyxy: Tuple[int, int, int, int],
+        center_coordinates: Tuple[int, int],
         text_wh: Tuple[int, int],
-        text_padding: int,
         position: Position,
     ) -> Tuple[int, int, int, int]:
-        padded_text_wh = (text_wh[0] + 2 * text_padding, text_wh[1] + 2 * text_padding)
-        x1, y1, x2, y2 = detection_xyxy
-        center_x = (x1 + x2) // 2
-        center_y = (y1 + y2) // 2
+        center_x, center_y = center_coordinates
+        text_w, text_h = text_wh
 
         if position == Position.TOP_LEFT:
-            return x1, y1 - padded_text_wh[1], x1 + padded_text_wh[0], y1
+            return center_x, center_y - text_h, center_x + text_w, center_y
         elif position == Position.TOP_RIGHT:
-            return x2 - padded_text_wh[0], y1 - padded_text_wh[1], x2, y1
+            return center_x - text_w, center_y - text_h, center_x, center_y
         elif position == Position.TOP_CENTER:
             return (
-                center_x - padded_text_wh[0] // 2,
-                y1 - padded_text_wh[1],
-                center_x + padded_text_wh[0] // 2,
-                y1,
+                center_x - text_w // 2,
+                center_y - text_h,
+                center_x + text_w // 2,
+                center_y,
             )
-        elif position == Position.CENTER:
+        elif position == Position.CENTER or position == Position.CENTER_OF_MASS:
             return (
-                center_x - padded_text_wh[0] // 2,
-                center_y - padded_text_wh[1] // 2,
-                center_x + padded_text_wh[0] // 2,
-                center_y + padded_text_wh[1] // 2,
+                center_x - text_w // 2,
+                center_y - text_h // 2,
+                center_x + text_w // 2,
+                center_y + text_h // 2,
             )
         elif position == Position.BOTTOM_LEFT:
-            return x1, y2, x1 + padded_text_wh[0], y2 + padded_text_wh[1]
+            return center_x, center_y, center_x + text_w, center_y + text_h
         elif position == Position.BOTTOM_RIGHT:
-            return x2 - padded_text_wh[0], y2, x2, y2 + padded_text_wh[1]
+            return center_x - text_w, center_y, center_x, center_y + text_h
         elif position == Position.BOTTOM_CENTER:
             return (
-                center_x - padded_text_wh[0] // 2,
-                y2,
-                center_x + padded_text_wh[0] // 2,
-                y2 + padded_text_wh[1],
+                center_x - text_w // 2,
+                center_y,
+                center_x + text_w // 2,
+                center_y + text_h,
             )
 
     def annotate(
@@ -891,8 +888,10 @@ class LabelAnnotator:
         supervision-annotator-examples/label-annotator-example-purple.png)
         """
         font = cv2.FONT_HERSHEY_SIMPLEX
-        for detection_idx in range(len(detections)):
-            detection_xyxy = detections.xyxy[detection_idx].astype(int)
+        anchors_coordinates = detections.get_anchors_coordinates(
+            anchor=self.text_anchor
+        ).astype(int)
+        for detection_idx, center_coordinates in enumerate(anchors_coordinates):
             color = resolve_color(
                 color=self.color,
                 detections=detections,
@@ -906,22 +905,22 @@ class LabelAnnotator:
                 if (labels is None or len(detections) != len(labels))
                 else labels[detection_idx]
             )
-            text_wh = cv2.getTextSize(
+            text_w, text_h = cv2.getTextSize(
                 text=text,
                 fontFace=font,
                 fontScale=self.text_scale,
                 thickness=self.text_thickness,
             )[0]
-
+            text_w_padded = text_w + 2 * self.text_padding
+            text_h_padded = text_h + 2 * self.text_padding
             text_background_xyxy = self.resolve_text_background_xyxy(
-                detection_xyxy=detection_xyxy,
-                text_wh=text_wh,
-                text_padding=self.text_padding,
-                position=self.text_position,
+                center_coordinates=tuple(center_coordinates),
+                text_wh=(text_w_padded, text_h_padded),
+                position=self.text_anchor,
             )
 
             text_x = text_background_xyxy[0] + self.text_padding
-            text_y = text_background_xyxy[1] + self.text_padding + text_wh[1]
+            text_y = text_background_xyxy[1] + self.text_padding + text_h
 
             cv2.rectangle(
                 img=scene,
@@ -1181,7 +1180,7 @@ class HeatMapAnnotator:
         if self.heat_mask is None:
             self.heat_mask = np.zeros(scene.shape[:2])
         mask = np.zeros(scene.shape[:2])
-        for xy in detections.get_anchor_coordinates(self.position):
+        for xy in detections.get_anchors_coordinates(self.position):
             cv2.circle(mask, (int(xy[0]), int(xy[1])), self.radius, 1, -1)
         self.heat_mask = mask + self.heat_mask
         temp = self.heat_mask.copy()
