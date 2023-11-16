@@ -170,9 +170,7 @@ class MaskAnnotator(BaseAnnotator):
             mask = detections.mask[detection_idx]
             colored_mask[mask] = color.as_bgr()
 
-        scene = cv2.addWeighted(
-            colored_mask, self.opacity, scene, 1 - self.opacity, 0
-        )
+        scene = cv2.addWeighted(colored_mask, self.opacity, scene, 1 - self.opacity, 0)
         return scene.astype(np.uint8)
 
 
