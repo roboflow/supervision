@@ -6,10 +6,11 @@ from typing import Any, Iterator, List, Optional, Tuple, Union
 import numpy as np
 
 from supervision.detection.utils import (
+    calculate_centroids,
     extract_ultralytics_masks,
     non_max_suppression,
     process_roboflow_result,
-    xywh_to_xyxy, calculate_centroids,
+    xywh_to_xyxy,
 )
 from supervision.geometry.core import Position
 
