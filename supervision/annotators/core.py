@@ -890,7 +890,7 @@ class LabelAnnotator:
         font = cv2.FONT_HERSHEY_SIMPLEX
         anchors_coordinates = detections.get_anchors_coordinates(
             anchor=self.text_anchor)
-        for center_coordinates, detection_idx in enumerate(anchors_coordinates):
+        for detection_idx, center_coordinates in enumerate(anchors_coordinates):
             color = resolve_color(
                 color=self.color,
                 detections=detections,
@@ -912,7 +912,6 @@ class LabelAnnotator:
             )[0]
             text_w_padded = text_w + 2 * self.text_padding
             text_h_padded = text_h + 2 * self.text_padding
-
             text_background_xyxy = self.resolve_text_background_xyxy(
                 center_coordinates=center_coordinates.totuple(),
                 text_wh=(text_w_padded, text_h_padded),
