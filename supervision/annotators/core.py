@@ -913,7 +913,7 @@ class LabelAnnotator:
             text_w_padded = text_w + 2 * self.text_padding
             text_h_padded = text_h + 2 * self.text_padding
             text_background_xyxy = self.resolve_text_background_xyxy(
-                center_coordinates=center_coordinates.totuple(),
+                center_coordinates=tuple(center_coordinates),
                 text_wh=(text_w_padded, text_h_padded),
                 position=self.text_anchor,
             )
