@@ -6,7 +6,7 @@ from typing import Any, Iterator, List, Optional, Tuple, Union
 import numpy as np
 
 from supervision.detection.utils import (
-    calculate_centroids,
+    calculate_masks_centroids,
     extract_ultralytics_masks,
     non_max_suppression,
     process_roboflow_result,
@@ -601,7 +601,7 @@ class Detections:
             tracker_id=tracker_id,
         )
 
-    def get_anchor_coordinates(self, anchor: Position) -> np.ndarray:
+    def get_anchors_coordinates(self, anchor: Position) -> np.ndarray:
         """
         Calculates and returns the coordinates of a specific anchor point
         within the bounding boxes defined by the `xyxy` attribute. The anchor
@@ -628,15 +628,12 @@ class Detections:
                     (self.xyxy[:, 1] + self.xyxy[:, 3]) / 2,
                 ]
             ).transpose()
-        if anchor == Position.CENTER_OF_MASS:
+        elif anchor == Position.CENTER_OF_MASS:
             if self.mask is None:
-                return np.array(
-                    [
-                        (self.xyxy[:, 0] + self.xyxy[:, 2]) / 2,
-                        (self.xyxy[:, 1] + self.xyxy[:, 3]) / 2,
-                    ]
-                ).transpose()
-            return calculate_centroids(masks=self.mask)
+                raise ValueError(
+                    "Cannot use `Position.CENTER_OF_MASS` without a detection mask."
+                )
+            return calculate_masks_centroids(masks=self.mask)
         elif anchor == Position.CENTER_LEFT:
             return np.array(
                 [

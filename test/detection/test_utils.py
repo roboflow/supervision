@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 from supervision.detection.utils import (
-    calculate_centroids,
+    calculate_masks_centroids,
     clip_boxes,
     filter_polygons_by_area,
     move_boxes,
@@ -585,11 +585,11 @@ def test_move_boxes(
         ),  # two masks
     ],
 )
-def test_calculate_centroids(
+def test_calculate_masks_centroids(
     masks: np.ndarray,
     expected_result: np.ndarray,
     exception: Exception,
 ) -> None:
     with exception:
-        result = calculate_centroids(masks=masks)
+        result = calculate_masks_centroids(masks=masks)
         assert np.array_equal(result, expected_result)

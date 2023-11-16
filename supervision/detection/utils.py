@@ -395,7 +395,7 @@ def move_boxes(xyxy: np.ndarray, offset: np.ndarray) -> np.ndarray:
     return xyxy + np.hstack([offset, offset])
 
 
-def calculate_centroids(masks: np.ndarray) -> np.ndarray:
+def calculate_masks_centroids(masks: np.ndarray) -> np.ndarray:
     """
     Calculate the centroids of binary masks in a tensor.
 

@@ -102,7 +102,7 @@ class Trace:
         frame_id = np.full(len(detections), self.current_frame_id, dtype=int)
         self.frame_id = np.concatenate([self.frame_id, frame_id])
         self.xy = np.concatenate(
-            [self.xy, detections.get_anchor_coordinates(self.anchor)]
+            [self.xy, detections.get_anchors_coordinates(self.anchor)]
         )
         self.tracker_id = np.concatenate([self.tracker_id, detections.tracker_id])
 

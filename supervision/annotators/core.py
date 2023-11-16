@@ -19,10 +19,10 @@ class BoundingBoxAnnotator(BaseAnnotator):
     """
 
     def __init__(
-        self,
-        color: Union[Color, ColorPalette] = ColorPalette.default(),
-        thickness: int = 2,
-        color_lookup: ColorLookup = ColorLookup.CLASS,
+            self,
+            color: Union[Color, ColorPalette] = ColorPalette.default(),
+            thickness: int = 2,
+            color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
         """
         Args:
@@ -37,10 +37,10 @@ class BoundingBoxAnnotator(BaseAnnotator):
         self.color_lookup: ColorLookup = color_lookup
 
     def annotate(
-        self,
-        scene: np.ndarray,
-        detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None,
+            self,
+            scene: np.ndarray,
+            detections: Detections,
+            custom_color_lookup: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         """
         Annotates the given scene with bounding boxes based on the provided detections.
@@ -101,10 +101,10 @@ class MaskAnnotator(BaseAnnotator):
     """
 
     def __init__(
-        self,
-        color: Union[Color, ColorPalette] = ColorPalette.default(),
-        opacity: float = 0.5,
-        color_lookup: ColorLookup = ColorLookup.CLASS,
+            self,
+            color: Union[Color, ColorPalette] = ColorPalette.default(),
+            opacity: float = 0.5,
+            color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
         """
         Args:
@@ -119,10 +119,10 @@ class MaskAnnotator(BaseAnnotator):
         self.color_lookup: ColorLookup = color_lookup
 
     def annotate(
-        self,
-        scene: np.ndarray,
-        detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None,
+            self,
+            scene: np.ndarray,
+            detections: Detections,
+            custom_color_lookup: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         """
         Annotates the given scene with masks based on the provided detections.
@@ -185,10 +185,10 @@ class PolygonAnnotator(BaseAnnotator):
     """
 
     def __init__(
-        self,
-        color: Union[Color, ColorPalette] = ColorPalette.default(),
-        thickness: int = 2,
-        color_lookup: ColorLookup = ColorLookup.CLASS,
+            self,
+            color: Union[Color, ColorPalette] = ColorPalette.default(),
+            thickness: int = 2,
+            color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
         """
         Args:
@@ -203,10 +203,10 @@ class PolygonAnnotator(BaseAnnotator):
         self.color_lookup: ColorLookup = color_lookup
 
     def annotate(
-        self,
-        scene: np.ndarray,
-        detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None,
+            self,
+            scene: np.ndarray,
+            detections: Detections,
+            custom_color_lookup: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         """
         Annotates the given scene with polygons based on the provided detections.
@@ -267,10 +267,10 @@ class BoxMaskAnnotator(BaseAnnotator):
     """
 
     def __init__(
-        self,
-        color: Union[Color, ColorPalette] = ColorPalette.default(),
-        opacity: float = 0.5,
-        color_lookup: ColorLookup = ColorLookup.CLASS,
+            self,
+            color: Union[Color, ColorPalette] = ColorPalette.default(),
+            opacity: float = 0.5,
+            color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
         """
         Args:
@@ -285,10 +285,10 @@ class BoxMaskAnnotator(BaseAnnotator):
         self.opacity = opacity
 
     def annotate(
-        self,
-        scene: np.ndarray,
-        detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None,
+            self,
+            scene: np.ndarray,
+            detections: Detections,
+            custom_color_lookup: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         """
         Annotates the given scene with box masks based on the provided detections.
@@ -353,11 +353,11 @@ class HaloAnnotator(BaseAnnotator):
     """
 
     def __init__(
-        self,
-        color: Union[Color, ColorPalette] = ColorPalette.default(),
-        opacity: float = 0.8,
-        kernel_size: int = 40,
-        color_lookup: ColorLookup = ColorLookup.CLASS,
+            self,
+            color: Union[Color, ColorPalette] = ColorPalette.default(),
+            opacity: float = 0.8,
+            kernel_size: int = 40,
+            color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
         """
         Args:
@@ -375,10 +375,10 @@ class HaloAnnotator(BaseAnnotator):
         self.kernel_size: int = kernel_size
 
     def annotate(
-        self,
-        scene: np.ndarray,
-        detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None,
+            self,
+            scene: np.ndarray,
+            detections: Detections,
+            custom_color_lookup: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         """
         Annotates the given scene with halos based on the provided detections.
@@ -445,12 +445,12 @@ class EllipseAnnotator(BaseAnnotator):
     """
 
     def __init__(
-        self,
-        color: Union[Color, ColorPalette] = ColorPalette.default(),
-        thickness: int = 2,
-        start_angle: int = -45,
-        end_angle: int = 235,
-        color_lookup: ColorLookup = ColorLookup.CLASS,
+            self,
+            color: Union[Color, ColorPalette] = ColorPalette.default(),
+            thickness: int = 2,
+            start_angle: int = -45,
+            end_angle: int = 235,
+            color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
         """
         Args:
@@ -469,10 +469,10 @@ class EllipseAnnotator(BaseAnnotator):
         self.color_lookup: ColorLookup = color_lookup
 
     def annotate(
-        self,
-        scene: np.ndarray,
-        detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None,
+            self,
+            scene: np.ndarray,
+            detections: Detections,
+            custom_color_lookup: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         """
         Annotates the given scene with ellipses based on the provided detections.
@@ -535,11 +535,11 @@ class BoxCornerAnnotator(BaseAnnotator):
     """
 
     def __init__(
-        self,
-        color: Union[Color, ColorPalette] = ColorPalette.default(),
-        thickness: int = 4,
-        corner_length: int = 15,
-        color_lookup: ColorLookup = ColorLookup.CLASS,
+            self,
+            color: Union[Color, ColorPalette] = ColorPalette.default(),
+            thickness: int = 4,
+            corner_length: int = 15,
+            color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
         """
         Args:
@@ -556,10 +556,10 @@ class BoxCornerAnnotator(BaseAnnotator):
         self.color_lookup: ColorLookup = color_lookup
 
     def annotate(
-        self,
-        scene: np.ndarray,
-        detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None,
+            self,
+            scene: np.ndarray,
+            detections: Detections,
+            custom_color_lookup: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         """
         Annotates the given scene with box corners based on the provided detections.
@@ -621,10 +621,10 @@ class CircleAnnotator(BaseAnnotator):
     """
 
     def __init__(
-        self,
-        color: Union[Color, ColorPalette] = ColorPalette.default(),
-        thickness: int = 2,
-        color_lookup: ColorLookup = ColorLookup.CLASS,
+            self,
+            color: Union[Color, ColorPalette] = ColorPalette.default(),
+            thickness: int = 2,
+            color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
         """
         Args:
@@ -640,10 +640,10 @@ class CircleAnnotator(BaseAnnotator):
         self.color_lookup: ColorLookup = color_lookup
 
     def annotate(
-        self,
-        scene: np.ndarray,
-        detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None,
+            self,
+            scene: np.ndarray,
+            detections: Detections,
+            custom_color_lookup: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         """
         Annotates the given scene with circles based on the provided detections.
@@ -705,11 +705,11 @@ class DotAnnotator(BaseAnnotator):
     """
 
     def __init__(
-        self,
-        color: Union[Color, ColorPalette] = ColorPalette.default(),
-        radius: int = 4,
-        position: Position = Position.CENTER,
-        color_lookup: ColorLookup = ColorLookup.CLASS,
+            self,
+            color: Union[Color, ColorPalette] = ColorPalette.default(),
+            radius: int = 4,
+            position: Position = Position.CENTER,
+            color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
         """
         Args:
@@ -726,10 +726,10 @@ class DotAnnotator(BaseAnnotator):
         self.color_lookup: ColorLookup = color_lookup
 
     def annotate(
-        self,
-        scene: np.ndarray,
-        detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None,
+            self,
+            scene: np.ndarray,
+            detections: Detections,
+            custom_color_lookup: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         """
         Annotates the given scene with dots based on the provided detections.
@@ -760,7 +760,7 @@ class DotAnnotator(BaseAnnotator):
         ![dot-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/dot-annotator-example-purple.png)
         """
-        xy = detections.get_anchor_coordinates(anchor=self.position)
+        xy = detections.get_anchors_coordinates(anchor=self.position)
         for detection_idx in range(len(detections)):
             color = resolve_color(
                 color=self.color,
@@ -781,14 +781,14 @@ class LabelAnnotator:
     """
 
     def __init__(
-        self,
-        color: Union[Color, ColorPalette] = ColorPalette.default(),
-        text_color: Color = Color.black(),
-        text_scale: float = 0.5,
-        text_thickness: int = 1,
-        text_padding: int = 10,
-        text_position: Position = Position.TOP_LEFT,
-        color_lookup: ColorLookup = ColorLookup.CLASS,
+            self,
+            color: Union[Color, ColorPalette] = ColorPalette.default(),
+            text_color: Color = Color.black(),
+            text_scale: float = 0.5,
+            text_thickness: int = 1,
+            text_padding: int = 10,
+            text_position: Position = Position.TOP_LEFT,
+            color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
         """
         Args:
@@ -808,57 +808,54 @@ class LabelAnnotator:
         self.text_scale: float = text_scale
         self.text_thickness: int = text_thickness
         self.text_padding: int = text_padding
-        self.text_position: Position = text_position
+        self.text_anchor: Position = text_position
         self.color_lookup: ColorLookup = color_lookup
 
     @staticmethod
     def resolve_text_background_xyxy(
-        detection_xyxy: Tuple[int, int, int, int],
-        text_wh: Tuple[int, int],
-        text_padding: int,
-        position: Position,
+            center_coordinates: Tuple[int, int],
+            text_wh: Tuple[int, int],
+            position: Position,
     ) -> Tuple[int, int, int, int]:
-        padded_text_wh = (text_wh[0] + 2 * text_padding, text_wh[1] + 2 * text_padding)
-        x1, y1, x2, y2 = detection_xyxy
-        center_x = (x1 + x2) // 2
-        center_y = (y1 + y2) // 2
+        center_x, center_y = center_coordinates
+        text_w, text_h = text_wh
 
         if position == Position.TOP_LEFT:
-            return x1, y1 - padded_text_wh[1], x1 + padded_text_wh[0], y1
+            return center_x, center_y - text_h, center_x + text_w, center_y
         elif position == Position.TOP_RIGHT:
-            return x2 - padded_text_wh[0], y1 - padded_text_wh[1], x2, y1
+            return center_x - text_w, center_y - text_h, center_x, center_y
         elif position == Position.TOP_CENTER:
             return (
-                center_x - padded_text_wh[0] // 2,
-                y1 - padded_text_wh[1],
-                center_x + padded_text_wh[0] // 2,
-                y1,
+                center_x - text_w // 2,
+                center_y - text_h,
+                center_x + text_w // 2,
+                center_y
             )
-        elif position == Position.CENTER:
+        elif position == Position.CENTER or position == Position.CENTER_OF_MASS:
             return (
-                center_x - padded_text_wh[0] // 2,
-                center_y - padded_text_wh[1] // 2,
-                center_x + padded_text_wh[0] // 2,
-                center_y + padded_text_wh[1] // 2,
+                center_x - text_w // 2,
+                center_y - text_h // 2,
+                center_x + text_w // 2,
+                center_y + text_h // 2
             )
         elif position == Position.BOTTOM_LEFT:
-            return x1, y2, x1 + padded_text_wh[0], y2 + padded_text_wh[1]
+            return center_x, center_y, center_x + text_w, center_y + text_h
         elif position == Position.BOTTOM_RIGHT:
-            return x2 - padded_text_wh[0], y2, x2, y2 + padded_text_wh[1]
+            return center_x - text_w, center_y, center_x, center_y + text_h
         elif position == Position.BOTTOM_CENTER:
             return (
-                center_x - padded_text_wh[0] // 2,
-                y2,
-                center_x + padded_text_wh[0] // 2,
-                y2 + padded_text_wh[1],
+                center_x - text_w // 2,
+                center_y,
+                center_x + text_w // 2,
+                center_y + text_h
             )
 
     def annotate(
-        self,
-        scene: np.ndarray,
-        detections: Detections,
-        labels: List[str] = None,
-        custom_color_lookup: Optional[np.ndarray] = None,
+            self,
+            scene: np.ndarray,
+            detections: Detections,
+            labels: List[str] = None,
+            custom_color_lookup: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         """
         Annotates the given scene with labels based on the provided detections.
@@ -891,8 +888,9 @@ class LabelAnnotator:
         supervision-annotator-examples/label-annotator-example-purple.png)
         """
         font = cv2.FONT_HERSHEY_SIMPLEX
-        for detection_idx in range(len(detections)):
-            detection_xyxy = detections.xyxy[detection_idx].astype(int)
+        anchors_coordinates = detections.get_anchors_coordinates(
+            anchor=self.text_anchor)
+        for center_coordinates, detection_idx in enumerate(anchors_coordinates):
             color = resolve_color(
                 color=self.color,
                 detections=detections,
@@ -906,22 +904,23 @@ class LabelAnnotator:
                 if (labels is None or len(detections) != len(labels))
                 else labels[detection_idx]
             )
-            text_wh = cv2.getTextSize(
+            text_w, text_h = cv2.getTextSize(
                 text=text,
                 fontFace=font,
                 fontScale=self.text_scale,
                 thickness=self.text_thickness,
             )[0]
+            text_w_padded = text_w + 2 * self.text_padding
+            text_h_padded = text_h + 2 * self.text_padding
 
             text_background_xyxy = self.resolve_text_background_xyxy(
-                detection_xyxy=detection_xyxy,
-                text_wh=text_wh,
-                text_padding=self.text_padding,
-                position=self.text_position,
+                center_coordinates=center_coordinates.totuple(),
+                text_wh=(text_w_padded, text_h_padded),
+                position=self.text_anchor,
             )
 
             text_x = text_background_xyxy[0] + self.text_padding
-            text_y = text_background_xyxy[1] + self.text_padding + text_wh[1]
+            text_y = text_background_xyxy[1] + self.text_padding + text_h
 
             cv2.rectangle(
                 img=scene,
@@ -956,9 +955,9 @@ class BlurAnnotator(BaseAnnotator):
         self.kernel_size: int = kernel_size
 
     def annotate(
-        self,
-        scene: np.ndarray,
-        detections: Detections,
+            self,
+            scene: np.ndarray,
+            detections: Detections,
     ) -> np.ndarray:
         """
         Annotates the given scene by blurring regions based on the provided detections.
@@ -1012,12 +1011,12 @@ class TraceAnnotator:
     """
 
     def __init__(
-        self,
-        color: Union[Color, ColorPalette] = ColorPalette.default(),
-        position: Position = Position.CENTER,
-        trace_length: int = 30,
-        thickness: int = 2,
-        color_lookup: ColorLookup = ColorLookup.CLASS,
+            self,
+            color: Union[Color, ColorPalette] = ColorPalette.default(),
+            position: Position = Position.CENTER,
+            trace_length: int = 30,
+            thickness: int = 2,
+            color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
         """
         Args:
@@ -1038,10 +1037,10 @@ class TraceAnnotator:
         self.color_lookup: ColorLookup = color_lookup
 
     def annotate(
-        self,
-        scene: np.ndarray,
-        detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None,
+            self,
+            scene: np.ndarray,
+            detections: Detections,
+            custom_color_lookup: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         """
         Draws trace paths on the frame based on the detection coordinates provided.
@@ -1115,13 +1114,13 @@ class HeatMapAnnotator:
     """
 
     def __init__(
-        self,
-        position: Position = Position.BOTTOM_CENTER,
-        opacity: float = 0.2,
-        radius: int = 40,
-        kernel_size: int = 25,
-        top_hue: int = 0,
-        low_hue: int = 125,
+            self,
+            position: Position = Position.BOTTOM_CENTER,
+            opacity: float = 0.2,
+            radius: int = 40,
+            kernel_size: int = 25,
+            top_hue: int = 0,
+            low_hue: int = 125,
     ):
         """
         Args:
@@ -1181,7 +1180,7 @@ class HeatMapAnnotator:
         if self.heat_mask is None:
             self.heat_mask = np.zeros(scene.shape[:2])
         mask = np.zeros(scene.shape[:2])
-        for xy in detections.get_anchor_coordinates(self.position):
+        for xy in detections.get_anchors_coordinates(self.position):
             cv2.circle(mask, (int(xy[0]), int(xy[1])), self.radius, 1, -1)
         self.heat_mask = mask + self.heat_mask
         temp = self.heat_mask.copy()
