@@ -156,6 +156,8 @@ class MaskAnnotator(BaseAnnotator):
         if detections.mask is None:
             return scene
 
+        colored_mask = np.array(scene, copy=True, dtype=np.uint8)
+
         for detection_idx in np.flip(np.argsort(detections.area)):
             color = resolve_color(
                 color=self.color,
@@ -166,13 +168,10 @@ class MaskAnnotator(BaseAnnotator):
                 else custom_color_lookup,
             )
             mask = detections.mask[detection_idx]
-            colored_mask = np.zeros_like(scene, dtype=np.uint8)
-            colored_mask[:] = color.as_bgr()
-            scene[mask] = cv2.addWeighted(
-                colored_mask, self.opacity, scene, 1 - self.opacity, 0
-            )[mask]
+            colored_mask[mask] = color.as_bgr()
 
-        return scene
+        scene = cv2.addWeighted(colored_mask, self.opacity, scene, 1 - self.opacity, 0)
+        return scene.astype(np.uint8)
 
 
 class PolygonAnnotator(BaseAnnotator):
