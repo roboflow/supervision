@@ -30,7 +30,7 @@ class BoundingBoxAnnotator(BaseAnnotator):
                 annotating detections.
             thickness (int): Thickness of the bounding box lines.
             color_lookup (str): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACE`.
+                Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
         self.thickness: int = thickness
@@ -112,7 +112,7 @@ class MaskAnnotator(BaseAnnotator):
                 annotating detections.
             opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.
             color_lookup (str): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACE`.
+                Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
         self.opacity = opacity
@@ -195,7 +195,7 @@ class PolygonAnnotator(BaseAnnotator):
                 annotating detections.
             thickness (int): Thickness of the polygon lines.
             color_lookup (str): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACE`.
+                Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
         self.thickness: int = thickness
@@ -277,7 +277,7 @@ class BoxMaskAnnotator(BaseAnnotator):
                 annotating detections.
             opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.
             color_lookup (str): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACE`.
+                Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
         self.color_lookup: ColorLookup = color_lookup
@@ -366,7 +366,7 @@ class HaloAnnotator(BaseAnnotator):
             kernel_size (int): The size of the average pooling kernel used for creating
                 the halo.
             color_lookup (str): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACE`.
+                Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
         self.opacity = opacity
@@ -459,7 +459,7 @@ class EllipseAnnotator(BaseAnnotator):
             start_angle (int): Starting angle of the ellipse.
             end_angle (int): Ending angle of the ellipse.
             color_lookup (str): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACE`.
+                Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
         self.thickness: int = thickness
@@ -547,7 +547,7 @@ class BoxCornerAnnotator(BaseAnnotator):
             thickness (int): Thickness of the corner lines.
             corner_length (int): Length of each corner line.
             color_lookup (str): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACE`.
+                Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
         self.thickness: int = thickness
@@ -631,7 +631,7 @@ class CircleAnnotator(BaseAnnotator):
                 annotating detections.
             thickness (int): Thickness of the circle line.
             color_lookup (str): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACE`.
+                Options are `INDEX`, `CLASS`, `TRACK`.
         """
 
         self.color: Union[Color, ColorPalette] = color
@@ -717,7 +717,7 @@ class DotAnnotator(BaseAnnotator):
             radius (int): Radius of the drawn dots.
             position (Position): The anchor position for placing the dot.
             color_lookup (ColorLookup): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACE`.
+                Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
         self.radius: int = radius
@@ -800,7 +800,7 @@ class LabelAnnotator:
             text_position (Position): Position of the text relative to the detection.
                 Possible values are defined in the `Position` enum.
             color_lookup (str): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACE`.
+                Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
         self.text_color: Color = text_color
@@ -1027,7 +1027,7 @@ class TraceAnnotator:
                 points. Defaults to `30`.
             thickness (int): The thickness of the trace lines. Defaults to `2`.
             color_lookup (str): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACE`.
+                Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
         self.position = position
