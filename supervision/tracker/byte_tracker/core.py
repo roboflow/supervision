@@ -249,6 +249,8 @@ class ByteTrack:
             detections.confidence = np.array(
                 [t.score for t in tracks], dtype=np.float32
             )
+        else:
+            detections.tracker_id = np.array([], dtype=int)
 
         return detections
 

@@ -10,11 +10,17 @@
 
   <br>
 
-[![version](https://badge.fury.io/py/supervision.svg)](https://badge.fury.io/py/supervision)
-[![downloads](https://img.shields.io/pypi/dm/supervision)](https://pypistats.org/packages/supervision)
-[![license](https://img.shields.io/pypi/l/supervision)](https://github.com/roboflow/supervision/blob/main/LICENSE.md)
-[![python-version](https://img.shields.io/pypi/pyversions/supervision)](https://badge.fury.io/py/supervision)
-[![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/roboflow/supervision/blob/main/demo.ipynb)
+  [notebooks](https://github.com/roboflow/notebooks) | [inference](https://github.com/roboflow/inference) | [autodistill](https://github.com/autodistill/autodistill) | [collect](https://github.com/roboflow/roboflow-collect)
+
+  <br>
+
+  [![version](https://badge.fury.io/py/supervision.svg)](https://badge.fury.io/py/supervision)
+  [![downloads](https://img.shields.io/pypi/dm/supervision)](https://pypistats.org/packages/supervision)
+  [![license](https://img.shields.io/pypi/l/supervision)](https://github.com/roboflow/supervision/blob/main/LICENSE.md)
+  [![python-version](https://img.shields.io/pypi/pyversions/supervision)](https://badge.fury.io/py/supervision)
+  [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/roboflow/supervision/blob/main/demo.ipynb)
+  [![Gradio](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/Roboflow/Annotators)
+  [![Discord](https://img.shields.io/discord/1159501506232451173)](https://discord.gg/GbfgXGJ8Bk)
 
 </div>
 
@@ -269,19 +275,13 @@ array([
 
 </details>
 
-## 🛠️ built with supervision
-
-Did you build something cool using supervision? [Let us know!](https://github.com/roboflow/supervision/discussions/categories/built-with-supervision)
-
-https://user-images.githubusercontent.com/26109316/207858600-ee862b22-0353-440b-ad85-caa0c4777904.mp4
-
 ## 🎬 tutorials
 
 <p align="left">
-<a href="https://youtu.be/oEQYStnF2l8" title="Accelerate Image Annotation with SAM and Grounding DINO"><img src="https://github.com/SkalskiP/SkalskiP/assets/26109316/ae1ca38e-40b7-4b35-8582-e8ea5de3806e" alt="Accelerate Image Annotation with SAM and Grounding DINO" width="300px" align="left" /></a>
-<a href="https://youtu.be/oEQYStnF2l8" title="Accelerate Image Annotation with SAM and Grounding DINO"><strong>Accelerate Image Annotation with SAM and Grounding DINO</strong></a>
-<div><strong>Created: 20 Apr 2023</strong> | <strong>Updated: 20 Apr 2023</strong></div>
-<br/> Discover how to speed up your image annotation process using Grounding DINO and Segment Anything Model (SAM). Learn how to convert object detection datasets into instance segmentation datasets, and see the potential of using these models to automatically annotate your datasets for real-time detectors like YOLOv8... </p>
+<a href="https://youtu.be/4Q3ut7vqD5o" title="Traffic Analysis with YOLOv8 and ByteTrack - Vehicle Detection and Tracking"><img src="https://github.com/roboflow/supervision/assets/26109316/54afdf1c-218c-4451-8f12-627fb85f1682" alt="Traffic Analysis with YOLOv8 and ByteTrack - Vehicle Detection and Tracking" width="300px" align="left" /></a>
+<a href="https://youtu.be/4Q3ut7vqD5o" title="Traffic Analysis with YOLOv8 and ByteTrack - Vehicle Detection and Tracking"><strong>Traffic Analysis with YOLOv8 and ByteTrack - Vehicle Detection and Tracking</strong></a>
+<div><strong>Created: 6 Sep 2023</strong> | <strong>Updated: 6 Sep 2023</strong></div>
+<br/> In this video, we explore real-time traffic analysis using YOLOv8 and ByteTrack to detect and track vehicles on aerial images. Harnessing the power of Python and Supervision, we delve deep into assigning cars to specific entry zones and understanding their direction of movement. By visualizing their paths, we gain insights into traffic flow across bustling roundabouts... </p>
 
 <br/>
 
@@ -291,6 +291,14 @@ https://user-images.githubusercontent.com/26109316/207858600-ee862b22-0353-440b-
 <div><strong>Created: 11 Apr 2023</strong> | <strong>Updated: 11 Apr 2023</strong></div>
 <br/> Discover the incredible potential of Meta AI's Segment Anything Model (SAM)! We dive into SAM, an efficient and promptable model for image segmentation, which has revolutionized computer vision tasks. With over 1 billion masks on 11M licensed and privacy-respecting images, SAM's zero-shot performance is often competitive with or even superior to prior fully supervised results... </p>
 
+## 💜 built with supervision
+
+Did you build something cool using supervision? [Let us know!](https://github.com/roboflow/supervision/discussions/categories/built-with-supervision)
+
+https://user-images.githubusercontent.com/26109316/207858600-ee862b22-0353-440b-ad85-caa0c4777904.mp4
+
+https://github.com/roboflow/supervision/assets/26109316/c9436828-9fbf-4c25-ae8c-60e9c81b3900
+
 ## 📚 documentation
 
 Visit our [documentation](https://roboflow.github.io/supervision) page to learn how supervision can help you build computer vision applications faster and more reliably.
@@ -298,6 +306,12 @@ Visit our [documentation](https://roboflow.github.io/supervision) page to learn 
 ## 🏆 contribution
 
 We love your input! Please see our [contributing guide](https://github.com/roboflow/supervision/blob/main/CONTRIBUTING.md) to get started. Thank you 🙏 to all our contributors!
+
+<p align="center">
+    <a href="https://github.com/roboflow/supervision/graphs/contributors">
+      <img src="https://contrib.rocks/image?repo=roboflow/supervision" />
+    </a>
+</p>
 
 <br>
 
@@ -346,5 +360,4 @@ We love your input! Please see our [contributing guide](https://github.com/robof
       </a>
       </a>
   </div>
-
 </div>
