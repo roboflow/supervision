@@ -6,13 +6,13 @@ from typing import Any, Iterator, List, Optional, Tuple, Union
 import numpy as np
 
 from supervision.detection.utils import (
+    calculate_masks_centroids,
     extract_ultralytics_masks,
     non_max_suppression,
     process_roboflow_result,
     xywh_to_xyxy,
 )
 from supervision.geometry.core import Position
-from supervision.utils.internal import deprecated
 
 
 def _validate_xyxy(xyxy: Any, n: int) -> None:
@@ -27,6 +27,13 @@ def _validate_mask(mask: Any, n: int) -> None:
     )
     if not is_valid:
         raise ValueError("mask must be 3d np.ndarray with (n, H, W) shape")
+
+
+def validate_inference_callback(callback) -> None:
+    tmp_img = np.zeros((256, 256, 3), dtype=np.uint8)
+    res = callback(tmp_img)
+    if not isinstance(res, Detections):
+        raise ValueError("Callback function must return sv.Detection type")
 
 
 def _validate_class_id(class_id: Any, n: int) -> None:
@@ -71,7 +78,7 @@ class Detections:
     """
 
     xyxy: np.ndarray
-    mask: np.Optional[np.ndarray] = None
+    mask: Optional[np.ndarray] = None
     confidence: Optional[np.ndarray] = None
     class_id: Optional[np.ndarray] = None
     tracker_id: Optional[np.ndarray] = None
@@ -171,49 +178,11 @@ class Detections:
             ```
         """
         yolov5_detections_predictions = yolov5_results.pred[0].cpu().cpu().numpy()
+
         return cls(
             xyxy=yolov5_detections_predictions[:, :4],
             confidence=yolov5_detections_predictions[:, 4],
             class_id=yolov5_detections_predictions[:, 5].astype(int),
-        )
-
-    @classmethod
-    @deprecated(
-        """
-        This method is deprecated and removed in 0.15.0 release.
-        Use sv.Detections.from_ultralytics() instead as it is more generic and
-        can be used for detections from any ultralytics.engine.results.Results Object
-        """
-    )
-    def from_yolov8(cls, yolov8_results) -> Detections:
-        """
-        Creates a Detections instance from a
-        [YOLOv8](https://github.com/ultralytics/ultralytics) inference result.
-
-        Args:
-            yolov8_results (ultralytics.yolo.engine.results.Results):
-                The output Results instance from YOLOv8
-
-        Returns:
-            Detections: A new Detections object.
-
-        Example:
-            ```python
-            >>> import cv2
-            >>> from ultralytics import YOLO
-            >>> import supervision as sv
-
-            >>> image = cv2.imread(SOURCE_IMAGE_PATH)
-            >>> model = YOLO('yolov8s.pt')
-            >>> result = model(image)[0]
-            >>> detections = sv.Detections.from_yolov8(result)
-            ```
-        """
-        return cls(
-            xyxy=yolov8_results.boxes.xyxy.cpu().numpy(),
-            confidence=yolov8_results.boxes.conf.cpu().numpy(),
-            class_id=yolov8_results.boxes.cls.cpu().numpy().astype(int),
-            mask=extract_ultralytics_masks(yolov8_results),
         )
 
     @classmethod
@@ -248,6 +217,7 @@ class Detections:
             >>> detections = sv.Detections.from_ultralytics(result)
             ```
         """
+
         return cls(
             xyxy=ultralytics_results.boxes.xyxy.cpu().numpy(),
             confidence=ultralytics_results.boxes.conf.cpu().numpy(),
@@ -286,6 +256,9 @@ class Detections:
             >>> detections = sv.Detections.from_yolo_nas(result)
             ```
         """
+        if np.asarray(yolo_nas_results.prediction.bboxes_xyxy).shape[0] == 0:
+            return cls.empty()
+
         return cls(
             xyxy=yolo_nas_results.prediction.bboxes_xyxy,
             confidence=yolo_nas_results.prediction.confidence,
@@ -313,14 +286,16 @@ class Detections:
 
             >>> yolo_pipeline = Pipeline.create(
             ...     task="yolo",
-            ...     model_stub = "zoo:cv/detection/yolov5-l/pytorch/" \
+            ...     model_path = "zoo:cv/detection/yolov5-l/pytorch/" \
             ...                  "ultralytics/coco/pruned80_quant-none"
             >>> pipeline_outputs = yolo_pipeline(SOURCE_IMAGE_PATH,
             ...                         iou_thres=0.6, conf_thres=0.001)
-            >>> result = list(pipeline_outputs.boxes[0])
-            >>> detections = sv.Detections.from_yolo_nas(result)
+            >>> detections = sv.Detections.from_deepsparse(result)
             ```
         """
+        if np.asarray(deepsparse_results.boxes[0]).shape[0] == 0:
+            return cls.empty()
+
         return cls(
             xyxy=np.array(deepsparse_results.boxes[0]),
             confidence=np.array(deepsparse_results.scores[0]),
@@ -353,6 +328,7 @@ class Detections:
             >>> detections = sv.Detections.from_mmdet(mmdet_result)
             ```
         """
+
         return cls(
             xyxy=mmdet_results.pred_instances.bboxes.cpu().numpy(),
             confidence=mmdet_results.pred_instances.scores.cpu().numpy(),
@@ -368,6 +344,7 @@ class Detections:
         Returns:
             Detections: A new Detections object.
         """
+
         return cls(
             xyxy=transformers_results["boxes"].cpu().numpy(),
             confidence=transformers_results["scores"].cpu().numpy(),
@@ -404,6 +381,7 @@ class Detections:
             >>> detections = sv.Detections.from_detectron2(result)
             ```
         """
+
         return cls(
             xyxy=detectron2_results["instances"].pred_boxes.tensor.cpu().numpy(),
             confidence=detectron2_results["instances"].scores.cpu().numpy(),
@@ -414,7 +392,7 @@ class Detections:
         )
 
     @classmethod
-    def from_roboflow(cls, roboflow_result: dict, class_list: List[str]) -> Detections:
+    def from_roboflow(cls, roboflow_result: dict) -> Detections:
         """
         Create a Detections object from the [Roboflow](https://roboflow.com/)
             API inference result.
@@ -422,8 +400,6 @@ class Detections:
         Args:
             roboflow_result (dict): The result from the
                 Roboflow API containing predictions.
-            class_list (List[str]): A list of class names
-                corresponding to the class IDs in the API result.
 
         Returns:
             (Detections): A Detections object containing the bounding boxes, class IDs,
@@ -440,25 +416,30 @@ class Detections:
             ...             "y": 0.5,
             ...             "width": 0.2,
             ...             "height": 0.3,
+            ...             "class_id": 0,
             ...             "class": "person",
             ...             "confidence": 0.9
             ...         },
             ...         # ... more predictions ...
             ...     ]
             ... }
-            >>> class_list = ["person", "car", "dog"]
 
-            >>> detections = sv.Detections.from_roboflow(roboflow_result, class_list)
+            >>> detections = sv.Detections.from_roboflow(roboflow_result)
             ```
         """
-        xyxy, confidence, class_id, masks = process_roboflow_result(
-            roboflow_result=roboflow_result, class_list=class_list
+        xyxy, confidence, class_id, masks, trackers = process_roboflow_result(
+            roboflow_result=roboflow_result
         )
-        return Detections(
+
+        if np.asarray(xyxy).shape[0] == 0:
+            return cls.empty()
+
+        return cls(
             xyxy=xyxy,
             confidence=confidence,
             class_id=class_id,
             mask=masks,
+            tracker_id=trackers,
         )
 
     @classmethod
@@ -497,7 +478,11 @@ class Detections:
         xywh = np.array([mask["bbox"] for mask in sorted_generated_masks])
         mask = np.array([mask["segmentation"] for mask in sorted_generated_masks])
 
-        return Detections(xyxy=xywh_to_xyxy(boxes_xywh=xywh), mask=mask)
+        if np.asarray(xywh).shape[0] == 0:
+            return cls.empty()
+
+        xyxy = xywh_to_xyxy(boxes_xywh=xywh)
+        return cls(xyxy=xyxy, mask=mask)
 
     @classmethod
     def from_paddledet(cls, paddledet_result) -> Detections:
@@ -531,6 +516,10 @@ class Detections:
             >>> detections = sv.Detections.from_paddledet(paddledet_result)
             ```
         """
+
+        if np.asarray(paddledet_result["bbox"][:, 2:6]).shape[0] == 0:
+            return cls.empty()
+
         return cls(
             xyxy=paddledet_result["bbox"][:, 2:6],
             confidence=paddledet_result["bbox"][:, 1],
@@ -612,17 +601,25 @@ class Detections:
             tracker_id=tracker_id,
         )
 
-    def get_anchor_coordinates(self, anchor: Position) -> np.ndarray:
+    def get_anchors_coordinates(self, anchor: Position) -> np.ndarray:
         """
-        Returns the bounding box coordinates for a specific anchor.
+        Calculates and returns the coordinates of a specific anchor point
+        within the bounding boxes defined by the `xyxy` attribute. The anchor
+        point can be any of the predefined positions in the `Position` enum,
+        such as `CENTER`, `CENTER_LEFT`, `BOTTOM_RIGHT`, etc.
 
         Args:
-            anchor (Position): Position of bounding box anchor
-                for which to return the coordinates.
+            anchor (Position): An enum specifying the position of the anchor point
+                within the bounding box. Supported positions are defined in the
+                `Position` enum.
 
         Returns:
-            np.ndarray: An array of shape `(n, 2)` containing the bounding
-                box anchor coordinates in format `[x, y]`.
+            np.ndarray: An array of shape `(n, 2)`, where `n` is the number of bounding
+                boxes. Each row contains the `[x, y]` coordinates of the specified
+                anchor point for the corresponding bounding box.
+
+        Raises:
+            ValueError: If the provided `anchor` is not supported.
         """
         if anchor == Position.CENTER:
             return np.array(
@@ -631,10 +628,42 @@ class Detections:
                     (self.xyxy[:, 1] + self.xyxy[:, 3]) / 2,
                 ]
             ).transpose()
+        elif anchor == Position.CENTER_OF_MASS:
+            if self.mask is None:
+                raise ValueError(
+                    "Cannot use `Position.CENTER_OF_MASS` without a detection mask."
+                )
+            return calculate_masks_centroids(masks=self.mask)
+        elif anchor == Position.CENTER_LEFT:
+            return np.array(
+                [
+                    self.xyxy[:, 0],
+                    (self.xyxy[:, 1] + self.xyxy[:, 3]) / 2,
+                ]
+            ).transpose()
+        elif anchor == Position.CENTER_RIGHT:
+            return np.array(
+                [
+                    self.xyxy[:, 2],
+                    (self.xyxy[:, 1] + self.xyxy[:, 3]) / 2,
+                ]
+            ).transpose()
         elif anchor == Position.BOTTOM_CENTER:
             return np.array(
                 [(self.xyxy[:, 0] + self.xyxy[:, 2]) / 2, self.xyxy[:, 3]]
             ).transpose()
+        elif anchor == Position.BOTTOM_LEFT:
+            return np.array([self.xyxy[:, 0], self.xyxy[:, 3]]).transpose()
+        elif anchor == Position.BOTTOM_RIGHT:
+            return np.array([self.xyxy[:, 2], self.xyxy[:, 3]]).transpose()
+        elif anchor == Position.TOP_CENTER:
+            return np.array(
+                [(self.xyxy[:, 0] + self.xyxy[:, 2]) / 2, self.xyxy[:, 1]]
+            ).transpose()
+        elif anchor == Position.TOP_LEFT:
+            return np.array([self.xyxy[:, 0], self.xyxy[:, 1]]).transpose()
+        elif anchor == Position.TOP_RIGHT:
+            return np.array([self.xyxy[:, 2], self.xyxy[:, 1]]).transpose()
 
         raise ValueError(f"{anchor} is not supported.")
 

@@ -491,8 +491,8 @@ class ConfusionMatrix:
                 save_path, dpi=250, facecolor=fig.get_facecolor(), transparent=True
             )
         return fig
-    
-    def f1_score(self)->(np.ndarray,float):
+
+    def f1_score(self) -> (np.ndarray, float):
         """
         Calculates the F1 score for each class and the overall F1 score.
 
@@ -553,7 +553,7 @@ class ConfusionMatrix:
 
         overall_f1_score = np.mean(f1_scores)
 
-        return f1_scores,overall_f1_score
+        return f1_scores, overall_f1_score
 
 
 @dataclass(frozen=True)

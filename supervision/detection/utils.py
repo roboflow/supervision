@@ -110,17 +110,15 @@ def non_max_suppression(
     return keep[sort_index.argsort()]
 
 
-def clip_boxes(
-    boxes_xyxy: np.ndarray, frame_resolution_wh: Tuple[int, int]
-) -> np.ndarray:
+def clip_boxes(xyxy: np.ndarray, resolution_wh: Tuple[int, int]) -> np.ndarray:
     """
     Clips bounding boxes coordinates to fit within the frame resolution.
 
     Args:
-        boxes_xyxy (np.ndarray): A numpy array of shape `(N, 4)` where each
+        xyxy (np.ndarray): A numpy array of shape `(N, 4)` where each
             row corresponds to a bounding box in
         the format `(x_min, y_min, x_max, y_max)`.
-        frame_resolution_wh (Tuple[int, int]): A tuple of the form `(width, height)`
+        resolution_wh (Tuple[int, int]): A tuple of the form `(width, height)`
             representing the resolution of the frame.
 
     Returns:
@@ -128,8 +126,8 @@ def clip_boxes(
             corresponds to a bounding box with coordinates clipped to fit
             within the frame resolution.
     """
-    result = np.copy(boxes_xyxy)
-    width, height = frame_resolution_wh
+    result = np.copy(xyxy)
+    width, height = resolution_wh
     result[:, [0, 2]] = result[:, [0, 2]].clip(0, width)
     result[:, [1, 3]] = result[:, [1, 3]].clip(0, height)
     return result
@@ -332,15 +330,16 @@ def extract_ultralytics_masks(yolov8_results) -> Optional[np.ndarray]:
 
 
 def process_roboflow_result(
-    roboflow_result: dict, class_list: List[str]
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, Optional[np.ndarray]]:
+    roboflow_result: dict,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, Optional[np.ndarray], np.ndarray]:
     if not roboflow_result["predictions"]:
-        return np.empty((0, 4)), np.empty(0), np.empty(0), None
+        return np.empty((0, 4)), np.empty(0), np.empty(0), None, None
 
     xyxy = []
     confidence = []
     class_id = []
     masks = []
+    tracker_ids = []
 
     image_width = int(roboflow_result["image"]["width"])
     image_height = int(roboflow_result["image"]["height"])
@@ -357,21 +356,70 @@ def process_roboflow_result(
 
         if "points" not in prediction:
             xyxy.append([x_min, y_min, x_max, y_max])
-            class_id.append(class_list.index(prediction["class"]))
+            class_id.append(prediction["class_id"])
             confidence.append(prediction["confidence"])
+            if "tracker_id" in prediction:
+                tracker_ids.append(prediction["tracker_id"])
         elif len(prediction["points"]) >= 3:
             polygon = np.array(
                 [[point["x"], point["y"]] for point in prediction["points"]], dtype=int
             )
             mask = polygon_to_mask(polygon, resolution_wh=(image_width, image_height))
             xyxy.append([x_min, y_min, x_max, y_max])
-            class_id.append(class_list.index(prediction["class"]))
+            class_id.append(prediction["class_id"])
             confidence.append(prediction["confidence"])
             masks.append(mask)
+            if "tracker_id" in prediction:
+                tracker_ids.append(prediction["tracker_id"])
 
     xyxy = np.array(xyxy) if len(xyxy) > 0 else np.empty((0, 4))
     confidence = np.array(confidence) if len(confidence) > 0 else np.empty(0)
     class_id = np.array(class_id).astype(int) if len(class_id) > 0 else np.empty(0)
     masks = np.array(masks, dtype=bool) if len(masks) > 0 else None
+    tracker_id = np.array(tracker_ids).astype(int) if len(tracker_ids) > 0 else None
 
-    return xyxy, confidence, class_id, masks
+    return xyxy, confidence, class_id, masks, tracker_id
+
+
+def move_boxes(xyxy: np.ndarray, offset: np.ndarray) -> np.ndarray:
+    """
+    Args:
+        xyxy (np.ndarray): An array of shape `(n, 4)` containing the bounding boxes
+            coordinates in format `[x1, y1, x2, y2]`
+        offset (np.array): An array of shape `(2,)` containing offset values in format
+            is `[dx, dy]`.
+
+    Returns:
+        (np.ndarray) repositioned bounding boxes
+    """
+    return xyxy + np.hstack([offset, offset])
+
+
+def calculate_masks_centroids(masks: np.ndarray) -> np.ndarray:
+    """
+    Calculate the centroids of binary masks in a tensor.
+
+    Parameters:
+        masks (np.ndarray): A 3D NumPy array of shape (num_masks, height, width).
+            Each 2D array in the tensor represents a binary mask.
+
+    Returns:
+        A 2D NumPy array of shape (num_masks, 2), where each row contains the x and y
+            coordinates (in that order) of the centroid of the corresponding mask.
+    """
+    num_masks, height, width = masks.shape
+    total_pixels = masks.sum(axis=(1, 2))
+
+    # offset for 1-based indexing
+    vertical_indices, horizontal_indices = np.indices((height, width)) + 0.5
+    # avoid division by zero for empty masks
+    total_pixels[total_pixels == 0] = 1
+
+    def sum_over_mask(indices: np.ndarray, axis: tuple) -> np.ndarray:
+        return np.tensordot(masks, indices, axes=axis)
+
+    aggregation_axis = ([1, 2], [0, 1])
+    centroid_x = sum_over_mask(horizontal_indices, aggregation_axis) / total_pixels
+    centroid_y = sum_over_mask(vertical_indices, aggregation_axis) / total_pixels
+
+    return np.column_stack((centroid_x, centroid_y)).astype(int)

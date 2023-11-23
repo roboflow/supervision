@@ -14,7 +14,7 @@ We welcome contributions to:
 4. Submit a request for a new feature.
 5. Improve our test coverage.
 
-### Contributing Features
+### Contributing Features ✨
 
 Supervision is designed to provide generic utilities to solve problems. Thus, we focus on contributions that can have an impact on a wide range of projects.
 
@@ -48,7 +48,13 @@ git commit -m "Your commit message"
 git push -u origin main
 ```
 
+## 🎨 Code quality
+
+### Pre-commit tool
+
 This project utilizes the [pre-commit](https://pre-commit.com/) tool to maintain code quality and consistency. Before submitting a pull request or making any commits, it is important to run the pre-commit tool to ensure that your changes meet the project's guidelines.
+
+Furthermore, we have integrated a pre-commit GitHub Action into our workflow. This means that with every pull request opened, the pre-commit checks will be automatically enforced, streamlining the code review process and ensuring that all contributions adhere to our quality standards.
 
 To run the pre-commit tool, follow these steps:
 
@@ -59,6 +65,17 @@ To run the pre-commit tool, follow these steps:
 3. Run the command `pre-commit run --all-files`. This will execute the pre-commit hooks configured for this project against the modified files. If any issues are found, the pre-commit tool will provide feedback on how to resolve them. Make the necessary changes and re-run the pre-commit command until all issues are resolved.
 
 4. You can also install pre-commit as a git hook by execute `pre-commit install`. Every time you made `git commit` pre-commit run automatically for you.
+
+### Docstrings
+
+All new functions and classes in `supervision` should include docstrings. This is a prerequisite for any new functions and classes to be added to the library.
+
+`supervision` adheres to the [Google Python docstring style](https://google.github.io/styleguide/pyguide.html#383-functions-and-methods). Please refer to the style guide while writing docstrings for your contribution.
+
+### Type checking
+
+So far, **there is no type checking with mypy**. See [issue](https://github.com/roboflow-ai/template-python/issues/4).
+
 
 Then, go back to your fork of the `supervision` repository, click "Pull Requests", and click "New Pull Request".
 
@@ -95,19 +112,6 @@ The `supervision` documentation is stored in a folder called `docs`. The project
 To run the documentation, install the project requirements with `poetry install dev`. Then, run `mkdocs serve` to start the documentation server.
 
 You can learn more about mkdocs on the [mkdocs website](https://www.mkdocs.org/).
-
-## 🧹 code quality
-
-We provide two handy commands inside the `Makefile`, namely:
-
-- `make style` to format the code
-- `make check_code_quality` to check code quality (PEP8 basically)
-
-So far, **there is no type checking with mypy**. See [issue](https://github.com/roboflow-ai/template-python/issues/4).
-
-All new functions and classes in `supervision` should include docstrings. This is a prerequisite for any new functions and classes to be added to the library.
-
-`supervision` adheres to the [Google Python docstring style](https://google.github.io/styleguide/pyguide.html#383-functions-and-methods). Please refer to the style guide while writing docstrings for your contribution.
 
 ## 🧪 tests
 
