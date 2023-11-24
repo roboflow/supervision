@@ -522,8 +522,13 @@ class ConfusionMatrix:
                 [1., 1., 0., 0.]
             ])
 
-            >>> print(mattrix.calculate_f1_score())
-            (array([0.        , 0.4       , 0.66666667, 0.        ]), 0.26666666666666666)
+            >>> ef1_score,af1_score=mattrix.calculate_f1_score()
+
+            >>> ef1_score
+            np.array([0., 0.4, 0.66666667, 0.])
+
+            >>> af1_score
+            0.26666666666666666)
             ```
 
         """
