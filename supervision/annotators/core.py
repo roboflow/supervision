@@ -782,7 +782,7 @@ class LabelAnnotator:
     def __init__(
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
-        text_color: Color = Color.black(),
+        text_color: Union[Color, ColorPalette] = Color.black(),
         text_scale: float = 0.5,
         text_thickness: int = 1,
         text_padding: int = 10,
@@ -793,7 +793,7 @@ class LabelAnnotator:
         Args:
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating the text background.
-            text_color (Color): The color to use for the text.
+            text_color (Union[Color, ColorPalette]): The color to use for the text.
             text_scale (float): Font scale for the text.
             text_thickness (int): Thickness of the text characters.
             text_padding (int): Padding around the text within its background box.
@@ -803,7 +803,7 @@ class LabelAnnotator:
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
-        self.text_color: Color = text_color
+        self.text_color: Union[Color, ColorPalette] = text_color
         self.text_scale: float = text_scale
         self.text_thickness: int = text_thickness
         self.text_padding: int = text_padding
@@ -899,6 +899,14 @@ class LabelAnnotator:
                 if custom_color_lookup is None
                 else custom_color_lookup,
             )
+            text_color = resolve_color(
+                color=self.text_color,
+                detections=detections,
+                detection_idx=detection_idx,
+                color_lookup=self.color_lookup
+                if custom_color_lookup is None
+                else custom_color_lookup,
+            )
             text = (
                 f"{detections.class_id[detection_idx]}"
                 if (labels is None or len(detections) != len(labels))
@@ -934,7 +942,7 @@ class LabelAnnotator:
                 org=(text_x, text_y),
                 fontFace=font,
                 fontScale=self.text_scale,
-                color=self.text_color.as_rgb(),
+                color=text_color.as_rgb(),
                 thickness=self.text_thickness,
                 lineType=cv2.LINE_AA,
             )
