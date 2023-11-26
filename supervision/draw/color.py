@@ -68,7 +68,7 @@ class Color:
         color_hex = color_hex.lstrip("#")
         if len(color_hex) == 3:
             color_hex = "".join(c * 2 for c in color_hex)
-        r, g, b = (int(color_hex[i: i + 2], 16) for i in range(0, 6, 2))
+        r, g, b = (int(color_hex[i : i + 2], 16) for i in range(0, 6, 2))
         return cls(r, g, b)
 
     def as_hex(self) -> str:
