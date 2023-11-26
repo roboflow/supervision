@@ -324,7 +324,7 @@ class Detections:
 
             >>> inferencer = DetInferencer(model_name, checkpoint, device)
             >>> mmdet_result = inferencer(SOURCE_IMAGE_PATH, out_dir='./output',
-            ...                           return_datasample=True)["predictions"][0]
+            ...                           return_datasamples=True)["predictions"][0]
             >>> detections = sv.Detections.from_mmdet(mmdet_result)
             ```
         """
