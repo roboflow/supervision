@@ -517,7 +517,7 @@ class Detections:
             >>> detections = sv.Detections.from_azure_analyze_image(response)
         """
 
-        xyxys, confidences, class_ids = [], [], {}
+        xyxys, confidences, class_ids = [], [], []
 
         for detection in azure_result["objectsResult"]["values"]:
             bbox = detection["boundingBox"]
