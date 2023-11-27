@@ -646,6 +646,7 @@ class ClassificationDataset(BaseDataset):
                 image_name = Path(image_path).name
                 class_ids = classification.class_id.tolist()
                 writer.writerow([image_name] + class_ids)
+                cv2.imwrite(os.path.join(root_directory_path, image_name), image)
 
     @classmethod
     def from_folder_structure(cls, root_directory_path: str) -> ClassificationDataset:
