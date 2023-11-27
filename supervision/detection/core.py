@@ -519,6 +519,8 @@ class Detections:
 
         xyxys, confidences, class_ids = [], [], []
 
+        class_map = {}
+
         for detection in azure_result["objectsResult"]["values"]:
             bbox = detection["boundingBox"]
 
@@ -535,10 +537,10 @@ class Detections:
 
                 class_name = tag["name"]
 
-                if class_name not in class_ids:
-                    class_ids[class_name] = len(class_ids)
+                if class_name not in class_map:
+                    class_map[class_name] = len(class_ids)
 
-                class_ids.append(class_ids[class_name])
+                class_ids.append(class_map[class_name])
 
         if len(xyxys) == 0:
             return Detections.empty()
