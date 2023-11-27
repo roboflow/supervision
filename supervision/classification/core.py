@@ -88,7 +88,10 @@ class Classifications:
             >>> from timm.data import resolve_data_config
             >>> from timm.data.transforms_factory import create_transform
 
-            >>> model = timm.create_model('hf-hub:nateraw/resnet50-oxford-iiit-pet', pretrained=True)
+            >>> model = timm.create_model(
+            ...     'hf-hub:nateraw/resnet50-oxford-iiit-pet',
+            ...     pretrained=True
+            ... )
             >>> model.eval()
 
             >>> config = resolve_data_config({}, model=model)
