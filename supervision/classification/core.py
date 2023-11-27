@@ -82,10 +82,9 @@ class Classifications:
 
         Example:
             ```python
-            >>> import timm
             >>> from PIL import Image
-            >>> from timm.data import resolve_data_config
-            >>> from timm.data.transforms_factory import create_transform
+            >>> import timm
+            >>> from timm.data import resolve_data_config, create_transform
             >>> import supervision as sv
 
             >>> model = timm.create_model(
