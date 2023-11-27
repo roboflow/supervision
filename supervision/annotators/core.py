@@ -984,7 +984,9 @@ class ClassificationAnnotator:
             >>> image = ...
             >>> detections = sv.Detections(...)
 
-            >>> classification_annotator = sv.ClassificationAnnotator(text_position=sv.Position.CENTER)
+            >>> classification_annotator = sv.ClassificationAnnotator(
+            ...     text_position=sv.Position.CENTER
+            ... )
             >>> annotated_frame = classification_annotator.annotate(
             ...     scene=image.copy(),
             ...     detections=detections
@@ -1007,7 +1009,9 @@ class ClassificationAnnotator:
 
         self.text_color = color
 
-        text = f"{labels[classification_idx]} ({classifications.confidence[classification_idx] * 100:.2f}%)"
+        percent_confidence = classifications.confidence[classification_idx] * 100
+
+        text = f"{labels[classification_idx]} ({percent_confidence:.2f}%)"
 
         text_wh = cv2.getTextSize(
             text=text,
