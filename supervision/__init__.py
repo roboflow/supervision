@@ -12,8 +12,6 @@ from supervision.annotators.core import (
     BoxCornerAnnotator,
     BoxMaskAnnotator,
     CircleAnnotator,
-    ClassificationAnnotator,
-    DotAnnotator,
     EllipseAnnotator,
     HaloAnnotator,
     HeatMapAnnotator,
