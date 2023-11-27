@@ -517,7 +517,9 @@ class Detections:
             ```
         """
 
-        xyxys, confidences, class_ids = [], [], {}
+        xyxys, confidences, class_ids = [], [], []
+
+        class_map = {}
 
         for label in rekognition_det["Labels"]:
             if len(label["Instances"]) == 0:
@@ -534,10 +536,10 @@ class Detections:
 
                 label_name = label["Name"]
 
-                if class_ids.get(label_name) is None:
-                    class_ids[label_name] = len(class_ids)
+                if class_map.get(label_name) is None:
+                    class_map[label_name] = len(class_map)
 
-                class_ids.append(class_ids[label_name])
+                class_map.append(class_map[label_name])
 
         if len(xyxys) == 0:
             return cls.empty()
