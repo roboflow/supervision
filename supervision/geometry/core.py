@@ -19,6 +19,7 @@ class Position(Enum):
     BOTTOM_LEFT = "BOTTOM_LEFT"
     BOTTOM_CENTER = "BOTTOM_CENTER"
     BOTTOM_RIGHT = "BOTTOM_RIGHT"
+    CENTER_OF_MASS = "CENTER_OF_MASS"
 
     @classmethod
     def list(cls):

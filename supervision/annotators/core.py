@@ -8,7 +8,9 @@ from supervision.annotators.base import BaseAnnotator
 from supervision.annotators.utils import ColorLookup, Trace, resolve_color
 from supervision.classification.core import Classifications
 from supervision.detection.core import Detections
+from supervision.detection.utils import clip_boxes, mask_to_polygons
 from supervision.draw.color import Color, ColorPalette
+from supervision.draw.utils import draw_polygon
 from supervision.geometry.core import Position
 
 
@@ -29,7 +31,7 @@ class BoundingBoxAnnotator(BaseAnnotator):
                 annotating detections.
             thickness (int): Thickness of the bounding box lines.
             color_lookup (str): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACE`.
+                Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
         self.thickness: int = thickness
@@ -51,7 +53,7 @@ class BoundingBoxAnnotator(BaseAnnotator):
                 Allows to override the default color mapping strategy.
 
         Returns:
-            np.ndarray: The annotated image.
+            The annotated image.
 
         Example:
             ```python
@@ -93,6 +95,10 @@ class BoundingBoxAnnotator(BaseAnnotator):
 class MaskAnnotator(BaseAnnotator):
     """
     A class for drawing masks on an image using provided detections.
+
+    !!! warning
+
+        This annotator utilizes the `sv.Detections.mask`.
     """
 
     def __init__(
@@ -107,7 +113,7 @@ class MaskAnnotator(BaseAnnotator):
                 annotating detections.
             opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.
             color_lookup (str): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACE`.
+                Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
         self.opacity = opacity
@@ -129,7 +135,7 @@ class MaskAnnotator(BaseAnnotator):
                 Allows to override the default color mapping strategy.
 
         Returns:
-            np.ndarray: The annotated image.
+            The annotated image.
 
         Example:
             ```python
@@ -151,6 +157,8 @@ class MaskAnnotator(BaseAnnotator):
         if detections.mask is None:
             return scene
 
+        colored_mask = np.array(scene, copy=True, dtype=np.uint8)
+
         for detection_idx in np.flip(np.argsort(detections.area)):
             color = resolve_color(
                 color=self.color,
@@ -161,11 +169,94 @@ class MaskAnnotator(BaseAnnotator):
                 else custom_color_lookup,
             )
             mask = detections.mask[detection_idx]
-            colored_mask = np.zeros_like(scene, dtype=np.uint8)
-            colored_mask[:] = color.as_bgr()
-            scene[mask] = cv2.addWeighted(
-                colored_mask, self.opacity, scene, 1 - self.opacity, 0
-            )[mask]
+            colored_mask[mask] = color.as_bgr()
+
+        scene = cv2.addWeighted(colored_mask, self.opacity, scene, 1 - self.opacity, 0)
+        return scene.astype(np.uint8)
+
+
+class PolygonAnnotator(BaseAnnotator):
+    """
+    A class for drawing polygons on an image using provided detections.
+
+    !!! warning
+
+        This annotator utilizes the `sv.Detections.mask`.
+    """
+
+    def __init__(
+        self,
+        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        thickness: int = 2,
+        color_lookup: ColorLookup = ColorLookup.CLASS,
+    ):
+        """
+        Args:
+            color (Union[Color, ColorPalette]): The color or color palette to use for
+                annotating detections.
+            thickness (int): Thickness of the polygon lines.
+            color_lookup (str): Strategy for mapping colors to annotations.
+                Options are `INDEX`, `CLASS`, `TRACK`.
+        """
+        self.color: Union[Color, ColorPalette] = color
+        self.thickness: int = thickness
+        self.color_lookup: ColorLookup = color_lookup
+
+    def annotate(
+        self,
+        scene: np.ndarray,
+        detections: Detections,
+        custom_color_lookup: Optional[np.ndarray] = None,
+    ) -> np.ndarray:
+        """
+        Annotates the given scene with polygons based on the provided detections.
+
+        Args:
+            scene (np.ndarray): The image where polygons will be drawn.
+            detections (Detections): Object detections to annotate.
+            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
+                Allows to override the default color mapping strategy.
+
+        Returns:
+            The annotated image.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> image = ...
+            >>> detections = sv.Detections(...)
+
+            >>> polygon_annotator = sv.PolygonAnnotator()
+            >>> annotated_frame = polygon_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
+            ```
+
+        ![polygon-annotator-example](https://media.roboflow.com/
+        supervision-annotator-examples/polygon-annotator-example-purple.png)
+        """
+        if detections.mask is None:
+            return scene
+
+        for detection_idx in range(len(detections)):
+            mask = detections.mask[detection_idx]
+            color = resolve_color(
+                color=self.color,
+                detections=detections,
+                detection_idx=detection_idx,
+                color_lookup=self.color_lookup
+                if custom_color_lookup is None
+                else custom_color_lookup,
+            )
+            for polygon in mask_to_polygons(mask=mask):
+                scene = draw_polygon(
+                    scene=scene,
+                    polygon=polygon,
+                    color=color,
+                    thickness=self.thickness,
+                )
 
         return scene
 
@@ -187,7 +278,7 @@ class BoxMaskAnnotator(BaseAnnotator):
                 annotating detections.
             opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.
             color_lookup (str): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACE`.
+                Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
         self.color_lookup: ColorLookup = color_lookup
@@ -209,7 +300,7 @@ class BoxMaskAnnotator(BaseAnnotator):
                 Allows to override the default color mapping strategy.
 
         Returns:
-            np.ndarray: The annotated image.
+            The annotated image.
 
         Example:
             ```python
@@ -255,6 +346,10 @@ class BoxMaskAnnotator(BaseAnnotator):
 class HaloAnnotator(BaseAnnotator):
     """
     A class for drawing Halos on an image using provided detections.
+
+    !!! warning
+
+        This annotator utilizes the `sv.Detections.mask`.
     """
 
     def __init__(
@@ -272,7 +367,7 @@ class HaloAnnotator(BaseAnnotator):
             kernel_size (int): The size of the average pooling kernel used for creating
                 the halo.
             color_lookup (str): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACE`.
+                Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
         self.opacity = opacity
@@ -295,7 +390,7 @@ class HaloAnnotator(BaseAnnotator):
                 Allows to override the default color mapping strategy.
 
         Returns:
-            np.ndarray: The annotated image.
+            The annotated image.
 
         Example:
             ```python
@@ -365,7 +460,7 @@ class EllipseAnnotator(BaseAnnotator):
             start_angle (int): Starting angle of the ellipse.
             end_angle (int): Ending angle of the ellipse.
             color_lookup (str): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACE`.
+                Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
         self.thickness: int = thickness
@@ -389,7 +484,7 @@ class EllipseAnnotator(BaseAnnotator):
                 Allows to override the default color mapping strategy.
 
         Returns:
-            np.ndarray: The annotated image.
+            The annotated image.
 
         Example:
             ```python
@@ -453,7 +548,7 @@ class BoxCornerAnnotator(BaseAnnotator):
             thickness (int): Thickness of the corner lines.
             corner_length (int): Length of each corner line.
             color_lookup (str): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACE`.
+                Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
         self.thickness: int = thickness
@@ -476,7 +571,7 @@ class BoxCornerAnnotator(BaseAnnotator):
                 Allows to override the default color mapping strategy.
 
         Returns:
-            np.ndarray: The annotated image.
+            The annotated image.
 
         Example:
             ```python
@@ -537,7 +632,7 @@ class CircleAnnotator(BaseAnnotator):
                 annotating detections.
             thickness (int): Thickness of the circle line.
             color_lookup (str): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACE`.
+                Options are `INDEX`, `CLASS`, `TRACK`.
         """
 
         self.color: Union[Color, ColorPalette] = color
@@ -560,7 +655,7 @@ class CircleAnnotator(BaseAnnotator):
                 Allows to override the default color mapping strategy.
 
         Returns:
-            np.ndarray: The annotated image.
+            The annotated image.
 
         Example:
             ```python
@@ -603,6 +698,83 @@ class CircleAnnotator(BaseAnnotator):
         return scene
 
 
+class DotAnnotator(BaseAnnotator):
+    """
+    A class for drawing dots on an image at specific coordinates based on provided
+    detections.
+    """
+
+    def __init__(
+        self,
+        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        radius: int = 4,
+        position: Position = Position.CENTER,
+        color_lookup: ColorLookup = ColorLookup.CLASS,
+    ):
+        """
+        Args:
+            color (Union[Color, ColorPalette]): The color or color palette to use for
+                annotating detections.
+            radius (int): Radius of the drawn dots.
+            position (Position): The anchor position for placing the dot.
+            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
+                Options are `INDEX`, `CLASS`, `TRACK`.
+        """
+        self.color: Union[Color, ColorPalette] = color
+        self.radius: int = radius
+        self.position: Position = position
+        self.color_lookup: ColorLookup = color_lookup
+
+    def annotate(
+        self,
+        scene: np.ndarray,
+        detections: Detections,
+        custom_color_lookup: Optional[np.ndarray] = None,
+    ) -> np.ndarray:
+        """
+        Annotates the given scene with dots based on the provided detections.
+
+        Args:
+            scene (np.ndarray): The image where dots will be drawn.
+            detections (Detections): Object detections to annotate.
+            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
+                Allows to override the default color mapping strategy.
+
+        Returns:
+            The annotated image.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> image = ...
+            >>> detections = sv.Detections(...)
+
+            >>> dot_annotator = sv.DotAnnotator()
+            >>> annotated_frame = dot_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
+            ```
+
+        ![dot-annotator-example](https://media.roboflow.com/
+        supervision-annotator-examples/dot-annotator-example-purple.png)
+        """
+        xy = detections.get_anchors_coordinates(anchor=self.position)
+        for detection_idx in range(len(detections)):
+            color = resolve_color(
+                color=self.color,
+                detections=detections,
+                detection_idx=detection_idx,
+                color_lookup=self.color_lookup
+                if custom_color_lookup is None
+                else custom_color_lookup,
+            )
+            center = (int(xy[detection_idx, 0]), int(xy[detection_idx, 1]))
+            cv2.circle(scene, center, self.radius, color.as_bgr(), -1)
+        return scene
+
+
 class LabelAnnotator:
     """
     A class for annotating labels on an image using provided detections.
@@ -629,56 +801,53 @@ class LabelAnnotator:
             text_position (Position): Position of the text relative to the detection.
                 Possible values are defined in the `Position` enum.
             color_lookup (str): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACE`.
+                Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
         self.text_color: Color = text_color
         self.text_scale: float = text_scale
         self.text_thickness: int = text_thickness
         self.text_padding: int = text_padding
-        self.text_position: Position = text_position
+        self.text_anchor: Position = text_position
         self.color_lookup: ColorLookup = color_lookup
 
     @staticmethod
     def resolve_text_background_xyxy(
-        detection_xyxy: Tuple[int, int, int, int],
+        center_coordinates: Tuple[int, int],
         text_wh: Tuple[int, int],
-        text_padding: int,
         position: Position,
     ) -> Tuple[int, int, int, int]:
-        padded_text_wh = (text_wh[0] + 2 * text_padding, text_wh[1] + 2 * text_padding)
-        x1, y1, x2, y2 = detection_xyxy
-        center_x = (x1 + x2) // 2
-        center_y = (y1 + y2) // 2
+        center_x, center_y = center_coordinates
+        text_w, text_h = text_wh
 
         if position == Position.TOP_LEFT:
-            return x1, y1 - padded_text_wh[1], x1 + padded_text_wh[0], y1
+            return center_x, center_y - text_h, center_x + text_w, center_y
         elif position == Position.TOP_RIGHT:
-            return x2 - padded_text_wh[0], y1 - padded_text_wh[1], x2, y1
+            return center_x - text_w, center_y - text_h, center_x, center_y
         elif position == Position.TOP_CENTER:
             return (
-                center_x - padded_text_wh[0] // 2,
-                y1 - padded_text_wh[1],
-                center_x + padded_text_wh[0] // 2,
-                y1,
+                center_x - text_w // 2,
+                center_y - text_h,
+                center_x + text_w // 2,
+                center_y,
             )
-        elif position == Position.CENTER:
+        elif position == Position.CENTER or position == Position.CENTER_OF_MASS:
             return (
-                center_x - padded_text_wh[0] // 2,
-                center_y - padded_text_wh[1] // 2,
-                center_x + padded_text_wh[0] // 2,
-                center_y + padded_text_wh[1] // 2,
+                center_x - text_w // 2,
+                center_y - text_h // 2,
+                center_x + text_w // 2,
+                center_y + text_h // 2,
             )
         elif position == Position.BOTTOM_LEFT:
-            return x1, y2, x1 + padded_text_wh[0], y2 + padded_text_wh[1]
+            return center_x, center_y, center_x + text_w, center_y + text_h
         elif position == Position.BOTTOM_RIGHT:
-            return x2 - padded_text_wh[0], y2, x2, y2 + padded_text_wh[1]
+            return center_x - text_w, center_y, center_x, center_y + text_h
         elif position == Position.BOTTOM_CENTER:
             return (
-                center_x - padded_text_wh[0] // 2,
-                y2,
-                center_x + padded_text_wh[0] // 2,
-                y2 + padded_text_wh[1],
+                center_x - text_w // 2,
+                center_y,
+                center_x + text_w // 2,
+                center_y + text_h,
             )
 
     def annotate(
@@ -699,7 +868,7 @@ class LabelAnnotator:
                 Allows to override the default color mapping strategy.
 
         Returns:
-            np.ndarray: The annotated image.
+            The annotated image.
 
         Example:
             ```python
@@ -719,8 +888,10 @@ class LabelAnnotator:
         supervision-annotator-examples/label-annotator-example-purple.png)
         """
         font = cv2.FONT_HERSHEY_SIMPLEX
-        for detection_idx in range(len(detections)):
-            detection_xyxy = detections.xyxy[detection_idx].astype(int)
+        anchors_coordinates = detections.get_anchors_coordinates(
+            anchor=self.text_anchor
+        ).astype(int)
+        for detection_idx, center_coordinates in enumerate(anchors_coordinates):
             color = resolve_color(
                 color=self.color,
                 detections=detections,
@@ -734,22 +905,22 @@ class LabelAnnotator:
                 if (labels is None or len(detections) != len(labels))
                 else labels[detection_idx]
             )
-            text_wh = cv2.getTextSize(
+            text_w, text_h = cv2.getTextSize(
                 text=text,
                 fontFace=font,
                 fontScale=self.text_scale,
                 thickness=self.text_thickness,
             )[0]
-
+            text_w_padded = text_w + 2 * self.text_padding
+            text_h_padded = text_h + 2 * self.text_padding
             text_background_xyxy = self.resolve_text_background_xyxy(
-                detection_xyxy=detection_xyxy,
-                text_wh=text_wh,
-                text_padding=self.text_padding,
-                position=self.text_position,
+                center_coordinates=tuple(center_coordinates),
+                text_wh=(text_w_padded, text_h_padded),
+                position=self.text_anchor,
             )
 
             text_x = text_background_xyxy[0] + self.text_padding
-            text_y = text_background_xyxy[1] + self.text_padding + text_wh[1]
+            text_y = text_background_xyxy[1] + self.text_padding + text_h
 
             cv2.rectangle(
                 img=scene,
@@ -796,7 +967,7 @@ class BlurAnnotator(BaseAnnotator):
             detections (Detections): Object detections to annotate.
 
         Returns:
-            np.ndarray: The annotated image.
+            The annotated image.
 
         Example:
             ```python
@@ -806,7 +977,7 @@ class BlurAnnotator(BaseAnnotator):
             >>> detections = sv.Detections(...)
 
             >>> blur_annotator = sv.BlurAnnotator()
-            >>> annotated_frame = blur_annotator.annotate(
+            >>> annotated_frame = circle_annotator.annotate(
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
@@ -815,10 +986,13 @@ class BlurAnnotator(BaseAnnotator):
         ![blur-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/blur-annotator-example-purple.png)
         """
-        for detection_idx in range(len(detections)):
-            x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
-            roi = scene[y1:y2, x1:x2]
+        image_height, image_width = scene.shape[:2]
+        clipped_xyxy = clip_boxes(
+            xyxy=detections.xyxy, resolution_wh=(image_width, image_height)
+        ).astype(int)
 
+        for x1, y1, x2, y2 in clipped_xyxy:
+            roi = scene[y1:y2, x1:x2]
             roi = cv2.blur(roi, (self.kernel_size, self.kernel_size))
             scene[y1:y2, x1:x2] = roi
 
@@ -831,7 +1005,7 @@ class TraceAnnotator:
 
     !!! warning
 
-        This annotator utilizes the `tracker_id`. Read
+        This annotator utilizes the `sv.Detections.tracker_id`. Read
         [here](https://supervision.roboflow.com/trackers/) to learn how to plug
         tracking into your inference pipeline.
     """
@@ -839,7 +1013,7 @@ class TraceAnnotator:
     def __init__(
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
-        position: Optional[Position] = Position.CENTER,
+        position: Position = Position.CENTER,
         trace_length: int = 30,
         thickness: int = 2,
         color_lookup: ColorLookup = ColorLookup.CLASS,
@@ -848,13 +1022,13 @@ class TraceAnnotator:
         Args:
             color (Union[Color, ColorPalette]): The color to draw the trace, can be
                 a single color or a color palette.
-            position (Optional[Position]): The position of the trace.
+            position (Position): The position of the trace.
                 Defaults to `CENTER`.
             trace_length (int): The maximum length of the trace in terms of historical
                 points. Defaults to `30`.
             thickness (int): The thickness of the trace lines. Defaults to `2`.
             color_lookup (str): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACE`.
+                Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
         self.position = position
@@ -879,20 +1053,30 @@ class TraceAnnotator:
                 Allows to override the default color mapping strategy.
 
         Returns:
-            np.ndarray: The image with the trace paths drawn on it.
+            The annotated image.
 
         Example:
             ```python
             >>> import supervision as sv
+            >>> from ultralytics import YOLO
 
-            >>> image = ...
-            >>> detections = sv.Detections(...)
+            >>> model = YOLO('yolov8x.pt')
 
             >>> trace_annotator = sv.TraceAnnotator()
-            >>> annotated_frame = trace_annotator.annotate(
-            ...     scene=image.copy(),
-            ...     detections=detections
-            ... )
+
+            >>> video_info = sv.VideoInfo.from_video_path(video_path='...')
+            >>> frames_generator = sv.get_video_frames_generator(source_path='...')
+            >>> tracker = sv.ByteTrack()
+
+            >>> with sv.VideoSink(target_path='...', video_info=video_info) as sink:
+            ...    for frame in frames_generator:
+            ...        result = model(frame)[0]
+            ...        detections = sv.Detections.from_ultralytics(result)
+            ...        detections = tracker.update_with_detections(detections)
+            ...        annotated_frame = trace_annotator.annotate(
+            ...            scene=frame.copy(),
+            ...            detections=detections)
+            ...        sink.write_frame(frame=annotated_frame)
             ```
 
         ![trace-annotator-example](https://media.roboflow.com/
@@ -919,6 +1103,100 @@ class TraceAnnotator:
                     color=color.as_bgr(),
                     thickness=self.thickness,
                 )
+        return scene
+
+
+class HeatMapAnnotator:
+    """
+    A class for drawing heatmaps on an image based on provided detections.
+    Heat accumulates over time and is drawn as a semi-transparent overlay
+    of blurred circles.
+    """
+
+    def __init__(
+        self,
+        position: Position = Position.BOTTOM_CENTER,
+        opacity: float = 0.2,
+        radius: int = 40,
+        kernel_size: int = 25,
+        top_hue: int = 0,
+        low_hue: int = 125,
+    ):
+        """
+        Args:
+            position (Position): The position of the heatmap. Defaults to
+                `BOTTOM_CENTER`.
+            opacity (float): Opacity of the overlay mask, between 0 and 1.
+            radius (int): Radius of the heat circle.
+            kernel_size (int): Kernel size for blurring the heatmap.
+            top_hue (int): Hue at the top of the heatmap. Defaults to 0 (red).
+            low_hue (int): Hue at the bottom of the heatmap. Defaults to 125 (blue).
+        """
+        self.position = position
+        self.opacity = opacity
+        self.radius = radius
+        self.kernel_size = kernel_size
+        self.heat_mask = None
+        self.top_hue = top_hue
+        self.low_hue = low_hue
+
+    def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
+        """
+        Annotates the scene with a heatmap based on the provided detections.
+
+        Args:
+            scene (np.ndarray): The image where the heatmap will be drawn.
+            detections (Detections): Object detections to annotate.
+
+        Returns:
+            Annotated image.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+            >>> from ultralytics import YOLO
+
+            >>> model = YOLO('yolov8x.pt')
+
+            >>> heat_map_annotator = sv.HeatMapAnnotator()
+
+            >>> video_info = sv.VideoInfo.from_video_path(video_path='...')
+            >>> frames_generator = get_video_frames_generator(source_path='...')
+
+            >>> with sv.VideoSink(target_path='...', video_info=video_info) as sink:
+            ...    for frame in frames_generator:
+            ...        result = model(frame)[0]
+            ...        detections = sv.Detections.from_ultralytics(result)
+            ...        annotated_frame = heat_map_annotator.annotate(
+            ...            scene=frame.copy(),
+            ...            detections=detections)
+            ...        sink.write_frame(frame=annotated_frame)
+            ```
+
+        ![heatmap-annotator-example](https://media.roboflow.com/
+        supervision-annotator-examples/heat-map-annotator-example-purple.png)
+        """
+
+        if self.heat_mask is None:
+            self.heat_mask = np.zeros(scene.shape[:2])
+        mask = np.zeros(scene.shape[:2])
+        for xy in detections.get_anchors_coordinates(self.position):
+            cv2.circle(mask, (int(xy[0]), int(xy[1])), self.radius, 1, -1)
+        self.heat_mask = mask + self.heat_mask
+        temp = self.heat_mask.copy()
+        temp = self.low_hue - temp / temp.max() * (self.low_hue - self.top_hue)
+        temp = temp.astype(np.uint8)
+        if self.kernel_size is not None:
+            temp = cv2.blur(temp, (self.kernel_size, self.kernel_size))
+        hsv = np.zeros(scene.shape)
+        hsv[..., 0] = temp
+        hsv[..., 1] = 255
+        hsv[..., 2] = 255
+        temp = cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2BGR)
+        mask = cv2.cvtColor(self.heat_mask.astype(np.uint8), cv2.COLOR_GRAY2BGR) > 0
+        scene[mask] = cv2.addWeighted(temp, self.opacity, scene, 1 - self.opacity, 0)[
+            mask
+        ]
         return scene
 
 

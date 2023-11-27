@@ -1,4 +1,5 @@
-from typing import Optional
+import os
+from typing import Optional, Union
 
 import cv2
 import numpy as np
@@ -167,4 +168,66 @@ def draw_text(
         thickness=text_thickness,
         lineType=cv2.LINE_AA,
     )
+    return scene
+
+
+def draw_image(
+    scene: np.ndarray, image: Union[str, np.ndarray], opacity: float, rect: Rect
+) -> np.ndarray:
+    """
+    Draws an image onto a given scene with specified opacity and dimensions.
+
+    Args:
+        scene (np.ndarray): Background image where the new image will be drawn.
+        image (Union[str, np.ndarray]): Image to draw.
+        opacity (float): Opacity of the image to be drawn.
+        rect (Rect): Rectangle specifying where to draw the image.
+
+    Returns:
+        np.ndarray: The updated scene.
+
+    Raises:
+        FileNotFoundError: If the image path does not exist.
+        ValueError: For invalid opacity or rectangle dimensions.
+    """
+
+    # Validate and load image
+    if isinstance(image, str):
+        if not os.path.exists(image):
+            raise FileNotFoundError(f"Image path ('{image}') does not exist.")
+        image = cv2.imread(image, cv2.IMREAD_UNCHANGED)
+
+    # Validate opacity
+    if not 0.0 <= opacity <= 1.0:
+        raise ValueError("Opacity must be between 0.0 and 1.0.")
+
+    # Validate rectangle dimensions
+    if (
+        rect.x < 0
+        or rect.y < 0
+        or rect.x + rect.width > scene.shape[1]
+        or rect.y + rect.height > scene.shape[0]
+    ):
+        raise ValueError("Invalid rectangle dimensions.")
+
+    # Resize and isolate alpha channel
+    image = cv2.resize(image, (rect.width, rect.height))
+    alpha_channel = (
+        image[:, :, 3]
+        if image.shape[2] == 4
+        else np.ones((rect.height, rect.width), dtype=image.dtype) * 255
+    )
+    alpha_scaled = cv2.convertScaleAbs(alpha_channel * opacity)
+
+    # Perform blending
+    scene_roi = scene[rect.y : rect.y + rect.height, rect.x : rect.x + rect.width]
+    alpha_float = alpha_scaled.astype(np.float32) / 255.0
+    blended_roi = cv2.convertScaleAbs(
+        (1 - alpha_float[..., np.newaxis]) * scene_roi
+        + alpha_float[..., np.newaxis] * image[:, :, :3]
+    )
+
+    # Update the scene
+    scene[rect.y : rect.y + rect.height, rect.x : rect.x + rect.width] = blended_roi
+
     return scene

@@ -82,6 +82,27 @@
 
     </div>
 
+=== "Dot"
+
+    ```python
+    >>> import supervision as sv
+
+    >>> image = ...
+    >>> detections = sv.Detections(...)
+
+    >>> dot_annotator = sv.DotAnnotator()
+    >>> annotated_frame = dot_annotator.annotate(
+    ...     scene=image.copy(),
+    ...     detections=detections
+    ... )
+    ```
+
+    <div class="result" markdown>
+
+    ![circle-annotator-example](https://media.roboflow.com/supervision-annotator-examples/dot-annotator-example-purple.png){ align=center width="800" }
+
+    </div>
+
 === "Ellipse"
 
     ```python
@@ -145,6 +166,27 @@
 
     </div>
 
+=== "Polygon"
+
+    ```python
+    >>> import supervision as sv
+
+    >>> image = ...
+    >>> detections = sv.Detections(...)
+
+    >>> polygon_annotator = sv.PolygonAnnotator()
+    >>> annotated_frame = polygon_annotator.annotate(
+    ...     scene=image.copy(),
+    ...     detections=detections
+    ... )
+    ```
+
+    <div class="result" markdown>
+
+    ![polygon-annotator-example](https://media.roboflow.com/supervision-annotator-examples/polygon-annotator-example-purple.png){ align=center width="800" }
+
+    </div>
+
 === "Label"
 
     ```python
@@ -191,20 +233,59 @@
 
     ```python
     >>> import supervision as sv
+    >>> from ultralytics import YOLO
 
-    >>> image = ...
-    >>> detections = sv.Detections(...)
+    >>> model = YOLO('yolov8x.pt')
 
     >>> trace_annotator = sv.TraceAnnotator()
-    >>> annotated_frame = trace_annotator.annotate(
-    ...     scene=image.copy(),
-    ...     detections=detections
-    ... )
+
+    >>> video_info = sv.VideoInfo.from_video_path(video_path='...')
+    >>> frames_generator = get_video_frames_generator(source_path='...')
+    >>> tracker = sv.ByteTrack()
+
+    >>> with sv.VideoSink(target_path='...', video_info=video_info) as sink:
+    ...    for frame in frames_generator:
+    ...        result = model(frame)[0]
+    ...        detections = sv.Detections.from_ultralytics(result)
+    ...        detections = tracker.update_with_detections(detections)
+    ...        annotated_frame = trace_annotator.annotate(
+    ...            scene=frame.copy(),
+    ...            detections=detections)
+    ...        sink.write_frame(frame=annotated_frame)
     ```
 
     <div class="result" markdown>
 
     ![trace-annotator-example](https://media.roboflow.com/supervision-annotator-examples/trace-annotator-example-purple.png){ align=center width="800" }
+
+    </div>
+
+=== "HeatMap"
+
+    ```python
+    >>> import supervision as sv
+    >>> from ultralytics import YOLO
+
+    >>> model = YOLO('yolov8x.pt')
+
+    >>> heat_map_annotator = sv.HeatMapAnnotator()
+
+    >>> video_info = sv.VideoInfo.from_video_path(video_path='...')
+    >>> frames_generator = get_video_frames_generator(source_path='...')
+
+    >>> with sv.VideoSink(target_path='...', video_info=video_info) as sink:
+    ...    for frame in frames_generator:
+    ...        result = model(frame)[0]
+    ...        detections = sv.Detections.from_ultralytics(result)
+    ...        annotated_frame = heat_map_annotator.annotate(
+    ...            scene=frame.copy(),
+    ...            detections=detections)
+    ...        sink.write_frame(frame=annotated_frame)
+    ```
+
+    <div class="result" markdown>
+
+    ![trace-annotator-example](https://media.roboflow.com/supervision-annotator-examples/heat-map-annotator-example-purple.png){ align=center width="800" }
 
     </div>
 
@@ -224,6 +305,10 @@
 
 :::supervision.annotators.core.CircleAnnotator
 
+## DotAnnotator
+
+:::supervision.annotators.core.DotAnnotator
+
 ## EllipseAnnotator
 
 :::supervision.annotators.core.EllipseAnnotator
@@ -232,9 +317,17 @@
 
 :::supervision.annotators.core.HaloAnnotator
 
+## HeatMapAnnotator
+
+:::supervision.annotators.core.HeatMapAnnotator
+
 ## MaskAnnotator
 
 :::supervision.annotators.core.MaskAnnotator
+
+## PolygonAnnotator
+
+:::supervision.annotators.core.PolygonAnnotator
 
 ## LabelAnnotator
 
@@ -247,3 +340,7 @@
 ## TraceAnnotator
 
 :::supervision.annotators.core.TraceAnnotator
+
+## ColorLookup
+
+:::supervision.annotators.utils.ColorLookup

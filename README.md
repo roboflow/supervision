@@ -24,10 +24,6 @@
 
 </div>
 
-<a href="https://github.com/roboflow/supervision/issues?q=is%3Aissue+label%3Ahacktoberfest+">
-  <img width="100%" src="https://media.roboflow.com/open-source/supervision/hacktoberfest-banner-3.png">
-</a>
-
 ## 👋 hello
 
 **We write your reusable computer vision tools.** Whether you need to load your dataset from your hard drive, draw detections on an image or video, or count how many detections are in a zone. You can count on us! 🤝
@@ -364,5 +360,4 @@ We love your input! Please see our [contributing guide](https://github.com/robof
       </a>
       </a>
   </div>
-
 </div>
