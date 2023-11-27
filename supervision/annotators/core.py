@@ -6,7 +6,6 @@ import numpy as np
 
 from supervision.annotators.base import BaseAnnotator
 from supervision.annotators.utils import ColorLookup, Trace, resolve_color
-from supervision.classification.core import Classifications
 from supervision.detection.core import Detections
 from supervision.detection.utils import clip_boxes, mask_to_polygons
 from supervision.draw.color import Color, ColorPalette
@@ -1198,4 +1197,3 @@ class HeatMapAnnotator:
             mask
         ]
         return scene
-
