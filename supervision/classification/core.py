@@ -49,10 +49,10 @@ class Classifications:
     def from_clip(cls, clip_results) -> Classifications:
         """
         Creates a Classifications instance from a
-        (https://github.com/openai/clip) inference result.
+        [clip](https://github.com/openai/clip) inference result.
 
         Args:
-            clip_results (np.ndarray): The output result from clip model
+            clip_results (np.ndarray): The inference result from clip model.
 
         Returns:
             Classifications: A new Classifications object.
@@ -70,7 +70,7 @@ class Classifications:
             ```
         """
 
-        probs = clip_results.softmax(dim=-1).cpu().numpy()
+        probs = clip_results.softmax(dim=-1).cpu().detach().numpy()
         class_ids = np.arange(probs.shape[1])
         confidence = probs[0]
 
@@ -80,7 +80,7 @@ class Classifications:
     def from_ultralytics(cls, ultralytics_results) -> Classifications:
         """
         Creates a Classifications instance from a
-        (https://github.com/ultralytics/ultralytics) inference result.
+        [ultralytics](https://github.com/ultralytics/ultralytics) inference result.
 
         Args:
             ultralytics_results (ultralytics.engine.results.Results):
@@ -109,7 +109,7 @@ class Classifications:
     def from_timm(cls, timm_results) -> Classifications:
         """
         Creates a Classifications instance from a
-        timm (https://huggingface.co/docs/hub/timm) inference result.
+        [timm](https://huggingface.co/docs/hub/timm) inference result.
 
         Args:
             timm_results: The inference result from timm model.
