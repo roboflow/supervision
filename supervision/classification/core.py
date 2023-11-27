@@ -47,7 +47,7 @@ class Classifications:
 
         Args:
             ultralytics_results (ultralytics.engine.results.Results):
-                The output Results instance from ultralytics model
+                The inference result from ultralytics model.
 
         Returns:
             Classifications: A new Classifications object.
@@ -60,14 +60,57 @@ class Classifications:
 
             >>> image = cv2.imread(SOURCE_IMAGE_PATH)
             >>> model = YOLO('yolov8n-cls.pt')
-            >>> model = YOLO('yolov8s-cls.pt')
 
-            >>> result = model(image)[0]
-            >>> classifications = sv.Classifications.from_ultralytics(result)
+            >>> output = model(image)[0]
+            >>> classifications = sv.Classifications.from_ultralytics(output)
             ```
         """
         confidence = ultralytics_results.probs.data.cpu().numpy()
         return cls(class_id=np.arange(confidence.shape[0]), confidence=confidence)
+
+    @classmethod
+    def from_timm(cls, timm_results) -> Classifications:
+        """
+        Creates a Classifications instance from a
+        timm (https://huggingface.co/docs/hub/timm) inference result.
+
+        Args:
+            timm_results: The inference result from timm model.
+
+        Returns:
+            Classifications: A new Classifications object.
+
+        Example:
+            ```python
+            >>> from PIL import Image
+            >>> import timm
+            >>> from timm.data import resolve_data_config, create_transform
+            >>> import supervision as sv
+
+            >>> model = timm.create_model(
+            ...     model_name='hf-hub:nateraw/resnet50-oxford-iiit-pet',
+            ...     pretrained=True
+            ... ).eval()
+
+            >>> config = resolve_data_config({}, model=model)
+            >>> transform = create_transform(**config)
+
+            >>> image = Image.open(SOURCE_IMAGE_PATH).convert('RGB')
+            >>> x = transform(image).unsqueeze(0)
+
+            >>> output = model(x)
+
+            >>> classifications = sv.Classifications.from_timm(output)
+            ```
+        """
+        confidence = timm_results.cpu().detach().numpy()[0]
+
+        if len(confidence) == 0:
+            return cls(class_id=np.array([]), confidence=np.array([]))
+
+        class_id = np.arange(len(confidence))
+
+        return cls(class_id=class_id, confidence=confidence)
 
     def get_top_k(self, k: int) -> Tuple[np.ndarray, np.ndarray]:
         """
