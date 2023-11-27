@@ -59,21 +59,27 @@ class Classifications:
 
         Example:
             ```python
-            >>> import cv2
+            >>> from PIL import Image
             >>> import clip
             >>> import supervision as sv
 
-            >>> image = cv2.imread(SOURCE_IMAGE_PATH)
             >>> model, preprocess = clip.load('ViT-B/32')
+
+            >>> image = cv2.imread(SOURCE_IMAGE_PATH)
+            >>> image = preprocess(image).unsqueeze(0)
+
             >>> text = clip.tokenize(["a diagram", "a dog", "a cat"])
-            >>> classifications = sv.Classifications.from_clip(model(image, text))
+            >>> output, _ = model(image, text)
+            >>> classifications = sv.Classifications.from_clip(output)
             ```
         """
 
-        probs = clip_results.softmax(dim=-1).cpu().detach().numpy()
-        class_ids = np.arange(probs.shape[1])
-        confidence = probs[0]
+        confidence = clip_results.softmax(dim=-1).cpu().detach().numpy()[0]
 
+        if len(confidence) == 0:
+            return cls(class_id=np.array([]), confidence=np.array([]))
+
+        class_ids = np.arange(len(confidence))
         return cls(class_id=class_ids, confidence=confidence)
 
     @classmethod
@@ -146,7 +152,6 @@ class Classifications:
             return cls(class_id=np.array([]), confidence=np.array([]))
 
         class_id = np.arange(len(confidence))
-
         return cls(class_id=class_id, confidence=confidence)
 
     def get_top_k(self, k: int) -> Tuple[np.ndarray, np.ndarray]:
