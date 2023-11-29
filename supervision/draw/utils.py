@@ -82,7 +82,7 @@ def draw_filled_rectangle(scene: np.ndarray, rect: Rect, color: Color) -> np.nda
 
 
 def draw_polygon(
-    scene: np.ndarray, polygon: np.ndarray, color: Color, thickness: int = 2
+    scene: np.ndarray, polygon: np.ndarray, color: Color, thickness: int = 2, fill: bool = True, opacity: float = 0.5
 ) -> np.ndarray:
     """Draw a polygon on a scene.
 
@@ -98,8 +98,11 @@ def draw_polygon(
     cv2.polylines(
         scene, [polygon], isClosed=True, color=color.as_bgr(), thickness=thickness
     )
+    if fill:
+        colored_mask = np.array(scene, copy=True, dtype=np.uint8)
+        cv2.fillPoly(colored_mask, [polygon], color=color.as_bgr())
+        scene = cv2.addWeighted(colored_mask, opacity, scene, 1 - opacity, 0)
     return scene
-
 
 def draw_text(
     scene: np.ndarray,
