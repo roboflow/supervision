@@ -175,8 +175,9 @@ def is_clockwise(contour):
             p2 = contour[i + 1]
         else:
             p2 = contour[0]
-        value += (p2[0][0] - p1[0][0]) * (p2[0][1] + p1[0][1]);
+        value += (p2[0][0] - p1[0][0]) * (p2[0][1] + p1[0][1])
     return value < 0
+
 
 def get_merge_point_idx(contour1, contour2):
     idx1 = 0
@@ -184,7 +185,7 @@ def get_merge_point_idx(contour1, contour2):
     distance_min = -1
     for i, p1 in enumerate(contour1):
         for j, p2 in enumerate(contour2):
-            distance = pow(p2[0][0] - p1[0][0], 2) + pow(p2[0][1] - p1[0][1], 2);
+            distance = pow(p2[0][0] - p1[0][0], 2) + pow(p2[0][1] - p1[0][1], 2)
             if distance_min < 0:
                 distance_min = distance
                 idx1 = i
@@ -194,6 +195,7 @@ def get_merge_point_idx(contour1, contour2):
                 idx1 = i
                 idx2 = j
     return idx1, idx2
+
 
 def merge_contours(contour1, contour2, idx1, idx2):
     contour = []
@@ -208,6 +210,7 @@ def merge_contours(contour1, contour2, idx1, idx2):
     contour = np.array(contour)
     return contour
 
+
 def merge_with_parent(contour_parent, contour):
     if not is_clockwise(contour_parent):
         contour_parent = contour_parent[::-1]
@@ -215,6 +218,7 @@ def merge_with_parent(contour_parent, contour):
         contour = contour[::-1]
     idx1, idx2 = get_merge_point_idx(contour_parent, contour)
     return merge_contours(contour_parent, contour, idx1, idx2)
+
 
 def mask_to_polygons(mask: np.ndarray) -> List[np.ndarray]:
     """
@@ -231,7 +235,9 @@ def mask_to_polygons(mask: np.ndarray) -> List[np.ndarray]:
             of the points. Polygons with fewer points than `MIN_POLYGON_POINT_COUNT = 3`
             are excluded from the output.
     """
-    contours, hierarchies = cv2.findContours(mask.astype(np.uint8), cv2.RETR_CCOMP, cv2.CHAIN_APPROX_TC89_KCOS)
+    contours, hierarchies = cv2.findContours(
+        mask.astype(np.uint8), cv2.RETR_CCOMP, cv2.CHAIN_APPROX_TC89_KCOS
+    )
 
     contours_approx = []
     polygons = []
@@ -261,7 +267,7 @@ def mask_to_polygons(mask: np.ndarray) -> List[np.ndarray]:
         if len(contour) == 0:
             continue
         contours_parent_tmp.append(contour)
-    
+
     return [
         np.squeeze(contour, axis=1)
         for contour in contours_parent_tmp
