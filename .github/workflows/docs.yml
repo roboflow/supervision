@@ -22,4 +22,5 @@ jobs:
           python-version: 3.x
       - run: pip install mkdocs-material
       - run: pip install "mkdocstrings[python]"
+      - run: pip install "mkdocs-material[imaging]"
       - run: mkdocs gh-deploy --force
