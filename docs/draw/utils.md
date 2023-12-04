@@ -21,3 +21,11 @@
 ## draw_image
 
 :::supervision.draw.utils.draw_image
+
+## calculate_dynamic_font_scale
+
+:::supervision.draw.utils.calculate_dynamic_font_scale
+
+## calculate_dynamic_line_thickness
+
+:::supervision.draw.utils.calculate_dynamic_line_thickness
