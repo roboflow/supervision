@@ -1243,7 +1243,7 @@ class PixelateAnnotator(BaseAnnotator):
             ```
 
         ![pixelate-annotator-example](https://media.roboflow.com/
-        supervision-annotator-examples/pixelate-annotator-example-purple.png)
+        supervision-annotator-examples/pixelate-annotator-example.png)
         """
         image_height, image_width = scene.shape[:2]
         clipped_xyxy = clip_boxes(
