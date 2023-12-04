@@ -18,9 +18,9 @@ from supervision.annotators.core import (
     HeatMapAnnotator,
     LabelAnnotator,
     MaskAnnotator,
+    PixelateAnnotator,
     PolygonAnnotator,
     TraceAnnotator,
-    PixelateAnnotator
 )
 from supervision.annotators.utils import ColorLookup
 from supervision.classification.core import Classifications
