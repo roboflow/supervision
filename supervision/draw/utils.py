@@ -1,5 +1,5 @@
 import os
-from typing import Optional, Union
+from typing import Optional, Union, Tuple
 
 import cv2
 import numpy as np
@@ -231,3 +231,41 @@ def draw_image(
     scene[rect.y : rect.y + rect.height, rect.x : rect.x + rect.width] = blended_roi
 
     return scene
+
+
+def calculate_dynamic_font_scale(resolution_wh: Tuple[int, int]) -> float:
+    """
+   Calculate a dynamic font scale based on the resolution of an image.
+
+   Parameters:
+        resolution_wh (Tuple[int, int]): A tuple representing the width and height
+                of the image.
+
+   Returns:
+        float: The calculated font scale factor.
+   """
+    return min(resolution_wh) * 1e-3
+
+
+def calculate_dynamic_line_thickness(resolution_wh: Tuple[int, int]) -> int:
+    """
+    Calculate a dynamic line thickness based on the resolution of an image.
+
+    Parameters:
+        resolution_wh (Tuple[int, int]): A tuple representing the width and height
+                of the image.
+
+    Returns:
+        int: The calculated line thickness in pixels.
+    """
+    min_dimension = min(resolution_wh)
+    if min_dimension < 480:
+        return 2
+    if min_dimension < 720:
+        return 2
+    if min_dimension < 1080:
+        return 2
+    if min_dimension < 2160:
+        return 4
+    else:
+        return 4
