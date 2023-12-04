@@ -20,6 +20,7 @@ from supervision.annotators.core import (
     MaskAnnotator,
     PolygonAnnotator,
     TraceAnnotator,
+    ColorAnnotator
 )
 from supervision.annotators.utils import ColorLookup
 from supervision.classification.core import Classifications

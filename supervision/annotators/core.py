@@ -1205,7 +1205,7 @@ class ColorAnnotator(BaseAnnotator):
     using provided detections.
     """
 
-    def __init__(self, color: Color = Color[255, 255, 255]):
+    def __init__(self, color: Color = Color(r=0, g=0, b=0)):
         """
         Args:
             color (Color): The color to replace the regions with.
