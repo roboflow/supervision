@@ -1205,7 +1205,7 @@ class PixelateAnnotator(BaseAnnotator):
     using provided detections.
     """
 
-    def __init__(self, pixel_size: int = 10):
+    def __init__(self, pixel_size: int = 20):
         """
         Args:
             pixel_size (int): The size of the pixelation.
@@ -1251,13 +1251,18 @@ class PixelateAnnotator(BaseAnnotator):
         ).astype(int)
 
         for x1, y1, x2, y2 in clipped_xyxy:
-            scene[y1:y2, x1:x2] = cv2.resize(
-                scene[y1:y2, x1:x2],
-                (self.pixel_size, self.pixel_size),
-                interpolation=cv2.INTER_NEAREST,
+            roi = scene[y1:y2, x1:x2]
+
+            # downscale image
+            small = cv2.resize(
+                roi, None, fx=1 / self.pixel_size, fy=1 / self.pixel_size
             )
-            scene[y1:y2, x1:x2] = cv2.resize(
-                scene[y1:y2, x1:x2], (x2 - x1, y2 - y1), interpolation=cv2.INTER_NEAREST
+
+            # upscale image
+            result = cv2.resize(
+                small, (roi.shape[1], roi.shape[0]), interpolation=cv2.INTER_NEAREST
             )
+
+            scene[y1:y2, x1:x2] = result
 
         return scene
