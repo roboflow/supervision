@@ -1,7 +1,7 @@
 site_name: Supervision
 site_url: https://supervision.roboflow.com/
 site_author: Roboflow
-site_description: A set of easy-to-use utils that will come in handy in any Computer Vision project
+site_description: A set of easy-to-use utilities that will come in handy in any computer vision project.
 repo_name: roboflow/supervision
 repo_url: https://github.com/roboflow/supervision
 edit_uri: https://github.com/roboflow/supervision/tree/main/docs
@@ -59,8 +59,8 @@ nav:
 
 theme:
   name: 'material'
-  logo: https://media.roboflow.com/open-source/supervision/supervision-lenny.png
-  favicon: https://media.roboflow.com/open-source/supervision/supervision-lenny.png
+  logo: supervision-lenny.png
+  favicon: supervision-lenny.png
   palette:
     # Palette for light mode
     - scheme: default
@@ -80,6 +80,9 @@ theme:
     code: Roboto Mono
 
 plugins:
+  - social:
+      cards_layout_dir: docs/layouts
+      cards_layout: custom
   - mkdocstrings
   - search
 
