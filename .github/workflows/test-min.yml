@@ -1,15 +1,15 @@
-name: Test WorkFlow
+name: Python 3.8 - Min Dep Test WorkFlow
 
 on:
   pull_request:
     branches: [main, develop]
 
 jobs:
-  build-dev-test:
+  build-min-dep-test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.8", "3.9", "3.10","3.11"]
+        python-version: ["3.8"]
     steps:
       - name: 🛎️ Checkout
         uses: actions/checkout@v4
@@ -21,12 +21,12 @@ jobs:
           python-version: ${{ matrix.python-version }}
           check-latest: true
           cache: 'pip'
-          cache-dependency-path: '**/requirements-dev.txt'
+          cache-dependency-path: '**/requirements-dev-min.txt'
 
       - name: 📦 Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r .github/requirements-dev.txt
+          pip install -r .github/requirements-dev-min.txt
 
       - name: 🧪 Test
         run: "python -m pytest ./test"
