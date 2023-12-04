@@ -45,7 +45,7 @@ from supervision.detection.utils import (
 )
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import (
-    calculate_dynamic_font_scale,
+    calculate_dynamic_text_scale,
     calculate_dynamic_line_thickness,
     draw_filled_rectangle,
     draw_image,

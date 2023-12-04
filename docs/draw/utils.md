@@ -24,7 +24,7 @@
 
 ## calculate_dynamic_font_scale
 
-:::supervision.draw.utils.calculate_dynamic_font_scale
+:::supervision.draw.utils.calculate_dynamic_text_scale
 
 ## calculate_dynamic_line_thickness
 

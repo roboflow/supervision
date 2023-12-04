@@ -233,7 +233,7 @@ def draw_image(
     return scene
 
 
-def calculate_dynamic_font_scale(resolution_wh: Tuple[int, int]) -> float:
+def calculate_dynamic_text_scale(resolution_wh: Tuple[int, int]) -> float:
     """
     Calculate a dynamic font scale based on the resolution of an image.
 
