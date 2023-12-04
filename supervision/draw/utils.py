@@ -1,5 +1,5 @@
 import os
-from typing import Optional, Union, Tuple
+from typing import Optional, Tuple, Union
 
 import cv2
 import numpy as np
@@ -235,15 +235,15 @@ def draw_image(
 
 def calculate_dynamic_font_scale(resolution_wh: Tuple[int, int]) -> float:
     """
-   Calculate a dynamic font scale based on the resolution of an image.
+    Calculate a dynamic font scale based on the resolution of an image.
 
-   Parameters:
-        resolution_wh (Tuple[int, int]): A tuple representing the width and height
-                of the image.
+    Parameters:
+         resolution_wh (Tuple[int, int]): A tuple representing the width and height
+                 of the image.
 
-   Returns:
-        float: The calculated font scale factor.
-   """
+    Returns:
+         float: The calculated font scale factor.
+    """
     return min(resolution_wh) * 1e-3
 
 
