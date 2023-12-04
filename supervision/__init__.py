@@ -51,6 +51,8 @@ from supervision.draw.utils import (
     draw_polygon,
     draw_rectangle,
     draw_text,
+    calculate_dynamic_font_scale,
+    calculate_dynamic_line_thickness
 )
 from supervision.geometry.core import Point, Position, Rect
 from supervision.geometry.utils import get_polygon_center
