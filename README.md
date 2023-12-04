@@ -46,11 +46,13 @@ Read more about desktop, headless, and local installation in our [guide](https:/
 Supervision was designed to be model agnostic. Just plug in any classification, detection, or segmentation model. For your convenience, we have created [connectors](https://supervision.roboflow.com/detection/core/#detections) for the most popular libraries like Ultralytics, Transformers, or MMDetection.
 
 ```python
+>>> import cv2
 >>> import supervision as sv
 >>> from ultralytics import YOLO
 
+>>> image = cv2.imread(...)
 >>> model = YOLO('yolov8s.pt')
->>> result = model(IMAGE)[0]
+>>> result = model(image)[0]
 >>> detections = sv.Detections.from_ultralytics(result)
 
 >>> len(detections)
@@ -62,13 +64,14 @@ Supervision was designed to be model agnostic. Just plug in any classification, 
 Supervision offers a wide range of highly customizable [annotators](https://supervision.roboflow.com/annotators/), allowing you to compose the perfect visualization for your use case.
 
 ```python
+>>> import cv2
 >>> import supervision as sv
 
->>> image = ...
+>>> image = cv2.imread(...)
 >>> detections = sv.Detections(...)
 
->>> mask_annotator = sv.MaskAnnotator()
->>> annotated_frame = mask_annotator.annotate(
+>>> bounding_box_annotator = sv.BoundingBoxAnnotator()
+>>> annotated_frame = bounding_box_annotator.annotate(
 ...     scene=image.copy(),
 ...     detections=detections
 ... )
@@ -84,9 +87,9 @@ Supervision provides a set of [utils](https://supervision.roboflow.com/datasets/
 >>> import supervision as sv
 
 >>> dataset = sv.DetectionDataset.from_yolo(
-...     images_directory_path='...',
-...     annotations_directory_path='...',
-...     data_yaml_path='...'
+...     images_directory_path=...,
+...     annotations_directory_path=...,
+...     data_yaml_path=...
 ... )
 
 >>> dataset.classes
@@ -103,19 +106,19 @@ Supervision provides a set of [utils](https://supervision.roboflow.com/datasets/
 
     ```python
     >>> dataset = sv.DetectionDataset.from_yolo(
-    ...     images_directory_path='...',
-    ...     annotations_directory_path='...',
-    ...     data_yaml_path='...'
+    ...     images_directory_path=...,
+    ...     annotations_directory_path=...,
+    ...     data_yaml_path=...
     ... )
 
     >>> dataset = sv.DetectionDataset.from_pascal_voc(
-    ...     images_directory_path='...',
-    ...     annotations_directory_path='...'
+    ...     images_directory_path=...,
+    ...     annotations_directory_path=...
     ... )
 
     >>> dataset = sv.DetectionDataset.from_coco(
-    ...     images_directory_path='...',
-    ...     annotations_path='...'
+    ...     images_directory_path=...,
+    ...     annotations_path=...
     ... )
     ```
 
@@ -155,19 +158,19 @@ Supervision provides a set of [utils](https://supervision.roboflow.com/datasets/
 
     ```python
     >>> dataset.as_yolo(
-    ...     images_directory_path='...',
-    ...     annotations_directory_path='...',
-    ...     data_yaml_path='...'
+    ...     images_directory_path=...,
+    ...     annotations_directory_path=...,
+    ...     data_yaml_path=...
     ... )
 
     >>> dataset.as_pascal_voc(
-    ...     images_directory_path='...',
-    ...     annotations_directory_path='...'
+    ...     images_directory_path=...,
+    ...     annotations_directory_path=...
     ... )
 
     >>> dataset.as_coco(
-    ...     images_directory_path='...',
-    ...     annotations_path='...'
+    ...     images_directory_path=...,
+    ...     annotations_path=...
     ... )
     ```
 
@@ -175,12 +178,12 @@ Supervision provides a set of [utils](https://supervision.roboflow.com/datasets/
 
     ```python
     >>> sv.DetectionDataset.from_yolo(
-    ...     images_directory_path='...',
-    ...     annotations_directory_path='...',
-    ...     data_yaml_path='...'
+    ...     images_directory_path=...,
+    ...     annotations_directory_path=...,
+    ...     data_yaml_path=...
     ... ).as_pascal_voc(
-    ...     images_directory_path='...',
-    ...     annotations_directory_path='...'
+    ...     images_directory_path=...,
+    ...     annotations_directory_path=...
     ... )
     ```
 
