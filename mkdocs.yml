@@ -59,8 +59,8 @@ nav:
 
 theme:
   name: 'material'
-  logo: supervision-lenny.png
-  favicon: supervision-lenny.png
+  logo: assets/supervision-lenny.png
+  favicon: assets/supervision-lenny.png
   palette:
     # Palette for light mode
     - scheme: default
