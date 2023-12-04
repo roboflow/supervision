@@ -1218,7 +1218,7 @@ class PixelateAnnotator(BaseAnnotator):
         detections: Detections,
     ) -> np.ndarray:
         """
-        Annotates the given scene by replacing regions with a 
+        Annotates the given scene by replacing regions with a
         pixelated effect based on the provided detections.
 
         Args:
@@ -1252,11 +1252,12 @@ class PixelateAnnotator(BaseAnnotator):
 
         for x1, y1, x2, y2 in clipped_xyxy:
             scene[y1:y2, x1:x2] = cv2.resize(
-                scene[y1:y2, x1:x2], (self.pixel_size, self.pixel_size), interpolation=cv2.INTER_NEAREST
+                scene[y1:y2, x1:x2],
+                (self.pixel_size, self.pixel_size),
+                interpolation=cv2.INTER_NEAREST,
             )
             scene[y1:y2, x1:x2] = cv2.resize(
                 scene[y1:y2, x1:x2], (x2 - x1, y2 - y1), interpolation=cv2.INTER_NEAREST
             )
 
         return scene
-
