@@ -1218,7 +1218,7 @@ class ColorAnnotator(BaseAnnotator):
         detections: Detections,
     ) -> np.ndarray:
         """
-        Annotates the given scene by replacing regions with a 
+        Annotates the given scene by replacing regions with a
         color based on the provided detections.
 
         Args:
@@ -1254,4 +1254,3 @@ class ColorAnnotator(BaseAnnotator):
             scene[y1:y2, x1:x2] = self.color.as_bgr()
 
         return scene
-
