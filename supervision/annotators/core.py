@@ -1197,3 +1197,61 @@ class HeatMapAnnotator:
             mask
         ]
         return scene
+
+
+class ColorAnnotator(BaseAnnotator):
+    """
+    A class for replacing regions in an image with a color
+    using provided detections.
+    """
+
+    def __init__(self, color: Color = Color[255, 255, 255]):
+        """
+        Args:
+            color (Color): The color to replace the regions with.
+        """
+        self.color: Color = color
+
+    def annotate(
+        self,
+        scene: np.ndarray,
+        detections: Detections,
+    ) -> np.ndarray:
+        """
+        Annotates the given scene by replacing regions with a 
+        color based on the provided detections.
+
+        Args:
+            scene (np.ndarray): The image where regions will be replaced with a color.
+            detections (Detections): Object detections to annotate.
+
+        Returns:
+            The annotated image.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> image = ...
+            >>> detections = sv.Detections(...)
+
+            >>> blur_annotator = sv.ColorAnnotator()
+            >>> annotated_frame = color_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
+            ```
+
+        ![color-annotator-example](https://media.roboflow.com/
+        supervision-annotator-examples/color-annotator-example-purple.png)
+        """
+        image_height, image_width = scene.shape[:2]
+        clipped_xyxy = clip_boxes(
+            xyxy=detections.xyxy, resolution_wh=(image_width, image_height)
+        ).astype(int)
+
+        for x1, y1, x2, y2 in clipped_xyxy:
+            scene[y1:y2, x1:x2] = self.color.as_bgr()
+
+        return scene
+
