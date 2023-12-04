@@ -30,7 +30,7 @@ class BoundingBoxAnnotator(BaseAnnotator):
                 annotating detections.
             thickness (int): Thickness of the bounding box lines.
             color_lookup (str): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACE`.
+                Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
         self.thickness: int = thickness
@@ -112,7 +112,7 @@ class MaskAnnotator(BaseAnnotator):
                 annotating detections.
             opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.
             color_lookup (str): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACE`.
+                Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
         self.opacity = opacity
@@ -156,6 +156,8 @@ class MaskAnnotator(BaseAnnotator):
         if detections.mask is None:
             return scene
 
+        colored_mask = np.array(scene, copy=True, dtype=np.uint8)
+
         for detection_idx in np.flip(np.argsort(detections.area)):
             color = resolve_color(
                 color=self.color,
@@ -166,13 +168,10 @@ class MaskAnnotator(BaseAnnotator):
                 else custom_color_lookup,
             )
             mask = detections.mask[detection_idx]
-            colored_mask = np.zeros_like(scene, dtype=np.uint8)
-            colored_mask[:] = color.as_bgr()
-            scene[mask] = cv2.addWeighted(
-                colored_mask, self.opacity, scene, 1 - self.opacity, 0
-            )[mask]
+            colored_mask[mask] = color.as_bgr()
 
-        return scene
+        scene = cv2.addWeighted(colored_mask, self.opacity, scene, 1 - self.opacity, 0)
+        return scene.astype(np.uint8)
 
 
 class PolygonAnnotator(BaseAnnotator):
@@ -196,7 +195,7 @@ class PolygonAnnotator(BaseAnnotator):
                 annotating detections.
             thickness (int): Thickness of the polygon lines.
             color_lookup (str): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACE`.
+                Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
         self.thickness: int = thickness
@@ -278,7 +277,7 @@ class BoxMaskAnnotator(BaseAnnotator):
                 annotating detections.
             opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.
             color_lookup (str): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACE`.
+                Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
         self.color_lookup: ColorLookup = color_lookup
@@ -367,7 +366,7 @@ class HaloAnnotator(BaseAnnotator):
             kernel_size (int): The size of the average pooling kernel used for creating
                 the halo.
             color_lookup (str): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACE`.
+                Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
         self.opacity = opacity
@@ -460,7 +459,7 @@ class EllipseAnnotator(BaseAnnotator):
             start_angle (int): Starting angle of the ellipse.
             end_angle (int): Ending angle of the ellipse.
             color_lookup (str): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACE`.
+                Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
         self.thickness: int = thickness
@@ -548,7 +547,7 @@ class BoxCornerAnnotator(BaseAnnotator):
             thickness (int): Thickness of the corner lines.
             corner_length (int): Length of each corner line.
             color_lookup (str): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACE`.
+                Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
         self.thickness: int = thickness
@@ -632,7 +631,7 @@ class CircleAnnotator(BaseAnnotator):
                 annotating detections.
             thickness (int): Thickness of the circle line.
             color_lookup (str): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACE`.
+                Options are `INDEX`, `CLASS`, `TRACK`.
         """
 
         self.color: Union[Color, ColorPalette] = color
@@ -718,7 +717,7 @@ class DotAnnotator(BaseAnnotator):
             radius (int): Radius of the drawn dots.
             position (Position): The anchor position for placing the dot.
             color_lookup (ColorLookup): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACE`.
+                Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
         self.radius: int = radius
@@ -760,7 +759,7 @@ class DotAnnotator(BaseAnnotator):
         ![dot-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/dot-annotator-example-purple.png)
         """
-        xy = detections.get_anchor_coordinates(anchor=self.position)
+        xy = detections.get_anchors_coordinates(anchor=self.position)
         for detection_idx in range(len(detections)):
             color = resolve_color(
                 color=self.color,
@@ -801,56 +800,53 @@ class LabelAnnotator:
             text_position (Position): Position of the text relative to the detection.
                 Possible values are defined in the `Position` enum.
             color_lookup (str): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACE`.
+                Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
         self.text_color: Color = text_color
         self.text_scale: float = text_scale
         self.text_thickness: int = text_thickness
         self.text_padding: int = text_padding
-        self.text_position: Position = text_position
+        self.text_anchor: Position = text_position
         self.color_lookup: ColorLookup = color_lookup
 
     @staticmethod
     def resolve_text_background_xyxy(
-        detection_xyxy: Tuple[int, int, int, int],
+        center_coordinates: Tuple[int, int],
         text_wh: Tuple[int, int],
-        text_padding: int,
         position: Position,
     ) -> Tuple[int, int, int, int]:
-        padded_text_wh = (text_wh[0] + 2 * text_padding, text_wh[1] + 2 * text_padding)
-        x1, y1, x2, y2 = detection_xyxy
-        center_x = (x1 + x2) // 2
-        center_y = (y1 + y2) // 2
+        center_x, center_y = center_coordinates
+        text_w, text_h = text_wh
 
         if position == Position.TOP_LEFT:
-            return x1, y1 - padded_text_wh[1], x1 + padded_text_wh[0], y1
+            return center_x, center_y - text_h, center_x + text_w, center_y
         elif position == Position.TOP_RIGHT:
-            return x2 - padded_text_wh[0], y1 - padded_text_wh[1], x2, y1
+            return center_x - text_w, center_y - text_h, center_x, center_y
         elif position == Position.TOP_CENTER:
             return (
-                center_x - padded_text_wh[0] // 2,
-                y1 - padded_text_wh[1],
-                center_x + padded_text_wh[0] // 2,
-                y1,
+                center_x - text_w // 2,
+                center_y - text_h,
+                center_x + text_w // 2,
+                center_y,
             )
-        elif position == Position.CENTER:
+        elif position == Position.CENTER or position == Position.CENTER_OF_MASS:
             return (
-                center_x - padded_text_wh[0] // 2,
-                center_y - padded_text_wh[1] // 2,
-                center_x + padded_text_wh[0] // 2,
-                center_y + padded_text_wh[1] // 2,
+                center_x - text_w // 2,
+                center_y - text_h // 2,
+                center_x + text_w // 2,
+                center_y + text_h // 2,
             )
         elif position == Position.BOTTOM_LEFT:
-            return x1, y2, x1 + padded_text_wh[0], y2 + padded_text_wh[1]
+            return center_x, center_y, center_x + text_w, center_y + text_h
         elif position == Position.BOTTOM_RIGHT:
-            return x2 - padded_text_wh[0], y2, x2, y2 + padded_text_wh[1]
+            return center_x - text_w, center_y, center_x, center_y + text_h
         elif position == Position.BOTTOM_CENTER:
             return (
-                center_x - padded_text_wh[0] // 2,
-                y2,
-                center_x + padded_text_wh[0] // 2,
-                y2 + padded_text_wh[1],
+                center_x - text_w // 2,
+                center_y,
+                center_x + text_w // 2,
+                center_y + text_h,
             )
 
     def annotate(
@@ -891,8 +887,10 @@ class LabelAnnotator:
         supervision-annotator-examples/label-annotator-example-purple.png)
         """
         font = cv2.FONT_HERSHEY_SIMPLEX
-        for detection_idx in range(len(detections)):
-            detection_xyxy = detections.xyxy[detection_idx].astype(int)
+        anchors_coordinates = detections.get_anchors_coordinates(
+            anchor=self.text_anchor
+        ).astype(int)
+        for detection_idx, center_coordinates in enumerate(anchors_coordinates):
             color = resolve_color(
                 color=self.color,
                 detections=detections,
@@ -906,22 +904,22 @@ class LabelAnnotator:
                 if (labels is None or len(detections) != len(labels))
                 else labels[detection_idx]
             )
-            text_wh = cv2.getTextSize(
+            text_w, text_h = cv2.getTextSize(
                 text=text,
                 fontFace=font,
                 fontScale=self.text_scale,
                 thickness=self.text_thickness,
             )[0]
-
+            text_w_padded = text_w + 2 * self.text_padding
+            text_h_padded = text_h + 2 * self.text_padding
             text_background_xyxy = self.resolve_text_background_xyxy(
-                detection_xyxy=detection_xyxy,
-                text_wh=text_wh,
-                text_padding=self.text_padding,
-                position=self.text_position,
+                center_coordinates=tuple(center_coordinates),
+                text_wh=(text_w_padded, text_h_padded),
+                position=self.text_anchor,
             )
 
             text_x = text_background_xyxy[0] + self.text_padding
-            text_y = text_background_xyxy[1] + self.text_padding + text_wh[1]
+            text_y = text_background_xyxy[1] + self.text_padding + text_h
 
             cv2.rectangle(
                 img=scene,
@@ -1029,7 +1027,7 @@ class TraceAnnotator:
                 points. Defaults to `30`.
             thickness (int): The thickness of the trace lines. Defaults to `2`.
             color_lookup (str): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACE`.
+                Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
         self.position = position
@@ -1181,7 +1179,7 @@ class HeatMapAnnotator:
         if self.heat_mask is None:
             self.heat_mask = np.zeros(scene.shape[:2])
         mask = np.zeros(scene.shape[:2])
-        for xy in detections.get_anchor_coordinates(self.position):
+        for xy in detections.get_anchors_coordinates(self.position):
             cv2.circle(mask, (int(xy[0]), int(xy[1])), self.radius, 1, -1)
         self.heat_mask = mask + self.heat_mask
         temp = self.heat_mask.copy()

@@ -79,6 +79,8 @@ theme:
   font:
     text: Roboto
     code: Roboto Mono
+  features:
+    - content.code.copy
 
 plugins:
   - mkdocstrings

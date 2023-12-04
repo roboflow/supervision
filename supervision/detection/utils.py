@@ -393,3 +393,33 @@ def move_boxes(xyxy: np.ndarray, offset: np.ndarray) -> np.ndarray:
         (np.ndarray) repositioned bounding boxes
     """
     return xyxy + np.hstack([offset, offset])
+
+
+def calculate_masks_centroids(masks: np.ndarray) -> np.ndarray:
+    """
+    Calculate the centroids of binary masks in a tensor.
+
+    Parameters:
+        masks (np.ndarray): A 3D NumPy array of shape (num_masks, height, width).
+            Each 2D array in the tensor represents a binary mask.
+
+    Returns:
+        A 2D NumPy array of shape (num_masks, 2), where each row contains the x and y
+            coordinates (in that order) of the centroid of the corresponding mask.
+    """
+    num_masks, height, width = masks.shape
+    total_pixels = masks.sum(axis=(1, 2))
+
+    # offset for 1-based indexing
+    vertical_indices, horizontal_indices = np.indices((height, width)) + 0.5
+    # avoid division by zero for empty masks
+    total_pixels[total_pixels == 0] = 1
+
+    def sum_over_mask(indices: np.ndarray, axis: tuple) -> np.ndarray:
+        return np.tensordot(masks, indices, axes=axis)
+
+    aggregation_axis = ([1, 2], [0, 1])
+    centroid_x = sum_over_mask(horizontal_indices, aggregation_axis) / total_pixels
+    centroid_y = sum_over_mask(vertical_indices, aggregation_axis) / total_pixels
+
+    return np.column_stack((centroid_x, centroid_y)).astype(int)

@@ -71,6 +71,21 @@ class Color:
         r, g, b = (int(color_hex[i : i + 2], 16) for i in range(0, 6, 2))
         return cls(r, g, b)
 
+    def as_hex(self) -> str:
+        """
+        Converts the Color instance to a hex string.
+
+        Returns:
+            str: The hexadecimal color string.
+
+        Example:
+            ```
+            >>> Color(r=255, g=0, b=255).as_hex()
+            '#ff00ff'
+            ```
+        """
+        return f"#{self.r:02x}{self.g:02x}{self.b:02x}"
+
     def as_rgb(self) -> Tuple[int, int, int]:
         """
         Returns the color as an RGB tuple.
