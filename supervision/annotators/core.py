@@ -1201,8 +1201,7 @@ class HeatMapAnnotator:
 
 class PixelateAnnotator(BaseAnnotator):
     """
-    A class for replacing regions in an image with a pixelated effect
-    using provided detections.
+    A class for pixelating regions in an image using provided detections.
     """
 
     def __init__(self, pixel_size: int = 20):
@@ -1218,11 +1217,11 @@ class PixelateAnnotator(BaseAnnotator):
         detections: Detections,
     ) -> np.ndarray:
         """
-        Annotates the given scene by replacing regions with a
-        pixelated effect based on the provided detections.
+        Annotates the given scene by pixelating regions based on the provided
+            detections.
 
         Args:
-            scene (np.ndarray): The image where regions will be pixelated.
+            scene (np.ndarray): The image where pixelating will be applied.
             detections (Detections): Object detections to annotate.
 
         Returns:
@@ -1235,15 +1234,15 @@ class PixelateAnnotator(BaseAnnotator):
             >>> image = ...
             >>> detections = sv.Detections(...)
 
-            >>> blur_annotator = sv.PixelateAnnotator()
-            >>> annotated_frame = color_annotator.annotate(
+            >>> pixelate_annotator = sv.PixelateAnnotator()
+            >>> annotated_frame = pixelate_annotator.annotate(
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
             ```
 
         ![pixelate-annotator-example](https://media.roboflow.com/
-        supervision-annotator-examples/pixelate-annotator-example.png)
+        supervision-annotator-examples/pixelate-annotator-example-10.png)
         """
         image_height, image_width = scene.shape[:2]
         clipped_xyxy = clip_boxes(
@@ -1252,17 +1251,13 @@ class PixelateAnnotator(BaseAnnotator):
 
         for x1, y1, x2, y2 in clipped_xyxy:
             roi = scene[y1:y2, x1:x2]
+            scaled_up_roi = cv2.resize(
+                src=roi, dsize=None, fx=1 / self.pixel_size, fy=1 / self.pixel_size)
+            scaled_down_roi = cv2.resize(
+                src=scaled_up_roi,
+                dsize=(roi.shape[1], roi.shape[0]),
+                interpolation=cv2.INTER_NEAREST)
 
-            # downscale image
-            small = cv2.resize(
-                roi, None, fx=1 / self.pixel_size, fy=1 / self.pixel_size
-            )
-
-            # upscale image
-            result = cv2.resize(
-                small, (roi.shape[1], roi.shape[0]), interpolation=cv2.INTER_NEAREST
-            )
-
-            scene[y1:y2, x1:x2] = result
+            scene[y1:y2, x1:x2] = scaled_down_roi
 
         return scene

@@ -229,6 +229,27 @@
 
     </div>
 
+=== "Pixelate"
+
+    ```python
+    >>> import supervision as sv
+
+    >>> image = ...
+    >>> detections = sv.Detections(...)
+
+    >>> pixelate_annotator = sv.PixelateAnnotator()
+    >>> annotated_frame = pixelate_annotator.annotate(
+    ...     scene=image.copy(),
+    ...     detections=detections
+    ... )
+    ```
+
+    <div class="result" markdown>
+
+    ![pixelate-annotator-example](https://media.roboflow.com/supervision-annotator-examples/pixelate-annotator-example-10.png){ align=center width="800" }
+
+    </div>
+
 === "Trace"
 
     ```python
@@ -336,6 +357,10 @@
 ## BlurAnnotator
 
 :::supervision.annotators.core.BlurAnnotator
+
+## PixelateAnnotator
+
+:::supervision.annotators.core.PixelateAnnotator
 
 ## TraceAnnotator
 
