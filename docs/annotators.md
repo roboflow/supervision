@@ -40,7 +40,7 @@
 
     </div>
 
-=== "BoxMask"
+=== "Color"
 
     ```python
     >>> import supervision as sv
