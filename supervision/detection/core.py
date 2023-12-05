@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import astuple, dataclass
-from typing import Any, Iterator, List, Optional, Tuple, Union, Dict
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -486,9 +486,7 @@ class Detections:
 
     @classmethod
     def from_azure_analyze_image(
-        cls,
-        azure_result: dict,
-        class_map: Optional[Dict[int, str]] = None
+        cls, azure_result: dict, class_map: Optional[Dict[int, str]] = None
     ) -> Detections:
         """
         Creates a Detections instance from Azure Image Analysis 4.0
@@ -531,11 +529,7 @@ class Detections:
         if is_dynamic_mapping:
             class_map = {}
 
-        class_map = {
-            value: key
-            for key, value
-            in class_map.items()
-        }
+        class_map = {value: key for key, value in class_map.items()}
 
         for detection in azure_result["objectsResult"]["values"]:
             bbox = detection["boundingBox"]
