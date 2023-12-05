@@ -1205,10 +1205,10 @@ class ColorAnnotator(BaseAnnotator):
     using provided detections.
     """
 
-    def __init__(self, color: Color = Color(r=0, g=0, b=0)):
+    def __init__(self, color: Color = Color.black()):
         """
         Args:
-            color (Color): The color to replace the regions with.
+            color (Color): The color to paint the regions with.
         """
         self.color: Color = color
 
@@ -1235,7 +1235,7 @@ class ColorAnnotator(BaseAnnotator):
             >>> image = ...
             >>> detections = sv.Detections(...)
 
-            >>> blur_annotator = sv.ColorAnnotator()
+            >>> color_annotator = sv.ColorAnnotator()
             >>> annotated_frame = color_annotator.annotate(
             ...     scene=image.copy(),
             ...     detections=detections

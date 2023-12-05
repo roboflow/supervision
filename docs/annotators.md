@@ -229,6 +229,27 @@
 
     </div>
 
+=== "Color"
+
+    ```python
+    >>> import supervision as sv
+
+    >>> image = ...
+    >>> detections = sv.Detections(...)
+
+    >>> color_annotator = sv.ColorAnnotator()
+    >>> annotated_frame = color_annotator.annotate(
+    ...     scene=image.copy(),
+    ...     detections=detections
+    ... )
+    ```
+
+    <div class="result" markdown>
+
+    ![color-annotator-example](https://media.roboflow.com/supervision-annotator-examples/color-annotator-example-purple.png){ align=center width="800" }
+
+    </div>
+
 === "Trace"
 
     ```python
@@ -336,6 +357,10 @@
 ## BlurAnnotator
 
 :::supervision.annotators.core.BlurAnnotator
+
+## ColorAnnotator
+
+:::supervision.annotators.core.ColorAnnotator
 
 ## TraceAnnotator
 
