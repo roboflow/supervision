@@ -110,17 +110,15 @@ def non_max_suppression(
     return keep[sort_index.argsort()]
 
 
-def clip_boxes(
-    boxes_xyxy: np.ndarray, frame_resolution_wh: Tuple[int, int]
-) -> np.ndarray:
+def clip_boxes(xyxy: np.ndarray, resolution_wh: Tuple[int, int]) -> np.ndarray:
     """
     Clips bounding boxes coordinates to fit within the frame resolution.
 
     Args:
-        boxes_xyxy (np.ndarray): A numpy array of shape `(N, 4)` where each
+        xyxy (np.ndarray): A numpy array of shape `(N, 4)` where each
             row corresponds to a bounding box in
         the format `(x_min, y_min, x_max, y_max)`.
-        frame_resolution_wh (Tuple[int, int]): A tuple of the form `(width, height)`
+        resolution_wh (Tuple[int, int]): A tuple of the form `(width, height)`
             representing the resolution of the frame.
 
     Returns:
@@ -128,8 +126,8 @@ def clip_boxes(
             corresponds to a bounding box with coordinates clipped to fit
             within the frame resolution.
     """
-    result = np.copy(boxes_xyxy)
-    width, height = frame_resolution_wh
+    result = np.copy(xyxy)
+    width, height = resolution_wh
     result[:, [0, 2]] = result[:, [0, 2]].clip(0, width)
     result[:, [1, 3]] = result[:, [1, 3]].clip(0, height)
     return result
@@ -395,3 +393,33 @@ def move_boxes(xyxy: np.ndarray, offset: np.ndarray) -> np.ndarray:
         (np.ndarray) repositioned bounding boxes
     """
     return xyxy + np.hstack([offset, offset])
+
+
+def calculate_masks_centroids(masks: np.ndarray) -> np.ndarray:
+    """
+    Calculate the centroids of binary masks in a tensor.
+
+    Parameters:
+        masks (np.ndarray): A 3D NumPy array of shape (num_masks, height, width).
+            Each 2D array in the tensor represents a binary mask.
+
+    Returns:
+        A 2D NumPy array of shape (num_masks, 2), where each row contains the x and y
+            coordinates (in that order) of the centroid of the corresponding mask.
+    """
+    num_masks, height, width = masks.shape
+    total_pixels = masks.sum(axis=(1, 2))
+
+    # offset for 1-based indexing
+    vertical_indices, horizontal_indices = np.indices((height, width)) + 0.5
+    # avoid division by zero for empty masks
+    total_pixels[total_pixels == 0] = 1
+
+    def sum_over_mask(indices: np.ndarray, axis: tuple) -> np.ndarray:
+        return np.tensordot(masks, indices, axes=axis)
+
+    aggregation_axis = ([1, 2], [0, 1])
+    centroid_x = sum_over_mask(horizontal_indices, aggregation_axis) / total_pixels
+    centroid_y = sum_over_mask(vertical_indices, aggregation_axis) / total_pixels
+
+    return np.column_stack((centroid_x, centroid_y)).astype(int)
