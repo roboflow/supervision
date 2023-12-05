@@ -525,6 +525,11 @@ class Detections:
 
             >>> detections = sv.Detections.from_azure_analyze_image(response)
         """
+        if "error" in azure_result:
+            raise ValueError(
+                f'Azure API returned an error {azure_result["error"]["message"]}'
+            )
+
         xyxy, confidences, class_ids = [], [], []
 
         is_dynamic_mapping = class_map is None
