@@ -525,16 +525,17 @@ class Detections:
             confidence=paddledet_result["bbox"][:, 1],
             class_id=paddledet_result["bbox"][:, 0].astype(int),
         )
-    
+
     @classmethod
     def from_gcp_vision(cls, gcp_results, size) -> Detections:
         """
         Creates a Detections instance from the
-            [Google Cloud Cloud Vision API's](https://github.com/PaddlePaddle/PaddleDetection)
+            [Google Cloud Cloud Vision API's](https://cloud.google.com/vision/docs)
             inference result.
 
         Args:
-            gcp_results (List[dict]): The output results from GCP from the `localized_object_annotations`.
+            gcp_results (List[dict]): The output results from GCP from
+                the `localized_object_annotations`.
             size (Tuple[int, int]): The height, then width of the input image.
 
         Returns:
