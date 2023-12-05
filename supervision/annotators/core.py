@@ -1252,11 +1252,13 @@ class PixelateAnnotator(BaseAnnotator):
         for x1, y1, x2, y2 in clipped_xyxy:
             roi = scene[y1:y2, x1:x2]
             scaled_up_roi = cv2.resize(
-                src=roi, dsize=None, fx=1 / self.pixel_size, fy=1 / self.pixel_size)
+                src=roi, dsize=None, fx=1 / self.pixel_size, fy=1 / self.pixel_size
+            )
             scaled_down_roi = cv2.resize(
                 src=scaled_up_roi,
                 dsize=(roi.shape[1], roi.shape[0]),
-                interpolation=cv2.INTER_NEAREST)
+                interpolation=cv2.INTER_NEAREST,
+            )
 
             scene[y1:y2, x1:x2] = scaled_down_roi
 
