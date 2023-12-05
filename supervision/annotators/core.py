@@ -316,7 +316,7 @@ class ColorAnnotator(BaseAnnotator):
             ```
 
         ![box-mask-annotator-example](https://media.roboflow.com/
-        supervision-annotator-examples/color-annotator-example-purple.png)
+        supervision-annotator-examples/box-mask-annotator-example-purple.png)
         """
         mask_image = scene.copy()
         for detection_idx in range(len(detections)):
