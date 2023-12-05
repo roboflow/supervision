@@ -308,8 +308,8 @@ class ColorAnnotator(BaseAnnotator):
             >>> image = ...
             >>> detections = sv.Detections(...)
 
-            >>> box_mask_annotator = sv.ColorAnnotator()
-            >>> annotated_frame = box_mask_annotator.annotate(
+            >>> color_annotator = sv.ColorAnnotator()
+            >>> annotated_frame = color_annotator.annotate(
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
