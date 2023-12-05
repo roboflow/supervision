@@ -260,7 +260,7 @@ class PolygonAnnotator(BaseAnnotator):
         return scene
 
 
-class BoxMaskAnnotator(BaseAnnotator):
+class ColorAnnotator(BaseAnnotator):
     """
     A class for drawing box masks on an image using provided detections.
     """
@@ -308,8 +308,8 @@ class BoxMaskAnnotator(BaseAnnotator):
             >>> image = ...
             >>> detections = sv.Detections(...)
 
-            >>> box_mask_annotator = sv.BoxMaskAnnotator()
-            >>> annotated_frame = box_mask_annotator.annotate(
+            >>> color_annotator = sv.ColorAnnotator()
+            >>> annotated_frame = color_annotator.annotate(
             ...     scene=image.copy(),
             ...     detections=detections
             ... )

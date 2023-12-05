@@ -40,7 +40,7 @@
 
     </div>
 
-=== "BoxMask"
+=== "Color"
 
     ```python
     >>> import supervision as sv
@@ -48,8 +48,8 @@
     >>> image = ...
     >>> detections = sv.Detections(...)
 
-    >>> box_mask_annotator = sv.BoxMaskAnnotator()
-    >>> annotated_frame = box_mask_annotator.annotate(
+    >>> color_annotator = sv.ColorAnnotator()
+    >>> annotated_frame = color_annotator.annotate(
     ...     scene=image.copy(),
     ...     detections=detections
     ... )
@@ -318,9 +318,9 @@
 
 :::supervision.annotators.core.BoxCornerAnnotator
 
-## BoxMaskAnnotator
+## ColorAnnotator
 
-:::supervision.annotators.core.BoxMaskAnnotator
+:::supervision.annotators.core.ColorAnnotator
 
 ## CircleAnnotator
 
