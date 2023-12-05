@@ -260,7 +260,7 @@ class PolygonAnnotator(BaseAnnotator):
         return scene
 
 
-class BoxMaskAnnotator(BaseAnnotator):
+class ColorAnnotator(BaseAnnotator):
     """
     A class for drawing box masks on an image using provided detections.
     """
@@ -308,7 +308,7 @@ class BoxMaskAnnotator(BaseAnnotator):
             >>> image = ...
             >>> detections = sv.Detections(...)
 
-            >>> box_mask_annotator = sv.BoxMaskAnnotator()
+            >>> box_mask_annotator = sv.ColorAnnotator()
             >>> annotated_frame = box_mask_annotator.annotate(
             ...     scene=image.copy(),
             ...     detections=detections
@@ -316,7 +316,7 @@ class BoxMaskAnnotator(BaseAnnotator):
             ```
 
         ![box-mask-annotator-example](https://media.roboflow.com/
-        supervision-annotator-examples/box-mask-annotator-example-purple.png)
+        supervision-annotator-examples/color-annotator-example-purple.png)
         """
         mask_image = scene.copy()
         for detection_idx in range(len(detections)):
