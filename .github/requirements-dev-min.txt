@@ -8,7 +8,7 @@ idna==3.4
 iniconfig==2.0.0
 kiwisolver==1.4.5
 matplotlib==3.5.0
-numpy==1.24.4
+numpy==1.21.2
 opencv-python==4.5.5.64
 packaging==23.2
 Pillow==10.1.0
