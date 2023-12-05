@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import astuple, dataclass
-from typing import Any, Iterator, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -461,7 +461,7 @@ class Detections:
             >>> from segment_anything import (
             ...     sam_model_registry,
             ...     SamAutomaticMaskGenerator
-            ...     )
+            ... )
 
             >>> sam_model_reg = sam_model_registry[MODEL_TYPE]
             >>> sam = sam_model_reg(checkpoint=CHECKPOINT_PATH).to(device=DEVICE)
@@ -483,6 +483,91 @@ class Detections:
 
         xyxy = xywh_to_xyxy(boxes_xywh=xywh)
         return cls(xyxy=xyxy, mask=mask)
+
+    @classmethod
+    def from_azure_analyze_image(
+        cls, azure_result: dict, class_map: Optional[Dict[int, str]] = None
+    ) -> Detections:
+        """
+        Creates a Detections instance from Azure Image Analysis 4.0
+        (https://learn.microsoft.com/en-us/azure/ai-services/computer-vision/concept-object-detection-40)
+
+        Args:
+            azure_result (dict): The result from Azure Image Analysis. It should
+                contain detected objects and their bounding box coordinates.
+            class_map (Optional[Dict[int, str]]): A mapping ofclass IDs (int) to class
+                names (str). If None, a new mapping is created dynamically.
+
+        Returns:
+            Detections: A new Detections object.
+
+        Example:
+            ```python
+            >>> import requests
+            >>> import supervision as sv
+
+            >>> image = open(input, "rb").read()
+
+            >>> endpoint = "https://.cognitiveservices.azure.com/"
+            >>> subscription_key = "..."
+
+            >>> headers = {
+            ...    "Content-Type": "application/octet-stream",
+            ...    "Ocp-Apim-Subscription-Key": subscription_key
+            ... }
+
+            >>> response = requests.post(endpoint,
+            ...     headers=self.headers,
+            ...     data=image
+            ... ).json()
+
+            >>> detections = sv.Detections.from_azure_analyze_image(response)
+        """
+        if "error" in azure_result:
+            raise ValueError(
+                f'Azure API returned an error {azure_result["error"]["message"]}'
+            )
+
+        xyxy, confidences, class_ids = [], [], []
+
+        is_dynamic_mapping = class_map is None
+        if is_dynamic_mapping:
+            class_map = {}
+
+        class_map = {value: key for key, value in class_map.items()}
+
+        for detection in azure_result["objectsResult"]["values"]:
+            bbox = detection["boundingBox"]
+
+            tags = detection["tags"]
+
+            x0 = bbox["x"]
+            y0 = bbox["y"]
+            x1 = x0 + bbox["w"]
+            y1 = y0 + bbox["h"]
+
+            for tag in tags:
+                confidence = tag["confidence"]
+                class_name = tag["name"]
+                class_id = class_map.get(class_name, None)
+
+                if is_dynamic_mapping and class_id is None:
+                    class_id = len(class_map)
+                    class_map[class_name] = class_id
+
+                if class_id is not None:
+                    xyxy.append([x0, y0, x1, y1])
+                    confidences.append(confidence)
+                    class_ids.append(class_id)
+
+        if len(xyxy) == 0:
+            return Detections.empty()
+
+        return cls(
+            xyxy=np.array(xyxy),
+            class_id=np.array(class_ids),
+            confidence=np.array(confidences),
+        )
 
     @classmethod
     def from_paddledet(cls, paddledet_result) -> Detections:
