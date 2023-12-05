@@ -535,6 +535,7 @@ class Detections:
 
         Args:
             gcp_results (List[dict]): The output results from GCP from the `localized_object_annotations`.
+            size (Tuple[int, int]): The height, then width of the input image.
 
         Returns:
             Detections: A new Detections object.
@@ -545,6 +546,7 @@ class Detections:
             >>> from google.cloud import vision
             >>> from PIL import Image
 
+            >>> image_path = "/content/people.jpeg"
             >>> img = Image.open(image_path)
 
             >>> client = vision.ImageAnnotatorClient()
@@ -553,11 +555,13 @@ class Detections:
             >>>     content = image_file.read()
 
             >>> image = vision.Image(content=content)
-            >>> results = client.object_localization(image=image).localized_object_annotations
-            >>> 
+
+            >>> result = client.object_localization(image=image)
+            >>> objects = result.localized_object_annotations
+
             >>> detections = sv.Detections.from_gcp_vision(
-            >>>     gcp_results=results,
-            >>>     size=(img.width, img.height)
+            >>>     gcp_results=objects,
+            >>>     size=(img.height, img.width)
             >>> )
             ```
         """
