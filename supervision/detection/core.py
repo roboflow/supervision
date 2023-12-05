@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import astuple, dataclass
-from typing import Any, Iterator, List, Optional, Tuple, Union
+from typing import Any, Iterator, List, Optional, Tuple, Union, Dict
 
 import numpy as np
 
@@ -461,7 +461,7 @@ class Detections:
             >>> from segment_anything import (
             ...     sam_model_registry,
             ...     SamAutomaticMaskGenerator
-            ...     )
+            ... )
 
             >>> sam_model_reg = sam_model_registry[MODEL_TYPE]
             >>> sam = sam_model_reg(checkpoint=CHECKPOINT_PATH).to(device=DEVICE)
@@ -485,21 +485,29 @@ class Detections:
         return cls(xyxy=xyxy, mask=mask)
 
     @classmethod
-    def from_azure_analyze_image(cls, azure_result: dict) -> Detections:
+    def from_azure_analyze_image(
+        cls,
+        azure_result: dict,
+        class_map: Optional[Dict[int, str]] = None
+    ) -> Detections:
         """
         Creates a Detections instance from Azure Image Analysis 4.0
         (https://learn.microsoft.com/en-us/azure/ai-services/computer-vision/concept-object-detection-40)
 
         Args:
-            azure_result (dict): The output Results instance from Azure Image Analysis
+            azure_result (dict): The result from Azure Image Analysis. It should
+                contain detected objects and their bounding box coordinates.
+            class_map (Optional[Dict[int, str]]): A mapping ofclass IDs (int) to class
+                names (str). If None, a new mapping is created dynamically.
 
         Returns:
             Detections: A new Detections object.
 
         Example:
             ```python
-            >>> import supervision as sv
             >>> import requests
+            >>> import supervision as sv
+
             >>> image = open(input, "rb").read()
 
             >>> endpoint = "https://.cognitiveservices.azure.com/"
@@ -517,10 +525,17 @@ class Detections:
 
             >>> detections = sv.Detections.from_azure_analyze_image(response)
         """
+        xyxy, confidences, class_ids = [], [], []
 
-        xyxys, confidences, class_ids = [], [], []
+        is_dynamic_mapping = class_map is None
+        if is_dynamic_mapping:
+            class_map = {}
 
-        class_map = {}
+        class_map = {
+            value: key
+            for key, value
+            in class_map.items()
+        }
 
         for detection in azure_result["objectsResult"]["values"]:
             bbox = detection["boundingBox"]
@@ -533,21 +548,24 @@ class Detections:
             y1 = y0 + bbox["h"]
 
             for tag in tags:
-                xyxys.append([x0, y0, x1, y1])
-                confidences.append(tag["confidence"])
-
+                confidence = tag["confidence"]
                 class_name = tag["name"]
+                class_id = class_map.get(class_name, None)
 
-                if class_name not in class_map:
-                    class_map[class_name] = len(class_ids)
+                if is_dynamic_mapping and class_id is None:
+                    class_id = len(class_map)
+                    class_map[class_name] = class_id
 
-                class_ids.append(class_map[class_name])
+                if class_id is not None:
+                    xyxy.append([x0, y0, x1, y1])
+                    confidences.append(confidence)
+                    class_ids.append(class_id)
 
-        if len(xyxys) == 0:
+        if len(xyxy) == 0:
             return Detections.empty()
 
         return cls(
-            xyxy=np.array(xyxys),
+            xyxy=np.array(xyxy),
             class_id=np.array(class_ids),
             confidence=np.array(confidences),
         )
