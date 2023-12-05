@@ -1197,3 +1197,69 @@ class HeatMapAnnotator:
             mask
         ]
         return scene
+
+
+class PixelateAnnotator(BaseAnnotator):
+    """
+    A class for pixelating regions in an image using provided detections.
+    """
+
+    def __init__(self, pixel_size: int = 20):
+        """
+        Args:
+            pixel_size (int): The size of the pixelation.
+        """
+        self.pixel_size: int = pixel_size
+
+    def annotate(
+        self,
+        scene: np.ndarray,
+        detections: Detections,
+    ) -> np.ndarray:
+        """
+        Annotates the given scene by pixelating regions based on the provided
+            detections.
+
+        Args:
+            scene (np.ndarray): The image where pixelating will be applied.
+            detections (Detections): Object detections to annotate.
+
+        Returns:
+            The annotated image.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> image = ...
+            >>> detections = sv.Detections(...)
+
+            >>> pixelate_annotator = sv.PixelateAnnotator()
+            >>> annotated_frame = pixelate_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
+            ```
+
+        ![pixelate-annotator-example](https://media.roboflow.com/
+        supervision-annotator-examples/pixelate-annotator-example-10.png)
+        """
+        image_height, image_width = scene.shape[:2]
+        clipped_xyxy = clip_boxes(
+            xyxy=detections.xyxy, resolution_wh=(image_width, image_height)
+        ).astype(int)
+
+        for x1, y1, x2, y2 in clipped_xyxy:
+            roi = scene[y1:y2, x1:x2]
+            scaled_up_roi = cv2.resize(
+                src=roi, dsize=None, fx=1 / self.pixel_size, fy=1 / self.pixel_size
+            )
+            scaled_down_roi = cv2.resize(
+                src=scaled_up_roi,
+                dsize=(roi.shape[1], roi.shape[0]),
+                interpolation=cv2.INTER_NEAREST,
+            )
+
+            scene[y1:y2, x1:x2] = scaled_down_roi
+
+        return scene
