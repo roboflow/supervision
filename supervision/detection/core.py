@@ -538,8 +538,10 @@ class Detections:
 
                 if class_map.get(label_name) is None:
                     class_map[label_name] = len(class_map)
+                else:
+                    class_map[label_name] = class_map[label_name]
 
-                class_map.append(class_map[label_name])
+                class_ids.append(class_map[label_name])
 
         if len(xyxys) == 0:
             return cls.empty()
