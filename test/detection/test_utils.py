@@ -10,7 +10,7 @@ from supervision.detection.utils import (
     filter_polygons_by_area,
     move_boxes,
     non_max_suppression,
-    process_roboflow_result,
+    process_roboflow_result, scale_boxes,
 )
 
 TEST_MASK = np.zeros((1, 1000, 1000), dtype=bool)
@@ -502,6 +502,53 @@ def test_move_boxes(
     with exception:
         result = move_boxes(xyxy=xyxy, offset=offset)
         assert np.array_equal(result, expected_result)
+
+
+@pytest.mark.parametrize(
+    "xyxy, factor, expected_result, exception",
+    [
+        (
+            np.empty(shape=(0, 4)),
+            2.0,
+            np.empty(shape=(0, 4)),
+            DoesNotRaise(),
+        ),  # empty xyxy array
+        (
+            np.array([[0, 0, 10, 10]]),
+            1.0,
+            np.array([[0, 0, 10, 10]]),
+            DoesNotRaise(),
+        ),  # single box with factor equal to 1.0
+        (
+            np.array([[0, 0, 10, 10]]),
+            2.0,
+            np.array([[-5, -5, 15, 15]]),
+            DoesNotRaise(),
+        ),  # single box with factor equal to 2.0
+        (
+            np.array([[0, 0, 10, 10]]),
+            0.5,
+            np.array([[2.5, 2.5, 7.5, 7.5]]),
+            DoesNotRaise(),
+        ),  # single box with factor equal to 0.5
+        (
+            np.array([[0, 0, 10, 10], [10, 10, 30, 30]]),
+            2.0,
+            np.array([[-5, -5, 15, 15], [0, 0, 40, 40]]),
+            DoesNotRaise(),
+        ),  # two boxes with factor equal to 2.0
+    ]
+)
+def test_scale_boxes(
+    xyxy: np.ndarray,
+    factor: float,
+    expected_result: np.ndarray,
+    exception: Exception,
+) -> None:
+    with exception:
+        result = scale_boxes(xyxy=xyxy, factor=factor)
+        assert np.array_equal(result, expected_result)
+
 
 
 @pytest.mark.parametrize(

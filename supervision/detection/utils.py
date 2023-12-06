@@ -383,7 +383,7 @@ def process_roboflow_result(
 
 def move_boxes(xyxy: np.ndarray, offset: np.ndarray) -> np.ndarray:
     """
-    Args:
+    Parameters:
         xyxy (np.ndarray): An array of shape `(n, 4)` containing the bounding boxes
             coordinates in format `[x1, y1, x2, y2]`
         offset (np.array): An array of shape `(2,)` containing offset values in format
@@ -393,6 +393,25 @@ def move_boxes(xyxy: np.ndarray, offset: np.ndarray) -> np.ndarray:
         (np.ndarray) repositioned bounding boxes
     """
     return xyxy + np.hstack([offset, offset])
+
+
+def scale_boxes(xyxy: np.ndarray, factor: float) -> np.ndarray:
+    """
+    Scale the dimensions of bounding boxes.
+
+    Parameters:
+        xyxy (np.ndarray): An array of shape `(n, 4)` containing the bounding boxes
+            coordinates in format `[x1, y1, x2, y2]`
+        factor (float): A float value representing the factor by which the box
+            dimensions are scaled. A factor greater than 1 enlarges the boxes, while a
+            factor less than 1 shrinks them.
+
+    Returns:
+        (np.ndarray) scaled bounding boxes
+    """
+    centers = (xyxy[:, :2] + xyxy[:, 2:]) / 2
+    new_sizes = (xyxy[:, 2:] - xyxy[:, :2]) * factor
+    return np.concatenate((centers - new_sizes / 2, centers + new_sizes / 2), axis=1)
 
 
 def calculate_masks_centroids(masks: np.ndarray) -> np.ndarray:
