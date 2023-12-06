@@ -1311,6 +1311,23 @@ class TriangleAnnotator(BaseAnnotator):
 
         Returns:
             np.ndarray: The annotated image.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> image = ...
+            >>> detections = sv.Detections(...)
+
+            >>> triangle_annotator = sv.TriangleAnnotator()
+            >>> annotated_frame = triangle_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
+            ```
+
+        ![triangle-annotator-example](https://media.roboflow.com/
+        supervision-annotator-examples/triangle-annotator-example.png)
         """
         xy = detections.get_anchors_coordinates(anchor=self.position)
         for detection_idx in range(len(detections)):
