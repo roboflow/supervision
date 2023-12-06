@@ -1322,15 +1322,12 @@ class TriangleAnnotator(BaseAnnotator):
                 if custom_color_lookup is None
                 else custom_color_lookup,
             )
-            center_x, center_y = int(xy[detection_idx, 0]), int(xy[detection_idx, 1])
-            vertices = np.array(
-                [
-                    [center_x - self.base // 2, center_y - self.height // 2],
-                    [center_x + self.base // 2, center_y - self.height // 2],
-                    [center_x, center_y + self.height // 2],
-                ],
-                np.int32,
-            )
+            tip_x, tip_y = int(xy[detection_idx, 0]), int(xy[detection_idx, 1])
+            vertices = np.array([
+                [tip_x - self.base // 2, tip_y - self.height],
+                [tip_x + self.base // 2, tip_y - self.height],
+                [tip_x, tip_y]
+            ], np.int32)
 
             cv2.fillPoly(scene, [vertices], color.as_bgr())
 
