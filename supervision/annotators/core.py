@@ -1262,3 +1262,73 @@ class PixelateAnnotator(BaseAnnotator):
             scene[y1:y2, x1:x2] = scaled_down_roi
 
         return scene
+
+
+class TriangleAnnotator(BaseAnnotator):
+    """
+    A class for drawing triangle markers on an image at specific coordinates based on
+    provided detections.
+    """
+
+    def __init__(
+            self,
+            color: Union[Color, ColorPalette] = ColorPalette.default(),
+            base: int = 10,
+            height: int = 10,
+            position: Position = Position.CENTER,
+            color_lookup: ColorLookup = ColorLookup.CLASS,
+    ):
+        """
+        Args:
+            color (Union[Color, ColorPalette]): The color or color palette to use for
+                annotating detections.
+            base (int): The base width of the triangle.
+            height (int): The height of the triangle.
+            position (Position): The anchor position for placing the triangle.
+            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
+                Options are `INDEX`, `CLASS`, `TRACK`.
+        """
+        self.color: Union[Color, ColorPalette] = color
+        self.base: int = base
+        self.height: int = height
+        self.position: Position = position
+        self.color_lookup: ColorLookup = color_lookup
+
+    def annotate(
+            self,
+            scene: np.ndarray,
+            detections: Detections,
+            custom_color_lookup: Optional[np.ndarray] = None,
+    ) -> np.ndarray:
+        """
+        Annotates the given scene with triangles based on the provided detections.
+
+        Args:
+            scene (np.ndarray): The image where triangles will be drawn.
+            detections (Detections): Object detections to annotate.
+            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
+                Allows to override the default color mapping strategy.
+
+        Returns:
+            np.ndarray: The annotated image.
+        """
+        xy = detections.get_anchors_coordinates(anchor=self.position)
+        for detection_idx in range(len(detections)):
+            color = resolve_color(
+                color=self.color,
+                detections=detections,
+                detection_idx=detection_idx,
+                color_lookup=self.color_lookup
+                if custom_color_lookup is None
+                else custom_color_lookup,
+            )
+            center_x, center_y = int(xy[detection_idx, 0]), int(xy[detection_idx, 1])
+            vertices = np.array([
+                [center_x, center_y - self.height // 2],
+                [center_x - self.base // 2, center_y + self.height // 2],
+                [center_x + self.base // 2, center_y + self.height // 2]
+            ], np.int32)
+
+            cv2.fillPoly(scene, [vertices], color.as_bgr())
+
+        return scene
