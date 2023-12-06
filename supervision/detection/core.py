@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import astuple, dataclass
-from typing import Any, Iterator, List, Optional, Tuple, Union
+from typing import Any, Iterator, List, Optional, Tuple, Union, Dict
 
 import numpy as np
 
@@ -484,7 +484,7 @@ class Detections:
         return cls(xyxy=xyxy, mask=mask)
 
     @classmethod
-    def from_rekognition_detectlabels(cls, rekognition_det) -> Detections:
+    def from_rekognition_detectlabels(cls, rekognition_det: dict, imgsz: Tuple[int, int], class_map: Optional[Dict[int, str]] = None) -> Detections:
         """
         Creates a Detections instance from
             AWS Rekognition DetectLabels
@@ -501,6 +501,7 @@ class Detections:
             ```python
             >>> import supervision as sv
             >>> import boto3
+            >>> import io
             >>> from PIL import Image
 
             >>> session = boto3.Session()
@@ -519,7 +520,12 @@ class Detections:
 
         xyxys, confidences, class_ids = [], [], []
 
-        class_map = {}
+        is_dynamic_mapping = class_map is None
+        
+        if is_dynamic_mapping:
+            class_map = {}
+
+        class_map = {value: key for key, value in class_map.items()}
 
         for label in rekognition_det["Labels"]:
             if len(label["Instances"]) == 0:
@@ -530,21 +536,29 @@ class Detections:
                 y0 = box["BoundingBox"]["Top"]
                 x1 = x0 + box["BoundingBox"]["Width"]
                 y1 = y0 + box["BoundingBox"]["Height"]
-                xyxys.append([x0, y0, x1, y1])
 
-                confidences.append(box["Confidence"])
+                x0 *= imgsz[0]
+                y0 *= imgsz[1]
 
-                label_name = label["Name"]
+                x1 *= imgsz[0]
+                y1 *= imgsz[1]
 
-                if class_map.get(label_name) is None:
-                    class_map[label_name] = len(class_map)
-                else:
-                    class_map[label_name] = class_map[label_name]
+                class_name = label["Name"]
+                confidence = box["Confidence"]
 
-                class_ids.append(class_map[label_name])
+                class_id = class_map.get(class_name, None)
+
+                if is_dynamic_mapping and class_id is None:
+                    class_id = len(class_map)
+                    class_map[class_name] = class_id
+
+                if class_id is not None:
+                    xyxys.append([x0, y0, x1, y1])
+                    confidences.append(confidence / 100)
+                    class_ids.append(class_id)
 
         if len(xyxys) == 0:
-            return cls.empty()
+            return Detections.empty()
 
         return Detections(
             xyxy=np.array(xyxys),
