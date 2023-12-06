@@ -40,10 +40,10 @@ from supervision.detection.utils import (
     filter_polygons_by_area,
     mask_to_polygons,
     mask_to_xyxy,
+    move_boxes,
     non_max_suppression,
     polygon_to_mask,
     polygon_to_xyxy,
-    move_boxes,
     scale_boxes,
 )
 from supervision.draw.color import Color, ColorPalette
