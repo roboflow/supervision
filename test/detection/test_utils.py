@@ -10,7 +10,8 @@ from supervision.detection.utils import (
     filter_polygons_by_area,
     move_boxes,
     non_max_suppression,
-    process_roboflow_result, scale_boxes,
+    process_roboflow_result,
+    scale_boxes,
 )
 
 TEST_MASK = np.zeros((1, 1000, 1000), dtype=bool)
@@ -537,7 +538,7 @@ def test_move_boxes(
             np.array([[-5, -5, 15, 15], [0, 0, 40, 40]]),
             DoesNotRaise(),
         ),  # two boxes with factor equal to 2.0
-    ]
+    ],
 )
 def test_scale_boxes(
     xyxy: np.ndarray,
@@ -548,7 +549,6 @@ def test_scale_boxes(
     with exception:
         result = scale_boxes(xyxy=xyxy, factor=factor)
         assert np.array_equal(result, expected_result)
-
 
 
 @pytest.mark.parametrize(

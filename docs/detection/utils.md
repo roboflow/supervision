@@ -33,4 +33,3 @@
 ## scale_boxes
 
 :::supervision.detection.utils.scale_boxes
-
