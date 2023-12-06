@@ -1,3 +1,56 @@
+### 0.17.0 <small>December 06, 2023</small>
+
+- Added [#633](https://github.com/roboflow/supervision/pull/633): [`sv.PixelateAnnotator`](https://supervision.roboflow.com/annotators/#supervision.annotators.core.PixelateAnnotator) allowing to pixelate objects on images and videos.
+
+- Added [#652](https://github.com/roboflow/supervision/pull/652): [`sv.TriangleAnnotator`](https://supervision.roboflow.com/annotators/#supervision.annotators.core.TriangleAnnotator) allowing to annotate images and videos with triangle markers.
+
+- Added [#602](https://github.com/roboflow/supervision/pull/602): [`sv.PolygonAnnotator`](https://supervision.roboflow.com/annotators/#supervision.annotators.core.PolygonAnnotator) allowing to annotate images and videos with segmentation mask outline.
+
+```python
+>>> import supervision as sv
+
+>>> image = ...
+>>> detections = sv.Detections(...)
+
+>>> polygon_annotator = sv.PolygonAnnotator()
+>>> annotated_frame = polygon_annotator.annotate(
+...     scene=image.copy(),
+...     detections=detections
+... )
+```
+
+- Added [#476](https://github.com/roboflow/supervision/pull/476): [`sv.assets`](https://supervision.roboflow.com/assets/) allowing download of video files that you can use in your demos.
+
+```python
+>>> from supervision.assets import download_assets, VideoAssets
+>>> download_assets(VideoAssets.VEHICLES)
+"vehicles.mp4"
+```
+
+- Added [#605](https://github.com/roboflow/supervision/pull/605): [`Position.CENTER_OF_MASS`](https://supervision.roboflow.com/geometry/core/#position) allowing to place labels in center of mass of segmentation masks.
+
+- Added [#651](https://github.com/roboflow/supervision/pull/651): [`sv.scale_boxes`](https://supervision.roboflow.com/detection/utils/#supervision.detection.utils.scale_boxes) allowing to scale [`sv.Detections.xyxy`](https://supervision.roboflow.com/detection/core/#supervision.detection.core.Detections) values.
+
+- Added [#637](https://github.com/roboflow/supervision/pull/637): [`sv.calculate_dynamic_text_scale`](https://supervision.roboflow.com/draw/utils/#supervision.draw.utils.calculate_dynamic_text_scale) and [`sv.calculate_dynamic_line_thickness`](https://supervision.roboflow.com/draw/utils/#supervision.draw.utils.calculate_dynamic_line_thickness) allowing text scale and line thickness to match image resolution.
+
+- Added [#620](https://github.com/roboflow/supervision/pull/620): [`sv.Color.as_hex`](https://supervision.roboflow.com/draw/color/#supervision.draw.color.Color.as_hex) allowing to extract color value in HEX format.
+
+- Added [#572](https://github.com/roboflow/supervision/pull/572): [`sv.Classifications.from_timm`](https://supervision.roboflow.com/classification/core/#supervision.classification.core.Classifications.from_timm) allowing to load classification result from [timm](https://huggingface.co/docs/hub/timm) models.
+
+- Added [#478](https://github.com/roboflow/supervision/pull/478): [`sv.Classifications.from_clip`](https://supervision.roboflow.com/classification/core/#supervision.classification.core.Classifications.from_clip) allowing to load classification result from [clip](https://github.com/openai/clip) model.
+
+- Added [#571](https://github.com/roboflow/supervision/pull/571): [`sv.Detections.from_azure_analyze_image`](https://supervision.roboflow.com/detection/core/#supervision.detection.core.Detections.from_azure_analyze_image) allowing to load detection results from [Azure Image Analysis](https://learn.microsoft.com/en-us/azure/ai-services/computer-vision/concept-object-detection-40).
+
+- Changed [#646](https://github.com/roboflow/supervision/pull/646): `sv.BoxMaskAnnotator` renaming it to [`sv.ColorAnnotator`](https://supervision.roboflow.com/annotators/#supervision.annotators.core.ColorAnnotator).
+
+- Changed [#606](https://github.com/roboflow/supervision/pull/606): [`sv.MaskAnnotator`](https://supervision.roboflow.com/annotators/#supervision.annotators.core.MaskAnnotator) to make it **5x faster**.
+
+- Fixed [#584](https://github.com/roboflow/supervision/pull/584): [`sv.DetectionDataset.from_yolo`](https://supervision.roboflow.com/datasets/#supervision.dataset.core.DetectionDataset.from_yolo) to ignore empty lines in annotation files.
+
+- Fixed [#555](https://github.com/roboflow/supervision/pull/555): [`sv.BlurAnnotator`](https://supervision.roboflow.com/annotators/#supervision.annotators.core.BlurAnnotator) to trim negative coordinates before bluring detections.
+
+- Fixed [#511](https://github.com/roboflow/supervision/pull/511): [`sv.TraceAnnotator`](https://supervision.roboflow.com/annotators/#supervision.annotators.core.TraceAnnotator) to respect trace position.
+
 ### 0.16.0 <small>October 19, 2023</small>
 
 - Added [#422](https://github.com/roboflow/supervision/pull/422): [`sv.BoxMaskAnnotator`](https://supervision.roboflow.com/annotators/#supervision.annotators.core.BoxMaskAnnotator) allowing to annotate images and videos with mox masks.
