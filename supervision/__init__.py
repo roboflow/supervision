@@ -43,6 +43,8 @@ from supervision.detection.utils import (
     non_max_suppression,
     polygon_to_mask,
     polygon_to_xyxy,
+    move_boxes,
+    scale_boxes,
 )
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import (
