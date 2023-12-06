@@ -64,6 +64,7 @@ def _validate_tracker_id(tracker_id: Any, n: int) -> None:
 class Detections:
     """
     Data class containing information about the detections in a video frame.
+
     Attributes:
         xyxy (np.ndarray): An array of shape `(n, 4)` containing
             the bounding boxes coordinates in format `[x1, y1, x2, y2]`
@@ -489,8 +490,9 @@ class Detections:
         cls, azure_result: dict, class_map: Optional[Dict[int, str]] = None
     ) -> Detections:
         """
-        Creates a Detections instance from Azure Image Analysis 4.0
-        (https://learn.microsoft.com/en-us/azure/ai-services/computer-vision/concept-object-detection-40)
+        Creates a Detections instance from [Azure Image Analysis 4.0](
+        https://learn.microsoft.com/en-us/azure/ai-services/computer-vision/
+        concept-object-detection-40).
 
         Args:
             azure_result (dict): The result from Azure Image Analysis. It should
@@ -522,6 +524,7 @@ class Detections:
             ... ).json()
 
             >>> detections = sv.Detections.from_azure_analyze_image(response)
+            ```
         """
         if "error" in azure_result:
             raise ValueError(
