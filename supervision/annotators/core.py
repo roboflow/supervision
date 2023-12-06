@@ -1324,9 +1324,9 @@ class TriangleAnnotator(BaseAnnotator):
             )
             center_x, center_y = int(xy[detection_idx, 0]), int(xy[detection_idx, 1])
             vertices = np.array([
-                [center_x, center_y - self.height // 2],
-                [center_x - self.base // 2, center_y + self.height // 2],
-                [center_x + self.base // 2, center_y + self.height // 2]
+                [center_x - self.base // 2, center_y - self.height // 2],
+                [center_x + self.base // 2, center_y - self.height // 2],
+                [center_x, center_y + self.height // 2]
             ], np.int32)
 
             cv2.fillPoly(scene, [vertices], color.as_bgr())
