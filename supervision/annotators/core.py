@@ -1030,8 +1030,7 @@ class TraceAnnotator:
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
-        self.position = position
-        self.trace = Trace(max_size=trace_length)
+        self.trace = Trace(max_size=trace_length, anchor=position)
         self.thickness = thickness
         self.color_lookup: ColorLookup = color_lookup
 
