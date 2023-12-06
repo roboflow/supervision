@@ -149,7 +149,7 @@ def load_yolo_annotations(
             annotations[image_path] = Detections.empty()
             continue
 
-        lines = read_txt_file(str(annotation_path))
+        lines = read_txt_file(file_path=annotation_path, skip_empty=True)
         h, w, _ = image.shape
         resolution_wh = (w, h)
 

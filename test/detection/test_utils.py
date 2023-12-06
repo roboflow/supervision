@@ -5,11 +5,13 @@ import numpy as np
 import pytest
 
 from supervision.detection.utils import (
+    calculate_masks_centroids,
     clip_boxes,
     filter_polygons_by_area,
     move_boxes,
     non_max_suppression,
     process_roboflow_result,
+    scale_boxes,
 )
 
 TEST_MASK = np.zeros((1, 1000, 1000), dtype=bool)
@@ -122,7 +124,7 @@ def test_non_max_suppression(
 
 
 @pytest.mark.parametrize(
-    "boxes_xyxy, frame_resolution_wh, expected_result",
+    "xyxy, resolution_wh, expected_result",
     [
         (
             np.empty(shape=(0, 4)),
@@ -157,11 +159,11 @@ def test_non_max_suppression(
     ],
 )
 def test_clip_boxes(
-    boxes_xyxy: np.ndarray,
-    frame_resolution_wh: Tuple[int, int],
+    xyxy: np.ndarray,
+    resolution_wh: Tuple[int, int],
     expected_result: np.ndarray,
 ) -> None:
-    result = clip_boxes(boxes_xyxy=boxes_xyxy, frame_resolution_wh=frame_resolution_wh)
+    result = clip_boxes(xyxy=xyxy, resolution_wh=resolution_wh)
     assert np.array_equal(result, expected_result)
 
 
@@ -498,5 +500,143 @@ def test_move_boxes(
     expected_result: np.ndarray,
     exception: Exception,
 ) -> None:
-    result = move_boxes(xyxy=xyxy, offset=offset)
-    assert np.array_equal(result, expected_result)
+    with exception:
+        result = move_boxes(xyxy=xyxy, offset=offset)
+        assert np.array_equal(result, expected_result)
+
+
+@pytest.mark.parametrize(
+    "xyxy, factor, expected_result, exception",
+    [
+        (
+            np.empty(shape=(0, 4)),
+            2.0,
+            np.empty(shape=(0, 4)),
+            DoesNotRaise(),
+        ),  # empty xyxy array
+        (
+            np.array([[0, 0, 10, 10]]),
+            1.0,
+            np.array([[0, 0, 10, 10]]),
+            DoesNotRaise(),
+        ),  # single box with factor equal to 1.0
+        (
+            np.array([[0, 0, 10, 10]]),
+            2.0,
+            np.array([[-5, -5, 15, 15]]),
+            DoesNotRaise(),
+        ),  # single box with factor equal to 2.0
+        (
+            np.array([[0, 0, 10, 10]]),
+            0.5,
+            np.array([[2.5, 2.5, 7.5, 7.5]]),
+            DoesNotRaise(),
+        ),  # single box with factor equal to 0.5
+        (
+            np.array([[0, 0, 10, 10], [10, 10, 30, 30]]),
+            2.0,
+            np.array([[-5, -5, 15, 15], [0, 0, 40, 40]]),
+            DoesNotRaise(),
+        ),  # two boxes with factor equal to 2.0
+    ],
+)
+def test_scale_boxes(
+    xyxy: np.ndarray,
+    factor: float,
+    expected_result: np.ndarray,
+    exception: Exception,
+) -> None:
+    with exception:
+        result = scale_boxes(xyxy=xyxy, factor=factor)
+        assert np.array_equal(result, expected_result)
+
+
+@pytest.mark.parametrize(
+    "masks, expected_result, exception",
+    [
+        (
+            np.array(
+                [
+                    [
+                        [0, 0, 0, 0],
+                        [0, 0, 0, 0],
+                        [0, 0, 0, 0],
+                        [0, 0, 0, 0],
+                    ]
+                ]
+            ),
+            np.array([[0, 0]]),
+            DoesNotRaise(),
+        ),  # single mask with all zeros
+        (
+            np.array(
+                [
+                    [
+                        [1, 1, 1, 1],
+                        [1, 1, 1, 1],
+                        [1, 1, 1, 1],
+                        [1, 1, 1, 1],
+                    ]
+                ]
+            ),
+            np.array([[2, 2]]),
+            DoesNotRaise(),
+        ),  # single mask with all ones
+        (
+            np.array(
+                [
+                    [
+                        [0, 1, 1, 0],
+                        [1, 1, 1, 1],
+                        [1, 1, 1, 1],
+                        [0, 1, 1, 0],
+                    ]
+                ]
+            ),
+            np.array([[2, 2]]),
+            DoesNotRaise(),
+        ),  # single mask with symmetric ones
+        (
+            np.array(
+                [
+                    [
+                        [0, 0, 0, 0],
+                        [0, 0, 1, 1],
+                        [0, 0, 1, 1],
+                        [0, 0, 0, 0],
+                    ]
+                ]
+            ),
+            np.array([[3, 2]]),
+            DoesNotRaise(),
+        ),  # single mask with asymmetric ones
+        (
+            np.array(
+                [
+                    [
+                        [0, 1, 1, 0],
+                        [1, 1, 1, 1],
+                        [1, 1, 1, 1],
+                        [0, 1, 1, 0],
+                    ],
+                    [
+                        [0, 0, 0, 0],
+                        [0, 0, 1, 1],
+                        [0, 0, 1, 1],
+                        [0, 0, 0, 0],
+                    ],
+                ]
+            ),
+            np.array([[2, 2], [3, 2]]),
+            DoesNotRaise(),
+        ),  # two masks
+    ],
+)
+def test_calculate_masks_centroids(
+    masks: np.ndarray,
+    expected_result: np.ndarray,
+    exception: Exception,
+) -> None:
+    with exception:
+        result = calculate_masks_centroids(masks=masks)
+        assert np.array_equal(result, expected_result)

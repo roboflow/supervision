@@ -6,14 +6,21 @@ on:
       - master
       - main
       - develop
+
+permissions:
+  contents: write
+  pages: write
+  pull-requests: write
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: 3.x
       - run: pip install mkdocs-material
       - run: pip install "mkdocstrings[python]"
+      - run: pip install "mkdocs-material[imaging]"
       - run: mkdocs gh-deploy --force

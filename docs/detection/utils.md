@@ -25,3 +25,11 @@
 ## filter_polygons_by_area
 
 :::supervision.detection.utils.filter_polygons_by_area
+
+## move_boxes
+
+:::supervision.detection.utils.move_boxes
+
+## scale_boxes
+
+:::supervision.detection.utils.scale_boxes

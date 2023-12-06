@@ -1,5 +1,5 @@
 from contextlib import ExitStack as DoesNotRaise
-from test.utils import mock_detections
+from test.test_utils import mock_detections
 from typing import List, Optional, Union
 
 import numpy as np
@@ -270,6 +270,6 @@ def test_get_anchor_coordinates(
     expected_result: np.ndarray,
     exception: Exception,
 ) -> None:
-    result = detections.get_anchor_coordinates(anchor)
+    result = detections.get_anchors_coordinates(anchor)
     with exception:
         assert np.array_equal(result, expected_result)

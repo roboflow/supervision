@@ -56,11 +56,11 @@ class PolygonZone:
         """
 
         clipped_xyxy = clip_boxes(
-            boxes_xyxy=detections.xyxy, frame_resolution_wh=self.frame_resolution_wh
+            xyxy=detections.xyxy, resolution_wh=self.frame_resolution_wh
         )
         clipped_detections = replace(detections, xyxy=clipped_xyxy)
         clipped_anchors = np.ceil(
-            clipped_detections.get_anchor_coordinates(anchor=self.triggering_position)
+            clipped_detections.get_anchors_coordinates(anchor=self.triggering_position)
         ).astype(int)
         is_in_zone = self.mask[clipped_anchors[:, 1], clipped_anchors[:, 0]]
         self.current_count = int(np.sum(is_in_zone))

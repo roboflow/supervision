@@ -40,7 +40,7 @@
 
     </div>
 
-=== "BoxMask"
+=== "Color"
 
     ```python
     >>> import supervision as sv
@@ -48,8 +48,8 @@
     >>> image = ...
     >>> detections = sv.Detections(...)
 
-    >>> box_mask_annotator = sv.BoxMaskAnnotator()
-    >>> annotated_frame = box_mask_annotator.annotate(
+    >>> color_annotator = sv.ColorAnnotator()
+    >>> annotated_frame = color_annotator.annotate(
     ...     scene=image.copy(),
     ...     detections=detections
     ... )
@@ -100,6 +100,27 @@
     <div class="result" markdown>
 
     ![circle-annotator-example](https://media.roboflow.com/supervision-annotator-examples/dot-annotator-example-purple.png){ align=center width="800" }
+
+    </div>
+
+=== "Triangle"
+
+    ```python
+    >>> import supervision as sv
+
+    >>> image = ...
+    >>> detections = sv.Detections(...)
+
+    >>> triangle_annotator = sv.TriangleAnnotator()
+    >>> annotated_frame = triangle_annotator.annotate(
+    ...     scene=image.copy(),
+    ...     detections=detections
+    ... )
+    ```
+
+    <div class="result" markdown>
+
+    ![triangle-annotator-example](https://media.roboflow.com/supervision-annotator-examples/triangle-annotator-example.png){ align=center width="800" }
 
     </div>
 
@@ -166,6 +187,27 @@
 
     </div>
 
+=== "Polygon"
+
+    ```python
+    >>> import supervision as sv
+
+    >>> image = ...
+    >>> detections = sv.Detections(...)
+
+    >>> polygon_annotator = sv.PolygonAnnotator()
+    >>> annotated_frame = polygon_annotator.annotate(
+    ...     scene=image.copy(),
+    ...     detections=detections
+    ... )
+    ```
+
+    <div class="result" markdown>
+
+    ![polygon-annotator-example](https://media.roboflow.com/supervision-annotator-examples/polygon-annotator-example-purple.png){ align=center width="800" }
+
+    </div>
+
 === "Label"
 
     ```python
@@ -205,6 +247,27 @@
     <div class="result" markdown>
 
     ![blur-annotator-example](https://media.roboflow.com/supervision-annotator-examples/blur-annotator-example-purple.png){ align=center width="800" }
+
+    </div>
+
+=== "Pixelate"
+
+    ```python
+    >>> import supervision as sv
+
+    >>> image = ...
+    >>> detections = sv.Detections(...)
+
+    >>> pixelate_annotator = sv.PixelateAnnotator()
+    >>> annotated_frame = pixelate_annotator.annotate(
+    ...     scene=image.copy(),
+    ...     detections=detections
+    ... )
+    ```
+
+    <div class="result" markdown>
+
+    ![pixelate-annotator-example](https://media.roboflow.com/supervision-annotator-examples/pixelate-annotator-example-10.png){ align=center width="800" }
 
     </div>
 
@@ -276,9 +339,9 @@
 
 :::supervision.annotators.core.BoxCornerAnnotator
 
-## BoxMaskAnnotator
+## ColorAnnotator
 
-:::supervision.annotators.core.BoxMaskAnnotator
+:::supervision.annotators.core.ColorAnnotator
 
 ## CircleAnnotator
 
@@ -287,6 +350,10 @@
 ## DotAnnotator
 
 :::supervision.annotators.core.DotAnnotator
+
+## TriangleAnnotator
+
+:::supervision.annotators.core.TriangleAnnotator
 
 ## EllipseAnnotator
 
@@ -304,6 +371,10 @@
 
 :::supervision.annotators.core.MaskAnnotator
 
+## PolygonAnnotator
+
+:::supervision.annotators.core.PolygonAnnotator
+
 ## LabelAnnotator
 
 :::supervision.annotators.core.LabelAnnotator
@@ -311,6 +382,10 @@
 ## BlurAnnotator
 
 :::supervision.annotators.core.BlurAnnotator
+
+## PixelateAnnotator
+
+:::supervision.annotators.core.PixelateAnnotator
 
 ## TraceAnnotator
 

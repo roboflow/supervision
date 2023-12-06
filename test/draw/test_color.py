@@ -30,3 +30,22 @@ def test_color_from_hex(
     with exception:
         result = Color.from_hex(color_hex=color_hex)
         assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    "color, expected_result, exception",
+    [
+        (Color.white(), "#ffffff", DoesNotRaise()),
+        (Color.black(), "#000000", DoesNotRaise()),
+        (Color.red(), "#ff0000", DoesNotRaise()),
+        (Color.green(), "#00ff00", DoesNotRaise()),
+        (Color.blue(), "#0000ff", DoesNotRaise()),
+        (Color(r=128, g=128, b=0), "#808000", DoesNotRaise()),
+    ],
+)
+def test_color_as_hex(
+    color: Color, expected_result: Optional[str], exception: Exception
+) -> None:
+    with exception:
+        result = color.as_hex()
+        assert result == expected_result

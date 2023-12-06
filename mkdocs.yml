@@ -1,7 +1,7 @@
 site_name: Supervision
 site_url: https://supervision.roboflow.com/
 site_author: Roboflow
-site_description: A set of easy-to-use utils that will come in handy in any Computer Vision project
+site_description: A set of easy-to-use utilities that will come in handy in any computer vision project.
 repo_name: roboflow/supervision
 repo_url: https://github.com/roboflow/supervision
 edit_uri: https://github.com/roboflow/supervision/tree/main/docs
@@ -55,12 +55,13 @@ nav:
         - Image: utils/image.md
         - Notebook: utils/notebook.md
         - File: utils/file.md
+  - Assets: assets.md
   - Changelog: changelog.md
 
 theme:
   name: 'material'
-  logo: https://media.roboflow.com/open-source/supervision/supervision-lenny.png
-  favicon: https://media.roboflow.com/open-source/supervision/supervision-lenny.png
+  logo: assets/supervision-lenny.png
+  favicon: assets/supervision-lenny.png
   palette:
     # Palette for light mode
     - scheme: default
@@ -78,10 +79,15 @@ theme:
   font:
     text: Roboto
     code: Roboto Mono
+  features:
+    - content.code.copy
 
 plugins:
   - mkdocstrings
   - search
+  - social:
+      cards_layout_dir: docs/layouts
+      cards_layout: custom
 
 markdown_extensions:
   - admonition
@@ -93,3 +99,7 @@ markdown_extensions:
       alternate_style: true
   - toc:
       permalink: true
+
+extra_javascript:
+  - "https://widget.kapa.ai/kapa-widget.bundle.js"
+  - "javascript/init_kapa_widget.js"

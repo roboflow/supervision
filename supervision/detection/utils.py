@@ -110,17 +110,15 @@ def non_max_suppression(
     return keep[sort_index.argsort()]
 
 
-def clip_boxes(
-    boxes_xyxy: np.ndarray, frame_resolution_wh: Tuple[int, int]
-) -> np.ndarray:
+def clip_boxes(xyxy: np.ndarray, resolution_wh: Tuple[int, int]) -> np.ndarray:
     """
     Clips bounding boxes coordinates to fit within the frame resolution.
 
     Args:
-        boxes_xyxy (np.ndarray): A numpy array of shape `(N, 4)` where each
+        xyxy (np.ndarray): A numpy array of shape `(N, 4)` where each
             row corresponds to a bounding box in
         the format `(x_min, y_min, x_max, y_max)`.
-        frame_resolution_wh (Tuple[int, int]): A tuple of the form `(width, height)`
+        resolution_wh (Tuple[int, int]): A tuple of the form `(width, height)`
             representing the resolution of the frame.
 
     Returns:
@@ -128,8 +126,8 @@ def clip_boxes(
             corresponds to a bounding box with coordinates clipped to fit
             within the frame resolution.
     """
-    result = np.copy(boxes_xyxy)
-    width, height = frame_resolution_wh
+    result = np.copy(xyxy)
+    width, height = resolution_wh
     result[:, [0, 2]] = result[:, [0, 2]].clip(0, width)
     result[:, [1, 3]] = result[:, [1, 3]].clip(0, height)
     return result
@@ -385,13 +383,90 @@ def process_roboflow_result(
 
 def move_boxes(xyxy: np.ndarray, offset: np.ndarray) -> np.ndarray:
     """
-    Args:
+    Parameters:
         xyxy (np.ndarray): An array of shape `(n, 4)` containing the bounding boxes
             coordinates in format `[x1, y1, x2, y2]`
         offset (np.array): An array of shape `(2,)` containing offset values in format
             is `[dx, dy]`.
 
     Returns:
-        (np.ndarray) repositioned bounding boxes
+        np.ndarray: Repositioned bounding boxes.
+
+    Example:
+        ```python
+        >>> import numpy as np
+        >>> import supervision as sv
+
+        >>> boxes = np.array([[10, 10, 20, 20], [30, 30, 40, 40]])
+        >>> offset = np.array([5, 5])
+        >>> sv.move_boxes(boxes, offset)
+        ... array([
+        ...     [15, 15, 25, 25],
+        ...     [35, 35, 45, 45]
+        ... ])
+        ```
     """
     return xyxy + np.hstack([offset, offset])
+
+
+def scale_boxes(xyxy: np.ndarray, factor: float) -> np.ndarray:
+    """
+    Scale the dimensions of bounding boxes.
+
+    Parameters:
+        xyxy (np.ndarray): An array of shape `(n, 4)` containing the bounding boxes
+            coordinates in format `[x1, y1, x2, y2]`
+        factor (float): A float value representing the factor by which the box
+            dimensions are scaled. A factor greater than 1 enlarges the boxes, while a
+            factor less than 1 shrinks them.
+
+    Returns:
+        np.ndarray: Scaled bounding boxes.
+
+    Example:
+        ```python
+        >>> import numpy as np
+        >>> import supervision as sv
+
+        >>> boxes = np.array([[10, 10, 20, 20], [30, 30, 40, 40]])
+        >>> factor = 1.5
+        >>> sv.scale_boxes(boxes, factor)
+        ... array([
+        ...     [ 7.5,  7.5, 22.5, 22.5],
+        ...     [27.5, 27.5, 42.5, 42.5]
+        ... ])
+        ```
+    """
+    centers = (xyxy[:, :2] + xyxy[:, 2:]) / 2
+    new_sizes = (xyxy[:, 2:] - xyxy[:, :2]) * factor
+    return np.concatenate((centers - new_sizes / 2, centers + new_sizes / 2), axis=1)
+
+
+def calculate_masks_centroids(masks: np.ndarray) -> np.ndarray:
+    """
+    Calculate the centroids of binary masks in a tensor.
+
+    Parameters:
+        masks (np.ndarray): A 3D NumPy array of shape (num_masks, height, width).
+            Each 2D array in the tensor represents a binary mask.
+
+    Returns:
+        A 2D NumPy array of shape (num_masks, 2), where each row contains the x and y
+            coordinates (in that order) of the centroid of the corresponding mask.
+    """
+    num_masks, height, width = masks.shape
+    total_pixels = masks.sum(axis=(1, 2))
+
+    # offset for 1-based indexing
+    vertical_indices, horizontal_indices = np.indices((height, width)) + 0.5
+    # avoid division by zero for empty masks
+    total_pixels[total_pixels == 0] = 1
+
+    def sum_over_mask(indices: np.ndarray, axis: tuple) -> np.ndarray:
+        return np.tensordot(masks, indices, axes=axis)
+
+    aggregation_axis = ([1, 2], [0, 1])
+    centroid_x = sum_over_mask(horizontal_indices, aggregation_axis) / total_pixels
+    centroid_y = sum_over_mask(vertical_indices, aggregation_axis) / total_pixels
+
+    return np.column_stack((centroid_x, centroid_y)).astype(int)
