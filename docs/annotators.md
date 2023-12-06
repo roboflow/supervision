@@ -103,6 +103,27 @@
 
     </div>
 
+=== "Triangle"
+
+    ```python
+    >>> import supervision as sv
+
+    >>> image = ...
+    >>> detections = sv.Detections(...)
+
+    >>> triangle_annotator = sv.TriangleAnnotator()
+    >>> annotated_frame = triangle_annotator.annotate(
+    ...     scene=image.copy(),
+    ...     detections=detections
+    ... )
+    ```
+
+    <div class="result" markdown>
+
+    ![triangle-annotator-example](https://media.roboflow.com/supervision-annotator-examples/triangle-annotator-example.png){ align=center width="800" }
+
+    </div>
+
 === "Ellipse"
 
     ```python
@@ -329,6 +350,10 @@
 ## DotAnnotator
 
 :::supervision.annotators.core.DotAnnotator
+
+## TriangleAnnotator
+
+:::supervision.annotators.core.TriangleAnnotator
 
 ## EllipseAnnotator
 
