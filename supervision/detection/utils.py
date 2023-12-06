@@ -390,7 +390,21 @@ def move_boxes(xyxy: np.ndarray, offset: np.ndarray) -> np.ndarray:
             is `[dx, dy]`.
 
     Returns:
-        (np.ndarray) repositioned bounding boxes
+        np.ndarray: Repositioned bounding boxes.
+
+    Example:
+        ```python
+        >>> import numpy as np
+        >>> import supervision as sv
+
+        >>> boxes = np.array([[10, 10, 20, 20], [30, 30, 40, 40]])
+        >>> offset = np.array([5, 5])
+        >>> sv.move_boxes(boxes, offset)
+        ... array([
+        ...     [15, 15, 25, 25],
+        ...     [35, 35, 45, 45]
+        ... ])
+        ```
     """
     return xyxy + np.hstack([offset, offset])
 
@@ -407,7 +421,21 @@ def scale_boxes(xyxy: np.ndarray, factor: float) -> np.ndarray:
             factor less than 1 shrinks them.
 
     Returns:
-        (np.ndarray) scaled bounding boxes
+        np.ndarray: Scaled bounding boxes.
+
+    Example:
+        ```python
+        >>> import numpy as np
+        >>> import supervision as sv
+
+        >>> boxes = np.array([[10, 10, 20, 20], [30, 30, 40, 40]])
+        >>> factor = 1.5
+        >>> sv.scale_boxes(boxes, factor)
+        ... array([
+        ...     [ 7.5,  7.5, 22.5, 22.5],
+        ...     [27.5, 27.5, 42.5, 42.5]
+        ... ])
+        ```
     """
     centers = (xyxy[:, :2] + xyxy[:, 2:]) / 2
     new_sizes = (xyxy[:, 2:] - xyxy[:, :2]) * factor
