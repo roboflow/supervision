@@ -21,7 +21,7 @@ from supervision.annotators.core import (
     PixelateAnnotator,
     PolygonAnnotator,
     TraceAnnotator,
-    TriangleAnnotator
+    TriangleAnnotator,
 )
 from supervision.annotators.utils import ColorLookup
 from supervision.classification.core import Classifications

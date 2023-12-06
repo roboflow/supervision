@@ -1271,12 +1271,12 @@ class TriangleAnnotator(BaseAnnotator):
     """
 
     def __init__(
-            self,
-            color: Union[Color, ColorPalette] = ColorPalette.default(),
-            base: int = 10,
-            height: int = 10,
-            position: Position = Position.CENTER,
-            color_lookup: ColorLookup = ColorLookup.CLASS,
+        self,
+        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        base: int = 10,
+        height: int = 10,
+        position: Position = Position.CENTER,
+        color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
         """
         Args:
@@ -1295,10 +1295,10 @@ class TriangleAnnotator(BaseAnnotator):
         self.color_lookup: ColorLookup = color_lookup
 
     def annotate(
-            self,
-            scene: np.ndarray,
-            detections: Detections,
-            custom_color_lookup: Optional[np.ndarray] = None,
+        self,
+        scene: np.ndarray,
+        detections: Detections,
+        custom_color_lookup: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         """
         Annotates the given scene with triangles based on the provided detections.
@@ -1323,11 +1323,14 @@ class TriangleAnnotator(BaseAnnotator):
                 else custom_color_lookup,
             )
             center_x, center_y = int(xy[detection_idx, 0]), int(xy[detection_idx, 1])
-            vertices = np.array([
-                [center_x, center_y - self.height // 2],
-                [center_x - self.base // 2, center_y + self.height // 2],
-                [center_x + self.base // 2, center_y + self.height // 2]
-            ], np.int32)
+            vertices = np.array(
+                [
+                    [center_x, center_y - self.height // 2],
+                    [center_x - self.base // 2, center_y + self.height // 2],
+                    [center_x + self.base // 2, center_y + self.height // 2],
+                ],
+                np.int32,
+            )
 
             cv2.fillPoly(scene, [vertices], color.as_bgr())
 
