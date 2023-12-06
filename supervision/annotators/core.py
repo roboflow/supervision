@@ -1007,7 +1007,6 @@ class TraceAnnotator:
         return scene
 
 
-
 class HeatMapAnnotator:
     """
     A class for drawing heatmaps on an image based on provided detections.
