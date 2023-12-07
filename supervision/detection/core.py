@@ -265,7 +265,9 @@ class Detections:
         )
 
     @classmethod
-    def from_tensorflow_hub(cls, tensorflow_hub_results: dict, image_size: tuple) -> Detections:
+    def from_tensorflow_hub(
+        cls, tensorflow_hub_results: dict, image_size: tuple
+    ) -> Detections:
         """
         Creates a Detections instance from a
         [Tensorflow Hub](https://www.tensorflow.org/hub/tutorials/object_detection)
