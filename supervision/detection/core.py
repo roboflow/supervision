@@ -265,7 +265,7 @@ class Detections:
         )
 
     @classmethod
-    def from_tensorflow_hub(cls, tensorflow_hub_results, image_size) -> Detections:
+    def from_tensorflow_hub(cls, tensorflow_hub_results: dict, image_size: tuple) -> Detections:
         """
         Creates a Detections instance from a
         [Tensorflow Hub](https://www.tensorflow.org/hub/tutorials/object_detection)
@@ -304,7 +304,6 @@ class Detections:
         boxes[:, [0, 2]] *= image_size[0]
         boxes[:, [1, 3]] *= image_size[1]
 
-        # convert ymin, xmin, ymax, xmax, to x1, y1, x2, y2
         boxes = np.array(
             [
                 boxes[:, 1],
