@@ -265,8 +265,8 @@ class Detections:
         )
 
     @classmethod
-    def from_tensorflow_hub(
-        cls, tensorflow_hub_results: dict, image_size: tuple
+    def from_tensorflow(
+        cls, tensorflow_results: dict, resolution_wh: tuple
     ) -> Detections:
         """
         Creates a Detections instance from a
@@ -274,7 +274,7 @@ class Detections:
         inference result.
 
         Args:
-            tensorflow_hub_results (dict):
+            tensorflow_results (dict):
                 The output results from Tensorflow Hub.
 
         Returns:
@@ -283,7 +283,6 @@ class Detections:
         Example:
             ```python
             >>> import tensorflow as tf
-            >>> from super_gradients.training import models
             >>> import tensorflow_hub as hub
 
             >>> module_handle = "..."
@@ -295,30 +294,17 @@ class Detections:
 
             >>> result = detector(img)
 
-            >>> detections = sv.Detections.from_tensorflow_hub(result)
+            >>> detections = sv.Detections.from_tensorflow(result)
             ```
         """
-        if np.asarray(tensorflow_hub_results["detection_boxes"]).shape[0] == 0:
-            return cls.empty()
-
-        boxes = tensorflow_hub_results["detection_boxes"][0].numpy()
-
-        boxes[:, [0, 2]] *= image_size[0]
-        boxes[:, [1, 3]] *= image_size[1]
-
-        boxes = np.array(
-            [
-                boxes[:, 1],
-                boxes[:, 0],
-                boxes[:, 3],
-                boxes[:, 2],
-            ]
-        ).transpose()
-
+        boxes = tensorflow_results["detection_boxes"][0].numpy()
+        boxes[:, [0, 2]] *= resolution_wh[0]
+        boxes[:, [1, 3]] *= resolution_wh[1]
+        boxes = boxes[:, [1, 0, 3, 2]]
         return cls(
             xyxy=boxes,
-            confidence=tensorflow_hub_results["detection_scores"][0].numpy(),
-            class_id=tensorflow_hub_results["detection_classes"][0].numpy().astype(int),
+            confidence=tensorflow_results["detection_scores"][0].numpy(),
+            class_id=tensorflow_results["detection_classes"][0].numpy().astype(int),
         )
 
     @classmethod
