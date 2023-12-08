@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "supervision"
-version = "0.17.0"
+version = "0.17.1rc1"
 description = "A set of easy-to-use utils that will come in handy in any Computer Vision project"
 authors = ["Piotr Skalski <piotr.skalski92@gmail.com>"]
 maintainers = ["Piotr Skalski <piotr.skalski92@gmail.com>"]
@@ -10,7 +10,7 @@ packages = [{include = "supervision"}]
 homepage = "https://github.com/roboflow/supervision"
 repository = "https://github.com/roboflow/supervision"
 documentation = "https://github.com/roboflow/supervision/blob/main/README.md"
-keywords = ["machine-learning", "deep-learning", "vision", "ML", "DL", "AI", "YOLOv5", "YOLOv8", "Roboflow"]
+keywords = ["machine-learning", "deep-learning", "vision", "ML", "DL", "AI", "Roboflow"]
 
 classifiers=[
     'Development Status :: 4 - Beta',
