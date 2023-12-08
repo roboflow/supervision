@@ -16,7 +16,7 @@ pluggy==1.3.0
 pyparsing==3.1.1
 pytest==7.2.0
 python-dateutil==2.8.2
-PyYAML==5.3
+PyYAML==5.4
 requests==2.26.0
 scipy==1.9.0
 setuptools-scm==8.0.4
