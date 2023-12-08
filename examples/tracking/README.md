@@ -9,6 +9,16 @@ detection and Supervision for tracking and annotation.
 pip install -r requirements.txt
 ```
 
+## ⚙️ run
+
+```bash
+python script.py \
+--source_weights_path yolov8s.pt \
+--source_video_path input.mp4 \
+--target_video_path tracking_result.mp4
+```
+
+
 ## ⚙️ parameters
 
 | parameter                | required | description                                                                       |
