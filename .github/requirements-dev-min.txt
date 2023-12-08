@@ -18,7 +18,7 @@ pytest==7.2.0
 python-dateutil==2.8.2
 PyYAML==5.3
 requests==2.26.0
-scipy==1.9.0
+scipy==1.10.0
 setuptools-scm==8.0.4
 six==1.16.0
 tomli==2.0.1
