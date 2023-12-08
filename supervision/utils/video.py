@@ -74,7 +74,7 @@ class VideoSink:
         >>> import supervision as sv
 
         >>> video_info = sv.VideoInfo.from_video_path('source.mp4')
-        >>> frames_generator = get_video_frames_generator('source.mp4')
+        >>> frames_generator = sv.get_video_frames_generator('source.mp4')
 
         >>> with sv.VideoSink(target_path='target.mp4', video_info=video_info) as sink:
         ...     for frame in frames_generator:
