@@ -240,7 +240,6 @@ def mask_to_polygons(mask: np.ndarray) -> List[np.ndarray]:
     )
 
     contours_approx = []
-    polygons = []
     for contour in contours:
         epsilon = 0.001 * cv2.arcLength(contour, True)
         contour_approx = cv2.approxPolyDP(contour, epsilon, True)
