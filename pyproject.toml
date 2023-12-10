@@ -59,6 +59,7 @@ black = "^23.7.0"
 mypy = "^1.4.1"
 pre-commit = "^3.3.3"
 flake8 = { version = "*", python = ">=3.8.1" }
+tox = "^4.11.4"
 
 
 [tool.poetry.group.docs.dependencies]
