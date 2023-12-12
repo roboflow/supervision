@@ -270,7 +270,7 @@ class Detections:
     ) -> Detections:
         """
         Creates a Detections instance from a
-        [Tensorflow Hub](https://www.tensorflow.org/hub/tutorials/object_detection)
+        [Tensorflow Hub](https://www.tensorflow.org/hub/tutorials/tf2_object_detection)
         inference result.
 
         Args:
@@ -284,15 +284,16 @@ class Detections:
             ```python
             >>> import tensorflow as tf
             >>> import tensorflow_hub as hub
+            >>> import numpy as np
+            >>> import cv2
 
-            >>> module_handle = "..."
+            >>> module_handle = "https://tfhub.dev/tensorflow/centernet/hourglass_512x512_kpts/1"
 
-            >>> detector = hub.load(module_handle).signatures['default']
+            >>> model = hub.load(module_handle)
 
-            >>> # https://www.tensorflow.org/hub/tutorials/object_detection
-            >>> img = ...
+            >>> img = np.array(cv2.imread(SOURCE_IMAGE_PATH))
 
-            >>> result = detector(img)
+            >>> result = model(img)
 
             >>> detections = sv.Detections.from_tensorflow(result)
             ```
