@@ -267,6 +267,50 @@ class Detections:
         )
 
     @classmethod
+    def from_tensorflow(
+        cls, tensorflow_results: dict, resolution_wh: tuple
+    ) -> Detections:
+        """
+        Creates a Detections instance from a
+        [Tensorflow Hub](https://www.tensorflow.org/hub/tutorials/tf2_object_detection)
+        inference result.
+
+        Args:
+            tensorflow_results (dict):
+                The output results from Tensorflow Hub.
+
+        Returns:
+            Detections: A new Detections object.
+
+        Example:
+            ```python
+            >>> import tensorflow as tf
+            >>> import tensorflow_hub as hub
+            >>> import numpy as np
+            >>> import cv2
+
+            >>> module_handle = "https://tfhub.dev/tensorflow/centernet/hourglass_512x512_kpts/1"
+
+            >>> model = hub.load(module_handle)
+
+            >>> img = np.array(cv2.imread(SOURCE_IMAGE_PATH))
+
+            >>> result = model(img)
+
+            >>> detections = sv.Detections.from_tensorflow(result)
+            ```
+        """
+        boxes = tensorflow_results["detection_boxes"][0].numpy()
+        boxes[:, [0, 2]] *= resolution_wh[0]
+        boxes[:, [1, 3]] *= resolution_wh[1]
+        boxes = boxes[:, [1, 0, 3, 2]]
+        return cls(
+            xyxy=boxes,
+            confidence=tensorflow_results["detection_scores"][0].numpy(),
+            class_id=tensorflow_results["detection_classes"][0].numpy().astype(int),
+        )
+
+    @classmethod
     def from_deepsparse(cls, deepsparse_results) -> Detections:
         """
         Creates a Detections instance from a
