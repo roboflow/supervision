@@ -25,3 +25,4 @@ tomli==2.0.1
 tqdm==4.62.3
 typing_extensions==4.8.0
 urllib3==1.26.18
+defusedxml == 0.7.1
