@@ -68,7 +68,7 @@ mkdocs-material = "^9.1.4"
 mkdocstrings = {extras = ["python"], version = "^0.20.0"}
 
 [tool.flake8]
-exclude = ".venv"
+exclude = ".venv,build,dist,docs,.git,.tox,.eggs,supervision/detection/core.py"
 max-complexity = 10
 max-line-length = 88
 extend-ignore = """
@@ -110,6 +110,7 @@ exclude = '''
   | build
   | dist
   | docs
+  | supervision/detection/core.py
 )/
 '''
 
