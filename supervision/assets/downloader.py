@@ -1,5 +1,5 @@
 import os
-from hashlib import md5
+from hashlib import new as hash_new
 from pathlib import Path
 from shutil import copyfileobj
 from typing import Union
@@ -35,7 +35,7 @@ def is_md5_hash_matching(filename: str, original_md5_hash: str) -> bool:
 
     with open(filename, "rb") as file:
         file_contents = file.read()
-        computed_md5_hash = md5(file_contents).hexdigest()
+        computed_md5_hash = hash_new(file_contents, name="MD5").hexdigest()
 
     return computed_md5_hash == original_md5_hash
 
