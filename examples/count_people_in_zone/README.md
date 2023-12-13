@@ -33,7 +33,22 @@ video or display it live on the screen.
     ./setup.sh
     ```
 
-## ⚙️ run
+## 🛠️ script arguments
+
+- `--zone_configuration_path`: Specifies the path to the JSON file containing zone 
+configurations. This file defines the polygonal areas in the video where objects will 
+be counted.
+- `--source_weights_path` (optional): The path to the YOLO model's weights file. 
+Defaults to `"yolov8x.pt"` if not specified.
+- `--source_video_path`: The path to the source video file that will be analyzed.
+- `--target_video_path` (optional): The path to save the output video with annotations. 
+If not provided, the processed video will be displayed in real-time.
+- `--confidence_threshold` (optional): Sets the confidence threshold for the YOLO model 
+to filter detections. Default is `0.3`.
+- `--iou_threshold` (optional): Specifies the IOU (Intersection Over Union) threshold 
+for the model. Default is `0.7`.
+
+## ⚙️ run example
 
 ```bash
 python script.py \
