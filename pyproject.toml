@@ -111,7 +111,6 @@ exclude = '''
   | build
   | dist
   | docs
-  | supervision/detection/core.py
 )/
 '''
 
@@ -151,7 +150,6 @@ exclude = [
     "yarn-error.log",
     "yarn.lock",
     "docs",
-    "supervision/assets/list.py"
 ]
 
 # Same as Black.
