@@ -299,7 +299,8 @@ class Detections:
 
             >>> detections = sv.Detections.from_tensorflow(result)
             ```
-        """
+        """  # noqa: E501 // docs
+
         boxes = tensorflow_results["detection_boxes"][0].numpy()
         boxes[:, [0, 2]] *= resolution_wh[0]
         boxes[:, [1, 3]] *= resolution_wh[1]

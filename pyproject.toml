@@ -67,7 +67,7 @@ mkdocs-material = "^9.1.4"
 mkdocstrings = {extras = ["python"], version = ">=0.20,<0.25"}
 
 [tool.flake8]
-exclude = ".venv,build,dist,docs,.git,.tox,.eggs,supervision/detection/core.py"
+exclude = ".venv,build,dist,docs,.git,.tox,.eggs"
 max-complexity = 10
 max-line-length = 88
 extend-ignore = """
@@ -78,7 +78,6 @@ extend-ignore = """
 """
 per-file-ignores = """
     __init__.py: F401
-    supervision/assets/list.py: E501
 """
 
 [tool.isort]
