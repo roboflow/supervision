@@ -27,18 +27,18 @@ detection and Supervision for tracking and annotation.
 
 ## 🛠️ script arguments
 
-- `--source_weights_path`: Required. Specifies the path to the YOLO model's weights 
-file, which is essential for the object detection process. This file contains the data 
+- `--source_weights_path`: Required. Specifies the path to the YOLO model's weights
+file, which is essential for the object detection process. This file contains the data
 that the model uses to identify objects in the video.
-- `--source_video_path`: Required. The path to the source video file to be processed. 
+- `--source_video_path`: Required. The path to the source video file to be processed.
 This is the video on which object detection and annotation will be performed.
 - `--target_video_path`: Required. The path where the processed video, with annotations
 added, will be saved. This is your output video file.
-- `--confidence_threshold` (optional): Sets the confidence level at which the model 
-identifies objects in the video. Default is `0.3`. A higher threshold makes the model 
+- `--confidence_threshold` (optional): Sets the confidence level at which the model
+identifies objects in the video. Default is `0.3`. A higher threshold makes the model
 more selective, while a lower threshold makes it more inclusive in identifying objects.
-- `--iou_threshold` (optional): Specifies the IOU (Intersection Over Union) threshold 
-for the model, defaulting to `0.7`. This parameter helps in differentiating between 
+- `--iou_threshold` (optional): Specifies the IOU (Intersection Over Union) threshold
+for the model, defaulting to `0.7`. This parameter helps in differentiating between
 distinct objects, especially in crowded scenes.
 
 ## ⚙️ run
