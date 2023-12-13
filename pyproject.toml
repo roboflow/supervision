@@ -56,10 +56,8 @@ notebook = ">=6.5.3,<8.0.0"
 build = ">=0.10,<1.1"
 ruff = ">=0.0.280,<0.1.8"
 isort = "^5.12.0"
-black = "^23.7.0"
 mypy = "^1.4.1"
 pre-commit = "^3.3.3"
-flake8 = { version = "*", python = ">=3.8.1" }
 tox = "^4.11.4"
 
 
@@ -67,20 +65,6 @@ tox = "^4.11.4"
 mkdocs-material = "^9.1.4"
 mkdocstrings = {extras = ["python"], version = ">=0.20,<0.25"}
 
-[tool.flake8]
-exclude = ".venv,build,dist,docs,.git,.tox,.eggs,supervision/detection/core.py"
-max-complexity = 10
-max-line-length = 88
-extend-ignore = """
-    W503,
-    E203,
-    E701,
-    C901,
-"""
-per-file-ignores = """
-    __init__.py: F401
-    supervision/assets/list.py: E501
-"""
 
 [tool.isort]
 line_length = 88
@@ -111,7 +95,6 @@ exclude = '''
   | build
   | dist
   | docs
-  | supervision/detection/core.py
 )/
 '''
 
@@ -151,11 +134,11 @@ exclude = [
     "yarn-error.log",
     "yarn.lock",
     "docs",
-    "supervision/assets/list.py"
 ]
 
 # Same as Black.
 line-length = 88
+indent-width = 4
 
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
@@ -172,10 +155,26 @@ convention = "google"
 "__init__.py" = ["E402","F401"]
 "supervision/assets/list.py" = ["E501"]
 
+[tool.ruff.lint.mccabe]
+# Flag errors (`C901`) whenever the complexity level exceeds 5.
+max-complexity = 20
+
 
 [tool.ruff.pylint]
 max-args = 20
 
+[tool.ruff.format]
+# Like Black, use double quotes for strings.
+quote-style = "double"
+
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+
+# Like Black, respect magic trailing commas.
+skip-magic-trailing-comma = false
+
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"
 
 [tool.setuptools]
 include-package-data = false
