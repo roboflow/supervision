@@ -213,6 +213,8 @@ https://user-images.githubusercontent.com/26109316/207858600-ee862b22-0353-440b-
 
 https://github.com/roboflow/supervision/assets/26109316/c9436828-9fbf-4c25-ae8c-60e9c81b3900
 
+https://github.com/roboflow/supervision/assets/26109316/f84db7b5-79e2-4142-a1da-64daa43ce667
+
 ## 📚 documentation
 
 Visit our [documentation](https://roboflow.github.io/supervision) page to learn how supervision can help you build computer vision applications faster and more reliably.
