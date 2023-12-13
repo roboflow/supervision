@@ -1,3 +1,5 @@
+# count people in zone
+
 ## 👋 hello
 
 This demo is a video analysis tool that counts and highlights objects in specific zones
@@ -49,6 +51,13 @@ If not provided, the processed video will be displayed in real-time.
 to filter detections. Default is `0.3`.
 - `--iou_threshold` (optional): Specifies the IOU (Intersection Over Union) threshold
 for the model. Default is `0.7`.
+
+## 🚩 zone configuration
+
+- `horizontal-zone-config.json`: Defines zones divided horizontally across the frame.
+- `multi-zone-config.json`: Configures multiple zones with custom shapes and positions.
+- `quarters-zone-config.json`: Splits the frame into four equal quarters.
+- `vertical-zone-config.json`: Divides the frame into vertical zones of equal width.
 
 ## ⚙️ run example
 

@@ -4,12 +4,9 @@ This repository is packed with real-world use-cases, provided through Python scr
 interactive notebooks. Browse through to understand how the Supervision library
 interfaces with diverse applications.
 
-|                   **Title**                    |             **Contributor**              |
-|:----------------------------------------------:|:----------------------------------------:|
-|         [Tracking](./tracking)                 | [@SkalskiP](https://github.com/SkalskiP) |
-| [Count People in Zone](./count_people_in_zone) | [@SkalskiP](https://github.com/SkalskiP) |
-|     [Traffic Analysis](./traffic_analysis)     | [@SkalskiP](https://github.com/SkalskiP) |
-
+- [tracking](./tracking) by [@SkalskiP](https://github.com/SkalskiP)
+- [count people in zone](./count_people_in_zone) by [@SkalskiP](https://github.com/SkalskiP)
+- [traffic analysis](./traffic_analysis) by [@SkalskiP](https://github.com/SkalskiP)
 
 ## contributing
 
