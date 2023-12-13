@@ -28,15 +28,6 @@ repos:
 
 
 
-  - repo: https://github.com/PyCQA/flake8
-    rev: 6.1.0
-    hooks:
-      - id: flake8
-        name: Flake8 Checks
-        entry: flake8
-        additional_dependencies: [Flake8-pyproject]
-
-
   -   repo: https://github.com/PyCQA/bandit
       rev: '1.7.6'
       hooks:

@@ -58,7 +58,6 @@ ruff = ">=0.0.280,<0.1.8"
 isort = "^5.12.0"
 mypy = "^1.4.1"
 pre-commit = "^3.3.3"
-flake8 = { version = "*", python = ">=3.8.1" }
 tox = "^4.11.4"
 
 
@@ -66,19 +65,6 @@ tox = "^4.11.4"
 mkdocs-material = "^9.1.4"
 mkdocstrings = {extras = ["python"], version = ">=0.20,<0.25"}
 
-[tool.flake8]
-exclude = ".venv,build,dist,docs,.git,.tox,.eggs"
-max-complexity = 10
-max-line-length = 88
-extend-ignore = """
-    W503,
-    E203,
-    E701,
-    C901,
-"""
-per-file-ignores = """
-    __init__.py: F401
-"""
 
 [tool.isort]
 line_length = 88
@@ -168,6 +154,10 @@ convention = "google"
 [tool.ruff.per-file-ignores]
 "__init__.py" = ["E402","F401"]
 "supervision/assets/list.py" = ["E501"]
+
+[tool.ruff.lint.mccabe]
+# Flag errors (`C901`) whenever the complexity level exceeds 5.
+max-complexity = 20
 
 
 [tool.ruff.pylint]
