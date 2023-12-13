@@ -26,17 +26,15 @@ def load_zones_config(file_path: str) -> List[np.ndarray]:
     Returns:
     List[np.ndarray]: A list of polygons, each represented as a NumPy array.
     """
-    with open(file_path, 'r') as file:
+    with open(file_path, "r") as file:
         data = json.load(file)
-        return [np.array(polygon, np.int32) for polygon in data['polygons']]
+        return [np.array(polygon, np.int32) for polygon in data["polygons"]]
 
 
 def initiate_zones_and_annotators(
     polygons: List[np.ndarray], resolution_wh: Tuple[int, int]
 ) -> Tuple[
-    List[sv.PolygonZone],
-    List[sv.PolygonZoneAnnotator],
-    List[sv.BoxCornerAnnotator]
+    List[sv.PolygonZone], List[sv.PolygonZoneAnnotator], List[sv.BoxCornerAnnotator]
 ]:
     line_thickness = sv.calculate_dynamic_line_thickness(resolution_wh=resolution_wh)
     text_scale = sv.calculate_dynamic_text_scale(resolution_wh=resolution_wh)
@@ -46,20 +44,16 @@ def initiate_zones_and_annotators(
     box_annotators = []
 
     for index, polygon in enumerate(polygons):
-        zone = sv.PolygonZone(
-            polygon=polygon,
-            frame_resolution_wh=resolution_wh
-        )
+        zone = sv.PolygonZone(polygon=polygon, frame_resolution_wh=resolution_wh)
         zone_annotator = sv.PolygonZoneAnnotator(
             zone=zone,
             color=COLORS.by_idx(index),
             thickness=line_thickness,
             text_thickness=line_thickness * 2,
-            text_scale=text_scale * 2
+            text_scale=text_scale * 2,
         )
         box_annotator = sv.BoxCornerAnnotator(
-            color=COLORS.by_idx(index),
-            thickness=line_thickness * 2
+            color=COLORS.by_idx(index), thickness=line_thickness * 2
         )
         zones.append(zone)
         zone_annotators.append(zone_annotator)
@@ -69,9 +63,7 @@ def initiate_zones_and_annotators(
 
 
 def detect(
-    frame: np.ndarray,
-    model: YOLO,
-    confidence_threshold: float = 0.5
+    frame: np.ndarray, model: YOLO, confidence_threshold: float = 0.5
 ) -> sv.Detections:
     """
     Detect objects in a frame using a YOLO model, filtering detections by class ID and
@@ -103,7 +95,7 @@ def annotate(
     zones: List[sv.PolygonZone],
     zone_annotators: List[sv.PolygonZoneAnnotator],
     box_annotators: List[sv.BoxCornerAnnotator],
-    detections: sv.Detections
+    detections: sv.Detections,
 ) -> np.ndarray:
     """
     Annotate a frame with zone and box annotations based on given detections.
@@ -121,14 +113,13 @@ def annotate(
         np.ndarray: The annotated frame.
     """
     annotated_frame = frame.copy()
-    for zone, zone_annotator, box_annotator in zip(zones, zone_annotators, box_annotators):
+    for zone, zone_annotator, box_annotator in zip(
+        zones, zone_annotators, box_annotators
+    ):
         detections_in_zone = detections[zone.trigger(detections=detections)]
-        annotated_frame = zone_annotator.annotate(
-            scene=annotated_frame
-        )
+        annotated_frame = zone_annotator.annotate(scene=annotated_frame)
         annotated_frame = box_annotator.annotate(
-            scene=annotated_frame,
-            detections=detections_in_zone
+            scene=annotated_frame, detections=detections_in_zone
         )
     return annotated_frame
 
@@ -180,7 +171,8 @@ if __name__ == "__main__":
     video_info = sv.VideoInfo.from_video_path(args.source_video_path)
     polygons = load_zones_config(args.zone_configuration_path)
     zones, zone_annotators, box_annotators = initiate_zones_and_annotators(
-        polygons=polygons, resolution_wh=video_info.resolution_wh)
+        polygons=polygons, resolution_wh=video_info.resolution_wh
+    )
 
     model = YOLO(args.source_weights_path)
 
@@ -190,15 +182,23 @@ if __name__ == "__main__":
             for frame in tqdm(frames_generator, total=video_info.total_frames):
                 detections = detect(frame, model, args.confidence_threshold)
                 annotated_frame = annotate(
-                    frame=frame, zones=zones, zone_annotators=zone_annotators,
-                    box_annotators=box_annotators, detections=detections)
+                    frame=frame,
+                    zones=zones,
+                    zone_annotators=zone_annotators,
+                    box_annotators=box_annotators,
+                    detections=detections,
+                )
                 sink.write_frame(annotated_frame)
     else:
         for frame in tqdm(frames_generator, total=video_info.total_frames):
             detections = detect(frame, model, args.confidence_threshold)
             annotated_frame = annotate(
-                frame=frame, zones=zones, zone_annotators=zone_annotators,
-                box_annotators=box_annotators, detections=detections)
+                frame=frame,
+                zones=zones,
+                zone_annotators=zone_annotators,
+                box_annotators=box_annotators,
+                detections=detections,
+            )
             cv2.imshow("Processed Video", annotated_frame)
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
