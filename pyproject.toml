@@ -159,6 +159,8 @@ convention = "google"
 # Flag errors (`C901`) whenever the complexity level exceeds 5.
 max-complexity = 20
 
+# [tool.ruff.lint]
+# select = ["D"]
 
 [tool.ruff.pylint]
 max-args = 20
