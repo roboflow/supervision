@@ -31,10 +31,12 @@ def load_zones_config(file_path: str) -> List[np.ndarray]:
         return [np.array(polygon, np.int32) for polygon in data["polygons"]]
 
 
-def initiate_zones_and_annotators(
+def initiate_annotators(
     polygons: List[np.ndarray], resolution_wh: Tuple[int, int]
 ) -> Tuple[
-    List[sv.PolygonZone], List[sv.PolygonZoneAnnotator], List[sv.BoxCornerAnnotator]
+    List[sv.PolygonZone],
+    List[sv.PolygonZoneAnnotator],
+    List[sv.BoundingBoxAnnotator]
 ]:
     line_thickness = sv.calculate_dynamic_line_thickness(resolution_wh=resolution_wh)
     text_scale = sv.calculate_dynamic_text_scale(resolution_wh=resolution_wh)
@@ -52,8 +54,8 @@ def initiate_zones_and_annotators(
             text_thickness=line_thickness * 2,
             text_scale=text_scale * 2,
         )
-        box_annotator = sv.BoxCornerAnnotator(
-            color=COLORS.by_idx(index), thickness=line_thickness * 2
+        box_annotator = sv.BoundingBoxAnnotator(
+            color=COLORS.by_idx(index), thickness=line_thickness
         )
         zones.append(zone)
         zone_annotators.append(zone_annotator)
@@ -94,7 +96,7 @@ def annotate(
     frame: np.ndarray,
     zones: List[sv.PolygonZone],
     zone_annotators: List[sv.PolygonZoneAnnotator],
-    box_annotators: List[sv.BoxCornerAnnotator],
+    box_annotators: List[sv.BoundingBoxAnnotator],
     detections: sv.Detections,
 ) -> np.ndarray:
     """
@@ -105,8 +107,8 @@ def annotate(
         zones (List[sv.PolygonZone]): A list of polygon zones used for detection.
         zone_annotators (List[sv.PolygonZoneAnnotator]): A list of annotators for
             drawing zone annotations.
-        box_annotators (List[sv.BoxCornerAnnotator]): A list of annotators for drawing
-            box annotations.
+        box_annotators (List[sv.BoundingBoxAnnotator]): A list of annotators for
+            drawing box annotations.
         detections (sv.Detections): Detections to be used for annotation.
 
     Returns:
@@ -170,7 +172,7 @@ if __name__ == "__main__":
 
     video_info = sv.VideoInfo.from_video_path(args.source_video_path)
     polygons = load_zones_config(args.zone_configuration_path)
-    zones, zone_annotators, box_annotators = initiate_zones_and_annotators(
+    zones, zone_annotators, box_annotators = initiate_annotators(
         polygons=polygons, resolution_wh=video_info.resolution_wh
     )
 
