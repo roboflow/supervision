@@ -1,0 +1,4 @@
+supervision
+tqdm
+ultralytics
+gdown

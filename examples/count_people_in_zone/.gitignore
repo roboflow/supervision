@@ -1,0 +1,5 @@
+# Ignore everything in the data directory
+data/*
+
+# But re-include all .json files
+!data/*.json

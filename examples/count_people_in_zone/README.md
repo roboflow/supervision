@@ -1,10 +1,9 @@
 ## 👋 hello
 
-This script performs traffic flow analysis using YOLOv8, an object-detection method and 
-ByteTrack, a simple yet effective online multi-object tracking method. It uses the 
-supervision package for multiple tasks such as tracking, annotations, etc.
-
-https://github.com/roboflow/supervision/assets/26109316/c9436828-9fbf-4c25-ae8c-60e9c81b3900
+This demo is a video analysis tool that counts and highlights objects in specific zones 
+of a video. Each zone and the objects within it are marked in different colors, making 
+it easy to see and count the objects in each area. The tool can save this enhanced 
+video or display it live on the screen.
 
 ## 💻 install
 
@@ -12,7 +11,7 @@ https://github.com/roboflow/supervision/assets/26109316/c9436828-9fbf-4c25-ae8c-
 
     ```bash
     git clone https://github.com/roboflow/supervision.git
-    cd supervision/examples/traffic_analysis
+    cd supervision/examples/count_people_in_zone
     ```
 
 - setup python environment and activate it [optional]
@@ -33,16 +32,15 @@ https://github.com/roboflow/supervision/assets/26109316/c9436828-9fbf-4c25-ae8c-
     ```bash
     ./setup.sh
     ```
-
+  
 ## ⚙️ run
 
 ```bash
 python script.py \
---source_weights_path data/traffic_analysis.pt \
---source_video_path data/traffic_analysis.mov \
+--zone_configuration_path data/multi-zone-config.json \
+--source_video_path data/market-square.mp4 \
 --confidence_threshold 0.3 \
---iou_threshold 0.5 \
---target_video_path data/traffic_analysis_result.mov
+--iou_threshold 0.5
 ```
 
 ## © license
