@@ -59,3 +59,5 @@ repos:
       hooks:
       -   id: ruff
           args: [--fix, --exit-non-zero-on-fix]
+      -   id: ruff-format
+          types_or: [ python, pyi, jupyter ]
