@@ -59,6 +59,22 @@ Supervision was designed to be model agnostic. Just plug in any classification, 
 5
 ```
 
+Running with [Inference](https://github.com/roboflow/inference) can improve speed but requires a [Roboflow API key](https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key).
+
+```python
+>>> import cv2
+>>> import supervision as sv
+>>> from inference.models.utils import get_roboflow_model
+
+>>> image = cv2.imread(...)
+>>> model = get_roboflow_model(model_id="coco/6", api_key="YOUR_API_KEY")
+>>> result = model.infer(image)[0]
+>>> detections = sv.Detections.from_roboflow(result)
+
+>>> len(detections)
+5
+```
+
 ### annotators
 
 Supervision offers a wide range of highly customizable [annotators](https://supervision.roboflow.com/annotators/), allowing you to compose the perfect visualization for your use case.

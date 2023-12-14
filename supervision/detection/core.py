@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import astuple, dataclass
+from pydantic import BaseModel
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
@@ -438,7 +439,7 @@ class Detections:
         )
 
     @classmethod
-    def from_roboflow(cls, roboflow_result: dict) -> Detections:
+    def from_roboflow(cls, roboflow_result: Union[dict, type[BaseModel]]) -> Detections:
         """
         Create a Detections object from the [Roboflow](https://roboflow.com/)
             API inference result.
@@ -473,6 +474,10 @@ class Detections:
             >>> detections = sv.Detections.from_roboflow(roboflow_result)
             ```
         """
+        if isinstance(roboflow_result, BaseModel):
+            roboflow_result: BaseModel = roboflow_result.dict(
+                exclude_none=True, by_alias=True
+            )
         xyxy, confidence, class_id, masks, trackers = process_roboflow_result(
             roboflow_result=roboflow_result
         )
