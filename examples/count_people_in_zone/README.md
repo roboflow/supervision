@@ -13,44 +13,52 @@ https://github.com/roboflow/supervision/assets/26109316/f84db7b5-79e2-4142-a1da-
 
 - clone repository and navigate to example directory
 
-    ```bash
-    git clone https://github.com/roboflow/supervision.git
-    cd supervision/examples/count_people_in_zone
-    ```
+  ```bash
+  git clone https://github.com/roboflow/supervision.git
+  cd supervision/examples/count_people_in_zone
+  ```
 
 - setup python environment and activate it [optional]
 
-    ```bash
-    python3 -m venv venv
-    source venv/bin/activate
-    ```
+  ```bash
+  python3 -m venv venv
+  source venv/bin/activate
+  ```
 
 - install required dependencies
 
-    ```bash
-    pip install -r requirements.txt
-    ```
+  ```bash
+  pip install -r requirements.txt
+  ```
 
 - download `traffic_analysis.pt` and `traffic_analysis.mov` files
 
-    ```bash
-    ./setup.sh
-    ```
+  ```bash
+  ./setup.sh
+  ```
 
 ## 🛠️ script arguments
 
 - `--zone_configuration_path`: Specifies the path to the JSON file containing zone
-configurations. This file defines the polygonal areas in the video where objects will
-be counted.
-- `--source_weights_path` (optional): The path to the YOLO model's weights file.
-Defaults to `"yolov8x.pt"` if not specified.
+  configurations. This file defines the polygonal areas in the video where objects will
+  be counted.
 - `--source_video_path`: The path to the source video file that will be analyzed.
 - `--target_video_path` (optional): The path to save the output video with annotations.
-If not provided, the processed video will be displayed in real-time.
+  If not provided, the processed video will be displayed in real-time.
 - `--confidence_threshold` (optional): Sets the confidence threshold for the YOLO model
-to filter detections. Default is `0.3`.
+  to filter detections. Default is `0.3`.
 - `--iou_threshold` (optional): Specifies the IOU (Intersection Over Union) threshold
-for the model. Default is `0.7`.
+  for the model. Default is `0.7`.
+
+### inference args
+
+- `--roboflow_api_key`: Your [Roboflow API key](https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key)
+- `--model_id` (optional): Specifies the Roboflow model id (dataset/version) to use for inference. See [COCO models on Roboflow Universe](https://universe.roboflow.com/microsoft/coco/dataset/13). Default is `coco/6`.
+
+### ultralytics args
+
+- `--source_weights_path` (optional): The path to the YOLO model's weights file.
+  Defaults to `"yolov8x.pt"` if not specified.
 
 ## 🚩 zone configuration
 
@@ -61,8 +69,21 @@ for the model. Default is `0.7`.
 
 ## ⚙️ run example
 
+### inference
+
 ```bash
-python script.py \
+python inference_example.py \
+--zone_configuration_path data/multi-zone-config.json \
+--source_video_path data/market-square.mp4 \
+--confidence_threshold 0.3 \
+--iou_threshold 0.5
+--roboflow_api_key <ROBOFLOW API KEY>
+```
+
+### ultralytics
+
+```bash
+python ultralytics_example.py \
 --zone_configuration_path data/multi-zone-config.json \
 --source_video_path data/market-square.mp4 \
 --confidence_threshold 0.3 \

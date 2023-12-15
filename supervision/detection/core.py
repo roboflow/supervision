@@ -442,7 +442,7 @@ class Detections:
     def from_roboflow(cls, roboflow_result: Union[dict, type[BaseModel]]) -> Detections:
         """
         Create a Detections object from the [Roboflow](https://roboflow.com/)
-            API inference result.
+            API inference result or the [Inference](https://inference.roboflow.com/) package results.
 
         Args:
             roboflow_result (dict): The result from the
@@ -492,6 +492,44 @@ class Detections:
             mask=masks,
             tracker_id=trackers,
         )
+    
+    @classmethod
+    def from_inference(cls, roboflow_result: Union[dict, type[BaseModel]]) -> Detections:
+        """
+        Create a Detections object from the [Roboflow](https://roboflow.com/)
+            API inference result or the [Inference](https://inference.roboflow.com/) package results.
+
+        Args:
+            roboflow_result (dict): The result from the
+                Roboflow API containing predictions.
+
+        Returns:
+            (Detections): A Detections object containing the bounding boxes, class IDs,
+                and confidences of the predictions.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> roboflow_result = {
+            ...     "predictions": [
+            ...         {
+            ...             "x": 0.5,
+            ...             "y": 0.5,
+            ...             "width": 0.2,
+            ...             "height": 0.3,
+            ...             "class_id": 0,
+            ...             "class": "person",
+            ...             "confidence": 0.9
+            ...         },
+            ...         # ... more predictions ...
+            ...     ]
+            ... }
+
+            >>> detections = sv.Detections.from_roboflow(roboflow_result)
+            ```
+        """
+        return cls.from_roboflow(roboflow_result)
 
     @classmethod
     def from_sam(cls, sam_result: List[dict]) -> Detections:
