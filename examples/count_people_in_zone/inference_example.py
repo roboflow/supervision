@@ -5,9 +5,9 @@ from typing import List, Tuple
 
 import cv2
 import numpy as np
-from tqdm import tqdm
-from inference.models.utils import get_roboflow_model
 from inference.core.models.roboflow import RoboflowInferenceModel
+from inference.models.utils import get_roboflow_model
+from tqdm import tqdm
 
 import supervision as sv
 

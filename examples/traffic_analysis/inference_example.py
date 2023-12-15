@@ -4,8 +4,8 @@ from typing import Dict, List, Set, Tuple
 
 import cv2
 import numpy as np
-from tqdm import tqdm
 from inference.models.utils import get_roboflow_model
+from tqdm import tqdm
 
 import supervision as sv
 

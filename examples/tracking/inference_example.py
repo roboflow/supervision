@@ -1,8 +1,8 @@
 import argparse
 import os
 
-from tqdm import tqdm
 from inference.models.utils import get_roboflow_model
+from tqdm import tqdm
 
 import supervision as sv
 
@@ -15,9 +15,7 @@ def process_video(
     confidence_threshold: float = 0.3,
     iou_threshold: float = 0.7,
 ) -> None:
-    model = get_roboflow_model(
-        model_id=model_id, api_key=roboflow_api_key
-    )
+    model = get_roboflow_model(model_id=model_id, api_key=roboflow_api_key)
 
     tracker = sv.ByteTrack()
     box_annotator = sv.BoundingBoxAnnotator()
