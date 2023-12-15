@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import astuple, dataclass
-from pydantic import BaseModel
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
+from pydantic import BaseModel
 
 from supervision.detection.utils import (
     calculate_masks_centroids,
@@ -492,9 +492,11 @@ class Detections:
             mask=masks,
             tracker_id=trackers,
         )
-    
+
     @classmethod
-    def from_inference(cls, roboflow_result: Union[dict, type[BaseModel]]) -> Detections:
+    def from_inference(
+        cls, roboflow_result: Union[dict, type[BaseModel]]
+    ) -> Detections:
         """
         Create a Detections object from the [Roboflow](https://roboflow.com/)
             API inference result or the [Inference](https://inference.roboflow.com/) package results.
