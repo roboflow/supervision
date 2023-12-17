@@ -1857,13 +1857,13 @@ mkdocs = ">=1.1"
 
 [[package]]
 name = "mkdocs-material"
-version = "9.5.0"
+version = "9.5.2"
 description = "Documentation that simply works"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "mkdocs_material-9.5.0-py3-none-any.whl", hash = "sha256:47323c9943756ced14487d0607caa283e350e8fd4c724b224bd69ccb0b0731f2"},
-    {file = "mkdocs_material-9.5.0.tar.gz", hash = "sha256:f8f9ccb526bd8a8ac2e5ec2e64e1a167cfb53cf6a84c8924dbb607f0a70e74ae"},
+    {file = "mkdocs_material-9.5.2-py3-none-any.whl", hash = "sha256:6ed0fbf4682491766f0ec1acc955db6901c2fd424c7ab343964ef51b819741f5"},
+    {file = "mkdocs_material-9.5.2.tar.gz", hash = "sha256:ca8b9cd2b3be53e858e5a1a45ac9668bd78d95d77a30288bb5ebc1a31db6184c"},
 ]
 
 [package.dependencies]
