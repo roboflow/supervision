@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+from contextlib import suppress
 from dataclasses import astuple, dataclass
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
-from pydantic import BaseModel
 
 from supervision.detection.utils import (
     calculate_masks_centroids,
@@ -14,6 +14,7 @@ from supervision.detection.utils import (
     xywh_to_xyxy,
 )
 from supervision.geometry.core import Position
+from supervision.utils.internal import deprecated
 
 
 def _validate_xyxy(xyxy: Any, n: int) -> None:
@@ -439,14 +440,14 @@ class Detections:
         )
 
     @classmethod
-    def from_roboflow(cls, roboflow_result: Union[dict, type[BaseModel]]) -> Detections:
+    def from_inference(cls, roboflow_result: Union[dict, Any]) -> Detections:
         """
         Create a Detections object from the [Roboflow](https://roboflow.com/)
             API inference result or the [Inference](https://inference.roboflow.com/) package results.
 
         Args:
-            roboflow_result (dict): The result from the
-                Roboflow API containing predictions.
+            roboflow_result (dict, any): The result from the
+                Roboflow API or Inference package containing predictions
 
         Returns:
             (Detections): A Detections object containing the bounding boxes, class IDs,
@@ -474,8 +475,8 @@ class Detections:
             >>> detections = sv.Detections.from_roboflow(roboflow_result)
             ```
         """
-        if isinstance(roboflow_result, BaseModel):
-            roboflow_result: BaseModel = roboflow_result.dict(
+        with suppress(AttributeError):
+            roboflow_result = roboflow_result.dict(
                 exclude_none=True, by_alias=True
             )
         xyxy, confidence, class_id, masks, trackers = process_roboflow_result(
@@ -494,8 +495,9 @@ class Detections:
         )
 
     @classmethod
-    def from_inference(
-        cls, roboflow_result: Union[dict, type[BaseModel]]
+    @deprecated("Use `from_inference` instead.")
+    def from_roboflow(
+        cls, roboflow_result: Union[dict, Any]
     ) -> Detections:
         """
         Create a Detections object from the [Roboflow](https://roboflow.com/)
@@ -531,7 +533,7 @@ class Detections:
             >>> detections = sv.Detections.from_roboflow(roboflow_result)
             ```
         """
-        return cls.from_roboflow(roboflow_result)
+        return cls.from_inference(roboflow_result)
 
     @classmethod
     def from_sam(cls, sam_result: List[dict]) -> Detections:

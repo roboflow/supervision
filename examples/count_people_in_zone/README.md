@@ -39,6 +39,10 @@ https://github.com/roboflow/supervision/assets/26109316/f84db7b5-79e2-4142-a1da-
 
 ## 🛠️ script arguments
 
+### inference args
+
+- `--roboflow_api_key`: Your [Roboflow API key](https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key)
+- `--model_id` (optional): Specifies the Roboflow model id (dataset/version) to use for inference. See [COCO models on Roboflow Universe](https://universe.roboflow.com/microsoft/coco/dataset/13). Default is `coco/6`.
 - `--zone_configuration_path`: Specifies the path to the JSON file containing zone
   configurations. This file defines the polygonal areas in the video where objects will
   be counted.
@@ -50,15 +54,20 @@ https://github.com/roboflow/supervision/assets/26109316/f84db7b5-79e2-4142-a1da-
 - `--iou_threshold` (optional): Specifies the IOU (Intersection Over Union) threshold
   for the model. Default is `0.7`.
 
-### inference args
-
-- `--roboflow_api_key`: Your [Roboflow API key](https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key)
-- `--model_id` (optional): Specifies the Roboflow model id (dataset/version) to use for inference. See [COCO models on Roboflow Universe](https://universe.roboflow.com/microsoft/coco/dataset/13). Default is `coco/6`.
-
 ### ultralytics args
 
 - `--source_weights_path` (optional): The path to the YOLO model's weights file.
   Defaults to `"yolov8x.pt"` if not specified.
+  - `--zone_configuration_path`: Specifies the path to the JSON file containing zone
+    configurations. This file defines the polygonal areas in the video where objects will
+    be counted.
+- `--source_video_path`: The path to the source video file that will be analyzed.
+- `--target_video_path` (optional): The path to save the output video with annotations.
+  If not provided, the processed video will be displayed in real-time.
+- `--confidence_threshold` (optional): Sets the confidence threshold for the YOLO model
+  to filter detections. Default is `0.3`.
+- `--iou_threshold` (optional): Specifies the IOU (Intersection Over Union) threshold
+  for the model. Default is `0.7`.
 
 ## 🚩 zone configuration
 
