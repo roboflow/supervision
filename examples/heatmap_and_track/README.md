@@ -34,7 +34,7 @@ supervision package for multiple tasks such as drawing heatmap annotations, trac
 - `--source_weights_path`: Required. Specifies the path to the weights file for the
 YOLO model. This file contains the trained model data necessary for object detection.
 - `--source_video_path`: Required. The path to the source video file that will be
-analyzed. This is the input video on which traffic flow analysis will be performed.
+analyzed. This is the input video on which crowd analysis will be performed.
 - `--target_video_path` (optional): The path to save the output video with annotations.
 If not specified, the processed video will be displayed in real-time without being
 saved.
@@ -44,21 +44,21 @@ be to recognize an object in the video.
 - `--iou_threshold` (optional): Specifies the IOU (Intersection Over Union) threshold
 for the model. Default is 0.7. This value is used to manage object detection accuracy,
 particularly in distinguishing between different objects.
-- `heatmap_alpha` (optional): Opacity of the overlay mask, between 0 and 1.
-- `radius` (optional): Radius of the heat circle.
-- `track_threshold` (optional): Detection confidence threshold for track activation.
-- `track_seconds` (optional): Number of seconds to buffer when a track is lost.
-- `match_threshold` (optional): Threshold for matching tracks with detections.
+- `--heatmap_alpha` (optional): Opacity of the overlay mask, between 0 and 1.
+- `--radius` (optional): Radius of the heat circle.
+- `--track_threshold` (optional): Detection confidence threshold for track activation.
+- `--track_seconds` (optional): Number of seconds to buffer when a track is lost.
+- `--match_threshold` (optional): Threshold for matching tracks with detections.
 
 ## ⚙️ run
 
 ```bash
 python script.py \
---source_weights_path data/traffic_analysis.pt \
---source_video_path data/traffic_analysis.mov \
+--source_weights_path data/crowd_analysis.pt \
+--source_video_path data/crowd_analysis.mov \
 --confidence_threshold 0.3 \
 --iou_threshold 0.5 \
---target_video_path data/traffic_analysis_result.mov
+--target_video_path data/crowd_analysis_result.mov
 ```
 
 ## © license
