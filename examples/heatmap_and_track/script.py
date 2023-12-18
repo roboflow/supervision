@@ -1,8 +1,10 @@
-from ultralytics import YOLO
-import supervision as sv
+import argparse
 
 import cv2
-import argparse
+from ultralytics import YOLO
+
+import supervision as sv
+
 
 def heatmap_and_track(
     source_weights_path: str,
@@ -16,22 +18,21 @@ def heatmap_and_track(
     track_seconds: int = 5,
     match_threshold: float = 0.99,
 ) -> None:
-
     ### instantiate model
     model = YOLO(source_weights_path)
 
     ### heatmap config
     heat_map_annotator = sv.HeatMapAnnotator(
-        position = sv.Position.BOTTOM_CENTER,
-        opacity = heatmap_alpha,
-        radius = radius,
-        kernel_size = 25,
-        top_hue = 0,
-        low_hue = 125,
+        position=sv.Position.BOTTOM_CENTER,
+        opacity=heatmap_alpha,
+        radius=radius,
+        kernel_size=25,
+        top_hue=0,
+        low_hue=125,
     )
 
     ### annotation config
-    label_annotator = sv.LabelAnnotator(text_position = sv.Position.CENTER)
+    label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER)
 
     ### get the video fps
     cap = cv2.VideoCapture(source_video_path)
@@ -40,56 +41,57 @@ def heatmap_and_track(
 
     ### tracker config
     byte_tracker = sv.ByteTrack(
-        track_thresh = track_threshold, 
-        track_buffer = track_seconds * fps,
-        match_thresh = match_threshold,
-        frame_rate = fps
+        track_thresh=track_threshold,
+        track_buffer=track_seconds * fps,
+        match_thresh=match_threshold,
+        frame_rate=fps,
     )
 
     ### video config
-    video_info = sv.VideoInfo.from_video_path(video_path = source_video_path)
-    frames_generator = sv.get_video_frames_generator(source_path = source_video_path, stride = 1)
+    video_info = sv.VideoInfo.from_video_path(video_path=source_video_path)
+    frames_generator = sv.get_video_frames_generator(
+        source_path=source_video_path, stride=1
+    )
 
     ### Detect, track, annotate, save
-    with sv.VideoSink(target_path = target_video_path, video_info = video_info) as sink:
-        
+    with sv.VideoSink(target_path=target_video_path, video_info=video_info) as sink:
         for frame in frames_generator:
             result = model(
-                source = frame,
-                classes = [0], # only person class
-                conf = confidence_threshold,
-                iou = iou_threshold,
+                source=frame,
+                classes=[0],  # only person class
+                conf=confidence_threshold,
+                iou=iou_threshold,
                 # show_conf = True,
                 # save_txt = True,
                 # save_conf = True,
                 # save = True,
-                device = None, # use None for CPU, 0 for single GPU, or [0,1] for dual GPU
+                device=None,  # use None for CPU, 0 for single GPU, or [0,1] for dual GPU
             )[0]
-            
-            detections = sv.Detections.from_ultralytics(result) # get detections
-            
-            detections = byte_tracker.update_with_detections(detections) # update tracker
-            
+
+            detections = sv.Detections.from_ultralytics(result)  # get detections
+
+            detections = byte_tracker.update_with_detections(
+                detections
+            )  # update tracker
+
             ### draw heatmap
             annotated_frame = heat_map_annotator.annotate(
-                scene = frame.copy(),
-                detections = detections
+                scene=frame.copy(), detections=detections
             )
-            
+
             ### draw other attributes from `detections` object
             labels = [
                 f"#{tracker_id}"
-                for class_id, tracker_id
-                in zip(detections.class_id, detections.tracker_id)
-            ]        
-            
+                for class_id, tracker_id in zip(
+                    detections.class_id, detections.tracker_id
+                )
+            ]
+
             label_annotator.annotate(
-                scene = annotated_frame,
-                detections = detections,
-                labels = labels
+                scene=annotated_frame, detections=detections, labels=labels
             )
-            
-            sink.write_frame(frame = annotated_frame)
+
+            sink.write_frame(frame=annotated_frame)
 
 
 if __name__ == "__main__":
@@ -131,13 +133,13 @@ if __name__ == "__main__":
         default=0.5,
         help="Opacity of the overlay mask, between 0 and 1",
         type=float,
-    )    
+    )
     parser.add_argument(
         "--radius",
         default=25,
         help="Radius of the heat circle",
         type=float,
-    )    
+    )
     parser.add_argument(
         "--track_threshold",
         default=0.35,
@@ -149,13 +151,13 @@ if __name__ == "__main__":
         default=5,
         help="Number of seconds to buffer when a track is lost",
         type=int,
-    )  
+    )
     parser.add_argument(
         "--match_threshold",
         default=0.99,
         help="Threshold for matching tracks with detections",
         type=float,
-    )      
+    )
 
     args = parser.parse_args()
 
