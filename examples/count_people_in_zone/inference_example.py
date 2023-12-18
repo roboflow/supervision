@@ -86,7 +86,7 @@ def detect(
             for filtering.
     """
     results = model.infer(frame)[0]
-    detections = sv.Detections.from_roboflow(results)
+    detections = sv.Detections.from_inference(results)
     filter_by_class = detections.class_id == 0
     filter_by_confidence = detections.confidence > confidence_threshold
     return detections[filter_by_class & filter_by_confidence]
