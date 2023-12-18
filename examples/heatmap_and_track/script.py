@@ -65,7 +65,7 @@ def heatmap_and_track(
                 # save_txt = True,
                 # save_conf = True,
                 # save = True,
-                device=None,  # use None for CPU, 0 for single GPU, or [0,1] for dual GPU
+                device=None,  # use None = CPU, 0 = single GPU, or [0,1] = dual GPU
             )[0]
 
             detections = sv.Detections.from_ultralytics(result)  # get detections
@@ -173,6 +173,3 @@ if __name__ == "__main__":
         track_seconds=args.track_seconds,
         match_threshold=args.match_threshold,
     )
-
-### usage
-# python script.py --source_weights_path yolov8s.pt --source_video_path input.mp4 --target_video_path results.mp4
