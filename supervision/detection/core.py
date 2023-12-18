@@ -476,9 +476,7 @@ class Detections:
             ```
         """
         with suppress(AttributeError):
-            roboflow_result = roboflow_result.dict(
-                exclude_none=True, by_alias=True
-            )
+            roboflow_result = roboflow_result.dict(exclude_none=True, by_alias=True)
         xyxy, confidence, class_id, masks, trackers = process_roboflow_result(
             roboflow_result=roboflow_result
         )
@@ -496,9 +494,7 @@ class Detections:
 
     @classmethod
     @deprecated("Use `from_inference` instead.")
-    def from_roboflow(
-        cls, roboflow_result: Union[dict, Any]
-    ) -> Detections:
+    def from_roboflow(cls, roboflow_result: Union[dict, Any]) -> Detections:
         """
         Create a Detections object from the [Roboflow](https://roboflow.com/)
             API inference result or the [Inference](https://inference.roboflow.com/) package results.
