@@ -62,6 +62,7 @@ theme:
   name: 'material'
   logo: assets/supervision-lenny.png
   favicon: assets/supervision-lenny.png
+  custom_dir: docs/theme
   palette:
     # Palette for light mode
     - scheme: default
@@ -103,4 +104,3 @@ markdown_extensions:
 extra_javascript:
   - "https://widget.kapa.ai/kapa-widget.bundle.js"
   - "javascript/init_kapa_widget.js"
-  - "javascript/zoominfo.js"
