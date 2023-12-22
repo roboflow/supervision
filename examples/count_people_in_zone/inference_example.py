@@ -139,7 +139,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--model_id",
-        default="coco/6",
+        default="yolov8s-640",
         help="Roboflow model ID",
         type=str,
     )

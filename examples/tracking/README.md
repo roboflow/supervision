@@ -32,7 +32,7 @@ detection and Supervision for tracking and annotation.
 ### inference args
 
 - `--roboflow_api_key`: Your [Roboflow API key](https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key)
-- `--model_id` (optional): Specifies the Roboflow model id (dataset/version) to use for inference. See [COCO models on Roboflow Universe](https://universe.roboflow.com/microsoft/coco/dataset/13). Default is `coco/13`.
+- `--model_id` (optional): Specifies the Roboflow model id (dataset/version) to use for inference. See [COCO models on Roboflow Universe](https://universe.roboflow.com/microsoft/coco/dataset/13). Default is `yolov8x-1280`.
 - `--source_video_path`: Required. The path to the source video file to be processed.
   This is the video on which object detection and annotation will be performed.
 - `--target_video_path`: Required. The path where the processed video, with annotations

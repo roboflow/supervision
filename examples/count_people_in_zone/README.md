@@ -42,7 +42,7 @@ https://github.com/roboflow/supervision/assets/26109316/f84db7b5-79e2-4142-a1da-
 ### inference args
 
 - `--roboflow_api_key`: Your [Roboflow API key](https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key)
-- `--model_id` (optional): Specifies the Roboflow model id (dataset/version) to use for inference. See [COCO models on Roboflow Universe](https://universe.roboflow.com/microsoft/coco/dataset/13). Default is `coco/6`.
+- `--model_id` (optional): Specifies the Roboflow model id (dataset/version) to use for inference. See [COCO models on Roboflow Universe](https://universe.roboflow.com/microsoft/coco/dataset/13). Default is `yolov8s-640`.
 - `--zone_configuration_path`: Specifies the path to the JSON file containing zone
   configurations. This file defines the polygonal areas in the video where objects will
   be counted.

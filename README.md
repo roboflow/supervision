@@ -72,7 +72,7 @@ Running with [Inference](https://github.com/roboflow/inference) can improve spee
 >>> from inference.models.utils import get_roboflow_model
 
 >>> image = cv2.imread(...)
->>> model = get_roboflow_model(model_id="coco/6", api_key="YOUR_API_KEY")
+>>> model = get_roboflow_model(model_id="yolov8s-640", api_key="YOUR_API_KEY")
 >>> result = model.infer(image)[0]
 >>> detections = sv.Detections.from_inference(result)
 
