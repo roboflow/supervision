@@ -1,6 +1,9 @@
 from collections import defaultdict
+
 import numpy as np
+
 from supervision.detection.core import Detections
+
 
 class Smoother:
     """
@@ -34,11 +37,11 @@ class Smoother:
 
         # Run a tracker to link predictions across frames
         detections = byte_tracker.update_with_detections(detections)
-        
+
         # Record the new frame and get the smoothed predictions
         smoother.add_frame(detections)
         smoothed_detections = smoother.get_smoothed_detections()
-        
+
         # Render
         image_smoothed = box_annotator.annotate(
             scene=image.copy(),
@@ -68,10 +71,7 @@ class Smoother:
         tracking into your inference pipeline.
     """
 
-    def __init__(
-        self,
-        length: int = 5
-    ) -> None:
+    def __init__(self, length: int = 5) -> None:
         """
         Args:
             length (int): The current count of detected objects within the zone
@@ -108,21 +108,21 @@ class Smoother:
                 # initialize a new tracker_id
                 self.tracks[tracker_id] = []
                 self.track_starts[tracker_id] = self.current_frame
-            
+
             self.tracks[tracker_id].append(detections[detection_idx])
             self.track_ends[tracker_id] = self.current_frame
-        
+
         for track_id in self.tracks:
             track = self.tracks[track_id]
             if self.track_ends[track_id] < self.current_frame:
                 # continue tracking for a few frames after the object has left
                 # (to prevent flickering in case it comes back)
                 track.append(None)
-            
+
             if len(track) > self.length:
                 # remove the oldest detection from the track it's too long
                 track.pop(0)
-    
+
     def get_track(self, track_id):
         track = self.tracks[track_id]
         if track is None:
@@ -131,12 +131,12 @@ class Smoother:
         track = [d for d in track if d is not None]
         if len(track) == 0:
             return None
-        
+
         ret = track[0]
         # set to an average of all the detection boxes
         ret.xyxy = np.mean([d.xyxy for d in track], axis=0)
         ret.confidence = np.mean([d.confidence for d in track], axis=0)
-        
+
         return ret
 
     def get_smoothed_detections(self):
@@ -152,8 +152,9 @@ class Smoother:
             track = self.get_track(track_id)
             if track is not None:
                 tracked_detections.append(track)
-        
+
         return Detections.merge(tracked_detections)
+
 
 class NoneDict(defaultdict):
     """
