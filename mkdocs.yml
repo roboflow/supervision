@@ -37,6 +37,7 @@ nav:
         - Core: classification/core.md
     - Detections:
         - Core: detection/core.md
+        - Smoother: detection/smoother.md
         - Utils: detection/utils.md
     - Tools:
         - Line Zone: detection/tools/line_zone.md

@@ -8,6 +8,54 @@ class Smoother:
     to track objects over time and averaging out the predictions over the
     `length` most recent frames.
 
+    <video controls>
+        <source src="https://media.roboflow.com/supervision/video-examples/smoothed-grocery-example-720.mp4" type="video/mp4">
+    </video>
+    > _On the left are the model's raw predictions, on the right is the output of Smoother._
+
+    ## Example Usage:
+
+    ```python
+    import cv2
+    # remember to `pip install inference`
+    from inference import InferencePipeline
+    import supervision as sv
+
+    box_annotator = sv.BoxAnnotator(color=sv.Color(52, 236, 217))
+    byte_tracker = sv.ByteTrack()
+
+    # Initialize the Smoother
+    smoother = sv.Smoother()
+
+    def render(detections, video_frame):
+        # Parse the detections
+        detections = sv.Detections.from_roboflow(detections)
+
+        # Run a tracker to link predictions across frames
+        detections = byte_tracker.update_with_detections(detections)
+        
+        # Record the new frame and get the smoothed predictions
+        smoother.add_frame(detections)
+        smoothed_detections = smoother.get_smoothed_detections()
+        
+        # Render
+        image_smoothed = box_annotator.annotate(scene=image.copy(), detections=smoothed_detections)
+
+        # Visualize
+        cv2.imshow("Prediction", image)
+        cv2.waitKey(1)
+
+
+    pipeline = InferencePipeline.init(
+        model_id="microsoft-coco/9", # Or put your custom trained model here
+        # api_key="YOUR_ROBOFLOW_KEY", # Uncomment and fill if you want to access a model that requires auth (or setup a .env file)
+        video_reference=0, # Webcam; can also be video path or RTSP stream
+        on_prediction=render
+    )
+    pipeline.start()
+    pipeline.join()
+    ```
+
     !!! warning
 
         Smoother utilizes the `tracker_id`. Read
