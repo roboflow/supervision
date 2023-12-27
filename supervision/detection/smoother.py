@@ -11,7 +11,8 @@ class Smoother:
     <video controls>
         <source src="https://media.roboflow.com/supervision/video-examples/smoothed-grocery-example-720.mp4" type="video/mp4">
     </video>
-    > _On the left are the model's raw predictions, on the right is the output of Smoother._
+    > _On the left are the model's raw predictions,
+    > on the right is the output of Smoother._
 
     ## Example Usage:
 
@@ -39,7 +40,10 @@ class Smoother:
         smoothed_detections = smoother.get_smoothed_detections()
         
         # Render
-        image_smoothed = box_annotator.annotate(scene=image.copy(), detections=smoothed_detections)
+        image_smoothed = box_annotator.annotate(
+            scene=image.copy(),
+            detections=smoothed_detections
+        )
 
         # Visualize
         cv2.imshow("Prediction", image)
@@ -48,7 +52,8 @@ class Smoother:
 
     pipeline = InferencePipeline.init(
         model_id="microsoft-coco/9", # Or put your custom trained model here
-        # api_key="YOUR_ROBOFLOW_KEY", # Uncomment and fill if you want to access a model that requires auth (or setup a .env file)
+        # api_key="YOUR_ROBOFLOW_KEY", # Uncomment and fill if you want to access a
+        #                                model that requires auth (or setup a .env file)
         video_reference=0, # Webcam; can also be video path or RTSP stream
         on_prediction=render
     )
