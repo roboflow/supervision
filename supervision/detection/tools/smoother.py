@@ -131,7 +131,7 @@ class Smoother:
                 # continue tracking for a few frames after the object has left
                 # (to prevent flickering in case it comes back)
                 track.append(None)
-        
+
         return self.get_smoothed_detections()
 
     def get_track(self, track_id: int) -> Optional[dict]:
