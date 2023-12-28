@@ -4,6 +4,12 @@ import cv2
 from ultralytics import YOLO
 
 import supervision as sv
+from supervision.assets import VideoAssets, download_assets
+
+
+def download_video() -> str:
+    download_assets(VideoAssets.PEOPLE_WALKING)
+    return VideoAssets.PEOPLE_WALKING.value
 
 
 def heatmap_and_track(
@@ -106,13 +112,13 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--source_video_path",
-        required=True,
+        default=download_video(),
         help="Path to the source video file",
         type=str,
     )
     parser.add_argument(
         "--target_video_path",
-        required=True,
+        default="output.mp4",
         help="Path to the target video file (output)",
         type=str,
     )

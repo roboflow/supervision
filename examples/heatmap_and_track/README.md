@@ -33,11 +33,10 @@ supervision package for multiple tasks such as drawing heatmap annotations, trac
 
 - `--source_weights_path`: Required. Specifies the path to the weights file for the
 YOLO model. This file contains the trained model data necessary for object detection.
-- `--source_video_path`: Required. The path to the source video file that will be
+- `--source_video_path` (optional): The path to the source video file that will be
 analyzed. This is the input video on which crowd analysis will be performed.
-- `--target_video_path` (optional): The path to save the output video with annotations.
-If not specified, the processed video will be displayed in real-time without being
-saved.
+If not specified default is `people-walking.mp4` from supervision assets
+- `--target_video_path` (optional): The path to save the output.mp4 video with annotations.
 - `--confidence_threshold` (optional): Sets the confidence threshold for the YOLO model
 to filter detections. Default is `0.3`. This determines how confident the model should
 be to recognize an object in the video.
@@ -54,11 +53,11 @@ particularly in distinguishing between different objects.
 
 ```bash
 python script.py \
---source_weights_path data/crowd_analysis.pt \
---source_video_path data/crowd_analysis.mov \
+--source_weights_path weight.pt \
+--source_video_path  input_video.mp4 \
 --confidence_threshold 0.3 \
 --iou_threshold 0.5 \
---target_video_path data/crowd_analysis_result.mov
+--target_video_path  output_video.mp4
 ```
 
 ## © license
