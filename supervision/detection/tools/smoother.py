@@ -7,15 +7,23 @@ from supervision.detection.core import Detections
 
 class Smoother:
     """
-    A class for smoothing out noise in predictions over time by using a Tracker
-    to track objects over time and averaging out the predictions over the
-    `length` most recent frames.
+    Smooth out noise in predictions over time with the `Smoother` class.
+    This classes uses an existing `Tracker` to track objects over time.
+    Detections are averaged out over the `length` most recent frames.
 
     <video controls>
         <source src="https://media.roboflow.com/supervision/video-examples/smoothed-grocery-example-720.mp4" type="video/mp4">
     </video>
     > _On the left are the model's raw predictions,
     > on the right is the output of Smoother._
+
+    !!! warning
+
+        Smoother uses the `tracker_id`. Read
+        [here](https://supervision.roboflow.com/trackers/) to learn how to plug
+        tracking into your inference pipeline.
+
+        Note: Smoother is intended for use on Detections without a `mask` field.
 
     ## Example Usage:
 
@@ -63,12 +71,6 @@ class Smoother:
     pipeline.start()
     pipeline.join()
     ```
-
-    !!! warning
-
-        Smoother utilizes the `tracker_id`. Read
-        [here](https://supervision.roboflow.com/trackers/) to learn how to plug
-        tracking into your inference pipeline.
     """
 
     def __init__(self, length: int = 5) -> None:
@@ -80,9 +82,9 @@ class Smoother:
         self.length = length
 
         self.current_frame = 0
-        self.tracks = NoneDict()
-        self.track_starts = NoneDict()
-        self.track_ends = NoneDict()
+        self.tracks = defaultdict(lambda: deque(maxlen=length))
+        self.track_starts = defaultdict(lambda: deque(maxlen=length))
+        self.track_ends = defaultdict(lambda: deque(maxlen=length))
 
     def tracker_length(self, tracker_id):
         return self.current_frame - self.track_starts[tracker_id]
@@ -154,19 +156,3 @@ class Smoother:
                 tracked_detections.append(track)
 
         return Detections.merge(tracked_detections)
-
-
-class NoneDict(defaultdict):
-    """
-    Helper class that returns None instead of raising a KeyError
-    when a key is not found.
-    """
-
-    def __init__(self, *args, **kwargs):
-        super(NoneDict, self).__init__(None, *args, **kwargs)
-
-    def __getitem__(self, key):
-        try:
-            return super(NoneDict, self).__getitem__(key)
-        except KeyError:
-            return None

@@ -1,4 +1,4 @@
-Utilize Supervision to elevate your video analysis capabilities by effortlessly
+Use Supervision to elevate your video analysis capabilities by effortlessly
 [tracking](https://supervision.roboflow.com/trackers/) objects identified by various
 object detection and segmentation models. This guide will walk you through the process
 of running inference using the [Ultralytics](https://github.com/ultralytics/ultralytics)
