@@ -35,9 +35,10 @@ def is_md5_hash_matching(filename: str, original_md5_hash: str) -> bool:
 
     with open(filename, "rb") as file:
         file_contents = file.read()
-        computed_md5_hash = hash_new(file_contents, name="MD5").hexdigest()
+        computed_md5_hash = hash_new(name="MD5")
+        computed_md5_hash.update(file_contents)
 
-    return computed_md5_hash == original_md5_hash
+    return computed_md5_hash.hexdigest() == original_md5_hash
 
 
 def download_assets(asset_name: Union[VideoAssets, str]) -> str:
