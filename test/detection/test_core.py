@@ -289,19 +289,13 @@ def test_get_anchor_coordinates(
             True,
         ),  # detections with xyxy field
         (
-            mock_detections(
-                xyxy=[[10, 10, 20, 20]], confidence=[0.5]
-            ),
-            mock_detections(
-                xyxy=[[10, 10, 20, 20]]
-            ),
-            False
+            mock_detections(xyxy=[[10, 10, 20, 20]], confidence=[0.5]),
+            mock_detections(xyxy=[[10, 10, 20, 20]]),
+            False,
         ),  # detection with xyxy field + detection with xyxy, confidence fields
-    ]
+    ],
 )
 def test_equal(
-    detections_a: Detections,
-    detections_b: Detections,
-    expected_result: bool
+    detections_a: Detections, detections_b: Detections, expected_result: bool
 ) -> None:
     assert (detections_a == detections_b) == expected_result
