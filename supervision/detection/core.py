@@ -126,30 +126,10 @@ class Detections:
         return all(
             [
                 np.array_equal(self.xyxy, other.xyxy),
-                any(
-                    [
-                        self.mask is None and other.mask is None,
-                        np.array_equal(self.mask, other.mask),
-                    ]
-                ),
-                any(
-                    [
-                        self.class_id is None and other.class_id is None,
-                        np.array_equal(self.class_id, other.class_id),
-                    ]
-                ),
-                any(
-                    [
-                        self.confidence is None and other.confidence is None,
-                        np.array_equal(self.confidence, other.confidence),
-                    ]
-                ),
-                any(
-                    [
-                        self.tracker_id is None and other.tracker_id is None,
-                        np.array_equal(self.tracker_id, other.tracker_id),
-                    ]
-                ),
+                np.array_equal(self.mask, other.mask),
+                np.array_equal(self.class_id, other.class_id),
+                np.array_equal(self.confidence, other.confidence),
+                np.array_equal(self.tracker_id, other.tracker_id),
             ]
         )
 
