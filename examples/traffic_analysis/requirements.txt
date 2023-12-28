@@ -1,4 +1,5 @@
+gdown
+inference
 supervision
 tqdm
 ultralytics
-gdown

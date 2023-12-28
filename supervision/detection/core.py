@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import suppress
 from dataclasses import astuple, dataclass
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
@@ -13,6 +14,7 @@ from supervision.detection.utils import (
     xywh_to_xyxy,
 )
 from supervision.geometry.core import Position
+from supervision.utils.internal import deprecated
 
 
 def _validate_xyxy(xyxy: Any, n: int) -> None:
@@ -438,10 +440,64 @@ class Detections:
         )
 
     @classmethod
-    def from_roboflow(cls, roboflow_result: dict) -> Detections:
+    def from_inference(cls, roboflow_result: Union[dict, Any]) -> Detections:
         """
         Create a Detections object from the [Roboflow](https://roboflow.com/)
-            API inference result.
+            API inference result or the [Inference](https://inference.roboflow.com/) package results.
+
+        Args:
+            roboflow_result (dict, any): The result from the
+                Roboflow API or Inference package containing predictions
+
+        Returns:
+            (Detections): A Detections object containing the bounding boxes, class IDs,
+                and confidences of the predictions.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> roboflow_result = {
+            ...     "predictions": [
+            ...         {
+            ...             "x": 0.5,
+            ...             "y": 0.5,
+            ...             "width": 0.2,
+            ...             "height": 0.3,
+            ...             "class_id": 0,
+            ...             "class": "person",
+            ...             "confidence": 0.9
+            ...         },
+            ...         # ... more predictions ...
+            ...     ]
+            ... }
+
+            >>> detections = sv.Detections.from_roboflow(roboflow_result)
+            ```
+        """
+        with suppress(AttributeError):
+            roboflow_result = roboflow_result.dict(exclude_none=True, by_alias=True)
+        xyxy, confidence, class_id, masks, trackers = process_roboflow_result(
+            roboflow_result=roboflow_result
+        )
+
+        if np.asarray(xyxy).shape[0] == 0:
+            return cls.empty()
+
+        return cls(
+            xyxy=xyxy,
+            confidence=confidence,
+            class_id=class_id,
+            mask=masks,
+            tracker_id=trackers,
+        )
+
+    @classmethod
+    @deprecated("Use `from_inference` instead.")
+    def from_roboflow(cls, roboflow_result: Union[dict, Any]) -> Detections:
+        """
+        Create a Detections object from the [Roboflow](https://roboflow.com/)
+            API inference result or the [Inference](https://inference.roboflow.com/) package results.
 
         Args:
             roboflow_result (dict): The result from the
@@ -473,20 +529,7 @@ class Detections:
             >>> detections = sv.Detections.from_roboflow(roboflow_result)
             ```
         """
-        xyxy, confidence, class_id, masks, trackers = process_roboflow_result(
-            roboflow_result=roboflow_result
-        )
-
-        if np.asarray(xyxy).shape[0] == 0:
-            return cls.empty()
-
-        return cls(
-            xyxy=xyxy,
-            confidence=confidence,
-            class_id=class_id,
-            mask=masks,
-            tracker_id=trackers,
-        )
+        return cls.from_inference(roboflow_result)
 
     @classmethod
     def from_sam(cls, sam_result: List[dict]) -> Detections:
