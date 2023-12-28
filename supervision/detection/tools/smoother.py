@@ -1,4 +1,4 @@
-from collections import defaultdict
+from collections import deque
 from typing import Optional
 
 import numpy as np
@@ -86,6 +86,18 @@ class Smoother:
         self.track_starts = {}
         self.track_ends = {}
 
+    def set_length(self, length: int) -> None:
+        """
+        Sets the number of frames to average out detections over.
+
+        Args:
+            length (int): The number of frames to average out detections over.
+        """
+
+        self.length = length
+        for track_id in self.tracks:
+            self.tracks[track_id] = deque(self.tracks[track_id], maxlen=length)
+
     def tracker_length(self, tracker_id: int) -> int:
         return self.current_frame - self.track_starts[tracker_id]
 
@@ -107,8 +119,7 @@ class Smoother:
                 continue
 
             if self.tracks.get(tracker_id, None) is None:
-                # initialize a new tracker_id
-                self.tracks[tracker_id] = []
+                self.tracks[tracker_id] = deque(maxlen=self.length)
                 self.track_starts[tracker_id] = self.current_frame
 
             self.tracks[tracker_id].append(detections[detection_idx])
@@ -120,14 +131,10 @@ class Smoother:
                 # continue tracking for a few frames after the object has left
                 # (to prevent flickering in case it comes back)
                 track.append(None)
-
-            if len(track) > self.length:
-                # remove the oldest detection from the track it's too long
-                track.pop(0)
         
         return self.get_smoothed_detections()
 
-    def get_track(self, track_id: int) -> Optional[defaultdict]:
+    def get_track(self, track_id: int) -> Optional[dict]:
         track = self.tracks.get(track_id, None)
         if track is None:
             return None
@@ -137,7 +144,6 @@ class Smoother:
             return None
 
         ret = track[0]
-        # set to an average of all the detection boxes
         ret.xyxy = np.mean([d.xyxy for d in track], axis=0)
         ret.confidence = np.mean([d.confidence for d in track], axis=0)
 
