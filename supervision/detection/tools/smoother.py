@@ -124,7 +124,7 @@ class Smoother:
             if len(track) > self.length:
                 # remove the oldest detection from the track it's too long
                 track.pop(0)
-        
+
         return self.get_smoothed_detections()
 
     def get_track(self, track_id: int) -> Optional[defaultdict]:
