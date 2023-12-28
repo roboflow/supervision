@@ -660,6 +660,50 @@ class Detections:
         )
 
     @classmethod
+    def from_owl(cls, owl_result) -> Detections:
+        """
+        Creates a Detections instance from OWLv2 and OWL-ViT inference result.
+
+         Args:
+            owl_result (List): The output Results instance from OWLv2 and OWL-ViT
+
+        Returns:
+            Detections: A new Detections object.
+
+        Example:
+            ```python
+            >>> from PIL import Image
+            >>> import torch
+            >>> from transformers import Owlv2Processor, Owlv2ForObjectDetection
+            >>> import supervision as sv
+
+            >>> processor = Owlv2Processor.from_pretrained("google/owlv2-base-patch16-ensemble")
+            >>> model = Owlv2ForObjectDetection.from_pretrained("google/owlv2-base-patch16-ensemble")
+
+            >>> url = "http://images.cocodataset.org/val2017/000000039769.jpg"
+            >>> image = Image.open(requests.get(url, stream=True).raw)
+            >>> texts = [["a photo of a cat", "a photo of a dog"]]
+            >>> inputs = processor(text=texts, images=image, return_tensors="pt")
+            >>> outputs = model(**inputs)
+
+            >>> # Target image sizes (height, width) to rescale box predictions [batch_size, 2]
+            >>> target_sizes = torch.Tensor([image.size[::-1]])
+            >>> # Convert outputs (bounding boxes and class logits) to Pascal VOC Format (xmin, ymin, xmax, ymax)
+            >>> results = processor.post_process_object_detection(outputs=outputs, target_sizes=target_sizes, threshold=0.1)
+            >>> detections = sv.Detections.from_owl(results)
+            ```
+        """  # noqa: E501 // docs
+
+        if np.asarray(owl_result[0]["boxes"].detach().numpy().shape[0]) == 0:
+            return cls.empty()
+
+        return cls(
+            xyxy=owl_result[0]["boxes"].detach().numpy(),
+            confidence=owl_result[0]["scores"].detach().numpy(),
+            class_id=owl_result[0]["labels"].detach().numpy().astype(int),
+        )
+
+    @classmethod
     def empty(cls) -> Detections:
         """
         Create an empty Detections object with no bounding boxes,
