@@ -61,8 +61,7 @@ def _validate_tracker_id(tracker_id: Any, n: int) -> None:
 
 
 def _data_payload_equal(
-    data_a: Dict[str, np.ndarray],
-    data_b: Dict[str, np.ndarray]
+    data_a: Dict[str, np.ndarray], data_b: Dict[str, np.ndarray]
 ) -> bool:
     """
     Compares the data payloads of two Detections instances.
@@ -73,9 +72,8 @@ def _data_payload_equal(
     Returns:
         True if the data payloads are equal, False otherwise.
     """
-    return (
-        set(data_a.keys()) == set(data_b.keys()) and
-        all(np.array_equal(data_a[key], data_b[key]) for key in data_a)
+    return set(data_a.keys()) == set(data_b.keys()) and all(
+        np.array_equal(data_a[key], data_b[key]) for key in data_a
     )
 
 

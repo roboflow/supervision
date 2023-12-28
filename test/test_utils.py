@@ -1,4 +1,4 @@
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 
@@ -13,33 +13,20 @@ def mock_detections(
     tracker_id: Optional[List[int]] = None,
     data: Optional[Dict[str, List[Any]]] = None,
 ) -> Detections:
-
     def convert_data(data: Dict[str, List[Any]]):
         return {k: np.array(v) for k, v in data.items()}
 
     return Detections(
         xyxy=np.array(xyxy, dtype=np.float32),
-        mask=(
-            mask
-            if mask is None
-            else np.array(mask, dtype=bool)
-        ),
+        mask=(mask if mask is None else np.array(mask, dtype=bool)),
         confidence=(
-            confidence
-            if confidence is None
-            else np.array(confidence, dtype=np.float32)
+            confidence if confidence is None else np.array(confidence, dtype=np.float32)
         ),
-        class_id=(
-            class_id
-            if class_id is None
-            else np.array(class_id, dtype=int)
-        ),
+        class_id=(class_id if class_id is None else np.array(class_id, dtype=int)),
         tracker_id=(
-            tracker_id
-            if tracker_id is None
-            else np.array(tracker_id, dtype=int)
+            tracker_id if tracker_id is None else np.array(tracker_id, dtype=int)
         ),
-        data=convert_data(data) if data else {}
+        data=convert_data(data) if data else {},
     )
 
 
