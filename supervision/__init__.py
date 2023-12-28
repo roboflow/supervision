@@ -33,7 +33,7 @@ from supervision.dataset.core import (
 from supervision.detection.annotate import BoxAnnotator
 from supervision.detection.core import Detections
 from supervision.detection.line_counter import LineZone, LineZoneAnnotator
-from supervision.detection.smoother import Smoother
+from supervision.detection.tools.smoother import Smoother
 from supervision.detection.tools.inference_slicer import InferenceSlicer
 from supervision.detection.tools.polygon_zone import PolygonZone, PolygonZoneAnnotator
 from supervision.detection.utils import (
