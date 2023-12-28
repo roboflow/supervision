@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import astuple, dataclass
+from dataclasses import astuple, dataclass, field
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
@@ -60,6 +60,25 @@ def _validate_tracker_id(tracker_id: Any, n: int) -> None:
         raise ValueError("tracker_id must be None or 1d np.ndarray with (n,) shape")
 
 
+def _data_payload_equal(
+    data_a: Dict[str, np.ndarray],
+    data_b: Dict[str, np.ndarray]
+) -> bool:
+    """
+    Compares the data payloads of two Detections instances.
+
+    Args:
+        data_a, data_b: The data payloads of the instances.
+
+    Returns:
+        True if the data payloads are equal, False otherwise.
+    """
+    return (
+        set(data_a.keys()) == set(data_b.keys()) and
+        all(np.array_equal(data_a[key], data_b[key]) for key in data_a)
+    )
+
+
 @dataclass
 class Detections:
     """
@@ -83,6 +102,7 @@ class Detections:
     confidence: Optional[np.ndarray] = None
     class_id: Optional[np.ndarray] = None
     tracker_id: Optional[np.ndarray] = None
+    data: Dict[str, np.ndarray] = field(default_factory=dict)
 
     def __post_init__(self):
         n = len(self.xyxy)
@@ -130,6 +150,7 @@ class Detections:
                 np.array_equal(self.class_id, other.class_id),
                 np.array_equal(self.confidence, other.confidence),
                 np.array_equal(self.tracker_id, other.tracker_id),
+                _data_payload_equal(self.data, other.data),
             ]
         )
 

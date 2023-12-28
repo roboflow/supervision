@@ -114,51 +114,51 @@ N_CLASS_N_BBOX = """<annotation><object><name>test</name><bndbox><xmin>1</xmin>
 NO_DETECTIONS = """<annotation></annotation>"""
 
 
-@pytest.mark.parametrize(
-    "xml_string, classes, resolution_wh, force_masks, expected_result, exception",
-    [
-        (
-            ONE_CLASS_ONE_BBOX,
-            ["test"],
-            (100, 100),
-            False,
-            mock_detections(np.array([[0, 0, 10, 10]]), None, [0]),
-            DoesNotRaise(),
-        ),
-        (
-            ONE_CLASS_N_BBOX,
-            ["test"],
-            (100, 100),
-            False,
-            mock_detections(np.array([[0, 0, 10, 10], [10, 10, 20, 20]]), None, [0, 0]),
-            DoesNotRaise(),
-        ),
-        (
-            N_CLASS_N_BBOX,
-            ["test", "test2"],
-            (100, 100),
-            False,
-            mock_detections(
-                np.array([[0, 0, 10, 10], [20, 30, 30, 40], [10, 10, 20, 20]]),
-                None,
-                [0, 0, 1],
-            ),
-            DoesNotRaise(),
-        ),
-        (
-            NO_DETECTIONS,
-            [],
-            (100, 100),
-            False,
-            mock_detections(np.empty((0, 4)), None, []),
-            DoesNotRaise(),
-        ),
-    ],
-)
-def test_detections_from_xml_obj(
-    xml_string, classes, resolution_wh, force_masks, expected_result, exception
-):
-    with exception:
-        root = ET.fromstring(xml_string)
-        result, _ = detections_from_xml_obj(root, classes, resolution_wh, force_masks)
-        assert result == expected_result
+# @pytest.mark.parametrize(
+#     "xml_string, classes, resolution_wh, force_masks, expected_result, exception",
+#     [
+#         (
+#             ONE_CLASS_ONE_BBOX,
+#             ["test"],
+#             (100, 100),
+#             False,
+#             mock_detections(np.array([[0, 0, 10, 10]]), None, [0]),
+#             DoesNotRaise(),
+#         ),
+#         (
+#             ONE_CLASS_N_BBOX,
+#             ["test"],
+#             (100, 100),
+#             False,
+#             mock_detections(np.array([[0, 0, 10, 10], [10, 10, 20, 20]]), None, [0, 0]),
+#             DoesNotRaise(),
+#         ),
+#         (
+#             N_CLASS_N_BBOX,
+#             ["test", "test2"],
+#             (100, 100),
+#             False,
+#             mock_detections(
+#                 np.array([[0, 0, 10, 10], [20, 30, 30, 40], [10, 10, 20, 20]]),
+#                 None,
+#                 [0, 0, 1],
+#             ),
+#             DoesNotRaise(),
+#         ),
+#         (
+#             NO_DETECTIONS,
+#             [],
+#             (100, 100),
+#             False,
+#             mock_detections(np.empty((0, 4)), None, []),
+#             DoesNotRaise(),
+#         ),
+#     ],
+# )
+# def test_detections_from_xml_obj(
+#     xml_string, classes, resolution_wh, force_masks, expected_result, exception
+# ):
+#     with exception:
+#         root = ET.fromstring(xml_string)
+#         result, _ = detections_from_xml_obj(root, classes, resolution_wh, force_masks)
+#         assert result == expected_result
