@@ -1,4 +1,5 @@
 from collections import defaultdict
+from typing import Optional
 
 import numpy as np
 
@@ -47,8 +48,7 @@ class Smoother:
         detections = byte_tracker.update_with_detections(detections)
 
         # Record the new frame and get the smoothed predictions
-        smoother.add_frame(detections)
-        smoothed_detections = smoother.get_smoothed_detections()
+        smoothed_detections = smoother.update_with_detections(detections)
 
         # Render
         image_smoothed = box_annotator.annotate(
@@ -82,14 +82,14 @@ class Smoother:
         self.length = length
 
         self.current_frame = 0
-        self.tracks = defaultdict(lambda: deque(maxlen=length))
-        self.track_starts = defaultdict(lambda: deque(maxlen=length))
-        self.track_ends = defaultdict(lambda: deque(maxlen=length))
+        self.tracks = {}
+        self.track_starts = {}
+        self.track_ends = {}
 
-    def tracker_length(self, tracker_id):
+    def tracker_length(self, tracker_id: int) -> int:
         return self.current_frame - self.track_starts[tracker_id]
 
-    def add_frame(self, detections: Detections) -> None:
+    def update_with_detections(self, detections: Detections) -> Detections:
         """
         Adds a new set of predictions to the smoother. Run this with every new
         prediction received from the model.
@@ -106,7 +106,7 @@ class Smoother:
                 # skip detections without a tracker id
                 continue
 
-            if self.tracks[tracker_id] is None:
+            if self.tracks.get(tracker_id, None) is None:
                 # initialize a new tracker_id
                 self.tracks[tracker_id] = []
                 self.track_starts[tracker_id] = self.current_frame
@@ -124,9 +124,11 @@ class Smoother:
             if len(track) > self.length:
                 # remove the oldest detection from the track it's too long
                 track.pop(0)
+        
+        return self.get_smoothed_detections()
 
-    def get_track(self, track_id):
-        track = self.tracks[track_id]
+    def get_track(self, track_id: int) -> Optional[defaultdict]:
+        track = self.tracks.get(track_id, None)
         if track is None:
             return None
 
@@ -141,7 +143,7 @@ class Smoother:
 
         return ret
 
-    def get_smoothed_detections(self):
+    def get_smoothed_detections(self) -> Detections:
         """
         Returns a smoothed set of predictions based on the `length` most recent frames.
 
