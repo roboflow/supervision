@@ -20,9 +20,9 @@ from supervision.annotators.core import (
     MaskAnnotator,
     PixelateAnnotator,
     PolygonAnnotator,
+    RoundBoundingBoxAnnotator,
     TraceAnnotator,
     TriangleAnnotator,
-    RoundBoundingBoxAnnotator,
 )
 from supervision.annotators.utils import ColorLookup
 from supervision.classification.core import Classifications
