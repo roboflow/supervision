@@ -83,7 +83,6 @@ class Smoother:
 
         self.current_frame = 0
         self.tracks = {}
-        self.track_starts = {}
         self.track_ends = {}
 
     def set_length(self, length: int) -> None:
@@ -97,9 +96,6 @@ class Smoother:
         self.length = length
         for track_id in self.tracks:
             self.tracks[track_id] = deque(self.tracks[track_id], maxlen=length)
-
-    def tracker_length(self, tracker_id: int) -> int:
-        return self.current_frame - self.track_starts[tracker_id]
 
     def update_with_detections(self, detections: Detections) -> Detections:
         """
@@ -120,7 +116,6 @@ class Smoother:
 
             if self.tracks.get(tracker_id, None) is None:
                 self.tracks[tracker_id] = deque(maxlen=self.length)
-                self.track_starts[tracker_id] = self.current_frame
 
             self.tracks[tracker_id].append(detections[detection_idx])
             self.track_ends[tracker_id] = self.current_frame
