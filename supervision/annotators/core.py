@@ -1375,7 +1375,7 @@ class RoundBoundingBoxAnnotator(BaseAnnotator):
             color_lookup (str): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
             roundness (float): Percent of roundness for edges of bounding box.
-                Value must be 0 < roundness <= 1.0
+                Value must be float 0 < roundness <= 1.0
                 By default roundness percent is calculated based on smaller side
                 length (width or height).
         """
