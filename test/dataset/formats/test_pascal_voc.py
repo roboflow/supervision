@@ -162,6 +162,4 @@ def test_detections_from_xml_obj(
     with exception:
         root = ET.fromstring(xml_string)
         result, _ = detections_from_xml_obj(root, classes, resolution_wh, force_masks)
-        print(result)
-        print(expected_result)
         assert result == expected_result
