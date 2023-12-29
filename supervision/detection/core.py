@@ -104,7 +104,8 @@ def merge_data(
         lengths = [len(value) for value in data.values()]
         if len(set(lengths)) > 1:
             raise ValueError(
-                "All data values within a single object must have equal length.")
+                "All data values within a single object must have equal length."
+            )
 
     merged_data = {key: [] for key in all_keys_sets[0]}
 
