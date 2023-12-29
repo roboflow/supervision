@@ -346,6 +346,35 @@ def test_equal(
         ),  # two empty data dicts
         (
             [
+                {"test_1": []},
+            ],
+            {"test_1": []},
+            DoesNotRaise(),
+        ),  # single data dict with a single field name and empty list values
+        (
+            [
+                {"test_1": np.array([])},
+            ],
+            {"test_1": np.array([])},
+            DoesNotRaise(),
+        ),  # single data dict with a single field name and empty np.array values
+        (
+            [
+                {"test_1": [1, 2, 3]},
+            ],
+            {"test_1": [1, 2, 3]},
+            DoesNotRaise(),
+        ),  # single data dict with a single field name and list values
+        (
+            [
+                {"test_1": []},
+                {"test_1": [3, 2, 1]},
+            ],
+            {"test_1": [3, 2, 1]},
+            DoesNotRaise(),
+        ),  # two data dicts with the same field name and empty and list values
+        (
+            [
                 {"test_1": [1, 2, 3]},
                 {"test_1": [3, 2, 1]},
             ],
@@ -407,6 +436,22 @@ def test_equal(
             },
             DoesNotRaise(),
         ),  # two data dicts with the same field names and mixed values
+        (
+            [
+                {"test_1": np.array([1, 2, 3])},
+                {"test_1": np.array([[3, 2, 1]])},
+            ],
+            None,
+            pytest.raises(ValueError),
+        ),  # two data dicts with the same field name and 1D and 2D arrays values
+        (
+            [
+                {"test_1": np.array([1, 2, 3]), "test_2": np.array(["a", "b"])},
+                {"test_1": np.array([3, 2, 1]), "test_2": np.array(["c", "b", "a"])},
+            ],
+            None,
+            pytest.raises(ValueError),
+        ),  # two data dicts with the same field name and different length arrays values
     ],
 )
 def test_merge_data(

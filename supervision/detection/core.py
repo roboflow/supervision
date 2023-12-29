@@ -87,7 +87,11 @@ def merge_data(
 
     Returns:
         A single data payload containing the merged data, preserving the original data
-        types (list or np.ndarray).
+            types (list or np.ndarray).
+
+    Raises:
+        ValueError: If data values within a single object have different lengths or if
+            dictionaries have different keys.
     """
     if not data_list:
         return {}
@@ -95,6 +99,12 @@ def merge_data(
     all_keys_sets = [set(data.keys()) for data in data_list]
     if not all(keys_set == all_keys_sets[0] for keys_set in all_keys_sets):
         raise ValueError("All data dictionaries must have the same keys to merge.")
+
+    for data in data_list:
+        lengths = [len(value) for value in data.values()]
+        if len(set(lengths)) > 1:
+            raise ValueError(
+                "All data values within a single object must have equal length.")
 
     merged_data = {key: [] for key in all_keys_sets[0]}
 
