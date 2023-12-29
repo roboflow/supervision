@@ -1422,7 +1422,6 @@ class RoundBoundingBoxAnnotator(BaseAnnotator):
         ![round-bounding-box-annotator-example]() Link to be added for image example
         """
 
-
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
             color = resolve_color(
@@ -1434,45 +1433,49 @@ class RoundBoundingBoxAnnotator(BaseAnnotator):
                 else custom_color_lookup,
             )
 
-            radius = (int((x2-x1)//2 * self.roundness) 
-                      if abs(x1-x2) < abs(y1-y2)
-                      else int((y2-y1)//2 * self.roundness))
-            
+            radius = (
+                int((x2 - x1) // 2 * self.roundness)
+                if abs(x1 - x2) < abs(y1 - y2)
+                else int((y2 - y1) // 2 * self.roundness)
+            )
+
             circle_coordinates = [
-                ((x1+radius), (y1+radius)),
-                ((x2-radius), (y1+radius)),
-                ((x2-radius), (y2-radius)),
-                ((x1+radius), (y2-radius))
+                ((x1 + radius), (y1 + radius)),
+                ((x2 - radius), (y1 + radius)),
+                ((x2 - radius), (y2 - radius)),
+                ((x1 + radius), (y2 - radius)),
             ]
 
             line_coordinates = [
-                ((x1+radius, y1), (x2-radius, y1)),
-                ((x2, y1+radius), (x2, y2-radius)),
-                ((x1+radius, y2), (x2-radius, y2)),
-                ((x1, y1+radius), (x1, y2-radius))
+                ((x1 + radius, y1), (x2 - radius, y1)),
+                ((x2, y1 + radius), (x2, y2 - radius)),
+                ((x1 + radius, y2), (x2 - radius, y2)),
+                ((x1, y1 + radius), (x1, y2 - radius)),
             ]
 
             start_angles = (180, 270, 0, 90)
             end_angles = (270, 360, 90, 180)
 
             for center_coordinates, line, start_angle, end_angle in zip(
-                                                            circle_coordinates,
-                                                            line_coordinates,
-                                                            start_angles,
-                                                            end_angles):
-                    cv2.ellipse(img=scene,
-                                center=center_coordinates,
-                                axes=(radius, radius),
-                                angle=0,
-                                startAngle=start_angle,
-                                endAngle=end_angle,
-                                color=color.as_bgr(),
-                                thickness=self.thickness)
-                    
-                    cv2.line(img=scene,
-                            pt1=line[0],
-                            pt2=line[1],
-                            color=color.as_bgr(),
-                            thickness=self.thickness)
-                    
+                circle_coordinates, line_coordinates, start_angles, end_angles
+            ):
+                cv2.ellipse(
+                    img=scene,
+                    center=center_coordinates,
+                    axes=(radius, radius),
+                    angle=0,
+                    startAngle=start_angle,
+                    endAngle=end_angle,
+                    color=color.as_bgr(),
+                    thickness=self.thickness,
+                )
+
+                cv2.line(
+                    img=scene,
+                    pt1=line[0],
+                    pt2=line[1],
+                    color=color.as_bgr(),
+                    thickness=self.thickness,
+                )
+
         return scene
