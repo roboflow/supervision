@@ -1,4 +1,5 @@
 from contextlib import ExitStack as DoesNotRaise
+from test.test_utils import mock_detections
 from typing import List, Optional
 
 import defusedxml.ElementTree as ET
@@ -6,10 +7,10 @@ import numpy as np
 import pytest
 
 from supervision.dataset.formats.pascal_voc import (
+    detections_from_xml_obj,
     object_to_pascal_voc,
-    parse_polygon_points, detections_from_xml_obj,
+    parse_polygon_points,
 )
-from test.test_utils import mock_detections
 
 
 def are_xml_elements_equal(elem1, elem2):
@@ -130,8 +131,7 @@ NO_DETECTIONS = """<annotation></annotation>"""
             (100, 100),
             False,
             mock_detections(
-                xyxy=np.array([[0, 0, 10, 10], [10, 10, 20, 20]]),
-                class_id=[0, 0]
+                xyxy=np.array([[0, 0, 10, 10], [10, 10, 20, 20]]), class_id=[0, 0]
             ),
             DoesNotRaise(),
         ),
