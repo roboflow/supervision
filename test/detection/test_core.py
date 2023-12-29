@@ -181,6 +181,16 @@ def test_getitem(
             mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]], class_id=[0, 1]),
             DoesNotRaise(),
         ),  # two detections with xyxy, class_id fields
+        (
+            [
+                mock_detections(xyxy=[[10, 10, 20, 20]], data={"test": [1]}),
+                mock_detections(xyxy=[[20, 20, 30, 30]], data={"test": [2]}),
+            ],
+            mock_detections(
+                xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]], data={"test": [1, 2]}
+            ),
+            DoesNotRaise(),
+        ),  # two detections with xyxy, data fields
     ],
 )
 def test_merge(

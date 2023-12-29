@@ -650,12 +650,33 @@ class Detections:
 
         Example:
             ```python
-            >>> from supervision import Detections
+            import numpy as np
+            import supervision as sv
 
-            >>> detections_1 = Detections(...)
-            >>> detections_2 = Detections(...)
+            >>> detections_1 = sv.Detections(
+            ...     xyxy=np.array([[15, 15, 100, 100], [200, 200, 300, 300]]),
+            ...     class_id=np.array([1, 2]),
+            ...     data={'feature_vector': np.array([0.1, 0.2)])}
+            ... )
+
+            >>> detections_2 = sv.Detections(
+            ...     xyxy=np.array([[30, 30, 120, 120]]),
+            ...     class_id=np.array([1]),
+            ...     data={'feature_vector': [np.array([0.3])]}
+            ... )
 
             >>> merged_detections = Detections.merge([detections_1, detections_2])
+
+            >>> merged_detections.xyxy
+            array([[ 15,  15, 100, 100],
+                   [200, 200, 300, 300],
+                   [ 30,  30, 120, 120]])
+
+            >>> merged_detections.class_id
+            array([1, 2, 1])
+
+            >>> merged_detections.data['feature_vector']
+            array([0.1, 0.2, 0.3])
             ```
         """
         if len(detections_list) == 0:
