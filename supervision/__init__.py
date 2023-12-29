@@ -22,6 +22,7 @@ from supervision.annotators.core import (
     PolygonAnnotator,
     TraceAnnotator,
     TriangleAnnotator,
+    RoundBoundingBoxAnnotator,
 )
 from supervision.annotators.utils import ColorLookup
 from supervision.classification.core import Classifications
