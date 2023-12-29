@@ -1356,7 +1356,8 @@ class TriangleAnnotator(BaseAnnotator):
 
 class RoundBoundingBoxAnnotator(BaseAnnotator):
     """
-    A class for drawing bounding boxes with round edges on an image using provided detections.
+    A class for drawing bounding boxes with round edges on an image
+    using provided detections.
     """
 
     def __init__(
@@ -1373,7 +1374,10 @@ class RoundBoundingBoxAnnotator(BaseAnnotator):
             thickness (int): Thickness of the bounding box lines.
             color_lookup (str): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
-            roundness (float): Percent of roundness for edge 
+            roundness (float): Percent of roundness for edges of bounding box.
+                Value must be 0 < roundness <= 1.0
+                By default roundness percent is calculated based on smaller side
+                length (width or height).
         """
         self.color: Union[Color, ColorPalette] = color
         self.thickness: int = thickness
