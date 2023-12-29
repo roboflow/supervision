@@ -1365,7 +1365,7 @@ class RoundBoundingBoxAnnotator(BaseAnnotator):
         color: Union[Color, ColorPalette] = ColorPalette.default(),
         thickness: int = 2,
         color_lookup: ColorLookup = ColorLookup.CLASS,
-        roundess: float = 0.5,
+        roundess: float = 0.6,
     ):
         """
         Args:
