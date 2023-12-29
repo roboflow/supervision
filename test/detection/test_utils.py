@@ -1,5 +1,5 @@
 from contextlib import ExitStack as DoesNotRaise
-from typing import List, Optional, Tuple, Dict, Any
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import pytest
@@ -8,10 +8,11 @@ from supervision.detection.utils import (
     calculate_masks_centroids,
     clip_boxes,
     filter_polygons_by_area,
+    merge_data,
     move_boxes,
     non_max_suppression,
     process_roboflow_result,
-    scale_boxes, merge_data,
+    scale_boxes,
 )
 
 TEST_MASK = np.zeros((1, 1000, 1000), dtype=bool)

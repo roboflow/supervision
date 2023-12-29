@@ -1,5 +1,5 @@
 from itertools import chain
-from typing import List, Optional, Tuple, Dict, Union, Any
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
@@ -520,7 +520,8 @@ def validate_data(data: Dict[str, Union[np.ndarray, List]], n: int) -> None:
                 raise ValueError(f"Shape of np.ndarray for key '{key}' must be ({n},)")
             elif value.ndim > 1 and value.shape[0] != n:
                 raise ValueError(
-                    f"First dimension of np.ndarray for key '{key}' must have size {n}")
+                    f"First dimension of np.ndarray for key '{key}' must have size {n}"
+                )
         else:
             raise ValueError(f"Value for key '{key}' must be a list or np.ndarray")
 
@@ -568,7 +569,8 @@ def merge_data(
         lengths = [len(value) for value in data.values()]
         if len(set(lengths)) > 1:
             raise ValueError(
-                "All data values within a single object must have equal length.")
+                "All data values within a single object must have equal length."
+            )
 
     merged_data = {key: [] for key in all_keys_sets[0]}
 

@@ -8,10 +8,17 @@ import numpy as np
 from supervision.detection.utils import (
     calculate_masks_centroids,
     extract_ultralytics_masks,
+    is_data_equal,
+    merge_data,
     non_max_suppression,
     process_roboflow_result,
-    xywh_to_xyxy, validate_xyxy, validate_mask, validate_class_id, validate_confidence,
-    validate_tracker_id, validate_data, is_data_equal, merge_data,
+    validate_class_id,
+    validate_confidence,
+    validate_data,
+    validate_mask,
+    validate_tracker_id,
+    validate_xyxy,
+    xywh_to_xyxy,
 )
 from supervision.geometry.core import Position
 
