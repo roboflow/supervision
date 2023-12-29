@@ -299,7 +299,6 @@ def extract_ultralytics_masks(yolov8_results) -> Optional[np.ndarray]:
     orig_shape = yolov8_results.orig_shape
     inference_shape = tuple(yolov8_results.masks.data.shape[1:])
 
-    gain = 0
     pad = (0, 0)
 
     if inference_shape != orig_shape:

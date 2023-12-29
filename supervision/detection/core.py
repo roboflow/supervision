@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import astuple, dataclass, field
+from itertools import chain
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
@@ -60,7 +61,7 @@ def _validate_tracker_id(tracker_id: Any, n: int) -> None:
         raise ValueError("tracker_id must be None or 1d np.ndarray with (n,) shape")
 
 
-def _data_payload_equal(
+def is_data_equal(
     data_a: Dict[str, np.ndarray], data_b: Dict[str, np.ndarray]
 ) -> bool:
     """
@@ -77,10 +78,56 @@ def _data_payload_equal(
     )
 
 
+def merge_data(
+    data_list: List[Dict[str, Union[np.ndarray, List]]]
+) -> Dict[str, Union[np.ndarray, List]]:
+    """
+    Merges the data payloads of a list of Detections instances.
+
+    Args:
+        data_list: The data payloads of the instances.
+
+    Returns:
+        A single data payload containing the merged data, preserving the original data
+        types (list or np.ndarray).
+    """
+    if not data_list:
+        return {}
+
+    all_keys_sets = [set(data.keys()) for data in data_list]
+    if not all(keys_set == all_keys_sets[0] for keys_set in all_keys_sets):
+        raise ValueError("All data dictionaries must have the same keys to merge.")
+
+    merged_data = {key: [] for key in all_keys_sets[0]}
+
+    for data in data_list:
+        for key in merged_data:
+            merged_data[key].append(data[key])
+
+    for key in merged_data:
+        if all(isinstance(item, list) for item in merged_data[key]):
+            merged_data[key] = list(chain.from_iterable(merged_data[key]))
+        elif all(isinstance(item, np.ndarray) for item in merged_data[key]):
+            ndim = merged_data[key][0].ndim
+            if ndim == 1:
+                merged_data[key] = np.hstack(merged_data[key])
+            elif ndim > 1:
+                merged_data[key] = np.vstack(merged_data[key])
+            else:
+                raise ValueError(f"Unexpected array dimension for key '{key}'.")
+        else:
+            raise ValueError(
+                f"Inconsistent data types for key '{key}'. Only np.ndarray and list "
+                f"types are allowed."
+            )
+
+    return merged_data
+
+
 @dataclass
 class Detections:
     """
-    Data class containing information about the detections in a video frame.
+    A dataclass representing detection results.
 
     Attributes:
         xyxy (np.ndarray): An array of shape `(n, 4)` containing
@@ -93,6 +140,9 @@ class Detections:
             `(n,)` containing the class ids of the detections.
         tracker_id (Optional[np.ndarray]): An array of shape
             `(n,)` containing the tracker ids of the detections.
+        data (Dict[str, Union[np.ndarray, List]]): A dictionary containing additional
+            data where each key is a string representing the data type, and the value
+            is either a NumPy array or a list of corresponding data.
     """
 
     xyxy: np.ndarray
@@ -100,7 +150,7 @@ class Detections:
     confidence: Optional[np.ndarray] = None
     class_id: Optional[np.ndarray] = None
     tracker_id: Optional[np.ndarray] = None
-    data: Dict[str, np.ndarray] = field(default_factory=dict)
+    data: Dict[str, Union[np.ndarray, List]] = field(default_factory=dict)
 
     def __post_init__(self):
         n = len(self.xyxy)
@@ -148,7 +198,7 @@ class Detections:
                 np.array_equal(self.class_id, other.class_id),
                 np.array_equal(self.confidence, other.confidence),
                 np.array_equal(self.tracker_id, other.tracker_id),
-                _data_payload_equal(self.data, other.data),
+                is_data_equal(self.data, other.data),
             ]
         )
 
@@ -712,18 +762,19 @@ class Detections:
             return Detections.empty()
 
         detections_tuples_list = [astuple(detection) for detection in detections_list]
-        xyxy, mask, confidence, class_id, tracker_id = [
-            list(field) for field in zip(*detections_tuples_list)
+        xyxy, mask, confidence, class_id, tracker_id, data = [
+            list(field_values) for field_values in zip(*detections_tuples_list)
         ]
 
-        def __all_not_none(item_list: List[Any]):
+        def all_not_none(item_list: List[Any]):
             return all(x is not None for x in item_list)
 
         xyxy = np.vstack(xyxy)
-        mask = np.vstack(mask) if __all_not_none(mask) else None
-        confidence = np.hstack(confidence) if __all_not_none(confidence) else None
-        class_id = np.hstack(class_id) if __all_not_none(class_id) else None
-        tracker_id = np.hstack(tracker_id) if __all_not_none(tracker_id) else None
+        mask = np.vstack(mask) if all_not_none(mask) else None
+        confidence = np.hstack(confidence) if all_not_none(confidence) else None
+        class_id = np.hstack(class_id) if all_not_none(class_id) else None
+        tracker_id = np.hstack(tracker_id) if all_not_none(tracker_id) else None
+        data = merge_data(data)
 
         return cls(
             xyxy=xyxy,
@@ -731,6 +782,7 @@ class Detections:
             confidence=confidence,
             class_id=class_id,
             tracker_id=tracker_id,
+            data=data,
         )
 
     def get_anchors_coordinates(self, anchor: Position) -> np.ndarray:
