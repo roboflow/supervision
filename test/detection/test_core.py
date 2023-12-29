@@ -1,11 +1,11 @@
 from contextlib import ExitStack as DoesNotRaise
 from test.test_utils import mock_detections
-from typing import Any, Dict, List, Optional, Union
+from typing import List, Optional, Union
 
 import numpy as np
 import pytest
 
-from supervision.detection.core import Detections, merge_data
+from supervision.detection.core import Detections
 from supervision.geometry.core import Position
 
 PREDICTIONS = np.array(
@@ -299,23 +299,23 @@ def test_get_anchor_coordinates(
             False,
         ),  # detection with xyxy field + detection with xyxy, confidence fields
         (
-            mock_detections(xyxy=[[10, 10, 20, 20]], data={"test": [1, 2, 3]}),
-            mock_detections(xyxy=[[10, 10, 20, 20]], data={"test": [1, 2, 3]}),
+            mock_detections(xyxy=[[10, 10, 20, 20]], data={"test": [1]}),
+            mock_detections(xyxy=[[10, 10, 20, 20]], data={"test": [1]}),
             True,
         ),  # detections with xyxy, data fields
         (
-            mock_detections(xyxy=[[10, 10, 20, 20]], data={"test": [1, 2, 3]}),
+            mock_detections(xyxy=[[10, 10, 20, 20]], data={"test": [1]}),
             mock_detections(xyxy=[[10, 10, 20, 20]]),
             False,
         ),  # detection with xyxy field + detection with xyxy, data fields
         (
-            mock_detections(xyxy=[[10, 10, 20, 20]], data={"test_1": [1, 2, 3]}),
-            mock_detections(xyxy=[[10, 10, 20, 20]], data={"test_2": [1, 2, 3]}),
+            mock_detections(xyxy=[[10, 10, 20, 20]], data={"test_1": [1]}),
+            mock_detections(xyxy=[[10, 10, 20, 20]], data={"test_2": [1]}),
             False,
         ),  # detections with xyxy, and different data field names
         (
-            mock_detections(xyxy=[[10, 10, 20, 20]], data={"test_1": [1, 2, 3]}),
-            mock_detections(xyxy=[[10, 10, 20, 20]], data={"test_1": [3, 2, 1]}),
+            mock_detections(xyxy=[[10, 10, 20, 20]], data={"test_1": [1]}),
+            mock_detections(xyxy=[[10, 10, 20, 20]], data={"test_1": [3]}),
             False,
         ),  # detections with xyxy, and different data field values
     ],
@@ -324,149 +324,3 @@ def test_equal(
     detections_a: Detections, detections_b: Detections, expected_result: bool
 ) -> None:
     assert (detections_a == detections_b) == expected_result
-
-
-@pytest.mark.parametrize(
-    "data_list, expected_result, exception",
-    [
-        (
-            [],
-            {},
-            DoesNotRaise(),
-        ),  # empty data list
-        (
-            [{}],
-            {},
-            DoesNotRaise(),
-        ),  # single empty data dict
-        (
-            [{}, {}],
-            {},
-            DoesNotRaise(),
-        ),  # two empty data dicts
-        (
-            [
-                {"test_1": []},
-            ],
-            {"test_1": []},
-            DoesNotRaise(),
-        ),  # single data dict with a single field name and empty list values
-        (
-            [
-                {"test_1": np.array([])},
-            ],
-            {"test_1": np.array([])},
-            DoesNotRaise(),
-        ),  # single data dict with a single field name and empty np.array values
-        (
-            [
-                {"test_1": [1, 2, 3]},
-            ],
-            {"test_1": [1, 2, 3]},
-            DoesNotRaise(),
-        ),  # single data dict with a single field name and list values
-        (
-            [
-                {"test_1": []},
-                {"test_1": [3, 2, 1]},
-            ],
-            {"test_1": [3, 2, 1]},
-            DoesNotRaise(),
-        ),  # two data dicts with the same field name and empty and list values
-        (
-            [
-                {"test_1": [1, 2, 3]},
-                {"test_1": [3, 2, 1]},
-            ],
-            {"test_1": [1, 2, 3, 3, 2, 1]},
-            DoesNotRaise(),
-        ),  # two data dicts with the same field name and list values
-        (
-            [
-                {"test_1": [1, 2, 3]},
-                {"test_1": [3, 2, 1]},
-                {"test_1": [1, 2, 3]},
-            ],
-            {"test_1": [1, 2, 3, 3, 2, 1, 1, 2, 3]},
-            DoesNotRaise(),
-        ),  # three data dicts with the same field name and list values
-        (
-            [
-                {"test_1": [1, 2, 3]},
-                {"test_2": [3, 2, 1]},
-            ],
-            None,
-            pytest.raises(ValueError),
-        ),  # two data dicts with different field names
-        (
-            [
-                {"test_1": np.array([1, 2, 3])},
-                {"test_1": np.array([3, 2, 1])},
-            ],
-            {"test_1": np.array([1, 2, 3, 3, 2, 1])},
-            DoesNotRaise(),
-        ),  # two data dicts with the same field name and np.array values as 1D arrays
-        (
-            [
-                {"test_1": np.array([[1, 2, 3]])},
-                {"test_1": np.array([[3, 2, 1]])},
-            ],
-            {"test_1": np.array([[1, 2, 3], [3, 2, 1]])},
-            DoesNotRaise(),
-        ),  # two data dicts with the same field name and np.array values as 2D arrays
-        (
-            [
-                {"test_1": np.array([1, 2, 3]), "test_2": np.array(["a", "b", "c"])},
-                {"test_1": np.array([3, 2, 1]), "test_2": np.array(["c", "b", "a"])},
-            ],
-            {
-                "test_1": np.array([1, 2, 3, 3, 2, 1]),
-                "test_2": np.array(["a", "b", "c", "c", "b", "a"]),
-            },
-            DoesNotRaise(),
-        ),  # two data dicts with the same field names and np.array values
-        (
-            [
-                {"test_1": [1, 2, 3], "test_2": np.array(["a", "b", "c"])},
-                {"test_1": [3, 2, 1], "test_2": np.array(["c", "b", "a"])},
-            ],
-            {
-                "test_1": [1, 2, 3, 3, 2, 1],
-                "test_2": np.array(["a", "b", "c", "c", "b", "a"]),
-            },
-            DoesNotRaise(),
-        ),  # two data dicts with the same field names and mixed values
-        (
-            [
-                {"test_1": np.array([1, 2, 3])},
-                {"test_1": np.array([[3, 2, 1]])},
-            ],
-            None,
-            pytest.raises(ValueError),
-        ),  # two data dicts with the same field name and 1D and 2D arrays values
-        (
-            [
-                {"test_1": np.array([1, 2, 3]), "test_2": np.array(["a", "b"])},
-                {"test_1": np.array([3, 2, 1]), "test_2": np.array(["c", "b", "a"])},
-            ],
-            None,
-            pytest.raises(ValueError),
-        ),  # two data dicts with the same field name and different length arrays values
-    ],
-)
-def test_merge_data(
-    data_list: List[Dict[str, Any]],
-    expected_result: Optional[Dict[str, Any]],
-    exception: Exception,
-):
-    with exception:
-        result = merge_data(data_list=data_list)
-        for key in result:
-            if isinstance(result[key], np.ndarray):
-                assert np.array_equal(
-                    result[key], expected_result[key]
-                ), f"Mismatch in arrays for key {key}"
-            else:
-                assert (
-                    result[key] == expected_result[key]
-                ), f"Mismatch in non-array data for key {key}"

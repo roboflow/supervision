@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import astuple, dataclass, field
-from itertools import chain
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
@@ -11,125 +10,10 @@ from supervision.detection.utils import (
     extract_ultralytics_masks,
     non_max_suppression,
     process_roboflow_result,
-    xywh_to_xyxy,
+    xywh_to_xyxy, validate_xyxy, validate_mask, validate_class_id, validate_confidence,
+    validate_tracker_id, validate_data, is_data_equal, merge_data,
 )
 from supervision.geometry.core import Position
-
-
-def _validate_xyxy(xyxy: Any, n: int) -> None:
-    is_valid = isinstance(xyxy, np.ndarray) and xyxy.shape == (n, 4)
-    if not is_valid:
-        raise ValueError("xyxy must be 2d np.ndarray with (n, 4) shape")
-
-
-def _validate_mask(mask: Any, n: int) -> None:
-    is_valid = mask is None or (
-        isinstance(mask, np.ndarray) and len(mask.shape) == 3 and mask.shape[0] == n
-    )
-    if not is_valid:
-        raise ValueError("mask must be 3d np.ndarray with (n, H, W) shape")
-
-
-def validate_inference_callback(callback) -> None:
-    tmp_img = np.zeros((256, 256, 3), dtype=np.uint8)
-    res = callback(tmp_img)
-    if not isinstance(res, Detections):
-        raise ValueError("Callback function must return sv.Detection type")
-
-
-def _validate_class_id(class_id: Any, n: int) -> None:
-    is_valid = class_id is None or (
-        isinstance(class_id, np.ndarray) and class_id.shape == (n,)
-    )
-    if not is_valid:
-        raise ValueError("class_id must be None or 1d np.ndarray with (n,) shape")
-
-
-def _validate_confidence(confidence: Any, n: int) -> None:
-    is_valid = confidence is None or (
-        isinstance(confidence, np.ndarray) and confidence.shape == (n,)
-    )
-    if not is_valid:
-        raise ValueError("confidence must be None or 1d np.ndarray with (n,) shape")
-
-
-def _validate_tracker_id(tracker_id: Any, n: int) -> None:
-    is_valid = tracker_id is None or (
-        isinstance(tracker_id, np.ndarray) and tracker_id.shape == (n,)
-    )
-    if not is_valid:
-        raise ValueError("tracker_id must be None or 1d np.ndarray with (n,) shape")
-
-
-def is_data_equal(data_a: Dict[str, np.ndarray], data_b: Dict[str, np.ndarray]) -> bool:
-    """
-    Compares the data payloads of two Detections instances.
-
-    Args:
-        data_a, data_b: The data payloads of the instances.
-
-    Returns:
-        True if the data payloads are equal, False otherwise.
-    """
-    return set(data_a.keys()) == set(data_b.keys()) and all(
-        np.array_equal(data_a[key], data_b[key]) for key in data_a
-    )
-
-
-def merge_data(
-    data_list: List[Dict[str, Union[np.ndarray, List]]],
-) -> Dict[str, Union[np.ndarray, List]]:
-    """
-    Merges the data payloads of a list of Detections instances.
-
-    Args:
-        data_list: The data payloads of the instances.
-
-    Returns:
-        A single data payload containing the merged data, preserving the original data
-            types (list or np.ndarray).
-
-    Raises:
-        ValueError: If data values within a single object have different lengths or if
-            dictionaries have different keys.
-    """
-    if not data_list:
-        return {}
-
-    all_keys_sets = [set(data.keys()) for data in data_list]
-    if not all(keys_set == all_keys_sets[0] for keys_set in all_keys_sets):
-        raise ValueError("All data dictionaries must have the same keys to merge.")
-
-    for data in data_list:
-        lengths = [len(value) for value in data.values()]
-        if len(set(lengths)) > 1:
-            raise ValueError(
-                "All data values within a single object must have equal length.")
-
-    merged_data = {key: [] for key in all_keys_sets[0]}
-
-    for data in data_list:
-        for key in merged_data:
-            merged_data[key].append(data[key])
-
-    for key in merged_data:
-        if all(isinstance(item, list) for item in merged_data[key]):
-            merged_data[key] = list(chain.from_iterable(merged_data[key]))
-        elif all(isinstance(item, np.ndarray) for item in merged_data[key]):
-            ndim = merged_data[key][0].ndim
-            if ndim == 1:
-                merged_data[key] = np.hstack(merged_data[key])
-            elif ndim > 1:
-                merged_data[key] = np.vstack(merged_data[key])
-            else:
-                raise ValueError(f"Unexpected array dimension for key '{key}'.")
-        else:
-            raise ValueError(
-                f"Inconsistent data types for key '{key}'. Only np.ndarray and list "
-                f"types are allowed."
-            )
-
-    return merged_data
 
 
 @dataclass
@@ -162,11 +46,12 @@ class Detections:
 
     def __post_init__(self):
         n = len(self.xyxy)
-        _validate_xyxy(xyxy=self.xyxy, n=n)
-        _validate_mask(mask=self.mask, n=n)
-        _validate_class_id(class_id=self.class_id, n=n)
-        _validate_confidence(confidence=self.confidence, n=n)
-        _validate_tracker_id(tracker_id=self.tracker_id, n=n)
+        validate_xyxy(xyxy=self.xyxy, n=n)
+        validate_mask(mask=self.mask, n=n)
+        validate_class_id(class_id=self.class_id, n=n)
+        validate_confidence(confidence=self.confidence, n=n)
+        validate_tracker_id(tracker_id=self.tracker_id, n=n)
+        validate_data(data=self.data, n=n)
 
     def __len__(self):
         """
