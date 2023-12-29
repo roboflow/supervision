@@ -1,6 +1,6 @@
 from contextlib import ExitStack as DoesNotRaise
 from test.test_utils import mock_detections
-from typing import List, Optional, Union, Dict, Any
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 import pytest
@@ -335,17 +335,12 @@ def test_equal(
             DoesNotRaise(),
         ),  # empty data list
         (
-            [
-                {}
-            ],
+            [{}],
             {},
             DoesNotRaise(),
         ),  # single empty data dict
         (
-            [
-                {},
-                {}
-            ],
+            [{}, {}],
             {},
             DoesNotRaise(),
         ),  # two empty data dicts
@@ -392,39 +387,41 @@ def test_equal(
         ),  # two data dicts with the same field name and np.array values as 2D arrays
         (
             [
-                {"test_1": np.array([1, 2, 3]), "test_2": np.array(['a', 'b', 'c'])},
-                {"test_1": np.array([3, 2, 1]), "test_2": np.array(['c', 'b', 'a'])},
+                {"test_1": np.array([1, 2, 3]), "test_2": np.array(["a", "b", "c"])},
+                {"test_1": np.array([3, 2, 1]), "test_2": np.array(["c", "b", "a"])},
             ],
             {
                 "test_1": np.array([1, 2, 3, 3, 2, 1]),
-                "test_2": np.array(['a', 'b', 'c', 'c', 'b', 'a'])
+                "test_2": np.array(["a", "b", "c", "c", "b", "a"]),
             },
             DoesNotRaise(),
         ),  # two data dicts with the same field names and np.array values
         (
             [
-                {"test_1": [1, 2, 3], "test_2": np.array(['a', 'b', 'c'])},
-                {"test_1": [3, 2, 1], "test_2": np.array(['c', 'b', 'a'])},
+                {"test_1": [1, 2, 3], "test_2": np.array(["a", "b", "c"])},
+                {"test_1": [3, 2, 1], "test_2": np.array(["c", "b", "a"])},
             ],
             {
                 "test_1": [1, 2, 3, 3, 2, 1],
-                "test_2": np.array(['a', 'b', 'c', 'c', 'b', 'a'])
+                "test_2": np.array(["a", "b", "c", "c", "b", "a"]),
             },
             DoesNotRaise(),
         ),  # two data dicts with the same field names and mixed values
-    ]
+    ],
 )
 def test_merge_data(
     data_list: List[Dict[str, Any]],
     expected_result: Optional[Dict[str, Any]],
-    exception: Exception
+    exception: Exception,
 ):
     with exception:
         result = merge_data(data_list=data_list)
         for key in result:
             if isinstance(result[key], np.ndarray):
-                assert np.array_equal(result[key], expected_result[
-                    key]), f"Mismatch in arrays for key {key}"
+                assert np.array_equal(
+                    result[key], expected_result[key]
+                ), f"Mismatch in arrays for key {key}"
             else:
-                assert result[key] == expected_result[
-                    key], f"Mismatch in non-array data for key {key}"
+                assert (
+                    result[key] == expected_result[key]
+                ), f"Mismatch in non-array data for key {key}"

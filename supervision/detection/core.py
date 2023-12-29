@@ -61,9 +61,7 @@ def _validate_tracker_id(tracker_id: Any, n: int) -> None:
         raise ValueError("tracker_id must be None or 1d np.ndarray with (n,) shape")
 
 
-def is_data_equal(
-    data_a: Dict[str, np.ndarray], data_b: Dict[str, np.ndarray]
-) -> bool:
+def is_data_equal(data_a: Dict[str, np.ndarray], data_b: Dict[str, np.ndarray]) -> bool:
     """
     Compares the data payloads of two Detections instances.
 
@@ -79,7 +77,7 @@ def is_data_equal(
 
 
 def merge_data(
-    data_list: List[Dict[str, Union[np.ndarray, List]]]
+    data_list: List[Dict[str, Union[np.ndarray, List]]],
 ) -> Dict[str, Union[np.ndarray, List]]:
     """
     Merges the data payloads of a list of Detections instances.
