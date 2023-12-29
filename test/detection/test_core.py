@@ -143,16 +143,12 @@ def test_getitem(
     [
         ([], Detections.empty(), DoesNotRaise()),  # empty detections list
         (
-            [
-                Detections.empty()
-            ],
+            [Detections.empty()],
             Detections.empty(),
             DoesNotRaise(),
         ),  # single empty detections
         (
-            [
-                mock_detections(xyxy=[[10, 10, 20, 20]])
-            ],
+            [mock_detections(xyxy=[[10, 10, 20, 20]])],
             mock_detections(xyxy=[[10, 10, 20, 20]]),
             DoesNotRaise(),
         ),  # single detection with xyxy field

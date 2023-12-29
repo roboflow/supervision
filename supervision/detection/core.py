@@ -12,8 +12,8 @@ from supervision.detection.utils import (
     merge_data,
     non_max_suppression,
     process_roboflow_result,
-    xywh_to_xyxy,
     validate_detections_fields,
+    xywh_to_xyxy,
 )
 from supervision.geometry.core import Position
 
@@ -53,7 +53,7 @@ class Detections:
             confidence=self.confidence,
             class_id=self.class_id,
             tracker_id=self.tracker_id,
-            data=self.data
+            data=self.data,
         )
 
     def __len__(self):
@@ -685,7 +685,7 @@ class Detections:
                 confidence=detections.confidence,
                 class_id=detections.class_id,
                 tracker_id=detections.tracker_id,
-                data=detections.data
+                data=detections.data,
             )
 
         xyxy = np.vstack([d.xyxy for d in detections_list])
@@ -695,14 +695,16 @@ class Detections:
                 return None
             if any(d.__getattribute__(name) is None for d in detections_list):
                 raise ValueError(f"All or none of the '{name}' fields must be None")
-            return np.vstack([d.__getattribute__(name) for d in detections_list]) \
-                if name == 'mask' else np.hstack(
-                [d.__getattribute__(name) for d in detections_list])
+            return (
+                np.vstack([d.__getattribute__(name) for d in detections_list])
+                if name == "mask"
+                else np.hstack([d.__getattribute__(name) for d in detections_list])
+            )
 
-        mask = stack_or_none('mask')
-        confidence = stack_or_none('confidence')
-        class_id = stack_or_none('class_id')
-        tracker_id = stack_or_none('tracker_id')
+        mask = stack_or_none("mask")
+        confidence = stack_or_none("confidence")
+        class_id = stack_or_none("class_id")
+        tracker_id = stack_or_none("tracker_id")
 
         data = merge_data([d.data for d in detections_list])
 
