@@ -143,17 +143,24 @@ def test_getitem(
     [
         ([], Detections.empty(), DoesNotRaise()),  # empty detections list
         (
-            [Detections.empty()],
+            [
+                Detections.empty()
+            ],
             Detections.empty(),
             DoesNotRaise(),
         ),  # single empty detections
         (
-            [mock_detections(xyxy=[[10, 10, 20, 20]])],
+            [
+                mock_detections(xyxy=[[10, 10, 20, 20]])
+            ],
             mock_detections(xyxy=[[10, 10, 20, 20]]),
             DoesNotRaise(),
         ),  # single detection with xyxy field
         (
-            [mock_detections(xyxy=[[10, 10, 20, 20]]), Detections.empty()],
+            [
+                mock_detections(xyxy=[[10, 10, 20, 20]]),
+                mock_detections(xyxy=np.empty((0, 4), dtype=np.float32)),
+            ],
             mock_detections(xyxy=[[10, 10, 20, 20]]),
             DoesNotRaise(),
         ),  # single detection with xyxy field + empty detection
@@ -171,7 +178,7 @@ def test_getitem(
                 mock_detections(xyxy=[[20, 20, 30, 30]]),
             ],
             mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
-            DoesNotRaise(),
+            pytest.raises(ValueError),
         ),  # detection with xyxy, class_id fields + detection with xyxy field
         (
             [

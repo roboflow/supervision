@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import astuple, dataclass, field
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
+from dataclasses import dataclass, field
+from typing import Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -12,13 +12,8 @@ from supervision.detection.utils import (
     merge_data,
     non_max_suppression,
     process_roboflow_result,
-    validate_class_id,
-    validate_confidence,
-    validate_data,
-    validate_mask,
-    validate_tracker_id,
-    validate_xyxy,
     xywh_to_xyxy,
+    validate_detections_fields,
 )
 from supervision.geometry.core import Position
 
@@ -52,13 +47,14 @@ class Detections:
     data: Dict[str, Union[np.ndarray, List]] = field(default_factory=dict)
 
     def __post_init__(self):
-        n = len(self.xyxy)
-        validate_xyxy(xyxy=self.xyxy, n=n)
-        validate_mask(mask=self.mask, n=n)
-        validate_class_id(class_id=self.class_id, n=n)
-        validate_confidence(confidence=self.confidence, n=n)
-        validate_tracker_id(tracker_id=self.tracker_id, n=n)
-        validate_data(data=self.data, n=n)
+        validate_detections_fields(
+            xyxy=self.xyxy,
+            mask=self.mask,
+            confidence=self.confidence,
+            class_id=self.class_id,
+            tracker_id=self.tracker_id,
+            data=self.data
+        )
 
     def __len__(self):
         """
@@ -682,20 +678,33 @@ class Detections:
         if len(detections_list) == 0:
             return Detections.empty()
 
-        detections_tuples_list = [astuple(detection) for detection in detections_list]
-        xyxy, mask, confidence, class_id, tracker_id, data = [
-            list(field_values) for field_values in zip(*detections_tuples_list)
-        ]
+        for detections in detections_list:
+            validate_detections_fields(
+                xyxy=detections.xyxy,
+                mask=detections.mask,
+                confidence=detections.confidence,
+                class_id=detections.class_id,
+                tracker_id=detections.tracker_id,
+                data=detections.data
+            )
 
-        def all_not_none(item_list: List[Any]):
-            return all(x is not None for x in item_list)
+        xyxy = np.vstack([d.xyxy for d in detections_list])
 
-        xyxy = np.vstack(xyxy)
-        mask = np.vstack(mask) if all_not_none(mask) else None
-        confidence = np.hstack(confidence) if all_not_none(confidence) else None
-        class_id = np.hstack(class_id) if all_not_none(class_id) else None
-        tracker_id = np.hstack(tracker_id) if all_not_none(tracker_id) else None
-        data = merge_data(data)
+        def stack_or_none(name: str):
+            if all(d.__getattribute__(name) is None for d in detections_list):
+                return None
+            if any(d.__getattribute__(name) is None for d in detections_list):
+                raise ValueError(f"All or none of the '{name}' fields must be None")
+            return np.vstack([d.__getattribute__(name) for d in detections_list]) \
+                if name == 'mask' else np.hstack(
+                [d.__getattribute__(name) for d in detections_list])
+
+        mask = stack_or_none('mask')
+        confidence = stack_or_none('confidence')
+        class_id = stack_or_none('class_id')
+        tracker_id = stack_or_none('tracker_id')
+
+        data = merge_data([d.data for d in detections_list])
 
         return cls(
             xyxy=xyxy,
