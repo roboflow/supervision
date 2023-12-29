@@ -1393,10 +1393,11 @@ class RoundBoundingBoxAnnotator(BaseAnnotator):
         custom_color_lookup: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         """
-        Annotates the given scene with bounding boxes based on the provided detections.
+        Annotates the given scene with bounding boxes with rounded edges
+        based on the provided detections.
 
         Args:
-            scene (np.ndarray): The image where bounding boxes will be drawn.
+            scene (np.ndarray): The image where round edge bounding boxes will be drawn.
             detections (Detections): Object detections to annotate.
             custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
                 Allows to override the default color mapping strategy.
@@ -1411,15 +1412,14 @@ class RoundBoundingBoxAnnotator(BaseAnnotator):
             >>> image = ...
             >>> detections = sv.Detections(...)
 
-            >>> bounding_box_annotator = sv.BoundingBoxAnnotator()
-            >>> annotated_frame = bounding_box_annotator.annotate(
+            >>> round_bounding_box_annotator = sv.RoundBoundingBoxAnnotator()
+            >>> annotated_frame = round_bounding_box_annotator.annotate(
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
             ```
 
-        ![bounding-box-annotator-example](https://media.roboflow.com/
-        supervision-annotator-examples/bounding-box-annotator-example-purple.png)
+        ![round-bounding-box-annotator-example]() Link to be added for image example
         """
 
 
