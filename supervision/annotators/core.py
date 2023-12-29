@@ -1397,7 +1397,7 @@ class RoundBoundingBoxAnnotator(BaseAnnotator):
         based on the provided detections.
 
         Args:
-            scene (np.ndarray): The image where round edge bounding boxes will be drawn.
+            scene (np.ndarray): The image where rounded bounding boxes will be drawn.
             detections (Detections): Object detections to annotate.
             custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
                 Allows to override the default color mapping strategy.
