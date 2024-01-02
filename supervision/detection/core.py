@@ -38,6 +38,14 @@ class Detections:
         data (Dict[str, Union[np.ndarray, List]]): A dictionary containing additional
             data where each key is a string representing the data type, and the value
             is either a NumPy array or a list of corresponding data.
+
+    !!! warning
+
+        The `data` field in the `sv.Detections` class is currently in an experimental
+        phase. Please be aware that its API and functionality are subject to change in
+        future updates as we continue to refine and improve its capabilities.
+        We encourage users to experiment with this feature and provide feedback, but
+        also to be prepared for potential modifications in upcoming releases.
     """
 
     xyxy: np.ndarray
@@ -806,7 +814,7 @@ class Detections:
                 the data field.
 
         Example:
-            ```
+            ```python
             >>> import supervision as sv
 
             >>> detections = sv.Detections(...)
@@ -840,9 +848,32 @@ class Detections:
         Args:
             key (str): The key in the data dictionary to set.
             value (Union[np.ndarray, List]): The value to set for the key.
+
+        Example:
+            ```python
+            >>> import cv2
+            >>> from ultralytics import YOLO
+            >>> import supervision as sv
+
+            >>> model = YOLO('yolov8s.pt')
+
+            >>> image = cv2.imread(SOURCE_IMAGE_PATH)
+
+            >>> result = model(image)[0]
+            >>> detections = sv.Detections.from_ultralytics(result)
+
+            >>> detections['names'] = [
+            ...     model.model.names[class_id]
+            ...     for class_id
+            ...     in detections.class_id
+            ... ]
+            ```
         """
         if not isinstance(value, (np.ndarray, list)):
             raise TypeError("Value must be a np.ndarray or a list")
+
+        if isinstance(value, list):
+            value = np.array(value)
 
         self.data[key] = value
 
