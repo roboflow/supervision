@@ -787,35 +787,41 @@ class Detections:
         raise ValueError(f"{anchor} is not supported.")
 
     def __getitem__(
-        self, index: Union[int, slice, List[int], np.ndarray]
-    ) -> Detections:
+        self, index: Union[int, slice, List[int], np.ndarray, str]
+    ) -> Union[Detections, List, np.ndarray, None]:
         """
-        Get a subset of the Detections object.
+        Get a subset of the Detections object or access an item from its data field.
+
+        When provided with an integer, slice, list of integers, or a numpy array, this
+        method returns a new Detections object that represents a subset of the original
+        detections. When provided with a string, it accesses the corresponding item in
+        the data dictionary.
 
         Args:
-            index (Union[int, slice, List[int], np.ndarray]):
-                The index or indices of the subset of the Detections
+            index (Union[int, slice, List[int], np.ndarray, str]): The index, indices,
+                or key to access a subset of the Detections or an item from the data.
 
         Returns:
-            (Detections): A subset of the Detections object.
+            Union[Detections, Any]: A subset of the Detections object or an item from
+                the data field.
 
         Example:
-            ```python
+            ```
             >>> import supervision as sv
 
             >>> detections = sv.Detections(...)
 
             >>> first_detection = detections[0]
-
             >>> first_10_detections = detections[0:10]
-
             >>> some_detections = detections[[0, 2, 4]]
-
             >>> class_0_detections = detections[detections.class_id == 0]
-
             >>> high_confidence_detections = detections[detections.confidence > 0.5]
+
+            >>> feature_vector = detections['feature_vector']
             ```
         """
+        if isinstance(index, str):
+            return self.data.get(index)
         if isinstance(index, int):
             index = [index]
         return Detections(
@@ -826,6 +832,19 @@ class Detections:
             tracker_id=self.tracker_id[index] if self.tracker_id is not None else None,
             data=get_data_item(self.data, index),
         )
+
+    def __setitem__(self, key: str, value: Union[np.ndarray, List]):
+        """
+        Set a value in the data dictionary of the Detections object.
+
+        Args:
+            key (str): The key in the data dictionary to set.
+            value (Union[np.ndarray, List]): The value to set for the key.
+        """
+        if not isinstance(value, (np.ndarray, list)):
+            raise TypeError("Value must be a np.ndarray or a list")
+
+        self.data[key] = value
 
     @property
     def area(self) -> np.ndarray:
