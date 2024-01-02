@@ -1,5 +1,5 @@
 from contextlib import ExitStack as DoesNotRaise
-from typing import List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import pytest
@@ -8,6 +8,8 @@ from supervision.detection.utils import (
     calculate_masks_centroids,
     clip_boxes,
     filter_polygons_by_area,
+    get_data_item,
+    merge_data,
     move_boxes,
     non_max_suppression,
     process_roboflow_result,
@@ -640,3 +642,274 @@ def test_calculate_masks_centroids(
     with exception:
         result = calculate_masks_centroids(masks=masks)
         assert np.array_equal(result, expected_result)
+
+
+@pytest.mark.parametrize(
+    "data_list, expected_result, exception",
+    [
+        (
+            [],
+            {},
+            DoesNotRaise(),
+        ),  # empty data list
+        (
+            [{}],
+            {},
+            DoesNotRaise(),
+        ),  # single empty data dict
+        (
+            [{}, {}],
+            {},
+            DoesNotRaise(),
+        ),  # two empty data dicts
+        (
+            [
+                {"test_1": []},
+            ],
+            {"test_1": []},
+            DoesNotRaise(),
+        ),  # single data dict with a single field name and empty list values
+        (
+            [
+                {"test_1": np.array([])},
+            ],
+            {"test_1": np.array([])},
+            DoesNotRaise(),
+        ),  # single data dict with a single field name and empty np.array values
+        (
+            [
+                {"test_1": [1, 2, 3]},
+            ],
+            {"test_1": [1, 2, 3]},
+            DoesNotRaise(),
+        ),  # single data dict with a single field name and list values
+        (
+            [
+                {"test_1": []},
+                {"test_1": [3, 2, 1]},
+            ],
+            {"test_1": [3, 2, 1]},
+            DoesNotRaise(),
+        ),  # two data dicts with the same field name and empty and list values
+        (
+            [
+                {"test_1": [1, 2, 3]},
+                {"test_1": [3, 2, 1]},
+            ],
+            {"test_1": [1, 2, 3, 3, 2, 1]},
+            DoesNotRaise(),
+        ),  # two data dicts with the same field name and list values
+        (
+            [
+                {"test_1": [1, 2, 3]},
+                {"test_1": [3, 2, 1]},
+                {"test_1": [1, 2, 3]},
+            ],
+            {"test_1": [1, 2, 3, 3, 2, 1, 1, 2, 3]},
+            DoesNotRaise(),
+        ),  # three data dicts with the same field name and list values
+        (
+            [
+                {"test_1": [1, 2, 3]},
+                {"test_2": [3, 2, 1]},
+            ],
+            None,
+            pytest.raises(ValueError),
+        ),  # two data dicts with different field names
+        (
+            [
+                {"test_1": np.array([1, 2, 3])},
+                {"test_1": np.array([3, 2, 1])},
+            ],
+            {"test_1": np.array([1, 2, 3, 3, 2, 1])},
+            DoesNotRaise(),
+        ),  # two data dicts with the same field name and np.array values as 1D arrays
+        (
+            [
+                {"test_1": np.array([[1, 2, 3]])},
+                {"test_1": np.array([[3, 2, 1]])},
+            ],
+            {"test_1": np.array([[1, 2, 3], [3, 2, 1]])},
+            DoesNotRaise(),
+        ),  # two data dicts with the same field name and np.array values as 2D arrays
+        (
+            [
+                {"test_1": np.array([1, 2, 3]), "test_2": np.array(["a", "b", "c"])},
+                {"test_1": np.array([3, 2, 1]), "test_2": np.array(["c", "b", "a"])},
+            ],
+            {
+                "test_1": np.array([1, 2, 3, 3, 2, 1]),
+                "test_2": np.array(["a", "b", "c", "c", "b", "a"]),
+            },
+            DoesNotRaise(),
+        ),  # two data dicts with the same field names and np.array values
+        (
+            [
+                {"test_1": [1, 2, 3], "test_2": np.array(["a", "b", "c"])},
+                {"test_1": [3, 2, 1], "test_2": np.array(["c", "b", "a"])},
+            ],
+            {
+                "test_1": [1, 2, 3, 3, 2, 1],
+                "test_2": np.array(["a", "b", "c", "c", "b", "a"]),
+            },
+            DoesNotRaise(),
+        ),  # two data dicts with the same field names and mixed values
+        (
+            [
+                {"test_1": np.array([1, 2, 3])},
+                {"test_1": np.array([[3, 2, 1]])},
+            ],
+            None,
+            pytest.raises(ValueError),
+        ),  # two data dicts with the same field name and 1D and 2D arrays values
+        (
+            [
+                {"test_1": np.array([1, 2, 3]), "test_2": np.array(["a", "b"])},
+                {"test_1": np.array([3, 2, 1]), "test_2": np.array(["c", "b", "a"])},
+            ],
+            None,
+            pytest.raises(ValueError),
+        ),  # two data dicts with the same field name and different length arrays values
+    ],
+)
+def test_merge_data(
+    data_list: List[Dict[str, Any]],
+    expected_result: Optional[Dict[str, Any]],
+    exception: Exception,
+):
+    with exception:
+        result = merge_data(data_list=data_list)
+        for key in result:
+            if isinstance(result[key], np.ndarray):
+                assert np.array_equal(
+                    result[key], expected_result[key]
+                ), f"Mismatch in arrays for key {key}"
+            else:
+                assert (
+                    result[key] == expected_result[key]
+                ), f"Mismatch in non-array data for key {key}"
+
+
+@pytest.mark.parametrize(
+    "data, index, expected_result, exception",
+    [
+        ({}, 0, {}, DoesNotRaise()),  # empty data dict
+        (
+            {
+                "test_1": [1, 2, 3],
+            },
+            0,
+            {
+                "test_1": [1],
+            },
+            DoesNotRaise(),
+        ),  # single data dict with a single field name and list values
+        (
+            {
+                "test_1": np.array([1, 2, 3]),
+            },
+            0,
+            {
+                "test_1": np.array([1]),
+            },
+            DoesNotRaise(),
+        ),  # single data dict with a single field name and np.array values as 1D arrays
+        (
+            {
+                "test_1": [1, 2, 3],
+            },
+            slice(0, 2),
+            {
+                "test_1": [1, 2],
+            },
+            DoesNotRaise(),
+        ),  # single data dict with a single field name and list values
+        (
+            {
+                "test_1": np.array([1, 2, 3]),
+            },
+            slice(0, 2),
+            {
+                "test_1": np.array([1, 2]),
+            },
+            DoesNotRaise(),
+        ),  # single data dict with a single field name and np.array values as 1D arrays
+        (
+            {
+                "test_1": [1, 2, 3],
+            },
+            -1,
+            {
+                "test_1": [3],
+            },
+            DoesNotRaise(),
+        ),  # single data dict with a single field name and list values
+        (
+            {
+                "test_1": np.array([1, 2, 3]),
+            },
+            -1,
+            {
+                "test_1": np.array([3]),
+            },
+            DoesNotRaise(),
+        ),  # single data dict with a single field name and np.array values as 1D arrays
+        (
+            {
+                "test_1": [1, 2, 3],
+            },
+            [0, 2],
+            {
+                "test_1": [1, 3],
+            },
+            DoesNotRaise(),
+        ),  # single data dict with a single field name and list values
+        (
+            {
+                "test_1": np.array([1, 2, 3]),
+            },
+            [0, 2],
+            {
+                "test_1": np.array([1, 3]),
+            },
+            DoesNotRaise(),
+        ),  # single data dict with a single field name and np.array values as 1D arrays
+        (
+            {
+                "test_1": [1, 2, 3],
+            },
+            np.array([0, 2]),
+            {
+                "test_1": [1, 3],
+            },
+            DoesNotRaise(),
+        ),  # single data dict with a single field name and list values
+        (
+            {
+                "test_1": np.array([1, 2, 3]),
+            },
+            np.array([0, 2]),
+            {
+                "test_1": np.array([1, 3]),
+            },
+            DoesNotRaise(),
+        ),
+    ],
+)
+def test_get_data_item(
+    data: Dict[str, Any],
+    index: Any,
+    expected_result: Optional[Dict[str, Any]],
+    exception: Exception,
+):
+    with exception:
+        result = get_data_item(data=data, index=index)
+        for key in result:
+            if isinstance(result[key], np.ndarray):
+                assert np.array_equal(
+                    result[key], expected_result[key]
+                ), f"Mismatch in arrays for key {key}"
+            else:
+                assert (
+                    result[key] == expected_result[key]
+                ), f"Mismatch in non-array data for key {key}"
