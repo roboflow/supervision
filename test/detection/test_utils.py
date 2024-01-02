@@ -274,7 +274,7 @@ def test_filter_polygons_by_area(
                 np.empty(0),
                 None,
                 None,
-                {"class_name": np.empty(0)}
+                {"class_name": np.empty(0)},
             ),
             DoesNotRaise(),
         ),  # empty result
@@ -299,7 +299,7 @@ def test_filter_polygons_by_area(
                 np.array([0]),
                 None,
                 None,
-                {"class_name": np.array(["person"])}
+                {"class_name": np.array(["person"])},
             ),
             DoesNotRaise(),
         ),  # single correct object detection result
@@ -335,7 +335,7 @@ def test_filter_polygons_by_area(
                 np.array([0, 7]),
                 None,
                 np.array([1, 2]),
-                {"class_name": np.array(["person", "truck"])}
+                {"class_name": np.array(["person", "truck"])},
             ),
             DoesNotRaise(),
         ),  # two correct object detection result
@@ -362,7 +362,7 @@ def test_filter_polygons_by_area(
                 np.empty(0),
                 None,
                 None,
-                {"class_name": np.empty(0)}
+                {"class_name": np.empty(0)},
             ),
             DoesNotRaise(),
         ),  # single incorrect instance segmentation result with no points
@@ -388,7 +388,7 @@ def test_filter_polygons_by_area(
                 np.empty(0),
                 None,
                 None,
-                {"class_name": np.empty(0)}
+                {"class_name": np.empty(0)},
             ),
             DoesNotRaise(),
         ),  # single incorrect instance segmentation result with no enough points
@@ -419,7 +419,7 @@ def test_filter_polygons_by_area(
                 np.array([0]),
                 TEST_MASK,
                 None,
-                {"class_name": np.array(["person"])}
+                {"class_name": np.array(["person"])},
             ),
             DoesNotRaise(),
         ),  # single incorrect instance segmentation result with no enough points
@@ -460,7 +460,7 @@ def test_filter_polygons_by_area(
                 np.array([0]),
                 TEST_MASK,
                 None,
-                {"class_name": np.array(["person"])}
+                {"class_name": np.array(["person"])},
             ),
             DoesNotRaise(),
         ),  # two instance segmentation results - one correct, one incorrect

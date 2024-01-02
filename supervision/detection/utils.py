@@ -337,10 +337,17 @@ def process_roboflow_result(
     np.ndarray,
     Optional[np.ndarray],
     np.ndarray,
-    Dict[str, List[np.ndarray]]
+    Dict[str, List[np.ndarray]],
 ]:
     if not roboflow_result["predictions"]:
-        return np.empty((0, 4)), np.empty(0), np.empty(0), None, None, {"class_name": np.empty(0)}
+        return (
+            np.empty((0, 4)),
+            np.empty(0),
+            np.empty(0),
+            None,
+            None,
+            {"class_name": np.empty(0)},
+        )
 
     xyxy = []
     confidence = []
