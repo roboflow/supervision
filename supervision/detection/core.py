@@ -13,7 +13,7 @@ from supervision.detection.utils import (
     non_max_suppression,
     process_roboflow_result,
     validate_detections_fields,
-    xywh_to_xyxy,
+    xywh_to_xyxy, get_data_item,
 )
 from supervision.geometry.core import Position
 
@@ -821,6 +821,7 @@ class Detections:
             confidence=self.confidence[index] if self.confidence is not None else None,
             class_id=self.class_id[index] if self.class_id is not None else None,
             tracker_id=self.tracker_id[index] if self.tracker_id is not None else None,
+            data=get_data_item(self.data, index),
         )
 
     @property

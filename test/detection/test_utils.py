@@ -13,6 +13,7 @@ from supervision.detection.utils import (
     non_max_suppression,
     process_roboflow_result,
     scale_boxes,
+    get_data_item,
 )
 
 TEST_MASK = np.zeros((1, 1000, 1000), dtype=bool)
@@ -786,4 +787,134 @@ def test_merge_data(
             else:
                 assert (
                     result[key] == expected_result[key]
+                ), f"Mismatch in non-array data for key {key}"
+
+
+@pytest.mark.parametrize(
+    "data, index, expected_result, exception",
+    [
+        (
+            {},
+            0,
+            {},
+            DoesNotRaise()
+        ),  # empty data dict
+        (
+            {
+                "test_1": [1, 2, 3],
+            },
+            0,
+            {
+                "test_1": [1],
+            },
+            DoesNotRaise()
+        ),  # single data dict with a single field name and list values
+        (
+            {
+                "test_1": np.array([1, 2, 3]),
+            },
+            0,
+            {
+                "test_1": np.array([1]),
+            },
+            DoesNotRaise()
+        ),  # single data dict with a single field name and np.array values as 1D arrays
+        (
+            {
+                "test_1": [1, 2, 3],
+            },
+            slice(0, 2),
+            {
+                "test_1": [1, 2],
+            },
+            DoesNotRaise()
+        ),  # single data dict with a single field name and list values
+        (
+            {
+                "test_1": np.array([1, 2, 3]),
+            },
+            slice(0, 2),
+            {
+                "test_1": np.array([1, 2]),
+            },
+            DoesNotRaise()
+        ),  # single data dict with a single field name and np.array values as 1D arrays
+        (
+            {
+                "test_1": [1, 2, 3],
+            },
+            -1,
+            {
+                "test_1": [3],
+            },
+            DoesNotRaise()
+        ),  # single data dict with a single field name and list values
+        (
+            {
+                "test_1": np.array([1, 2, 3]),
+            },
+            -1,
+            {
+                "test_1": np.array([3]),
+            },
+            DoesNotRaise()
+        ),  # single data dict with a single field name and np.array values as 1D arrays
+        (
+            {
+                "test_1": [1, 2, 3],
+            },
+            [0, 2],
+            {
+                "test_1": [1, 3],
+            },
+            DoesNotRaise()
+        ),  # single data dict with a single field name and list values
+        (
+            {
+                "test_1": np.array([1, 2, 3]),
+            },
+            [0, 2],
+            {
+                "test_1": np.array([1, 3]),
+            },
+            DoesNotRaise()
+        ),  # single data dict with a single field name and np.array values as 1D arrays
+        (
+            {
+                "test_1": [1, 2, 3],
+            },
+            np.array([0, 2]),
+            {
+                "test_1": [1, 3],
+            },
+            DoesNotRaise()
+        ),  # single data dict with a single field name and list values
+        (
+            {
+                "test_1": np.array([1, 2, 3]),
+            },
+            np.array([0, 2]),
+            {
+                "test_1": np.array([1, 3]),
+            },
+            DoesNotRaise()
+        ),
+    ]
+)
+def test_get_data_item(
+    data: Dict[str, Any],
+    index: Any,
+    expected_result: Optional[Dict[str, Any]],
+    exception: Exception,
+):
+    with exception:
+        result = get_data_item(data=data, index=index)
+        for key in result:
+            if isinstance(result[key], np.ndarray):
+                assert np.array_equal(
+                    result[key], expected_result[key]
+                ), f"Mismatch in arrays for key {key}"
+            else:
+                assert (
+                        result[key] == expected_result[key]
                 ), f"Mismatch in non-array data for key {key}"
