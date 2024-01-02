@@ -268,7 +268,14 @@ def test_filter_polygons_by_area(
     [
         (
             {"predictions": [], "image": {"width": 1000, "height": 1000}},
-            (np.empty((0, 4)), np.empty(0), np.empty(0), None, None),
+            (
+                np.empty((0, 4)),
+                np.empty(0),
+                np.empty(0),
+                None,
+                None,
+                {"class_name": np.empty(0)}
+            ),
             DoesNotRaise(),
         ),  # empty result
         (
@@ -292,6 +299,7 @@ def test_filter_polygons_by_area(
                 np.array([0]),
                 None,
                 None,
+                {"class_name": np.array(["person"])}
             ),
             DoesNotRaise(),
         ),  # single correct object detection result
@@ -327,6 +335,7 @@ def test_filter_polygons_by_area(
                 np.array([0, 7]),
                 None,
                 np.array([1, 2]),
+                {"class_name": np.array(["person", "truck"])}
             ),
             DoesNotRaise(),
         ),  # two correct object detection result
@@ -347,7 +356,14 @@ def test_filter_polygons_by_area(
                 ],
                 "image": {"width": 1000, "height": 1000},
             },
-            (np.empty((0, 4)), np.empty(0), np.empty(0), None, None),
+            (
+                np.empty((0, 4)),
+                np.empty(0),
+                np.empty(0),
+                None,
+                None,
+                {"class_name": np.empty(0)}
+            ),
             DoesNotRaise(),
         ),  # single incorrect instance segmentation result with no points
         (
@@ -366,7 +382,14 @@ def test_filter_polygons_by_area(
                 ],
                 "image": {"width": 1000, "height": 1000},
             },
-            (np.empty((0, 4)), np.empty(0), np.empty(0), None, None),
+            (
+                np.empty((0, 4)),
+                np.empty(0),
+                np.empty(0),
+                None,
+                None,
+                {"class_name": np.empty(0)}
+            ),
             DoesNotRaise(),
         ),  # single incorrect instance segmentation result with no enough points
         (
@@ -396,6 +419,7 @@ def test_filter_polygons_by_area(
                 np.array([0]),
                 TEST_MASK,
                 None,
+                {"class_name": np.array(["person"])}
             ),
             DoesNotRaise(),
         ),  # single incorrect instance segmentation result with no enough points
@@ -436,6 +460,7 @@ def test_filter_polygons_by_area(
                 np.array([0]),
                 TEST_MASK,
                 None,
+                {"class_name": np.array(["person"])}
             ),
             DoesNotRaise(),
         ),  # two instance segmentation results - one correct, one incorrect
@@ -459,6 +484,15 @@ def test_process_roboflow_result(
         assert (result[4] is None and expected_result[4] is None) or (
             np.array_equal(result[4], expected_result[4])
         )
+        for key in result[5]:
+            if isinstance(result[5][key], np.ndarray):
+                assert np.array_equal(
+                    result[5][key], expected_result[5][key]
+                ), f"Mismatch in arrays for key {key}"
+            else:
+                assert (
+                    result[5][key] == expected_result[5][key]
+                ), f"Mismatch in non-array data for key {key}"
 
 
 @pytest.mark.parametrize(

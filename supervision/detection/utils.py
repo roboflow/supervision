@@ -331,13 +331,21 @@ def extract_ultralytics_masks(yolov8_results) -> Optional[np.ndarray]:
 
 def process_roboflow_result(
     roboflow_result: dict,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, Optional[np.ndarray], np.ndarray]:
+) -> Tuple[
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    Optional[np.ndarray],
+    np.ndarray,
+    Dict[str, List[np.ndarray]]
+]:
     if not roboflow_result["predictions"]:
-        return np.empty((0, 4)), np.empty(0), np.empty(0), None, None
+        return np.empty((0, 4)), np.empty(0), np.empty(0), None, None, {"class_name": np.empty(0)}
 
     xyxy = []
     confidence = []
     class_id = []
+    class_name = []
     masks = []
     tracker_ids = []
 
@@ -357,6 +365,7 @@ def process_roboflow_result(
         if "points" not in prediction:
             xyxy.append([x_min, y_min, x_max, y_max])
             class_id.append(prediction["class_id"])
+            class_name.append(prediction["class"])
             confidence.append(prediction["confidence"])
             if "tracker_id" in prediction:
                 tracker_ids.append(prediction["tracker_id"])
@@ -367,6 +376,7 @@ def process_roboflow_result(
             mask = polygon_to_mask(polygon, resolution_wh=(image_width, image_height))
             xyxy.append([x_min, y_min, x_max, y_max])
             class_id.append(prediction["class_id"])
+            class_name.append(prediction["class"])
             confidence.append(prediction["confidence"])
             masks.append(mask)
             if "tracker_id" in prediction:
@@ -375,10 +385,12 @@ def process_roboflow_result(
     xyxy = np.array(xyxy) if len(xyxy) > 0 else np.empty((0, 4))
     confidence = np.array(confidence) if len(confidence) > 0 else np.empty(0)
     class_id = np.array(class_id).astype(int) if len(class_id) > 0 else np.empty(0)
+    class_name = np.array(class_name) if len(class_name) > 0 else np.empty(0)
     masks = np.array(masks, dtype=bool) if len(masks) > 0 else None
     tracker_id = np.array(tracker_ids).astype(int) if len(tracker_ids) > 0 else None
+    data = {"class_name": class_name}
 
-    return xyxy, confidence, class_id, masks, tracker_id
+    return xyxy, confidence, class_id, masks, tracker_id, data
 
 
 def move_boxes(xyxy: np.ndarray, offset: np.ndarray) -> np.ndarray:
