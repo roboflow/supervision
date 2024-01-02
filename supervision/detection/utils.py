@@ -642,7 +642,7 @@ def merge_data(
 
 def get_data_item(
     data: Dict[str, Union[np.ndarray, List]],
-    index: Union[int, slice, List[int], np.ndarray]
+    index: Union[int, slice, List[int], np.ndarray],
 ) -> Dict[str, Union[np.ndarray, List]]:
     """
     Retrieve a subset of the data dictionary based on the given index.

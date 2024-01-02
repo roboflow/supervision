@@ -8,12 +8,12 @@ from supervision.detection.utils import (
     calculate_masks_centroids,
     clip_boxes,
     filter_polygons_by_area,
+    get_data_item,
     merge_data,
     move_boxes,
     non_max_suppression,
     process_roboflow_result,
     scale_boxes,
-    get_data_item,
 )
 
 TEST_MASK = np.zeros((1, 1000, 1000), dtype=bool)
@@ -793,12 +793,7 @@ def test_merge_data(
 @pytest.mark.parametrize(
     "data, index, expected_result, exception",
     [
-        (
-            {},
-            0,
-            {},
-            DoesNotRaise()
-        ),  # empty data dict
+        ({}, 0, {}, DoesNotRaise()),  # empty data dict
         (
             {
                 "test_1": [1, 2, 3],
@@ -807,7 +802,7 @@ def test_merge_data(
             {
                 "test_1": [1],
             },
-            DoesNotRaise()
+            DoesNotRaise(),
         ),  # single data dict with a single field name and list values
         (
             {
@@ -817,7 +812,7 @@ def test_merge_data(
             {
                 "test_1": np.array([1]),
             },
-            DoesNotRaise()
+            DoesNotRaise(),
         ),  # single data dict with a single field name and np.array values as 1D arrays
         (
             {
@@ -827,7 +822,7 @@ def test_merge_data(
             {
                 "test_1": [1, 2],
             },
-            DoesNotRaise()
+            DoesNotRaise(),
         ),  # single data dict with a single field name and list values
         (
             {
@@ -837,7 +832,7 @@ def test_merge_data(
             {
                 "test_1": np.array([1, 2]),
             },
-            DoesNotRaise()
+            DoesNotRaise(),
         ),  # single data dict with a single field name and np.array values as 1D arrays
         (
             {
@@ -847,7 +842,7 @@ def test_merge_data(
             {
                 "test_1": [3],
             },
-            DoesNotRaise()
+            DoesNotRaise(),
         ),  # single data dict with a single field name and list values
         (
             {
@@ -857,7 +852,7 @@ def test_merge_data(
             {
                 "test_1": np.array([3]),
             },
-            DoesNotRaise()
+            DoesNotRaise(),
         ),  # single data dict with a single field name and np.array values as 1D arrays
         (
             {
@@ -867,7 +862,7 @@ def test_merge_data(
             {
                 "test_1": [1, 3],
             },
-            DoesNotRaise()
+            DoesNotRaise(),
         ),  # single data dict with a single field name and list values
         (
             {
@@ -877,7 +872,7 @@ def test_merge_data(
             {
                 "test_1": np.array([1, 3]),
             },
-            DoesNotRaise()
+            DoesNotRaise(),
         ),  # single data dict with a single field name and np.array values as 1D arrays
         (
             {
@@ -887,7 +882,7 @@ def test_merge_data(
             {
                 "test_1": [1, 3],
             },
-            DoesNotRaise()
+            DoesNotRaise(),
         ),  # single data dict with a single field name and list values
         (
             {
@@ -897,9 +892,9 @@ def test_merge_data(
             {
                 "test_1": np.array([1, 3]),
             },
-            DoesNotRaise()
+            DoesNotRaise(),
         ),
-    ]
+    ],
 )
 def test_get_data_item(
     data: Dict[str, Any],
@@ -916,5 +911,5 @@ def test_get_data_item(
                 ), f"Mismatch in arrays for key {key}"
             else:
                 assert (
-                        result[key] == expected_result[key]
+                    result[key] == expected_result[key]
                 ), f"Mismatch in non-array data for key {key}"
