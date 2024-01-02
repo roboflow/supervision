@@ -8,12 +8,13 @@ import numpy as np
 from supervision.detection.utils import (
     calculate_masks_centroids,
     extract_ultralytics_masks,
+    get_data_item,
     is_data_equal,
     merge_data,
     non_max_suppression,
     process_roboflow_result,
     validate_detections_fields,
-    xywh_to_xyxy, get_data_item,
+    xywh_to_xyxy,
 )
 from supervision.geometry.core import Position
 
