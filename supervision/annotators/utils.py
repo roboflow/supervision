@@ -2,6 +2,7 @@ from enum import Enum
 from typing import Optional, Union
 
 import numpy as np
+from math import floor
 
 from supervision.detection.core import Detections
 from supervision.draw.color import Color, ColorPalette
@@ -81,6 +82,13 @@ def resolve_color(
         color_lookup=color_lookup,
     )
     return get_color_by_index(color=color, idx=idx)
+
+def calculate_dynamic_kernel_size(x1:int, y1:int, x2:int, y2:int):
+    return floor(min(y2 - y1, x2 - x1) / 3)
+
+def calculate_dynamic_pixel_size(x1:int, y1:int, x2:int, y2:int):
+    return floor(min(y2 - y1, x2 - x1) / 2)
+
 
 
 class Trace:
