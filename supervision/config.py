@@ -1,1 +1,1 @@
-CLASS_NAME_DATA_FIELD = 'class_name'
+CLASS_NAME_DATA_FIELD = "class_name"
