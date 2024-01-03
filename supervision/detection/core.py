@@ -397,7 +397,14 @@ class Detections:
     def from_roboflow(cls, roboflow_result: dict) -> Detections:
         """
         Create a Detections object from the [Roboflow](https://roboflow.com/)
-            API inference result.
+        API inference result. This method extracts bounding boxes, class IDs,
+        confidences, and class names from the Roboflow API result and encapsulates
+        them into a Detections object.
+
+        !!! note
+
+            Class names can be accessed using the key 'class_name' in the returned
+            object's data attribute.
 
         Args:
             roboflow_result (dict): The result from the
@@ -427,9 +434,10 @@ class Detections:
             ... }
 
             >>> detections = sv.Detections.from_roboflow(roboflow_result)
+            >>> detections['class_name']
             ```
         """
-        xyxy, confidence, class_id, masks, trackers = process_roboflow_result(
+        xyxy, confidence, class_id, masks, trackers, data = process_roboflow_result(
             roboflow_result=roboflow_result
         )
 
@@ -442,6 +450,7 @@ class Detections:
             class_id=class_id,
             mask=masks,
             tracker_id=trackers,
+            data=data,
         )
 
     @classmethod
