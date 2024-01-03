@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 import pytest
 
+from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.utils import (
     calculate_masks_centroids,
     clip_boxes,
@@ -274,7 +275,7 @@ def test_filter_polygons_by_area(
                 np.empty(0),
                 None,
                 None,
-                {"class_name": np.empty(0)},
+                {CLASS_NAME_DATA_FIELD: np.empty(0)},
             ),
             DoesNotRaise(),
         ),  # empty result
@@ -299,7 +300,7 @@ def test_filter_polygons_by_area(
                 np.array([0]),
                 None,
                 None,
-                {"class_name": np.array(["person"])},
+                {CLASS_NAME_DATA_FIELD: np.array(["person"])},
             ),
             DoesNotRaise(),
         ),  # single correct object detection result
@@ -335,7 +336,7 @@ def test_filter_polygons_by_area(
                 np.array([0, 7]),
                 None,
                 np.array([1, 2]),
-                {"class_name": np.array(["person", "truck"])},
+                {CLASS_NAME_DATA_FIELD: np.array(["person", "truck"])},
             ),
             DoesNotRaise(),
         ),  # two correct object detection result
@@ -362,7 +363,7 @@ def test_filter_polygons_by_area(
                 np.empty(0),
                 None,
                 None,
-                {"class_name": np.empty(0)},
+                {CLASS_NAME_DATA_FIELD: np.empty(0)},
             ),
             DoesNotRaise(),
         ),  # single incorrect instance segmentation result with no points
@@ -388,7 +389,7 @@ def test_filter_polygons_by_area(
                 np.empty(0),
                 None,
                 None,
-                {"class_name": np.empty(0)},
+                {CLASS_NAME_DATA_FIELD: np.empty(0)},
             ),
             DoesNotRaise(),
         ),  # single incorrect instance segmentation result with no enough points
@@ -419,7 +420,7 @@ def test_filter_polygons_by_area(
                 np.array([0]),
                 TEST_MASK,
                 None,
-                {"class_name": np.array(["person"])},
+                {CLASS_NAME_DATA_FIELD: np.array(["person"])},
             ),
             DoesNotRaise(),
         ),  # single incorrect instance segmentation result with no enough points
@@ -460,7 +461,7 @@ def test_filter_polygons_by_area(
                 np.array([0]),
                 TEST_MASK,
                 None,
-                {"class_name": np.array(["person"])},
+                {CLASS_NAME_DATA_FIELD: np.array(["person"])},
             ),
             DoesNotRaise(),
         ),  # two instance segmentation results - one correct, one incorrect

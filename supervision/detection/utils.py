@@ -4,6 +4,8 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import cv2
 import numpy as np
 
+from supervision.config import CLASS_NAME_DATA_FIELD
+
 MIN_POLYGON_POINT_COUNT = 3
 
 
@@ -336,7 +338,7 @@ def process_roboflow_result(
     np.ndarray,
     np.ndarray,
     Optional[np.ndarray],
-    np.ndarray,
+    Optional[np.ndarray],
     Dict[str, List[np.ndarray]],
 ]:
     if not roboflow_result["predictions"]:
@@ -346,7 +348,7 @@ def process_roboflow_result(
             np.empty(0),
             None,
             None,
-            {"class_name": np.empty(0)},
+            {CLASS_NAME_DATA_FIELD: np.empty(0)},
         )
 
     xyxy = []
@@ -395,7 +397,7 @@ def process_roboflow_result(
     class_name = np.array(class_name) if len(class_name) > 0 else np.empty(0)
     masks = np.array(masks, dtype=bool) if len(masks) > 0 else None
     tracker_id = np.array(tracker_ids).astype(int) if len(tracker_ids) > 0 else None
-    data = {"class_name": class_name}
+    data = {CLASS_NAME_DATA_FIELD: class_name}
 
     return xyxy, confidence, class_id, masks, tracker_id, data
 
