@@ -7,7 +7,12 @@ import numpy as np
 from supervision.annotators.base import BaseAnnotator
 from supervision.annotators.utils import ColorLookup, Trace, resolve_color
 from supervision.detection.core import Detections
-from supervision.detection.utils import clip_boxes, mask_to_polygons, calculate_dynamic_pixel_size, calculate_dynamic_kernel_size
+from supervision.detection.utils import (
+    calculate_dynamic_kernel_size,
+    calculate_dynamic_pixel_size,
+    clip_boxes,
+    mask_to_polygons,
+)
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import draw_polygon
 from supervision.geometry.core import Position
@@ -992,7 +997,9 @@ class BlurAnnotator(BaseAnnotator):
 
         for x1, y1, x2, y2 in clipped_xyxy:
             roi = scene[y1:y2, x1:x2]
-            kernel_size = self.kernel_size or calculate_dynamic_kernel_size(x1, y1, x2, y2)
+            kernel_size = self.kernel_size or calculate_dynamic_kernel_size(
+                x1, y1, x2, y2
+            )
             roi = cv2.blur(roi, (kernel_size, kernel_size))
             scene[y1:y2, x1:x2] = roi
 
@@ -1252,7 +1259,7 @@ class PixelateAnnotator(BaseAnnotator):
         for x1, y1, x2, y2 in clipped_xyxy:
             roi = scene[y1:y2, x1:x2]
 
-            if self.pixel_size is not None and min(y2-y1, x2-x1) < self.pixel_size:
+            if self.pixel_size is not None and min(y2 - y1, x2 - x1) < self.pixel_size:
                 # Calculate the average color of the ROI and fill the ROI with it
                 avg_color = cv2.mean(roi)[:3]
                 scene[y1:y2, x1:x2] = avg_color
