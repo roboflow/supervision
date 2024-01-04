@@ -139,8 +139,14 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--model_id",
-        default="yolov8s-640",
+        default="yolov8x-1280",
         help="Roboflow model ID",
+        type=str,
+    )
+    parser.add_argument(
+        "--roboflow_api_key",
+        default=None,
+        help="Roboflow API KEY",
         type=str,
     )
     parser.add_argument(
@@ -167,12 +173,6 @@ if __name__ == "__main__":
         help="IOU threshold for the model",
         type=float,
     )
-    parser.add_argument(
-        "--roboflow_api_key",
-        default=None,
-        help="Roboflow API key",
-        type=str,
-    )
 
     args = parser.parse_args()
 
@@ -180,7 +180,8 @@ if __name__ == "__main__":
     api_key = os.environ.get("ROBOFLOW_API_KEY", api_key)
     if api_key is None:
         raise ValueError(
-            "Roboflow API key is missing. Please provide it as an argument or set the ROBOFLOW_API_KEY environment variable. For instructions on how to retrieve your Roboflow api key visit https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key."
+            "Roboflow API key is missing. Please provide it as an argument or set the "
+            "ROBOFLOW_API_KEY environment variable."
         )
     args.roboflow_api_key = api_key
 
