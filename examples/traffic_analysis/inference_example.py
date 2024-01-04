@@ -207,7 +207,8 @@ if __name__ == "__main__":
         type=float,
     )
     parser.add_argument(
-        "--iou_threshold", default=0.7, help="IOU threshold for the model", type=float
+        "--iou_threshold", default=0.7, help="IOU threshold for the model",
+        type=float
     )
     parser.add_argument(
         "--roboflow_api_key",
@@ -222,7 +223,8 @@ if __name__ == "__main__":
     api_key = os.environ.get("ROBOFLOW_API_KEY", api_key)
     if api_key is None:
         raise ValueError(
-            "Roboflow API key is missing. Please provide it as an argument or set the ROBOFLOW_API_KEY environment variable. For instructions on how to retrieve your Roboflow api key visit https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key."
+            "Roboflow API KEY is missing. Please provide it as an argument or set the "
+            "ROBOFLOW_API_KEY environment variable."
         )
     args.roboflow_api_key = api_key
 
