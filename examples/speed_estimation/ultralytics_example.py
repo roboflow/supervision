@@ -1,4 +1,5 @@
 import argparse
+from collections import defaultdict, deque
 
 import cv2
 import numpy as np
@@ -7,14 +8,40 @@ from ultralytics import YOLO
 import supervision as sv
 
 COLOR = sv.Color.red()
-ZONE = np.array([
+
+SOURCE = np.array([
     [1252,  787],
     [2298,  803],
     [5039, 2159],
     [-550, 2159]
 ])
 
-polygon_zone = sv.PolygonZone(polygon=ZONE, frame_resolution_wh=(3840, 2160))
+TARGET_WIDTH = 25
+TARGET_HEIGHT = 250
+
+TARGET = np.array([
+    [0, 0],
+    [TARGET_WIDTH - 1, 0],
+    [TARGET_WIDTH - 1, TARGET_HEIGHT - 1],
+    [0, TARGET_HEIGHT - 1]
+])
+
+
+class ViewTransformer:
+
+    def __init__(self, m: np.ndarray) -> None:
+        self.m = m
+
+    @classmethod
+    def initialize(cls, source: np.ndarray, target: np.ndarray) -> 'ViewTransformer':
+        source = source.astype(np.float32)
+        target = target.astype(np.float32)
+        return cls(m=cv2.getPerspectiveTransform(source, target))
+
+    def transform_points(self, points: np.ndarray) -> np.ndarray:
+        reshaped_points = points.reshape(-1, 1, 2).astype(np.float32)
+        transformed_points = cv2.perspectiveTransform(reshaped_points, self.m)
+        return transformed_points.reshape(-1, 2)
 
 
 if __name__ == "__main__":
@@ -71,42 +98,56 @@ if __name__ == "__main__":
         text_scale=text_scale, text_thickness=thickness, color=COLOR,
         text_position=sv.Position.BOTTOM_CENTER)
     trace_annotator = sv.TraceAnnotator(
-        thickness=thickness, color=COLOR, trace_length=video_info.fps * 2,
+        thickness=thickness, color=COLOR, trace_length=video_info.fps,
         position=sv.Position.BOTTOM_CENTER)
 
     frame_generator = sv.get_video_frames_generator(source_path=args.source_video_path)
 
-    for frame in frame_generator:
-        result = model(frame)[0]
-        detections = sv.Detections.from_ultralytics(result)
-        detections = detections[detections.confidence > args.confidence_threshold]
-        detections = detections[polygon_zone.trigger(detections)]
-        detections = byte_track.update_with_detections(detections=detections)
+    polygon_zone = sv.PolygonZone(
+        polygon=SOURCE, frame_resolution_wh=video_info.resolution_wh)
+    view_transformer = ViewTransformer.initialize(source=SOURCE, target=TARGET)
 
-        labels = [
-            f"#{tracker_id}"
-            for _, _, _, _, tracker_id
-            in detections
-        ]
+    position = defaultdict(lambda: deque(maxlen=video_info.fps))
 
-        annotated_frame = frame.copy()
-        annotated_frame = sv.draw_polygon(
-            scene=annotated_frame,
-            polygon=ZONE,
-            color=COLOR,
-            thickness=thickness)
-        annotated_frame = bounding_box_annotator.annotate(
-            scene=annotated_frame,
-            detections=detections)
-        annotated_frame = trace_annotator.annotate(
-            scene=annotated_frame,
-            detections=detections)
-        annotated_frame = label_annotator.annotate(
-            scene=annotated_frame,
-            detections=detections,
-            labels=labels)
+    with sv.VideoSink('data/result.mp4', video_info) as sink:
+        for frame in frame_generator:
+            result = model(frame)[0]
+            detections = sv.Detections.from_ultralytics(result)
+            detections = detections[detections.confidence > args.confidence_threshold]
+            detections = detections[polygon_zone.trigger(detections)]
+            detections = byte_track.update_with_detections(detections=detections)
 
-        cv2.imshow("frame", annotated_frame)
-        if cv2.waitKey(1) & 0xFF == ord("q"):
-            break
-    cv2.destroyAllWindows()
+            points = detections.get_anchors_coordinates(anchor=sv.Position.BOTTOM_CENTER)
+            points = view_transformer.transform_points(points=points).astype(int)
+
+            labels = []
+            for tracker_id, [_, y] in zip(detections.tracker_id, points):
+                position[tracker_id].append(y)
+                if len(position[tracker_id]) < video_info.fps / 2:
+                    labels.append(f"#{tracker_id}")
+                else:
+                    speed = abs(position[tracker_id][-1] - position[tracker_id][0]) * video_info.fps / len(position[tracker_id]) * 3.6
+                    labels.append(f"#{tracker_id} {int(speed)} km/h")
+
+            annotated_frame = frame.copy()
+            annotated_frame = sv.draw_polygon(
+                scene=annotated_frame,
+                polygon=SOURCE,
+                color=COLOR,
+                thickness=thickness)
+            annotated_frame = bounding_box_annotator.annotate(
+                scene=annotated_frame,
+                detections=detections)
+            annotated_frame = trace_annotator.annotate(
+                scene=annotated_frame,
+                detections=detections)
+            annotated_frame = label_annotator.annotate(
+                scene=annotated_frame,
+                detections=detections,
+                labels=labels)
+
+            sink.write_frame(annotated_frame)
+            cv2.imshow("frame", annotated_frame)
+            if cv2.waitKey(1) & 0xFF == ord("q"):
+                break
+        cv2.destroyAllWindows()
