@@ -86,9 +86,6 @@ theme:
 plugins:
   - mkdocstrings
   - search
-  - social:
-      cards_layout_dir: docs/layouts
-      cards_layout: custom
 
 markdown_extensions:
   - admonition

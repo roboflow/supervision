@@ -160,19 +160,12 @@ class Detections:
         Example:
             ```python
             >>> import cv2
-            >>> from ultralytics import YOLO, FastSAM, SAM, RTDETR
             >>> import supervision as sv
+            >>> from ultralytics import YOLO
 
-            >>> image = cv2.imread(SOURCE_IMAGE_PATH)
+            >>> image = cv2.imread(...)
             >>> model = YOLO('yolov8s.pt')
-            >>> model = SAM('sam_b.pt')
-            >>> model = SAM('mobile_sam.pt')
-            >>> model = FastSAM('FastSAM-s.pt')
-            >>> model = RTDETR('rtdetr-l.pt')
-            >>> # model inferences
             >>> result = model(image)[0]
-            >>> # if tracker is enabled
-            >>> result = model.track(image)[0]
             >>> detections = sv.Detections.from_ultralytics(result)
             ```
         """
@@ -285,18 +278,18 @@ class Detections:
 
         Example:
             ```python
-            >>> from deepsparse import Pipeline
             >>> import supervision as sv
+            >>> from deepsparse import Pipeline
 
             >>> yolo_pipeline = Pipeline.create(
             ...     task="yolo",
-            ...     model_path = "zoo:cv/detection/yolov5-l/pytorch/" \
-            ...                  "ultralytics/coco/pruned80_quant-none"
-            >>> pipeline_outputs = yolo_pipeline(SOURCE_IMAGE_PATH,
-            ...                         iou_thres=0.6, conf_thres=0.001)
+            ...     model_path = "zoo:cv/detection/yolov5-l/pytorch/ultralytics/coco/pruned80_quant-none"
+            ... )
+            >>> result = yolo_pipeline(<SOURCE IMAGE PATH>)
             >>> detections = sv.Detections.from_deepsparse(result)
             ```
-        """
+        """  # noqa: E501 // docs
+
         if np.asarray(deepsparse_results.boxes[0]).shape[0] == 0:
             return cls.empty()
 
@@ -419,25 +412,14 @@ class Detections:
 
         Example:
             ```python
+            >>> import cv2
             >>> import supervision as sv
+            >>> from inference.models.utils import get_roboflow_model
 
-            >>> roboflow_result = {
-            ...     "predictions": [
-            ...         {
-            ...             "x": 0.5,
-            ...             "y": 0.5,
-            ...             "width": 0.2,
-            ...             "height": 0.3,
-            ...             "class_id": 0,
-            ...             "class": "person",
-            ...             "confidence": 0.9
-            ...         },
-            ...         # ... more predictions ...
-            ...     ]
-            ... }
-
-            >>> detections = sv.Detections.from_roboflow(roboflow_result)
-            >>> detections['class_name']
+            >>> image = cv2.imread(...)
+            >>> model = get_roboflow_model(model_id="yolov8s-640")
+            >>> result = model.infer(image)[0]
+            >>> detections = sv.Detections.from_inference(result)
             ```
         """
         with suppress(AttributeError):
@@ -459,7 +441,10 @@ class Detections:
         )
 
     @classmethod
-    @deprecated("Use `from_inference` instead.")
+    @deprecated(
+        "`Detections.from_roboflow` is deprecated and will be removed in "
+        "`supervision-0.21.0`. Use `Detections.from_inference` instead."
+    )
     def from_roboflow(cls, roboflow_result: Union[dict, Any]) -> Detections:
         """
         Create a Detections object from the [Roboflow](https://roboflow.com/)
@@ -475,24 +460,14 @@ class Detections:
 
         Example:
             ```python
+            >>> import cv2
             >>> import supervision as sv
+            >>> from inference.models.utils import get_roboflow_model
 
-            >>> roboflow_result = {
-            ...     "predictions": [
-            ...         {
-            ...             "x": 0.5,
-            ...             "y": 0.5,
-            ...             "width": 0.2,
-            ...             "height": 0.3,
-            ...             "class_id": 0,
-            ...             "class": "person",
-            ...             "confidence": 0.9
-            ...         },
-            ...         # ... more predictions ...
-            ...     ]
-            ... }
-
-            >>> detections = sv.Detections.from_roboflow(roboflow_result)
+            >>> image = cv2.imread(...)
+            >>> model = get_roboflow_model(model_id="yolov8s-640")
+            >>> result = model.infer(image)[0]
+            >>> detections = sv.Detections.from_roboflow(result)
             ```
         """
         return cls.from_inference(roboflow_result)
