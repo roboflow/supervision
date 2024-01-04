@@ -62,6 +62,7 @@ theme:
   name: 'material'
   logo: assets/supervision-lenny.png
   favicon: assets/supervision-lenny.png
+  custom_dir: docs/theme
   palette:
     # Palette for light mode
     - scheme: default

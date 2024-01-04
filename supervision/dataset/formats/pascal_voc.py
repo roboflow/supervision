@@ -268,12 +268,12 @@ def detections_from_xml_obj(
         [extended_classes.index(class_name) for class_name in class_names]
     )
 
-    if with_masks:
-        annotation = Detections(
-            xyxy=xyxy, mask=np.array(masks).astype(bool), class_id=class_id
-        )
-    else:
-        annotation = Detections(xyxy=xyxy, class_id=class_id)
+    annotation = Detections(
+        xyxy=xyxy.astype(np.float32),
+        mask=np.array(masks).astype(bool) if with_masks else None,
+        class_id=class_id,
+    )
+
     return annotation, extended_classes
 
 
