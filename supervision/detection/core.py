@@ -448,7 +448,8 @@ class Detections:
     def from_roboflow(cls, roboflow_result: Union[dict, Any]) -> Detections:
         """
         Create a Detections object from the [Roboflow](https://roboflow.com/)
-            API inference result or the [Inference](https://inference.roboflow.com/) package results.
+            API inference result or the [Inference](https://inference.roboflow.com/)
+            package results.
 
         Args:
             roboflow_result (dict): The result from the

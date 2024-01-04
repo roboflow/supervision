@@ -68,12 +68,13 @@ def detect(
     frame: np.ndarray, model: RoboflowInferenceModel, confidence_threshold: float = 0.5
 ) -> sv.Detections:
     """
-    Detect objects in a frame using a Inference model, filtering detections by class ID and
-        confidence threshold.
+    Detect objects in a frame using Inference model, filtering detections by class ID
+        and confidence threshold.
 
     Args:
         frame (np.ndarray): The frame to process, expected to be a NumPy array.
-        model (RoboflowInferenceModel): The Inference model used for processing the frame.
+        model (RoboflowInferenceModel): The Inference model used for processing the
+            frame.
         confidence_threshold (float, optional): The confidence threshold for filtering
             detections. Default is 0.5.
 
@@ -82,8 +83,8 @@ def detect(
             model.
 
     Note:
-        This function is specifically tailored for an Inference model and assumes class ID 0
-            for filtering.
+        This function is specifically tailored for an Inference model and assumes class
+        ID 0 for filtering.
     """
     results = model.infer(frame)[0]
     detections = sv.Detections.from_inference(results)
