@@ -189,6 +189,12 @@ if __name__ == "__main__":
         type=str,
     )
     parser.add_argument(
+        "--roboflow_api_key",
+        default=None,
+        help="Roboflow API KEY",
+        type=str,
+    )
+    parser.add_argument(
         "--source_video_path",
         required=True,
         help="Path to the source video file",
@@ -209,12 +215,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "--iou_threshold", default=0.7, help="IOU threshold for the model",
         type=float
-    )
-    parser.add_argument(
-        "--roboflow_api_key",
-        default=None,
-        help="Roboflow API key",
-        type=str,
     )
 
     args = parser.parse_args()
