@@ -213,8 +213,7 @@ if __name__ == "__main__":
         type=float,
     )
     parser.add_argument(
-        "--iou_threshold", default=0.7, help="IOU threshold for the model",
-        type=float
+        "--iou_threshold", default=0.7, help="IOU threshold for the model", type=float
     )
 
     args = parser.parse_args()
