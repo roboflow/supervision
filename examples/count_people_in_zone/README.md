@@ -57,12 +57,12 @@ https://github.com/roboflow/supervision/assets/26109316/f84db7b5-79e2-4142-a1da-
 
 - inference
 
-  - `--roboflow_api_key` (optional): The API key for Roboflow services. If not provided 
-    directly, the script tries to fetch it from the `ROBOFLOW_API_KEY` environment 
-    variable. Follow [this guide](https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key) 
+  - `--roboflow_api_key` (optional): The API key for Roboflow services. If not provided
+    directly, the script tries to fetch it from the `ROBOFLOW_API_KEY` environment
+    variable. Follow [this guide](https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key)
     to acquire your `API KEY`.
-  - `--model_id` (optional): Designates the Roboflow model ID to be used. The default 
-    value is `"yolov8x-1280"`. 
+  - `--model_id` (optional): Designates the Roboflow model ID to be used. The default
+    value is `"yolov8x-1280"`.
 
   - `--zone_configuration_path`: Specifies the path to the JSON file containing zone
     configurations. This file defines the polygonal areas in the video where objects will
