@@ -1,4 +1,10 @@
-With Supervision, you can easily [annotate](https://supervision.roboflow.com/annotators/) predictions obtained from a variety of object detection and segmentation models. This document outlines how to run inference with the YOLOv8 model using the [Inference](https://github.com/roboflow/inference) package or the [Ultralytics](https://github.com/ultralytics/ultralytics) package, load these predictions into Supervision, and annotate the image.
+Supervision offers a streamlined solution to effortlessly annotate predictions from a 
+range of object detection and segmentation models. This guide demonstrates how to 
+execute inference using the YOLOv8 model with either the 
+[Inference](https://github.com/roboflow/inference) or 
+[Ultralytics](https://github.com/ultralytics/ultralytics) packages. Following this, 
+you'll learn how to import these predictions into Supervision for image annotation 
+purposes.
 
 ## Run Inference
 
@@ -11,20 +17,18 @@ First, you'll need to obtain predictions from your object detection or segmentat
     from ultralytics import YOLO
 
     model = YOLO("yolov8n.pt")
-    image = cv2.imread("image.jpg")
+    image = cv2.imread(<PATH TO IMAGE>)
     results = model(image)[0]
     ```
 
 === "Inference"
 
-    To run inference, you will need a [free Roboflow API key]().
-
     ```python
     import cv2
     from inference.models.utils import get_roboflow_model
 
-    model = get_roboflow_model(model_id="yolov8n-640", api_key="YOUR_ROBOFLOW_API_KEY")
-    image = cv2.imread("image.jpg")
+    model = get_roboflow_model(model_id="yolov8n-640", api_key=<ROBOFLOW API KEY>)
+    image = cv2.imread(<PATH TO IMAGE>)
     results = model.infer(image)[0]
     ```
 
@@ -38,11 +42,11 @@ Now that we have predictions from a model, we can load them into Supervision.
 
     ```python
     import cv2
-    from ultralytics import YOLO
     import supervision as sv
+    from ultralytics import YOLO
 
     model = YOLO("yolov8n.pt")
-    image = cv2.imread("image.jpg")
+    image = cv2.imread(<PATH TO IMAGE>)
     results = model(image)[0]
     detections = sv.Detections.from_ultralytics(results)
     ```
@@ -53,11 +57,11 @@ Now that we have predictions from a model, we can load them into Supervision.
 
     ```python
     import cv2
-    from inference.models.utils import get_roboflow_model
     import supervision as sv
+    from inference.models.utils import get_roboflow_model
 
-    model = get_roboflow_model(model_id="yolov8n-640", api_key="YOUR_ROBOFLOW_API_KEY")
-    image = cv2.imread("image.jpg")
+    model = get_roboflow_model(model_id="yolov8n-640", api_key=<ROBOFLOW API KEY>
+    image = cv2.imread(<PATH TO IMAGE>)
     results = model.infer(image)[0]
     detections = sv.Detections.from_inference(results)
     ```
@@ -80,11 +84,11 @@ Finally, we can annotate the image with the predictions. Since we are working wi
 
     ```python
     import cv2
-    from ultralytics import YOLO
     import supervision as sv
+    from ultralytics import YOLO
 
     model = YOLO("yolov8n.pt")
-    image = cv2.imread("image.jpg")
+    image = cv2.imread(<PATH TO IMAGE>)
     results = model(image)[0]
     detections = sv.Detections.from_ultralytics(results)
 
@@ -92,7 +96,7 @@ Finally, we can annotate the image with the predictions. Since we are working wi
     label_annotator = sv.LabelAnnotator()
 
     labels = [
-        results.names[class_id]
+        model.model.names[class_id]
         for class_id
         in detections.class_id
     ]
@@ -107,27 +111,21 @@ Finally, we can annotate the image with the predictions. Since we are working wi
 
     ```python
     import cv2
-    from inference.models.utils import get_roboflow_model
     import supervision as sv
+    from inference.models.utils import get_roboflow_model
 
-    model = get_roboflow_model(model_id="yolov8n-640", api_key="YOUR_ROBOFLOW_API_KEY")
-    image = cv2.imread("image.jpg")
+    model = get_roboflow_model(model_id="yolov8n-640", api_key=<ROBOFLOW API KEY>
+    image = cv2.imread(<PATH TO IMAGE>)
     results = model.infer(image)[0]
     detections = sv.Detections.from_inference(results)
 
     bounding_box_annotator = sv.BoundingBoxAnnotator()
     label_annotator = sv.LabelAnnotator()
 
-    labels = [
-        results.names[class_id]
-        for class_id
-        in detections.class_id
-    ]
-
     annotated_image = bounding_box_annotator.annotate(
         scene=image, detections=detections)
     annotated_image = label_annotator.annotate(
-        scene=annotated_image, detections=detections, labels=labels)
+        scene=annotated_image, detections=detections)
     ```
 
 ![Predictions plotted on an image](https://media.roboflow.com/supervision_annotate_example.png)
