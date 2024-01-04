@@ -1,50 +1,25 @@
 import argparse
-import json
-from dataclasses import dataclass
-from typing import List
 
 import cv2
+import numpy as np
 from ultralytics import YOLO
 
 import supervision as sv
 
-
 COLOR = sv.Color.red()
+ZONE = np.array([
+    [1252,  787],
+    [2298,  803],
+    [5039, 2159],
+    [-550, 2159]
+])
 
-
-@dataclass
-class Line:
-    start: sv.Point
-    end: sv.Point
-
-
-@dataclass
-class Config:
-    lines: List[Line]
-    distance: float
-
-    @classmethod
-    def load(cls, file_path: str):
-        with open(file_path, 'r') as file:
-            data = json.load(file)
-            lines = [
-                Line(sv.Point(**line['start']), sv.Point(**line['end']))
-                for line
-                in data['lines']
-            ]
-            return cls(lines, data['distance'])
+polygon_zone = sv.PolygonZone(polygon=ZONE, frame_resolution_wh=(3840, 2160))
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Vehicle Speed Estimation using Supervision Package"
-    )
-
-    parser.add_argument(
-        "--lines_configuration_path",
-        required=True,
-        help="Path to the lines configuration JSON file",
-        type=str,
     )
     parser.add_argument(
         "--source_weights_path",
@@ -79,11 +54,11 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    config = Config.load(args.lines_configuration_path)
     video_info = sv.VideoInfo.from_video_path(video_path=args.source_video_path)
 
     model = YOLO(args.source_weights_path)
-    byte_track = sv.ByteTrack(frame_rate=video_info.fps)
+    byte_track = sv.ByteTrack(
+        frame_rate=video_info.fps, track_thresh=args.confidence_threshold)
 
     thickness = sv.calculate_dynamic_line_thickness(
         resolution_wh=video_info.resolution_wh)
@@ -96,7 +71,7 @@ if __name__ == "__main__":
         text_scale=text_scale, text_thickness=thickness, color=COLOR,
         text_position=sv.Position.BOTTOM_CENTER)
     trace_annotator = sv.TraceAnnotator(
-        thickness=thickness, color=COLOR, trace_length=video_info.fps,
+        thickness=thickness, color=COLOR, trace_length=video_info.fps * 2,
         position=sv.Position.BOTTOM_CENTER)
 
     frame_generator = sv.get_video_frames_generator(source_path=args.source_video_path)
@@ -104,7 +79,9 @@ if __name__ == "__main__":
     for frame in frame_generator:
         result = model(frame)[0]
         detections = sv.Detections.from_ultralytics(result)
-        detections = byte_track.update_with_detections(detections)
+        detections = detections[detections.confidence > args.confidence_threshold]
+        detections = detections[polygon_zone.trigger(detections)]
+        detections = byte_track.update_with_detections(detections=detections)
 
         labels = [
             f"#{tracker_id}"
@@ -113,18 +90,11 @@ if __name__ == "__main__":
         ]
 
         annotated_frame = frame.copy()
-        annotated_frame = sv.draw_line(
+        annotated_frame = sv.draw_polygon(
             scene=annotated_frame,
-            start=config.lines[0].start,
-            end=config.lines[0].end,
-            color=sv.Color.white(),
-            thickness=2)
-        annotated_frame = sv.draw_line(
-            scene=annotated_frame,
-            start=config.lines[1].start,
-            end=config.lines[1].end,
-            color=sv.Color.white(),
-            thickness=2)
+            polygon=ZONE,
+            color=COLOR,
+            thickness=thickness)
         annotated_frame = bounding_box_annotator.annotate(
             scene=annotated_frame,
             detections=detections)
