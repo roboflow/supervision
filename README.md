@@ -65,20 +65,20 @@ Supervision was designed to be model agnostic. Just plug in any classification, 
 - inference
 
     Running with [Inference](https://github.com/roboflow/inference) requires a [Roboflow API KEY](https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key).
-    
+
     ```python
     >>> import cv2
     >>> import supervision as sv
     >>> from inference.models.utils import get_roboflow_model
-    
+
     >>> image = cv2.imread(...)
     >>> model = get_roboflow_model(model_id="yolov8s-640", api_key=<ROBOFLOW API KEY>)
     >>> result = model.infer(image)[0]
     >>> detections = sv.Detections.from_inference(result)
-    
+
     >>> len(detections)
     >>> 5
-    
+
     ```
 
 </details>
