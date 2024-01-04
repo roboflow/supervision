@@ -1,9 +1,9 @@
-Supervision offers a streamlined solution to effortlessly annotate predictions from a 
-range of object detection and segmentation models. This guide demonstrates how to 
-execute inference using the YOLOv8 model with either the 
-[Inference](https://github.com/roboflow/inference) or 
-[Ultralytics](https://github.com/ultralytics/ultralytics) packages. Following this, 
-you'll learn how to import these predictions into Supervision for image annotation 
+Supervision offers a streamlined solution to effortlessly annotate predictions from a
+range of object detection and segmentation models. This guide demonstrates how to
+execute inference using the YOLOv8 model with either the
+[Inference](https://github.com/roboflow/inference) or
+[Ultralytics](https://github.com/ultralytics/ultralytics) packages. Following this,
+you'll learn how to import these predictions into Supervision for image annotation
 purposes.
 
 ## Run Inference
