@@ -48,12 +48,12 @@ detection and Supervision for tracking and annotation.
 
 - inference
 
-  - `--roboflow_api_key` (optional): The API key for Roboflow services. If not provided 
-    directly, the script tries to fetch it from the `ROBOFLOW_API_KEY` environment 
-    variable. Follow [this guide](https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key) 
+  - `--roboflow_api_key` (optional): The API key for Roboflow services. If not provided
+    directly, the script tries to fetch it from the `ROBOFLOW_API_KEY` environment
+    variable. Follow [this guide](https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key)
     to acquire your `API KEY`.
-  - `--model_id` (optional): Designates the Roboflow model ID to be used. The default 
-    value is `"yolov8x-1280"`. 
+  - `--model_id` (optional): Designates the Roboflow model ID to be used. The default
+    value is `"yolov8x-1280"`.
 
   - `--source_video_path`: Required. The path to the source video file to be processed.
     This is the video on which object detection and annotation will be performed.
@@ -90,12 +90,12 @@ detection and Supervision for tracking and annotation.
 
 This demo integrates two main components, each with its own licensing:
 
-- ultralytics: The object detection model used in this demo, YOLOv8, is distributed 
+- ultralytics: The object detection model used in this demo, YOLOv8, is distributed
   under the [AGPL-3.0 license](https://github.com/ultralytics/ultralytics/blob/main/LICENSE).
   You can find more details about this license here.
 
-- supervision: The analytics code that powers the zone-based analysis in this demo is 
-  based on the Supervision library, which is licensed under the 
+- supervision: The analytics code that powers the zone-based analysis in this demo is
+  based on the Supervision library, which is licensed under the
   [MIT license](https://github.com/roboflow/supervision/blob/develop/LICENSE.md). This
   makes the Supervision part of the code fully open source and freely usable in your
   projects.
