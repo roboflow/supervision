@@ -1,7 +1,11 @@
-Utilize Supervision to elevate your video analysis capabilities by effortlessly
-[tracking](https://supervision.roboflow.com/trackers/) objects identified by various
-object detection and segmentation models. This guide will walk you through the process
-of running inference on the YOLOv8 model using the [Inference](https://github.com/roboflow/inference) package or the [Ultralytics](https://github.com/ultralytics/ultralytics) package, subsequently tracking these objects, and annotating the video.
+Leverage Supervision's advanced capabilities for enhancing your video analysis by 
+seamlessly [tracking](https://supervision.roboflow.com/trackers/) objects recognized by 
+a multitude of object detection and segmentation models. This comprehensive guide will 
+take you through the steps to perform inference using the YOLOv8 model via either the 
+[Inference](https://github.com/roboflow/inference) or 
+[Ultralytics](https://github.com/ultralytics/ultralytics) packages. Following this, 
+you'll discover how to track these objects efficiently and annotate your video content 
+for a deeper analysis.
 
 To make it easier for you to follow our tutorial download the video we will use as an
 example. You can do this using
@@ -54,14 +58,12 @@ it will be modified to include tracking, labeling, and trace annotations.
 
 === "Inference"
 
-    To run inference, you will need a [free Roboflow API key]().
-
     ```{ .py }
     import numpy as np
     import supervision as sv
     from inference.models.utils import get_roboflow_model
 
-    model = get_roboflow_model(model_id="yolov8n-640", api_key="YOUR_ROBOFLOW_API_KEY")
+    model = get_roboflow_model(model_id="yolov8n-640", api_key=<ROBOFLOW API KEY>)
     box_annotator = sv.BoundingBoxAnnotator()
 
     def callback(frame: np.ndarray, _: int) -> np.ndarray:
@@ -119,7 +121,7 @@ enabling the continuous following of the object's motion path across different f
     import supervision as sv
     from inference.models.utils import get_roboflow_model
 
-    model = get_roboflow_model(model_id="yolov8n-640", api_key="YOUR_ROBOFLOW_API_KEY")
+    model = get_roboflow_model(model_id="yolov8n-640", api_key=<ROBOFLOW API KEY>)
     tracker = sv.ByteTrack()
     box_annotator = sv.BoundingBoxAnnotator()
 
@@ -186,7 +188,7 @@ offering a clear visual representation of each object's class and unique identif
     import supervision as sv
     from inference.models.utils import get_roboflow_model
 
-    model = get_roboflow_model(model_id="yolov8n-640", api_key="YOUR_ROBOFLOW_API_KEY")
+    model = get_roboflow_model(model_id="yolov8n-640", api_key=<ROBOFLOW API KEY>)
     tracker = sv.ByteTrack()
     box_annotator = sv.BoundingBoxAnnotator()
     label_annotator = sv.LabelAnnotator()
@@ -271,7 +273,7 @@ movement patterns and interactions between objects in the video.
     import supervision as sv
     from inference.models.utils import get_roboflow_model
 
-    model = get_roboflow_model(model_id="yolov8n-640", api_key="YOUR_ROBOFLOW_API_KEY")
+    model = get_roboflow_model(model_id="yolov8n-640", api_key=<ROBOFLOW API KEY>)
     tracker = sv.ByteTrack()
     box_annotator = sv.BoundingBoxAnnotator()
     label_annotator = sv.LabelAnnotator()
