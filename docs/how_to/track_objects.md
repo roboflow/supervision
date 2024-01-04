@@ -1,10 +1,10 @@
-Leverage Supervision's advanced capabilities for enhancing your video analysis by 
-seamlessly [tracking](https://supervision.roboflow.com/trackers/) objects recognized by 
-a multitude of object detection and segmentation models. This comprehensive guide will 
-take you through the steps to perform inference using the YOLOv8 model via either the 
-[Inference](https://github.com/roboflow/inference) or 
-[Ultralytics](https://github.com/ultralytics/ultralytics) packages. Following this, 
-you'll discover how to track these objects efficiently and annotate your video content 
+Leverage Supervision's advanced capabilities for enhancing your video analysis by
+seamlessly [tracking](https://supervision.roboflow.com/trackers/) objects recognized by
+a multitude of object detection and segmentation models. This comprehensive guide will
+take you through the steps to perform inference using the YOLOv8 model via either the
+[Inference](https://github.com/roboflow/inference) or
+[Ultralytics](https://github.com/ultralytics/ultralytics) packages. Following this,
+you'll discover how to track these objects efficiently and annotate your video content
 for a deeper analysis.
 
 To make it easier for you to follow our tutorial download the video we will use as an
