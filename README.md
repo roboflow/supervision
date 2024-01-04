@@ -60,11 +60,9 @@ Supervision was designed to be model agnostic. Just plug in any classification, 
 ```
 
 <details>
-<summary>
-Example with Infernce
-</summary>
+<summary>👉 more models</summary>
 
-Running with [Inference](https://github.com/roboflow/inference) can improve speed but requires a [Roboflow API key](https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key).
+Running with [Inference](https://github.com/roboflow/inference) requires a [Roboflow API KEY](https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key).
 
 ```python
 >>> import cv2
