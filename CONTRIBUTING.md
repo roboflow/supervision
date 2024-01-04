@@ -76,7 +76,6 @@ All new functions and classes in `supervision` should include docstrings. This i
 
 So far, **there is no type checking with mypy**. See [issue](https://github.com/roboflow-ai/template-python/issues/4).
 
-
 Then, go back to your fork of the `supervision` repository, click "Pull Requests", and click "New Pull Request".
 
 ![Opening a pull request](https://media.roboflow.com/open_pr.png)
@@ -109,7 +108,7 @@ PRs must pass all tests and linting requirements before they can be merged.
 
 The `supervision` documentation is stored in a folder called `docs`. The project documentation is built using `mkdocs`.
 
-To run the documentation, install the project requirements with `poetry install dev`. Then, run `mkdocs serve` to start the documentation server.
+To run the documentation, install the project requirements with `poetry install --with dev`. Then, run `mkdocs serve` to start the documentation server.
 
 You can learn more about mkdocs on the [mkdocs website](https://www.mkdocs.org/).
 
