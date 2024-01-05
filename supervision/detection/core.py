@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import astuple, dataclass
+from contextlib import suppress
+from dataclasses import dataclass, field
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
@@ -8,62 +9,22 @@ import numpy as np
 from supervision.detection.utils import (
     calculate_masks_centroids,
     extract_ultralytics_masks,
+    get_data_item,
+    is_data_equal,
+    merge_data,
     non_max_suppression,
     process_roboflow_result,
+    validate_detections_fields,
     xywh_to_xyxy,
 )
 from supervision.geometry.core import Position
-
-
-def _validate_xyxy(xyxy: Any, n: int) -> None:
-    is_valid = isinstance(xyxy, np.ndarray) and xyxy.shape == (n, 4)
-    if not is_valid:
-        raise ValueError("xyxy must be 2d np.ndarray with (n, 4) shape")
-
-
-def _validate_mask(mask: Any, n: int) -> None:
-    is_valid = mask is None or (
-        isinstance(mask, np.ndarray) and len(mask.shape) == 3 and mask.shape[0] == n
-    )
-    if not is_valid:
-        raise ValueError("mask must be 3d np.ndarray with (n, H, W) shape")
-
-
-def validate_inference_callback(callback) -> None:
-    tmp_img = np.zeros((256, 256, 3), dtype=np.uint8)
-    res = callback(tmp_img)
-    if not isinstance(res, Detections):
-        raise ValueError("Callback function must return sv.Detection type")
-
-
-def _validate_class_id(class_id: Any, n: int) -> None:
-    is_valid = class_id is None or (
-        isinstance(class_id, np.ndarray) and class_id.shape == (n,)
-    )
-    if not is_valid:
-        raise ValueError("class_id must be None or 1d np.ndarray with (n,) shape")
-
-
-def _validate_confidence(confidence: Any, n: int) -> None:
-    is_valid = confidence is None or (
-        isinstance(confidence, np.ndarray) and confidence.shape == (n,)
-    )
-    if not is_valid:
-        raise ValueError("confidence must be None or 1d np.ndarray with (n,) shape")
-
-
-def _validate_tracker_id(tracker_id: Any, n: int) -> None:
-    is_valid = tracker_id is None or (
-        isinstance(tracker_id, np.ndarray) and tracker_id.shape == (n,)
-    )
-    if not is_valid:
-        raise ValueError("tracker_id must be None or 1d np.ndarray with (n,) shape")
+from supervision.utils.internal import deprecated
 
 
 @dataclass
 class Detections:
     """
-    Data class containing information about the detections in a video frame.
+    A dataclass representing detection results.
 
     Attributes:
         xyxy (np.ndarray): An array of shape `(n, 4)` containing
@@ -76,6 +37,17 @@ class Detections:
             `(n,)` containing the class ids of the detections.
         tracker_id (Optional[np.ndarray]): An array of shape
             `(n,)` containing the tracker ids of the detections.
+        data (Dict[str, Union[np.ndarray, List]]): A dictionary containing additional
+            data where each key is a string representing the data type, and the value
+            is either a NumPy array or a list of corresponding data.
+
+    !!! warning
+
+        The `data` field in the `sv.Detections` class is currently in an experimental
+        phase. Please be aware that its API and functionality are subject to change in
+        future updates as we continue to refine and improve its capabilities.
+        We encourage users to experiment with this feature and provide feedback, but
+        also to be prepared for potential modifications in upcoming releases.
     """
 
     xyxy: np.ndarray
@@ -83,14 +55,17 @@ class Detections:
     confidence: Optional[np.ndarray] = None
     class_id: Optional[np.ndarray] = None
     tracker_id: Optional[np.ndarray] = None
+    data: Dict[str, Union[np.ndarray, List]] = field(default_factory=dict)
 
     def __post_init__(self):
-        n = len(self.xyxy)
-        _validate_xyxy(xyxy=self.xyxy, n=n)
-        _validate_mask(mask=self.mask, n=n)
-        _validate_class_id(class_id=self.class_id, n=n)
-        _validate_confidence(confidence=self.confidence, n=n)
-        _validate_tracker_id(tracker_id=self.tracker_id, n=n)
+        validate_detections_fields(
+            xyxy=self.xyxy,
+            mask=self.mask,
+            confidence=self.confidence,
+            class_id=self.class_id,
+            tracker_id=self.tracker_id,
+            data=self.data,
+        )
 
     def __len__(self):
         """
@@ -107,11 +82,12 @@ class Detections:
             Optional[float],
             Optional[int],
             Optional[int],
+            Dict[str, Union[np.ndarray, List]],
         ]
     ]:
         """
         Iterates over the Detections object and yield a tuple of
-        `(xyxy, mask, confidence, class_id, tracker_id)` for each detection.
+        `(xyxy, mask, confidence, class_id, tracker_id, data)` for each detection.
         """
         for i in range(len(self.xyxy)):
             yield (
@@ -120,36 +96,18 @@ class Detections:
                 self.confidence[i] if self.confidence is not None else None,
                 self.class_id[i] if self.class_id is not None else None,
                 self.tracker_id[i] if self.tracker_id is not None else None,
+                get_data_item(self.data, i),
             )
 
     def __eq__(self, other: Detections):
         return all(
             [
                 np.array_equal(self.xyxy, other.xyxy),
-                any(
-                    [
-                        self.mask is None and other.mask is None,
-                        np.array_equal(self.mask, other.mask),
-                    ]
-                ),
-                any(
-                    [
-                        self.class_id is None and other.class_id is None,
-                        np.array_equal(self.class_id, other.class_id),
-                    ]
-                ),
-                any(
-                    [
-                        self.confidence is None and other.confidence is None,
-                        np.array_equal(self.confidence, other.confidence),
-                    ]
-                ),
-                any(
-                    [
-                        self.tracker_id is None and other.tracker_id is None,
-                        np.array_equal(self.tracker_id, other.tracker_id),
-                    ]
-                ),
+                np.array_equal(self.mask, other.mask),
+                np.array_equal(self.class_id, other.class_id),
+                np.array_equal(self.confidence, other.confidence),
+                np.array_equal(self.tracker_id, other.tracker_id),
+                is_data_equal(self.data, other.data),
             ]
         )
 
@@ -202,19 +160,12 @@ class Detections:
         Example:
             ```python
             >>> import cv2
-            >>> from ultralytics import YOLO, FastSAM, SAM, RTDETR
             >>> import supervision as sv
+            >>> from ultralytics import YOLO
 
-            >>> image = cv2.imread(SOURCE_IMAGE_PATH)
+            >>> image = cv2.imread(...)
             >>> model = YOLO('yolov8s.pt')
-            >>> model = SAM('sam_b.pt')
-            >>> model = SAM('mobile_sam.pt')
-            >>> model = FastSAM('FastSAM-s.pt')
-            >>> model = RTDETR('rtdetr-l.pt')
-            >>> # model inferences
             >>> result = model(image)[0]
-            >>> # if tracker is enabled
-            >>> result = model.track(image)[0]
             >>> detections = sv.Detections.from_ultralytics(result)
             ```
         """
@@ -327,18 +278,18 @@ class Detections:
 
         Example:
             ```python
-            >>> from deepsparse import Pipeline
             >>> import supervision as sv
+            >>> from deepsparse import Pipeline
 
             >>> yolo_pipeline = Pipeline.create(
             ...     task="yolo",
-            ...     model_path = "zoo:cv/detection/yolov5-l/pytorch/" \
-            ...                  "ultralytics/coco/pruned80_quant-none"
-            >>> pipeline_outputs = yolo_pipeline(SOURCE_IMAGE_PATH,
-            ...                         iou_thres=0.6, conf_thres=0.001)
+            ...     model_path = "zoo:cv/detection/yolov5-l/pytorch/ultralytics/coco/pruned80_quant-none"
+            ... )
+            >>> result = yolo_pipeline(<SOURCE IMAGE PATH>)
             >>> detections = sv.Detections.from_deepsparse(result)
             ```
-        """
+        """  # noqa: E501 // docs
+
         if np.asarray(deepsparse_results.boxes[0]).shape[0] == 0:
             return cls.empty()
 
@@ -438,14 +389,22 @@ class Detections:
         )
 
     @classmethod
-    def from_roboflow(cls, roboflow_result: dict) -> Detections:
+    def from_inference(cls, roboflow_result: Union[dict, Any]) -> Detections:
         """
         Create a Detections object from the [Roboflow](https://roboflow.com/)
-            API inference result.
+        API inference result or the [Inference](https://inference.roboflow.com/)
+        package results. This method extracts bounding boxes, class IDs,
+        confidences, and class names from the Roboflow API result and encapsulates
+        them into a Detections object.
+
+        !!! note
+
+            Class names can be accessed using the key 'class_name' in the returned
+            object's data attribute.
 
         Args:
-            roboflow_result (dict): The result from the
-                Roboflow API containing predictions.
+            roboflow_result (dict, any): The result from the
+                Roboflow API or Inference package containing predictions.
 
         Returns:
             (Detections): A Detections object containing the bounding boxes, class IDs,
@@ -453,27 +412,19 @@ class Detections:
 
         Example:
             ```python
+            >>> import cv2
             >>> import supervision as sv
+            >>> from inference.models.utils import get_roboflow_model
 
-            >>> roboflow_result = {
-            ...     "predictions": [
-            ...         {
-            ...             "x": 0.5,
-            ...             "y": 0.5,
-            ...             "width": 0.2,
-            ...             "height": 0.3,
-            ...             "class_id": 0,
-            ...             "class": "person",
-            ...             "confidence": 0.9
-            ...         },
-            ...         # ... more predictions ...
-            ...     ]
-            ... }
-
-            >>> detections = sv.Detections.from_roboflow(roboflow_result)
+            >>> image = cv2.imread(...)
+            >>> model = get_roboflow_model(model_id="yolov8s-640")
+            >>> result = model.infer(image)[0]
+            >>> detections = sv.Detections.from_inference(result)
             ```
         """
-        xyxy, confidence, class_id, masks, trackers = process_roboflow_result(
+        with suppress(AttributeError):
+            roboflow_result = roboflow_result.dict(exclude_none=True, by_alias=True)
+        xyxy, confidence, class_id, masks, trackers, data = process_roboflow_result(
             roboflow_result=roboflow_result
         )
 
@@ -486,7 +437,41 @@ class Detections:
             class_id=class_id,
             mask=masks,
             tracker_id=trackers,
+            data=data,
         )
+
+    @classmethod
+    @deprecated(
+        "`Detections.from_roboflow` is deprecated and will be removed in "
+        "`supervision-0.21.0`. Use `Detections.from_inference` instead."
+    )
+    def from_roboflow(cls, roboflow_result: Union[dict, Any]) -> Detections:
+        """
+        Create a Detections object from the [Roboflow](https://roboflow.com/)
+            API inference result or the [Inference](https://inference.roboflow.com/)
+            package results.
+
+        Args:
+            roboflow_result (dict): The result from the
+                Roboflow API containing predictions.
+
+        Returns:
+            (Detections): A Detections object containing the bounding boxes, class IDs,
+                and confidences of the predictions.
+
+        Example:
+            ```python
+            >>> import cv2
+            >>> import supervision as sv
+            >>> from inference.models.utils import get_roboflow_model
+
+            >>> image = cv2.imread(...)
+            >>> model = get_roboflow_model(model_id="yolov8s-640")
+            >>> result = model.infer(image)[0]
+            >>> detections = sv.Detections.from_roboflow(result)
+            ```
+        """
+        return cls.from_inference(roboflow_result)
 
     @classmethod
     def from_sam(cls, sam_result: List[dict]) -> Detections:
@@ -701,30 +686,67 @@ class Detections:
 
         Example:
             ```python
-            >>> from supervision import Detections
+            import numpy as np
+            import supervision as sv
 
-            >>> detections_1 = Detections(...)
-            >>> detections_2 = Detections(...)
+            >>> detections_1 = sv.Detections(
+            ...     xyxy=np.array([[15, 15, 100, 100], [200, 200, 300, 300]]),
+            ...     class_id=np.array([1, 2]),
+            ...     data={'feature_vector': np.array([0.1, 0.2)])}
+            ... )
+
+            >>> detections_2 = sv.Detections(
+            ...     xyxy=np.array([[30, 30, 120, 120]]),
+            ...     class_id=np.array([1]),
+            ...     data={'feature_vector': [np.array([0.3])]}
+            ... )
 
             >>> merged_detections = Detections.merge([detections_1, detections_2])
+
+            >>> merged_detections.xyxy
+            array([[ 15,  15, 100, 100],
+                   [200, 200, 300, 300],
+                   [ 30,  30, 120, 120]])
+
+            >>> merged_detections.class_id
+            array([1, 2, 1])
+
+            >>> merged_detections.data['feature_vector']
+            array([0.1, 0.2, 0.3])
             ```
         """
         if len(detections_list) == 0:
             return Detections.empty()
 
-        detections_tuples_list = [astuple(detection) for detection in detections_list]
-        xyxy, mask, confidence, class_id, tracker_id = [
-            list(field) for field in zip(*detections_tuples_list)
-        ]
+        for detections in detections_list:
+            validate_detections_fields(
+                xyxy=detections.xyxy,
+                mask=detections.mask,
+                confidence=detections.confidence,
+                class_id=detections.class_id,
+                tracker_id=detections.tracker_id,
+                data=detections.data,
+            )
 
-        def __all_not_none(item_list: List[Any]):
-            return all(x is not None for x in item_list)
+        xyxy = np.vstack([d.xyxy for d in detections_list])
 
-        xyxy = np.vstack(xyxy)
-        mask = np.vstack(mask) if __all_not_none(mask) else None
-        confidence = np.hstack(confidence) if __all_not_none(confidence) else None
-        class_id = np.hstack(class_id) if __all_not_none(class_id) else None
-        tracker_id = np.hstack(tracker_id) if __all_not_none(tracker_id) else None
+        def stack_or_none(name: str):
+            if all(d.__getattribute__(name) is None for d in detections_list):
+                return None
+            if any(d.__getattribute__(name) is None for d in detections_list):
+                raise ValueError(f"All or none of the '{name}' fields must be None")
+            return (
+                np.vstack([d.__getattribute__(name) for d in detections_list])
+                if name == "mask"
+                else np.hstack([d.__getattribute__(name) for d in detections_list])
+            )
+
+        mask = stack_or_none("mask")
+        confidence = stack_or_none("confidence")
+        class_id = stack_or_none("class_id")
+        tracker_id = stack_or_none("tracker_id")
+
+        data = merge_data([d.data for d in detections_list])
 
         return cls(
             xyxy=xyxy,
@@ -732,6 +754,7 @@ class Detections:
             confidence=confidence,
             class_id=class_id,
             tracker_id=tracker_id,
+            data=data,
         )
 
     def get_anchors_coordinates(self, anchor: Position) -> np.ndarray:
@@ -801,17 +824,23 @@ class Detections:
         raise ValueError(f"{anchor} is not supported.")
 
     def __getitem__(
-        self, index: Union[int, slice, List[int], np.ndarray]
-    ) -> Detections:
+        self, index: Union[int, slice, List[int], np.ndarray, str]
+    ) -> Union[Detections, List, np.ndarray, None]:
         """
-        Get a subset of the Detections object.
+        Get a subset of the Detections object or access an item from its data field.
+
+        When provided with an integer, slice, list of integers, or a numpy array, this
+        method returns a new Detections object that represents a subset of the original
+        detections. When provided with a string, it accesses the corresponding item in
+        the data dictionary.
 
         Args:
-            index (Union[int, slice, List[int], np.ndarray]):
-                The index or indices of the subset of the Detections
+            index (Union[int, slice, List[int], np.ndarray, str]): The index, indices,
+                or key to access a subset of the Detections or an item from the data.
 
         Returns:
-            (Detections): A subset of the Detections object.
+            Union[Detections, Any]: A subset of the Detections object or an item from
+                the data field.
 
         Example:
             ```python
@@ -820,16 +849,16 @@ class Detections:
             >>> detections = sv.Detections(...)
 
             >>> first_detection = detections[0]
-
             >>> first_10_detections = detections[0:10]
-
             >>> some_detections = detections[[0, 2, 4]]
-
             >>> class_0_detections = detections[detections.class_id == 0]
-
             >>> high_confidence_detections = detections[detections.confidence > 0.5]
+
+            >>> feature_vector = detections['feature_vector']
             ```
         """
+        if isinstance(index, str):
+            return self.data.get(index)
         if isinstance(index, int):
             index = [index]
         return Detections(
@@ -838,7 +867,44 @@ class Detections:
             confidence=self.confidence[index] if self.confidence is not None else None,
             class_id=self.class_id[index] if self.class_id is not None else None,
             tracker_id=self.tracker_id[index] if self.tracker_id is not None else None,
+            data=get_data_item(self.data, index),
         )
+
+    def __setitem__(self, key: str, value: Union[np.ndarray, List]):
+        """
+        Set a value in the data dictionary of the Detections object.
+
+        Args:
+            key (str): The key in the data dictionary to set.
+            value (Union[np.ndarray, List]): The value to set for the key.
+
+        Example:
+            ```python
+            >>> import cv2
+            >>> from ultralytics import YOLO
+            >>> import supervision as sv
+
+            >>> model = YOLO('yolov8s.pt')
+
+            >>> image = cv2.imread(SOURCE_IMAGE_PATH)
+
+            >>> result = model(image)[0]
+            >>> detections = sv.Detections.from_ultralytics(result)
+
+            >>> detections['names'] = [
+            ...     model.model.names[class_id]
+            ...     for class_id
+            ...     in detections.class_id
+            ... ]
+            ```
+        """
+        if not isinstance(value, (np.ndarray, list)):
+            raise TypeError("Value must be a np.ndarray or a list")
+
+        if isinstance(value, list):
+            value = np.array(value)
+
+        self.data[key] = value
 
     @property
     def area(self) -> np.ndarray:

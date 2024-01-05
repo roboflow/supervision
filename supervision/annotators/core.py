@@ -6,6 +6,7 @@ import numpy as np
 
 from supervision.annotators.base import BaseAnnotator
 from supervision.annotators.utils import ColorLookup, Trace, resolve_color
+from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
 from supervision.detection.utils import clip_boxes, mask_to_polygons
 from supervision.draw.color import Color, ColorPalette
@@ -890,6 +891,16 @@ class LabelAnnotator:
         anchors_coordinates = detections.get_anchors_coordinates(
             anchor=self.text_anchor
         ).astype(int)
+        if labels is not None and len(labels) != len(detections):
+            raise ValueError(
+                f"The number of labels provided ({len(labels)}) does not match the "
+                f"number of detections ({len(detections)}). Each detection should have "
+                f"a corresponding label. This discrepancy can occur if the labels and "
+                f"detections are not aligned or if an incorrect number of labels has "
+                f"been provided. Please ensure that the labels array has the same "
+                f"length as the Detections object."
+            )
+
         for detection_idx, center_coordinates in enumerate(anchors_coordinates):
             color = resolve_color(
                 color=self.color,
@@ -899,11 +910,16 @@ class LabelAnnotator:
                 if custom_color_lookup is None
                 else custom_color_lookup,
             )
-            text = (
-                f"{detections.class_id[detection_idx]}"
-                if (labels is None or len(detections) != len(labels))
-                else labels[detection_idx]
-            )
+
+            if labels is not None:
+                text = labels[detection_idx]
+            elif detections[CLASS_NAME_DATA_FIELD] is not None:
+                text = detections[CLASS_NAME_DATA_FIELD][detection_idx]
+            elif detections.class_id is not None:
+                text = str(detections.class_id[detection_idx])
+            else:
+                text = str(detection_idx)
+
             text_w, text_h = cv2.getTextSize(
                 text=text,
                 fontFace=font,
