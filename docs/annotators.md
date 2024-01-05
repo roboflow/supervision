@@ -19,6 +19,27 @@
 
     </div>
 
+=== "RoundBoundingBox"
+
+    ```python
+    >>> import supervision as sv
+
+    >>> image = ...
+    >>> detections = sv.Detections(...)
+
+    >>> round_bounding_box_annotator = sv.RoundBoundingBoxAnnotator()
+    >>> annotated_frame = round_bounding_box_annotator.annotate(
+    ...     scene=image.copy(),
+    ...     detections=detections
+    ... )
+    ```
+
+    <div class="result" markdown>
+
+    ![round_bounding-box-annotator-example](https://media.roboflow.com/supervision-annotator-examples/round_bounding-box-annotator-example-purple.png){ align=center width="800" }
+
+    </div>
+
 === "BoxCorner"
 
     ```python
@@ -390,6 +411,10 @@
 ## TraceAnnotator
 
 :::supervision.annotators.core.TraceAnnotator
+
+## RoundBoundingBoxAnnotator
+
+:::supervision.annotators.core.RoundBoundingBoxAnnotator
 
 ## ColorLookup
 

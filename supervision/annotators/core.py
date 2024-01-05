@@ -1382,9 +1382,9 @@ class RoundBoundingBoxAnnotator(BaseAnnotator):
         self.color: Union[Color, ColorPalette] = color
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
-        self.roundness: float = roundess if 0 < roundess <= 1.0 else None
-        if self.roundness is None:
+        if not 0 < roundess <= 1.0:
             raise ValueError("roundness attribute must be float between (0, 1.0]")
+        self.roundness: float = roundess
 
     def annotate(
         self,
@@ -1419,7 +1419,8 @@ class RoundBoundingBoxAnnotator(BaseAnnotator):
             ... )
             ```
 
-        ![round-bounding-box-annotator-example]() Link to be added for image example
+        ![round-bounding-box-annotator-example](https://media.roboflow.com/
+        supervision-annotator-examples/round-bounding-box-annotator-example.png)
         """
 
         for detection_idx in range(len(detections)):
