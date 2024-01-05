@@ -4,6 +4,7 @@ from collections import defaultdict, deque
 import cv2
 import numpy as np
 from ultralytics import YOLO
+from tqdm import tqdm
 
 import supervision as sv
 
@@ -42,6 +43,9 @@ class ViewTransformer:
         reshaped_points = points.reshape(-1, 1, 2).astype(np.float32)
         transformed_points = cv2.perspectiveTransform(reshaped_points, self.m)
         return transformed_points.reshape(-1, 2)
+
+    def transform_image(self, image: np.ndarray, width: int, height: int) -> np.ndarray:
+        return cv2.warpPerspective(image, self.m, (width, height))
 
 
 if __name__ == "__main__":
@@ -92,14 +96,14 @@ if __name__ == "__main__":
     text_scale = sv.calculate_dynamic_text_scale(
         resolution_wh=video_info.resolution_wh)
 
-    bounding_box_annotator = sv.BoundingBoxAnnotator(
-        thickness=thickness, color=COLOR)
+    box_corner_annotator = sv.BoxCornerAnnotator(
+        thickness=thickness, color_lookup=sv.ColorLookup.TRACK)
     label_annotator = sv.LabelAnnotator(
-        text_scale=text_scale, text_thickness=thickness, color=COLOR,
-        text_position=sv.Position.BOTTOM_CENTER)
+        text_scale=text_scale, text_thickness=thickness,
+        text_position=sv.Position.BOTTOM_CENTER, color_lookup=sv.ColorLookup.TRACK)
     trace_annotator = sv.TraceAnnotator(
-        thickness=thickness, color=COLOR, trace_length=video_info.fps,
-        position=sv.Position.BOTTOM_CENTER)
+        thickness=thickness, trace_length=video_info.fps * 2,
+        position=sv.Position.BOTTOM_CENTER, color_lookup=sv.ColorLookup.TRACK)
 
     frame_generator = sv.get_video_frames_generator(source_path=args.source_video_path)
 
@@ -109,11 +113,12 @@ if __name__ == "__main__":
 
     position = defaultdict(lambda: deque(maxlen=video_info.fps))
 
-    with sv.VideoSink('data/result.mp4', video_info) as sink:
+    with sv.VideoSink(args.target_video_path, video_info) as sink:
         for frame in frame_generator:
-            result = model(frame)[0]
+            result = model(frame, imgsz=1280)[0]
             detections = sv.Detections.from_ultralytics(result)
             detections = detections[detections.confidence > args.confidence_threshold]
+            detections = detections[detections.class_id != 0]
             detections = detections[polygon_zone.trigger(detections)]
             detections = byte_track.update_with_detections(detections=detections)
 
@@ -126,16 +131,17 @@ if __name__ == "__main__":
                 if len(position[tracker_id]) < video_info.fps / 2:
                     labels.append(f"#{tracker_id}")
                 else:
-                    speed = abs(position[tracker_id][-1] - position[tracker_id][0]) * video_info.fps / len(position[tracker_id]) * 3.6
+                    distance = abs(position[tracker_id][-1] - position[tracker_id][0])
+                    speed = distance * video_info.fps / len(position[tracker_id]) * 3.6
                     labels.append(f"#{tracker_id} {int(speed)} km/h")
 
             annotated_frame = frame.copy()
-            annotated_frame = sv.draw_polygon(
-                scene=annotated_frame,
-                polygon=SOURCE,
-                color=COLOR,
-                thickness=thickness)
-            annotated_frame = bounding_box_annotator.annotate(
+            # annotated_frame = sv.draw_polygon(
+            #     scene=annotated_frame,
+            #     polygon=SOURCE,
+            #     color=COLOR,
+            #     thickness=thickness)
+            annotated_frame = box_corner_annotator.annotate(
                 scene=annotated_frame,
                 detections=detections)
             annotated_frame = trace_annotator.annotate(
