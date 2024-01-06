@@ -1381,7 +1381,7 @@ class RoundBoundingBoxAnnotator(BaseAnnotator):
         color: Union[Color, ColorPalette] = ColorPalette.default(),
         thickness: int = 2,
         color_lookup: ColorLookup = ColorLookup.CLASS,
-        roundess: float = 0.6,
+        roundness: float = 0.6,
     ):
         """
         Args:
@@ -1398,9 +1398,9 @@ class RoundBoundingBoxAnnotator(BaseAnnotator):
         self.color: Union[Color, ColorPalette] = color
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
-        if not 0 < roundess <= 1.0:
+        if not 0 < roundness <= 1.0:
             raise ValueError("roundness attribute must be float between (0, 1.0]")
-        self.roundness: float = roundess
+        self.roundness: float = roundness
 
     def annotate(
         self,
