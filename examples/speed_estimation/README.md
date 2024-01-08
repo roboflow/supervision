@@ -2,7 +2,9 @@
 
 ## 👋 hello
 
-TODO
+This example performs speed estimation analysis using various object-detection models 
+and ByteTrack - a simple yet effective online multi-object tracking method. It uses the
+supervision package for multiple tasks such as tracking, annotations, etc.
 
 ## 💻 install
 

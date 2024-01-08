@@ -102,7 +102,7 @@ if __name__ == "__main__":
         polygon=SOURCE, frame_resolution_wh=video_info.resolution_wh)
     view_transformer = ViewTransformer(source=SOURCE, target=TARGET)
 
-    position = defaultdict(lambda: deque(maxlen=video_info.fps))
+    coordinates = defaultdict(lambda: deque(maxlen=video_info.fps))
 
     with sv.VideoSink(args.target_video_path, video_info) as sink:
         for frame in frame_generator:
@@ -110,19 +110,25 @@ if __name__ == "__main__":
             detections = sv.Detections.from_ultralytics(result)
             detections = detections[detections.confidence > args.confidence_threshold]
             detections = detections[polygon_zone.trigger(detections)]
+            detections = detections.with_nms(threshold=args.iou_threshold)
             detections = byte_track.update_with_detections(detections=detections)
 
             points = detections.get_anchors_coordinates(anchor=sv.Position.BOTTOM_CENTER)
             points = view_transformer.transform_points(points=points).astype(int)
 
-            labels = []
             for tracker_id, [_, y] in zip(detections.tracker_id, points):
-                position[tracker_id].append(y)
-                if len(position[tracker_id]) < video_info.fps / 2:
+                coordinates[tracker_id].append(y)
+
+            labels = []
+            for tracker_id in detections.tracker_id:
+                if len(coordinates[tracker_id]) < video_info.fps / 2:
                     labels.append(f"#{tracker_id}")
                 else:
-                    distance = abs(position[tracker_id][-1] - position[tracker_id][0])
-                    speed = distance * video_info.fps / len(position[tracker_id]) * 3.6
+                    coordinate_start = coordinates[tracker_id][-1]
+                    coordinate_end = coordinates[tracker_id][0]
+                    distance = abs(coordinate_start - coordinate_end)
+                    time = len(coordinates[tracker_id]) / video_info.fps
+                    speed = distance / time * 3.6
                     labels.append(f"#{tracker_id} {int(speed)} km/h")
 
             annotated_frame = frame.copy()
