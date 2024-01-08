@@ -53,14 +53,25 @@ supervision package for multiple tasks such as tracking, annotations, etc.
 
 ## ⚙️ run
 
-```bash
-  python ultralytics_example.py \
-  --source_weights_path yolov8x.pt \
-  --source_video_path data/vehicles.mp4 \
-  --target_video_path data/vehicles-result.mp4 \
-  --confidence_threshold 0.3 \
-  --iou_threshold 0.5
-```
+- yolo-nas
+
+  ```bash
+    python yolo_nas_example.py \
+    --source_video_path data/vehicles.mp4 \
+    --target_video_path data/vehicles-result.mp4 \
+    --confidence_threshold 0.3 \
+    --iou_threshold 0.5
+  ```
+
+- ultralytics
+
+  ```bash
+    python ultralytics_example.py \
+    --source_video_path data/vehicles.mp4 \
+    --target_video_path data/vehicles-result.mp4 \
+    --confidence_threshold 0.3 \
+    --iou_threshold 0.5
+  ```
 
 ## © license
 

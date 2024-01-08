@@ -40,13 +40,7 @@ class ViewTransformer:
 
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Vehicle Speed Estimation using Supervision Package"
-    )
-    parser.add_argument(
-        "--source_weights_path",
-        required=True,
-        help="Path to the source weights file",
-        type=str,
+        description="Vehicle Speed Estimation using Ultralytics and Supervision"
     )
     parser.add_argument(
         "--source_video_path",
@@ -80,7 +74,7 @@ if __name__ == "__main__":
     args = parse_arguments()
 
     video_info = sv.VideoInfo.from_video_path(video_path=args.source_video_path)
-    model = YOLO(args.source_weights_path)
+    model = YOLO('yolov8x.pt')
 
     byte_track = sv.ByteTrack(
         frame_rate=video_info.fps,
@@ -90,7 +84,7 @@ if __name__ == "__main__":
         resolution_wh=video_info.resolution_wh)
     text_scale = sv.calculate_dynamic_text_scale(
         resolution_wh=video_info.resolution_wh)
-    box_corner_annotator = sv.BoundingBoxAnnotator(
+    bounding_box_annotator = sv.BoundingBoxAnnotator(
         thickness=thickness)
     label_annotator = sv.LabelAnnotator(
         text_scale=text_scale,
@@ -141,7 +135,7 @@ if __name__ == "__main__":
             annotated_frame = trace_annotator.annotate(
                 scene=annotated_frame,
                 detections=detections)
-            annotated_frame = box_corner_annotator.annotate(
+            annotated_frame = bounding_box_annotator.annotate(
                 scene=annotated_frame,
                 detections=detections)
             annotated_frame = label_annotator.annotate(
