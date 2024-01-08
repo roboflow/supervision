@@ -1,4 +1,6 @@
 gdown
+numpy
+opencv-python
 supervision==0.18.0rc1
 
 ultralytics
