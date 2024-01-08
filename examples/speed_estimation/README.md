@@ -36,6 +36,13 @@ supervision package for multiple tasks such as tracking, annotations, etc.
   
 ## 🛠️ script arguments
 
+- `--roboflow_api_key` (optional): The API key for Roboflow services. If not provided
+  directly, the script tries to fetch it from the `ROBOFLOW_API_KEY` environment
+  variable. Follow [this guide](https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key)
+  to acquire your `API KEY`.
+- `--model_id` (optional): Designates the Roboflow model ID to be used. The default
+  value is `"yolov8x-1280"`.
+
 - `--source_weights_path`: Required. Specifies the path to the YOLO model's weights
   file, which is essential for the object detection process. This file contains the
   data that the model uses to identify objects in the video.
@@ -57,6 +64,17 @@ supervision package for multiple tasks such as tracking, annotations, etc.
 
   ```bash
     python yolo_nas_example.py \
+    --source_video_path data/vehicles.mp4 \
+    --target_video_path data/vehicles-result.mp4 \
+    --confidence_threshold 0.3 \
+    --iou_threshold 0.5
+  ```
+  
+- inference
+
+  ```bash
+    python inference_example.py \
+    --roboflow_api_key <ROBOFLOW API KEY> \
     --source_video_path data/vehicles.mp4 \
     --target_video_path data/vehicles-result.mp4 \
     --confidence_threshold 0.3 \
