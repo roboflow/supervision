@@ -8,6 +8,9 @@ supervision package for multiple tasks such as tracking, annotations, etc.
 
 ## 💻 install
 
+> [!NOTE]  
+> YOLO-NAS is compatible with Python versions up to and including Python 3.10.
+
 - clone repository and navigate to example directory
 
   ```bash
@@ -16,9 +19,6 @@ supervision package for multiple tasks such as tracking, annotations, etc.
   ```
 
 - setup python environment and activate it [optional]
-
-  > [!NOTE]  
-  > YOLO-NAS is compatible with Python versions up to and including Python 3.10.
 
   ```bash
   python3.10 -m venv venv
