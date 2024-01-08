@@ -1,5 +1,5 @@
 gdown
-supervision
+supervision==0.18.0rc1
 
 ultralytics
 super-gradients

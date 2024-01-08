@@ -45,7 +45,7 @@ def parse_arguments() -> argparse.Namespace:
     )
     parser.add_argument(
         "--model_id",
-        default="yolov8x-1280",
+        default="yolov8x-640",
         help="Roboflow model ID",
         type=str,
     )
