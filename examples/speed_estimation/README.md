@@ -6,6 +6,8 @@ This example performs speed estimation analysis using various object-detection m
 and ByteTrack - a simple yet effective online multi-object tracking method. It uses the
 supervision package for multiple tasks such as tracking, annotations, etc.
 
+https://github.com/roboflow/supervision/assets/26109316/0542fd3c-bb5f-475e-b96c-793560abeb18
+
 ## 💻 install
 
 > [!NOTE]
