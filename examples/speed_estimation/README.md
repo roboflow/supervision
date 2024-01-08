@@ -26,6 +26,12 @@ TODO
   pip install -r requirements.txt
   ```
   
+- download `vehicles.mp4` file
+
+  ```bash
+  ./setup.sh
+  ```
+  
 ## 🛠️ script arguments
 
 - `--source_weights_path`: Required. Specifies the path to the YOLO model's weights
@@ -42,10 +48,6 @@ TODO
 - `--iou_threshold` (optional): Specifies the IOU (Intersection Over Union) threshold
   for the model. Default is 0.7. This value is used to manage object detection
   accuracy, particularly in distinguishing between different objects.
-
-## 📌 line configuration
-
-TODO
 
 ## ⚙️ run
 

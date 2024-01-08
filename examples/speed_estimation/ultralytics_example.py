@@ -7,7 +7,6 @@ from ultralytics import YOLO
 
 import supervision as sv
 
-COLOR = sv.Color.red()
 
 SOURCE = np.array([
     [1252,  787],
