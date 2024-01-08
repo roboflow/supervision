@@ -41,7 +41,7 @@ supervision package for multiple tasks such as tracking, annotations, etc.
   data that the model uses to identify objects in the video.
 - `--source_video_path`: Required. The path to the source video file that will be
   analyzed. This is the input video on which traffic flow analysis will be performed.
-- `--target_video_path` (optional): The path to save the output video with
+- `--target_video_path`: The path to save the output video with
   annotations. If not specified, the processed video will be displayed in real-time
   without being saved.
 - `--confidence_threshold` (optional): Sets the confidence threshold for the YOLO
@@ -56,8 +56,8 @@ supervision package for multiple tasks such as tracking, annotations, etc.
 ```bash
   python ultralytics_example.py \
   --source_weights_path yolov8x.pt \
-  --lines_configuration_path data/vehicles-config.json \
   --source_video_path data/vehicles.mp4 \
+  --target_video_path data/vehicles-result.mp4 \
   --confidence_threshold 0.3 \
   --iou_threshold 0.5
 ```

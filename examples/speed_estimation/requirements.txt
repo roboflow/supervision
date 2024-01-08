@@ -1,5 +1,6 @@
 gdown
-inference
-supervision[asserts]
-tqdm
+supervision
+
 ultralytics
+super-gradients
+inference

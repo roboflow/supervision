@@ -7,7 +7,6 @@ from ultralytics import YOLO
 
 import supervision as sv
 
-
 SOURCE = np.array([
     [1252,  787],
     [2298,  803],
@@ -39,7 +38,7 @@ class ViewTransformer:
         return transformed_points.reshape(-1, 2)
 
 
-if __name__ == "__main__":
+def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Vehicle Speed Estimation using Supervision Package"
     )
@@ -57,7 +56,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--target_video_path",
-        default=None,
+        required=True,
         help="Path to the target video file (output)",
         type=str,
     )
@@ -74,39 +73,46 @@ if __name__ == "__main__":
         type=float
     )
 
-    args = parser.parse_args()
+    return parser.parse_args()
+
+
+if __name__ == "__main__":
+    args = parse_arguments()
 
     video_info = sv.VideoInfo.from_video_path(video_path=args.source_video_path)
-
     model = YOLO(args.source_weights_path)
+
     byte_track = sv.ByteTrack(
-        frame_rate=video_info.fps, track_thresh=args.confidence_threshold)
+        frame_rate=video_info.fps,
+        track_thresh=args.confidence_threshold)
 
     thickness = sv.calculate_dynamic_line_thickness(
         resolution_wh=video_info.resolution_wh)
     text_scale = sv.calculate_dynamic_text_scale(
         resolution_wh=video_info.resolution_wh)
-
     box_corner_annotator = sv.BoundingBoxAnnotator(
         thickness=thickness)
     label_annotator = sv.LabelAnnotator(
-        text_scale=text_scale, text_thickness=thickness,
+        text_scale=text_scale,
+        text_thickness=thickness,
         text_position=sv.Position.BOTTOM_CENTER)
     trace_annotator = sv.TraceAnnotator(
-        thickness=thickness, trace_length=video_info.fps * 2,
+        thickness=thickness,
+        trace_length=video_info.fps * 2,
         position=sv.Position.BOTTOM_CENTER)
 
     frame_generator = sv.get_video_frames_generator(source_path=args.source_video_path)
 
     polygon_zone = sv.PolygonZone(
-        polygon=SOURCE, frame_resolution_wh=video_info.resolution_wh)
+        polygon=SOURCE,
+        frame_resolution_wh=video_info.resolution_wh)
     view_transformer = ViewTransformer(source=SOURCE, target=TARGET)
 
     coordinates = defaultdict(lambda: deque(maxlen=video_info.fps))
 
     with sv.VideoSink(args.target_video_path, video_info) as sink:
         for frame in frame_generator:
-            result = model(frame, imgsz=1280)[0]
+            result = model(frame)[0]
             detections = sv.Detections.from_ultralytics(result)
             detections = detections[detections.confidence > args.confidence_threshold]
             detections = detections[polygon_zone.trigger(detections)]
