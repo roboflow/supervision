@@ -2,7 +2,7 @@
 
 ## 👋 hello
 
-This example performs speed estimation analysis using various object-detection models 
+This example performs speed estimation analysis using various object-detection models
 and ByteTrack - a simple yet effective online multi-object tracking method. It uses the
 supervision package for multiple tasks such as tracking, annotations, etc.
 
@@ -27,13 +27,13 @@ supervision package for multiple tasks such as tracking, annotations, etc.
   ```bash
   pip install -r requirements.txt
   ```
-  
+
 - download `vehicles.mp4` file
 
   ```bash
   ./setup.sh
   ```
-  
+
 ## 🛠️ script arguments
 
 - `--roboflow_api_key` (optional): The API key for Roboflow services. If not provided
@@ -69,7 +69,7 @@ supervision package for multiple tasks such as tracking, annotations, etc.
     --confidence_threshold 0.3 \
     --iou_threshold 0.5
   ```
-  
+
 - inference
 
   ```bash
