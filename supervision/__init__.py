@@ -20,7 +20,7 @@ from supervision.annotators.core import (
     MaskAnnotator,
     PixelateAnnotator,
     PolygonAnnotator,
-    RoundBoundingBoxAnnotator,
+    RoundBoxAnnotator,
     TraceAnnotator,
     TriangleAnnotator,
 )

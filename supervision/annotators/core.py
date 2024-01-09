@@ -1370,7 +1370,7 @@ class TriangleAnnotator(BaseAnnotator):
         return scene
 
 
-class RoundBoundingBoxAnnotator(BaseAnnotator):
+class RoundBoxAnnotator(BaseAnnotator):
     """
     A class for drawing bounding boxes with round edges on an image
     using provided detections.
@@ -1428,15 +1428,15 @@ class RoundBoundingBoxAnnotator(BaseAnnotator):
             >>> image = ...
             >>> detections = sv.Detections(...)
 
-            >>> round_bounding_box_annotator = sv.RoundBoundingBoxAnnotator()
-            >>> annotated_frame = round_bounding_box_annotator.annotate(
+            >>> round_box_annotator = sv.RoundBoxAnnotator()
+            >>> annotated_frame = round_box_annotator.annotate(
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
             ```
 
-        ![round-bounding-box-annotator-example](https://media.roboflow.com/
-        supervision-annotator-examples/round-bounding-box-annotator-example.png)
+        ![round-box-annotator-example](https://media.roboflow.com/
+        supervision-annotator-examples/round-box-annotator-example.png)
         """
 
         for detection_idx in range(len(detections)):
