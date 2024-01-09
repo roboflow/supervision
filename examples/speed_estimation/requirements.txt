@@ -1,6 +1,6 @@
-gdown
 supervision==0.18.0rc1
-
+tqdm
+requests
 ultralytics
 super-gradients
 inference

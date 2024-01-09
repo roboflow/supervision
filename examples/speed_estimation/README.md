@@ -36,7 +36,7 @@ https://github.com/roboflow/supervision/assets/26109316/0542fd3c-bb5f-475e-b96c-
 - download `vehicles.mp4` file
 
   ```bash
-  ./setup.sh
+  python3.10 video_downloader.py
   ```
 
 ## 🛠️ script arguments
