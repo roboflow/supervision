@@ -7,6 +7,7 @@ interfaces with diverse applications.
 - [tracking](./tracking) by [@SkalskiP](https://github.com/SkalskiP)
 - [count people in zone](./count_people_in_zone) by [@SkalskiP](https://github.com/SkalskiP)
 - [traffic analysis](./traffic_analysis) by [@SkalskiP](https://github.com/SkalskiP)
+- [speed estimation](./speed_estimation) by [@SkalskiP](https://github.com/SkalskiP)
 - [heatmap and track](./heatmap_and_track/) by [@HinePo](https://github.com/HinePo)
 
 ## contributing
