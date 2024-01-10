@@ -1515,9 +1515,12 @@ class PercentageBarAnnotator(BaseAnnotator):
     ):
         """
         Args:
+            height (int): The height in pixels of the percentage bar.
+            width (int): The width in pixels of the percentage bar.
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating detections.
-            thickness (int): Thickness of the bounding box lines.
+            border_color (Color): The color of the border lines.
+            position (Position): The anchor position of drawing the percentage bar.
             color_lookup (str): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
