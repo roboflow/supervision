@@ -1505,9 +1505,12 @@ class PercentageBarAnnotator(BaseAnnotator):
     """
 
     def __init__(
-        self,
+        self, 
+        height: int = 14,
+        width: int = 80,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
-        thickness: int = 2,
+        border_color: Color = Color.black(),
+        position: Position = Position.TOP_CENTER,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
         """
@@ -1518,8 +1521,11 @@ class PercentageBarAnnotator(BaseAnnotator):
             color_lookup (str): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
+        self.height: int = height
+        self.width: int = width
         self.color: Union[Color, ColorPalette] = color
-        self.thickness: int = thickness
+        self.border_color: Color = border_color
+        self.position: Position = position
         self.color_lookup: ColorLookup = color_lookup
 
     def annotate(
