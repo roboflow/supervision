@@ -1498,9 +1498,10 @@ class RoundBoxAnnotator(BaseAnnotator):
         return scene
 
 
-class BoundingBoxAnnotator(BaseAnnotator):
+class PercentageBarAnnotator(BaseAnnotator):
     """
-    A class for drawing bounding boxes on an image using provided detections.
+    A class for drawing percentage bars of confidence threshold on an image
+    using provided detections.
     """
 
     def __init__(
@@ -1528,10 +1529,11 @@ class BoundingBoxAnnotator(BaseAnnotator):
         custom_color_lookup: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         """
-        Annotates the given scene with bounding boxes based on the provided detections.
+        Annotates the given scene with percentage bars based on the provided
+        detections.
 
         Args:
-            scene (np.ndarray): The image where bounding boxes will be drawn.
+            scene (np.ndarray): The image where percentage bars will be drawn.
             detections (Detections): Object detections to annotate.
             custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
                 Allows to override the default color mapping strategy.
@@ -1546,15 +1548,14 @@ class BoundingBoxAnnotator(BaseAnnotator):
             >>> image = ...
             >>> detections = sv.Detections(...)
 
-            >>> bounding_box_annotator = sv.BoundingBoxAnnotator()
-            >>> annotated_frame = bounding_box_annotator.annotate(
+            >>> percentage_bar_annotator = sv.BoundingBoxAnnotator()
+            >>> annotated_frame = percentage_bar_annotator.annotate(
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
             ```
 
-        ![bounding-box-annotator-example](https://media.roboflow.com/
-        supervision-annotator-examples/bounding-box-annotator-example-purple.png)
+        ![percentage-bar-annotator-example]() # TODO add link of image example
         """
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
