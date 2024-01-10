@@ -1568,6 +1568,7 @@ class PercentageBarAnnotator(BaseAnnotator):
         """
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
+            xy = detections.get_anchors_coordinates(anchor=self.position)
             color = resolve_color(
                 color=self.color,
                 detections=detections,
