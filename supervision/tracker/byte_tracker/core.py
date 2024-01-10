@@ -21,6 +21,7 @@ class STrack(BaseTrack):
         self.score = score
         self.class_ids = class_ids
         self.tracklet_len = 0
+        self.tracking_time = 0
 
     def predict(self):
         mean_state = self.mean.copy()
@@ -48,7 +49,7 @@ class STrack(BaseTrack):
                 stracks[i].mean = mean
                 stracks[i].covariance = cov
 
-    def activate(self, kalman_filter, frame_id):
+    def activate(self, kalman_filter, frame_id, time_per_frame=1 / 30):
         """Start a new tracklet"""
         self.kalman_filter = kalman_filter
         self.track_id = self.next_id()
@@ -63,6 +64,10 @@ class STrack(BaseTrack):
         self.frame_id = frame_id
         self.start_frame = frame_id
 
+        self.time_per_frame = time_per_frame
+
+        self.tracking_time = (self.frame_id - self.start_frame) * self.time_per_frame
+
     def re_activate(self, new_track, frame_id, new_id=False):
         self.mean, self.covariance = self.kalman_filter.update(
             self.mean, self.covariance, self.tlwh_to_xyah(new_track.tlwh)
@@ -74,6 +79,7 @@ class STrack(BaseTrack):
         if new_id:
             self.track_id = self.next_id()
         self.score = new_track.score
+        self.tracking_time = (self.frame_id - self.start_frame) * self.time_per_frame
 
     def update(self, new_track, frame_id):
         """
@@ -94,6 +100,7 @@ class STrack(BaseTrack):
         self.is_activated = True
 
         self.score = new_track.score
+        self.tracking_time = (self.frame_id - self.start_frame) * self.time_per_frame
 
     @property
     def tlwh(self):
@@ -173,6 +180,7 @@ class ByteTrack:
         track_buffer (int, optional): Number of frames to buffer when a track is lost.
         match_thresh (float, optional): Threshold for matching tracks with detections.
         frame_rate (int, optional): The frame rate of the video.
+        show_time (bool, optional): Flag to display the tracking time.
     """
 
     def __init__(
@@ -181,9 +189,12 @@ class ByteTrack:
         track_buffer: int = 30,
         match_thresh: float = 0.8,
         frame_rate: int = 30,
+        show_time: bool = False,
     ):
         self.track_thresh = track_thresh
         self.match_thresh = match_thresh
+        self.show_time = show_time
+        self.time_per_frame = 1.0 / frame_rate
 
         self.frame_id = 0
         self.det_thresh = self.track_thresh + 0.1
@@ -249,6 +260,10 @@ class ByteTrack:
             detections.confidence = np.array(
                 [t.score for t in tracks], dtype=np.float32
             )
+            if self.show_time:
+                detections.tracking_times = np.array(
+                    [t.tracking_time for t in tracks], dtype=np.float32
+                )
         else:
             detections.tracker_id = np.array([], dtype=int)
 
@@ -382,7 +397,7 @@ class ByteTrack:
             track = detections[inew]
             if track.score < self.det_thresh:
                 continue
-            track.activate(self.kalman_filter, self.frame_id)
+            track.activate(self.kalman_filter, self.frame_id, self.time_per_frame)
             activated_starcks.append(track)
         """ Step 5: Update state"""
         for track in self.lost_tracks:
@@ -395,6 +410,7 @@ class ByteTrack:
         ]
         self.tracked_tracks = joint_tracks(self.tracked_tracks, activated_starcks)
         self.tracked_tracks = joint_tracks(self.tracked_tracks, refind_stracks)
+
         self.lost_tracks = sub_tracks(self.lost_tracks, self.tracked_tracks)
         self.lost_tracks.extend(lost_stracks)
         self.lost_tracks = sub_tracks(self.lost_tracks, self.removed_tracks)

@@ -15,7 +15,7 @@ def process_video(
 ) -> None:
     model = YOLO(source_weights_path)
 
-    tracker = sv.ByteTrack()
+    tracker = sv.ByteTrack(show_time=True)
     box_annotator = sv.BoundingBoxAnnotator()
     label_annotator = sv.LabelAnnotator()
     frame_generator = sv.get_video_frames_generator(source_path=source_video_path)

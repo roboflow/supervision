@@ -920,6 +920,10 @@ class LabelAnnotator:
             else:
                 text = str(detection_idx)
 
+            if detections.tracking_times is not None:
+                tracking_time = detections.tracking_times[detection_idx]
+                text += f" Time: {tracking_time:.2f}s"
+
             text_w, text_h = cv2.getTextSize(
                 text=text,
                 fontFace=font,

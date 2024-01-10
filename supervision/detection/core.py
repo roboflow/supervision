@@ -53,6 +53,7 @@ class Detections:
     xyxy: np.ndarray
     mask: Optional[np.ndarray] = None
     confidence: Optional[np.ndarray] = None
+    tracking_time: Optional[np.ndarray] = None
     class_id: Optional[np.ndarray] = None
     tracker_id: Optional[np.ndarray] = None
     data: Dict[str, Union[np.ndarray, List]] = field(default_factory=dict)
