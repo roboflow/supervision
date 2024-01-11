@@ -1571,7 +1571,8 @@ class PercentageBarAnnotator(BaseAnnotator):
                 anchor=self.position
                 )[detection_idx].astype(int)
 
-            border_thickness = int(0.1 * self.height)
+            conf = detections.confidence[detection_idx]
+            border_thickness = int(0.15 * self.height)
 
             if self.position == "TOP_LEFT":
                 
