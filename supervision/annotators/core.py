@@ -1570,28 +1570,32 @@ class PercentageBarAnnotator(BaseAnnotator):
             cx, cy = detections.get_anchors_coordinates(
                 anchor=self.position
                 )[detection_idx].astype(int)
-
+            
             conf = detections.confidence[detection_idx]
             border_thickness = int(0.15 * self.height)
 
-            if self.position == "TOP_LEFT":
-                
-            elif self.position == "TOP_CENTER":
+            border_mapping = {
+                Position.TOP_LEFT: ((cx - self.width, cy - self.height),
+                                    (cx, cy)),
+                Position.TOP_CENTER: ((cx - self.width//2, cy),
+                                      (cx + self.width//2, cy - self.height)),
+                Position.TOP_RIGHT: ((cx, cy),
+                                     (cx + self.width, cy - self.height)),
+                Position.CENTER_LEFT: ((cx - self.width, cy - self.height//2),
+                                       (cx, cy + self.height//2)),
+                Position.CENTER: ((cx - self.width//2, cy - self.height//2),
+                                  (cx + self.width//2, cy + self.height//2)),
+                Position.CENTER_RIGHT: ((cx, cy - self.height//2),
+                                        (cx + self.width, cy + self.height//2)),
+                Position.BOTTOM_LEFT: ((cx - self.width, cy),
+                                       (cx, cy + self.height)),
+                Position.BOTTOM_CENTER: ((cx - self.width//2, cy),
+                                         (cx + self.width//2, cy + self.height)),
+                Position.BOTTOM_RIGHT: ((cx, cy),
+                                        (cx + self.width, cy + self.height)),
+            }
 
-            elif self.position == "TOP_RIGHT":
-
-            elif self.position == "CENTER_LEFT":
-
-            elif self.position == "CENTER":
-
-            elif self.position == "CENTER_RIGHT":
-
-            elif self.position == "BOTTOM_LEFT":
-
-            elif self.position == "BOTTOM_CENTER":
-
-            elif self.position == "BOTTOM_RIGHT":
-
+            border_coords = border_mapping[self.position]
 
             color = resolve_color(
                 color=self.color,
