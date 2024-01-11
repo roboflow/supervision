@@ -1567,10 +1567,9 @@ class PercentageBarAnnotator(BaseAnnotator):
         ![percentage-bar-annotator-example]() # TODO add link of image example
         """
         for detection_idx in range(len(detections)):
-            x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
-            xy = detections.get_anchors_coordinates(
+            cx, cy = detections.get_anchors_coordinates(
                 anchor=self.position
-                )[detection_idx]
+                )[detection_idx].astype(int)
 
             border_thickness = int(0.1 * self.height)
 
