@@ -1506,7 +1506,7 @@ class PercentageBarAnnotator(BaseAnnotator):
 
     def __init__(
         self, 
-        height: int = 14,
+        height: int = 16,
         width: int = 80,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
         border_color: Color = Color.black(),
