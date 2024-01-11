@@ -1505,7 +1505,7 @@ class PercentageBarAnnotator(BaseAnnotator):
     """
 
     def __init__(
-        self, 
+        self,
         height: int = 16,
         width: int = 80,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
@@ -1567,32 +1567,38 @@ class PercentageBarAnnotator(BaseAnnotator):
         ![percentage-bar-annotator-example]() # TODO add link of image example
         """
         for detection_idx in range(len(detections)):
-            cx, cy = detections.get_anchors_coordinates(
-                anchor=self.position
-                )[detection_idx].astype(int)
-            
+            cx, cy = detections.get_anchors_coordinates(anchor=self.position)[
+                detection_idx
+            ].astype(int)
+
             conf = detections.confidence[detection_idx]
             border_thickness = int(0.15 * self.height)
 
             border_mapping = {
-                Position.TOP_LEFT: ((cx - self.width, cy - self.height),
-                                    (cx, cy)),
-                Position.TOP_CENTER: ((cx - self.width//2, cy),
-                                      (cx + self.width//2, cy - self.height)),
-                Position.TOP_RIGHT: ((cx, cy),
-                                     (cx + self.width, cy - self.height)),
-                Position.CENTER_LEFT: ((cx - self.width, cy - self.height//2),
-                                       (cx, cy + self.height//2)),
-                Position.CENTER: ((cx - self.width//2, cy - self.height//2),
-                                  (cx + self.width//2, cy + self.height//2)),
-                Position.CENTER_RIGHT: ((cx, cy - self.height//2),
-                                        (cx + self.width, cy + self.height//2)),
-                Position.BOTTOM_LEFT: ((cx - self.width, cy),
-                                       (cx, cy + self.height)),
-                Position.BOTTOM_CENTER: ((cx - self.width//2, cy),
-                                         (cx + self.width//2, cy + self.height)),
-                Position.BOTTOM_RIGHT: ((cx, cy),
-                                        (cx + self.width, cy + self.height)),
+                Position.TOP_LEFT: ((cx - self.width, cy - self.height), (cx, cy)),
+                Position.TOP_CENTER: (
+                    (cx - self.width // 2, cy),
+                    (cx + self.width // 2, cy - self.height),
+                ),
+                Position.TOP_RIGHT: ((cx, cy), (cx + self.width, cy - self.height)),
+                Position.CENTER_LEFT: (
+                    (cx - self.width, cy - self.height // 2),
+                    (cx, cy + self.height // 2),
+                ),
+                Position.CENTER: (
+                    (cx - self.width // 2, cy - self.height // 2),
+                    (cx + self.width // 2, cy + self.height // 2),
+                ),
+                Position.CENTER_RIGHT: (
+                    (cx, cy - self.height // 2),
+                    (cx + self.width, cy + self.height // 2),
+                ),
+                Position.BOTTOM_LEFT: ((cx - self.width, cy), (cx, cy + self.height)),
+                Position.BOTTOM_CENTER: (
+                    (cx - self.width // 2, cy),
+                    (cx + self.width // 2, cy + self.height),
+                ),
+                Position.BOTTOM_RIGHT: ((cx, cy), (cx + self.width, cy + self.height)),
             }
 
             border_coords = border_mapping[self.position]
@@ -1608,9 +1614,11 @@ class PercentageBarAnnotator(BaseAnnotator):
             cv2.rectangle(
                 img=scene,
                 pt1=border_coords[0],
-                pt2=(border_coords[0][0] +
-                    int((border_coords[1][0] - border_coords[0][0])*conf),
-                    border_coords[1][1]),
+                pt2=(
+                    border_coords[0][0]
+                    + int((border_coords[1][0] - border_coords[0][0]) * conf),
+                    border_coords[1][1],
+                ),
                 color=color.as_bgr(),
                 thickness=-1,
             )
