@@ -1568,7 +1568,31 @@ class PercentageBarAnnotator(BaseAnnotator):
         """
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
-            xy = detections.get_anchors_coordinates(anchor=self.position)
+            xy = detections.get_anchors_coordinates(
+                anchor=self.position
+                )[detection_idx]
+
+            border_thickness = int(0.1 * self.height)
+
+            if self.position == "TOP_LEFT":
+                
+            elif self.position == "TOP_CENTER":
+
+            elif self.position == "TOP_RIGHT":
+
+            elif self.position == "CENTER_LEFT":
+
+            elif self.position == "CENTER":
+
+            elif self.position == "CENTER_RIGHT":
+
+            elif self.position == "BOTTOM_LEFT":
+
+            elif self.position == "BOTTOM_CENTER":
+
+            elif self.position == "BOTTOM_RIGHT":
+
+
             color = resolve_color(
                 color=self.color,
                 detections=detections,
@@ -1582,6 +1606,6 @@ class PercentageBarAnnotator(BaseAnnotator):
                 pt1=(x1, y1),
                 pt2=(x2, y2),
                 color=color.as_bgr(),
-                thickness=self.thickness,
+                thickness=border_thickness,
             )
         return scene
