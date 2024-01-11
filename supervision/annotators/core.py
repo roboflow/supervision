@@ -1605,7 +1605,14 @@ class PercentageBarAnnotator(BaseAnnotator):
                 img=scene,
                 pt1=(x1, y1),
                 pt2=(x2, y2),
-                color=color.as_bgr(),
+                color=self.border_color.as_bgr(),
                 thickness=border_thickness,
+            )
+            cv2.rectangle(
+                img=scene,
+                pt1=(x1, y1),
+                pt2=(x2, y2),
+                color=color.as_bgr(),
+                thickness=-1,
             )
         return scene
