@@ -32,6 +32,7 @@ nav:
       - Track Objects: how_to/track_objects.md
       - Filter Detections: how_to/filter_detections.md
       - Evaluate Model: how_to/evaluate_model.md
+      - Count in Zone: how_to/count_in_zone.md
   - API:
     - Classifications:
         - Core: classification/core.md
