@@ -164,11 +164,26 @@ def load_yolo_annotations(
     return classes, images, annotations
 
 
+def simplify_polygon(polygon: np.ndarray, epsilon: float) -> np.ndarray:
+    if epsilon <= 0:
+        return polygon
+    # Convert the input polygon to the required format
+    polygon_cv2 = polygon.reshape((-1, 1, 2)).astype(np.int32)
+
+    # Apply approxPolyDP
+    approximated_polygon_cv2 = cv2.approxPolyDP(polygon_cv2, epsilon, closed=True)
+
+    # Convert the result back to a NumPy array
+    approximated_polygon_np = approximated_polygon_cv2.reshape((-1, 2))
+
+    return approximated_polygon_np
+
 def object_to_yolo(
     xyxy: np.ndarray,
     class_id: int,
     image_shape: Tuple[int, int, int],
     polygon: Optional[np.ndarray] = None,
+    simplified_polygon_epsilon: float = 0
 ) -> str:
     h, w, _ = image_shape
     if polygon is None:
@@ -180,7 +195,8 @@ def object_to_yolo(
         height = y_max - y_min
         return f"{int(class_id)} {x_center:.5f} {y_center:.5f} {width:.5f} {height:.5f}"
     else:
-        polygon_relative = polygon / np.array([w, h], dtype=np.float32)
+        simplified_polygon = simplify_polygon(polygon, epsilon = simplified_polygon_epsilon)
+        polygon_relative = simplified_polygon / np.array([w, h], dtype=np.float32)
         polygon_relative = polygon_relative.reshape(-1)
         polygon_parsed = " ".join([f"{value:.5f}" for value in polygon_relative])
         return f"{int(class_id)} {polygon_parsed}"
@@ -192,6 +208,7 @@ def detections_to_yolo_annotations(
     min_image_area_percentage: float = 0.0,
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.75,
+    simplified_polygon_epsilon: float = 0
 ) -> List[str]:
     annotation = []
     for xyxy, mask, _, class_id, _ in detections:
@@ -209,6 +226,7 @@ def detections_to_yolo_annotations(
                     class_id=class_id,
                     image_shape=image_shape,
                     polygon=polygon,
+                    simplified_polygon_epsilon=simplified_polygon_epsilon
                 )
                 annotation.append(next_object)
         else:
@@ -226,6 +244,7 @@ def save_yolo_annotations(
     min_image_area_percentage: float = 0.0,
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.75,
+    simplified_polygon_epsilon: float = 0
 ) -> None:
     Path(annotations_directory_path).mkdir(parents=True, exist_ok=True)
     for image_path, image in images.items():
@@ -241,6 +260,7 @@ def save_yolo_annotations(
             min_image_area_percentage=min_image_area_percentage,
             max_image_area_percentage=max_image_area_percentage,
             approximation_percentage=approximation_percentage,
+            simplified_polygon_epsilon=simplified_polygon_epsilon
         )
         save_text_file(lines=lines, file_path=yolo_annotations_path)
 
