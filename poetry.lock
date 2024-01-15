@@ -3543,30 +3543,30 @@ files = [
 
 [[package]]
 name = "tox"
-version = "4.11.4"
+version = "4.12.0"
 description = "tox is a generic virtualenv management and test command line tool"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "tox-4.11.4-py3-none-any.whl", hash = "sha256:2adb83d68f27116812b69aa36676a8d6a52249cb0d173649de0e7d0c2e3e7229"},
-    {file = "tox-4.11.4.tar.gz", hash = "sha256:73a7240778fabf305aeb05ab8ea26e575e042ab5a18d71d0ed13e343a51d6ce1"},
+    {file = "tox-4.12.0-py3-none-any.whl", hash = "sha256:c94bf5852ba41f3d9f1e3470ccf3390e0b7bdc938095be3cd96dce25ab5062a0"},
+    {file = "tox-4.12.0.tar.gz", hash = "sha256:76adc53a3baff7bde80d6ad7f63235735cfc5bc42e8cb6fccfbf62cb5ffd4d92"},
 ]
 
 [package.dependencies]
-cachetools = ">=5.3.1"
+cachetools = ">=5.3.2"
 chardet = ">=5.2"
 colorama = ">=0.4.6"
-filelock = ">=3.12.3"
-packaging = ">=23.1"
-platformdirs = ">=3.10"
+filelock = ">=3.13.1"
+packaging = ">=23.2"
+platformdirs = ">=4.1"
 pluggy = ">=1.3"
 pyproject-api = ">=1.6.1"
 tomli = {version = ">=2.0.1", markers = "python_version < \"3.11\""}
-virtualenv = ">=20.24.3"
+virtualenv = ">=20.25"
 
 [package.extras]
-docs = ["furo (>=2023.8.19)", "sphinx (>=7.2.4)", "sphinx-argparse-cli (>=1.11.1)", "sphinx-autodoc-typehints (>=1.24)", "sphinx-copybutton (>=0.5.2)", "sphinx-inline-tabs (>=2023.4.21)", "sphinxcontrib-towncrier (>=0.2.1a0)", "towncrier (>=23.6)"]
-testing = ["build[virtualenv] (>=0.10)", "covdefaults (>=2.3)", "detect-test-pollution (>=1.1.1)", "devpi-process (>=1)", "diff-cover (>=7.7)", "distlib (>=0.3.7)", "flaky (>=3.7)", "hatch-vcs (>=0.3)", "hatchling (>=1.18)", "psutil (>=5.9.5)", "pytest (>=7.4)", "pytest-cov (>=4.1)", "pytest-mock (>=3.11.1)", "pytest-xdist (>=3.3.1)", "re-assert (>=1.1)", "time-machine (>=2.12)", "wheel (>=0.41.2)"]
+docs = ["furo (>=2023.9.10)", "sphinx (>=7.2.6)", "sphinx-argparse-cli (>=1.11.1)", "sphinx-autodoc-typehints (>=1.25.2)", "sphinx-copybutton (>=0.5.2)", "sphinx-inline-tabs (>=2023.4.21)", "sphinxcontrib-towncrier (>=0.2.1a0)", "towncrier (>=23.11)"]
+testing = ["build[virtualenv] (>=1.0.3)", "covdefaults (>=2.3)", "detect-test-pollution (>=1.2)", "devpi-process (>=1)", "diff-cover (>=8.0.2)", "distlib (>=0.3.8)", "flaky (>=3.7)", "hatch-vcs (>=0.4)", "hatchling (>=1.21)", "psutil (>=5.9.7)", "pytest (>=7.4.4)", "pytest-cov (>=4.1)", "pytest-mock (>=3.12)", "pytest-xdist (>=3.5)", "re-assert (>=1.1)", "time-machine (>=2.13)", "wheel (>=0.42)"]
 
 [[package]]
 name = "tqdm"
