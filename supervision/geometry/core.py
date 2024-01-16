@@ -51,7 +51,7 @@ class Vector:
         ) * (v2.end.x - v2.start.x)
         return cross_product < 0
 
-    def cross_product(self, point: Point) -> int:
+    def cross_product(self, point: Point) -> float:
         """
         Determine on which side of the vector a point lies.
         Returns a positive number if on one side, negative if on the other, and 0 if on the line.
