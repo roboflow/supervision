@@ -51,6 +51,15 @@ class Vector:
         ) * (v2.end.x - v2.start.x)
         return cross_product < 0
 
+    def cross_product(self, point: Point) -> int:
+        """
+        Determine on which side of the vector a point lies.
+        Returns a positive number if on one side, negative if on the other, and 0 if on the line.
+        """
+        cross_product = (self.end.x - self.start.x) * (point.y - self.start.y) - \
+                        (self.end.y - self.start.y) * (point.x - self.start.x)
+        return cross_product
+
 
 @dataclass
 class Rect:
