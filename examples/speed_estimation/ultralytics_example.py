@@ -23,7 +23,6 @@ TARGET = np.array(
 
 
 class ViewTransformer:
-
     def __init__(self, source: np.ndarray, target: np.ndarray) -> None:
         source = source.astype(np.float32)
         target = target.astype(np.float32)
