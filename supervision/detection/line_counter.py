@@ -34,7 +34,7 @@ class LineZone:
             count_condition (str): The condition which determines
                 how detections are counted as having crossed the line
                 counter. Can either be "whole_crossed" or "center_point_crossed".
-                
+
                 If condition is set to "whole_crossed", trigger() determines
                 whether if the whole bounding box of the detection has crossed
                 the line or not. This is the default behaviour.
@@ -49,7 +49,9 @@ class LineZone:
         self.out_count: int = 0
         self.count_condition = count_condition
         if count_condition not in ["whole_crossed", "center_point_crossed"]:
-            raise ValueError("Argument count_condition must be 'whole_crossed' or 'center_point_crossed'")
+            raise ValueError(
+                "Argument count_condition must be 'whole_crossed' or 'center_point_crossed'"
+            )
 
     def is_point_in_line_range(self, point: Point) -> bool:
         """
@@ -60,14 +62,25 @@ class LineZone:
         Args:
             point (Point): The point to check
         """
-        line_min_x, line_max_x = min(self.vector.start.x, self.vector.end.x), max(self.vector.start.x, self.vector.end.x)
-        line_min_y, line_max_y = min(self.vector.start.y, self.vector.end.y), max(self.vector.start.y, self.vector.end.y)
+        line_min_x, line_max_x = (
+            min(self.vector.start.x, self.vector.end.x),
+            max(self.vector.start.x, self.vector.end.x),
+        )
+        line_min_y, line_max_y = (
+            min(self.vector.start.y, self.vector.end.y),
+            max(self.vector.start.y, self.vector.end.y),
+        )
 
-        within_line_range_x = line_min_x != line_max_x and line_min_x <= point.x <= line_max_x
-        within_line_range_y = line_min_y != line_max_y and line_min_y <= point.y <= line_max_y
+        within_line_range_x = (
+            line_min_x != line_max_x and line_min_x <= point.x <= line_max_x
+        )
+        within_line_range_y = (
+            line_min_y != line_max_y and line_min_y <= point.y <= line_max_y
+        )
 
-        return (within_line_range_x or line_min_x == line_max_x) and \
-                            (within_line_range_y or line_min_y == line_max_y)
+        return (within_line_range_x or line_min_x == line_max_x) and (
+            within_line_range_y or line_min_y == line_max_y
+        )
 
     def trigger(self, detections: Detections) -> Tuple[np.ndarray, np.ndarray]:
         """
@@ -100,7 +113,9 @@ class LineZone:
                     Point(x=x2, y=y2),
                 ]
 
-                triggers = [(self.vector.cross_product(point=anchor) < 0) for anchor in anchors]
+                triggers = [
+                    (self.vector.cross_product(point=anchor) < 0) for anchor in anchors
+                ]
 
                 if len(set(triggers)) == 2:
                     continue
@@ -115,7 +130,7 @@ class LineZone:
                     continue
 
                 self.tracker_state[tracker_id] = tracker_state
-                
+
                 all_anchors_in_range = True
                 for anchor in anchors:
                     if not self.is_point_in_line_range(anchor):
@@ -133,7 +148,7 @@ class LineZone:
                     crossed_out[i] = True
 
             return self.in_count, self.out_count
-        
+
         elif self.count_condition == "center_point_crossed":
             for i, (xyxy, _, confidence, class_id, tracker_id) in enumerate(detections):
                 if tracker_id is None:
@@ -153,7 +168,9 @@ class LineZone:
                 previous_state = self.tracker_state[tracker_id]
 
                 # Update the tracker state and check for crossing
-                if previous_state * current_state < 0 and self.is_point_in_line_range(center_point):
+                if previous_state * current_state < 0 and self.is_point_in_line_range(
+                    center_point
+                ):
                     self.tracker_state[tracker_id] = current_state
                     if current_state > 0:
                         self.in_count += 1
@@ -163,6 +180,7 @@ class LineZone:
                         crossed_out[i] = True
 
             return self.in_count, self.out_count
+
 
 class LineZoneAnnotator:
     def __init__(
