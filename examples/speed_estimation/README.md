@@ -1,17 +1,17 @@
 # speed estimation
 
+[![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/roboflow-ai/notebooks/blob/main/notebooks/how-to-estimate-vehicle-speed-with-computer-vision.ipynb)
+[![YouTube](https://badges.aleen42.com/src/youtube.svg)](https://youtu.be/uWP6UjDeZvY)
+
 ## 👋 hello
 
 This example performs speed estimation analysis using various object-detection models
 and ByteTrack - a simple yet effective online multi-object tracking method. It uses the
 supervision package for multiple tasks such as tracking, annotations, etc.
 
-https://github.com/roboflow/supervision/assets/26109316/0542fd3c-bb5f-475e-b96c-793560abeb18
+https://github.com/roboflow/supervision/assets/26109316/d50118c1-2ae4-458d-915a-5d860fd36f71
 
 ## 💻 install
-
-> [!NOTE]
-> YOLO-NAS is compatible with Python versions up to and including Python 3.10.
 
 - clone repository and navigate to example directory
 
@@ -63,7 +63,15 @@ https://github.com/roboflow/supervision/assets/26109316/0542fd3c-bb5f-475e-b96c-
   for the model. Default is 0.7. This value is used to manage object detection
   accuracy, particularly in distinguishing between different objects.
 
-## ⚙️ run
+## ⚙️ configure
+
+Adjust the' SOURCE' and' TARGET' values if you plan to run a speed estimation script 
+on your video file. Those must be adjusted separately for each camera view. Learn more 
+from our YouTube [tutorial](https://youtu.be/uWP6UjDeZvY).
+
+![speed-estimation-perspective-updated-1](https://github.com/roboflow/supervision/assets/26109316/837c5ee5-db99-4e3f-84bd-d27a5f0d761c)
+
+## 🚀 run
 
 - yolo-nas
 
