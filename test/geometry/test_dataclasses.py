@@ -1,7 +1,7 @@
 import pytest
 
 from supervision.geometry.core import Point, Vector
-
+import math
 
 @pytest.mark.parametrize(
     "vector, point, expected_result",
@@ -26,6 +26,6 @@ from supervision.geometry.core import Point, Vector
         (Vector(start=Point(x=1, y=3), end=Point(x=1, y=1)), Point(x=2, y=4), False),
     ],
 )
-def test_vector_is_in(vector: Vector, point: Point, expected_result: bool) -> None:
-    result = vector.is_in(point=point)
-    assert result == expected_result
+def test_vector_cross_product(vector: Vector, point: Point, expected_result: float) -> None:
+    result = vector.cross_product(point=point)
+    assert math.isclose(result, expected_result)

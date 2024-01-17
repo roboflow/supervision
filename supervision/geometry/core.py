@@ -43,18 +43,14 @@ class Vector:
     start: Point
     end: Point
 
-    def is_in(self, point: Point) -> bool:
-        v1 = Vector(self.start, self.end)
-        v2 = Vector(self.start, point)
-        cross_product = (v1.end.x - v1.start.x) * (v2.end.y - v2.start.y) - (
-            v1.end.y - v1.start.y
-        ) * (v2.end.x - v2.start.x)
-        return cross_product < 0
-
     def cross_product(self, point: Point) -> float:
         """
         Determine on which side of the vector a point lies.
-        Returns a positive number if on one side, negative if on the other, and 0 if on the line.
+        
+        Args:
+            point (Point): Point to evaluate cross product with
+        Returns:
+            float: Positive number if on one side, negative if on the other, and 0 if on the line.
         """
         cross_product = (self.end.x - self.start.x) * (point.y - self.start.y) - (
             self.end.y - self.start.y
