@@ -1,3 +1,7 @@
+---
+comments: true
+---
+
 Supervision offers a streamlined solution to effortlessly annotate predictions from a
 range of object detection and segmentation models. This guide demonstrates how to
 execute inference using the YOLOv8 model with either the
