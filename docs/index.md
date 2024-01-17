@@ -1,3 +1,7 @@
+---
+comments: true
+---
+
 <div align="center">
   <p>
     <a align="center" href="" target="_blank">

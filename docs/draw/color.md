@@ -1,3 +1,7 @@
+---
+comments: true
+---
+
 ## Color
 
 :::supervision.draw.color.Color
