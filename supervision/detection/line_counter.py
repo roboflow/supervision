@@ -54,7 +54,9 @@ class LineZone:
         crossed_in = np.full(len(detections), False)
         crossed_out = np.full(len(detections), False)
 
-        for i, (xyxy, tracker_id) in enumerate(zip(detections.xyxy, detections.tracker_id)):
+        for i, (xyxy, tracker_id) in enumerate(
+            zip(detections.xyxy, detections.tracker_id)
+        ):
             if tracker_id is None:
                 continue
 
