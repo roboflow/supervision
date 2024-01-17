@@ -237,7 +237,7 @@ https://user-images.githubusercontent.com/26109316/207858600-ee862b22-0353-440b-
 
 https://github.com/roboflow/supervision/assets/26109316/c9436828-9fbf-4c25-ae8c-60e9c81b3900
 
-https://github.com/roboflow/supervision/assets/26109316/f84db7b5-79e2-4142-a1da-64daa43ce667
+https://github.com/roboflow/supervision/assets/26109316/3ac6982f-4943-4108-9b7f-51787ef1a69f
 
 ## 📚 documentation
 
