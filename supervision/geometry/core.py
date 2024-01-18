@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
+from math import sqrt
 from typing import Tuple
 
 
@@ -42,6 +43,18 @@ class Point:
 class Vector:
     start: Point
     end: Point
+
+    @property
+    def magnitude(self) -> float:
+        """
+        Calculate the magnitude (length) of the vector.
+
+        Returns:
+            float: The magnitude of the vector.
+        """
+        dx = self.end.x - self.start.x
+        dy = self.end.y - self.start.y
+        return sqrt(dx ** 2 + dy ** 2)
 
     def cross_product(self, point: Point) -> float:
         """

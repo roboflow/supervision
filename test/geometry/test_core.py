@@ -33,3 +33,29 @@ def test_vector_cross_product(
 ) -> None:
     result = vector.cross_product(point=point)
     assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    "vector, expected_result",
+    [
+        (Vector(start=Point(x=0, y=0), end=Point(x=0, y=0)), 0.0),
+        (Vector(start=Point(x=1, y=0), end=Point(x=0, y=0)), 1.0),
+        (Vector(start=Point(x=0, y=1), end=Point(x=0, y=0)), 1.0),
+        (Vector(start=Point(x=0, y=0), end=Point(x=1, y=0)), 1.0),
+        (Vector(start=Point(x=0, y=0), end=Point(x=0, y=1)), 1.0),
+        (Vector(start=Point(x=-1, y=0), end=Point(x=0, y=0)), 1.0),
+        (Vector(start=Point(x=0, y=-1), end=Point(x=0, y=0)), 1.0),
+        (Vector(start=Point(x=0, y=0), end=Point(x=-1, y=0)), 1.0),
+        (Vector(start=Point(x=0, y=0), end=Point(x=0, y=-1)), 1.0),
+        (Vector(start=Point(x=0, y=0), end=Point(x=3, y=4)), 5.0),
+        (Vector(start=Point(x=0, y=0), end=Point(x=-3, y=4)), 5.0),
+        (Vector(start=Point(x=0, y=0), end=Point(x=3, y=-4)), 5.0),
+        (Vector(start=Point(x=0, y=0), end=Point(x=-3, y=-4)), 5.0),
+        (Vector(start=Point(x=0, y=0), end=Point(x=4, y=3)), 5.0),
+        (Vector(start=Point(x=3, y=4), end=Point(x=0, y=0)), 5.0),
+        (Vector(start=Point(x=4, y=3), end=Point(x=0, y=0)), 5.0),
+    ]
+)
+def test_vector_magnitude(vector: Vector, expected_result: float) -> None:
+    result = vector.magnitude
+    assert result == expected_result
