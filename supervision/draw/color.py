@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import List, Tuple
+from supervision.utils.internal import deprecated
 
 DEFAULT_COLOR_PALETTE = [
     "#a351fb",
@@ -46,12 +47,6 @@ class Color:
     r: int
     g: int
     b: int
-
-    _WHITE = None
-    _BLACK = None
-    _RED = None
-    _GREEN = None
-    _BLUE = None
 
     @classmethod
     def from_hex(cls, color_hex: str) -> Color:
@@ -123,39 +118,65 @@ class Color:
         return self.b, self.g, self.r
 
     @property
-    @classmethod
     def WHITE(cls):
-        if cls._WHITE is None:
-            cls._WHITE = cls.from_hex("#ffffff")
-        return cls._WHITE
+        return cls.from_hex("#ffffff")
 
     @property
-    @classmethod
     def BLACK(cls):
-        if cls._BLACK is None:
-            cls._BLACK = cls.from_hex("#000000")
-        return cls._BLACK
+        return cls.from_hex("#000000")
 
     @property
-    @classmethod
     def RED(cls):
-        if cls._RED is None:
-            cls._RED = cls.from_hex("#ff0000")
-        return cls._RED
+        return cls.from_hex("#ff0000")
 
     @property
-    @classmethod
     def GREEN(cls):
-        if cls._GREEN is None:
-            cls._GREEN = cls.from_hex("#00ff00")
-        return cls._GREEN
+        return cls.from_hex("#00ff00")
 
     @property
-    @classmethod
     def BLUE(cls):
-        if cls._BLUE is None:
-            cls._BLUE = cls.from_hex("#0000ff")
-        return cls._BLUE
+        return cls.from_hex("#0000ff")
+    
+    @classmethod
+    @deprecated(
+        "`Color.white()` is deprecated and will be removed in "
+        "`supervision-0.20.0`. Use `Color.WHITE` instead."
+    )
+    def white(cls) -> Color:
+        return Color.from_hex(color_hex="#ffffff")
+
+    @classmethod
+    @deprecated(
+        "`Color.black()` is deprecated and will be removed in "
+        "`supervision-0.20.0`. Use `Color.BLACK` instead."
+    )
+    def black(cls) -> Color:
+        return Color.from_hex(color_hex="#000000")
+
+    @classmethod
+    @deprecated(
+        "`Color.red()` is deprecated and will be removed in "
+        "`supervision-0.20.0`. Use `Color.RED` instead."
+    )
+    def red(cls) -> Color:
+        return Color.from_hex(color_hex="#ff0000")
+
+    @classmethod
+    @deprecated(
+        "`Color.green()` is deprecated and will be removed in "
+        "`supervision-0.20.0`. Use `Color.GREEN` instead."
+    )
+    def green(cls) -> Color:
+        return Color.from_hex(color_hex="#00ff00")
+
+    @classmethod
+    @deprecated(
+        "`Color.blue()` is deprecated and will be removed in "
+        "`supervision-0.20.0`. Use `Color.BLUE` instead."
+    )
+    def blue(cls) -> Color:
+        return Color.from_hex(color_hex="#0000ff")
+
 
 
 @dataclass
