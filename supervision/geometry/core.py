@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 from typing import Tuple
-import numpy as np
 
 
 class Position(Enum):
@@ -61,8 +60,9 @@ class Vector:
         """
         dx_vector = self.end.x - self.start.x
         dy_vector = self.end.y - self.start.y
-        return np.cross([dx_vector, dy_vector],
-                        [point.x, point.y])
+        dx_point = point.x - self.start.x
+        dy_point = point.y - self.start.y
+        return (dx_vector * dy_point) - (dy_vector * dx_point)
 
 
 @dataclass
