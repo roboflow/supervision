@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import List, Tuple
+
 from supervision.utils.internal import deprecated
 
 DEFAULT_COLOR_PALETTE = [
@@ -136,7 +137,7 @@ class Color:
     @property
     def BLUE(cls):
         return cls.from_hex("#0000ff")
-    
+
     @classmethod
     @deprecated(
         "`Color.white()` is deprecated and will be removed in "
@@ -176,7 +177,6 @@ class Color:
     )
     def blue(cls) -> Color:
         return Color.from_hex(color_hex="#0000ff")
-
 
 
 @dataclass
