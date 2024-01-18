@@ -3,3 +3,11 @@ data/*
 
 # But re-include all .json files
 !data/*.json
+
+*.pt
+*.pth
+*.mp4
+*.mov
+*.png
+*.jpg
+*.jpeg
