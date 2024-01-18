@@ -53,6 +53,44 @@ class LineZone:
         self.out_count: int = 0
         self.triggering_anchors = triggering_anchors
 
+    @staticmethod
+    def calculate_region_of_interest_limits(vector: Vector) -> Tuple[Vector, Vector]:
+        magnitude = vector.magnitude
+
+        if magnitude == 0:
+            raise ValueError("The magnitude of the vector cannot be zero.")
+
+        delta_x = vector.end.x - vector.start.x
+        delta_y = vector.end.y - vector.start.y
+
+        unit_vector_x = delta_x / magnitude
+        unit_vector_y = delta_y / magnitude
+
+        perpendicular_vector_x = -unit_vector_y
+        perpendicular_vector_y = unit_vector_x
+
+        start_region_limit = Vector(
+            start=vector.start,
+            end=Point(
+                x=vector.start.x + perpendicular_vector_x,
+                y=vector.start.y + perpendicular_vector_y
+            )
+        )
+        end_region_limit = Vector(
+            start=vector.end,
+            end=Point(
+                x=vector.end.x - perpendicular_vector_x,
+                y=vector.end.y - perpendicular_vector_y
+            )
+        )
+        return start_region_limit, end_region_limit
+
+    @staticmethod
+    def is_point_in_limits(point: Point, limits: Tuple[Vector, Vector]) -> bool:
+        cross_product_1 = limits[0].cross_product(point)
+        cross_product_2 = limits[1].cross_product(point)
+        return (cross_product_1 > 0) == (cross_product_2 > 0)
+
     def is_point_in_line_range(self, point: Point) -> bool:
         """
         Check if the given point is within the line's range.
