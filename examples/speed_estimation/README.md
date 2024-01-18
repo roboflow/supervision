@@ -11,10 +11,10 @@ supervision package for multiple tasks such as tracking, annotations, etc.
 
 https://github.com/roboflow/supervision/assets/26109316/d50118c1-2ae4-458d-915a-5d860fd36f71
 
-> [!IMPORTANT] 
+> [!IMPORTANT]
 > Adjust the [`SOURCE`](https://github.com/roboflow/supervision/blob/e32b05a636dab2ea1f39299e529c4b22b8baa8da/examples/speed_estimation/ultralytics_example.py#L10)
 > and [`TARGET`](https://github.com/roboflow/supervision/blob/e32b05a636dab2ea1f39299e529c4b22b8baa8da/examples/speed_estimation/ultralytics_example.py#L15)
-> configuration if you plan to run a speed estimation script on your video file. Those must be adjusted separately for each camera view. You can learn more 
+> configuration if you plan to run a speed estimation script on your video file. Those must be adjusted separately for each camera view. You can learn more
 > from our YouTube [tutorial](https://youtu.be/uWP6UjDeZvY).
 
 ## 💻 install
