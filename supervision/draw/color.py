@@ -47,6 +47,12 @@ class Color:
     g: int
     b: int
 
+    _WHITE = None
+    _BLACK = None
+    _RED = None
+    _GREEN = None
+    _BLUE = None
+
     @classmethod
     def from_hex(cls, color_hex: str) -> Color:
         """
@@ -116,25 +122,40 @@ class Color:
         """
         return self.b, self.g, self.r
 
+    @property
     @classmethod
-    def white(cls) -> Color:
-        return Color.from_hex(color_hex="#ffffff")
+    def WHITE(cls):
+        if cls._WHITE is None:
+            cls._WHITE = cls.from_hex("#ffffff")
+        return cls._WHITE
 
+    @property
     @classmethod
-    def black(cls) -> Color:
-        return Color.from_hex(color_hex="#000000")
+    def BLACK(cls):
+        if cls._BLACK is None:
+            cls._BLACK = cls.from_hex("#000000")
+        return cls._BLACK
 
+    @property
     @classmethod
-    def red(cls) -> Color:
-        return Color.from_hex(color_hex="#ff0000")
+    def RED(cls):
+        if cls._RED is None:
+            cls._RED = cls.from_hex("#ff0000")
+        return cls._RED
 
+    @property
     @classmethod
-    def green(cls) -> Color:
-        return Color.from_hex(color_hex="#00ff00")
+    def GREEN(cls):
+        if cls._GREEN is None:
+            cls._GREEN = cls.from_hex("#00ff00")
+        return cls._GREEN
 
+    @property
     @classmethod
-    def blue(cls) -> Color:
-        return Color.from_hex(color_hex="#0000ff")
+    def BLUE(cls):
+        if cls._BLUE is None:
+            cls._BLUE = cls.from_hex("#0000ff")
+        return cls._BLUE
 
 
 @dataclass
@@ -197,3 +218,10 @@ class ColorPalette:
             raise ValueError("idx argument should not be negative")
         idx = idx % len(self.colors)
         return self.colors[idx]
+
+
+Color.WHITE = Color.from_hex("#ffffff")
+Color.BLACK = Color.from_hex("#000000")
+Color.RED = Color.from_hex("#ff0000")
+Color.GREEN = Color.from_hex("#00ff00")
+Color.BLUE = Color.from_hex("#0000ff")

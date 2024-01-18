@@ -166,9 +166,9 @@ class LineZoneAnnotator:
     def __init__(
         self,
         thickness: float = 2,
-        color: Color = Color.white(),
+        color: Color = Color.WHITE,
         text_thickness: float = 2,
-        text_color: Color = Color.black(),
+        text_color: Color = Color.BLACK,
         text_scale: float = 0.5,
         text_offset: float = 1.5,
         text_padding: int = 10,
