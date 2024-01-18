@@ -45,17 +45,24 @@ class Vector:
 
     def cross_product(self, point: Point) -> float:
         """
-        Determine on which side of the vector a point lies.
-        
+        Calculate the 2D cross product (also known as the vector product or outer
+        product) of the vector and a point, treated as vectors in 2D space.
+
         Args:
-            point (Point): Point to evaluate cross product with
+            point (Point): The point to be evaluated, treated as the endpoint of a
+                vector originating from the 'start' of the main vector.
+
         Returns:
-            float: Positive number if on one side, negative if on the other, and 0 if on the line.
+            float: The scalar value of the cross product. It is positive if 'point'
+                lies to the left of the vector (when moving from 'start' to 'end'),
+                negative if it lies to the right, and 0 if it is collinear with the
+                vector.
         """
-        cross_product = (self.end.x - self.start.x) * (point.y - self.start.y) - (
-            self.end.y - self.start.y
-        ) * (point.x - self.start.x)
-        return cross_product
+        dx_vector = self.end.x - self.start.x
+        dy_vector = self.end.y - self.start.y
+        dx_point = point.x - self.start.x
+        dy_point = point.y - self.start.y
+        return (dx_vector * dy_point) - (dy_vector * dx_point)
 
 
 @dataclass
