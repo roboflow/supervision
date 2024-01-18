@@ -33,7 +33,10 @@ classifiers=[
 [tool.poetry.dependencies]
 python = "^3.8"
 numpy = ">=1.21.2"
-scipy =  ">=1.9.0"
+scipy = [
+    { version = "1.10.0", python = "<3.9" },
+    { version = "^1.10.0", python = ">=3.9" }
+]
 matplotlib = ">=3.5.0"
 pyyaml = ">=5.3"
 pillow = ">=9.4"
