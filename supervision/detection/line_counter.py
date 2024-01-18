@@ -52,32 +52,31 @@ class LineZone:
 
     def is_point_in_line_range(self, point: Point) -> bool:
         """
-        Check if the given point is within the line's x and y range.
-        This should be used with trigger() to determine points that are
-        precisely within the range of the line counter's start and end points.
+        Check if the given point is within the line's range.
 
         Args:
             point (Point): The point to check
+
+        Returns:
+            True if the point is within the slice of the frame
+            the line counter covers and False if not.
         """
-        line_min_x, line_max_x = (
-            min(self.vector.start.x, self.vector.end.x),
-            max(self.vector.start.x, self.vector.end.x),
-        )
-        line_min_y, line_max_y = (
-            min(self.vector.start.y, self.vector.end.y),
-            max(self.vector.start.y, self.vector.end.y),
-        )
+        start_np = np.array([self.vector.start.x, self.vector.start.y])
+        end_np = np.array([self.vector.end.x, self.vector.end.y])
+        point_np = np.array([point.x, point.y])
 
-        within_line_range_x = (
-            line_min_x != line_max_x and line_min_x <= point.x <= line_max_x
-        )
-        within_line_range_y = (
-            line_min_y != line_max_y and line_min_y <= point.y <= line_max_y
-        )
+        if np.linalg.norm(start_np - point_np) <= np.linalg.norm(end_np - point_np):
+            closest, other = start_np, end_np
+        else:
+            closest, other = end_np, start_np
 
-        return (within_line_range_x or line_min_x == line_max_x) and (
-            within_line_range_y or line_min_y == line_max_y
-        )
+        vector_to_point = point_np - closest
+        vector_to_other = other - closest
+
+        dot_product = np.dot(vector_to_point, vector_to_other)
+        angle = np.arccos(dot_product / (np.linalg.norm(vector_to_point) * np.linalg.norm(vector_to_other)))
+
+        return angle <= np.pi / 2
 
     def trigger(self, detections: Detections) -> Tuple[np.ndarray, np.ndarray]:
         """
@@ -105,8 +104,8 @@ class LineZone:
             anchors = []
             for triggering_anchor in self.triggering_anchors:
                 anchorxy = detections[i].get_anchors_coordinates(triggering_anchor)
-                anchors.append(Point(anchorxy[:, 0], anchorxy[:, 1]))
-
+                anchors.append(Point(anchorxy[0, 0], anchorxy[0, 1]))
+            
             current_states = [
                 self.vector.cross_product(point=anchor) for anchor in anchors
             ]
@@ -114,7 +113,7 @@ class LineZone:
             if tracker_id not in self.tracker_state:
                 self.tracker_state[tracker_id] = current_states
                 continue
-            
+
             all_anchors_in_range = True
             for anchor in anchors:
                 if not self.is_point_in_line_range(anchor):
@@ -122,6 +121,7 @@ class LineZone:
                     break
 
             if not all_anchors_in_range:
+                self.tracker_state.pop(tracker_id)
                 continue
 
             previous_states = self.tracker_state[tracker_id]
