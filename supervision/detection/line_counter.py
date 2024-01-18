@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Tuple, List
+from typing import Dict, Optional, Tuple, List, Iterable
 
 import cv2
 import numpy as np
@@ -26,21 +26,24 @@ class LineZone:
             to outside.
     """
 
-    def __init__(self, start: Point,
-                 end: Point, 
-                 triggering_anchors: List[Position] = [
-                     Position.TOP_LEFT,
-                     Position.TOP_RIGHT,
-                     Position.BOTTOM_LEFT,
-                     Position.BOTTOM_RIGHT
-        ]):
+    def __init__(
+        self,
+        start: Point,
+        end: Point,
+        triggering_anchors: Iterable[Position] = (
+            Position.TOP_LEFT,
+            Position.TOP_RIGHT,
+            Position.BOTTOM_LEFT,
+            Position.BOTTOM_RIGHT
+        )
+    ):
         """
         Args:
             start (Point): The starting point of the line.
             end (Point): The ending point of the line.
             triggering_anchors (List[sv.Position]): A list of positions
                 specifying which anchors of the detections bounding box
-                to consider when deciding on whether the the detection
+                to consider when deciding on whether the detection
                 has passed the line counter or not. By default, this
                 contains the four corners of the detection's bounding box
         """
@@ -48,7 +51,7 @@ class LineZone:
         self.tracker_state: Dict[str, List[float]] = {}
         self.in_count: int = 0
         self.out_count: int = 0
-        self.triggering_anchors: List[Position] = triggering_anchors
+        self.triggering_anchors = triggering_anchors
 
     def is_point_in_line_range(self, point: Point) -> bool:
         """
@@ -103,8 +106,8 @@ class LineZone:
 
             anchors = []
             for triggering_anchor in self.triggering_anchors:
-                anchorxy = detections[i].get_anchors_coordinates(triggering_anchor)
-                anchors.append(Point(anchorxy[0, 0], anchorxy[0, 1]))
+                anchor_xy = detections[i].get_anchors_coordinates(triggering_anchor)
+                anchors.append(Point(anchor_xy[0, 0], anchor_xy[0, 1]))
             
             current_states = [
                 self.vector.cross_product(point=anchor) for anchor in anchors
@@ -139,7 +142,7 @@ class LineZone:
                     self.out_count += 1
                     crossed_out[i] = True
 
-        return self.in_count, self.out_count
+        return crossed_in, crossed_out
 
 
 class LineZoneAnnotator:

@@ -26,6 +26,10 @@ from supervision.geometry.core import Point, Vector
         (Vector(start=Point(x=1, y=3), end=Point(x=1, y=1)), Point(x=2, y=4), 2.0),
     ],
 )
-def test_vector_cross_product(vector: Vector, point: Point, expected_result: float) -> None:
+def test_vector_cross_product(
+    vector: Vector,
+    point: Point,
+    expected_result: float
+) -> None:
     result = vector.cross_product(point=point)
     assert result == expected_result
