@@ -54,7 +54,7 @@ class Vector:
         """
         dx = self.end.x - self.start.x
         dy = self.end.y - self.start.y
-        return sqrt(dx ** 2 + dy ** 2)
+        return sqrt(dx**2 + dy**2)
 
     def cross_product(self, point: Point) -> float:
         """

@@ -1,11 +1,11 @@
-from typing import Dict, Optional, Tuple, List, Iterable
+from typing import Dict, Iterable, Optional, Tuple
 
 import cv2
 import numpy as np
 
 from supervision.detection.core import Detections
 from supervision.draw.color import Color
-from supervision.geometry.core import Point, Rect, Vector, Position
+from supervision.geometry.core import Point, Position, Rect, Vector
 
 
 class LineZone:
@@ -34,8 +34,8 @@ class LineZone:
             Position.TOP_LEFT,
             Position.TOP_RIGHT,
             Position.BOTTOM_LEFT,
-            Position.BOTTOM_RIGHT
-        )
+            Position.BOTTOM_RIGHT,
+        ),
     ):
         """
         Args:
@@ -74,15 +74,15 @@ class LineZone:
             start=vector.start,
             end=Point(
                 x=vector.start.x + perpendicular_vector_x,
-                y=vector.start.y + perpendicular_vector_y
-            )
+                y=vector.start.y + perpendicular_vector_y,
+            ),
         )
         end_region_limit = Vector(
             start=vector.end,
             end=Point(
                 x=vector.end.x - perpendicular_vector_x,
-                y=vector.end.y - perpendicular_vector_y
-            )
+                y=vector.end.y - perpendicular_vector_y,
+            ),
         )
         return start_region_limit, end_region_limit
 
@@ -112,11 +112,12 @@ class LineZone:
         if len(detections) == 0:
             return crossed_in, crossed_out
 
-        all_anchors = np.array([
-            detections.get_anchors_coordinates(anchor)
-            for anchor
-            in self.triggering_anchors
-        ])
+        all_anchors = np.array(
+            [
+                detections.get_anchors_coordinates(anchor)
+                for anchor in self.triggering_anchors
+            ]
+        )
 
         for i, tracker_id in enumerate(detections.tracker_id):
             if tracker_id is None:
@@ -124,19 +125,18 @@ class LineZone:
 
             box_anchors = [Point(x=x, y=y) for x, y in all_anchors[:, i, :]]
 
-            in_limits = all([
-                self.is_point_in_limits(point=anchor, limits=self.limits)
-                for anchor
-                in box_anchors
-            ])
+            in_limits = all(
+                [
+                    self.is_point_in_limits(point=anchor, limits=self.limits)
+                    for anchor in box_anchors
+                ]
+            )
 
             if not in_limits:
                 continue
 
             triggers = [
-                self.vector.cross_product(point=anchor) > 0
-                for anchor
-                in box_anchors
+                self.vector.cross_product(point=anchor) > 0 for anchor in box_anchors
             ]
 
             if len(set(triggers)) == 2:
