@@ -48,7 +48,8 @@ class LineZone:
                 contains the four corners of the detection's bounding box
         """
         self.vector = Vector(start=start, end=end)
-        self.tracker_state: Dict[str, List[float]] = {}
+        self.limits = self.calculate_region_of_interest_limits(vector=self.vector)
+        self.tracker_state: Dict[str, bool] = {}
         self.in_count: int = 0
         self.out_count: int = 0
         self.triggering_anchors = triggering_anchors
@@ -91,34 +92,6 @@ class LineZone:
         cross_product_2 = limits[1].cross_product(point)
         return (cross_product_1 > 0) == (cross_product_2 > 0)
 
-    def is_point_in_line_range(self, point: Point) -> bool:
-        """
-        Check if the given point is within the line's range.
-
-        Args:
-            point (Point): The point to check
-
-        Returns:
-            True if the point is within the slice of the frame
-            the line counter covers and False if not.
-        """
-        start_np = np.array([self.vector.start.x, self.vector.start.y])
-        end_np = np.array([self.vector.end.x, self.vector.end.y])
-        point_np = np.array([point.x, point.y])
-
-        if np.linalg.norm(start_np - point_np) <= np.linalg.norm(end_np - point_np):
-            closest, other = start_np, end_np
-        else:
-            closest, other = end_np, start_np
-
-        vector_to_point = point_np - closest
-        vector_to_other = other - closest
-
-        dot_product = np.dot(vector_to_point, vector_to_other)
-        angle = np.arccos(dot_product / (np.linalg.norm(vector_to_point) * np.linalg.norm(vector_to_other)))
-
-        return angle <= np.pi / 2
-
     def trigger(self, detections: Detections) -> Tuple[np.ndarray, np.ndarray]:
         """
         Update the `in_count` and `out_count` based on the objects that cross the line.
@@ -136,49 +109,55 @@ class LineZone:
         crossed_in = np.full(len(detections), False)
         crossed_out = np.full(len(detections), False)
 
-        for i, (xyxy, tracker_id) in enumerate(
-            zip(detections.xyxy, detections.tracker_id)
-        ):
+        if len(detections) == 0:
+            return crossed_in, crossed_out
+
+        all_anchors = np.array([
+            detections.get_anchors_coordinates(anchor)
+            for anchor
+            in self.triggering_anchors
+        ])
+
+        for i, tracker_id in enumerate(detections.tracker_id):
             if tracker_id is None:
                 continue
 
-            anchors = []
-            for triggering_anchor in self.triggering_anchors:
-                anchor_xy = detections[i].get_anchors_coordinates(triggering_anchor)
-                anchors.append(Point(anchor_xy[0, 0], anchor_xy[0, 1]))
-            
-            current_states = [
-                self.vector.cross_product(point=anchor) for anchor in anchors
+            box_anchors = [Point(x=x, y=y) for x, y in all_anchors[:, i, :]]
+
+            in_limits = all([
+                self.is_point_in_limits(point=anchor, limits=self.limits)
+                for anchor
+                in box_anchors
+            ])
+
+            if not in_limits:
+                continue
+
+            triggers = [
+                self.vector.cross_product(point=anchor) > 0
+                for anchor
+                in box_anchors
             ]
 
+            if len(set(triggers)) == 2:
+                continue
+
+            tracker_state = triggers[0]
+
             if tracker_id not in self.tracker_state:
-                self.tracker_state[tracker_id] = current_states
+                self.tracker_state[tracker_id] = tracker_state
                 continue
 
-            all_anchors_in_range = True
-            for anchor in anchors:
-                if not self.is_point_in_line_range(anchor):
-                    all_anchors_in_range = False
-                    break
-
-            if not all_anchors_in_range:
-                self.tracker_state.pop(tracker_id)
+            if self.tracker_state.get(tracker_id) == tracker_state:
                 continue
 
-            previous_states = self.tracker_state[tracker_id]
-
-            product_list = [x * y for x, y in zip(current_states, previous_states)]
-
-            result = all(x < 0 for x in product_list)
-
-            if result:
-                self.tracker_state[tracker_id] = current_states
-                if all(x > 0 for x in current_states):
-                    self.in_count += 1
-                    crossed_in[i] = True
-                elif all(x < 0 for x in current_states):
-                    self.out_count += 1
-                    crossed_out[i] = True
+            self.tracker_state[tracker_id] = tracker_state
+            if tracker_state:
+                self.in_count += 1
+                crossed_in[i] = True
+            else:
+                self.out_count += 1
+                crossed_out[i] = True
 
         return crossed_in, crossed_out
 
