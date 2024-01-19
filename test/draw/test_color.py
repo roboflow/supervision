@@ -9,13 +9,13 @@ from supervision.draw.color import Color
 @pytest.mark.parametrize(
     "color_hex, expected_result, exception",
     [
-        ("fff", Color.white(), DoesNotRaise()),
-        ("#fff", Color.white(), DoesNotRaise()),
-        ("ffffff", Color.white(), DoesNotRaise()),
-        ("#ffffff", Color.white(), DoesNotRaise()),
-        ("f00", Color.red(), DoesNotRaise()),
-        ("0f0", Color.green(), DoesNotRaise()),
-        ("00f", Color.blue(), DoesNotRaise()),
+        ("fff", Color.WHITE, DoesNotRaise()),
+        ("#fff", Color.WHITE, DoesNotRaise()),
+        ("ffffff", Color.WHITE, DoesNotRaise()),
+        ("#ffffff", Color.WHITE, DoesNotRaise()),
+        ("f00", Color.RED, DoesNotRaise()),
+        ("0f0", Color.GREEN, DoesNotRaise()),
+        ("00f", Color.BLUE, DoesNotRaise()),
         ("#808000", Color(r=128, g=128, b=0), DoesNotRaise()),
         ("", None, pytest.raises(ValueError)),
         ("00", None, pytest.raises(ValueError)),
@@ -35,11 +35,11 @@ def test_color_from_hex(
 @pytest.mark.parametrize(
     "color, expected_result, exception",
     [
-        (Color.white(), "#ffffff", DoesNotRaise()),
-        (Color.black(), "#000000", DoesNotRaise()),
-        (Color.red(), "#ff0000", DoesNotRaise()),
-        (Color.green(), "#00ff00", DoesNotRaise()),
-        (Color.blue(), "#0000ff", DoesNotRaise()),
+        (Color.WHITE, "#ffffff", DoesNotRaise()),
+        (Color.BLACK, "#000000", DoesNotRaise()),
+        (Color.RED, "#ff0000", DoesNotRaise()),
+        (Color.GREEN, "#00ff00", DoesNotRaise()),
+        (Color.BLUE, "#0000ff", DoesNotRaise()),
         (Color(r=128, g=128, b=0), "#808000", DoesNotRaise()),
     ],
 )
