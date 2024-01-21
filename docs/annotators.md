@@ -7,8 +7,8 @@ comments: true
     ```python
      import supervision as sv
 
-     image = 
-     detections = sv.Detections()
+     image = ...
+     detections = sv.Detections(...)
 
      bounding_box_annotator = sv.BoundingBoxAnnotator()
      annotated_frame = bounding_box_annotator.annotate(
@@ -28,8 +28,8 @@ comments: true
     ```python
      import supervision as sv
 
-     image = 
-     detections = sv.Detections()
+     image = ...
+     detections = sv.Detections(...)
 
      round_box_annotator = sv.RoundBoxAnnotator()
      annotated_frame = round_box_annotator.annotate(
@@ -49,8 +49,8 @@ comments: true
     ```python
     import supervision as sv
 
-    image = 
-    detections = sv.Detections()
+    image = ...
+    detections = sv.Detections(...)
 
     corner_annotator = sv.BoxCornerAnnotator()
     annotated_frame = corner_annotator.annotate(
@@ -70,8 +70,8 @@ comments: true
     ```python
     import supervision as sv
 
-    image = 
-    detections = sv.Detections()
+    image = ...
+    detections = sv.Detections(...)
 
     color_annotator = sv.ColorAnnotator()
     annotated_frame = color_annotator.annotate(
@@ -91,8 +91,8 @@ comments: true
     ```python
     import supervision as sv
 
-    image = 
-    detections = sv.Detections()
+    image = ...
+    detections = sv.Detections(...)
 
     circle_annotator = sv.CircleAnnotator()
     annotated_frame = circle_annotator.annotate(
@@ -112,8 +112,8 @@ comments: true
     ```python
     import supervision as sv
 
-    image = 
-    detections = sv.Detections()
+    image = ...
+    detections = sv.Detections(...)
 
     dot_annotator = sv.DotAnnotator()
     annotated_frame = dot_annotator.annotate(
@@ -133,8 +133,8 @@ comments: true
     ```python
     import supervision as sv
 
-    image = 
-    detections = sv.Detections()
+    image = ...
+    detections = sv.Detections(...)
 
     triangle_annotator = sv.TriangleAnnotator()
     annotated_frame = triangle_annotator.annotate(
@@ -154,8 +154,8 @@ comments: true
     ```python
     import supervision as sv
 
-    image = 
-    detections = sv.Detections()
+    image = ...
+    detections = sv.Detections(...)
 
     ellipse_annotator = sv.EllipseAnnotator()
     annotated_frame = ellipse_annotator.annotate(
@@ -175,8 +175,8 @@ comments: true
     ```python
     import supervision as sv
 
-    image = 
-    detections = sv.Detections()
+    image = ...
+    detections = sv.Detections(...)
 
     halo_annotator = sv.HaloAnnotator()
     annotated_frame = halo_annotator.annotate(
@@ -196,8 +196,8 @@ comments: true
     ```python
     import supervision as sv
 
-    image = 
-    detections = sv.Detectio
+    image = ...
+    detections = sv.Detections(...)
 
     mask_annotator = sv.MaskAnnotator()
     annotated_frame = mask_annotator.annotate(
@@ -217,8 +217,8 @@ comments: true
     ```python
     import supervision as sv
 
-    image = 
-    detections = sv.Detections()
+    image = ...
+    detections = sv.Detections(...)
 
     polygon_annotator = sv.PolygonAnnotator()
     annotated_frame = polygon_annotator.annotate(
@@ -238,8 +238,8 @@ comments: true
     ```python
      import supervision as sv
 
-    image = 
-    detections = sv.Detections()
+    image = ...
+    detections = sv.Detections(...)
 
     label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER)
     annotated_frame = label_annotator.annotate(
@@ -259,8 +259,8 @@ comments: true
     ```python
     import supervision as sv
 
-    image = 
-    detections = sv.Detections()
+    image = ...
+    detections = sv.Detections(...)
 
     blur_annotator = sv.BlurAnnotator()
     annotated_frame = blur_annotator.annotate(
@@ -280,8 +280,8 @@ comments: true
     ```python
     import supervision as sv
 
-    image = 
-    detections = sv.Detections()
+    image = ...
+    detections = sv.Detections(...)
 
     pixelate_annotator = sv.PixelateAnnotator()
     annotated_frame = pixelate_annotator.annotate(
