@@ -331,7 +331,7 @@ class Detections:
             confidence=mmdet_results.pred_instances.scores.cpu().numpy(),
             class_id=mmdet_results.pred_instances.labels.cpu().numpy().astype(int),
             mask=mmdet_results.pred_instances.masks.cpu().numpy()
-            if 'masks' in mmdet_results.pred_instances
+            if "masks" in mmdet_results.pred_instances
             else None,
         )
 
