@@ -1564,7 +1564,8 @@ class PercentageBarAnnotator(BaseAnnotator):
             ... )
             ```
 
-        ![percentage-bar-annotator-example]() # TODO add link of image example
+        ![percentage-bar-example](https://media.roboflow.com/
+        supervision-annotator-examples/percentage-bar-example.png)
         """
         for detection_idx in range(len(detections)):
             cx, cy = detections.get_anchors_coordinates(anchor=self.position)[
