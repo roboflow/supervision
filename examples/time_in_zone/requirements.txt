@@ -1,0 +1,5 @@
+tqdm
+opencv-python
+supervision==0.18.0rc2
+ultralytics
+inference
