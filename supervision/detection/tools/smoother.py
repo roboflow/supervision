@@ -111,6 +111,8 @@ class DetectionsSmoother:
 
         self.current_frame += 1
 
+        used_tracker_ids = {}
+
         for detection_idx in range(len(detections)):
             tracker_id = detections.tracker_id[detection_idx]
             if tracker_id is None:
@@ -122,6 +124,13 @@ class DetectionsSmoother:
 
             self.tracks[tracker_id].append(detections[detection_idx])
             self.track_ends[tracker_id] = self.current_frame
+
+            used_tracker_ids[tracker_id] = True
+
+        for track_id in list(self.tracks.keys()):
+            if track_id not in used_tracker_ids:
+                del self.tracks[track_id]
+                del self.track_ends[track_id]
 
         for track_id in self.tracks:
             track = self.tracks[track_id]
