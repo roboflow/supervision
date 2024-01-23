@@ -13,7 +13,9 @@ class DetectionsSmoother:
     Detections are averaged out over the `length` most recent frames.
 
     <video controls>
-        <source src="https://media.roboflow.com/supervision/video-examples/smoothed-grocery-example-720.mp4" type="video/mp4">
+        <source
+            src="https://media.roboflow.com/supervision/video-examples/smoothed-grocery-example-720.mp4"
+            type="video/mp4">
     </video>
     > _On the left are the model's raw predictions,
     > on the right is the output of DetectionsSmoother._
@@ -21,10 +23,11 @@ class DetectionsSmoother:
     !!! warning
 
         DetectionsSmoother uses the `tracker_id`. Read
-        [here](https://supervision.roboflow.com/trackers/) to learn how to plug
-        tracking into your inference pipeline.
+        [here](https://supervision.roboflow.com/trackers/) to learn
+        how to plug tracking into your inference pipeline.
 
-        Note: DetectionsSmoother is intended for use on Detections without a `mask` field.
+        Note: DetectionsSmoother is intended for use on Detections
+        without a `mask` field.
 
     ## Example Usage:
 
