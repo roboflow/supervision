@@ -6,9 +6,9 @@ import numpy as np
 from supervision.detection.core import Detections
 
 
-class Smoother:
+class DetectionsSmoother:
     """
-    Smooth out noise in predictions over time with the `Smoother` class.
+    Smooth out noise in predictions over time with the `DetectionsSmoother` class.
     This classes uses an existing `Tracker` to track objects over time.
     Detections are averaged out over the `length` most recent frames.
 
@@ -16,7 +16,7 @@ class Smoother:
         <source src="https://media.roboflow.com/supervision/video-examples/smoothed-grocery-example-720.mp4" type="video/mp4">
     </video>
     > _On the left are the model's raw predictions,
-    > on the right is the output of Smoother._
+    > on the right is the output of DetectionsSmoother._
 
     !!! warning
 
@@ -38,7 +38,7 @@ class Smoother:
     byte_tracker = sv.ByteTrack()
 
     # Initialize the Smoother
-    smoother = sv.Smoother()
+    smoother = sv.DetectionsSmoother()
 
     def render(detections, video_frame):
         # Parse the detections
@@ -129,7 +129,7 @@ class Smoother:
 
         return self.get_smoothed_detections()
 
-    def get_track(self, track_id: int) -> Optional[dict]:
+    def get_track(self, track_id: int) -> Optional[Detections]:
         track = self.tracks.get(track_id, None)
         if track is None:
             return None
@@ -138,7 +138,7 @@ class Smoother:
         if len(track) == 0:
             return None
 
-        ret = track[0]
+        ret = track.copy()[0]
         ret.xyxy = np.mean([d.xyxy for d in track], axis=0)
         ret.confidence = np.mean([d.confidence for d in track], axis=0)
 
