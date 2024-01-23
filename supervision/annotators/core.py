@@ -1500,8 +1500,7 @@ class RoundBoxAnnotator(BaseAnnotator):
 
 class PercentageBarAnnotator(BaseAnnotator):
     """
-    A class for drawing percentage bars of confidence threshold on an image
-    using provided detections.
+    A class for drawing percentage bars on an image using provided detections.
     """
 
     def __init__(
@@ -1513,9 +1512,6 @@ class PercentageBarAnnotator(BaseAnnotator):
         position: Position = Position.TOP_CENTER,
         color_lookup: ColorLookup = ColorLookup.CLASS,
         border_thickness: int = None,
-        custom_values: Optional[
-            Union[List[float], List[np.float32], np.ndarray]
-        ] = None,
     ):
         """
         Args:
@@ -1535,25 +1531,32 @@ class PercentageBarAnnotator(BaseAnnotator):
         self.border_color: Color = border_color
         self.position: Position = position
         self.color_lookup: ColorLookup = color_lookup
-        self.border_thickness: int = border_thickness
-        self.__custom_value_check(custom_values)
-        self.custom_values = custom_values
+
+        if border_thickness is None:
+            self.border_thickness = int(0.15 * self.height)
 
     def annotate(
         self,
         scene: np.ndarray,
         detections: Detections,
         custom_color_lookup: Optional[np.ndarray] = None,
+        custom_values: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         """
         Annotates the given scene with percentage bars based on the provided
-        detections.
+        detections. The percentage bars visually represent the confidence or custom
+        values associated with each detection.
 
         Args:
             scene (np.ndarray): The image where percentage bars will be drawn.
             detections (Detections): Object detections to annotate.
             custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
                 Allows to override the default color mapping strategy.
+            custom_values (Optional[np.ndarray]): Custom values array to use instead
+                of the default detection confidences. This array should have the
+                same length as the number of detections and contain a value between
+                0 and 1 (inclusive) for each detection, representing the percentage
+                to be displayed.
 
         Returns:
             The annotated image.
@@ -1575,27 +1578,25 @@ class PercentageBarAnnotator(BaseAnnotator):
         ![percentage-bar-example](https://media.roboflow.com/
         supervision-annotator-examples/percentage-bar-example.png)
         """
-        num_values = min(
-            len(detections),
-            len(self.custom_values) if self.custom_values else len(detections),
+        self.validate_custom_values(
+            custom_values=custom_values,
+            detections_count=len(detections)
         )
-
-        for detection_idx in range(num_values):
-            cx, cy = detections.get_anchors_coordinates(anchor=self.position)[
-                detection_idx
-            ].astype(int)
+        anchors = detections.get_anchors_coordinates(anchor=self.position)
+        for detection_idx in range(len(detections)):
+            anchor = anchors[detection_idx]
+            border_coordinates = self.calculate_border_coordinates(
+                anchor_xy=(int(anchor[0]), int(anchor[1])),
+                border_wh=(self.width, self.height),
+                position=self.position
+            )
+            border_width = border_coordinates[1][0] - border_coordinates[0][0]
 
             value = (
-                self.custom_values[detection_idx]
-                if self.custom_values
+                custom_values[detection_idx]
+                if custom_values
                 else detections.confidence[detection_idx]
             )
-
-            if self.border_thickness is None:
-                self.border_thickness = int(0.15 * self.height)
-
-            border_mapping = self.__border_position(cx, cy)
-            border_coords = border_mapping[self.position]
 
             color = resolve_color(
                 color=self.color,
@@ -1607,72 +1608,67 @@ class PercentageBarAnnotator(BaseAnnotator):
             )
             cv2.rectangle(
                 img=scene,
-                pt1=border_coords[0],
+                pt1=border_coordinates[0],
                 pt2=(
-                    border_coords[0][0]
-                    + int((border_coords[1][0] - border_coords[0][0]) * value),
-                    border_coords[1][1],
+                    border_coordinates[0][0] + int(border_width * value),
+                    border_coordinates[1][1],
                 ),
                 color=color.as_bgr(),
                 thickness=-1,
             )
             cv2.rectangle(
                 img=scene,
-                pt1=border_coords[0],
-                pt2=border_coords[1],
+                pt1=border_coordinates[0],
+                pt2=border_coordinates[1],
                 color=self.border_color.as_bgr(),
                 thickness=self.border_thickness,
             )
         return scene
 
-    def __border_position(self, cx, cy):
-        border_mapping = {
-            Position.TOP_LEFT: ((cx - self.width, cy - self.height), (cx, cy)),
-            Position.TOP_CENTER: (
-                (cx - self.width // 2, cy),
-                (cx + self.width // 2, cy - self.height),
-            ),
-            Position.TOP_RIGHT: ((cx, cy), (cx + self.width, cy - self.height)),
-            Position.CENTER_LEFT: (
-                (cx - self.width, cy - self.height // 2),
-                (cx, cy + self.height // 2),
-            ),
-            Position.CENTER: (
-                (cx - self.width // 2, cy - self.height // 2),
-                (cx + self.width // 2, cy + self.height // 2),
-            ),
-            Position.CENTER_OF_MASS: (
-                (cx - self.width // 2, cy - self.height // 2),
-                (cx + self.width // 2, cy + self.height // 2),
-            ),
-            Position.CENTER_RIGHT: (
-                (cx, cy - self.height // 2),
-                (cx + self.width, cy + self.height // 2),
-            ),
-            Position.BOTTOM_LEFT: ((cx - self.width, cy), (cx, cy + self.height)),
-            Position.BOTTOM_CENTER: (
-                (cx - self.width // 2, cy),
-                (cx + self.width // 2, cy + self.height),
-            ),
-            Position.BOTTOM_RIGHT: ((cx, cy), (cx + self.width, cy + self.height)),
-        }
-        return border_mapping
+    @staticmethod
+    def calculate_border_coordinates(
+        anchor_xy: Tuple[int, int],
+        border_wh: Tuple[int, int],
+        position: Position
+    ) -> Tuple[Tuple[int, int], Tuple[int, int]]:
+        cx, cy = anchor_xy
+        width, height = border_wh
 
-    def __custom_value_check(self, custom_values):
+        if position == Position.TOP_LEFT:
+            return (cx - width, cy - height), (cx, cy)
+        elif position == Position.TOP_CENTER:
+            return (cx - width // 2, cy), (cx + width // 2, cy - height)
+        elif position == Position.TOP_RIGHT:
+            return (cx, cy), (cx + width, cy - height)
+        elif position == Position.CENTER_LEFT:
+            return (cx - width, cy - height // 2), (cx, cy + height // 2)
+        elif position == Position.CENTER or position == Position.CENTER_OF_MASS:
+            return (
+                (cx - width // 2, cy - height // 2),
+                (cx + width // 2, cy + height // 2)
+            )
+        elif position == Position.CENTER_RIGHT:
+            return (cx, cy - height // 2), (cx + width, cy + height // 2)
+        elif position == Position.BOTTOM_LEFT:
+            return (cx - width, cy), (cx, cy + height)
+        elif position == Position.BOTTOM_CENTER:
+            return (cx - width // 2, cy), (cx + width // 2, cy + height)
+        elif position == Position.BOTTOM_RIGHT:
+            return (cx, cy), (cx + width, cy + height)
+
+    @staticmethod
+    def validate_custom_values(
+        custom_values: Optional[Union[np.ndarray, List[float]]],
+        detections_count: int
+    ) -> None:
         if custom_values is not None:
-            if isinstance(custom_values, np.ndarray):
-                if custom_values.ndim != 1:
-                    raise ValueError("custom_values array must be one-dimensional")
-                if custom_values.dtype != np.float32:
-                    raise ValueError(
-                        "custom_values array elements must be of type np.float32"
-                    )
-            else:  # assuming list
-                if not all(isinstance(x, (float, np.float32)) for x in custom_values):
-                    raise ValueError(
-                        "All elements in custom_values list must be of "
-                        "type float or np.float32"
-                    )
+            if not isinstance(custom_values, (np.ndarray, list)):
+                raise TypeError(
+                    "custom_values must be either a numpy array or a list of floats.")
 
-            if not (np.min(custom_values) >= 0 and np.max(custom_values) <= 1):
-                raise ValueError("All values in custom_values must be between 0 and 1")
+            if len(custom_values) != detections_count:
+                raise ValueError(
+                    "The length of custom_values must match the number of detections.")
+
+            if not all(0 <= value <= 1 for value in custom_values):
+                raise ValueError("All values in custom_values must be between 0 and 1.")
