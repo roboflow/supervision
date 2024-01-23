@@ -86,7 +86,6 @@ class DetectionsSmoother:
 
         self.current_frame = 0
         self.tracks = {}
-        self.track_ends = {}
 
     def set_length(self, length: int) -> None:
         """
@@ -109,35 +108,32 @@ class DetectionsSmoother:
             detections (Detections): The detections to add to the smoother.
         """
 
-        self.current_frame += 1
-
-        used_tracker_ids = {}
+        already_tracked_ids = set(self.tracks.keys())
 
         for detection_idx in range(len(detections)):
             tracker_id = detections.tracker_id[detection_idx]
             if tracker_id is None:
-                # skip detections without a tracker id
                 continue
 
             if self.tracks.get(tracker_id, None) is None:
                 self.tracks[tracker_id] = deque(maxlen=self.length)
 
-            self.tracks[tracker_id].append(detections[detection_idx])
-            self.track_ends[tracker_id] = self.current_frame
-
-            used_tracker_ids[tracker_id] = True
+            if tracker_id in already_tracked_ids:
+                self.tracks[tracker_id].append(detections[detection_idx])
 
         for track_id in list(self.tracks.keys()):
-            if track_id not in used_tracker_ids:
-                del self.tracks[track_id]
-                del self.track_ends[track_id]
+            if track_id not in detections.tracker_id:
+                self.tracks[track_id].append(None)
 
-        for track_id in self.tracks:
-            track = self.tracks[track_id]
-            if self.track_ends[track_id] < self.current_frame:
-                # continue tracking for a few frames after the object has left
-                # (to prevent flickering in case it comes back)
-                track.append(None)
+        for track_id in list(self.tracks.keys()):
+            if (
+                all([d is None for d in self.tracks[track_id]])
+                and len(self.tracks[track_id]) == self.length
+            ):
+                del self.tracks[track_id]
+                print("Removed track", track_id)
+
+        print("Tracks:", self.tracks.keys())
 
         return self.get_smoothed_detections()
 
