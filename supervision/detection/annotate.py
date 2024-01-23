@@ -26,7 +26,7 @@ class BoxAnnotator:
 
     def __init__(
         self,
-        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
         thickness: int = 2,
         text_color: Color = Color.BLACK,
         text_scale: float = 0.5,
