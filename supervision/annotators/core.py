@@ -1593,7 +1593,7 @@ class PercentageBarAnnotator(BaseAnnotator):
 
             value = (
                 custom_values[detection_idx]
-                if custom_values
+                if custom_values is not None
                 else detections.confidence[detection_idx]
             )
 
