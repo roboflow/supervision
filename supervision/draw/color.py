@@ -255,7 +255,7 @@ class ColorPalette:
 
     @classmethod
     @property
-    def DEFAULT(cls) ->ColorPalette:
+    def DEFAULT(cls) -> ColorPalette:
         """
         Returns a default color palette.
 
@@ -269,7 +269,7 @@ class ColorPalette:
             sv.ColorPalette.DEFAULT
             # ColorPalette(colors=[Color(r=255, g=64, b=64), Color(r=255, g=161, b=160), ...])
             ```
-            
+
         ![default-color-palette](https://media.roboflow.com/
         supervision-annotator-examples/default-color-palette.png)
         """  # noqa: E501 // docs
@@ -291,7 +291,7 @@ class ColorPalette:
             sv.ColorPalette.ROBOFLOW
             # ColorPalette(colors=[Color(r=194, g=141, b=252), Color(r=163, g=81, b=251), ...])
             ```
-            
+
         ![roboflow-color-palette](https://media.roboflow.com/
         supervision-annotator-examples/roboflow-color-palette.png)
         """  # noqa: E501 // docs
