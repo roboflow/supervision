@@ -170,6 +170,17 @@ class Detections:
             ```
         """
 
+        if ultralytics_results.obb is not None:
+            return cls(
+                xyxy=ultralytics_results.obb.xyxy.cpu().numpy(),
+                data={"xyxyxyxy": ultralytics_results.obb.xyxyxyxy.cpu().numpy()},
+                confidence=ultralytics_results.obb.conf.cpu().numpy(),
+                class_id=ultralytics_results.obb.cls.cpu().numpy().astype(int),
+                tracker_id=ultralytics_results.obb.id.int().cpu().numpy()
+                if ultralytics_results.obb.id is not None
+                else None,
+            )
+
         return cls(
             xyxy=ultralytics_results.boxes.xyxy.cpu().numpy(),
             confidence=ultralytics_results.boxes.conf.cpu().numpy(),
