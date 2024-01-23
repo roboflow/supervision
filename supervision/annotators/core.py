@@ -1579,8 +1579,7 @@ class PercentageBarAnnotator(BaseAnnotator):
         supervision-annotator-examples/percentage-bar-example.png)
         """
         self.validate_custom_values(
-            custom_values=custom_values,
-            detections_count=len(detections)
+            custom_values=custom_values, detections_count=len(detections)
         )
         anchors = detections.get_anchors_coordinates(anchor=self.position)
         for detection_idx in range(len(detections)):
@@ -1588,7 +1587,7 @@ class PercentageBarAnnotator(BaseAnnotator):
             border_coordinates = self.calculate_border_coordinates(
                 anchor_xy=(int(anchor[0]), int(anchor[1])),
                 border_wh=(self.width, self.height),
-                position=self.position
+                position=self.position,
             )
             border_width = border_coordinates[1][0] - border_coordinates[0][0]
 
@@ -1627,9 +1626,7 @@ class PercentageBarAnnotator(BaseAnnotator):
 
     @staticmethod
     def calculate_border_coordinates(
-        anchor_xy: Tuple[int, int],
-        border_wh: Tuple[int, int],
-        position: Position
+        anchor_xy: Tuple[int, int], border_wh: Tuple[int, int], position: Position
     ) -> Tuple[Tuple[int, int], Tuple[int, int]]:
         cx, cy = anchor_xy
         width, height = border_wh
@@ -1645,7 +1642,7 @@ class PercentageBarAnnotator(BaseAnnotator):
         elif position == Position.CENTER or position == Position.CENTER_OF_MASS:
             return (
                 (cx - width // 2, cy - height // 2),
-                (cx + width // 2, cy + height // 2)
+                (cx + width // 2, cy + height // 2),
             )
         elif position == Position.CENTER_RIGHT:
             return (cx, cy - height // 2), (cx + width, cy + height // 2)
@@ -1658,17 +1655,18 @@ class PercentageBarAnnotator(BaseAnnotator):
 
     @staticmethod
     def validate_custom_values(
-        custom_values: Optional[Union[np.ndarray, List[float]]],
-        detections_count: int
+        custom_values: Optional[Union[np.ndarray, List[float]]], detections_count: int
     ) -> None:
         if custom_values is not None:
             if not isinstance(custom_values, (np.ndarray, list)):
                 raise TypeError(
-                    "custom_values must be either a numpy array or a list of floats.")
+                    "custom_values must be either a numpy array or a list of floats."
+                )
 
             if len(custom_values) != detections_count:
                 raise ValueError(
-                    "The length of custom_values must match the number of detections.")
+                    "The length of custom_values must match the number of detections."
+                )
 
             if not all(0 <= value <= 1 for value in custom_values):
                 raise ValueError("All values in custom_values must be between 0 and 1.")
