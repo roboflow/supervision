@@ -1436,7 +1436,7 @@ class RoundBoxAnnotator(BaseAnnotator):
             ```
 
         ![round-box-annotator-example](https://media.roboflow.com/
-        supervision-annotator-examples/round-box-annotator-example.png)
+        supervision-annotator-examples/round-box-annotator-example-purple.png)
         """
 
         for detection_idx in range(len(detections)):
@@ -1576,7 +1576,7 @@ class PercentageBarAnnotator(BaseAnnotator):
             ```
 
         ![percentage-bar-example](https://media.roboflow.com/
-        supervision-annotator-examples/percentage-bar-example.png)
+        supervision-annotator-examples/percentage-bar-annotator-example-purple.png)
         """
         self.validate_custom_values(
             custom_values=custom_values, detections_count=len(detections)
