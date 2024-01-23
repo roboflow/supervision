@@ -3909,4 +3909,4 @@ desktop = ["opencv-python"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "3d59673b11422c0c463ec7b7e20b8a295155d71a6c42ad97f819e9798643b0ef"
+content-hash = "62b2479cbd6c46414b4837360ec9f6ccb704eb8ecc3cfba5b34aa0e61c1cdc29"
