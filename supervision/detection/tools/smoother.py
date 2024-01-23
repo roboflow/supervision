@@ -20,11 +20,11 @@ class DetectionsSmoother:
 
     !!! warning
 
-        Smoother uses the `tracker_id`. Read
+        DetectionsSmoother uses the `tracker_id`. Read
         [here](https://supervision.roboflow.com/trackers/) to learn how to plug
         tracking into your inference pipeline.
 
-        Note: Smoother is intended for use on Detections without a `mask` field.
+        Note: DetectionsSmoother is intended for use on Detections without a `mask` field.
 
     ## Example Usage:
 
