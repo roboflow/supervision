@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import List, Tuple
 
+import matplotlib.pyplot as plt
+
 from supervision.utils.internal import deprecated
 
 DEFAULT_COLOR_PALETTE = [
@@ -73,6 +75,14 @@ class Color:
         g (int): Green channel value (0-255).
         b (int): Blue channel value (0-255).
 
+    Example:
+        ```python
+        import supervision as sv
+
+        sv.Color.WHITE
+        # Color(r=255, g=255, b=255)
+        ```
+
     | Constant   | Hex Code   | RGB              |
     |------------|------------|------------------|
     | `WHITE`    | `#FFFFFF`  | `(255, 255, 255)`|
@@ -82,14 +92,6 @@ class Color:
     | `BLUE`     | `#0000FF`  | `(0, 0, 255)`    |
     | `YELLOW`   | `#FFFF00`  | `(255, 255, 0)`  |
     | `ROBOFLOW` | `#A351FB`  | `(163, 81, 251)` |
-
-    Example:
-        ```python
-        import supervision as sv
-
-        sv.Color.WHITE
-        # Color(r=255, g=255, b=255)
-        ```
     """
 
     r: int
@@ -332,7 +334,7 @@ class ColorPalette:
             ColorPalette: A ColorPalette instance with default colors.
 
         Example:
-            ```
+            ```python
             import supervision as sv
 
             sv.ColorPalette.default()
@@ -353,12 +355,41 @@ class ColorPalette:
             ColorPalette: A ColorPalette instance.
 
         Example:
-            ```
-            >>> ColorPalette.from_hex(['#ff0000', '#00ff00', '#0000ff'])
-            ColorPalette(colors=[Color(r=255, g=0, b=0), Color(r=0, g=255, b=0), ...])
+            ```python
+            import supervision as sv
+
+            sv.ColorPalette.from_hex(['#ff0000', '#00ff00', '#0000ff'])
+            # ColorPalette(colors=[Color(r=255, g=0, b=0), Color(r=0, g=255, b=0), ...])
             ```
         """
         colors = [Color.from_hex(color_hex) for color_hex in color_hex_list]
+        return cls(colors)
+
+    @classmethod
+    def from_matplotlib(cls, palette_name: str, color_count: int) -> ColorPalette:
+        """
+        Create a ColorPalette instance from a Matplotlib color palette.
+
+        Args:
+            palette_name (str): Name of the Matplotlib palette.
+            color_count (int): Number of colors to sample from the palette.
+
+        Returns:
+            ColorPalette: A ColorPalette instance.
+
+        Example:
+            ```python
+            import supervision as sv
+
+            sv.ColorPalette.from_matplotlib('viridis', 5)
+            # ColorPalette(colors=[Color(r=68, g=1, b=84), Color(r=59, g=82, b=139), ...])
+            ```
+        """
+        mpl_palette = plt.get_cmap(palette_name, color_count)
+        colors = [
+            Color(int(r * 255), int(g * 255), int(b * 255))
+            for r, g, b, _ in mpl_palette.colors
+        ]
         return cls(colors)
 
     def by_idx(self, idx: int) -> Color:
@@ -372,9 +403,12 @@ class ColorPalette:
             Color: Color at the given index.
 
         Example:
-            ```
-            >>> color_palette.by_idx(1)
-            Color(r=0, g=255, b=0)
+            ```python
+            import supervision as sv
+
+            color_palette = sv.ColorPalette.from_hex(['#ff0000', '#00ff00', '#0000ff'])
+            color_palette.by_idx(1)
+            # Color(r=0, g=255, b=0)
             ```
         """
         if idx < 0:
