@@ -384,7 +384,7 @@ class ColorPalette:
             sv.ColorPalette.from_matplotlib('viridis', 5)
             # ColorPalette(colors=[Color(r=68, g=1, b=84), Color(r=59, g=82, b=139), ...])
             ```
-        """
+        """  # noqa: E501 // docs
         mpl_palette = plt.get_cmap(palette_name, color_count)
         colors = [
             Color(int(r * 255), int(g * 255), int(b * 255))
