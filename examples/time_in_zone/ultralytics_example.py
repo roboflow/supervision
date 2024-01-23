@@ -1,6 +1,6 @@
 import argparse
 import json
-from typing import List
+from typing import List, Dict, Optional
 
 import cv2
 import numpy as np
@@ -31,6 +31,37 @@ def load_zones_config(file_path: str) -> List[np.ndarray]:
         return [np.array(polygon, np.int32) for polygon in data["polygons"]]
 
 
+class Timer:
+
+    def __init__(self, fps: int = 30) -> None:
+        self.fps = fps
+        self.frame_id = 0
+        self.tacker_id2frame_id: Dict[int, int] = {}
+
+    def tick(self, detections: sv.Detections) -> None:
+        self.frame_id += 1
+        for tracker_id in detections.tracker_id:
+            self.tacker_id2frame_id.setdefault(tracker_id, self.frame_id)
+
+    def get_time_by_tracker_id(self, tracker_id: int) -> Optional[float]:
+        start_frame_id = self.tacker_id2frame_id.get(tracker_id, None)
+        if start_frame_id is None:
+            return None
+        return (self.frame_id - start_frame_id) / self.fps
+
+    def get_time(self, detections: sv.Detections) -> np.ndarray:
+        return np.array([
+            self.get_time_by_tracker_id(tracker_id)
+            for tracker_id
+            in detections.tracker_id
+        ])
+
+    def update_with_detections(self, detections: sv.Detections) -> sv.Detections:
+        self.tick(detections)
+        detections['time'] = self.get_time(detections)
+        return detections
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Counting time duration in zones with YOLOv8 and Supervision"
@@ -54,45 +85,103 @@ if __name__ == "__main__":
         help="Path to the source video file",
         type=str,
     )
-    # parser.add_argument(
-    #     "--target_video_path",
-    #     default=None,
-    #     help="Path to the target video file (output)",
-    #     type=str,
-    # )
-    # parser.add_argument(
-    #     "--confidence_threshold",
-    #     default=0.3,
-    #     help="Confidence threshold for the model",
-    #     type=float,
-    # )
-    # parser.add_argument(
-    #     "--iou_threshold",
-    #     default=0.7,
-    #     help="IOU threshold for the model",
-    #     type=float,
-    # )
+    parser.add_argument(
+        "--confidence_threshold",
+        default=0.3,
+        help="Confidence threshold for the model",
+        type=float,
+    )
 
     args = parser.parse_args()
 
-    zone_config = load_zones_config(args.zone_configuration_path)
-
     video_info = sv.VideoInfo.from_video_path(args.source_video_path)
 
-    polygons = load_zones_config(args.zone_configuration_path)
+    thickness = sv.calculate_dynamic_line_thickness(
+        resolution_wh=video_info.resolution_wh)
+    text_scale = sv.calculate_dynamic_text_scale(
+        resolution_wh=video_info.resolution_wh)
 
-    frames_generator = sv.get_video_frames_generator(args.source_video_path)
+    zone_config = load_zones_config(args.zone_configuration_path)
+    zones = [
+        sv.PolygonZone(polygon, frame_resolution_wh=video_info.resolution_wh)
+        for polygon
+        in zone_config
+    ]
+    box_annotators = [
+        sv.BoundingBoxAnnotator(
+            color=COLORS.by_idx(i + 1),
+            thickness=thickness,
+        )
+        for i
+        in range(len(zones))
+    ]
+    label_annotators = [
+        sv.LabelAnnotator(
+            color=COLORS.by_idx(i + 1),
+            text_scale=text_scale,
+            text_thickness=thickness,
+        )
+        for i
+        in range(len(zones))
+    ]
+    trace_annotators = [
+        sv.TraceAnnotator(
+            color=COLORS.by_idx(i + 1),
+            thickness=thickness,
+            trace_length=video_info.fps * 2,
+            position=sv.Position.BOTTOM_CENTER
+        )
+        for i
+        in range(len(zones))
+    ]
+    timers = [
+        Timer(fps=video_info.fps)
+        for i
+        in range(len(zones))
+    ]
 
-    for frame in tqdm(frames_generator, total=video_info.fps):
+    model = YOLO(args.source_weights_path)
+    tracker = sv.ByteTrack(frame_rate=video_info.fps)
 
-        annotated_frame = frame.copy()
+    frames_generator = sv.get_video_frames_generator(args.source_video_path, start=3600, end=4200)
 
-        for i, polygon in enumerate(polygons):
-            annotated_frame = sv.draw_polygon(
-                annotated_frame, polygon, color=COLORS.by_idx(i), thickness=2)
+    with sv.VideoSink("data/output-2.mp4", video_info) as sink:
+        for frame in tqdm(frames_generator, total=video_info.total_frames):
 
-        cv2.imshow("Processed Video", annotated_frame)
-        if cv2.waitKey(1) & 0xFF == ord("q"):
-            break
+            results = model(frame, verbose=False)[0]
+            detections = sv.Detections.from_ultralytics(results)
+            detections = detections[detections.confidence > args.confidence_threshold]
 
-    cv2.destroyAllWindows()
+            in_zone_0 = zones[0].trigger(detections=detections)
+            in_zone_1 = zones[1].trigger(detections=detections)
+            in_zone_2 = zones[2].trigger(detections=detections)
+
+            detections = detections[in_zone_0 | in_zone_1 | in_zone_2]
+            detections = detections.with_nms(threshold=0.9)
+            detections = tracker.update_with_detections(detections)
+
+            annotated_frame = frame.copy()
+
+            for i, zone in enumerate(zones):
+                detections_in_zone = detections[zones[i].trigger(detections=detections)]
+                detections_in_zone = timers[i].update_with_detections(detections_in_zone)
+                labels = [
+                    f"#{tracker_id} {time:.1f}s {model.model.names[class_id]}" if time is not None else f"#{tracker_id} N/A"
+                    for time, tracker_id, class_id
+                    in zip(detections_in_zone['time'], detections_in_zone.tracker_id, detections_in_zone.class_id)
+                ]
+                annotated_frame = sv.draw_polygon(
+                    annotated_frame, zone.polygon, color=COLORS.by_idx(i + 1), thickness=thickness)
+                annotated_frame = trace_annotators[i].annotate(
+                    annotated_frame, detections_in_zone)
+                annotated_frame = box_annotators[i].annotate(
+                    annotated_frame, detections_in_zone)
+                annotated_frame = label_annotators[i].annotate(
+                    annotated_frame, detections_in_zone, labels=labels)
+
+            sink.write_frame(annotated_frame)
+            cv2.imshow("Processed Video", annotated_frame)
+            if cv2.waitKey(1) & 0xFF == ord("q"):
+                break
+
+        cv2.destroyAllWindows()

@@ -42,7 +42,8 @@ TODO
 python ultralytics_example.py \
   --source_weights_path yolov8m.pt \
   --zone_configuration_path data/time-in-zone-video.json \
-  --source_video_path data/time-in-zone-video.mp4
+  --source_video_path data/time-in-zone-video.mp4 \
+  --confidence_threshold 0.5
 ```
 
 ## © license
