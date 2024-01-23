@@ -1,3 +1,7 @@
+---
+comments: true
+---
+
 ## box_iou_batch
 
 :::supervision.detection.utils.box_iou_batch

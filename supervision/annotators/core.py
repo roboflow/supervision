@@ -6,6 +6,7 @@ import numpy as np
 
 from supervision.annotators.base import BaseAnnotator
 from supervision.annotators.utils import ColorLookup, Trace, resolve_color
+from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
 from supervision.detection.utils import clip_boxes, mask_to_polygons
 from supervision.draw.color import Color, ColorPalette
@@ -782,7 +783,7 @@ class LabelAnnotator:
     def __init__(
         self,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
-        text_color: Color = Color.black(),
+        text_color: Color = Color.BLACK,
         text_scale: float = 0.5,
         text_thickness: int = 1,
         text_padding: int = 10,
@@ -890,6 +891,16 @@ class LabelAnnotator:
         anchors_coordinates = detections.get_anchors_coordinates(
             anchor=self.text_anchor
         ).astype(int)
+        if labels is not None and len(labels) != len(detections):
+            raise ValueError(
+                f"The number of labels provided ({len(labels)}) does not match the "
+                f"number of detections ({len(detections)}). Each detection should have "
+                f"a corresponding label. This discrepancy can occur if the labels and "
+                f"detections are not aligned or if an incorrect number of labels has "
+                f"been provided. Please ensure that the labels array has the same "
+                f"length as the Detections object."
+            )
+
         for detection_idx, center_coordinates in enumerate(anchors_coordinates):
             color = resolve_color(
                 color=self.color,
@@ -899,11 +910,16 @@ class LabelAnnotator:
                 if custom_color_lookup is None
                 else custom_color_lookup,
             )
-            text = (
-                f"{detections.class_id[detection_idx]}"
-                if (labels is None or len(detections) != len(labels))
-                else labels[detection_idx]
-            )
+
+            if labels is not None:
+                text = labels[detection_idx]
+            elif detections[CLASS_NAME_DATA_FIELD] is not None:
+                text = detections[CLASS_NAME_DATA_FIELD][detection_idx]
+            elif detections.class_id is not None:
+                text = str(detections.class_id[detection_idx])
+            else:
+                text = str(detection_idx)
+
             text_w, text_h = cv2.getTextSize(
                 text=text,
                 fontFace=font,
@@ -1352,3 +1368,305 @@ class TriangleAnnotator(BaseAnnotator):
             cv2.fillPoly(scene, [vertices], color.as_bgr())
 
         return scene
+
+
+class RoundBoxAnnotator(BaseAnnotator):
+    """
+    A class for drawing bounding boxes with round edges on an image
+    using provided detections.
+    """
+
+    def __init__(
+        self,
+        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        thickness: int = 2,
+        color_lookup: ColorLookup = ColorLookup.CLASS,
+        roundness: float = 0.6,
+    ):
+        """
+        Args:
+            color (Union[Color, ColorPalette]): The color or color palette to use for
+                annotating detections.
+            thickness (int): Thickness of the bounding box lines.
+            color_lookup (str): Strategy for mapping colors to annotations.
+                Options are `INDEX`, `CLASS`, `TRACK`.
+            roundness (float): Percent of roundness for edges of bounding box.
+                Value must be float 0 < roundness <= 1.0
+                By default roundness percent is calculated based on smaller side
+                length (width or height).
+        """
+        self.color: Union[Color, ColorPalette] = color
+        self.thickness: int = thickness
+        self.color_lookup: ColorLookup = color_lookup
+        if not 0 < roundness <= 1.0:
+            raise ValueError("roundness attribute must be float between (0, 1.0]")
+        self.roundness: float = roundness
+
+    def annotate(
+        self,
+        scene: np.ndarray,
+        detections: Detections,
+        custom_color_lookup: Optional[np.ndarray] = None,
+    ) -> np.ndarray:
+        """
+        Annotates the given scene with bounding boxes with rounded edges
+        based on the provided detections.
+
+        Args:
+            scene (np.ndarray): The image where rounded bounding boxes will be drawn.
+            detections (Detections): Object detections to annotate.
+            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
+                Allows to override the default color mapping strategy.
+
+        Returns:
+            The annotated image.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> image = ...
+            >>> detections = sv.Detections(...)
+
+            >>> round_box_annotator = sv.RoundBoxAnnotator()
+            >>> annotated_frame = round_box_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
+            ```
+
+        ![round-box-annotator-example](https://media.roboflow.com/
+        supervision-annotator-examples/round-box-annotator-example-purple.png)
+        """
+
+        for detection_idx in range(len(detections)):
+            x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
+            color = resolve_color(
+                color=self.color,
+                detections=detections,
+                detection_idx=detection_idx,
+                color_lookup=self.color_lookup
+                if custom_color_lookup is None
+                else custom_color_lookup,
+            )
+
+            radius = (
+                int((x2 - x1) // 2 * self.roundness)
+                if abs(x1 - x2) < abs(y1 - y2)
+                else int((y2 - y1) // 2 * self.roundness)
+            )
+
+            circle_coordinates = [
+                ((x1 + radius), (y1 + radius)),
+                ((x2 - radius), (y1 + radius)),
+                ((x2 - radius), (y2 - radius)),
+                ((x1 + radius), (y2 - radius)),
+            ]
+
+            line_coordinates = [
+                ((x1 + radius, y1), (x2 - radius, y1)),
+                ((x2, y1 + radius), (x2, y2 - radius)),
+                ((x1 + radius, y2), (x2 - radius, y2)),
+                ((x1, y1 + radius), (x1, y2 - radius)),
+            ]
+
+            start_angles = (180, 270, 0, 90)
+            end_angles = (270, 360, 90, 180)
+
+            for center_coordinates, line, start_angle, end_angle in zip(
+                circle_coordinates, line_coordinates, start_angles, end_angles
+            ):
+                cv2.ellipse(
+                    img=scene,
+                    center=center_coordinates,
+                    axes=(radius, radius),
+                    angle=0,
+                    startAngle=start_angle,
+                    endAngle=end_angle,
+                    color=color.as_bgr(),
+                    thickness=self.thickness,
+                )
+
+                cv2.line(
+                    img=scene,
+                    pt1=line[0],
+                    pt2=line[1],
+                    color=color.as_bgr(),
+                    thickness=self.thickness,
+                )
+
+        return scene
+
+
+class PercentageBarAnnotator(BaseAnnotator):
+    """
+    A class for drawing percentage bars on an image using provided detections.
+    """
+
+    def __init__(
+        self,
+        height: int = 16,
+        width: int = 80,
+        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        border_color: Color = Color.black(),
+        position: Position = Position.TOP_CENTER,
+        color_lookup: ColorLookup = ColorLookup.CLASS,
+        border_thickness: int = None,
+    ):
+        """
+        Args:
+            height (int): The height in pixels of the percentage bar.
+            width (int): The width in pixels of the percentage bar.
+            color (Union[Color, ColorPalette]): The color or color palette to use for
+                annotating detections.
+            border_color (Color): The color of the border lines.
+            position (Position): The anchor position of drawing the percentage bar.
+            color_lookup (str): Strategy for mapping colors to annotations.
+                Options are `INDEX`, `CLASS`, `TRACK`.
+            border_thickness (int): The thickness of the border lines.
+        """
+        self.height: int = height
+        self.width: int = width
+        self.color: Union[Color, ColorPalette] = color
+        self.border_color: Color = border_color
+        self.position: Position = position
+        self.color_lookup: ColorLookup = color_lookup
+
+        if border_thickness is None:
+            self.border_thickness = int(0.15 * self.height)
+
+    def annotate(
+        self,
+        scene: np.ndarray,
+        detections: Detections,
+        custom_color_lookup: Optional[np.ndarray] = None,
+        custom_values: Optional[np.ndarray] = None,
+    ) -> np.ndarray:
+        """
+        Annotates the given scene with percentage bars based on the provided
+        detections. The percentage bars visually represent the confidence or custom
+        values associated with each detection.
+
+        Args:
+            scene (np.ndarray): The image where percentage bars will be drawn.
+            detections (Detections): Object detections to annotate.
+            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
+                Allows to override the default color mapping strategy.
+            custom_values (Optional[np.ndarray]): Custom values array to use instead
+                of the default detection confidences. This array should have the
+                same length as the number of detections and contain a value between
+                0 and 1 (inclusive) for each detection, representing the percentage
+                to be displayed.
+
+        Returns:
+            The annotated image.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> image = ...
+            >>> detections = sv.Detections(...)
+
+            >>> percentage_bar_annotator = sv.BoundingBoxAnnotator()
+            >>> annotated_frame = percentage_bar_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
+            ```
+
+        ![percentage-bar-example](https://media.roboflow.com/
+        supervision-annotator-examples/percentage-bar-annotator-example-purple.png)
+        """
+        self.validate_custom_values(
+            custom_values=custom_values, detections_count=len(detections)
+        )
+        anchors = detections.get_anchors_coordinates(anchor=self.position)
+        for detection_idx in range(len(detections)):
+            anchor = anchors[detection_idx]
+            border_coordinates = self.calculate_border_coordinates(
+                anchor_xy=(int(anchor[0]), int(anchor[1])),
+                border_wh=(self.width, self.height),
+                position=self.position,
+            )
+            border_width = border_coordinates[1][0] - border_coordinates[0][0]
+
+            value = (
+                custom_values[detection_idx]
+                if custom_values is not None
+                else detections.confidence[detection_idx]
+            )
+
+            color = resolve_color(
+                color=self.color,
+                detections=detections,
+                detection_idx=detection_idx,
+                color_lookup=self.color_lookup
+                if custom_color_lookup is None
+                else custom_color_lookup,
+            )
+            cv2.rectangle(
+                img=scene,
+                pt1=border_coordinates[0],
+                pt2=(
+                    border_coordinates[0][0] + int(border_width * value),
+                    border_coordinates[1][1],
+                ),
+                color=color.as_bgr(),
+                thickness=-1,
+            )
+            cv2.rectangle(
+                img=scene,
+                pt1=border_coordinates[0],
+                pt2=border_coordinates[1],
+                color=self.border_color.as_bgr(),
+                thickness=self.border_thickness,
+            )
+        return scene
+
+    @staticmethod
+    def calculate_border_coordinates(
+        anchor_xy: Tuple[int, int], border_wh: Tuple[int, int], position: Position
+    ) -> Tuple[Tuple[int, int], Tuple[int, int]]:
+        cx, cy = anchor_xy
+        width, height = border_wh
+
+        if position == Position.TOP_LEFT:
+            return (cx - width, cy - height), (cx, cy)
+        elif position == Position.TOP_CENTER:
+            return (cx - width // 2, cy), (cx + width // 2, cy - height)
+        elif position == Position.TOP_RIGHT:
+            return (cx, cy), (cx + width, cy - height)
+        elif position == Position.CENTER_LEFT:
+            return (cx - width, cy - height // 2), (cx, cy + height // 2)
+        elif position == Position.CENTER or position == Position.CENTER_OF_MASS:
+            return (
+                (cx - width // 2, cy - height // 2),
+                (cx + width // 2, cy + height // 2),
+            )
+        elif position == Position.CENTER_RIGHT:
+            return (cx, cy - height // 2), (cx + width, cy + height // 2)
+        elif position == Position.BOTTOM_LEFT:
+            return (cx - width, cy), (cx, cy + height)
+        elif position == Position.BOTTOM_CENTER:
+            return (cx - width // 2, cy), (cx + width // 2, cy + height)
+        elif position == Position.BOTTOM_RIGHT:
+            return (cx, cy), (cx + width, cy + height)
+
+    @staticmethod
+    def validate_custom_values(
+        custom_values: Optional[Union[np.ndarray, List[float]]], detections_count: int
+    ) -> None:
+        if custom_values is not None:
+            if not isinstance(custom_values, (np.ndarray, list)):
+                raise TypeError(
+                    "custom_values must be either a numpy array or a list of floats."
+                )
+
+            if len(custom_values) != detections_count:
+                raise ValueError(
+                    "The length of custom_values must match the number of detections."
+                )
+
+            if not all(0 <= value <= 1 for value in custom_values):
+                raise ValueError("All values in custom_values must be between 0 and 1.")

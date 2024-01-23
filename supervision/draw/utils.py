@@ -105,7 +105,7 @@ def draw_text(
     scene: np.ndarray,
     text: str,
     text_anchor: Point,
-    text_color: Color = Color.black(),
+    text_color: Color = Color.BLACK,
     text_scale: float = 0.5,
     text_thickness: int = 1,
     text_padding: int = 10,

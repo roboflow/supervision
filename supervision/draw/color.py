@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import List, Tuple
 
+from supervision.utils.internal import deprecated
+
 DEFAULT_COLOR_PALETTE = [
     "#a351fb",
     "#e6194b",
@@ -116,23 +118,63 @@ class Color:
         """
         return self.b, self.g, self.r
 
+    @property
+    def WHITE(cls):
+        return cls.from_hex("#ffffff")
+
+    @property
+    def BLACK(cls):
+        return cls.from_hex("#000000")
+
+    @property
+    def RED(cls):
+        return cls.from_hex("#ff0000")
+
+    @property
+    def GREEN(cls):
+        return cls.from_hex("#00ff00")
+
+    @property
+    def BLUE(cls):
+        return cls.from_hex("#0000ff")
+
     @classmethod
+    @deprecated(
+        "`Color.white()` is deprecated and will be removed in "
+        "`supervision-0.20.0`. Use `Color.WHITE` instead."
+    )
     def white(cls) -> Color:
         return Color.from_hex(color_hex="#ffffff")
 
     @classmethod
+    @deprecated(
+        "`Color.black()` is deprecated and will be removed in "
+        "`supervision-0.20.0`. Use `Color.BLACK` instead."
+    )
     def black(cls) -> Color:
         return Color.from_hex(color_hex="#000000")
 
     @classmethod
+    @deprecated(
+        "`Color.red()` is deprecated and will be removed in "
+        "`supervision-0.20.0`. Use `Color.RED` instead."
+    )
     def red(cls) -> Color:
         return Color.from_hex(color_hex="#ff0000")
 
     @classmethod
+    @deprecated(
+        "`Color.green()` is deprecated and will be removed in "
+        "`supervision-0.20.0`. Use `Color.GREEN` instead."
+    )
     def green(cls) -> Color:
         return Color.from_hex(color_hex="#00ff00")
 
     @classmethod
+    @deprecated(
+        "`Color.blue()` is deprecated and will be removed in "
+        "`supervision-0.20.0`. Use `Color.BLUE` instead."
+    )
     def blue(cls) -> Color:
         return Color.from_hex(color_hex="#0000ff")
 
@@ -197,3 +239,10 @@ class ColorPalette:
             raise ValueError("idx argument should not be negative")
         idx = idx % len(self.colors)
         return self.colors[idx]
+
+
+Color.WHITE = Color.from_hex("#ffffff")
+Color.BLACK = Color.from_hex("#000000")
+Color.RED = Color.from_hex("#ff0000")
+Color.GREEN = Color.from_hex("#00ff00")
+Color.BLUE = Color.from_hex("#0000ff")

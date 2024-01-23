@@ -1,3 +1,7 @@
+---
+comments: true
+---
+
 ## ImageSink
 
 :::supervision.utils.image.ImageSink

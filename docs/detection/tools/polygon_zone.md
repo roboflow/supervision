@@ -1,3 +1,7 @@
+---
+comments: true
+---
+
 ## PolygonZone
 
 :::supervision.detection.tools.polygon_zone.PolygonZone

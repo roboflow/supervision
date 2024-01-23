@@ -1,3 +1,7 @@
+---
+comments: true
+---
+
 === "BoundingBox"
 
     ```python
@@ -16,6 +20,27 @@
     <div class="result" markdown>
 
     ![bounding-box-annotator-example](https://media.roboflow.com/supervision-annotator-examples/bounding-box-annotator-example-purple.png){ align=center width="800" }
+
+    </div>
+
+=== "RoundBox"
+
+    ```python
+    >>> import supervision as sv
+
+    >>> image = ...
+    >>> detections = sv.Detections(...)
+
+    >>> round_box_annotator = sv.RoundBoxAnnotator()
+    >>> annotated_frame = round_box_annotator.annotate(
+    ...     scene=image.copy(),
+    ...     detections=detections
+    ... )
+    ```
+
+    <div class="result" markdown>
+
+    ![round-box-annotator-example](https://media.roboflow.com/supervision-annotator-examples/round-box-annotator-example-purple.png){ align=center width="800" }
 
     </div>
 
@@ -99,7 +124,7 @@
 
     <div class="result" markdown>
 
-    ![circle-annotator-example](https://media.roboflow.com/supervision-annotator-examples/dot-annotator-example-purple.png){ align=center width="800" }
+    ![dot-annotator-example](https://media.roboflow.com/supervision-annotator-examples/dot-annotator-example-purple.png){ align=center width="800" }
 
     </div>
 
@@ -162,7 +187,28 @@
 
     <div class="result" markdown>
 
-    ![ellipse-annotator-example](https://media.roboflow.com/supervision-annotator-examples/halo-annotator-example-purple.png){ align=center width="800" }
+    ![halo-annotator-example](https://media.roboflow.com/supervision-annotator-examples/halo-annotator-example-purple.png){ align=center width="800" }
+
+    </div>
+
+=== "PercentageBar"
+
+    ```python
+    >>> import supervision as sv
+
+    >>> image = ...
+    >>> detections = sv.Detections(...)
+
+    >>> percentage_bar_annotator = sv.PercentageBarAnnotator()
+    >>> annotated_frame = percentage_bar_annotator.annotate(
+    ...     scene=image.copy(),
+    ...     detections=detections
+    ... )
+    ```
+
+    <div class="result" markdown>
+
+    ![percentage-bar-annotator-example](https://media.roboflow.com/supervision-annotator-examples/percentage-bar-annotator-example-purple.png){ align=center width="800" }
 
     </div>
 
@@ -327,13 +373,17 @@
 
     <div class="result" markdown>
 
-    ![trace-annotator-example](https://media.roboflow.com/supervision-annotator-examples/heat-map-annotator-example-purple.png){ align=center width="800" }
+    ![heat-map-annotator-example](https://media.roboflow.com/supervision-annotator-examples/heat-map-annotator-example-purple.png){ align=center width="800" }
 
     </div>
 
 ## BoundingBoxAnnotator
 
 :::supervision.annotators.core.BoundingBoxAnnotator
+
+## RoundBoxAnnotator
+
+:::supervision.annotators.core.RoundBoxAnnotator
 
 ## BoxCornerAnnotator
 
@@ -362,6 +412,10 @@
 ## HaloAnnotator
 
 :::supervision.annotators.core.HaloAnnotator
+
+## PercentageBarAnnotator
+
+:::supervision.annotators.core.PercentageBarAnnotator
 
 ## HeatMapAnnotator
 

@@ -3,7 +3,7 @@ from typing import Callable, Optional, Tuple
 
 import numpy as np
 
-from supervision.detection.core import Detections, validate_inference_callback
+from supervision.detection.core import Detections
 from supervision.detection.utils import move_boxes
 from supervision.utils.image import crop_image
 
@@ -60,7 +60,6 @@ class InferenceSlicer:
         self.iou_threshold = iou_threshold
         self.callback = callback
         self.thread_workers = thread_workers
-        validate_inference_callback(callback=callback)
 
     def __call__(self, image: np.ndarray) -> Detections:
         """

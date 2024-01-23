@@ -1,3 +1,7 @@
+---
+comments: true
+---
+
 ## plot_image
 
 :::supervision.utils.notebook.plot_image
