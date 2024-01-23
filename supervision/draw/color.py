@@ -26,17 +26,10 @@ DEFAULT_COLOR_PALETTE = [
     "530087",
     "CD3AFF",
     "FF97CA",
-    "FF39C9"
+    "FF39C9",
 ]
 
-ROBOFLOW_COLOR_PALETTE = [
-    "C28DFC",
-    "A351FB",
-    "8315F9",
-    "6706CE",
-    "5905B3",
-    "4D049A"
-]
+ROBOFLOW_COLOR_PALETTE = ["C28DFC", "A351FB", "8315F9", "6706CE", "5905B3", "4D049A"]
 
 
 def _validate_color_hex(color_hex: str):
