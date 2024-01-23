@@ -29,6 +29,26 @@ DEFAULT_COLOR_PALETTE = [
     "FF39C9",
 ]
 
+LEGACY_COLOR_PALETTE = [
+    "#A351FB",
+    "#E6194B",
+    "#3CB44B",
+    "#FFE119",
+    "#0082C8",
+    "#F58231",
+    "#911EB4",
+    "#46F0F0",
+    "#F032E6",
+    "#D2F53C",
+    "#FABEBE",
+    "#008080",
+    "#E6BEFF",
+    "#AA6E28",
+    "#FFFAC8",
+    "#800000",
+    "#AAFFC3",
+]
+
 ROBOFLOW_COLOR_PALETTE = ["C28DFC", "A351FB", "8315F9", "6706CE", "5905B3", "4D049A"]
 
 
@@ -45,10 +65,31 @@ class Color:
     """
     Represents a color in RGB format.
 
+    This class provides methods to work with colors, including creating colors from hex
+    codes, converting colors to hex strings, RGB tuples, and BGR tuples.
+
     Attributes:
-        r (int): Red channel.
-        g (int): Green channel.
-        b (int): Blue channel.
+        r (int): Red channel value (0-255).
+        g (int): Green channel value (0-255).
+        b (int): Blue channel value (0-255).
+
+    | Constant   | Hex Code   | RGB              |
+    |------------|------------|------------------|
+    | `WHITE`    | `#FFFFFF`  | `(255, 255, 255)`|
+    | `BLACK`    | `#000000`  | `(0, 0, 0)`      |
+    | `RED`      | `#FF0000`  | `(255, 0, 0)`    |
+    | `GREEN`    | `#00FF00`  | `(0, 255, 0)`    |
+    | `BLUE`     | `#0000FF`  | `(0, 0, 255)`    |
+    | `YELLOW`   | `#FFFF00`  | `(255, 255, 0)`  |
+    | `ROBOFLOW` | `#A351FB`  | `(163, 81, 251)` |
+
+    Example:
+        ```python
+        import supervision as sv
+
+        sv.Color.WHITE
+        # Color(r=255, g=255, b=255)
+        ```
     """
 
     r: int
@@ -67,9 +108,11 @@ class Color:
             Color: Instance representing the color.
 
         Example:
-            ```
-            >>> Color.from_hex('#ff00ff')
-            Color(r=255, g=0, b=255)
+            ```python
+            import supervision as sv
+
+            sv.Color.from_hex('#ff00ff')
+            # Color(r=255, g=0, b=255)
             ```
         """
         _validate_color_hex(color_hex)
@@ -87,9 +130,11 @@ class Color:
             str: The hexadecimal color string.
 
         Example:
-            ```
-            >>> Color(r=255, g=0, b=255).as_hex()
-            '#ff00ff'
+            ```python
+            import supervision as sv
+
+            sv.Color(r=255, g=255, b=0).as_hex()
+            # '#ffff00'
             ```
         """
         return f"#{self.r:02x}{self.g:02x}{self.b:02x}"
@@ -102,9 +147,11 @@ class Color:
             Tuple[int, int, int]: RGB tuple.
 
         Example:
-            ```
-            >>> color.as_rgb()
-            (255, 0, 255)
+            ```python
+            import supervision as sv
+
+            sv.Color(r=255, g=255, b=0).as_rgb()
+            # (255, 255, 0)
             ```
         """
         return self.r, self.g, self.b
@@ -117,9 +164,11 @@ class Color:
             Tuple[int, int, int]: BGR tuple.
 
         Example:
-            ```
-            >>> color.as_bgr()
-            (255, 0, 255)
+            ```python
+            import supervision as sv
+
+            sv.Color(r=255, g=255, b=0).as_bgr()
+            # (0, 255, 255)
             ```
         """
         return self.b, self.g, self.r
@@ -206,7 +255,7 @@ class ColorPalette:
 
     @classmethod
     @property
-    def DEFAULT(cls):
+    def DEFAULT(cls) ->ColorPalette:
         """
         Returns a default color palette.
 
@@ -214,16 +263,21 @@ class ColorPalette:
             ColorPalette: A ColorPalette instance with default colors.
 
         Example:
-            ```
-            ColorPalette.DEFAULT
+            ```python
+            import supervision as sv
+
+            sv.ColorPalette.DEFAULT
             # ColorPalette(colors=[Color(r=255, g=64, b=64), Color(r=255, g=161, b=160), ...])
             ```
+            
+        ![default-color-palette](https://media.roboflow.com/
+        supervision-annotator-examples/default-color-palette.png)
         """  # noqa: E501 // docs
         return ColorPalette.from_hex(color_hex_list=DEFAULT_COLOR_PALETTE)
 
     @classmethod
     @property
-    def ROBOFLOW(cls):
+    def ROBOFLOW(cls) -> ColorPalette:
         """
         Returns a Roboflow color palette.
 
@@ -231,12 +285,39 @@ class ColorPalette:
             ColorPalette: A ColorPalette instance with Roboflow colors.
 
         Example:
-            ```
-            ColorPalette.ROBOFLOW
+            ```python
+            import supervision as sv
+
+            sv.ColorPalette.ROBOFLOW
             # ColorPalette(colors=[Color(r=194, g=141, b=252), Color(r=163, g=81, b=251), ...])
             ```
+            
+        ![roboflow-color-palette](https://media.roboflow.com/
+        supervision-annotator-examples/roboflow-color-palette.png)
         """  # noqa: E501 // docs
         return ColorPalette.from_hex(color_hex_list=ROBOFLOW_COLOR_PALETTE)
+
+    @classmethod
+    @property
+    def LEGACY(cls) -> ColorPalette:
+        """
+        Returns a legacy color palette.
+
+        Returns:
+            ColorPalette: A ColorPalette instance with legacy colors.
+
+        Example:
+            ```python
+            import supervision as sv
+
+            sv.ColorPalette.LEGACY
+            # ColorPalette(colors=[Color(r=255, g=0, b=0), Color(r=0, g=255, b=0), ...])
+            ```
+
+        ![legacy-color-palette](https://media.roboflow.com/
+        supervision-annotator-examples/legacy-color-palette.png)
+        """
+        return ColorPalette.from_hex(color_hex_list=LEGACY_COLOR_PALETTE)
 
     @classmethod
     @deprecated(
@@ -252,7 +333,9 @@ class ColorPalette:
 
         Example:
             ```
-            ColorPalette.default()
+            import supervision as sv
+
+            sv.ColorPalette.default()
             # ColorPalette(colors=[Color(r=255, g=64, b=64), Color(r=255, g=161, b=160), ...])
             ```
         """  # noqa: E501 // docs
