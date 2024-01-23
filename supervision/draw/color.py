@@ -5,7 +5,7 @@ from typing import List, Tuple
 
 import matplotlib.pyplot as plt
 
-from supervision.utils.internal import deprecated, classproperty
+from supervision.utils.internal import classproperty, deprecated
 
 DEFAULT_COLOR_PALETTE = [
     "A351FB",
