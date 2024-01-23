@@ -124,32 +124,39 @@ class Color:
         """
         return self.b, self.g, self.r
 
+    @classmethod
     @property
-    def WHITE(self):
+    def WHITE(cls):
         return Color.from_hex("#FFFFFF")
 
+    @classmethod
     @property
-    def BLACK(self):
+    def BLACK(cls):
         return Color.from_hex("#000000")
 
+    @classmethod
     @property
-    def RED(self):
+    def RED(cls):
         return Color.from_hex("#FF0000")
 
+    @classmethod
     @property
-    def GREEN(self):
+    def GREEN(cls):
         return Color.from_hex("#00FF00")
 
+    @classmethod
     @property
-    def BLUE(self):
+    def BLUE(cls):
         return Color.from_hex("#0000FF")
 
+    @classmethod
     @property
-    def YELLOW(self):
+    def YELLOW(cls):
         return Color.from_hex("#FFFF00")
 
+    @classmethod
     @property
-    def ROBOFLOW(self):
+    def ROBOFLOW(cls):
         return Color.from_hex("#A351FB")
 
     @classmethod
@@ -197,8 +204,9 @@ class Color:
 class ColorPalette:
     colors: List[Color]
 
+    @classmethod
     @property
-    def DEFAULT(self):
+    def DEFAULT(cls):
         """
         Returns a default color palette.
 
@@ -213,8 +221,9 @@ class ColorPalette:
         """  # noqa: E501 // docs
         return ColorPalette.from_hex(color_hex_list=DEFAULT_COLOR_PALETTE)
 
+    @classmethod
     @property
-    def ROBOFLOW(self):
+    def ROBOFLOW(cls):
         """
         Returns a Roboflow color palette.
 
