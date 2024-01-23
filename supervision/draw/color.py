@@ -357,7 +357,7 @@ class ColorPalette:
             sv.ColorPalette.from_matplotlib('viridis', 5)
             # ColorPalette(colors=[Color(r=68, g=1, b=84), Color(r=59, g=82, b=139), ...])
             ```
-            
+
         ![visualized_color_palette](https://media.roboflow.com/
         supervision-annotator-examples/visualized_color_palette.png)
         """  # noqa: E501 // docs
