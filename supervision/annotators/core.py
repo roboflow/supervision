@@ -1508,7 +1508,7 @@ class PercentageBarAnnotator(BaseAnnotator):
         height: int = 16,
         width: int = 80,
         color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
-        border_color: Color = Color.black(),
+        border_color: Color = Color.WHITE,
         position: Position = Position.TOP_CENTER,
         color_lookup: ColorLookup = ColorLookup.CLASS,
         border_thickness: int = None,
