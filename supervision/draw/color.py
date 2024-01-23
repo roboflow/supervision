@@ -248,8 +248,7 @@ class Color:
 class ColorPalette:
     colors: List[Color]
 
-    @classmethod
-    @property
+    @classproperty
     def DEFAULT(cls) -> ColorPalette:
         """
         Returns a default color palette.
@@ -270,8 +269,7 @@ class ColorPalette:
         """  # noqa: E501 // docs
         return ColorPalette.from_hex(color_hex_list=DEFAULT_COLOR_PALETTE)
 
-    @classmethod
-    @property
+    @classproperty
     def ROBOFLOW(cls) -> ColorPalette:
         """
         Returns a Roboflow color palette.
@@ -292,26 +290,8 @@ class ColorPalette:
         """  # noqa: E501 // docs
         return ColorPalette.from_hex(color_hex_list=ROBOFLOW_COLOR_PALETTE)
 
-    @classmethod
-    @property
+    @classproperty
     def LEGACY(cls) -> ColorPalette:
-        """
-        Returns a legacy color palette.
-
-        Returns:
-            ColorPalette: A ColorPalette instance with legacy colors.
-
-        Example:
-            ```python
-            import supervision as sv
-
-            sv.ColorPalette.LEGACY
-            # ColorPalette(colors=[Color(r=255, g=0, b=0), Color(r=0, g=255, b=0), ...])
-            ```
-
-        ![legacy-color-palette](https://media.roboflow.com/
-        supervision-annotator-examples/legacy-color-palette.png)
-        """
         return ColorPalette.from_hex(color_hex_list=LEGACY_COLOR_PALETTE)
 
     @classmethod
@@ -377,6 +357,9 @@ class ColorPalette:
             sv.ColorPalette.from_matplotlib('viridis', 5)
             # ColorPalette(colors=[Color(r=68, g=1, b=84), Color(r=59, g=82, b=139), ...])
             ```
+            
+        ![visualized_color_palette](https://media.roboflow.com/
+        supervision-annotator-examples/visualized_color_palette.png)
         """  # noqa: E501 // docs
         mpl_palette = plt.get_cmap(palette_name, color_count)
         colors = [
@@ -408,12 +391,3 @@ class ColorPalette:
             raise ValueError("idx argument should not be negative")
         idx = idx % len(self.colors)
         return self.colors[idx]
-
-
-# Color.WHITE = Color.from_hex("#FFFFFF")
-# Color.BLACK = Color.from_hex("#000000")
-# Color.RED = Color.from_hex("#FF0000")
-# Color.GREEN = Color.from_hex("#00FF00")
-# Color.BLUE = Color.from_hex("#0000FF")
-# Color.YELLOW = Color.from_hex("#FFFF00")
-# Color.ROBOFLOW = Color.from_hex("#A351FB")
