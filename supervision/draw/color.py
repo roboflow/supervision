@@ -5,7 +5,7 @@ from typing import List, Tuple
 
 import matplotlib.pyplot as plt
 
-from supervision.utils.internal import deprecated
+from supervision.utils.internal import deprecated, classproperty
 
 DEFAULT_COLOR_PALETTE = [
     "A351FB",
@@ -175,38 +175,31 @@ class Color:
         """
         return self.b, self.g, self.r
 
-    @classmethod
-    @property
+    @classproperty
     def WHITE(cls):
         return Color.from_hex("#FFFFFF")
 
-    @classmethod
-    @property
+    @classproperty
     def BLACK(cls):
         return Color.from_hex("#000000")
 
-    @classmethod
-    @property
+    @classproperty
     def RED(cls):
         return Color.from_hex("#FF0000")
 
-    @classmethod
-    @property
+    @classproperty
     def GREEN(cls):
         return Color.from_hex("#00FF00")
 
-    @classmethod
-    @property
+    @classproperty
     def BLUE(cls):
         return Color.from_hex("#0000FF")
 
-    @classmethod
-    @property
+    @classproperty
     def YELLOW(cls):
         return Color.from_hex("#FFFF00")
 
-    @classmethod
-    @property
+    @classproperty
     def ROBOFLOW(cls):
         return Color.from_hex("#A351FB")
 
@@ -415,3 +408,12 @@ class ColorPalette:
             raise ValueError("idx argument should not be negative")
         idx = idx % len(self.colors)
         return self.colors[idx]
+
+
+# Color.WHITE = Color.from_hex("#FFFFFF")
+# Color.BLACK = Color.from_hex("#000000")
+# Color.RED = Color.from_hex("#FF0000")
+# Color.GREEN = Color.from_hex("#00FF00")
+# Color.BLUE = Color.from_hex("#0000FF")
+# Color.YELLOW = Color.from_hex("#FFFF00")
+# Color.ROBOFLOW = Color.from_hex("#A351FB")
