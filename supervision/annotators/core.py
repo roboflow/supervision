@@ -1512,6 +1512,10 @@ class PercentageBarAnnotator(BaseAnnotator):
         border_color: Color = Color.black(),
         position: Position = Position.TOP_CENTER,
         color_lookup: ColorLookup = ColorLookup.CLASS,
+        border_thickness: int = None,
+        custom_values: Optional[
+            Union[List[float], List[np.float32], np.ndarray]
+        ] = None,
     ):
         """
         Args:
@@ -1523,6 +1527,7 @@ class PercentageBarAnnotator(BaseAnnotator):
             position (Position): The anchor position of drawing the percentage bar.
             color_lookup (str): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
+            border_thickness (int): The thickness of the border lines.
         """
         self.height: int = height
         self.width: int = width
@@ -1530,6 +1535,9 @@ class PercentageBarAnnotator(BaseAnnotator):
         self.border_color: Color = border_color
         self.position: Position = position
         self.color_lookup: ColorLookup = color_lookup
+        self.border_thickness: int = border_thickness
+        self.__custom_value_check(custom_values)
+        self.custom_values = custom_values
 
     def annotate(
         self,
@@ -1567,41 +1575,26 @@ class PercentageBarAnnotator(BaseAnnotator):
         ![percentage-bar-example](https://media.roboflow.com/
         supervision-annotator-examples/percentage-bar-example.png)
         """
-        for detection_idx in range(len(detections)):
+        num_values = min(
+            len(detections),
+            len(self.custom_values) if self.custom_values else len(detections),
+        )
+
+        for detection_idx in range(num_values):
             cx, cy = detections.get_anchors_coordinates(anchor=self.position)[
                 detection_idx
             ].astype(int)
 
-            conf = detections.confidence[detection_idx]
-            border_thickness = int(0.15 * self.height)
+            value = (
+                self.custom_values[detection_idx]
+                if self.custom_values
+                else detections.confidence[detection_idx]
+            )
 
-            border_mapping = {
-                Position.TOP_LEFT: ((cx - self.width, cy - self.height), (cx, cy)),
-                Position.TOP_CENTER: (
-                    (cx - self.width // 2, cy),
-                    (cx + self.width // 2, cy - self.height),
-                ),
-                Position.TOP_RIGHT: ((cx, cy), (cx + self.width, cy - self.height)),
-                Position.CENTER_LEFT: (
-                    (cx - self.width, cy - self.height // 2),
-                    (cx, cy + self.height // 2),
-                ),
-                Position.CENTER: (
-                    (cx - self.width // 2, cy - self.height // 2),
-                    (cx + self.width // 2, cy + self.height // 2),
-                ),
-                Position.CENTER_RIGHT: (
-                    (cx, cy - self.height // 2),
-                    (cx + self.width, cy + self.height // 2),
-                ),
-                Position.BOTTOM_LEFT: ((cx - self.width, cy), (cx, cy + self.height)),
-                Position.BOTTOM_CENTER: (
-                    (cx - self.width // 2, cy),
-                    (cx + self.width // 2, cy + self.height),
-                ),
-                Position.BOTTOM_RIGHT: ((cx, cy), (cx + self.width, cy + self.height)),
-            }
+            if self.border_thickness is None:
+                self.border_thickness = int(0.15 * self.height)
 
+            border_mapping = self.__border_position(cx, cy)
             border_coords = border_mapping[self.position]
 
             color = resolve_color(
@@ -1617,7 +1610,7 @@ class PercentageBarAnnotator(BaseAnnotator):
                 pt1=border_coords[0],
                 pt2=(
                     border_coords[0][0]
-                    + int((border_coords[1][0] - border_coords[0][0]) * conf),
+                    + int((border_coords[1][0] - border_coords[0][0]) * value),
                     border_coords[1][1],
                 ),
                 color=color.as_bgr(),
@@ -1628,6 +1621,58 @@ class PercentageBarAnnotator(BaseAnnotator):
                 pt1=border_coords[0],
                 pt2=border_coords[1],
                 color=self.border_color.as_bgr(),
-                thickness=border_thickness,
+                thickness=self.border_thickness,
             )
         return scene
+
+    def __border_position(self, cx, cy):
+        border_mapping = {
+            Position.TOP_LEFT: ((cx - self.width, cy - self.height), (cx, cy)),
+            Position.TOP_CENTER: (
+                (cx - self.width // 2, cy),
+                (cx + self.width // 2, cy - self.height),
+            ),
+            Position.TOP_RIGHT: ((cx, cy), (cx + self.width, cy - self.height)),
+            Position.CENTER_LEFT: (
+                (cx - self.width, cy - self.height // 2),
+                (cx, cy + self.height // 2),
+            ),
+            Position.CENTER: (
+                (cx - self.width // 2, cy - self.height // 2),
+                (cx + self.width // 2, cy + self.height // 2),
+            ),
+            Position.CENTER_OF_MASS: (
+                (cx - self.width // 2, cy - self.height // 2),
+                (cx + self.width // 2, cy + self.height // 2),
+            ),
+            Position.CENTER_RIGHT: (
+                (cx, cy - self.height // 2),
+                (cx + self.width, cy + self.height // 2),
+            ),
+            Position.BOTTOM_LEFT: ((cx - self.width, cy), (cx, cy + self.height)),
+            Position.BOTTOM_CENTER: (
+                (cx - self.width // 2, cy),
+                (cx + self.width // 2, cy + self.height),
+            ),
+            Position.BOTTOM_RIGHT: ((cx, cy), (cx + self.width, cy + self.height)),
+        }
+        return border_mapping
+
+    def __custom_value_check(self, custom_values):
+        if custom_values is not None:
+            if isinstance(custom_values, np.ndarray):
+                if custom_values.ndim != 1:
+                    raise ValueError("custom_values array must be one-dimensional")
+                if custom_values.dtype != np.float32:
+                    raise ValueError(
+                        "custom_values array elements must be of type np.float32"
+                    )
+            else:  # assuming list
+                if not all(isinstance(x, (float, np.float32)) for x in custom_values):
+                    raise ValueError(
+                        "All elements in custom_values list must be of "
+                        "type float or np.float32"
+                    )
+
+            if not (np.min(custom_values) >= 0 and np.max(custom_values) <= 1):
+                raise ValueError("All values in custom_values must be between 0 and 1")
