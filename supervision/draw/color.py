@@ -6,23 +6,36 @@ from typing import List, Tuple
 from supervision.utils.internal import deprecated
 
 DEFAULT_COLOR_PALETTE = [
-    "#a351fb",
-    "#e6194b",
-    "#3cb44b",
-    "#ffe119",
-    "#0082c8",
-    "#f58231",
-    "#911eb4",
-    "#46f0f0",
-    "#f032e6",
-    "#d2f53c",
-    "#fabebe",
-    "#008080",
-    "#e6beff",
-    "#aa6e28",
-    "#fffac8",
-    "#800000",
-    "#aaffc3",
+    "A351FB",
+    "FF4040",
+    "FFA1A0",
+    "FF7633",
+    "FFB633",
+    "D1D435",
+    "4CFB12",
+    "94CF1A",
+    "40DE8A",
+    "1B9640",
+    "00D6C1",
+    "2E9CAA",
+    "00C4FF",
+    "364797",
+    "6675FF",
+    "0019EF",
+    "863AFF",
+    "530087",
+    "CD3AFF",
+    "FF97CA",
+    "FF39C9"
+]
+
+ROBOFLOW_COLOR_PALETTE = [
+    "C28DFC",
+    "A351FB",
+    "8315F9",
+    "6706CE",
+    "5905B3",
+    "4D049A"
 ]
 
 
@@ -119,24 +132,32 @@ class Color:
         return self.b, self.g, self.r
 
     @property
-    def WHITE(cls):
-        return cls.from_hex("#ffffff")
+    def WHITE(self):
+        return Color.from_hex("#FFFFFF")
 
     @property
-    def BLACK(cls):
-        return cls.from_hex("#000000")
+    def BLACK(self):
+        return Color.from_hex("#000000")
 
     @property
-    def RED(cls):
-        return cls.from_hex("#ff0000")
+    def RED(self):
+        return Color.from_hex("#FF0000")
 
     @property
-    def GREEN(cls):
-        return cls.from_hex("#00ff00")
+    def GREEN(self):
+        return Color.from_hex("#00FF00")
 
     @property
-    def BLUE(cls):
-        return cls.from_hex("#0000ff")
+    def BLUE(self):
+        return Color.from_hex("#0000FF")
+
+    @property
+    def YELLOW(self):
+        return Color.from_hex("#FFFF00")
+
+    @property
+    def ROBOFLOW(self):
+        return Color.from_hex("#A351FB")
 
     @classmethod
     @deprecated(
@@ -183,7 +204,43 @@ class Color:
 class ColorPalette:
     colors: List[Color]
 
+    @property
+    def DEFAULT(self):
+        """
+        Returns a default color palette.
+
+        Returns:
+            ColorPalette: A ColorPalette instance with default colors.
+
+        Example:
+            ```
+            ColorPalette.DEFAULT
+            # ColorPalette(colors=[Color(r=255, g=64, b=64), Color(r=255, g=161, b=160), ...])
+            ```
+        """  # noqa: E501 // docs
+        return ColorPalette.from_hex(color_hex_list=DEFAULT_COLOR_PALETTE)
+
+    @property
+    def ROBOFLOW(self):
+        """
+        Returns a Roboflow color palette.
+
+        Returns:
+            ColorPalette: A ColorPalette instance with Roboflow colors.
+
+        Example:
+            ```
+            ColorPalette.ROBOFLOW
+            # ColorPalette(colors=[Color(r=194, g=141, b=252), Color(r=163, g=81, b=251), ...])
+            ```
+        """  # noqa: E501 // docs
+        return ColorPalette.from_hex(color_hex_list=ROBOFLOW_COLOR_PALETTE)
+
     @classmethod
+    @deprecated(
+        "`ColorPalette.default()` is deprecated and will be removed in "
+        "`supervision-0.20.0`. Use `Color.DEFAULT` instead."
+    )
     def default(cls) -> ColorPalette:
         """
         Returns a default color palette.
@@ -193,10 +250,10 @@ class ColorPalette:
 
         Example:
             ```
-            >>> ColorPalette.default()
-            ColorPalette(colors=[Color(r=255, g=0, b=0), Color(r=0, g=255, b=0), ...])
+            ColorPalette.default()
+            # ColorPalette(colors=[Color(r=255, g=64, b=64), Color(r=255, g=161, b=160), ...])
             ```
-        """
+        """  # noqa: E501 // docs
         return ColorPalette.from_hex(color_hex_list=DEFAULT_COLOR_PALETTE)
 
     @classmethod
@@ -239,10 +296,3 @@ class ColorPalette:
             raise ValueError("idx argument should not be negative")
         idx = idx % len(self.colors)
         return self.colors[idx]
-
-
-Color.WHITE = Color.from_hex("#ffffff")
-Color.BLACK = Color.from_hex("#000000")
-Color.RED = Color.from_hex("#ff0000")
-Color.GREEN = Color.from_hex("#00ff00")
-Color.BLUE = Color.from_hex("#0000ff")
