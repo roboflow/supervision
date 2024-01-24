@@ -1,4 +1,4 @@
-from collections import deque, defaultdict
+from collections import defaultdict, deque
 from copy import deepcopy
 from typing import Optional
 
@@ -44,7 +44,7 @@ class DetectionsSmoother:
                 annotated_frame = bounding_box_annotator.annotate(frame.copy(), detections)
                 sink.write_frame(annotated_frame)
         ```
-    """ # noqa: E501 // docs
+    """  # noqa: E501 // docs
 
     def __init__(self, length: int = 5) -> None:
         """
