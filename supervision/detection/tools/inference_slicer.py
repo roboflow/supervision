@@ -77,20 +77,20 @@ class InferenceSlicer:
 
         Example:
             ```python
-            >>> import cv2
-            >>> import supervision as sv
-            >>> from ultralytics import YOLO
+            import cv2
+            import supervision as sv
+            from ultralytics import YOLO
 
-            >>> image = cv2.imread(SOURCE_IMAGE_PATH)
-            >>> model = YOLO(...)
+            image = cv2.imread(SOURCE_IMAGE_PATH)
+            model = YOLO(...)
 
-            >>> def callback(image_slice: np.ndarray) -> sv.Detections:
-            ...     result = model(image_slice)[0]
-            ...     return sv.Detections.from_ultralytics(result)
+            def callback(image_slice: np.ndarray) -> sv.Detections:
+                result = model(image_slice)[0]
+                return sv.Detections.from_ultralytics(result)
 
-            >>> slicer = sv.InferenceSlicer(callback = callback)
+            slicer = sv.InferenceSlicer(callback = callback)
 
-            >>> detections = slicer(image)
+            detections = slicer(image)
             ```
         """
         detections_list = []

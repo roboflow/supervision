@@ -63,23 +63,22 @@ class BoxAnnotator:
 
         Example:
             ```python
-            >>> import supervision as sv
+            import supervision as sv
 
-            >>> classes = ['person', ...]
-            >>> image = ...
-            >>> detections = sv.Detections(...)
+            classes = ['person', ...]
+            image = ...
+            detections = sv.Detections(...)
 
-            >>> box_annotator = sv.BoxAnnotator()
-            >>> labels = [
-            ...     f"{classes[class_id]} {confidence:0.2f}"
-            ...     for _, _, confidence, class_id, _
-            ...     in detections
-            ... ]
-            >>> annotated_frame = box_annotator.annotate(
-            ...     scene=image.copy(),
-            ...     detections=detections,
-            ...     labels=labels
-            ... )
+            box_annotator = sv.BoxAnnotator()
+            labels = [
+                f"{classes[class_id]} {confidence:0.2f}"
+                for _, _, confidence, class_id, _ in detections
+            ]
+            annotated_frame = box_annotator.annotate(
+                scene=image.copy(),
+                detections=detections,
+                labels=labels
+            )
             ```
         """
         font = cv2.FONT_HERSHEY_SIMPLEX
