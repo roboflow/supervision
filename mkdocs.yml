@@ -28,10 +28,8 @@ nav:
   - Home: index.md
   - How to:
       - Detect and Annotate: how_to/detect_and_annotate.md
-      - Process Video: how_to/process_video.md
       - Track Objects: how_to/track_objects.md
       - Filter Detections: how_to/filter_detections.md
-      - Evaluate Model: how_to/evaluate_model.md
   - API:
     - Classifications:
         - Core: classification/core.md
@@ -83,6 +81,7 @@ theme:
     code: Roboto Mono
   features:
     - content.code.copy
+    - content.code.annotate
 
 plugins:
   - mkdocstrings
@@ -94,6 +93,9 @@ markdown_extensions:
   - pymdownx.superfences
   - attr_list
   - md_in_html
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - pymdownx.tabbed:
       alternate_style: true
   - toc:

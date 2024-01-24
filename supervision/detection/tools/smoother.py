@@ -12,6 +12,12 @@ class DetectionsSmoother:
     A utility class for smoothing detections over multiple frames in video tracking.
     It maintains a history of detections for each track and provides smoothed
     predictions based on these histories.
+    
+    <video controls>
+        <source
+            src="https://media.roboflow.com/supervision-detection-smoothing.mp4"
+            type="video/mp4">
+    </video>
 
     !!! warning
 
@@ -23,6 +29,7 @@ class DetectionsSmoother:
     Example:
         ```python
         import supervision as sv
+        
         from ultralytics import YOLO
 
         video_info = sv.VideoInfo.from_video_path(video_path=<SOURCE_FILE_PATH>)
@@ -39,7 +46,7 @@ class DetectionsSmoother:
                 result = model(frame)[0]
                 detections = sv.Detections.from_ultralytics(result)
                 detections = tracker.update_with_detections(detections)
-                detections = tracker.update_with_detections(detections)
+                detections = smoother.update_with_detections(detections)
 
                 annotated_frame = bounding_box_annotator.annotate(frame.copy(), detections)
                 sink.write_frame(annotated_frame)
@@ -63,7 +70,10 @@ class DetectionsSmoother:
         """
 
         if detections.tracker_id is None:
-            print("DetectionsSmoother requires tracker_id to be set on Detections")
+            print(
+                "Smoothing skipped. DetectionsSmoother requires tracker_id. Refer to "
+                "https://supervision.roboflow.com/trackers for more information."
+            )
             return detections
 
         for detection_idx in range(len(detections)):
@@ -99,13 +109,6 @@ class DetectionsSmoother:
         return ret
 
     def get_smoothed_detections(self) -> Detections:
-        """
-        Returns a smoothed set of predictions based on the `length` most recent frames.
-
-        Returns:
-            detections (Detections): The smoothed detections.
-        """
-
         tracked_detections = []
         for track_id in self.tracks:
             track = self.get_track(track_id)
