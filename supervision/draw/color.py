@@ -62,7 +62,7 @@ class Color:
 
         Example:
             ```
-            >>> Color.from_hex('#ff00ff')
+            Color.from_hex('#ff00ff')
             Color(r=255, g=0, b=255)
             ```
         """
@@ -82,8 +82,8 @@ class Color:
 
         Example:
             ```
-            >>> Color(r=255, g=0, b=255).as_hex()
-            '#ff00ff'
+            Color(r=255, g=0, b=255).as_hex()
+            # '#ff00ff'
             ```
         """
         return f"#{self.r:02x}{self.g:02x}{self.b:02x}"
@@ -97,8 +97,8 @@ class Color:
 
         Example:
             ```
-            >>> color.as_rgb()
-            (255, 0, 255)
+            color.as_rgb()
+            # (255, 0, 255)
             ```
         """
         return self.r, self.g, self.b
@@ -112,8 +112,8 @@ class Color:
 
         Example:
             ```
-            >>> color.as_bgr()
-            (255, 0, 255)
+            color.as_bgr()
+            # (255, 0, 255)
             ```
         """
         return self.b, self.g, self.r
@@ -193,7 +193,7 @@ class ColorPalette:
 
         Example:
             ```
-            >>> ColorPalette.default()
+            ColorPalette.default()
             ColorPalette(colors=[Color(r=255, g=0, b=0), Color(r=0, g=255, b=0), ...])
             ```
         """
@@ -212,7 +212,7 @@ class ColorPalette:
 
         Example:
             ```
-            >>> ColorPalette.from_hex(['#ff0000', '#00ff00', '#0000ff'])
+            ColorPalette.from_hex(['#ff0000', '#00ff00', '#0000ff'])
             ColorPalette(colors=[Color(r=255, g=0, b=0), Color(r=0, g=255, b=0), ...])
             ```
         """
@@ -231,8 +231,10 @@ class ColorPalette:
 
         Example:
             ```
-            >>> color_palette.by_idx(1)
-            Color(r=0, g=255, b=0)
+            import supervision as sv
+
+            color_palette.by_idx(1)
+            # Color(r=0, g=255, b=0)
             ```
         """
         if idx < 0:

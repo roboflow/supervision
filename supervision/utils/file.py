@@ -34,14 +34,14 @@ def list_files_with_extensions(
 
     Examples:
         ```python
-        >>> import supervision as sv
+        import supervision as sv
 
-        >>> # List all files in the directory
-        >>> files = sv.list_files_with_extensions(directory='my_directory')
+        # List all files in the directory
+        files = sv.list_files_with_extensions(directory='my_directory')
 
-        >>> # List only files with '.txt' and '.md' extensions
-        >>> files = sv.list_files_with_extensions(
-        ...     directory='my_directory', extensions=['txt', 'md'])
+        # List only files with '.txt' and '.md' extensions
+        files = sv.list_files_with_extensions(
+            directory='my_directory', extensions=['txt', 'md'])
         ```
     """
 

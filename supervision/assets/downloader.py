@@ -54,9 +54,9 @@ def download_assets(asset_name: Union[VideoAssets, str]) -> str:
 
     Example:
         ```python
-        >>> from supervision.assets import download_assets, VideoAssets
+        from supervision.assets import download_assets, VideoAssets
 
-        >>> download_assets(VideoAssets.VEHICLES)
+        download_assets(VideoAssets.VEHICLES)
         "vehicles.mp4"
         ```
     """
