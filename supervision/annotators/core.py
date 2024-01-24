@@ -135,16 +135,16 @@ class OrientedBoxAnnotator(BaseAnnotator):
 
         Example:
             ```python
-            >>> import supervision as sv
+            import supervision as sv
 
-            >>> image = ...
-            >>> detections = sv.Detections(...)
+            image = ...
+            detections = sv.Detections(...)
 
-            >>> oriented_box_annotator = sv.OrientedBoxAnnotator()
-            >>> annotated_frame = oriented_box_annotator.annotate(
-            ...     scene=image.copy(),
-            ...     detections=detections
-            ... )
+            oriented_box_annotator = sv.OrientedBoxAnnotator()
+            annotated_frame = oriented_box_annotator.annotate(
+                scene=image.copy(),
+                detections=detections
+            )
             ```
 
         ![oriented-box-annotator-example](https://media.roboflow.com/
