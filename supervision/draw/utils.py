@@ -135,9 +135,11 @@ def draw_text(
 
     Examples:
         ```python
-        >>> scene = np.zeros((100, 100, 3), dtype=np.uint8)
-        >>> text_anchor = Point(x=50, y=50)
-        >>> scene = draw_text(scene=scene, text="Hello, world!",text_anchor=text_anchor)
+        import numpy as np
+
+        scene = np.zeros((100, 100, 3), dtype=np.uint8)
+        text_anchor = Point(x=50, y=50)
+        scene = draw_text(scene=scene, text="Hello, world!",text_anchor=text_anchor)
         ```
     """
     text_width, text_height = cv2.getTextSize(
