@@ -5,16 +5,16 @@ comments: true
 === "BoundingBox"
 
     ```python
-     import supervision as sv
+    import supervision as sv
 
-     image = ...
-     detections = sv.Detections(...)
+    image = ...
+    detections = sv.Detections(...)
 
-     bounding_box_annotator = sv.BoundingBoxAnnotator()
-     annotated_frame = bounding_box_annotator.annotate(
+    bounding_box_annotator = sv.BoundingBoxAnnotator()
+    annotated_frame = bounding_box_annotator.annotate(
         scene=image.copy(),
         detections=detections
-     )
+    )
     ```
 
     <div class="result" markdown>
@@ -26,16 +26,16 @@ comments: true
 === "RoundBox"
 
     ```python
-     import supervision as sv
+    import supervision as sv
 
-     image = ...
-     detections = sv.Detections(...)
+    image = ...
+    detections = sv.Detections(...)
 
-     round_box_annotator = sv.RoundBoxAnnotator()
-     annotated_frame = round_box_annotator.annotate(
-         scene=image.copy(),
-         detections=detections
-     )
+    round_box_annotator = sv.RoundBoxAnnotator()
+    annotated_frame = round_box_annotator.annotate(
+        scene=image.copy(),
+        detections=detections
+    )
     ```
 
     <div class="result" markdown>
@@ -54,9 +54,9 @@ comments: true
 
     corner_annotator = sv.BoxCornerAnnotator()
     annotated_frame = corner_annotator.annotate(
-         scene=image.copy(),
-         detections=detections
-     )
+        scene=image.copy(),
+        detections=detections
+    )
     ```
 
     <div class="result" markdown>
