@@ -152,9 +152,9 @@ class Detections:
 
         !!! Note
 
-            `from_ultralytics` is compatible with 
-            [detection](https://docs.ultralytics.com/tasks/detect/), 
-            [segmentation](https://docs.ultralytics.com/tasks/segment/), and 
+            `from_ultralytics` is compatible with
+            [detection](https://docs.ultralytics.com/tasks/detect/),
+            [segmentation](https://docs.ultralytics.com/tasks/segment/), and
             [OBB](https://docs.ultralytics.com/tasks/obb/) models.
 
         Args:
@@ -318,8 +318,8 @@ class Detections:
     @classmethod
     def from_mmdetection(cls, mmdet_results) -> Detections:
         """
-        Creates a Detections instance from a 
-        [mmdetection](https://github.com/open-mmlab/mmdetection) and 
+        Creates a Detections instance from a
+        [mmdetection](https://github.com/open-mmlab/mmdetection) and
         [mmyolo](https://github.com/open-mmlab/mmyolo) inference result.
 
         Args:
@@ -334,7 +334,7 @@ class Detections:
             import cv2
             import supervision as sv
             from mmdet.apis import init_detector, inference_detector
-            
+
             image = cv2.imread(<SOURCE_IMAGE_PATH>)
             model = init_detector(<CONFIG_PATH>, <WEIGHTS_PATH>, device=<DEVICE>)
 

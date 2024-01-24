@@ -166,7 +166,7 @@ def detections2boxes(detections: Detections) -> np.ndarray:
 class ByteTrack:
     """
     Initialize the ByteTrack object.
-    
+
     <video controls>
         <source src="https://media.roboflow.com/supervision/video-examples/how-to/track-objects/annotate-video-with-traces.mp4" type="video/mp4">
     </video>
