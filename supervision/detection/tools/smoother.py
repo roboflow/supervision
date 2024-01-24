@@ -12,7 +12,7 @@ class DetectionsSmoother:
     A utility class for smoothing detections over multiple frames in video tracking.
     It maintains a history of detections for each track and provides smoothed
     predictions based on these histories.
-    
+
     <video controls>
         <source
             src="https://media.roboflow.com/supervision-detection-smoothing.mp4"
@@ -29,7 +29,7 @@ class DetectionsSmoother:
     Example:
         ```python
         import supervision as sv
-        
+
         from ultralytics import YOLO
 
         video_info = sv.VideoInfo.from_video_path(video_path=<SOURCE_FILE_PATH>)
