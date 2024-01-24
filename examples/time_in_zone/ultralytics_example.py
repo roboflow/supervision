@@ -9,7 +9,7 @@ from tqdm import tqdm
 from ultralytics import YOLO
 
 
-COLORS = sv.ColorPalette.default()
+COLORS = sv.ColorPalette.DEFAULT
 
 
 def load_zones_config(file_path: str) -> List[np.ndarray]:
@@ -171,7 +171,7 @@ if __name__ == "__main__":
                     in zip(detections_in_zone['time'], detections_in_zone.tracker_id, detections_in_zone.class_id)
                 ]
                 annotated_frame = sv.draw_polygon(
-                    annotated_frame, zone.polygon, color=COLORS.by_idx(i + 1), thickness=thickness)
+                    annotated_frame, zone.polygon, color=COLORS.by_idx(i + 1), thickness=thickness * 2)
                 annotated_frame = trace_annotators[i].annotate(
                     annotated_frame, detections_in_zone)
                 annotated_frame = box_annotators[i].annotate(
