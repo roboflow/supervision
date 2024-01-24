@@ -194,16 +194,16 @@ comments: true
 === "PercentageBar"
 
     ```python
-    >>> import supervision as sv
+    import supervision as sv
 
-    >>> image = ...
-    >>> detections = sv.Detections(...)
+    image = ...
+    detections = sv.Detections(...)
 
-    >>> percentage_bar_annotator = sv.PercentageBarAnnotator()
-    >>> annotated_frame = percentage_bar_annotator.annotate(
-    ...     scene=image.copy(),
-    ...     detections=detections
-    ... )
+    percentage_bar_annotator = sv.PercentageBarAnnotator()
+    annotated_frame = percentage_bar_annotator.annotate(
+        scene=image.copy(),
+        detections=detections
+    )
     ```
 
     <div class="result" markdown>

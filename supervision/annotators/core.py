@@ -1562,16 +1562,16 @@ class PercentageBarAnnotator(BaseAnnotator):
 
         Example:
             ```python
-            >>> import supervision as sv
+            import supervision as sv
 
-            >>> image = ...
-            >>> detections = sv.Detections(...)
+            image = ...
+            detections = sv.Detections(...)
 
-            >>> percentage_bar_annotator = sv.BoundingBoxAnnotator()
-            >>> annotated_frame = percentage_bar_annotator.annotate(
-            ...     scene=image.copy(),
-            ...     detections=detections
-            ... )
+            percentage_bar_annotator = sv.BoundingBoxAnnotator()
+            annotated_frame = percentage_bar_annotator.annotate(
+                scene=image.copy(),
+                detections=detections
+            )
             ```
 
         ![percentage-bar-example](https://media.roboflow.com/

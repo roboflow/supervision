@@ -24,7 +24,7 @@ def get_polygon_center(polygon: np.ndarray) -> Point:
         ```python
         from supervision.geometry.utils import get_polygon_center
         import numpy as np
-        
+
         vertices = np.array([[0, 0], [0, 1], [1, 1], [1, 0]])
         get_center(vertices)
         Point(x=0.5, y=0.5)
