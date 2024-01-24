@@ -13,6 +13,7 @@ repos:
       - id: trailing-whitespace
         exclude: test/.*\.py
       - id: check-yaml
+        exclude: mkdocs.yml
       - id: check-docstring-first
       - id: check-executables-have-shebangs
       - id: check-toml
