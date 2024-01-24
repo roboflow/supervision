@@ -97,6 +97,9 @@ markdown_extensions:
       alternate_style: true
   - toc:
       permalink: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
 
 extra_javascript:
   - "https://widget.kapa.ai/kapa-widget.bundle.js"
