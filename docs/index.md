@@ -7,7 +7,7 @@ comments: true
     <a align="center" href="" target="_blank">
       <img
         width="850"
-        src="https://media.roboflow.com/open-source/supervision/roboflow-supervision-banner.png?ik-sdk-version=javascript-1.4.3&updatedAt=1674062891088"
+        src="https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png?updatedAt=1678995927529"
       >
     </a>
   </p>
@@ -16,6 +16,15 @@ comments: true
 ## 👋 Hello
 
 We write your reusable computer vision tools. Whether you need to load your dataset from your hard drive, draw detections on an image or video, or count how many detections are in a zone. You can count on us!
+
+<video controls>
+    <source
+        src="https://media.roboflow.com/traffic_analysis_result.mp4"
+        type="video/mp4"
+    >
+</video>
+
+## 🚀 Quickstart
 
 <div class="grid cards" markdown>
 

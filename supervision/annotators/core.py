@@ -146,9 +146,6 @@ class OrientedBoxAnnotator(BaseAnnotator):
             ...     detections=detections
             ... )
             ```
-
-        ![oriented-box-annotator-example](https://media.roboflow.com/
-        supervision-annotator-examples/oriented-box-annotator-example-purple.png)
         """  # noqa E501 // docs
 
         if detections.data is None or "xyxyxyxy" not in detections.data:
