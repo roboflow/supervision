@@ -15,7 +15,7 @@ class LineZone:
 
     !!! warning
 
-        LineZone utilizes the `tracker_id`. Read
+        LineZone uses the `tracker_id`. Read
         [here](https://supervision.roboflow.com/trackers/) to learn how to plug
         tracking into your inference pipeline.
 

@@ -98,7 +98,7 @@ class MaskAnnotator(BaseAnnotator):
 
     !!! warning
 
-        This annotator utilizes the `sv.Detections.mask`.
+        This annotator uses `sv.Detections.mask`.
     """
 
     def __init__(
@@ -181,7 +181,7 @@ class PolygonAnnotator(BaseAnnotator):
 
     !!! warning
 
-        This annotator utilizes the `sv.Detections.mask`.
+        This annotator uses `sv.Detections.mask`.
     """
 
     def __init__(
@@ -349,7 +349,7 @@ class HaloAnnotator(BaseAnnotator):
 
     !!! warning
 
-        This annotator utilizes the `sv.Detections.mask`.
+        This annotator uses `sv.Detections.mask`.
     """
 
     def __init__(
@@ -1020,7 +1020,7 @@ class TraceAnnotator:
 
     !!! warning
 
-        This annotator utilizes the `sv.Detections.tracker_id`. Read
+        This annotator uses the `sv.Detections.tracker_id`. Read
         [here](https://supervision.roboflow.com/trackers/) to learn how to plug
         tracking into your inference pipeline.
     """
