@@ -130,7 +130,7 @@ class Detections:
             import torch
             import supervision as sv
 
-            image = cv2.imread(SOURCE_IMAGE_PATH)
+            image = cv2.imread(<SOURCE_IMAGE_PATH>)
             model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
             result = model(image)
             detections = sv.Detections.from_yolov5(result)
@@ -150,6 +150,13 @@ class Detections:
         Creates a Detections instance from a
             [YOLOv8](https://github.com/ultralytics/ultralytics) inference result.
 
+        !!! Note
+
+            `from_ultralytics` is compatible with
+            [detection](https://docs.ultralytics.com/tasks/detect/),
+            [segmentation](https://docs.ultralytics.com/tasks/segment/), and
+            [OBB](https://docs.ultralytics.com/tasks/obb/) models.
+
         Args:
             ultralytics_results (ultralytics.yolo.engine.results.Results):
                 The output Results instance from YOLOv8
@@ -163,12 +170,24 @@ class Detections:
             import supervision as sv
             from ultralytics import YOLO
 
-            image = cv2.imread()
+            image = cv2.imread(<SOURCE_IMAGE_PATH>)
             model = YOLO('yolov8s.pt')
+
             result = model(image)[0]
             detections = sv.Detections.from_ultralytics(result)
             ```
-        """
+        """  # noqa: E501 // docs
+
+        if ultralytics_results.obb is not None:
+            return cls(
+                xyxy=ultralytics_results.obb.xyxy.cpu().numpy(),
+                data={"xyxyxyxy": ultralytics_results.obb.xyxyxyxy.cpu().numpy()},
+                confidence=ultralytics_results.obb.conf.cpu().numpy(),
+                class_id=ultralytics_results.obb.cls.cpu().numpy().astype(int),
+                tracker_id=ultralytics_results.obb.id.int().cpu().numpy()
+                if ultralytics_results.obb.id is not None
+                else None,
+            )
 
         return cls(
             xyxy=ultralytics_results.boxes.xyxy.cpu().numpy(),
@@ -202,8 +221,9 @@ class Detections:
             from super_gradients.training import models
             import supervision as sv
 
-            image = cv2.imread(SOURCE_IMAGE_PATH)
+            image = cv2.imread(<SOURCE_IMAGE_PATH>)
             model = models.get('yolo_nas_l', pretrained_weights="coco")
+
             result = list(model.predict(image, conf=0.35))[0]
             detections = sv.Detections.from_yolo_nas(result)
             ```
@@ -298,9 +318,9 @@ class Detections:
     @classmethod
     def from_mmdetection(cls, mmdet_results) -> Detections:
         """
-        Creates a Detections instance from
-        a [mmdetection](https://github.com/open-mmlab/mmdetection) inference result.
-        Also supported for [mmyolo](https://github.com/open-mmlab/mmyolo)
+        Creates a Detections instance from a
+        [mmdetection](https://github.com/open-mmlab/mmdetection) and
+        [mmyolo](https://github.com/open-mmlab/mmyolo) inference result.
 
         Args:
             mmdet_results (mmdet.structures.DetDataSample):
@@ -313,14 +333,15 @@ class Detections:
             ```python
             import cv2
             import supervision as sv
-            from mmdet.apis import DetInferencer
+            from mmdet.apis import init_detector, inference_detector
 
-            inferencer = DetInferencer(model_name, checkpoint, device)
-            mmdet_result = inferencer(SOURCE_IMAGE_PATH, out_dir='./output',
-                                      return_datasamples=True)["predictions"][0]
-            detections = sv.Detections.from_mmdetection(mmdet_result)
+            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            model = init_detector(<CONFIG_PATH>, <WEIGHTS_PATH>, device=<DEVICE>)
+
+            result = inference_detector(model, image)
+            detections = sv.Detections.from_mmdetection(result)
             ```
-        """
+        """  # noqa: E501 // docs
 
         return cls(
             xyxy=mmdet_results.pred_instances.bboxes.cpu().numpy(),
@@ -361,15 +382,17 @@ class Detections:
         Example:
             ```python
             import cv2
+            import supervision as sv
             from detectron2.engine import DefaultPredictor
             from detectron2.config import get_cfg
-            import supervision as sv
 
-            image = cv2.imread(SOURCE_IMAGE_PATH)
+
+            image = cv2.imread(<SOURCE_IMAGE_PATH>)
             cfg = get_cfg()
-            cfg.merge_from_file("path/to/config.yaml")
-            cfg.MODEL.WEIGHTS = "path/to/model_weights.pth"
+            cfg.merge_from_file(<CONFIG_PATH>)
+            cfg.MODEL.WEIGHTS = <WEIGHTS_PATH>
             predictor = DefaultPredictor(cfg)
+
             result = predictor(image)
             detections = sv.Detections.from_detectron2(result)
             ```
@@ -412,8 +435,9 @@ class Detections:
             import supervision as sv
             from inference.models.utils import get_roboflow_model
 
-            image = cv2.imread()
+            image = cv2.imread(<SOURCE_IMAGE_PATH>)
             model = get_roboflow_model(model_id="yolov8s-640")
+
             result = model.infer(image)[0]
             detections = sv.Detections.from_inference(result)
             ```
@@ -461,8 +485,9 @@ class Detections:
             import supervision as sv
             from inference.models.utils import get_roboflow_model
 
-            image = cv2.imread()
+            image = cv2.imread(<SOURCE_IMAGE_PATH>)
             model = get_roboflow_model(model_id="yolov8s-640")
+
             result = model.infer(image)[0]
             detections = sv.Detections.from_roboflow(result)
             ```
@@ -877,12 +902,11 @@ class Detections:
         Example:
             ```python
             import cv2
-            from ultralytics import YOLO
             import supervision as sv
+            from ultralytics import YOLO
 
+            image = cv2.imread(<SOURCE_IMAGE_PATH>)
             model = YOLO('yolov8s.pt')
-
-            image = cv2.imread(SOURCE_IMAGE_PATH)
 
             result = model(image)[0]
             detections = sv.Detections.from_ultralytics(result)
@@ -939,7 +963,8 @@ class Detections:
 
         Args:
             threshold (float, optional): The intersection-over-union threshold
-                to use for non-maximum suppression. Defaults to 0.5.
+                to use for non-maximum suppression. I'm the lower the value the more
+                restrictive the NMS becomes. Defaults to 0.5.
             class_agnostic (bool, optional): Whether to perform class-agnostic
                 non-maximum suppression. If True, the class_id of each detection
                 will be ignored. Defaults to False.

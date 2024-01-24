@@ -390,6 +390,10 @@ status: new
 
 :::supervision.annotators.core.BoxCornerAnnotator
 
+## OrientedBoxAnnotator
+
+:::supervision.annotators.core.OrientedBoxAnnotator
+
 ## ColorAnnotator
 
 :::supervision.annotators.core.ColorAnnotator
