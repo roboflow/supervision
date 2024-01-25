@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import numpy as np
 
@@ -11,7 +11,7 @@ from supervision.tracker.byte_tracker.kalman_filter import KalmanFilter
 class STrack(BaseTrack):
     shared_kalman = KalmanFilter()
 
-    def __init__(self, tlwh, score, class_ids):
+    def __init__(self, tlwh, score, class_ids, mask: Optional[np.array] = None):
         # wait activate
         self._tlwh = np.asarray(tlwh, dtype=np.float32)
         self.kalman_filter = None
@@ -21,6 +21,7 @@ class STrack(BaseTrack):
         self.score = score
         self.class_ids = class_ids
         self.tracklet_len = 0
+        self.mask = mask
 
     def predict(self):
         mean_state = self.mean.copy()
@@ -74,6 +75,7 @@ class STrack(BaseTrack):
         if new_id:
             self.track_id = self.next_id()
         self.score = new_track.score
+        self.mask = new_track.mask
 
     def update(self, new_track, frame_id):
         """
@@ -94,6 +96,8 @@ class STrack(BaseTrack):
         self.is_activated = True
 
         self.score = new_track.score
+
+        self.mask = new_track.mask
 
     @property
     def tlwh(self):
@@ -239,9 +243,10 @@ class ByteTrack:
         """
 
         tracks = self.update_with_tensors(
-            tensors=detections2boxes(detections=detections)
+            tensors=detections2boxes(detections=detections), 
+            masks=detections.mask
         )
-        detections = Detections.empty()
+        detections = detections.empty() # In this case is possible to handle custom Detection child class
         if len(tracks) > 0:
             detections.xyxy = np.array(
                 [track.tlbr for track in tracks], dtype=np.float32
@@ -255,6 +260,9 @@ class ByteTrack:
             detections.confidence = np.array(
                 [t.score for t in tracks], dtype=np.float32
             )
+            # check the masks are not None, if not stuck them into an array of mask
+            masks = np.array([t.mask for t in tracks if t.mask is not None], dtype=bool)
+            detections.mask = masks if len(masks) > 0 else None
         else:
             detections.tracker_id = np.array([], dtype=int)
 
@@ -281,6 +289,7 @@ class ByteTrack:
 
         Parameters:
             tensors: The new tensors to update with.
+            masks: The new masks associated to new tensors
 
         Returns:
             List[STrack]: Updated tracks.
@@ -302,6 +311,12 @@ class ByteTrack:
         inds_second = np.logical_and(inds_low, inds_high)
         dets_second = bboxes[inds_second]
         dets = bboxes[remain_inds]
+        if masks is not None:
+            masks_keep = masks[remain_inds]
+            masks_second = masks[inds_second]
+        else:
+            masks_keep = np.array([None] * len(remain_inds))
+            masks_second = np.array([None] * len(inds_second))
         scores_keep = scores[remain_inds]
         scores_second = scores[inds_second]
 
@@ -311,8 +326,10 @@ class ByteTrack:
         if len(dets) > 0:
             """Detections"""
             detections = [
-                STrack(STrack.tlbr_to_tlwh(tlbr), s, c)
-                for (tlbr, s, c) in zip(dets, scores_keep, class_ids_keep)
+                STrack(STrack.tlbr_to_tlwh(tlbr), s, c, m)
+                for (tlbr, s, c, m) in zip(
+                    dets, scores_keep, class_ids_keep, masks_keep
+                )
             ]
         else:
             detections = []
@@ -353,8 +370,10 @@ class ByteTrack:
         if len(dets_second) > 0:
             """Detections"""
             detections_second = [
-                STrack(STrack.tlbr_to_tlwh(tlbr), s, c)
-                for (tlbr, s, c) in zip(dets_second, scores_second, class_ids_second)
+                STrack(STrack.tlbr_to_tlwh(tlbr), s, c, m)
+                for (tlbr, s, c, m) in zip(
+                    dets_second, scores_second, class_ids_second, masks_second
+                )
             ]
         else:
             detections_second = []
