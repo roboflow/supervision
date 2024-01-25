@@ -1,0 +1,3 @@
+supervision==0.18.0rc4
+tqdm==4.66.1
+ultralytics==8.0.237
