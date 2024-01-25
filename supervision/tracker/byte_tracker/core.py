@@ -243,10 +243,11 @@ class ByteTrack:
         """
 
         tracks = self.update_with_tensors(
-            tensors=detections2boxes(detections=detections), 
-            masks=detections.mask
+            tensors=detections2boxes(detections=detections), masks=detections.mask
         )
-        detections = detections.empty() # In this case is possible to handle custom Detection child class
+        detections = (
+            detections.empty()
+        )  # In this case is possible to handle custom Detection child class
         if len(tracks) > 0:
             detections.xyxy = np.array(
                 [track.tlbr for track in tracks], dtype=np.float32
