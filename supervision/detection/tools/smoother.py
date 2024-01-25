@@ -59,7 +59,7 @@ class DetectionsSmoother:
             length (int): The maximum number of frames to consider for smoothing
                 detections. Defaults to 5.
         """
-        self.tracks = defaultdict(lambda: deque(maxlen=length))
+        self.tracks = defaultdict(lambda: deque(maxlen=length + 1))
 
     def update_with_detections(self, detections: Detections) -> Detections:
         """
@@ -77,28 +77,26 @@ class DetectionsSmoother:
             return detections
 
         for detection_idx in range(len(detections)):
-            tracker_id = detections.tracker_id[detection_idx]
-            if tracker_id is None:
+            track_id = detections.tracker_id[detection_idx]
+            if track_id is None:
                 continue
 
-            self.tracks[tracker_id].append(detections[detection_idx])
-
-        for track_id in self.tracks.keys():
-            if track_id not in detections.tracker_id:
-                self.tracks[track_id].append(None)
+            self.tracks[track_id].append(detections[detection_idx])
 
         for track_id in list(self.tracks.keys()):
-            if all([d is None for d in self.tracks[track_id]]):
+            self.tracks[track_id].popleft()
+
+            if len(self.tracks[track_id]) == 0:
                 del self.tracks[track_id]
 
         return self.get_smoothed_detections()
 
     def get_track(self, track_id: int) -> Optional[Detections]:
-        track = self.tracks.get(track_id, None)
-        if track is None:
+        if track_id not in self.tracks:
             return None
 
-        track = [d for d in track if d is not None]
+        track = self.tracks[track_id]
+
         if len(track) == 0:
             return None
 
