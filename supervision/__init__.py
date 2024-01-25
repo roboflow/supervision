@@ -18,8 +18,11 @@ from supervision.annotators.core import (
     HeatMapAnnotator,
     LabelAnnotator,
     MaskAnnotator,
+    OrientedBoxAnnotator,
+    PercentageBarAnnotator,
     PixelateAnnotator,
     PolygonAnnotator,
+    RoundBoxAnnotator,
     TraceAnnotator,
     TriangleAnnotator,
 )
@@ -35,6 +38,7 @@ from supervision.detection.core import Detections
 from supervision.detection.line_counter import LineZone, LineZoneAnnotator
 from supervision.detection.tools.inference_slicer import InferenceSlicer
 from supervision.detection.tools.polygon_zone import PolygonZone, PolygonZoneAnnotator
+from supervision.detection.tools.smoother import DetectionsSmoother
 from supervision.detection.utils import (
     box_iou_batch,
     calculate_masks_centroids,

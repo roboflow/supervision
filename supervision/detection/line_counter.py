@@ -1,11 +1,11 @@
-from typing import Dict, Optional, Tuple
+from typing import Dict, Iterable, Optional, Tuple
 
 import cv2
 import numpy as np
 
 from supervision.detection.core import Detections
 from supervision.draw.color import Color
-from supervision.geometry.core import Point, Rect, Vector
+from supervision.geometry.core import Point, Position, Rect, Vector
 
 
 class LineZone:
@@ -15,7 +15,7 @@ class LineZone:
 
     !!! warning
 
-        LineZone utilizes the `tracker_id`. Read
+        LineZone uses the `tracker_id`. Read
         [here](https://supervision.roboflow.com/trackers/) to learn how to plug
         tracking into your inference pipeline.
 
@@ -26,16 +26,71 @@ class LineZone:
             to outside.
     """
 
-    def __init__(self, start: Point, end: Point):
+    def __init__(
+        self,
+        start: Point,
+        end: Point,
+        triggering_anchors: Iterable[Position] = (
+            Position.TOP_LEFT,
+            Position.TOP_RIGHT,
+            Position.BOTTOM_LEFT,
+            Position.BOTTOM_RIGHT,
+        ),
+    ):
         """
         Args:
             start (Point): The starting point of the line.
             end (Point): The ending point of the line.
+            triggering_anchors (List[sv.Position]): A list of positions
+                specifying which anchors of the detections bounding box
+                to consider when deciding on whether the detection
+                has passed the line counter or not. By default, this
+                contains the four corners of the detection's bounding box
         """
         self.vector = Vector(start=start, end=end)
+        self.limits = self.calculate_region_of_interest_limits(vector=self.vector)
         self.tracker_state: Dict[str, bool] = {}
         self.in_count: int = 0
         self.out_count: int = 0
+        self.triggering_anchors = triggering_anchors
+
+    @staticmethod
+    def calculate_region_of_interest_limits(vector: Vector) -> Tuple[Vector, Vector]:
+        magnitude = vector.magnitude
+
+        if magnitude == 0:
+            raise ValueError("The magnitude of the vector cannot be zero.")
+
+        delta_x = vector.end.x - vector.start.x
+        delta_y = vector.end.y - vector.start.y
+
+        unit_vector_x = delta_x / magnitude
+        unit_vector_y = delta_y / magnitude
+
+        perpendicular_vector_x = -unit_vector_y
+        perpendicular_vector_y = unit_vector_x
+
+        start_region_limit = Vector(
+            start=vector.start,
+            end=Point(
+                x=vector.start.x + perpendicular_vector_x,
+                y=vector.start.y + perpendicular_vector_y,
+            ),
+        )
+        end_region_limit = Vector(
+            start=vector.end,
+            end=Point(
+                x=vector.end.x - perpendicular_vector_x,
+                y=vector.end.y - perpendicular_vector_y,
+            ),
+        )
+        return start_region_limit, end_region_limit
+
+    @staticmethod
+    def is_point_in_limits(point: Point, limits: Tuple[Vector, Vector]) -> bool:
+        cross_product_1 = limits[0].cross_product(point)
+        cross_product_2 = limits[1].cross_product(point)
+        return (cross_product_1 > 0) == (cross_product_2 > 0)
 
     def trigger(self, detections: Detections) -> Tuple[np.ndarray, np.ndarray]:
         """
@@ -54,18 +109,35 @@ class LineZone:
         crossed_in = np.full(len(detections), False)
         crossed_out = np.full(len(detections), False)
 
-        for i, (xyxy, _, confidence, class_id, tracker_id) in enumerate(detections):
+        if len(detections) == 0:
+            return crossed_in, crossed_out
+
+        all_anchors = np.array(
+            [
+                detections.get_anchors_coordinates(anchor)
+                for anchor in self.triggering_anchors
+            ]
+        )
+
+        for i, tracker_id in enumerate(detections.tracker_id):
             if tracker_id is None:
                 continue
 
-            x1, y1, x2, y2 = xyxy
-            anchors = [
-                Point(x=x1, y=y1),
-                Point(x=x1, y=y2),
-                Point(x=x2, y=y1),
-                Point(x=x2, y=y2),
+            box_anchors = [Point(x=x, y=y) for x, y in all_anchors[:, i, :]]
+
+            in_limits = all(
+                [
+                    self.is_point_in_limits(point=anchor, limits=self.limits)
+                    for anchor in box_anchors
+                ]
+            )
+
+            if not in_limits:
+                continue
+
+            triggers = [
+                self.vector.cross_product(point=anchor) > 0 for anchor in box_anchors
             ]
-            triggers = [self.vector.is_in(point=anchor) for anchor in anchors]
 
             if len(set(triggers)) == 2:
                 continue
@@ -94,9 +166,9 @@ class LineZoneAnnotator:
     def __init__(
         self,
         thickness: float = 2,
-        color: Color = Color.white(),
+        color: Color = Color.WHITE,
         text_thickness: float = 2,
-        text_color: Color = Color.black(),
+        text_color: Color = Color.BLACK,
         text_scale: float = 0.5,
         text_offset: float = 1.5,
         text_padding: int = 10,

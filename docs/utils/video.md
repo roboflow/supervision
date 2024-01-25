@@ -1,3 +1,7 @@
+---
+comments: true
+---
+
 ## VideoInfo
 
 :::supervision.utils.video.VideoInfo

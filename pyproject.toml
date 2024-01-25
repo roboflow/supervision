@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "supervision"
-version = "0.17.1"
+version = "0.18.0"
 description = "A set of easy-to-use utils that will come in handy in any Computer Vision project"
 authors = ["Piotr Skalski <piotr.skalski92@gmail.com>"]
 maintainers = ["Piotr Skalski <piotr.skalski92@gmail.com>"]
@@ -33,14 +33,18 @@ classifiers=[
 [tool.poetry.dependencies]
 python = "^3.8"
 numpy = ">=1.21.2"
-scipy =  ">=1.9.0"
-matplotlib = ">=3.5.0"
+scipy = [
+    { version = "1.10.0", python = "<3.9" },
+    { version = "^1.10.0", python = ">=3.9" }
+]
+matplotlib = ">=3.6.0"
 pyyaml = ">=5.3"
-pillow = ">=9.4"
-opencv-python = { version = ">=4.5.5.64,<=4.8.1.78", optional = true }
-opencv-python-headless = ">=4.5.5.64,<=4.8.1.78"
+opencv-python = { version = ">=4.5.5.64", optional = true }
+opencv-python-headless = ">=4.5.5.64"
 requests = { version = ">=2.26.0,<=2.31.0", optional = true }
 tqdm = { version = ">=4.62.3,<=4.66.1", optional = true }
+defusedxml = "^0.7.1"
+
 
 
 [tool.poetry.extras]
@@ -53,32 +57,17 @@ pytest = "^7.2.2"
 wheel = ">=0.40,<0.43"
 notebook = ">=6.5.3,<8.0.0"
 build = ">=0.10,<1.1"
-ruff = ">=0.0.280,<0.1.8"
+ruff = ">=0.1.0"
 isort = "^5.12.0"
-black = "^23.7.0"
 mypy = "^1.4.1"
 pre-commit = "^3.3.3"
-flake8 = { version = "*", python = ">=3.8.1" }
+tox = "^4.11.4"
 
 
 [tool.poetry.group.docs.dependencies]
-mkdocs-material = "^9.1.4"
+mkdocs-material = {extras = ["imaging"], version = "^9.5.5"}
 mkdocstrings = {extras = ["python"], version = ">=0.20,<0.25"}
 
-[tool.flake8]
-exclude = ".venv"
-max-complexity = 10
-max-line-length = 88
-extend-ignore = """
-    W503,
-    E203,
-    E701,
-    C901,
-"""
-per-file-ignores = """
-    __init__.py: F401
-    supervision/assets/list.py: E501
-"""
 
 [tool.isort]
 line_length = 88
@@ -86,7 +75,7 @@ profile = "black"
 
 [tool.bandit]
 target = ["test", "supervision"]
-tests = ["B201", "B301"]
+tests = ["B201", "B301", "B318", "B314", "B303", "B413", "B412", "B410"]
 
 [tool.autoflake]
 check = true
@@ -148,11 +137,11 @@ exclude = [
     "yarn-error.log",
     "yarn.lock",
     "docs",
-    "supervision/assets/list.py"
 ]
 
 # Same as Black.
 line-length = 88
+indent-width = 4
 
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
@@ -169,10 +158,26 @@ convention = "google"
 "__init__.py" = ["E402","F401"]
 "supervision/assets/list.py" = ["E501"]
 
+[tool.ruff.lint.mccabe]
+# Flag errors (`C901`) whenever the complexity level exceeds 5.
+max-complexity = 20
+
 
 [tool.ruff.pylint]
 max-args = 20
 
+[tool.ruff.format]
+# Like Black, use double quotes for strings.
+quote-style = "double"
+
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+
+# Like Black, respect magic trailing commas.
+skip-magic-trailing-comma = false
+
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"
 
 [tool.setuptools]
 include-package-data = false

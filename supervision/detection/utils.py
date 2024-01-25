@@ -1,7 +1,10 @@
-from typing import List, Optional, Tuple
+from itertools import chain
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
+
+from supervision.config import CLASS_NAME_DATA_FIELD
 
 MIN_POLYGON_POINT_COUNT = 3
 
@@ -299,7 +302,6 @@ def extract_ultralytics_masks(yolov8_results) -> Optional[np.ndarray]:
     orig_shape = yolov8_results.orig_shape
     inference_shape = tuple(yolov8_results.masks.data.shape[1:])
 
-    gain = 0
     pad = (0, 0)
 
     if inference_shape != orig_shape:
@@ -331,13 +333,28 @@ def extract_ultralytics_masks(yolov8_results) -> Optional[np.ndarray]:
 
 def process_roboflow_result(
     roboflow_result: dict,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, Optional[np.ndarray], np.ndarray]:
+) -> Tuple[
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    Optional[np.ndarray],
+    Optional[np.ndarray],
+    Dict[str, List[np.ndarray]],
+]:
     if not roboflow_result["predictions"]:
-        return np.empty((0, 4)), np.empty(0), np.empty(0), None, None
+        return (
+            np.empty((0, 4)),
+            np.empty(0),
+            np.empty(0),
+            None,
+            None,
+            {CLASS_NAME_DATA_FIELD: np.empty(0)},
+        )
 
     xyxy = []
     confidence = []
     class_id = []
+    class_name = []
     masks = []
     tracker_ids = []
 
@@ -357,6 +374,7 @@ def process_roboflow_result(
         if "points" not in prediction:
             xyxy.append([x_min, y_min, x_max, y_max])
             class_id.append(prediction["class_id"])
+            class_name.append(prediction["class"])
             confidence.append(prediction["confidence"])
             if "tracker_id" in prediction:
                 tracker_ids.append(prediction["tracker_id"])
@@ -367,6 +385,7 @@ def process_roboflow_result(
             mask = polygon_to_mask(polygon, resolution_wh=(image_width, image_height))
             xyxy.append([x_min, y_min, x_max, y_max])
             class_id.append(prediction["class_id"])
+            class_name.append(prediction["class"])
             confidence.append(prediction["confidence"])
             masks.append(mask)
             if "tracker_id" in prediction:
@@ -375,10 +394,12 @@ def process_roboflow_result(
     xyxy = np.array(xyxy) if len(xyxy) > 0 else np.empty((0, 4))
     confidence = np.array(confidence) if len(confidence) > 0 else np.empty(0)
     class_id = np.array(class_id).astype(int) if len(class_id) > 0 else np.empty(0)
+    class_name = np.array(class_name) if len(class_name) > 0 else np.empty(0)
     masks = np.array(masks, dtype=bool) if len(masks) > 0 else None
     tracker_id = np.array(tracker_ids).astype(int) if len(tracker_ids) > 0 else None
+    data = {CLASS_NAME_DATA_FIELD: class_name}
 
-    return xyxy, confidence, class_id, masks, tracker_id
+    return xyxy, confidence, class_id, masks, tracker_id, data
 
 
 def move_boxes(xyxy: np.ndarray, offset: np.ndarray) -> np.ndarray:
@@ -394,16 +415,17 @@ def move_boxes(xyxy: np.ndarray, offset: np.ndarray) -> np.ndarray:
 
     Example:
         ```python
-        >>> import numpy as np
-        >>> import supervision as sv
+        import numpy as np
+        import supervision as sv
 
-        >>> boxes = np.array([[10, 10, 20, 20], [30, 30, 40, 40]])
-        >>> offset = np.array([5, 5])
-        >>> sv.move_boxes(boxes, offset)
-        ... array([
-        ...     [15, 15, 25, 25],
-        ...     [35, 35, 45, 45]
-        ... ])
+        boxes = np.array([[10, 10, 20, 20], [30, 30, 40, 40]])
+        offset = np.array([5, 5])
+        moved_box = sv.move_boxes(boxes, offset)
+        print(moved_box)
+        # np.array([
+        #    [15, 15, 25, 25],
+        #     [35, 35, 45, 45]
+        # ])
         ```
     """
     return xyxy + np.hstack([offset, offset])
@@ -425,16 +447,17 @@ def scale_boxes(xyxy: np.ndarray, factor: float) -> np.ndarray:
 
     Example:
         ```python
-        >>> import numpy as np
-        >>> import supervision as sv
+        import numpy as np
+        import supervision as sv
 
-        >>> boxes = np.array([[10, 10, 20, 20], [30, 30, 40, 40]])
-        >>> factor = 1.5
-        >>> sv.scale_boxes(boxes, factor)
-        ... array([
-        ...     [ 7.5,  7.5, 22.5, 22.5],
-        ...     [27.5, 27.5, 42.5, 42.5]
-        ... ])
+        boxes = np.array([[10, 10, 20, 20], [30, 30, 40, 40]])
+        factor = 1.5
+        scaled_bb = sv.scale_boxes(boxes, factor)
+        print(scaled_bb)
+        # np.array([
+        #    [ 7.5,  7.5, 22.5, 22.5],
+        #    [27.5, 27.5, 42.5, 42.5]
+        # ])
         ```
     """
     centers = (xyxy[:, :2] + xyxy[:, 2:]) / 2
@@ -470,3 +493,204 @@ def calculate_masks_centroids(masks: np.ndarray) -> np.ndarray:
     centroid_y = sum_over_mask(vertical_indices, aggregation_axis) / total_pixels
 
     return np.column_stack((centroid_x, centroid_y)).astype(int)
+
+
+def validate_xyxy(xyxy: Any) -> None:
+    expected_shape = "(_, 4)"
+    actual_shape = str(getattr(xyxy, "shape", None))
+    is_valid = isinstance(xyxy, np.ndarray) and xyxy.ndim == 2 and xyxy.shape[1] == 4
+    if not is_valid:
+        raise ValueError(
+            f"xyxy must be a 2D np.ndarray with shape {expected_shape}, but got shape "
+            f"{actual_shape}"
+        )
+
+
+def validate_mask(mask: Any, n: int) -> None:
+    expected_shape = f"({n}, H, W)"
+    actual_shape = str(getattr(mask, "shape", None))
+    is_valid = mask is None or (
+        isinstance(mask, np.ndarray) and len(mask.shape) == 3 and mask.shape[0] == n
+    )
+    if not is_valid:
+        raise ValueError(
+            f"mask must be a 3D np.ndarray with shape {expected_shape}, but got shape "
+            f"{actual_shape}"
+        )
+
+
+def validate_class_id(class_id: Any, n: int) -> None:
+    expected_shape = f"({n},)"
+    actual_shape = str(getattr(class_id, "shape", None))
+    is_valid = class_id is None or (
+        isinstance(class_id, np.ndarray) and class_id.shape == (n,)
+    )
+    if not is_valid:
+        raise ValueError(
+            f"class_id must be a 1D np.ndarray with shape {expected_shape}, but got "
+            f"shape {actual_shape}"
+        )
+
+
+def validate_confidence(confidence: Any, n: int) -> None:
+    expected_shape = f"({n},)"
+    actual_shape = str(getattr(confidence, "shape", None))
+    is_valid = confidence is None or (
+        isinstance(confidence, np.ndarray) and confidence.shape == (n,)
+    )
+    if not is_valid:
+        raise ValueError(
+            f"confidence must be a 1D np.ndarray with shape {expected_shape}, but got "
+            f"shape {actual_shape}"
+        )
+
+
+def validate_tracker_id(tracker_id: Any, n: int) -> None:
+    expected_shape = f"({n},)"
+    actual_shape = str(getattr(tracker_id, "shape", None))
+    is_valid = tracker_id is None or (
+        isinstance(tracker_id, np.ndarray) and tracker_id.shape == (n,)
+    )
+    if not is_valid:
+        raise ValueError(
+            f"tracker_id must be a 1D np.ndarray with shape {expected_shape}, but got "
+            f"shape {actual_shape}"
+        )
+
+
+def validate_data(data: Dict[str, Any], n: int) -> None:
+    for key, value in data.items():
+        if isinstance(value, list):
+            if len(value) != n:
+                raise ValueError(f"Length of list for key '{key}' must be {n}")
+        elif isinstance(value, np.ndarray):
+            if value.ndim == 1 and value.shape[0] != n:
+                raise ValueError(f"Shape of np.ndarray for key '{key}' must be ({n},)")
+            elif value.ndim > 1 and value.shape[0] != n:
+                raise ValueError(
+                    f"First dimension of np.ndarray for key '{key}' must have size {n}"
+                )
+        else:
+            raise ValueError(f"Value for key '{key}' must be a list or np.ndarray")
+
+
+def validate_detections_fields(
+    xyxy: Any,
+    mask: Any,
+    class_id: Any,
+    confidence: Any,
+    tracker_id: Any,
+    data: Dict[str, Any],
+) -> None:
+    validate_xyxy(xyxy)
+    n = len(xyxy)
+    validate_mask(mask, n)
+    validate_class_id(class_id, n)
+    validate_confidence(confidence, n)
+    validate_tracker_id(tracker_id, n)
+    validate_data(data, n)
+
+
+def is_data_equal(data_a: Dict[str, np.ndarray], data_b: Dict[str, np.ndarray]) -> bool:
+    """
+    Compares the data payloads of two Detections instances.
+
+    Args:
+        data_a, data_b: The data payloads of the instances.
+
+    Returns:
+        True if the data payloads are equal, False otherwise.
+    """
+    return set(data_a.keys()) == set(data_b.keys()) and all(
+        np.array_equal(data_a[key], data_b[key]) for key in data_a
+    )
+
+
+def merge_data(
+    data_list: List[Dict[str, Union[np.ndarray, List]]],
+) -> Dict[str, Union[np.ndarray, List]]:
+    """
+    Merges the data payloads of a list of Detections instances.
+
+    Args:
+        data_list: The data payloads of the instances.
+
+    Returns:
+        A single data payload containing the merged data, preserving the original data
+            types (list or np.ndarray).
+
+    Raises:
+        ValueError: If data values within a single object have different lengths or if
+            dictionaries have different keys.
+    """
+    if not data_list:
+        return {}
+
+    all_keys_sets = [set(data.keys()) for data in data_list]
+    if not all(keys_set == all_keys_sets[0] for keys_set in all_keys_sets):
+        raise ValueError("All data dictionaries must have the same keys to merge.")
+
+    for data in data_list:
+        lengths = [len(value) for value in data.values()]
+        if len(set(lengths)) > 1:
+            raise ValueError(
+                "All data values within a single object must have equal length."
+            )
+
+    merged_data = {key: [] for key in all_keys_sets[0]}
+
+    for data in data_list:
+        for key in merged_data:
+            merged_data[key].append(data[key])
+
+    for key in merged_data:
+        if all(isinstance(item, list) for item in merged_data[key]):
+            merged_data[key] = list(chain.from_iterable(merged_data[key]))
+        elif all(isinstance(item, np.ndarray) for item in merged_data[key]):
+            ndim = merged_data[key][0].ndim
+            if ndim == 1:
+                merged_data[key] = np.hstack(merged_data[key])
+            elif ndim > 1:
+                merged_data[key] = np.vstack(merged_data[key])
+            else:
+                raise ValueError(f"Unexpected array dimension for key '{key}'.")
+        else:
+            raise ValueError(
+                f"Inconsistent data types for key '{key}'. Only np.ndarray and list "
+                f"types are allowed."
+            )
+
+    return merged_data
+
+
+def get_data_item(
+    data: Dict[str, Union[np.ndarray, List]],
+    index: Union[int, slice, List[int], np.ndarray],
+) -> Dict[str, Union[np.ndarray, List]]:
+    """
+    Retrieve a subset of the data dictionary based on the given index.
+
+    Args:
+        data: The data dictionary of the Detections object.
+        index: The index or indices specifying the subset to retrieve.
+
+    Returns:
+        A subset of the data dictionary corresponding to the specified index.
+    """
+    subset_data = {}
+    for key, value in data.items():
+        if isinstance(value, np.ndarray):
+            subset_data[key] = value[index]
+        elif isinstance(value, list):
+            if isinstance(index, slice):
+                subset_data[key] = value[index]
+            elif isinstance(index, (list, np.ndarray)):
+                subset_data[key] = [value[i] for i in index]
+            elif isinstance(index, int):
+                subset_data[key] = [value[index]]
+            else:
+                raise TypeError(f"Unsupported index type: {type(index)}")
+        else:
+            raise TypeError(f"Unsupported data type for key '{key}': {type(value)}")
+
+    return subset_data

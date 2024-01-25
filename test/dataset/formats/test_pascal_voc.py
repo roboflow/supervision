@@ -1,8 +1,8 @@
-import xml.etree.ElementTree as ET
 from contextlib import ExitStack as DoesNotRaise
 from test.test_utils import mock_detections
 from typing import List, Optional
 
+import defusedxml.ElementTree as ET
 import numpy as np
 import pytest
 
@@ -122,7 +122,7 @@ NO_DETECTIONS = """<annotation></annotation>"""
             ["test"],
             (100, 100),
             False,
-            mock_detections(np.array([[0, 0, 10, 10]]), None, [0]),
+            mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[0]),
             DoesNotRaise(),
         ),
         (
@@ -130,7 +130,9 @@ NO_DETECTIONS = """<annotation></annotation>"""
             ["test"],
             (100, 100),
             False,
-            mock_detections(np.array([[0, 0, 10, 10], [10, 10, 20, 20]]), None, [0, 0]),
+            mock_detections(
+                xyxy=np.array([[0, 0, 10, 10], [10, 10, 20, 20]]), class_id=[0, 0]
+            ),
             DoesNotRaise(),
         ),
         (
@@ -139,9 +141,8 @@ NO_DETECTIONS = """<annotation></annotation>"""
             (100, 100),
             False,
             mock_detections(
-                np.array([[0, 0, 10, 10], [20, 30, 30, 40], [10, 10, 20, 20]]),
-                None,
-                [0, 0, 1],
+                xyxy=np.array([[0, 0, 10, 10], [20, 30, 30, 40], [10, 10, 20, 20]]),
+                class_id=[0, 0, 1],
             ),
             DoesNotRaise(),
         ),
@@ -150,7 +151,7 @@ NO_DETECTIONS = """<annotation></annotation>"""
             [],
             (100, 100),
             False,
-            mock_detections(np.empty((0, 4)), None, []),
+            mock_detections(xyxy=np.empty((0, 4)), class_id=[]),
             DoesNotRaise(),
         ),
     ],

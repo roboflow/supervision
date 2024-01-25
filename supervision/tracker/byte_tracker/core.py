@@ -167,13 +167,17 @@ class ByteTrack:
     """
     Initialize the ByteTrack object.
 
+    <video controls>
+        <source src="https://media.roboflow.com/supervision/video-examples/how-to/track-objects/annotate-video-with-traces.mp4" type="video/mp4">
+    </video>
+
     Parameters:
         track_thresh (float, optional): Detection confidence threshold
             for track activation.
         track_buffer (int, optional): Number of frames to buffer when a track is lost.
         match_thresh (float, optional): Threshold for matching tracks with detections.
         frame_rate (int, optional): The frame rate of the video.
-    """
+    """  # noqa: E501 // docs
 
     def __init__(
         self,
@@ -196,39 +200,41 @@ class ByteTrack:
 
     def update_with_detections(self, detections: Detections) -> Detections:
         """
-        Updates the tracker with the provided detections and
-            returns the updated detection results.
+        Updates the tracker with the provided detections and returns the updated
+        detection results.
 
-        Parameters:
-            detections: The new detections to update with.
-        Returns:
-            Detection: The updated detection results that now include tracking IDs.
+        Args:
+            detections (Detections): The detections to pass through the tracker.
+
         Example:
             ```python
-            >>> import supervision as sv
-            >>> from ultralytics import YOLO
+            import supervision as sv
+            from ultralytics import YOLO
 
-            >>> model = YOLO(...)
-            >>> byte_tracker = sv.ByteTrack()
-            >>> annotator = sv.BoxAnnotator()
+            model = YOLO(<MODEL_PATH>)
+            tracker = sv.ByteTrack()
 
-            >>> def callback(frame: np.ndarray, index: int) -> np.ndarray:
-            ...     results = model(frame)[0]
-            ...     detections = sv.Detections.from_ultralytics(results)
-            ...     detections = byte_tracker.update_with_detections(detections)
-            ...     labels = [
-            ...         f"#{tracker_id} {model.model.names[class_id]} {confidence:0.2f}"
-            ...         for _, _, confidence, class_id, tracker_id
-            ...         in detections
-            ...     ]
-            ...     return annotator.annotate(scene=frame.copy(),
-            ...                               detections=detections, labels=labels)
+            bounding_box_annotator = sv.BoundingBoxAnnotator()
+            label_annotator = sv.LabelAnnotator()
 
-            >>> sv.process_video(
-            ...     source_path='...',
-            ...     target_path='...',
-            ...     callback=callback
-            ... )
+            def callback(frame: np.ndarray, index: int) -> np.ndarray:
+                results = model(frame)[0]
+                detections = sv.Detections.from_ultralytics(results)
+                detections = byte_tracker.update_with_detections(detections)
+
+                labels = [f"#{tracker_id}" for tracker_id in detections.tracker_id]
+
+                annotated_frame = bounding_box_annotator.annotate(
+                    scene=frame.copy(), detections=detections)
+                annotated_frame = label_annotator.annotate(
+                    scene=annotated_frame, detections=detections, labels=labels)
+                return annotated_frame
+
+            sv.process_video(
+                source_path=<SOURCE_VIDEO_PATH>,
+                target_path=<TARGET_VIDEO_PATH>,
+                callback=callback
+            )
             ```
         """
 

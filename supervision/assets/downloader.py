@@ -1,5 +1,5 @@
 import os
-from hashlib import md5
+from hashlib import new as hash_new
 from pathlib import Path
 from shutil import copyfileobj
 from typing import Union
@@ -35,9 +35,10 @@ def is_md5_hash_matching(filename: str, original_md5_hash: str) -> bool:
 
     with open(filename, "rb") as file:
         file_contents = file.read()
-        computed_md5_hash = md5(file_contents).hexdigest()
+        computed_md5_hash = hash_new(name="MD5")
+        computed_md5_hash.update(file_contents)
 
-    return computed_md5_hash == original_md5_hash
+    return computed_md5_hash.hexdigest() == original_md5_hash
 
 
 def download_assets(asset_name: Union[VideoAssets, str]) -> str:
@@ -53,9 +54,9 @@ def download_assets(asset_name: Union[VideoAssets, str]) -> str:
 
     Example:
         ```python
-        >>> from supervision.assets import download_assets, VideoAssets
+        from supervision.assets import download_assets, VideoAssets
 
-        >>> download_assets(VideoAssets.VEHICLES)
+        download_assets(VideoAssets.VEHICLES)
         "vehicles.mp4"
         ```
     """

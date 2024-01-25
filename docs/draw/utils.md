@@ -1,3 +1,7 @@
+---
+comments: true
+---
+
 ## draw_line
 
 :::supervision.draw.utils.draw_line
