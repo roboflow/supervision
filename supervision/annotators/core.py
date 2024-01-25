@@ -138,13 +138,13 @@ class OrientedBoxAnnotator(BaseAnnotator):
             import cv2
             import supervision as sv
             from ultralytics import YOLO
-            
+
             image = cv2.imread(<SOURCE_IMAGE_PATH>)
             model = YOLO("yolov8n-obb.pt")
-            
+
             result = model(image)[0]
             detections = sv.Detections.from_ultralytics(result)
-            
+
             oriented_box_annotator = sv.OrientedBoxAnnotator()
             annotated_frame = oriented_box_annotator.annotate(
                 scene=image.copy(),

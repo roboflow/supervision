@@ -17,7 +17,7 @@
 
 - Added [#702](https://github.com/roboflow/supervision/pull/702): [`sv.RoundBoxAnnotator`](https://supervision.roboflow.com/annotators/#roundboxannotator) allowing to annotate images and videos with rounded corners bounding boxes.
 
-- Added [#770](https://github.com/roboflow/supervision/pull/770): [`sv.OrientedBoxAnnotator`](https://supervision.roboflow.com/annotators/#orientedboxannotator) allowing to annotate images and videos with OBB (Oriented Bounding Boxes). 
+- Added [#770](https://github.com/roboflow/supervision/pull/770): [`sv.OrientedBoxAnnotator`](https://supervision.roboflow.com/annotators/#orientedboxannotator) allowing to annotate images and videos with OBB (Oriented Bounding Boxes).
 
 ```python
 import cv2
@@ -52,7 +52,7 @@ ColorPalette(colors=[Color(r=68, g=1, b=84), Color(r=59, g=82, b=139), ...])
 
 - Changed [#735](https://github.com/roboflow/supervision/pull/735): [`sv.LineZone`](https://supervision.roboflow.com/detection/tools/line_zone/#linezone) to now accept a list of specific box anchors that must cross the line for a detection to be counted. This update marks a significant improvement from the previous requirement, where all four box corners were necessary. Users can now specify a single anchor, such as `sv.Position.BOTTOM_CENTER`, or any other combination of anchors defined as `List[sv.Position]`.
 
-- Changed [#756](https://github.com/roboflow/supervision/pull/756): [`sv.Color`](https://supervision.roboflow.com/draw/color/#color)'s and [`sv.ColorPalette`](https://supervision.roboflow.com/draw/color/#colorpalette)'s method of accessing predefined colors, transitioning from a function-based approach (`sv.Color.red()`) to a more intuitive and conventional property-based method (`sv.Color.RED`). 
+- Changed [#756](https://github.com/roboflow/supervision/pull/756): [`sv.Color`](https://supervision.roboflow.com/draw/color/#color)'s and [`sv.ColorPalette`](https://supervision.roboflow.com/draw/color/#colorpalette)'s method of accessing predefined colors, transitioning from a function-based approach (`sv.Color.red()`) to a more intuitive and conventional property-based method (`sv.Color.RED`).
 
 !!! warning
 
