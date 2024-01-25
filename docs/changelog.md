@@ -1,3 +1,75 @@
+### 0.18.0 <small>January 25, 2024</small>
+
+- Added [#633](https://github.com/roboflow/supervision/pull/720): [`sv.PercentageBarAnnotator`](https://supervision.roboflow.com/annotators/#percentagebarannotator) allowing to annotate images and videos with percentage values representing confidence or other custom property.
+
+```python
+>>> import supervision as sv
+
+>>> image = ...
+>>> detections = sv.Detections(...)
+
+>>> percentage_bar_annotator = sv.PercentageBarAnnotator()
+>>> annotated_frame = percentage_bar_annotator.annotate(
+...     scene=image.copy(),
+...     detections=detections
+... )
+```
+
+- Added [#702](https://github.com/roboflow/supervision/pull/702): [`sv.RoundBoxAnnotator`](https://supervision.roboflow.com/annotators/#roundboxannotator) allowing to annotate images and videos with rounded corners bounding boxes.
+
+- Added [#770](https://github.com/roboflow/supervision/pull/770): [`sv.OrientedBoxAnnotator`](https://supervision.roboflow.com/annotators/#orientedboxannotator) allowing to annotate images and videos with OBB (Oriented Bounding Boxes). 
+
+```python
+import cv2
+import supervision as sv
+from ultralytics import YOLO
+
+image = cv2.imread(<SOURCE_IMAGE_PATH>)
+model = YOLO("yolov8n-obb.pt")
+
+result = model(image)[0]
+detections = sv.Detections.from_ultralytics(result)
+
+oriented_box_annotator = sv.OrientedBoxAnnotator()
+annotated_frame = oriented_box_annotator.annotate(
+    scene=image.copy(),
+    detections=detections
+)
+```
+
+- Added [#696](https://github.com/roboflow/supervision/pull/696): [`sv.DetectionsSmoother`](https://supervision.roboflow.com/detection/tools/smoother/#detection-smoother) allowing for smoothing detections over multiple frames in video tracking.
+
+- Added [#769](https://github.com/roboflow/supervision/pull/769): [`sv.ColorPalette.from_matplotlib`](https://supervision.roboflow.com/draw/color/#supervision.draw.color.ColorPalette.from_matplotlib) allowing users to create a `sv.ColorPalette` instance from a Matplotlib color palette.
+
+```python
+>>> import supervision as sv
+
+>>> sv.ColorPalette.from_matplotlib('viridis', 5)
+ColorPalette(colors=[Color(r=68, g=1, b=84), Color(r=59, g=82, b=139), ...])
+```
+
+- Changed [#770](https://github.com/roboflow/supervision/pull/770): [`sv.Detections.from_ultralytics`](https://supervision.roboflow.com/detection/core/#supervision.detection.core.Detections.from_ultralytics) adding support for OBB (Oriented Bounding Boxes).
+
+- Changed [#735](https://github.com/roboflow/supervision/pull/735): [`sv.LineZone`](https://supervision.roboflow.com/detection/tools/line_zone/#linezone) to now accept a list of specific box anchors that must cross the line for a detection to be counted. This update marks a significant improvement from the previous requirement, where all four box corners were necessary. Users can now specify a single anchor, such as `sv.Position.BOTTOM_CENTER`, or any other combination of anchors defined as `List[sv.Position]`.
+
+- Changed [#756](https://github.com/roboflow/supervision/pull/756): [`sv.Color`](https://supervision.roboflow.com/draw/color/#color)'s and [`sv.ColorPalette`](https://supervision.roboflow.com/draw/color/#colorpalette)'s method of accessing predefined colors, transitioning from a function-based approach (`sv.Color.red()`) to a more intuitive and conventional property-based method (`sv.Color.RED`). 
+
+!!! warning
+
+    `sv.ColorPalette.default()` is deprecated and will be removed in `supervision-0.21.0`. Use `sv.ColorPalette.DEFAULT` instead.
+
+
+- Changed [#769](https://github.com/roboflow/supervision/pull/769): [`sv.ColorPalette.DEFAULT`](https://supervision.roboflow.com/draw/color/#colorpalette) value, giving users a more extensive set of annotation colors.
+
+- Changed [#677](https://github.com/roboflow/supervision/pull/677): `sv.Detections.from_roboflow` to [`sv.Detections.from_inference`](https://supervision.roboflow.com/detection/core/#supervision.detection.core.Detections.from_inference) streamlining its functionality to be compatible with both the both [inference](https://github.com/roboflow/inference) pip package and the Robloflow [hosted API](https://docs.roboflow.com/deploy/hosted-api).
+
+!!! warning
+
+    `Detections.from_roboflow()` is deprecated and will be removed in `supervision-0.21.0`. Use `Detections.from_inference` instead.
+
+
+- Fixed [#735](https://github.com/roboflow/supervision/pull/735): [`sv.LineZone`](https://supervision.roboflow.com/detection/tools/line_zone/#linezone) functionality to accurately update the counter when an object crosses a line from any direction, including from the side. This enhancement enables more precise tracking and analytics, such as calculating individual in/out counts for each lane on the road.
+
 ### 0.17.0 <small>December 06, 2023</small>
 
 - Added [#633](https://github.com/roboflow/supervision/pull/633): [`sv.PixelateAnnotator`](https://supervision.roboflow.com/annotators/#supervision.annotators.core.PixelateAnnotator) allowing to pixelate objects on images and videos.
