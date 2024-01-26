@@ -1,11 +1,14 @@
 <<<<<<< HEAD
-import os 
-import yaml
-import torch 
-import numpy as np
+import os
 from types import SimpleNamespace
+
+import numpy as np
+import torch
+import yaml
+
 =======
 import numpy as np
+
 >>>>>>> 99f607097743faef9e8b8f34cb03fe05530e8f02
 from boxmot.appearance.reid_multibackend import ReIDDetectMultiBackend
 from boxmot.motion.cmc import get_cmc_method
@@ -104,21 +107,22 @@ class StrongSORT(object):
             return np.concatenate(outputs)
         return np.array([])
 <<<<<<< HEAD
-    
+
 
 
 if __name__ == "__main__":
-    import gdown
     from pathlib import Path
 
+    import gdown
+
     device       = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    half         = False 
+    half         = False
     tracker_config = "./supervision/tracker/strongsort_tracker/strongsort.yaml"
     with open(tracker_config, "r") as f:
         cfg = yaml.load(f.read(), Loader=yaml.FullLoader)
     cfg = SimpleNamespace(**cfg)  # easier dict acces by dot, instead of ['']
 
-    model_url = "https://drive.google.com/uc?id=1sSwXSUlj4_tHZequ_iZ8w_Jh0VaRQMqF"  
+    model_url = "https://drive.google.com/uc?id=1sSwXSUlj4_tHZequ_iZ8w_Jh0VaRQMqF"
     reid_weights = "./supervision/tracker/strongsort_tracker/weights/osnet_x0_25_msmt17.pt"  ##The suffix of the file name is pt
     if not os.path.exists(reid_weights):
         gdown.download(model_url, str(reid_weights), quiet=False)
@@ -139,6 +143,6 @@ if __name__ == "__main__":
 
     )
 
-    
+
 =======
 >>>>>>> 99f607097743faef9e8b8f34cb03fe05530e8f02
