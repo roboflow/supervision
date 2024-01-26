@@ -1,12 +1,9 @@
-<<<<<<< HEAD
 import os 
 import yaml
 import torch 
 import numpy as np
 from types import SimpleNamespace
-=======
 import numpy as np
->>>>>>> 99f607097743faef9e8b8f34cb03fe05530e8f02
 from boxmot.appearance.reid_multibackend import ReIDDetectMultiBackend
 from boxmot.motion.cmc import get_cmc_method
 from boxmot.trackers.strongsort.sort.detection import Detection
@@ -103,7 +100,6 @@ class StrongSORT(object):
         if len(outputs) > 0:
             return np.concatenate(outputs)
         return np.array([])
-<<<<<<< HEAD
     
 
 
@@ -140,5 +136,3 @@ if __name__ == "__main__":
     )
 
     
-=======
->>>>>>> 99f607097743faef9e8b8f34cb03fe05530e8f02
