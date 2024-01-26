@@ -1,0 +1,9 @@
+ecc: true
+ema_alpha: 0.8
+max_age: 30
+max_dist: 0.2
+max_iou_dist: 0.7
+mc_lambda: 0.995
+n_init: 1
+nn_budget: 100
+conf_thres: 0.5122620708221085

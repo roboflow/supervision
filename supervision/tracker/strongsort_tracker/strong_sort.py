@@ -1,6 +1,8 @@
-
+import os 
+import yaml
+import torch 
 import numpy as np
-
+from types import SimpleNamespace
 from boxmot.appearance.reid_multibackend import ReIDDetectMultiBackend
 from boxmot.motion.cmc import get_cmc_method
 from boxmot.trackers.strongsort.sort.detection import Detection
@@ -96,3 +98,39 @@ class StrongSORT(object):
         if len(outputs) > 0:
             return np.concatenate(outputs)
         return np.array([])
+    
+
+
+if __name__ == "__main__":
+    import gdown
+    from pathlib import Path
+
+    device       = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    half         = False 
+    tracker_config = "./supervision/tracker/strongsort_tracker/strongsort.yaml"
+    with open(tracker_config, "r") as f:
+        cfg = yaml.load(f.read(), Loader=yaml.FullLoader)
+    cfg = SimpleNamespace(**cfg)  # easier dict acces by dot, instead of ['']
+
+    model_url = "https://drive.google.com/uc?id=1sSwXSUlj4_tHZequ_iZ8w_Jh0VaRQMqF"  
+    reid_weights = "./supervision/tracker/strongsort_tracker/weights/osnet_x0_25_msmt17.pt"  ##The suffix of the file name is pt
+    if not os.path.exists(reid_weights):
+        gdown.download(model_url, str(reid_weights), quiet=False)
+
+    reid_weights = Path(reid_weights)
+
+    strongsort = StrongSORT(
+        reid_weights,
+        device,
+        half,
+        max_dist=cfg.max_dist,
+        max_iou_dist=cfg.max_iou_dist,
+        max_age=cfg.max_age,
+        n_init=cfg.n_init,
+        nn_budget=cfg.nn_budget,
+        mc_lambda=cfg.mc_lambda,
+        ema_alpha=cfg.ema_alpha,
+
+    )
+
+    
