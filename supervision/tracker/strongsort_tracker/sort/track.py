@@ -1,7 +1,6 @@
 # Mikel Broström 🔥 Yolo Tracking 🧾 AGPL-3.0 license
 
 import numpy as np
-
 from boxmot.motion.kalman_filters.strongsort_kf import KalmanFilter
 
 
