@@ -1,5 +1,6 @@
 # Mikel Broström 🔥 Yolo Tracking 🧾 AGPL-3.0 license
 
+
 class Detection(object):
     """
     This class represents a bounding box detection in a single image.
