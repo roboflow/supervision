@@ -13,6 +13,7 @@ from boxmot.utils.ops import xyxy2tlwh
 
 from supervision.detection.core import Detections
 
+
 class StrongSORT(object):
     def __init__(
         self,
@@ -41,7 +42,6 @@ class StrongSORT(object):
         self.cmc = get_cmc_method("ecc")()
 
     def update_with_detections(self, dets, img):
-
         dets = np.hstack(
             (
                 dets.xyxy,
@@ -75,32 +75,25 @@ class StrongSORT(object):
         self.tracker.predict()
         self.tracker.update(detections)
 
-
         detections = Detections.empty()
         tracks = self.tracker.tracks
         if len(tracks) > 0:
             detections.xyxy = np.array(
                 [track.to_tlbr() for track in tracks], dtype=np.float32
             )
-            detections.class_id = np.array(
-                [int(t.cls) for t in tracks], dtype=int
-            )
-            detections.tracker_id = np.array(
-                [int(t.id) for t in tracks], dtype=int
-            )
-            detections.confidence = np.array(
-                [t.conf for t in tracks], dtype=np.float32
-            )
+            detections.class_id = np.array([int(t.cls) for t in tracks], dtype=int)
+            detections.tracker_id = np.array([int(t.id) for t in tracks], dtype=int)
+            detections.confidence = np.array([t.conf for t in tracks], dtype=np.float32)
         else:
             detections.tracker_id = np.array([], dtype=int)
         return detections
-    
 
 
 if __name__ == "__main__":
     from pathlib import Path
-    device       = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    half         = False 
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    half = False
 
     import gdown
 
