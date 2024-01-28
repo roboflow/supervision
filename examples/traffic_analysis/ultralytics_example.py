@@ -47,10 +47,10 @@ class DetectionsManager:
                     self.counts.setdefault(zone_out_id, {})
                     self.counts[zone_out_id].setdefault(zone_in_id, set())
                     self.counts[zone_out_id][zone_in_id].add(tracker_id)
-
-        detections_all.class_id = np.vectorize(
-            lambda x: self.tracker_id_to_zone_id.get(x, -1)
-        )(detections_all.tracker_id)
+        if len(detections_all) > 0:
+            detections_all.class_id = np.vectorize(
+                lambda x: self.tracker_id_to_zone_id.get(x, -1)
+            )(detections_all.tracker_id)
         return detections_all[detections_all.class_id != -1]
 
 
