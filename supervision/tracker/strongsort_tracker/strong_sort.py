@@ -11,6 +11,7 @@ from boxmot.trackers.strongsort.sort.tracker import Tracker
 from boxmot.utils.matching import NearestNeighborDistanceMetric
 from boxmot.utils.ops import xyxy2tlwh
 
+from supervision.detection.core import Detections
 
 class StrongSORT(object):
     def __init__(
@@ -39,21 +40,16 @@ class StrongSORT(object):
         )
         self.cmc = get_cmc_method("ecc")()
 
-    def update(self, dets, img):
-        assert isinstance(
-            dets, np.ndarray
-        ), f"Unsupported 'dets' input format '{type(dets)}', valid format is np.ndarray"
-        assert isinstance(
-            img, np.ndarray
-        ), f"Unsupported 'img' input format '{type(img)}', valid format is np.ndarray"
-        assert (
-            len(dets.shape) == 2
-        ), "Unsupported 'dets' dimensions, valid number of dimensions is two"
-        assert (
-            dets.shape[1] == 6
-        ), "Unsupported 'dets' 2nd dimension lenght, valid lenghts is 6"
+    def update_with_detections(self, dets, img):
 
-        dets = np.hstack([dets, np.arange(len(dets)).reshape(-1, 1)])
+        dets = np.hstack(
+            (
+                dets.xyxy,
+                dets.confidence[:, np.newaxis],
+                dets.class_id[:, np.newaxis],
+                dets.class_id[:, np.newaxis],
+            )
+        )
         xyxy = dets[:, 0:4]
         confs = dets[:, 4]
         clss = dets[:, 5]
@@ -79,31 +75,32 @@ class StrongSORT(object):
         self.tracker.predict()
         self.tracker.update(detections)
 
-        # output bbox identities
-        outputs = []
-        for track in self.tracker.tracks:
-            if not track.is_confirmed() or track.time_since_update >= 1:
-                continue
 
-            x1, y1, x2, y2 = track.to_tlbr()
-
-            id = track.id
-            conf = track.conf
-            cls = track.cls
-            det_ind = track.det_ind
-
-            outputs.append(
-                np.concatenate(
-                    ([x1, y1, x2, y2], [id], [conf], [cls], [det_ind])
-                ).reshape(1, -1)
+        detections = Detections.empty()
+        tracks = self.tracker.tracks
+        if len(tracks) > 0:
+            detections.xyxy = np.array(
+                [track.to_tlbr() for track in tracks], dtype=np.float32
             )
-        if len(outputs) > 0:
-            return np.concatenate(outputs)
-        return np.array([])
+            detections.class_id = np.array(
+                [int(t.cls) for t in tracks], dtype=int
+            )
+            detections.tracker_id = np.array(
+                [int(t.id) for t in tracks], dtype=int
+            )
+            detections.confidence = np.array(
+                [t.conf for t in tracks], dtype=np.float32
+            )
+        else:
+            detections.tracker_id = np.array([], dtype=int)
+        return detections
+    
 
 
 if __name__ == "__main__":
     from pathlib import Path
+    device       = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    half         = False 
 
     import gdown
 
