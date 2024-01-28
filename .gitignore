@@ -2,6 +2,7 @@
 .idea/
 .vscode/
 
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -156,3 +157,8 @@ Desktop.ini
 *~
 .directory
 .Trash-*
+
+
+# Folders
+test_videos\
+yolov8_weight\
