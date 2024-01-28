@@ -174,6 +174,8 @@ class LineZoneAnnotator:
         text_padding: int = 10,
         custom_in_text: Optional[str] = None,
         custom_out_text: Optional[str] = None,
+        display_in_count: bool = True,
+        display_out_count: bool = True,
     ):
         """
         Initialize the LineCounterAnnotator object with default values.
@@ -186,6 +188,8 @@ class LineZoneAnnotator:
             text_scale (float): The scale of the text that will be drawn.
             text_offset (float): The offset of the text that will be drawn.
             text_padding (int): The padding of the text that will be drawn.
+            display_in_count (bool): Whether to display the in count or not.
+            display_out_count (bool): Whether to display the out count or not.
 
         """
         self.thickness: float = thickness
@@ -197,6 +201,69 @@ class LineZoneAnnotator:
         self.text_padding: int = text_padding
         self.custom_in_text: str = custom_in_text
         self.custom_out_text: str = custom_out_text
+        self.display_in_count: bool = display_in_count
+        self.display_out_count: bool = display_out_count
+
+    def _annotate_count(
+        self,
+        frame: np.ndarray,
+        line_counter: LineZone,
+        text: str,
+        in_count: bool,
+    ) -> None:
+        """This method is drawing the text on the frame.
+
+        Args:
+            frame (np.ndarray): The image on which the text will be drawn.
+            line_counter (LineCounter): The line counter
+                that will be used to draw the line.
+            text (str): The text that will be drawn.
+            in_count (bool): Whether to display the in count or not.
+        """
+        (text_width, text_height), _ = cv2.getTextSize(
+            text, cv2.FONT_HERSHEY_SIMPLEX, self.text_scale, self.text_thickness
+        )
+
+        text_x = (
+            line_counter.vector.end.x + line_counter.vector.start.x - text_width
+        ) / 2
+
+        text_y = (
+            line_counter.vector.end.y + line_counter.vector.start.y + text_height
+        ) / 2
+
+        if in_count:
+            # if the text is an in count, we want to display it above the line
+            text_y -= self.text_offset * text_height
+        else:
+            # if the text is an out count, we want to display it below the line
+            text_y += self.text_offset * text_height
+
+        text_background_rect = Rect(
+            x=text_x,
+            y=text_y - text_height,
+            width=text_width,
+            height=text_height,
+        ).pad(padding=self.text_padding)
+
+        cv2.rectangle(
+            frame,
+            text_background_rect.top_left.as_xy_int_tuple(),
+            text_background_rect.bottom_right.as_xy_int_tuple(),
+            self.color.as_bgr(),
+            -1,
+        )
+
+        cv2.putText(
+            frame,
+            text,
+            (int(text_x), int(text_y)),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            self.text_scale,
+            self.text_color.as_bgr(),
+            self.text_thickness,
+            cv2.LINE_AA,
+        )
 
     def annotate(self, frame: np.ndarray, line_counter: LineZone) -> np.ndarray:
         """
@@ -237,90 +304,24 @@ class LineZoneAnnotator:
             lineType=cv2.LINE_AA,
         )
 
-        in_text = (
-            f"{self.custom_in_text}: {line_counter.in_count}"
-            if self.custom_in_text is not None
-            else f"in: {line_counter.in_count}"
-        )
-        out_text = (
-            f"{self.custom_out_text}: {line_counter.out_count}"
-            if self.custom_out_text is not None
-            else f"out: {line_counter.out_count}"
-        )
+        if self.display_in_count:
+            in_text = (
+                f"{self.custom_in_text}: {line_counter.in_count}"
+                if self.custom_in_text is not None
+                else f"in: {line_counter.in_count}"
+            )
+            self._annotate_count(
+                line_counter=line_counter, text=in_text, in_count=True, frame=frame
+            )
 
-        (in_text_width, in_text_height), _ = cv2.getTextSize(
-            in_text, cv2.FONT_HERSHEY_SIMPLEX, self.text_scale, self.text_thickness
-        )
-        (out_text_width, out_text_height), _ = cv2.getTextSize(
-            out_text, cv2.FONT_HERSHEY_SIMPLEX, self.text_scale, self.text_thickness
-        )
+        if self.display_out_count:
+            out_text = (
+                f"{self.custom_out_text}: {line_counter.out_count}"
+                if self.custom_out_text is not None
+                else f"out: {line_counter.out_count}"
+            )
+            self._annotate_count(
+                line_counter=line_counter, text=out_text, in_count=False, frame=frame
+            )
 
-        in_text_x = int(
-            (line_counter.vector.end.x + line_counter.vector.start.x - in_text_width)
-            / 2
-        )
-        in_text_y = int(
-            (line_counter.vector.end.y + line_counter.vector.start.y + in_text_height)
-            / 2
-            - self.text_offset * in_text_height
-        )
-
-        out_text_x = int(
-            (line_counter.vector.end.x + line_counter.vector.start.x - out_text_width)
-            / 2
-        )
-        out_text_y = int(
-            (line_counter.vector.end.y + line_counter.vector.start.y + out_text_height)
-            / 2
-            + self.text_offset * out_text_height
-        )
-
-        in_text_background_rect = Rect(
-            x=in_text_x,
-            y=in_text_y - in_text_height,
-            width=in_text_width,
-            height=in_text_height,
-        ).pad(padding=self.text_padding)
-        out_text_background_rect = Rect(
-            x=out_text_x,
-            y=out_text_y - out_text_height,
-            width=out_text_width,
-            height=out_text_height,
-        ).pad(padding=self.text_padding)
-
-        cv2.rectangle(
-            frame,
-            in_text_background_rect.top_left.as_xy_int_tuple(),
-            in_text_background_rect.bottom_right.as_xy_int_tuple(),
-            self.color.as_bgr(),
-            -1,
-        )
-        cv2.rectangle(
-            frame,
-            out_text_background_rect.top_left.as_xy_int_tuple(),
-            out_text_background_rect.bottom_right.as_xy_int_tuple(),
-            self.color.as_bgr(),
-            -1,
-        )
-
-        cv2.putText(
-            frame,
-            in_text,
-            (in_text_x, in_text_y),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            self.text_scale,
-            self.text_color.as_bgr(),
-            self.text_thickness,
-            cv2.LINE_AA,
-        )
-        cv2.putText(
-            frame,
-            out_text,
-            (out_text_x, out_text_y),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            self.text_scale,
-            self.text_color.as_bgr(),
-            self.text_thickness,
-            cv2.LINE_AA,
-        )
         return frame
