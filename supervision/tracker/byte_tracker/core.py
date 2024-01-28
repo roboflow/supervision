@@ -210,6 +210,7 @@ class ByteTrack:
             ```python
             import supervision as sv
             from ultralytics import YOLO
+            import numpy as np
 
             model = YOLO(<MODEL_PATH>)
             tracker = sv.ByteTrack()
@@ -220,7 +221,7 @@ class ByteTrack:
             def callback(frame: np.ndarray, index: int) -> np.ndarray:
                 results = model(frame)[0]
                 detections = sv.Detections.from_ultralytics(results)
-                detections = byte_tracker.update_with_detections(detections)
+                detections = tracker.update_with_detections(detections)
 
                 labels = [f"#{tracker_id}" for tracker_id in detections.tracker_id]
 
