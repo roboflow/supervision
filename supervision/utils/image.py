@@ -26,7 +26,7 @@ def crop_image(image: np.ndarray, xyxy: np.ndarray) -> np.ndarray:
         with sv.ImageSink(target_dir_path='target/directory/path') as sink:
             for xyxy in detection.xyxy:
                 cropped_image = sv.crop_image(image=image, xyxy=xyxy)
-                sink.save_image(image=image)
+                sink.save_image(image=cropped_image)
         ```
     """
 
