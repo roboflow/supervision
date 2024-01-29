@@ -1752,12 +1752,20 @@ class PercentageBarAnnotator(BaseAnnotator):
 
 
 class CropAnnotator(BaseAnnotator):
+    '''
+    A class for viewing a cropped part of detections with a selected zoom scale.
+    '''
 
     def __init__(
         self,
         position: Position = Position.TOP_CENTER,
         zoom_factor: int = 2
     ):
+        '''
+        Args:
+            position (Position): the anchor position to place cropped detections
+            zoom_factor (int): the percentage factor to zoom cropped image part
+        '''
         pass
 
     def annotate(
@@ -1765,4 +1773,31 @@ class CropAnnotator(BaseAnnotator):
         scene: np.ndarray,
         detections: Detections,
     ) -> np.ndarray:
+        '''
+        Annotates the given scene with cropped parts from the provided detections.
+
+        Args:
+            scene (np.ndarray): The image where cropped detection will be placed.
+            detections (Detections): Object detections to annotate.
+
+        Returns:
+            The annotated image.
+
+        Example:
+            ```python
+            import supervision as sv
+
+            image = ...
+            detections = sv.Detections(...)
+
+            crop_annotator = sv.CropAnnotator()
+            annotated_frame = crop_annotator.annotate(
+                scene=image.copy(),
+                detections=detections
+            )
+            ```
+
+        ![crop-annotator-example](https://media.roboflow.com/ #TODO update link
+        supervision-annotator-examples/______.png)
+        '''
         pass
