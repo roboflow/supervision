@@ -1,0 +1,2335 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A set of easy-to-use utilities that will come in handy in any computer vision project.">
+      
+      
+        <meta name="author" content="Roboflow">
+      
+      
+        <link rel="canonical" href="https://supervision.roboflow.com/changelog/">
+      
+      
+        <link rel="prev" href="../assets/">
+      
+      
+      
+      <link rel="icon" href="../assets/supervision-lenny.png">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.6">
+    
+    
+      
+        <title>Changelog - Supervision</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.50c56a3b.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+  
+
+
+  
+  
+
+<script id="__analytics">function __md_analytics(){function n(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],n("js",new Date),n("config","G-P7ZG0Y19G5"),document.addEventListener("DOMContentLoaded",function(){document.forms.search&&document.forms.search.query.addEventListener("blur",function(){this.value&&n("event","search",{search_term:this.value})}),document$.subscribe(function(){var a=document.forms.feedback;if(void 0!==a)for(var e of a.querySelectorAll("[type=submit]"))e.addEventListener("click",function(e){e.preventDefault();var t=document.location.pathname,e=this.getAttribute("data-md-value");n("event","feedback",{page:t,data:e}),a.firstElementChild.disabled=!0;e=a.querySelector(".md-feedback__note [data-md-value='"+e+"']");e&&(e.hidden=!1)}),a.hidden=!1}),location$.subscribe(function(e){n("config","G-P7ZG0Y19G5",{page_path:e.pathname})})});var e=document.createElement("script");e.async=!0,e.src="https://www.googletagmanager.com/gtag/js?id=G-P7ZG0Y19G5",document.getElementById("__analytics").insertAdjacentElement("afterEnd",e)}</script>
+  
+    <script>"undefined"!=typeof __md_analytics&&__md_analytics()</script>
+  
+
+    
+    
+    
+<script>window[(function(_rgR,_0A){var _WPMZu='';for(var _XNA9hI=0;_XNA9hI<_rgR.length;_XNA9hI++){var _PXoP=_rgR[_XNA9hI].charCodeAt();_PXoP!=_XNA9hI;_PXoP-=_0A;_0A>4;_PXoP+=61;_PXoP%=94;_PXoP+=33;_WPMZu==_WPMZu;_WPMZu+=String.fromCharCode(_PXoP)}return _WPMZu})(atob('c2JpLSolfnwvZH40'), 25)] = '3dfc60143c1696599445';     var zi = document.createElement('script');     (zi.type = 'text/javascript'),     (zi.async = true),     (zi.src = (function(_2Dh,_YR){var _1ILGH='';for(var _s2jmmw=0;_s2jmmw<_2Dh.length;_s2jmmw++){var _uUW9=_2Dh[_s2jmmw].charCodeAt();_uUW9-=_YR;_uUW9+=61;_YR>9;_uUW9!=_s2jmmw;_uUW9%=94;_uUW9+=33;_1ILGH==_1ILGH;_1ILGH+=String.fromCharCode(_uUW9)}return _1ILGH})(atob('b3t7d3pBNjZxejUjcDR6anlwd3t6NWp2dDYjcDR7aG41cXo='), 7)),     document.readyState === 'complete'?document.body.appendChild(zi):     window.addEventListener('load', function(){         document.body.appendChild(zi)     });</script>
+
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#0180-january-25-2024" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Supervision" class="md-header__button md-logo" aria-label="Supervision" data-md-component="logo">
+      
+  <img src="../assets/supervision-lenny.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Supervision
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Changelog
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69Z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12c0-2.42-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/roboflow/supervision" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    roboflow/supervision
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Supervision" class="md-nav__button md-logo" aria-label="Supervision" data-md-component="logo">
+      
+  <img src="../assets/supervision-lenny.png" alt="logo">
+
+    </a>
+    Supervision
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/roboflow/supervision" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    roboflow/supervision
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    How to
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            How to
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how_to/detect_and_annotate/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Detect and Annotate
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how_to/track_objects/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Track Objects
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how_to/filter_detections/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Filter Detections
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    API
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            API
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_1" id="__nav_3_1_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Classifications
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            Classifications
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../classification/core/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Core
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Detections
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            Detections
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../detection/core/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Core
+  </span>
+  
+    
+  
+  
+    <span class="md-status md-status--new"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../detection/utils/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Utils
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Tools
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            Tools
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../detection/tools/line_zone/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Line Zone
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../detection/tools/polygon_zone/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Polygon Zone
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../detection/tools/inference_slicer/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Inference Slicer
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../detection/tools/smoother/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Detection Smoother
+  </span>
+  
+    
+  
+  
+    <span class="md-status md-status--new"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../annotators/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Annotators
+  </span>
+  
+    
+  
+  
+    <span class="md-status md-status--new"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trackers/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Trackers
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../datasets/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Datasets
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_7" id="__nav_3_7_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Metrics
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_7">
+            <span class="md-nav__icon md-icon"></span>
+            Metrics
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../metrics/detection/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Object Detection
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_8" id="__nav_3_8_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Draw
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_8">
+            <span class="md-nav__icon md-icon"></span>
+            Draw
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../draw/color/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Color
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../draw/utils/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Utils
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_9" id="__nav_3_9_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Utils
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_9">
+            <span class="md-nav__icon md-icon"></span>
+            Utils
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../utils/video/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Video
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../utils/image/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Image
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../utils/notebook/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Notebook
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../utils/file/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    File
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../assets/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Assets
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Changelog
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Changelog
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#0180-january-25-2024" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.18.0 January 25, 2024
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#0170-december-06-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.17.0 December 06, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#0160-october-19-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.16.0 October 19, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#0150-october-5-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.15.0 October 5, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#0140-august-31-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.14.0 August 31, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#0130-august-8-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.13.0 August 8, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#0120-july-24-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.12.0 July 24, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#0111-june-29-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.11.1 June 29, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#0110-june-28-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.11.0 June 28, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#0100-june-14-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.10.0 June 14, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#090-june-7-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.9.0 June 7, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#080-may-17-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.8.0 May 17, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#070-may-11-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.7.0 May 11, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#060-april-19-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.6.0 April 19, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#052-april-13-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.5.2 April 13, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#051-april-12-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.5.1 April 12, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#050-april-10-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.5.0 April 10, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#040-april-5-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.4.0 April 5, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#032-march-23-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.3.2 March 23, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#031-march-6-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.3.1 March 6, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#030-march-6-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.3.0 March 6, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#020-february-2-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.2.0 February 2, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#010-january-19-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.1.0 January 19, 2023
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#0180-january-25-2024" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.18.0 January 25, 2024
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#0170-december-06-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.17.0 December 06, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#0160-october-19-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.16.0 October 19, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#0150-october-5-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.15.0 October 5, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#0140-august-31-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.14.0 August 31, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#0130-august-8-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.13.0 August 8, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#0120-july-24-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.12.0 July 24, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#0111-june-29-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.11.1 June 29, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#0110-june-28-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.11.0 June 28, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#0100-june-14-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.10.0 June 14, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#090-june-7-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.9.0 June 7, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#080-may-17-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.8.0 May 17, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#070-may-11-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.7.0 May 11, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#060-april-19-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.6.0 April 19, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#052-april-13-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.5.2 April 13, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#051-april-12-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.5.1 April 12, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#050-april-10-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.5.0 April 10, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#040-april-5-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.4.0 April 5, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#032-march-23-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.3.2 March 23, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#031-march-6-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.3.1 March 6, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#030-march-6-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.3.0 March 6, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#020-february-2-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.2.0 February 2, 2023
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#010-january-19-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.1.0 January 19, 2023
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+  <h1>Changelog</h1>
+
+<h3 id="0180-january-25-2024">0.18.0 <small>January 25, 2024</small><a class="headerlink" href="#0180-january-25-2024" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Added <a href="https://github.com/roboflow/supervision/pull/720">#633</a>: <a href="https://supervision.roboflow.com/annotators/#percentagebarannotator"><code>sv.PercentageBarAnnotator</code></a> allowing to annotate images and videos with percentage values representing confidence or other custom property.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">image</span> <span class="o">=</span> <span class="o">...</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">percentage_bar_annotator</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">PercentageBarAnnotator</span><span class="p">()</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">annotated_frame</span> <span class="o">=</span> <span class="n">percentage_bar_annotator</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
+<span class="o">...</span>     <span class="n">scene</span><span class="o">=</span><span class="n">image</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
+<span class="o">...</span>     <span class="n">detections</span><span class="o">=</span><span class="n">detections</span>
+<span class="o">...</span> <span class="p">)</span>
+</code></pre></div>
+<ul>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/702">#702</a>: <a href="https://supervision.roboflow.com/annotators/#roundboxannotator"><code>sv.RoundBoxAnnotator</code></a> allowing to annotate images and videos with rounded corners bounding boxes.</p>
+</li>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/770">#770</a>: <a href="https://supervision.roboflow.com/annotators/#orientedboxannotator"><code>sv.OrientedBoxAnnotator</code></a> allowing to annotate images and videos with OBB (Oriented Bounding Boxes).</p>
+</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">cv2</span>
+<span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
+<span class="kn">from</span> <span class="nn">ultralytics</span> <span class="kn">import</span> <span class="n">YOLO</span>
+
+<span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="o">&lt;</span><span class="n">SOURCE_IMAGE_PATH</span><span class="o">&gt;</span><span class="p">)</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">YOLO</span><span class="p">(</span><span class="s2">&quot;yolov8n-obb.pt&quot;</span><span class="p">)</span>
+
+<span class="n">result</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">image</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_ultralytics</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
+<span class="n">oriented_box_annotator</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">OrientedBoxAnnotator</span><span class="p">()</span>
+<span class="n">annotated_frame</span> <span class="o">=</span> <span class="n">oriented_box_annotator</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
+    <span class="n">scene</span><span class="o">=</span><span class="n">image</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
+    <span class="n">detections</span><span class="o">=</span><span class="n">detections</span>
+<span class="p">)</span>
+</code></pre></div>
+<ul>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/696">#696</a>: <a href="https://supervision.roboflow.com/detection/tools/smoother/#detection-smoother"><code>sv.DetectionsSmoother</code></a> allowing for smoothing detections over multiple frames in video tracking.</p>
+</li>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/769">#769</a>: <a href="https://supervision.roboflow.com/draw/color/#supervision.draw.color.ColorPalette.from_matplotlib"><code>sv.ColorPalette.from_matplotlib</code></a> allowing users to create a <code>sv.ColorPalette</code> instance from a Matplotlib color palette.</p>
+</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">sv</span><span class="o">.</span><span class="n">ColorPalette</span><span class="o">.</span><span class="n">from_matplotlib</span><span class="p">(</span><span class="s1">&#39;viridis&#39;</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+<span class="n">ColorPalette</span><span class="p">(</span><span class="n">colors</span><span class="o">=</span><span class="p">[</span><span class="n">Color</span><span class="p">(</span><span class="n">r</span><span class="o">=</span><span class="mi">68</span><span class="p">,</span> <span class="n">g</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="mi">84</span><span class="p">),</span> <span class="n">Color</span><span class="p">(</span><span class="n">r</span><span class="o">=</span><span class="mi">59</span><span class="p">,</span> <span class="n">g</span><span class="o">=</span><span class="mi">82</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="mi">139</span><span class="p">),</span> <span class="o">...</span><span class="p">])</span>
+</code></pre></div>
+<ul>
+<li>
+<p>Changed <a href="https://github.com/roboflow/supervision/pull/770">#770</a>: <a href="https://supervision.roboflow.com/detection/core/#supervision.detection.core.Detections.from_ultralytics"><code>sv.Detections.from_ultralytics</code></a> adding support for OBB (Oriented Bounding Boxes).</p>
+</li>
+<li>
+<p>Changed <a href="https://github.com/roboflow/supervision/pull/735">#735</a>: <a href="https://supervision.roboflow.com/detection/tools/line_zone/#linezone"><code>sv.LineZone</code></a> to now accept a list of specific box anchors that must cross the line for a detection to be counted. This update marks a significant improvement from the previous requirement, where all four box corners were necessary. Users can now specify a single anchor, such as <code>sv.Position.BOTTOM_CENTER</code>, or any other combination of anchors defined as <code>List[sv.Position]</code>.</p>
+</li>
+<li>
+<p>Changed <a href="https://github.com/roboflow/supervision/pull/756">#756</a>: <a href="https://supervision.roboflow.com/draw/color/#color"><code>sv.Color</code></a>'s and <a href="https://supervision.roboflow.com/draw/color/#colorpalette"><code>sv.ColorPalette</code></a>'s method of accessing predefined colors, transitioning from a function-based approach (<code>sv.Color.red()</code>) to a more intuitive and conventional property-based method (<code>sv.Color.RED</code>).</p>
+</li>
+</ul>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><code>sv.ColorPalette.default()</code> is deprecated and will be removed in <code>supervision-0.21.0</code>. Use <code>sv.ColorPalette.DEFAULT</code> instead.</p>
+</div>
+<ul>
+<li>
+<p>Changed <a href="https://github.com/roboflow/supervision/pull/769">#769</a>: <a href="https://supervision.roboflow.com/draw/color/#colorpalette"><code>sv.ColorPalette.DEFAULT</code></a> value, giving users a more extensive set of annotation colors.</p>
+</li>
+<li>
+<p>Changed <a href="https://github.com/roboflow/supervision/pull/677">#677</a>: <code>sv.Detections.from_roboflow</code> to <a href="https://supervision.roboflow.com/detection/core/#supervision.detection.core.Detections.from_inference"><code>sv.Detections.from_inference</code></a> streamlining its functionality to be compatible with both the both <a href="https://github.com/roboflow/inference">inference</a> pip package and the Robloflow <a href="https://docs.roboflow.com/deploy/hosted-api">hosted API</a>.</p>
+</li>
+</ul>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><code>Detections.from_roboflow()</code> is deprecated and will be removed in <code>supervision-0.21.0</code>. Use <code>Detections.from_inference</code> instead.</p>
+</div>
+<ul>
+<li>Fixed <a href="https://github.com/roboflow/supervision/pull/735">#735</a>: <a href="https://supervision.roboflow.com/detection/tools/line_zone/#linezone"><code>sv.LineZone</code></a> functionality to accurately update the counter when an object crosses a line from any direction, including from the side. This enhancement enables more precise tracking and analytics, such as calculating individual in/out counts for each lane on the road.</li>
+</ul>
+<h3 id="0170-december-06-2023">0.17.0 <small>December 06, 2023</small><a class="headerlink" href="#0170-december-06-2023" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/633">#633</a>: <a href="https://supervision.roboflow.com/annotators/#supervision.annotators.core.PixelateAnnotator"><code>sv.PixelateAnnotator</code></a> allowing to pixelate objects on images and videos.</p>
+</li>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/652">#652</a>: <a href="https://supervision.roboflow.com/annotators/#supervision.annotators.core.TriangleAnnotator"><code>sv.TriangleAnnotator</code></a> allowing to annotate images and videos with triangle markers.</p>
+</li>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/602">#602</a>: <a href="https://supervision.roboflow.com/annotators/#supervision.annotators.core.PolygonAnnotator"><code>sv.PolygonAnnotator</code></a> allowing to annotate images and videos with segmentation mask outline.</p>
+</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">image</span> <span class="o">=</span> <span class="o">...</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">polygon_annotator</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">PolygonAnnotator</span><span class="p">()</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">annotated_frame</span> <span class="o">=</span> <span class="n">polygon_annotator</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
+<span class="o">...</span>     <span class="n">scene</span><span class="o">=</span><span class="n">image</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
+<span class="o">...</span>     <span class="n">detections</span><span class="o">=</span><span class="n">detections</span>
+<span class="o">...</span> <span class="p">)</span>
+</code></pre></div>
+<ul>
+<li>Added <a href="https://github.com/roboflow/supervision/pull/476">#476</a>: <a href="https://supervision.roboflow.com/assets/"><code>sv.assets</code></a> allowing download of video files that you can use in your demos.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="o">&gt;&gt;&gt;</span> <span class="kn">from</span> <span class="nn">supervision.assets</span> <span class="kn">import</span> <span class="n">download_assets</span><span class="p">,</span> <span class="n">VideoAssets</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">download_assets</span><span class="p">(</span><span class="n">VideoAssets</span><span class="o">.</span><span class="n">VEHICLES</span><span class="p">)</span>
+<span class="s2">&quot;vehicles.mp4&quot;</span>
+</code></pre></div>
+<ul>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/605">#605</a>: <a href="https://supervision.roboflow.com/geometry/core/#position"><code>Position.CENTER_OF_MASS</code></a> allowing to place labels in center of mass of segmentation masks.</p>
+</li>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/651">#651</a>: <a href="https://supervision.roboflow.com/detection/utils/#supervision.detection.utils.scale_boxes"><code>sv.scale_boxes</code></a> allowing to scale <a href="https://supervision.roboflow.com/detection/core/#supervision.detection.core.Detections"><code>sv.Detections.xyxy</code></a> values.</p>
+</li>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/637">#637</a>: <a href="https://supervision.roboflow.com/draw/utils/#supervision.draw.utils.calculate_dynamic_text_scale"><code>sv.calculate_dynamic_text_scale</code></a> and <a href="https://supervision.roboflow.com/draw/utils/#supervision.draw.utils.calculate_dynamic_line_thickness"><code>sv.calculate_dynamic_line_thickness</code></a> allowing text scale and line thickness to match image resolution.</p>
+</li>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/620">#620</a>: <a href="https://supervision.roboflow.com/draw/color/#supervision.draw.color.Color.as_hex"><code>sv.Color.as_hex</code></a> allowing to extract color value in HEX format.</p>
+</li>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/572">#572</a>: <a href="https://supervision.roboflow.com/classification/core/#supervision.classification.core.Classifications.from_timm"><code>sv.Classifications.from_timm</code></a> allowing to load classification result from <a href="https://huggingface.co/docs/hub/timm">timm</a> models.</p>
+</li>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/478">#478</a>: <a href="https://supervision.roboflow.com/classification/core/#supervision.classification.core.Classifications.from_clip"><code>sv.Classifications.from_clip</code></a> allowing to load classification result from <a href="https://github.com/openai/clip">clip</a> model.</p>
+</li>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/571">#571</a>: <a href="https://supervision.roboflow.com/detection/core/#supervision.detection.core.Detections.from_azure_analyze_image"><code>sv.Detections.from_azure_analyze_image</code></a> allowing to load detection results from <a href="https://learn.microsoft.com/en-us/azure/ai-services/computer-vision/concept-object-detection-40">Azure Image Analysis</a>.</p>
+</li>
+<li>
+<p>Changed <a href="https://github.com/roboflow/supervision/pull/646">#646</a>: <code>sv.BoxMaskAnnotator</code> renaming it to <a href="https://supervision.roboflow.com/annotators/#supervision.annotators.core.ColorAnnotator"><code>sv.ColorAnnotator</code></a>.</p>
+</li>
+<li>
+<p>Changed <a href="https://github.com/roboflow/supervision/pull/606">#606</a>: <a href="https://supervision.roboflow.com/annotators/#supervision.annotators.core.MaskAnnotator"><code>sv.MaskAnnotator</code></a> to make it <strong>5x faster</strong>.</p>
+</li>
+<li>
+<p>Fixed <a href="https://github.com/roboflow/supervision/pull/584">#584</a>: <a href="https://supervision.roboflow.com/datasets/#supervision.dataset.core.DetectionDataset.from_yolo"><code>sv.DetectionDataset.from_yolo</code></a> to ignore empty lines in annotation files.</p>
+</li>
+<li>
+<p>Fixed <a href="https://github.com/roboflow/supervision/pull/555">#555</a>: <a href="https://supervision.roboflow.com/annotators/#supervision.annotators.core.BlurAnnotator"><code>sv.BlurAnnotator</code></a> to trim negative coordinates before bluring detections.</p>
+</li>
+<li>
+<p>Fixed <a href="https://github.com/roboflow/supervision/pull/511">#511</a>: <a href="https://supervision.roboflow.com/annotators/#supervision.annotators.core.TraceAnnotator"><code>sv.TraceAnnotator</code></a> to respect trace position.</p>
+</li>
+</ul>
+<h3 id="0160-october-19-2023">0.16.0 <small>October 19, 2023</small><a class="headerlink" href="#0160-october-19-2023" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/422">#422</a>: <a href="https://supervision.roboflow.com/annotators/#supervision.annotators.core.BoxMaskAnnotator"><code>sv.BoxMaskAnnotator</code></a> allowing to annotate images and videos with mox masks.</p>
+</li>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/433">#433</a>: <a href="https://supervision.roboflow.com/annotators/#supervision.annotators.core.HaloAnnotator"><code>sv.HaloAnnotator</code></a> allowing to annotate images and videos with halo effect.</p>
+</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">image</span> <span class="o">=</span> <span class="o">...</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">halo_annotator</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">HaloAnnotator</span><span class="p">()</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">annotated_frame</span> <span class="o">=</span> <span class="n">halo_annotator</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
+<span class="o">...</span>     <span class="n">scene</span><span class="o">=</span><span class="n">image</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
+<span class="o">...</span>     <span class="n">detections</span><span class="o">=</span><span class="n">detections</span>
+<span class="o">...</span> <span class="p">)</span>
+</code></pre></div>
+<ul>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/466">#466</a>: <a href="https://supervision.roboflow.com/annotators/#supervision.annotators.core.HeatMapAnnotator"><code>sv.HeatMapAnnotator</code></a> allowing to annotate videos with heat maps.</p>
+</li>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/492">#492</a>: <a href="https://supervision.roboflow.com/annotators/#supervision.annotators.core.DotAnnotator"><code>sv.DotAnnotator</code></a> allowing to annotate images and videos with dots.</p>
+</li>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/449">#449</a>: <a href="https://supervision.roboflow.com/draw/utils/#supervision.draw.utils.draw_image"><code>sv.draw_image</code></a> allowing to draw an image onto a given scene with specified opacity and dimensions.</p>
+</li>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/280">#280</a>: <a href="https://supervision.roboflow.com/utils/video/#supervision.utils.video.FPSMonitor"><code>sv.FPSMonitor</code></a> for monitoring frames per second (FPS) to benchmark latency.</p>
+</li>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/454">#454</a>: 🤗 Hugging Face Annotators <a href="https://huggingface.co/spaces/Roboflow/Annotators">space</a>.</p>
+</li>
+<li>
+<p>Changed <a href="https://github.com/roboflow/supervision/pull/482">#482</a>: <a href="https://supervision.roboflow.com/detection/tools/line_zone/#supervision.detection.line_counter.LineZone.trigger"><code>sv.LineZone.tigger</code></a> now return <code>Tuple[np.ndarray, np.ndarray]</code>. The first array indicates which detections have crossed the line from outside to inside. The second array indicates which detections have crossed the line from inside to outside.</p>
+</li>
+<li>
+<p>Changed <a href="https://github.com/roboflow/supervision/pull/465">#465</a>: Annotator argument name from <code>color_map: str</code> to <code>color_lookup: ColorLookup</code> enum to increase type safety.</p>
+</li>
+<li>
+<p>Changed <a href="https://github.com/roboflow/supervision/pull/426">#426</a>: <a href="https://supervision.roboflow.com/annotators/#supervision.annotators.core.MaskAnnotator"><code>sv.MaskAnnotator</code></a> allowing 2x faster annotation.</p>
+</li>
+<li>
+<p>Fixed <a href="https://github.com/roboflow/supervision/pull/477">#477</a>: Poetry env definition allowing proper local installation.</p>
+</li>
+<li>
+<p>Fixed <a href="https://github.com/roboflow/supervision/pull/430">#430</a>:  <a href="https://supervision.roboflow.com/trackers/#supervision.tracker.byte_tracker.core.ByteTrack"><code>sv.ByteTrack</code></a> to return <code>np.array([], dtype=int)</code> when <code>svDetections</code> is empty.</p>
+</li>
+</ul>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><code>sv.Detections.from_yolov8</code> and <code>sv.Classifications.from_yolov8</code> as those are now replaced by <a href="https://supervision.roboflow.com/detection/core/#supervision.detection.core.Detections.from_ultralytics"><code>sv.Detections.from_ultralytics</code></a> and <a href="https://supervision.roboflow.com/classification/core/#supervision.classification.core.Classifications.from_ultralytics"><code>sv.Classifications.from_ultralytics</code></a>.</p>
+</div>
+<h3 id="0150-october-5-2023">0.15.0 <small>October 5, 2023</small><a class="headerlink" href="#0150-october-5-2023" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/170">#170</a>: <a href="https://supervision.roboflow.com/annotators/#supervision.annotators.core.BoundingBoxAnnotator"><code>sv.BoundingBoxAnnotator</code></a> allowing to annotate images and videos with bounding boxes.</p>
+</li>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/170">#170</a>: <a href="https://supervision.roboflow.com/annotators/#supervision.annotators.core.BoxCornerAnnotator"><code>sv.BoxCornerAnnotator</code></a> allowing to annotate images and videos with just bounding box corners.</p>
+</li>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/170">#170</a>: <a href="https://supervision.roboflow.com/annotators/#supervision.annotators.core.MaskAnnotator"><code>sv.MaskAnnotator</code></a> allowing to annotate images and videos with segmentation masks.</p>
+</li>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/170">#170</a>: <a href="https://supervision.roboflow.com/annotators/#supervision.annotators.core.EllipseAnnotator"><code>sv.EllipseAnnotator</code></a> allowing to annotate images and videos with ellipses (sports game style).</p>
+</li>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/386">#386</a>: <a href="https://supervision.roboflow.com/annotators/#supervision.annotators.core.CircleAnnotator"><code>sv.CircleAnnotator</code></a> allowing to annotate images and videos with circles.</p>
+</li>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/354">#354</a>: <a href="https://supervision.roboflow.com/annotators/#supervision.annotators.core.TraceAnnotator"><code>sv.TraceAnnotator</code></a> allowing to draw path of moving objects on videos.</p>
+</li>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/405">#405</a>: <a href="https://supervision.roboflow.com/annotators/#supervision.annotators.core.BlurAnnotator"><code>sv.BlurAnnotator</code></a> allowing to blur objects on images and videos.</p>
+</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">image</span> <span class="o">=</span> <span class="o">...</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">bounding_box_annotator</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">BoundingBoxAnnotator</span><span class="p">()</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">annotated_frame</span> <span class="o">=</span> <span class="n">bounding_box_annotator</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
+<span class="o">...</span>     <span class="n">scene</span><span class="o">=</span><span class="n">image</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
+<span class="o">...</span>     <span class="n">detections</span><span class="o">=</span><span class="n">detections</span>
+<span class="o">...</span> <span class="p">)</span>
+</code></pre></div>
+<ul>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/354">#354</a>: Supervision usage <a href="https://github.com/roboflow/supervision/tree/develop/examples/traffic_analysis">example</a>. You can now learn how to perform traffic flow analysis with Supervision.</p>
+</li>
+<li>
+<p>Changed <a href="https://github.com/roboflow/supervision/pull/399">#399</a>: <a href="https://supervision.roboflow.com/detection/core/#supervision.detection.core.Detections.from_roboflow"><code>sv.Detections.from_roboflow</code></a> now does not require <code>class_list</code> to be specified. The <code>class_id</code> value can be extracted directly from the <a href="https://github.com/roboflow/inference">inference</a> response.</p>
+</li>
+<li>
+<p>Changed <a href="https://github.com/roboflow/supervision/pull/381">#381</a>: <a href="https://supervision.roboflow.com/utils/video/#videosink"><code>sv.VideoSink</code></a> now allows to customize the output codec.</p>
+</li>
+<li>
+<p>Changed <a href="https://github.com/roboflow/supervision/pull/361">#361</a>: <a href="https://supervision.roboflow.com/detection/tools/inference_slicer/#supervision.detection.tools.inference_slicer.InferenceSlicer"><code>sv.InferenceSlicer</code></a> can now operate in multithreading mode.</p>
+</li>
+<li>
+<p>Fixed <a href="https://github.com/roboflow/supervision/pull/348">#348</a>: <a href="https://supervision.roboflow.com/detection/core/#supervision.detection.core.Detections.from_deepsparse"><code>sv.Detections.from_deepsparse</code></a> to allow processing empty <a href="https://github.com/neuralmagic/deepsparse">deepsparse</a> result object.</p>
+</li>
+</ul>
+<h3 id="0140-august-31-2023">0.14.0 <small>August 31, 2023</small><a class="headerlink" href="#0140-august-31-2023" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Added <a href="https://github.com/roboflow/supervision/pull/282">#282</a>: support for SAHI inference technique with <a href="https://supervision.roboflow.com/detection/tools/inference_slicer"><code>sv.InferenceSlicer</code></a>.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">cv2</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="kn">from</span> <span class="nn">ultralytics</span> <span class="kn">import</span> <span class="n">YOLO</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="n">SOURCE_IMAGE_PATH</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">model</span> <span class="o">=</span> <span class="n">YOLO</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="k">def</span> <span class="nf">callback</span><span class="p">(</span><span class="n">image_slice</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="p">:</span>
+<span class="o">...</span>     <span class="n">result</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">image_slice</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+<span class="o">...</span>     <span class="k">return</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_ultralytics</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">slicer</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">InferenceSlicer</span><span class="p">(</span><span class="n">callback</span> <span class="o">=</span> <span class="n">callback</span><span class="p">)</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">detections</span> <span class="o">=</span> <span class="n">slicer</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+</code></pre></div>
+<ul>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/297">#297</a>: <a href="https://roboflow.github.io/supervision/detection/core/#supervision.detection.core.Detections.from_deepsparse"><code>Detections.from_deepsparse</code></a> to enable seamless integration with <a href="https://github.com/neuralmagic/deepsparse">DeepSparse</a> framework.</p>
+</li>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/281">#281</a>: <a href="https://supervision.roboflow.com/classification/core/#supervision.classification.core.Classifications.from_ultralytics"><code>sv.Classifications.from_ultralytics</code></a> to enable seamless integration with <a href="https://github.com/ultralytics/ultralytics">Ultralytics</a> framework. This will enable you to use supervision with all <a href="https://docs.ultralytics.com/models/">models</a> that Ultralytics supports.</p>
+</li>
+</ul>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><a href="https://roboflow.github.io/supervision/detection/core/#supervision.detection.core.Detections.from_yolov8">sv.Detections.from_yolov8</a> and <a href="https://supervision.roboflow.com/classification/core/#supervision.classification.core.Classifications.from_yolov8">sv.Classifications.from_yolov8</a> are now deprecated and will be removed with supervision-0.16.0 release.</p>
+</div>
+<ul>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/341">#341</a>: First supervision usage example script showing how to detect and track objects on video using YOLOv8 + Supervision.</p>
+</li>
+<li>
+<p>Changed <a href="https://github.com/roboflow/supervision/pull/296">#296</a>: <a href="https://supervision.roboflow.com/dataset/core/#supervision.dataset.core.ClassificationDataset"><code>sv.ClassificationDataset</code></a> and <a href="https://supervision.roboflow.com/dataset/core/#supervision.dataset.core.DetectionDataset"><code>sv.DetectionDataset</code></a> now use image path (not image name) as dataset keys.</p>
+</li>
+<li>
+<p>Fixed <a href="https://github.com/roboflow/supervision/pull/300">#300</a>: <a href="https://supervision.roboflow.com/detection/core/#supervision.detection.core.Detections.from_roboflow"><code>Detections.from_roboflow</code></a> to filter out polygons with less than 3 points.</p>
+</li>
+</ul>
+<h3 id="0130-august-8-2023">0.13.0 <small>August 8, 2023</small><a class="headerlink" href="#0130-august-8-2023" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Added <a href="https://github.com/roboflow/supervision/pull/236">#236</a>: support for mean average precision (mAP) for object detection models with <a href="https://roboflow.github.io/supervision/metrics/detection/#meanaverageprecision"><code>sv.MeanAveragePrecision</code></a>.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="kn">from</span> <span class="nn">ultralytics</span> <span class="kn">import</span> <span class="n">YOLO</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">dataset</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">DetectionDataset</span><span class="o">.</span><span class="n">from_yolo</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">model</span> <span class="o">=</span> <span class="n">YOLO</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="k">def</span> <span class="nf">callback</span><span class="p">(</span><span class="n">image</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="p">:</span>
+<span class="o">...</span>     <span class="n">result</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">image</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+<span class="o">...</span>     <span class="k">return</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_yolov8</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">mean_average_precision</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">MeanAveragePrecision</span><span class="o">.</span><span class="n">benchmark</span><span class="p">(</span>
+<span class="o">...</span>     <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="p">,</span>
+<span class="o">...</span>     <span class="n">callback</span> <span class="o">=</span> <span class="n">callback</span>
+<span class="o">...</span> <span class="p">)</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">mean_average_precision</span><span class="o">.</span><span class="n">map50_95</span>
+<span class="mf">0.433</span>
+</code></pre></div>
+<ul>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/256">#256</a>: support for ByteTrack for object tracking with <a href="https://roboflow.github.io/supervision/tracker/core/#bytetrack"><code>sv.ByteTrack</code></a>.</p>
+</li>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/222">#222</a>: <a href="https://roboflow.github.io/supervision/detection/core/#supervision.detection.core.Detections.from_ultralytics"><code>sv.Detections.from_ultralytics</code></a> to enable seamless integration with <a href="https://github.com/ultralytics/ultralytics">Ultralytics</a> framework. This will enable you to use <code>supervision</code> with all <a href="https://docs.ultralytics.com/models/">models</a> that Ultralytics supports.</p>
+</li>
+</ul>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><a href="https://roboflow.github.io/supervision/detection/core/#supervision.detection.core.Detections.from_yolov8"><code>sv.Detections.from_yolov8</code></a> is now deprecated and will be removed with <code>supervision-0.15.0</code> release.</p>
+</div>
+<ul>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/191">#191</a>: <a href="https://roboflow.github.io/supervision/detection/core/#supervision.detection.core.Detections.from_paddledet"><code>sv.Detections.from_paddledet</code></a> to enable seamless integration with <a href="https://github.com/PaddlePaddle/PaddleDetection">PaddleDetection</a> framework.</p>
+</li>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/245">#245</a>: support for loading PASCAL VOC segmentation datasets with <a href="https://roboflow.github.io/supervision/dataset/core/#supervision.dataset.core.DetectionDataset.from_pascal_voc"><code>sv.DetectionDataset.</code></a>.</p>
+</li>
+</ul>
+<h3 id="0120-july-24-2023">0.12.0 <small>July 24, 2023</small><a class="headerlink" href="#0120-july-24-2023" title="Permanent link">&para;</a></h3>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>With the <code>supervision-0.12.0</code> release, we are terminating official support for Python 3.7.</p>
+</div>
+<ul>
+<li>Added <a href="https://github.com/roboflow/supervision/pull/177">#177</a>: initial support for object detection model benchmarking with <a href="https://roboflow.github.io/supervision/metrics/detection/#confusionmatrix"><code>sv.ConfusionMatrix</code></a>.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="kn">from</span> <span class="nn">ultralytics</span> <span class="kn">import</span> <span class="n">YOLO</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">dataset</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">DetectionDataset</span><span class="o">.</span><span class="n">from_yolo</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">model</span> <span class="o">=</span> <span class="n">YOLO</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="k">def</span> <span class="nf">callback</span><span class="p">(</span><span class="n">image</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="p">:</span>
+<span class="o">...</span>     <span class="n">result</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">image</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+<span class="o">...</span>     <span class="k">return</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_yolov8</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">confusion_matrix</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">ConfusionMatrix</span><span class="o">.</span><span class="n">benchmark</span><span class="p">(</span>
+<span class="o">...</span>     <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="p">,</span>
+<span class="o">...</span>     <span class="n">callback</span> <span class="o">=</span> <span class="n">callback</span>
+<span class="o">...</span> <span class="p">)</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">confusion_matrix</span><span class="o">.</span><span class="n">matrix</span>
+<span class="n">array</span><span class="p">([</span>
+    <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+    <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">],</span>
+    <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+    <span class="p">[</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">]</span>
+<span class="p">])</span>
+</code></pre></div>
+<ul>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/173">#173</a>: <a href="https://roboflow.github.io/supervision/detection/core/#supervision.detection.core.Detections.from_mmdetection"><code>Detections.from_mmdetection</code></a> to enable seamless integration with <a href="https://github.com/open-mmlab/mmdetection">MMDetection</a> framework.</p>
+</li>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/issues/130">#130</a>: ability to <a href="https://roboflow.github.io/supervision/">install</a> package in <code>headless</code> or <code>desktop</code> mode.</p>
+</li>
+<li>
+<p>Changed <a href="https://github.com/roboflow/supervision/pull/180">#180</a>: packing method from <code>setup.py</code> to <code>pyproject.toml</code>.</p>
+</li>
+<li>
+<p>Fixed <a href="https://github.com/roboflow/supervision/issues/188">#188</a>: <a href="https://roboflow.github.io/supervision/dataset/core/#supervision.dataset.core.DetectionDataset.from_coco"><code>sv.DetectionDataset.from_cooc</code></a> can't be loaded when there are images without annotations.</p>
+</li>
+<li>
+<p>Fixed <a href="https://github.com/roboflow/supervision/issues/226">#226</a>: <a href="https://roboflow.github.io/supervision/dataset/core/#supervision.dataset.core.DetectionDataset.from_yolo"><code>sv.DetectionDataset.from_yolo</code></a> can't load background instances.</p>
+</li>
+</ul>
+<h3 id="0111-june-29-2023">0.11.1 <small>June 29, 2023</small><a class="headerlink" href="#0111-june-29-2023" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Fix <a href="https://github.com/roboflow/supervision/pull/165">#165</a>: <a href="https://roboflow.github.io/supervision/dataset/core/#supervision.dataset.core.ClassificationDataset.as_folder_structure"><code>as_folder_structure</code></a> fails to save <a href="https://roboflow.github.io/supervision/dataset/core/#classificationdataset"><code>sv.ClassificationDataset</code></a> when it is result of inference.</li>
+</ul>
+<h3 id="0110-june-28-2023">0.11.0 <small>June 28, 2023</small><a class="headerlink" href="#0110-june-28-2023" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Added <a href="https://github.com/roboflow/supervision/pull/150">#150</a>: ability to load and save <a href="https://roboflow.github.io/supervision/dataset/core/#detectiondataset"><code>sv.DetectionDataset</code></a> in COCO format using <a href="https://roboflow.github.io/supervision/dataset/core/#supervision.dataset.core.DetectionDataset.as_coco"><code>as_coco</code></a> and <a href="https://roboflow.github.io/supervision/dataset/core/#supervision.dataset.core.DetectionDataset.from_coco"><code>from_coco</code></a> methods.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">ds</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">DetectionDataset</span><span class="o">.</span><span class="n">from_coco</span><span class="p">(</span>
+<span class="o">...</span>     <span class="n">images_directory_path</span><span class="o">=</span><span class="s1">&#39;...&#39;</span><span class="p">,</span>
+<span class="o">...</span>     <span class="n">annotations_path</span><span class="o">=</span><span class="s1">&#39;...&#39;</span>
+<span class="o">...</span> <span class="p">)</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">ds</span><span class="o">.</span><span class="n">as_coco</span><span class="p">(</span>
+<span class="o">...</span>     <span class="n">images_directory_path</span><span class="o">=</span><span class="s1">&#39;...&#39;</span><span class="p">,</span>
+<span class="o">...</span>     <span class="n">annotations_path</span><span class="o">=</span><span class="s1">&#39;...&#39;</span>
+<span class="o">...</span> <span class="p">)</span>
+</code></pre></div>
+<ul>
+<li>Added <a href="https://github.com/roboflow/supervision/pull/158">#158</a>: ability to marge multiple <a href="https://roboflow.github.io/supervision/dataset/core/#detectiondataset"><code>sv.DetectionDataset</code></a> together using <a href="https://roboflow.github.io/supervision/dataset/core/#supervision.dataset.core.DetectionDataset.merge"><code>merge</code></a> method.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">ds_1</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">DetectionDataset</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">ds_1</span><span class="p">)</span>
+<span class="mi">100</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">ds_1</span><span class="o">.</span><span class="n">classes</span>
+<span class="p">[</span><span class="s1">&#39;dog&#39;</span><span class="p">,</span> <span class="s1">&#39;person&#39;</span><span class="p">]</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">ds_2</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">DetectionDataset</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">ds_2</span><span class="p">)</span>
+<span class="mi">200</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">ds_2</span><span class="o">.</span><span class="n">classes</span>
+<span class="p">[</span><span class="s1">&#39;cat&#39;</span><span class="p">]</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">ds_merged</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">DetectionDataset</span><span class="o">.</span><span class="n">merge</span><span class="p">([</span><span class="n">ds_1</span><span class="p">,</span> <span class="n">ds_2</span><span class="p">])</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">ds_merged</span><span class="p">)</span>
+<span class="mi">300</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">ds_merged</span><span class="o">.</span><span class="n">classes</span>
+<span class="p">[</span><span class="s1">&#39;cat&#39;</span><span class="p">,</span> <span class="s1">&#39;dog&#39;</span><span class="p">,</span> <span class="s1">&#39;person&#39;</span><span class="p">]</span>
+</code></pre></div>
+<ul>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/162">#162</a>: additional <code>start</code> and <code>end</code> arguments to <a href="https://roboflow.github.io/supervision/utils/video/#get_video_frames_generator"><code>sv.get_video_frames_generator</code></a> allowing to generate frames only for a selected part of the video.</p>
+</li>
+<li>
+<p>Fix <a href="https://github.com/roboflow/supervision/pull/157">#157</a>: incorrect loading of YOLO dataset class names from <code>data.yaml</code>.</p>
+</li>
+</ul>
+<h3 id="0100-june-14-2023">0.10.0 <small>June 14, 2023</small><a class="headerlink" href="#0100-june-14-2023" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Added <a href="https://github.com/roboflow/supervision/pull/125">#125</a>: ability to load and save <a href="https://roboflow.github.io/supervision/dataset/core/#classificationdataset"><code>sv.ClassificationDataset</code></a> in a folder structure format.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">cs</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">ClassificationDataset</span><span class="o">.</span><span class="n">from_folder_structure</span><span class="p">(</span>
+<span class="o">...</span>     <span class="n">root_directory_path</span><span class="o">=</span><span class="s1">&#39;...&#39;</span>
+<span class="o">...</span> <span class="p">)</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">cs</span><span class="o">.</span><span class="n">as_folder_structure</span><span class="p">(</span>
+<span class="o">...</span>     <span class="n">root_directory_path</span><span class="o">=</span><span class="s1">&#39;...&#39;</span>
+<span class="o">...</span> <span class="p">)</span>
+</code></pre></div>
+<ul>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/125">#125</a>: support for <a href="https://roboflow.github.io/supervision/dataset/core/#supervision.dataset.core.ClassificationDataset.split"><code>sv.ClassificationDataset.split</code></a> allowing to divide <code>sv.ClassificationDataset</code> into two parts.</p>
+</li>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/110">#110</a>: ability to extract masks from Roboflow API results using <a href="https://roboflow.github.io/supervision/detection/core/#supervision.detection.core.Detections.from_roboflow"><code>sv.Detections.from_roboflow</code></a>.</p>
+</li>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/commit/d000292eb2f2342544e0947b65528082e60fb8d6">commit hash</a>: Supervision Quickstart <a href="https://colab.research.google.com/github/roboflow/supervision/blob/main/demo.ipynb">notebook</a> where you can learn more about Detection, Dataset and Video APIs.</p>
+</li>
+<li>
+<p>Changed <a href="https://github.com/roboflow/supervision/pull/135">#135</a>: <code>sv.get_video_frames_generator</code> documentation to better describe actual behavior.</p>
+</li>
+</ul>
+<h3 id="090-june-7-2023">0.9.0 <small>June 7, 2023</small><a class="headerlink" href="#090-june-7-2023" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Added <a href="https://github.com/roboflow/supervision/pull/118">#118</a>: ability to select <a href="https://roboflow.github.io/supervision/detection/core/#supervision.detection.core.Detections.__getitem__"><code>sv.Detections</code></a> by index, list of indexes or slice. Here is an example illustrating the new selection methods.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">detections</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="mi">1</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">detections</span><span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]])</span>
+<span class="mi">2</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">detections</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">])</span>
+<span class="mi">2</span>
+</code></pre></div>
+<ul>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/101">#101</a>: ability to extract masks from YOLOv8 result using <a href="https://roboflow.github.io/supervision/detection/core/#supervision.detection.core.Detections.from_yolov8"><code>sv.Detections.from_yolov8</code></a>. Here is an example illustrating how to extract boolean masks from the result of the YOLOv8 model inference.</p>
+</li>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/122">#122</a>: ability to crop image using <a href="https://roboflow.github.io/supervision/utils/image/#crop"><code>sv.crop</code></a>. Here is an example showing how to get a separate crop for each detection in <code>sv.Detections</code>.</p>
+</li>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/120">#120</a>: ability to conveniently save multiple images into directory using <a href="https://roboflow.github.io/supervision/utils/image/#imagesink"><code>sv.ImageSink</code></a>. Here is an example showing how to save every tenth video frame as a separate image.</p>
+</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="k">with</span> <span class="n">sv</span><span class="o">.</span><span class="n">ImageSink</span><span class="p">(</span><span class="n">target_dir_path</span><span class="o">=</span><span class="s1">&#39;target/directory/path&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">sink</span><span class="p">:</span>
+<span class="o">...</span>     <span class="k">for</span> <span class="n">image</span> <span class="ow">in</span> <span class="n">sv</span><span class="o">.</span><span class="n">get_video_frames_generator</span><span class="p">(</span><span class="n">source_path</span><span class="o">=</span><span class="s1">&#39;source_video.mp4&#39;</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+<span class="o">...</span>         <span class="n">sink</span><span class="o">.</span><span class="n">save_image</span><span class="p">(</span><span class="n">image</span><span class="o">=</span><span class="n">image</span><span class="p">)</span>
+</code></pre></div>
+<ul>
+<li>Fixed <a href="https://github.com/roboflow/supervision/issues/106">#106</a>: inconvenient handling of <a href="https://roboflow.github.io/supervision/detection/tools/polygon_zone/#polygonzone"><code>sv.PolygonZone</code></a> coordinates. Now <code>sv.PolygonZone</code> accepts coordinates in the form of <code>[[x1, y1], [x2, y2], ...]</code> that can be both integers and floats.</li>
+</ul>
+<h3 id="080-may-17-2023">0.8.0 <small>May 17, 2023</small><a class="headerlink" href="#080-may-17-2023" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Added <a href="https://github.com/roboflow/supervision/pull/100">#100</a>: support for dataset inheritance. The current <code>Dataset</code> got renamed to <code>DetectionDataset</code>. Now <a href="https://roboflow.github.io/supervision/dataset/core/#detectiondataset"><code>DetectionDataset</code></a> inherits from <code>BaseDataset</code>. This change was made to enforce the future consistency of APIs of different types of computer vision datasets.</li>
+<li>Added <a href="https://github.com/roboflow/supervision/pull/100">#100</a>: ability to save datasets in YOLO format using <a href="https://roboflow.github.io/supervision/dataset/core/#supervision.dataset.core.DetectionDataset.as_yolo"><code>DetectionDataset.as_yolo</code></a>.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">roboflow</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="kn">from</span> <span class="nn">roboflow</span> <span class="kn">import</span> <span class="n">Roboflow</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">roboflow</span><span class="o">.</span><span class="n">login</span><span class="p">()</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">rf</span> <span class="o">=</span> <span class="n">Roboflow</span><span class="p">()</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">project</span> <span class="o">=</span> <span class="n">rf</span><span class="o">.</span><span class="n">workspace</span><span class="p">(</span><span class="n">WORKSPACE_ID</span><span class="p">)</span><span class="o">.</span><span class="n">project</span><span class="p">(</span><span class="n">PROJECT_ID</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">dataset</span> <span class="o">=</span> <span class="n">project</span><span class="o">.</span><span class="n">version</span><span class="p">(</span><span class="n">PROJECT_VERSION</span><span class="p">)</span><span class="o">.</span><span class="n">download</span><span class="p">(</span><span class="s2">&quot;yolov5&quot;</span><span class="p">)</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">ds</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">DetectionDataset</span><span class="o">.</span><span class="n">from_yolo</span><span class="p">(</span>
+<span class="o">...</span>     <span class="n">images_directory_path</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">dataset</span><span class="o">.</span><span class="n">location</span><span class="si">}</span><span class="s2">/train/images&quot;</span><span class="p">,</span>
+<span class="o">...</span>     <span class="n">annotations_directory_path</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">dataset</span><span class="o">.</span><span class="n">location</span><span class="si">}</span><span class="s2">/train/labels&quot;</span><span class="p">,</span>
+<span class="o">...</span>     <span class="n">data_yaml_path</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">dataset</span><span class="o">.</span><span class="n">location</span><span class="si">}</span><span class="s2">/data.yaml&quot;</span>
+<span class="o">...</span> <span class="p">)</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">ds</span><span class="o">.</span><span class="n">classes</span>
+<span class="p">[</span><span class="s1">&#39;dog&#39;</span><span class="p">,</span> <span class="s1">&#39;person&#39;</span><span class="p">]</span>
+</code></pre></div>
+<ul>
+<li>Added <a href="https://github.com/roboflow/supervision/pull/103">#102</a>: support for <a href="https://roboflow.github.io/supervision/dataset/core/#supervision.dataset.core.DetectionDataset.split"><code>DetectionDataset.split</code></a> allowing to divide <code>DetectionDataset</code> into two parts.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">ds</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">DetectionDataset</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">train_ds</span><span class="p">,</span> <span class="n">test_ds</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">split_ratio</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_ds</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">test_ds</span><span class="p">)</span>
+<span class="p">(</span><span class="mi">700</span><span class="p">,</span> <span class="mi">300</span><span class="p">)</span>
+</code></pre></div>
+<ul>
+<li>Changed <a href="https://github.com/roboflow/supervision/pull/100">#100</a>: default value of <code>approximation_percentage</code> parameter from <code>0.75</code> to <code>0.0</code> in <code>DetectionDataset.as_yolo</code> and <code>DetectionDataset.as_pascal_voc</code>.</li>
+</ul>
+<h3 id="070-may-11-2023">0.7.0 <small>May 11, 2023</small><a class="headerlink" href="#070-may-11-2023" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Added <a href="https://github.com/roboflow/supervision/pull/91">#91</a>: <code>Detections.from_yolo_nas</code> to enable seamless integration with <a href="https://github.com/Deci-AI/super-gradients/blob/master/YOLONAS.md">YOLO-NAS</a> model.</li>
+<li>Added <a href="https://github.com/roboflow/supervision/pull/86">#86</a>: ability to load datasets in YOLO format using <code>Dataset.from_yolo</code>.</li>
+<li>Added <a href="https://github.com/roboflow/supervision/pull/84">#84</a>: <code>Detections.merge</code> to merge multiple <code>Detections</code> objects together.</li>
+<li>Fixed <a href="https://github.com/roboflow/supervision/pull/81">#81</a>: <code>LineZoneAnnotator.annotate</code> does not return annotated frame.</li>
+<li>Changed <a href="https://github.com/roboflow/supervision/pull/44">#44</a>: <code>LineZoneAnnotator.annotate</code> to allow for custom text for the in and out tags.</li>
+</ul>
+<h3 id="060-april-19-2023">0.6.0 <small>April 19, 2023</small><a class="headerlink" href="#060-april-19-2023" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Added <a href="https://github.com/roboflow/supervision/pull/71">#71</a>: initial <code>Dataset</code> support and ability to save <code>Detections</code> in Pascal VOC XML format.</li>
+<li>Added <a href="https://github.com/roboflow/supervision/pull/71">#71</a>: new <code>mask_to_polygons</code>, <code>filter_polygons_by_area</code>, <code>polygon_to_xyxy</code> and <code>approximate_polygon</code> utilities.</li>
+<li>Added <a href="https://github.com/roboflow/supervision/pull/72">#72</a>: ability to load Pascal VOC XML <strong>object detections</strong> dataset as <code>Dataset</code>.</li>
+<li>Changed <a href="https://github.com/roboflow/supervision/pull/70">#70</a>: order of <code>Detections</code> attributes to make it consistent with order of objects in <code>__iter__</code> tuple.</li>
+<li>Changed <a href="https://github.com/roboflow/supervision/pull/71">#71</a>: <code>generate_2d_mask</code> to <code>polygon_to_mask</code>.</li>
+</ul>
+<h3 id="052-april-13-2023">0.5.2 <small>April 13, 2023</small><a class="headerlink" href="#052-april-13-2023" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Fixed <a href="https://github.com/roboflow/supervision/pull/63">#63</a>: <code>LineZone.trigger</code> function expects 4 values instead of 5.</li>
+</ul>
+<h3 id="051-april-12-2023">0.5.1 <small>April 12, 2023</small><a class="headerlink" href="#051-april-12-2023" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Fixed <code>Detections.__getitem__</code> method did not return mask for selected item.</li>
+<li>Fixed <code>Detections.area</code> crashed for mask detections.</li>
+</ul>
+<h3 id="050-april-10-2023">0.5.0 <small>April 10, 2023</small><a class="headerlink" href="#050-april-10-2023" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Added <a href="https://github.com/roboflow/supervision/pull/58">#58</a>: <code>Detections.mask</code> to enable segmentation support.</li>
+<li>Added <a href="https://github.com/roboflow/supervision/pull/58">#58</a>: <code>MaskAnnotator</code> to allow easy <code>Detections.mask</code> annotation.</li>
+<li>Added <a href="https://github.com/roboflow/supervision/pull/58">#58</a>: <code>Detections.from_sam</code> to enable native Segment Anything Model (SAM) support.</li>
+<li>Changed <a href="https://github.com/roboflow/supervision/pull/58">#58</a>: <code>Detections.area</code> behaviour to work not only with boxes but also with masks.</li>
+</ul>
+<h3 id="040-april-5-2023">0.4.0 <small>April 5, 2023</small><a class="headerlink" href="#040-april-5-2023" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Added <a href="https://github.com/roboflow/supervision/discussions/48">#46</a>: <code>Detections.empty</code> to allow easy creation of empty <code>Detections</code> objects.</li>
+<li>Added <a href="https://github.com/roboflow/supervision/pull/56">#56</a>: <code>Detections.from_roboflow</code> to allow easy creation of <code>Detections</code> objects from Roboflow API inference results.</li>
+<li>Added <a href="https://github.com/roboflow/supervision/pull/56">#56</a>: <code>plot_images_grid</code> to allow easy plotting of multiple images on single plot.</li>
+<li>Added <a href="https://github.com/roboflow/supervision/pull/56">#56</a>: initial support for Pascal VOC XML format with <code>detections_to_voc_xml</code> method.</li>
+<li>Changed <a href="https://github.com/roboflow/supervision/pull/56">#56</a>: <code>show_frame_in_notebook</code> refactored and renamed to <code>plot_image</code>.</li>
+</ul>
+<h3 id="032-march-23-2023">0.3.2 <small>March 23, 2023</small><a class="headerlink" href="#032-march-23-2023" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Changed <a href="https://github.com/roboflow/supervision/issues/50">#50</a>: Allow <code>Detections.class_id</code> to be <code>None</code>.</li>
+</ul>
+<h3 id="031-march-6-2023">0.3.1 <small>March 6, 2023</small><a class="headerlink" href="#031-march-6-2023" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Fixed <a href="https://github.com/roboflow/supervision/issues/41">#41</a>: <code>PolygonZone</code> throws an exception when the object touches the bottom edge of the image.</li>
+<li>Fixed <a href="https://github.com/roboflow/supervision/issues/42">#42</a>: <code>Detections.wth_nms</code> method throws an exception when <code>Detections</code> is empty.</li>
+<li>Changed <a href="https://github.com/roboflow/supervision/pull/36">#36</a>: <code>Detections.wth_nms</code> support class agnostic and non-class agnostic case.</li>
+</ul>
+<h3 id="030-march-6-2023">0.3.0 <small>March 6, 2023</small><a class="headerlink" href="#030-march-6-2023" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Changed: Allow <code>Detections.confidence</code> to be <code>None</code>.</li>
+<li>Added: <code>Detections.from_transformers</code> and <code>Detections.from_detectron2</code> to enable seamless integration with Transformers and Detectron2 models.</li>
+<li>Added: <code>Detections.area</code> to dynamically calculate bounding box area.</li>
+<li>Added: <code>Detections.wth_nms</code> to filter out double detections with NMS. Initial - only class agnostic - implementation.</li>
+</ul>
+<h3 id="020-february-2-2023">0.2.0 <small>February 2, 2023</small><a class="headerlink" href="#020-february-2-2023" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Added: Advanced <code>Detections</code> filtering with pandas-like API.</li>
+<li>Added: <code>Detections.from_yolov5</code> and <code>Detections.from_yolov8</code> to enable seamless integration with YOLOv5 and YOLOv8 models.</li>
+</ul>
+<h3 id="010-january-19-2023">0.1.0 <small>January 19, 2023</small><a class="headerlink" href="#010-january-19-2023" title="Permanent link">&para;</a></h3>
+<p>Say hello to Supervision 👋</p>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Roboflow 2023. All rights reserved.
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        <div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/roboflow" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://www.youtube.com/roboflow" target="_blank" rel="noopener" title="www.youtube.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M549.655 124.083c-6.281-23.65-24.787-42.276-48.284-48.597C458.781 64 288 64 288 64S117.22 64 74.629 75.486c-23.497 6.322-42.003 24.947-48.284 48.597-11.412 42.867-11.412 132.305-11.412 132.305s0 89.438 11.412 132.305c6.281 23.65 24.787 41.5 48.284 47.821C117.22 448 288 448 288 448s170.78 0 213.371-11.486c23.497-6.321 42.003-24.171 48.284-47.821 11.412-42.867 11.412-132.305 11.412-132.305s0-89.438-11.412-132.305zm-317.51 213.508V175.185l142.739 81.205-142.739 81.201z"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://www.linkedin.com/company/roboflow-ai/mycompany/" target="_blank" rel="noopener" title="www.linkedin.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M416 32H31.9C14.3 32 0 46.5 0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6 0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3 0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2 0 38.5 17.3 38.5 38.5 0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6 0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2 0 79.7 44.3 79.7 101.9V416z"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://twitter.com/roboflow" target="_blank" rel="noopener" title="twitter.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "..", "features": ["content.code.copy", "content.code.annotate"], "search": "../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.e1c3ead8.min.js"></script>
+      
+        <script src="https://widget.kapa.ai/kapa-widget.bundle.js"></script>
+      
+        <script src="../javascript/init_kapa_widget.js"></script>
+      
+    
+  </body>
+</html>
