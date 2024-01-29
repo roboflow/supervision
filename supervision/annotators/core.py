@@ -1766,7 +1766,8 @@ class CropAnnotator(BaseAnnotator):
             position (Position): the anchor position to place cropped detections
             zoom_factor (int): the percentage factor to zoom cropped image part
         '''
-        pass
+        self.position: Position = position
+        self.zoom_factor: int = zoom_factor
 
     def annotate(
         self,
@@ -1800,4 +1801,10 @@ class CropAnnotator(BaseAnnotator):
         ![crop-annotator-example](https://media.roboflow.com/ #TODO update link
         supervision-annotator-examples/______.png)
         '''
-        pass
+        anchors = detections.get_anchors_coordinates(anchor=self.position)
+        for detection_idx in range(len(detections)):
+            x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
+            anchor = anchors[detection_idx].astype(int)
+            
+
+        return scene
