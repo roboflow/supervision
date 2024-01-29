@@ -1751,3 +1751,18 @@ class PercentageBarAnnotator(BaseAnnotator):
                 raise ValueError("All values in custom_values must be between 0 and 1.")
 
 
+class CropAnnotator(BaseAnnotator):
+
+    def __init__(
+        self,
+        position: Position = Position.TOP_CENTER,
+        zoom_factor: int = 2
+    ):
+        pass
+
+    def annotate(
+        self,
+        scene: np.ndarray,
+        detections: Detections,
+    ) -> np.ndarray:
+        pass
