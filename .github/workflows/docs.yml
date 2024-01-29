@@ -23,4 +23,5 @@ jobs:
       - run: pip install mkdocs-material
       - run: pip install "mkdocstrings[python]"
       - run: pip install "mkdocs-material[imaging]"
-      - run: mkdocs gh-deploy --force
+      - run: pip install "mike"
+      # - run: mkdocs gh-deploy --force

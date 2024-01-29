@@ -67,6 +67,7 @@ tox = "^4.11.4"
 [tool.poetry.group.docs.dependencies]
 mkdocs-material = {extras = ["imaging"], version = "^9.5.5"}
 mkdocstrings = {extras = ["python"], version = ">=0.20,<0.25"}
+mike = "^2.0.0"
 
 
 [tool.isort]
