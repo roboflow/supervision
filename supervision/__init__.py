@@ -12,6 +12,7 @@ from supervision.annotators.core import (
     BoxCornerAnnotator,
     CircleAnnotator,
     ColorAnnotator,
+    CropAnnotator,
     DotAnnotator,
     EllipseAnnotator,
     HaloAnnotator,
