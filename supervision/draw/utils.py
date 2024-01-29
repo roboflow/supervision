@@ -111,6 +111,8 @@ def draw_text(
     text_padding: int = 10,
     text_font: int = cv2.FONT_HERSHEY_SIMPLEX,
     background_color: Optional[Color] = None,
+    text_width: Optional[int] = None,
+    text_height: Optional[int] = None,
 ) -> np.ndarray:
     """
     Draw text with background on a scene.
@@ -129,6 +131,10 @@ def draw_text(
             Defaults to cv2.FONT_HERSHEY_SIMPLEX.
         background_color (Color, optional): The color of the background rectangle,
             if one is to be drawn. Defaults to None.
+        text_width (Optional[int], optional): The width of the text, if known.
+            Defaults to None. If None, the width will be calculated.
+        text_height (Optional[int], optional): The height of the text, if known.
+            Defaults to None. If None, the height will be calculated.
 
     Returns:
         np.ndarray: The input scene with the text drawn on it.
@@ -142,12 +148,13 @@ def draw_text(
         scene = draw_text(scene=scene, text="Hello, world!",text_anchor=text_anchor)
         ```
     """
-    text_width, text_height = cv2.getTextSize(
-        text=text,
-        fontFace=text_font,
-        fontScale=text_scale,
-        thickness=text_thickness,
-    )[0]
+    if text_width is None or text_height is None:
+        text_width, text_height = cv2.getTextSize(
+            text=text,
+            fontFace=text_font,
+            fontScale=text_scale,
+            thickness=text_thickness,
+        )[0]
     text_rect = Rect(
         x=text_anchor.x - text_width // 2,
         y=text_anchor.y - text_height // 2,

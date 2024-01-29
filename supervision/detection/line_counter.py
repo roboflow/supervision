@@ -5,7 +5,8 @@ import numpy as np
 
 from supervision.detection.core import Detections
 from supervision.draw.color import Color
-from supervision.geometry.core import Point, Position, Rect, Vector
+from supervision.draw.utils import draw_text
+from supervision.geometry.core import Point, Position, Vector
 
 
 class LineZone:
@@ -209,7 +210,7 @@ class LineZoneAnnotator:
         frame: np.ndarray,
         line_counter: LineZone,
         text: str,
-        in_count: bool,
+        count_pos: bool,
     ) -> None:
         """This method is drawing the text on the frame.
 
@@ -218,51 +219,32 @@ class LineZoneAnnotator:
             line_counter (LineCounter): The line counter
                 that will be used to draw the line.
             text (str): The text that will be drawn.
-            in_count (bool): Whether to display the in count or not.
+            count_pos (bool): Whether to display the in count or not.
         """
-        (text_width, text_height), _ = cv2.getTextSize(
+        text_width, text_height = cv2.getTextSize(
             text, cv2.FONT_HERSHEY_SIMPLEX, self.text_scale, self.text_thickness
-        )
+        )[0]
 
-        text_x = (
-            line_counter.vector.end.x + line_counter.vector.start.x - text_width
-        ) / 2
+        center_text_anchor = Vector(
+            start=line_counter.vector.start, end=line_counter.vector.end
+        ).center
 
-        text_y = (
-            line_counter.vector.end.y + line_counter.vector.start.y + text_height
-        ) / 2
-
-        if in_count:
-            # if the text is an in count, we want to display it above the line
-            text_y -= self.text_offset * text_height
+        if count_pos:
+            center_text_anchor.y -= int(self.text_offset * text_height)
         else:
-            # if the text is an out count, we want to display it below the line
-            text_y += self.text_offset * text_height
+            center_text_anchor.y += int(self.text_offset * text_height)
 
-        text_background_rect = Rect(
-            x=text_x,
-            y=text_y - text_height,
-            width=text_width,
-            height=text_height,
-        ).pad(padding=self.text_padding)
-
-        cv2.rectangle(
-            frame,
-            text_background_rect.top_left.as_xy_int_tuple(),
-            text_background_rect.bottom_right.as_xy_int_tuple(),
-            self.color.as_bgr(),
-            -1,
-        )
-
-        cv2.putText(
-            frame,
-            text,
-            (int(text_x), int(text_y)),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            self.text_scale,
-            self.text_color.as_bgr(),
-            self.text_thickness,
-            cv2.LINE_AA,
+        draw_text(
+            scene=frame,
+            text=text,
+            text_anchor=center_text_anchor,
+            text_color=self.text_color,
+            text_scale=self.text_scale,
+            text_thickness=self.text_thickness,
+            text_padding=self.text_padding,
+            background_color=self.color,
+            text_width=text_width,
+            text_height=text_height,
         )
 
     def annotate(self, frame: np.ndarray, line_counter: LineZone) -> np.ndarray:
@@ -311,7 +293,10 @@ class LineZoneAnnotator:
                 else f"in: {line_counter.in_count}"
             )
             self._annotate_count(
-                line_counter=line_counter, text=in_text, in_count=True, frame=frame
+                frame=frame,
+                line_counter=line_counter,
+                text=in_text,
+                count_pos=True,
             )
 
         if self.display_out_count:
@@ -321,7 +306,9 @@ class LineZoneAnnotator:
                 else f"out: {line_counter.out_count}"
             )
             self._annotate_count(
-                line_counter=line_counter, text=out_text, in_count=False, frame=frame
+                frame=frame,
+                line_counter=line_counter,
+                text=out_text,
+                count_pos=False,
             )
-
         return frame

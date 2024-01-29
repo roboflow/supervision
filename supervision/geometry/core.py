@@ -56,6 +56,19 @@ class Vector:
         dy = self.end.y - self.start.y
         return sqrt(dx**2 + dy**2)
 
+    @property
+    def center(self) -> Point:
+        """
+        Calculate the center point of the vector.
+
+        Returns:
+            Point: The center point of the vector.
+        """
+        return Point(
+            x=(self.start.x + self.end.x) // 2,
+            y=(self.start.y + self.end.y) // 2,
+        )
+
     def cross_product(self, point: Point) -> float:
         """
         Calculate the 2D cross product (also known as the vector product or outer
