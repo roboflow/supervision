@@ -5,8 +5,8 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
-from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES
 
+from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.utils import (
     calculate_masks_centroids,
     extract_ultralytics_masks,
@@ -192,7 +192,7 @@ class Detections:
                 else None,
                 data={
                     ORIENTED_BOX_COORDINATES: oriented_box_coordinates,
-                    CLASS_NAME_DATA_FIELD: class_names
+                    CLASS_NAME_DATA_FIELD: class_names,
                 },
             )
 
@@ -206,9 +206,7 @@ class Detections:
             tracker_id=ultralytics_results.boxes.id.int().cpu().numpy()
             if ultralytics_results.boxes.id is not None
             else None,
-            data={
-                CLASS_NAME_DATA_FIELD: class_names
-            }
+            data={CLASS_NAME_DATA_FIELD: class_names},
         )
 
     @classmethod
