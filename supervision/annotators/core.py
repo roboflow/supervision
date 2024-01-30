@@ -1801,10 +1801,28 @@ class CropAnnotator(BaseAnnotator):
         ![crop-annotator-example](https://media.roboflow.com/ #TODO update link
         supervision-annotator-examples/______.png)
         '''
+        base_scene = scene.copy()
         anchors = detections.get_anchors_coordinates(anchor=self.position)
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
             anchor = anchors[detection_idx].astype(int)
+            crop_part = base_scene[y1:y2, x1:x2]
+
+            crop_part = cv2.resize(
+                crop_part,
+                (self.zoom_factor * crop_part.shape[1],
+                 self.zoom_factor * crop_part.shape[0])
+            )
             
+            x = anchor[0]
+            y = anchor[1]
+            
+            y_len = crop_part.shape[0]
+            x_len = crop_part.shape[1]
+
+            try:
+                scene[y:y + y_len, x:x + x_len] = crop_part
+            except ValueError:
+                pass
 
         return scene
