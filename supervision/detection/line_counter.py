@@ -218,7 +218,7 @@ class LineZoneAnnotator:
             frame (np.ndarray): The image on which the text will be drawn.
             center_text_anchor: The center point that the text will be drawn.
             text (str): The text that will be drawn.
-            is_in_count (bool): Whether to display the in count or not.
+            is_in_count (bool): Whether to display the in count or out count.
         """
         _, text_height = cv2.getTextSize(
             text, cv2.FONT_HERSHEY_SIMPLEX, self.text_scale, self.text_thickness
