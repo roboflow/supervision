@@ -1,5 +1,5 @@
 tqdm
 opencv-python
-supervision==0.18.0rc3
+supervision==0.18.0
 ultralytics
 inference
