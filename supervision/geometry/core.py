@@ -65,8 +65,8 @@ class Vector:
             Point: The center point of the vector.
         """
         return Point(
-            x=(self.start.x + self.end.x) // 2,
-            y=(self.start.y + self.end.y) // 2,
+            x=(self.start.x + self.end.x) / 2,
+            y=(self.start.y + self.end.y) / 2,
         )
 
     def cross_product(self, point: Point) -> float:

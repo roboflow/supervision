@@ -111,8 +111,6 @@ def draw_text(
     text_padding: int = 10,
     text_font: int = cv2.FONT_HERSHEY_SIMPLEX,
     background_color: Optional[Color] = None,
-    text_width: Optional[int] = None,
-    text_height: Optional[int] = None,
 ) -> np.ndarray:
     """
     Draw text with background on a scene.
@@ -131,10 +129,6 @@ def draw_text(
             Defaults to cv2.FONT_HERSHEY_SIMPLEX.
         background_color (Color, optional): The color of the background rectangle,
             if one is to be drawn. Defaults to None.
-        text_width (Optional[int], optional): The width of the text, if known.
-            Defaults to None. If None, the width will be calculated.
-        text_height (Optional[int], optional): The height of the text, if known.
-            Defaults to None. If None, the height will be calculated.
 
     Returns:
         np.ndarray: The input scene with the text drawn on it.
@@ -148,16 +142,18 @@ def draw_text(
         scene = draw_text(scene=scene, text="Hello, world!",text_anchor=text_anchor)
         ```
     """
-    if text_width is None or text_height is None:
-        text_width, text_height = cv2.getTextSize(
-            text=text,
-            fontFace=text_font,
-            fontScale=text_scale,
-            thickness=text_thickness,
-        )[0]
+    text_width, text_height = cv2.getTextSize(
+        text=text,
+        fontFace=text_font,
+        fontScale=text_scale,
+        thickness=text_thickness,
+    )[0]
+
+    text_anchor_x, text_anchor_y = text_anchor.as_xy_int_tuple()
+
     text_rect = Rect(
-        x=text_anchor.x - text_width // 2,
-        y=text_anchor.y - text_height // 2,
+        x=text_anchor_x - text_width // 2,
+        y=text_anchor_y - text_height // 2,
         width=text_width,
         height=text_height,
     ).pad(text_padding)
@@ -170,7 +166,7 @@ def draw_text(
     cv2.putText(
         img=scene,
         text=text,
-        org=(text_anchor.x - text_width // 2, text_anchor.y + text_height // 2),
+        org=(text_anchor_x - text_width // 2, text_anchor_y + text_height // 2),
         fontFace=text_font,
         fontScale=text_scale,
         color=text_color.as_bgr(),

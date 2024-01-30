@@ -208,28 +208,23 @@ class LineZoneAnnotator:
     def _annotate_count(
         self,
         frame: np.ndarray,
-        line_counter: LineZone,
+        center_text_anchor: Point,
         text: str,
-        count_pos: bool,
+        is_in_count: bool,
     ) -> None:
         """This method is drawing the text on the frame.
 
         Args:
             frame (np.ndarray): The image on which the text will be drawn.
-            line_counter (LineCounter): The line counter
-                that will be used to draw the line.
+            center_text_anchor: The center point that the text will be drawn.
             text (str): The text that will be drawn.
-            count_pos (bool): Whether to display the in count or not.
+            is_in_count (bool): Whether to display the in count or not.
         """
-        text_width, text_height = cv2.getTextSize(
+        _, text_height = cv2.getTextSize(
             text, cv2.FONT_HERSHEY_SIMPLEX, self.text_scale, self.text_thickness
         )[0]
 
-        center_text_anchor = Vector(
-            start=line_counter.vector.start, end=line_counter.vector.end
-        ).center
-
-        if count_pos:
+        if is_in_count:
             center_text_anchor.y -= int(self.text_offset * text_height)
         else:
             center_text_anchor.y += int(self.text_offset * text_height)
@@ -243,8 +238,6 @@ class LineZoneAnnotator:
             text_thickness=self.text_thickness,
             text_padding=self.text_padding,
             background_color=self.color,
-            text_width=text_width,
-            text_height=text_height,
         )
 
     def annotate(self, frame: np.ndarray, line_counter: LineZone) -> np.ndarray:
@@ -286,6 +279,10 @@ class LineZoneAnnotator:
             lineType=cv2.LINE_AA,
         )
 
+        text_anchor = Vector(
+            start=line_counter.vector.start, end=line_counter.vector.end
+        )
+
         if self.display_in_count:
             in_text = (
                 f"{self.custom_in_text}: {line_counter.in_count}"
@@ -294,9 +291,9 @@ class LineZoneAnnotator:
             )
             self._annotate_count(
                 frame=frame,
-                line_counter=line_counter,
+                center_text_anchor=text_anchor.center,
                 text=in_text,
-                count_pos=True,
+                is_in_count=True,
             )
 
         if self.display_out_count:
@@ -307,8 +304,8 @@ class LineZoneAnnotator:
             )
             self._annotate_count(
                 frame=frame,
-                line_counter=line_counter,
+                center_text_anchor=text_anchor.center,
                 text=out_text,
-                count_pos=False,
+                is_in_count=False,
             )
         return frame
