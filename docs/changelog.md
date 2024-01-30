@@ -152,7 +152,7 @@ ColorPalette(colors=[Color(r=68, g=1, b=84), Color(r=59, g=82, b=139), ...])
 
 - Added [#454](https://github.com/roboflow/supervision/pull/454): 🤗 Hugging Face Annotators [space](https://huggingface.co/spaces/Roboflow/Annotators).
 
-- Changed [#482](https://github.com/roboflow/supervision/pull/482): [`sv.LineZone.tigger`](https://supervision.roboflow.com/detection/tools/line_zone/#supervision.detection.line_counter.LineZone.trigger) now return `Tuple[np.ndarray, np.ndarray]`. The first array indicates which detections have crossed the line from outside to inside. The second array indicates which detections have crossed the line from inside to outside.
+- Changed [#482](https://github.com/roboflow/supervision/pull/482): [`sv.LineZone.trigger`](https://supervision.roboflow.com/detection/tools/line_zone/#supervision.detection.line_counter.LineZone.trigger) now return `Tuple[np.ndarray, np.ndarray]`. The first array indicates which detections have crossed the line from outside to inside. The second array indicates which detections have crossed the line from inside to outside.
 
 - Changed [#465](https://github.com/roboflow/supervision/pull/465): Annotator argument name from `color_map: str` to `color_lookup: ColorLookup` enum to increase type safety.
 
@@ -342,7 +342,7 @@ array([
 ... )
 ```
 
-- Added [#158](https://github.com/roboflow/supervision/pull/158): ability to marge multiple [`sv.DetectionDataset`](https://roboflow.github.io/supervision/dataset/core/#detectiondataset) together using [`merge`](https://roboflow.github.io/supervision/dataset/core/#supervision.dataset.core.DetectionDataset.merge) method.
+- Added [#158](https://github.com/roboflow/supervision/pull/158): ability to merge multiple [`sv.DetectionDataset`](https://roboflow.github.io/supervision/dataset/core/#detectiondataset) together using [`merge`](https://roboflow.github.io/supervision/dataset/core/#supervision.dataset.core.DetectionDataset.merge) method.
 
 ```python
 >>> import supervision as sv
