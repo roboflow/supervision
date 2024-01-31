@@ -6,6 +6,7 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 
+from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.utils import (
     calculate_masks_centroids,
     extract_ultralytics_masks,
@@ -24,7 +25,34 @@ from supervision.utils.internal import deprecated
 @dataclass
 class Detections:
     """
-    A dataclass representing detection results.
+    The `sv.Detections` allows you to convert results from a variety of object detection
+    and segmentation models into a single, unified format. The `sv.Detections` class
+    enables easy data manipulation and filtering, and provides a consistent API for
+    Supervision's tools like trackers, annotators, and zones.
+
+    ```python
+    import cv2
+    import supervision as sv
+    from ultralytics import YOLO
+
+    image = cv2.imread(<SOURCE_IMAGE_PATH>)
+    model = YOLO('yolov8s.pt')
+    annotator = sv.BoundingBoxAnnotator()
+
+    result = model(image)[0]
+    detections = sv.Detections.from_ultralytics(result)
+
+    annotated_image = annotator.annotate(image, detections)
+    ```
+
+    !!! tip
+
+        In `sv.Detections`, detection data is categorized into two main field types:
+        fixed and custom. The fixed fields include `xyxy`, `mask`, `confidence`,
+        `class_id`, and `tracker_id`. For any additional data requirements, custom
+        fields come into play, stored in the data field. These custom fields are easily
+        accessible using the `detections[<FIELD_NAME>]` syntax, providing flexibility
+        for diverse data handling needs.
 
     Attributes:
         xyxy (np.ndarray): An array of shape `(n, 4)` containing
@@ -179,24 +207,33 @@ class Detections:
         """  # noqa: E501 // docs
 
         if ultralytics_results.obb is not None:
+            class_id = ultralytics_results.obb.cls.cpu().numpy().astype(int)
+            class_names = np.array([ultralytics_results.names[i] for i in class_id])
+            oriented_box_coordinates = ultralytics_results.obb.xyxyxyxy.cpu().numpy()
             return cls(
                 xyxy=ultralytics_results.obb.xyxy.cpu().numpy(),
-                data={"xyxyxyxy": ultralytics_results.obb.xyxyxyxy.cpu().numpy()},
                 confidence=ultralytics_results.obb.conf.cpu().numpy(),
-                class_id=ultralytics_results.obb.cls.cpu().numpy().astype(int),
+                class_id=class_id,
                 tracker_id=ultralytics_results.obb.id.int().cpu().numpy()
                 if ultralytics_results.obb.id is not None
                 else None,
+                data={
+                    ORIENTED_BOX_COORDINATES: oriented_box_coordinates,
+                    CLASS_NAME_DATA_FIELD: class_names,
+                },
             )
 
+        class_id = ultralytics_results.boxes.cls.cpu().numpy().astype(int)
+        class_names = np.array([ultralytics_results.names[i] for i in class_id])
         return cls(
             xyxy=ultralytics_results.boxes.xyxy.cpu().numpy(),
             confidence=ultralytics_results.boxes.conf.cpu().numpy(),
-            class_id=ultralytics_results.boxes.cls.cpu().numpy().astype(int),
+            class_id=class_id,
             mask=extract_ultralytics_masks(ultralytics_results),
             tracker_id=ultralytics_results.boxes.id.int().cpu().numpy()
             if ultralytics_results.boxes.id is not None
             else None,
+            data={CLASS_NAME_DATA_FIELD: class_names},
         )
 
     @classmethod

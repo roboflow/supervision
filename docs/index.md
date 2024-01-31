@@ -34,7 +34,7 @@ We write your reusable computer vision tools. Whether you need to load your data
 
     Annotate predictions from a range of object detection and segmentation models
 
-    [:octicons-arrow-right-24: Tutorial](how_to/detect_and_annotate)
+    [:octicons-arrow-right-24: Tutorial](how_to/detect_and_annotate.md)
 
 -   __Track Objects__
 
@@ -42,7 +42,7 @@ We write your reusable computer vision tools. Whether you need to load your data
 
     Discover how to enhance video analysis by implementing seamless object tracking
 
-    [:octicons-arrow-right-24: Tutorial](how_to/track_objects)
+    [:octicons-arrow-right-24: Tutorial](how_to/track_objects.md)
 
 -   > __Count Objects Crossing Line__
 

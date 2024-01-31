@@ -6,7 +6,7 @@ import numpy as np
 
 from supervision.annotators.base import BaseAnnotator
 from supervision.annotators.utils import ColorLookup, Trace, resolve_color
-from supervision.config import CLASS_NAME_DATA_FIELD
+from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
 from supervision.detection.utils import clip_boxes, mask_to_polygons
 from supervision.draw.color import Color, ColorPalette
@@ -153,11 +153,11 @@ class OrientedBoxAnnotator(BaseAnnotator):
             ```
         """  # noqa E501 // docs
 
-        if detections.data is None or "xyxyxyxy" not in detections.data:
+        if detections.data is None or ORIENTED_BOX_COORDINATES not in detections.data:
             return scene
 
         for detection_idx in range(len(detections)):
-            bbox = np.int0(detections.data.get("xyxyxyxy")[detection_idx])
+            bbox = np.int0(detections.data.get(ORIENTED_BOX_COORDINATES)[detection_idx])
             color = resolve_color(
                 color=self.color,
                 detections=detections,
