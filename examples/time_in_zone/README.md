@@ -35,11 +35,23 @@ TODO
     configurations. This file defines the polygonal areas in the video where objects will
     be counted.
   - `--source_video_path`: The path to the source video file that will be analyzed.
+  - `--confidence_threshold` (optional): Sets the confidence threshold for the YOLO model
+    to filter detections. Default is `0.3`.
+  - `--iou_threshold` (optional): Specifies the IOU (Intersection Over Union) threshold
+    for the model. Default is `0.7`.
 
 ## ⚙️ run
 
 ```bash
 python ultralytics_example.py \
+  --source_weights_path yolov8m.pt \
+  --zone_configuration_path data/time-in-zone-video.json \
+  --source_video_path data/time-in-zone-video.mp4 \
+  --confidence_threshold 0.5
+```
+
+```bash
+python ultralytics_webcam.py \
   --source_weights_path yolov8m.pt \
   --zone_configuration_path data/time-in-zone-video.json \
   --source_video_path data/time-in-zone-video.mp4 \
