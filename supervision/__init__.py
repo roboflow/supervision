@@ -39,6 +39,7 @@ from supervision.detection.line_counter import LineZone, LineZoneAnnotator
 from supervision.detection.tools.inference_slicer import InferenceSlicer
 from supervision.detection.tools.polygon_zone import PolygonZone, PolygonZoneAnnotator
 from supervision.detection.tools.smoother import DetectionsSmoother
+from supervision.detection.tools.csv_sink import CSVSink
 from supervision.detection.utils import (
     box_iou_batch,
     calculate_masks_centroids,

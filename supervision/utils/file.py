@@ -1,93 +1,10 @@
 import json
-import csv
 from pathlib import Path
-from typing import List, Optional, Union, Dict, Any
-from supervision.detection.core import Detections
+from typing import List, Optional, Union
 
 import numpy as np
 import yaml
 
-class CSVSink:
-    """
-    A utility class for saving detection data to a CSV file. This class is designed to 
-    efficiently serialize detection objects into a CSV format, allowing for the inclusion of 
-    bounding box coordinates and additional attributes like confidence, class ID, and tracker ID.
-
-    The class supports the capability to include custom data alongside the detection fields, 
-    providing flexibility for logging various types of information.
-
-    Args:
-        filename (str): The name of the CSV file where the detections will be stored. 
-                        Defaults to 'output.csv'.
-
-    Usage:
-        ```python
-        from supervision.utils.detections import Detections
-        # Initialize CSVSink with a filename
-        csv_sink = CSVSink('my_detections.csv')
-
-        # Assuming detections is an instance of Detections containing detection data
-        detections = Detections(...)
-
-        # Open the CSVSink context, append detection data, and close the file automatically
-        with csv_sink as sink:
-            sink.append(detections, custom_data={'frame': 1})
-        ```
-    """
-    def __init__(self, filename: str = 'output.csv'):
-        self.filename = filename
-        self.file: Optional[open] = None
-        self.writer: Optional[csv.writer] = None
-        self.header_written = False
-        self.fieldnames = []  # To keep track of header names
-
-    def __enter__(self) -> 'CSVSink':
-        self.open()
-        return self
-
-    def __exit__(self, exc_type: Optional[type], exc_val: Optional[Exception], exc_tb: Optional[Any]) -> None:
-        self.close()
-
-    def open(self) -> None:
-        self.file = open(self.filename, 'w', newline='')
-        self.writer = csv.writer(self.file)
-
-    def close(self) -> None:
-        if self.file:
-            self.file.close()
-
-    def append(self, detections: Detections, custom_data: Dict[str, Any] = None) -> None:
-        if not self.writer:
-            raise Exception(f"Cannot append to CSV: The file '{self.filename}' is not open. Ensure that the 'open' method is called before appending data.")
-        if not self.header_written:
-            self.write_header(detections, custom_data)
-        for i in range(len(detections.xyxy)):
-            self.write_detection_row(detections, i, custom_data)
-
-    def write_header(self, detections: Detections, custom_data: Dict[str, Any]) -> None:
-        base_header = ['x_min', 'y_min', 'x_max', 'y_max', 'class_id', 'confidence', 'tracker_id']
-        dynamic_header = sorted(set(custom_data.keys()) | set(getattr(detections, 'data', {}).keys()))
-        self.fieldnames = base_header + dynamic_header
-        self.dynamic_fields = dynamic_header  # Store only the dynamic part
-        self.writer.writerow(self.fieldnames)
-        self.header_written = True
-    
-    def write_detection_row(self, detections: Detections, index: int, custom_data: Dict[str, Any]) -> None:
-        row_base = [
-            detections.xyxy[index][0], detections.xyxy[index][1],
-            detections.xyxy[index][2], detections.xyxy[index][3],
-            detections.class_id[index], detections.confidence[index],
-            detections.tracker_id[index]
-        ]
-        dynamic_data = {}
-        if hasattr(detections, 'data'):
-            for key, value in detections.data.items():
-                dynamic_data[key] = value[index]
-        if custom_data:
-            dynamic_data.update(custom_data) 
-
-        row_dynamic = [dynamic_data.get(key) for key in self.fieldnames[7:]]
-        self.writer.writerow(row_base + row_dynamic)
 
 class NumpyJsonEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -98,6 +15,7 @@ class NumpyJsonEncoder(json.JSONEncoder):
         if isinstance(obj, np.ndarray):
             return obj.tolist()
         return super(NumpyJsonEncoder, self).default(obj)
+
 
 def list_files_with_extensions(
     directory: Union[str, Path], extensions: Optional[List[str]] = None

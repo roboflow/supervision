@@ -2,10 +2,9 @@ import os
 import csv
 import pytest
 import numpy as np
-from supervision.utils.file import CSVSink
 from supervision.detection.core import Detections
+import supervision as sv
 
-#pytest test/utils/test_csv.py
 @pytest.fixture(scope="module")
 def detection_instances():
     # Setup detection instances as per the provided example
@@ -42,7 +41,7 @@ def test_csv_sink(detection_instances):
     ]
 
     # Using the CSVSink class to write the detection data to a CSV file
-    with CSVSink(filename=csv_filename) as sink:
+    with sv.CSVSink(filename=csv_filename) as sink:
         sink.append(detections, custom_data)
         sink.append(second_detections, second_custom_data)
 
@@ -50,7 +49,7 @@ def test_csv_sink(detection_instances):
     with open(csv_filename, mode='r', newline='') as file:
         reader = csv.reader(file)
         for i, row in enumerate(reader):
-            assert [str(item) for item in expected_rows[i]] == row, f"Row in CSV file did not match expected output: {row} != {expected_rows[i]}"
+            assert [str(item) for item in expected_rows[i]] == row, f"Row in CSV didn't match expected output: {row} != {expected_rows[i]}"
 
     # Clean up by removing the test CSV file
     os.remove(csv_filename)
@@ -67,7 +66,7 @@ def test_csv_sink_manual(detection_instances):
     ]
 
     # Using the CSVSink class to write the detection data to a CSV file
-    sink = CSVSink(filename=csv_filename)
+    sink = sv.CSVSink(filename=csv_filename)
     sink.open()
     sink.append(detections, custom_data)
     sink.append(second_detections, second_custom_data)
@@ -77,7 +76,7 @@ def test_csv_sink_manual(detection_instances):
     with open(csv_filename, mode='r', newline='') as file:
         reader = csv.reader(file)
         for i, row in enumerate(reader):
-            assert [str(item) for item in expected_rows[i]] == row, f"Row in CSV file did not match expected output: {row} != {expected_rows[i]}"
+            assert [str(item) for item in expected_rows[i]] == row, f"Row in CSV didn't match expected output: {row} != {expected_rows[i]}"
 
     # Clean up by removing the test CSV file
     os.remove(csv_filename)
