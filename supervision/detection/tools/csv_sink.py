@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import csv
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
-import numpy as np
 
 from supervision.detection.core import Detections
 
@@ -17,6 +15,7 @@ BASE_HEADER = [
     "confidence",
     "tracker_id",
 ]
+
 
 class CSVSink:
     """
@@ -71,8 +70,8 @@ class CSVSink:
             callback=callback
         )
         csv_sink.close()
-        ``` 
-    """ # noqa: E501 // docs
+        ```
+    """  # noqa: E501 // docs
 
     def __init__(self, filename: str = "output.csv"):
         self.filename = filename
@@ -102,7 +101,9 @@ class CSVSink:
             self.file.close()
 
     @staticmethod
-    def parse_detection_data(detections: Detections, custom_data: Dict[str, Any] = None) -> List[Dict[str, Any]]:
+    def parse_detection_data(
+        detections: Detections, custom_data: Dict[str, Any] = None
+    ) -> List[Dict[str, Any]]:
         parsed_rows = []
         for i in range(len(detections.xyxy)):
             row = {
@@ -122,20 +123,26 @@ class CSVSink:
             parsed_rows.append(row)
         return parsed_rows
 
-    def append(self, detections: Detections, custom_data: Dict[str, Any] = None) -> None:
+    def append(
+        self, detections: Detections, custom_data: Dict[str, Any] = None
+    ) -> None:
         if not self.writer:
-            raise Exception(f"Cannot append to CSV: The file '{self.filename}' is not open.")
+            raise Exception(
+                f"Cannot append to CSV: The file '{self.filename}' is not open."
+            )
         if not self.header_written:
             self.write_header(detections, custom_data)
 
         parsed_rows = CSVSink.parse_detection_data(detections, custom_data)
         for row in parsed_rows:
-            self.writer.writerow([row.get(fieldname, "") for fieldname in self.fieldnames])
+            self.writer.writerow(
+                [row.get(fieldname, "") for fieldname in self.fieldnames]
+            )
 
-    def write_header(
-        self, detections: Detections, custom_data: Dict[str, Any]
-    ) -> None:
-        dynamic_header = sorted(set(custom_data.keys()) | set(getattr(detections, "data", {}).keys()))
+    def write_header(self, detections: Detections, custom_data: Dict[str, Any]) -> None:
+        dynamic_header = sorted(
+            set(custom_data.keys()) | set(getattr(detections, "data", {}).keys())
+        )
         self.fieldnames = BASE_HEADER + dynamic_header
         self.writer.writerow(self.fieldnames)
         self.header_written = True
