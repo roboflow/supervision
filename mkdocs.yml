@@ -64,8 +64,11 @@ nav:
   - Development:
     - Contributing: contributing.md
     - Code of Conduct: code_of_conduct.md
-  - Changelog: changelog.md
+  - Changelog:
+        - Changelog: changelog.md
+        - Deprecated: deprecated.md
   - License: license.md
+
 
 theme:
   name: 'material'
