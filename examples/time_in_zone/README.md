@@ -42,23 +42,19 @@ TODO
 
 ## ⚙️ run
 
-```bash
-python ultralytics_example.py \
-  --source_weights_path yolov8m.pt \
-  --zone_configuration_path data/time-in-zone-video.json \
-  --source_video_path data/time-in-zone-video.mp4 \
-  --confidence_threshold 0.5
-```
+- ultralytics
 
-```bash
-python ultralytics_webcam.py \
-  --camera_index 0 \
-  --zone_configuration_path data/zones.json \
-  --source_weights_path yolov8m.pt \
-  --device cpu \
-  --confidence_threshold 0.3 \
-  --iou_threshold 0.5
-```
+    ```bash
+    python ultralytics_webcam.py \
+      --camera_index 0 \
+      --zone_configuration_path data/zones.json \
+      --source_weights_path yolov8m.pt \
+      --device cpu \
+      --confidence_threshold 0.3 \
+      --iou_threshold 0.5
+    ```
+  
+- inference
 
 ## © license
 

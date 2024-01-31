@@ -5,7 +5,7 @@ from typing import Generator, Dict, List
 
 import cv2
 import numpy as np
-from ultralytics import YOLO
+from inference.models.utils import get_roboflow_model
 
 import supervision as sv
 
@@ -46,9 +46,9 @@ def parse_arguments() -> argparse.Namespace:
         help="Index of the webcam to use"
     )
     parser.add_argument(
-        "--source_weights_path",
-        default="yolov8m.pt",
-        help="Path to the source weights file",
+        "--model_id",
+        default="yolov8m-640",
+        help="Roboflow model ID",
         type=str,
     )
     parser.add_argument(
@@ -171,7 +171,7 @@ class Annotator:
 
 def main():
     args = parse_arguments()
-    model = YOLO(args.source_weights_path)
+    model = get_roboflow_model(model_id=args.model_id)
 
     frames_generator = get_webcam_frames_generator(args.camera_index)
     frame = next(frames_generator)
@@ -197,13 +197,8 @@ def main():
         fps_monitor.tick()
         fps = fps_monitor.fps
 
-        results = model(
-            frame,
-            verbose=False,
-            conf=args.confidence_threshold,
-            device=args.device
-        )[0]
-        detections = sv.Detections.from_ultralytics(results)
+        results = model.infer(frame)[0]
+        detections = sv.Detections.from_inference(results)
         detections = detections.with_nms(
             threshold=args.iou_threshold, class_agnostic=True)
         detections = detections[detections.confidence > args.confidence_threshold]
