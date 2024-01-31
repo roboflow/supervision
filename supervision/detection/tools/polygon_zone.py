@@ -23,8 +23,10 @@ class PolygonZone:
         triggering_position (Position): The position within the bounding
             box that triggers the zone (default: Position.BOTTOM_CENTER)
         current_count (int): The current count of detected objects within the zone
-        class_in_count (Dict[str, int]): A dictionary storing per-class counts of objects inside the zone
-        class_out_count (Dict[str, int]): A dictionary storing per-class counts of objects outside the zone
+        class_in_count (Dict[str, int]): A dictionary storing per-class
+            counts of objects inside the zone
+        class_out_count (Dict[str, int]): A dictionary storing per-class
+            counts of objects outside the zone
         mask (np.ndarray): The 2D bool mask for the polygon zone
     """
 
@@ -60,7 +62,7 @@ class PolygonZone:
         """
         self.class_in_count = {}
         self.class_out_count = {}
-        
+
         clipped_xyxy = clip_boxes(
             xyxy=detections.xyxy, resolution_wh=self.frame_resolution_wh
         )
@@ -75,7 +77,7 @@ class PolygonZone:
                 self.class_in_count[in_class_id] += 1
             else:
                 self.class_in_count[in_class_id] = 1
-        
+
         for out_class_id in detections.class_id[~is_in_zone]:
             if out_class_id in self.class_out_count:
                 self.class_out_count[out_class_id] += 1
@@ -84,7 +86,6 @@ class PolygonZone:
 
         self.current_count = int(np.sum(is_in_zone))
         return is_in_zone
-
 
 
 class PolygonZoneAnnotator:
