@@ -5,8 +5,13 @@ import numpy as np
 
 from supervision.detection.core import Detections
 from supervision.draw.color import Color, ColorPalette
+from supervision.utils.internal import deprecated
 
 
+@deprecated(
+    "`BoxAnnotator` is deprecated and will be removed in "
+    "`supervision-0.22.0`. Use `BoundingBoxAnnotator` and `LabelAnnotator` instead"
+)
 class BoxAnnotator:
     """
     A class for drawing bounding boxes on an image using detections provided.
