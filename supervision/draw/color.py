@@ -206,7 +206,7 @@ class Color:
     @classmethod
     @deprecated(
         "`Color.white()` is deprecated and will be removed in "
-        "`supervision-0.20.0`. Use `Color.WHITE` instead."
+        "`supervision-0.22.0`. Use `Color.WHITE` instead."
     )
     def white(cls) -> Color:
         return Color.from_hex(color_hex="#ffffff")
@@ -214,7 +214,7 @@ class Color:
     @classmethod
     @deprecated(
         "`Color.black()` is deprecated and will be removed in "
-        "`supervision-0.20.0`. Use `Color.BLACK` instead."
+        "`supervision-0.22.0`. Use `Color.BLACK` instead."
     )
     def black(cls) -> Color:
         return Color.from_hex(color_hex="#000000")
@@ -222,7 +222,7 @@ class Color:
     @classmethod
     @deprecated(
         "`Color.red()` is deprecated and will be removed in "
-        "`supervision-0.20.0`. Use `Color.RED` instead."
+        "`supervision-0.22.0`. Use `Color.RED` instead."
     )
     def red(cls) -> Color:
         return Color.from_hex(color_hex="#ff0000")
@@ -230,7 +230,7 @@ class Color:
     @classmethod
     @deprecated(
         "`Color.green()` is deprecated and will be removed in "
-        "`supervision-0.20.0`. Use `Color.GREEN` instead."
+        "`supervision-0.22.0`. Use `Color.GREEN` instead."
     )
     def green(cls) -> Color:
         return Color.from_hex(color_hex="#00ff00")
@@ -238,7 +238,7 @@ class Color:
     @classmethod
     @deprecated(
         "`Color.blue()` is deprecated and will be removed in "
-        "`supervision-0.20.0`. Use `Color.BLUE` instead."
+        "`supervision-0.22.0`. Use `Color.BLUE` instead."
     )
     def blue(cls) -> Color:
         return Color.from_hex(color_hex="#0000ff")
@@ -297,10 +297,15 @@ class ColorPalette:
     @classmethod
     @deprecated(
         "`ColorPalette.default()` is deprecated and will be removed in "
-        "`supervision-0.20.0`. Use `Color.DEFAULT` instead."
+        "`supervision-0.22.0`. Use `Color.DEFAULT` instead."
     )
     def default(cls) -> ColorPalette:
         """
+        !!! failure "Deprecated"
+
+            `ColorPalette.default()` is deprecated and will be removed in
+            `supervision-0.22.0`. Use `Color.DEFAULT` instead.
+
         Returns a default color palette.
 
         Returns:

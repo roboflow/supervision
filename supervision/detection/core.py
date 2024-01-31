@@ -500,10 +500,15 @@ class Detections:
     @classmethod
     @deprecated(
         "`Detections.from_roboflow` is deprecated and will be removed in "
-        "`supervision-0.21.0`. Use `Detections.from_inference` instead."
+        "`supervision-0.22.0`. Use `Detections.from_inference` instead."
     )
     def from_roboflow(cls, roboflow_result: Union[dict, Any]) -> Detections:
         """
+        !!! failure "Deprecated"
+
+            `Detections.from_roboflow` is deprecated and will be removed in
+            `supervision-0.22.0`. Use `Detections.from_inference` instead.
+
         Create a Detections object from the [Roboflow](https://roboflow.com/)
             API inference result or the [Inference](https://inference.roboflow.com/)
             package results.
