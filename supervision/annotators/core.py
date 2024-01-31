@@ -1101,7 +1101,7 @@ class TraceAnnotator:
     !!! warning
 
         This annotator uses the `sv.Detections.tracker_id`. Read
-        [here](https://supervision.roboflow.com/trackers/) to learn how to plug
+        [here](https://supervision.roboflow.com/latest/trackers/) to learn how to plug
         tracking into your inference pipeline.
     """
 

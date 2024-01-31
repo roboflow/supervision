@@ -22,7 +22,7 @@ class DetectionsSmoother:
     !!! warning
 
         - `DetectionsSmoother` requires the `tracker_id` for each detection. Refer to
-          [Roboflow Trackers](https://supervision.roboflow.com/trackers/) for
+          [Roboflow Trackers](https://supervision.roboflow.com/latest/trackers/) for
           information on integrating tracking into your inference pipeline.
         - This class is not compatible with segmentation models.
 
