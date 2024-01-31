@@ -7,7 +7,6 @@ import pytest
 import supervision as sv
 from supervision.detection.core import Detections
 
-
 @pytest.fixture(scope="module")
 def detection_instances():
     # Setup detection instances as per the provided example
