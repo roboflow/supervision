@@ -11,6 +11,10 @@ extra:
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/roboflow
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/supervision
+    - icon: fontawesome/brands/docker
+      link: https://hub.docker.com/u/roboflow
     - icon: fontawesome/brands/youtube
       link: https://www.youtube.com/roboflow
     - icon: fontawesome/brands/linkedin
