@@ -2,6 +2,6 @@
 comments: true
 ---
 
-## InferenceSlicer
+# InferenceSlicer
 
 :::supervision.detection.tools.inference_slicer.InferenceSlicer
