@@ -57,7 +57,9 @@ nav:
         - Notebook: utils/notebook.md
         - File: utils/file.md
   - Assets: assets.md
-  - Changelog: changelog.md
+  - Changelog:
+        - Changelog: changelog.md
+        - Deprecated: deprecated.md
 
 theme:
   name: 'material'
