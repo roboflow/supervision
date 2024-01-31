@@ -40,8 +40,10 @@ class PolygonZone:
         self.frame_resolution_wh = frame_resolution_wh
         self.triggering_position = triggering_position
         self.current_count = 0
-        self.class_in_count = {}
-        self.class_out_count = {}
+        self.class_in_current_count = {}
+        self.class_out_current_count = {}
+        self.class_in_total_count = {}
+        self.class_out_total_count = {}
 
         width, height = frame_resolution_wh
         self.mask = polygon_to_mask(
@@ -60,8 +62,8 @@ class PolygonZone:
             np.ndarray: A boolean numpy array indicating
                 if each detection is within the polygon zone
         """
-        self.class_in_count = {}
-        self.class_out_count = {}
+        self.class_in_current_count = {}
+        self.class_out_current_count = {}
 
         clipped_xyxy = clip_boxes(
             xyxy=detections.xyxy, resolution_wh=self.frame_resolution_wh
@@ -74,15 +76,19 @@ class PolygonZone:
         is_in_zone = is_in_zone.astype(bool)
         for in_class_id in detections.class_id[is_in_zone]:
             if in_class_id in self.class_in_count:
-                self.class_in_count[in_class_id] += 1
+                self.class_in_current_count[in_class_id] += 1
+                self.class_in_total_count[in_class_id] += 1
             else:
-                self.class_in_count[in_class_id] = 1
+                self.class_in_current_count[in_class_id] = 1
+                self.class_in_total_count[in_class_id] = 1
 
         for out_class_id in detections.class_id[~is_in_zone]:
             if out_class_id in self.class_out_count:
-                self.class_out_count[out_class_id] += 1
+                self.class_out_current_count[out_class_id] += 1
+                self.class_out_total_count[out_class_id] += 1
             else:
-                self.class_out_count[out_class_id] = 1
+                self.class_out_current_count[out_class_id] = 1
+                self.class_out_total_count[out_class_id] = 1
 
         self.current_count = int(np.sum(is_in_zone))
         return is_in_zone
