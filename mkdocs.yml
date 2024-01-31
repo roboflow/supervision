@@ -61,7 +61,11 @@ nav:
         - Notebook: utils/notebook.md
         - File: utils/file.md
   - Assets: assets.md
+  - Development:
+    - Contributing: contributing.md
+    - Code of Conduct: code_of_conduct.md
   - Changelog: changelog.md
+  - License: license.md
 
 theme:
   name: 'material'
@@ -106,6 +110,9 @@ markdown_extensions:
   - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.snippets:
+      base_path: [!relative $config_dir]
+      check_paths: true
 
 extra_javascript:
   - "https://widget.kapa.ai/kapa-widget.bundle.js"
