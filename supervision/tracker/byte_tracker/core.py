@@ -210,7 +210,6 @@ class ByteTrack:
             ```python
             import supervision as sv
             from ultralytics import YOLO
-            import numpy as np
 
             model = YOLO(<MODEL_PATH>)
             tracker = sv.ByteTrack()
@@ -221,7 +220,7 @@ class ByteTrack:
             def callback(frame: np.ndarray, index: int) -> np.ndarray:
                 results = model(frame)[0]
                 detections = sv.Detections.from_ultralytics(results)
-                detections = tracker.update_with_detections(detections)
+                detections = byte_tracker.update_with_detections(detections)
 
                 labels = [f"#{tracker_id}" for tracker_id in detections.tracker_id]
 
@@ -260,6 +259,13 @@ class ByteTrack:
             detections.tracker_id = np.array([], dtype=int)
 
         return detections
+
+    def reset(self):
+        self.frame_id = 0
+        self.tracked_tracks: List[STrack] = []
+        self.lost_tracks: List[STrack] = []
+        self.removed_tracks: List[STrack] = []
+        BaseTrack.reset_counter()
 
     def update_with_tensors(self, tensors: np.ndarray) -> List[STrack]:
         """
@@ -306,6 +312,7 @@ class ByteTrack:
         """ Add newly detected tracklets to tracked_stracks"""
         unconfirmed = []
         tracked_stracks = []  # type: list[STrack]
+
         for track in self.tracked_tracks:
             if not track.is_activated:
                 unconfirmed.append(track)
