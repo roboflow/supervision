@@ -1072,6 +1072,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#supervision.utils.video.FPSMonitor.fps" class="md-nav__link">
+    <span class="md-ellipsis">
+      fps
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#supervision.utils.video.FPSMonitor.__call__" class="md-nav__link">
     <span class="md-ellipsis">
       __call__
@@ -1379,6 +1388,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#supervision.utils.video.FPSMonitor.fps" class="md-nav__link">
+    <span class="md-ellipsis">
+      fps
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#supervision.utils.video.FPSMonitor.__call__" class="md-nav__link">
     <span class="md-ellipsis">
       __call__
@@ -1544,9 +1562,7 @@ default is None</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/utils/video.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">12</span>
-<span class="normal">13</span>
-<span class="normal">14</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">14</span>
 <span class="normal">15</span>
 <span class="normal">16</span>
 <span class="normal">17</span>
@@ -1591,7 +1607,9 @@ default is None</p>
 <span class="normal">56</span>
 <span class="normal">57</span>
 <span class="normal">58</span>
-<span class="normal">59</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="normal">59</span>
+<span class="normal">60</span>
+<span class="normal">61</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
 <span class="k">class</span> <span class="nc">VideoInfo</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A class to store video information, including width, height, fps and</span>
@@ -1740,9 +1758,7 @@ and total frame count.</p>
 </details>
             <details class="quote">
               <summary>Source code in <code>supervision/utils/video.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 62</span>
-<span class="normal"> 63</span>
-<span class="normal"> 64</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 64</span>
 <span class="normal"> 65</span>
 <span class="normal"> 66</span>
 <span class="normal"> 67</span>
@@ -1787,7 +1803,9 @@ and total frame count.</p>
 <span class="normal">106</span>
 <span class="normal">107</span>
 <span class="normal">108</span>
-<span class="normal">109</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">VideoSink</span><span class="p">:</span>
+<span class="normal">109</span>
+<span class="normal">110</span>
+<span class="normal">111</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">VideoSink</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Context manager that saves video frames to a file using OpenCV.</span>
 
@@ -1875,9 +1893,7 @@ and total frame count.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/utils/video.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">207</span>
-<span class="normal">208</span>
-<span class="normal">209</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">209</span>
 <span class="normal">210</span>
 <span class="normal">211</span>
 <span class="normal">212</span>
@@ -1924,7 +1940,27 @@ and total frame count.</p>
 <span class="normal">253</span>
 <span class="normal">254</span>
 <span class="normal">255</span>
-<span class="normal">256</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">FPSMonitor</span><span class="p">:</span>
+<span class="normal">256</span>
+<span class="normal">257</span>
+<span class="normal">258</span>
+<span class="normal">259</span>
+<span class="normal">260</span>
+<span class="normal">261</span>
+<span class="normal">262</span>
+<span class="normal">263</span>
+<span class="normal">264</span>
+<span class="normal">265</span>
+<span class="normal">266</span>
+<span class="normal">267</span>
+<span class="normal">268</span>
+<span class="normal">269</span>
+<span class="normal">270</span>
+<span class="normal">271</span>
+<span class="normal">272</span>
+<span class="normal">273</span>
+<span class="normal">274</span>
+<span class="normal">275</span>
+<span class="normal">276</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">FPSMonitor</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A class for monitoring frames per second (FPS) to benchmark latency.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -1939,25 +1975,43 @@ and total frame count.</p>
 <span class="sd">            ```python</span>
 <span class="sd">            import supervision as sv</span>
 
-<span class="sd">            frames_generator = sv.get_video_frames_generator(&#39;source.mp4&#39;)</span>
+<span class="sd">            frames_generator = sv.get_video_frames_generator(source_path=&lt;SOURCE_FILE_PATH&gt;)</span>
 <span class="sd">            fps_monitor = sv.FPSMonitor()</span>
 
 <span class="sd">            for frame in frames_generator:</span>
 <span class="sd">                # your processing code here</span>
 <span class="sd">                fps_monitor.tick()</span>
-<span class="sd">                fps = fps_monitor()</span>
+<span class="sd">                fps = fps_monitor.fps</span>
 <span class="sd">            ```</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">all_timestamps</span> <span class="o">=</span> <span class="n">deque</span><span class="p">(</span><span class="n">maxlen</span><span class="o">=</span><span class="n">sample_size</span><span class="p">)</span>
 
+    <span class="nd">@deprecated</span><span class="p">(</span>
+        <span class="s2">&quot;`FPSMonitor.__call__` is deprecated and will be removed in &quot;</span>
+        <span class="s2">&quot;`supervision-0.22.0`. Use `FPSMonitor.fps` instead.&quot;</span>
+    <span class="p">)</span>
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        !!! failure &quot;Deprecated&quot;</span>
+
+<span class="sd">            `FPSMonitor.__call__` is deprecated and will be removed in</span>
+<span class="sd">            `supervision-0.22.0`. Use `FPSMonitor.fps` instead.</span>
+
+<span class="sd">        Computes and returns the average FPS based on the stored time stamps.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            float: The average FPS. Returns 0.0 if no time stamps are stored.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fps</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">fps</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Computes and returns the average FPS based on the stored time stamps.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            float: The average FPS. Returns 0.0 if no time stamps are stored.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_timestamps</span><span class="p">:</span>
             <span class="k">return</span> <span class="mf">0.0</span>
         <span class="n">taken_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_timestamps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_timestamps</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -1987,17 +2041,18 @@ and total frame count.</p>
 
 
 
+<div class="doc doc-object doc-attribute">
 
 
 
-<div class="doc doc-object doc-function">
+<h2 id="supervision.utils.video.FPSMonitor.fps" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">fps</span><span class="p">:</span> <span class="nb">float</span></code>
+  
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
 
-
-
-<h2 id="supervision.utils.video.FPSMonitor.__call__" class="doc doc-heading">
-          <code class="highlight language-python"><span class="fm">__call__</span><span class="p">()</span></code>
-
-<a href="#supervision.utils.video.FPSMonitor.__call__" class="headerlink" title="Permanent link">&para;</a></h2>
+<a href="#supervision.utils.video.FPSMonitor.fps" class="headerlink" title="Permanent link">&para;</a></h2>
 
 
   <div class="doc doc-contents ">
@@ -2027,12 +2082,59 @@ and total frame count.</p>
         </tr>
     </tbody>
   </table>
+  </div>
+
+</div>
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<h2 id="supervision.utils.video.FPSMonitor.__call__" class="doc doc-heading">
+          <code class="highlight language-python"><span class="fm">__call__</span><span class="p">()</span></code>
+
+<a href="#supervision.utils.video.FPSMonitor.__call__" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+  <div class="doc doc-contents ">
+  
+      <div class="admonition failure">
+<p class="admonition-title">Deprecated</p>
+<p><code>FPSMonitor.__call__</code> is deprecated and will be removed in
+<code>supervision-0.22.0</code>. Use <code>FPSMonitor.fps</code> instead.</p>
+</div>
+<p>Computes and returns the average FPS based on the stored time stamps.</p>
+
+
+
+  <p><strong>Returns:</strong></p>
+  <table>
+    <thead>
+      <tr>
+<th>Name</th>        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+<td><code>float</code></td>          <td>
+                <code>float</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>The average FPS. Returns 0.0 if no time stamps are stored.</p>
+            </div>
+          </td>
+        </tr>
+    </tbody>
+  </table>
 
           <details class="quote">
             <summary>Source code in <code>supervision/utils/video.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">233</span>
-<span class="normal">234</span>
-<span class="normal">235</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">235</span>
 <span class="normal">236</span>
 <span class="normal">237</span>
 <span class="normal">238</span>
@@ -2041,18 +2143,30 @@ and total frame count.</p>
 <span class="normal">241</span>
 <span class="normal">242</span>
 <span class="normal">243</span>
-<span class="normal">244</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="normal">244</span>
+<span class="normal">245</span>
+<span class="normal">246</span>
+<span class="normal">247</span>
+<span class="normal">248</span>
+<span class="normal">249</span>
+<span class="normal">250</span>
+<span class="normal">251</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@deprecated</span><span class="p">(</span>
+    <span class="s2">&quot;`FPSMonitor.__call__` is deprecated and will be removed in &quot;</span>
+    <span class="s2">&quot;`supervision-0.22.0`. Use `FPSMonitor.fps` instead.&quot;</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    !!! failure &quot;Deprecated&quot;</span>
+
+<span class="sd">        `FPSMonitor.__call__` is deprecated and will be removed in</span>
+<span class="sd">        `supervision-0.22.0`. Use `FPSMonitor.fps` instead.</span>
+
 <span class="sd">    Computes and returns the average FPS based on the stored time stamps.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        float: The average FPS. Returns 0.0 if no time stamps are stored.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_timestamps</span><span class="p">:</span>
-        <span class="k">return</span> <span class="mf">0.0</span>
-    <span class="n">taken_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_timestamps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_timestamps</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="k">return</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">all_timestamps</span><span class="p">))</span> <span class="o">/</span> <span class="n">taken_time</span> <span class="k">if</span> <span class="n">taken_time</span> <span class="o">!=</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">0.0</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fps</span>
 </code></pre></div></td></tr></table></div>
           </details>
   </div>
@@ -2109,20 +2223,18 @@ benchmarking.</p>
 <p><strong>Examples:</strong></p>
     <div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
 
-<span class="n">frames_generator</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">get_video_frames_generator</span><span class="p">(</span><span class="s1">&#39;source.mp4&#39;</span><span class="p">)</span>
+<span class="n">frames_generator</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">get_video_frames_generator</span><span class="p">(</span><span class="n">source_path</span><span class="o">=&lt;</span><span class="n">SOURCE_FILE_PATH</span><span class="o">&gt;</span><span class="p">)</span>
 <span class="n">fps_monitor</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">FPSMonitor</span><span class="p">()</span>
 
 <span class="k">for</span> <span class="n">frame</span> <span class="ow">in</span> <span class="n">frames_generator</span><span class="p">:</span>
     <span class="c1"># your processing code here</span>
     <span class="n">fps_monitor</span><span class="o">.</span><span class="n">tick</span><span class="p">()</span>
-    <span class="n">fps</span> <span class="o">=</span> <span class="n">fps_monitor</span><span class="p">()</span>
+    <span class="n">fps</span> <span class="o">=</span> <span class="n">fps_monitor</span><span class="o">.</span><span class="n">fps</span>
 </code></pre></div>
 
           <details class="quote">
             <summary>Source code in <code>supervision/utils/video.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">212</span>
-<span class="normal">213</span>
-<span class="normal">214</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">214</span>
 <span class="normal">215</span>
 <span class="normal">216</span>
 <span class="normal">217</span>
@@ -2139,7 +2251,9 @@ benchmarking.</p>
 <span class="normal">228</span>
 <span class="normal">229</span>
 <span class="normal">230</span>
-<span class="normal">231</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span><span class="p">):</span>
+<span class="normal">231</span>
+<span class="normal">232</span>
+<span class="normal">233</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Args:</span>
 <span class="sd">        sample_size (int): The maximum number of observations for latency</span>
@@ -2149,15 +2263,15 @@ benchmarking.</p>
 <span class="sd">        ```python</span>
 <span class="sd">        import supervision as sv</span>
 
-<span class="sd">        frames_generator = sv.get_video_frames_generator(&#39;source.mp4&#39;)</span>
+<span class="sd">        frames_generator = sv.get_video_frames_generator(source_path=&lt;SOURCE_FILE_PATH&gt;)</span>
 <span class="sd">        fps_monitor = sv.FPSMonitor()</span>
 
 <span class="sd">        for frame in frames_generator:</span>
 <span class="sd">            # your processing code here</span>
 <span class="sd">            fps_monitor.tick()</span>
-<span class="sd">            fps = fps_monitor()</span>
+<span class="sd">            fps = fps_monitor.fps</span>
 <span class="sd">        ```</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">all_timestamps</span> <span class="o">=</span> <span class="n">deque</span><span class="p">(</span><span class="n">maxlen</span><span class="o">=</span><span class="n">sample_size</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
           </details>
@@ -2182,11 +2296,11 @@ benchmarking.</p>
 
           <details class="quote">
             <summary>Source code in <code>supervision/utils/video.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">252</span>
-<span class="normal">253</span>
-<span class="normal">254</span>
-<span class="normal">255</span>
-<span class="normal">256</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">272</span>
+<span class="normal">273</span>
+<span class="normal">274</span>
+<span class="normal">275</span>
+<span class="normal">276</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Clears all the time stamps from the deque.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -2214,11 +2328,11 @@ benchmarking.</p>
 
           <details class="quote">
             <summary>Source code in <code>supervision/utils/video.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">246</span>
-<span class="normal">247</span>
-<span class="normal">248</span>
-<span class="normal">249</span>
-<span class="normal">250</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">tick</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">266</span>
+<span class="normal">267</span>
+<span class="normal">268</span>
+<span class="normal">269</span>
+<span class="normal">270</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">tick</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Adds a new time stamp to the deque for FPS calculation.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -2364,9 +2478,7 @@ frames of the video.</p>
 
           <details class="quote">
             <summary>Source code in <code>supervision/utils/video.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">125</span>
-<span class="normal">126</span>
-<span class="normal">127</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">127</span>
 <span class="normal">128</span>
 <span class="normal">129</span>
 <span class="normal">130</span>
@@ -2403,7 +2515,9 @@ frames of the video.</p>
 <span class="normal">161</span>
 <span class="normal">162</span>
 <span class="normal">163</span>
-<span class="normal">164</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">get_video_frames_generator</span><span class="p">(</span>
+<span class="normal">164</span>
+<span class="normal">165</span>
+<span class="normal">166</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">get_video_frames_generator</span><span class="p">(</span>
     <span class="n">source_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">stride</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">start</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">end</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -2543,9 +2657,7 @@ representation of the frame.</p>
 
           <details class="quote">
             <summary>Source code in <code>supervision/utils/video.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">167</span>
-<span class="normal">168</span>
-<span class="normal">169</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">169</span>
 <span class="normal">170</span>
 <span class="normal">171</span>
 <span class="normal">172</span>
@@ -2580,7 +2692,9 @@ representation of the frame.</p>
 <span class="normal">201</span>
 <span class="normal">202</span>
 <span class="normal">203</span>
-<span class="normal">204</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">process_video</span><span class="p">(</span>
+<span class="normal">204</span>
+<span class="normal">205</span>
+<span class="normal">206</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">process_video</span><span class="p">(</span>
     <span class="n">source_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">target_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">callback</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
