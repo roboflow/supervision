@@ -2,6 +2,6 @@
 comments: true
 ---
 
-## ByteTrack
+# ByteTrack
 
 :::supervision.tracker.byte_tracker.core.ByteTrack

@@ -2,10 +2,13 @@
 comments: true
 ---
 
+# Assets
+
 Supervision offers an assets download utility that allows you to download video files
 that you can use in your demos.
 
 ## install extra
+
 
 To install the Supervision assets utility, you can use `pip`. This utility is available
 as an extra within the Supervision package.
@@ -16,10 +19,14 @@ as an extra within the Supervision package.
     pip install supervision[assets]
     ```
 
-## download_assets
+<div class="md-typeset">
+  <h2>download_assets</h2>
+</div>
 
 :::supervision.assets.downloader.download_assets
 
-## VideoAssets
+<div class="md-typeset">
+  <h2>VideoAssets</h2>
+</div>
 
 :::supervision.assets.list.VideoAssets

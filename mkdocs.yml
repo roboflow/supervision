@@ -5,7 +5,7 @@ site_description: A set of easy-to-use utilities that will come in handy in any 
 repo_name: roboflow/supervision
 repo_url: https://github.com/roboflow/supervision
 edit_uri: https://github.com/roboflow/supervision/tree/main/docs
-copyright: Roboflow 2023. All rights reserved.
+copyright: Roboflow 2024. All rights reserved.
 
 extra:
   social:
@@ -15,7 +15,7 @@ extra:
       link: https://www.youtube.com/roboflow
     - icon: fontawesome/brands/linkedin
       link: https://www.linkedin.com/company/roboflow-ai/mycompany/
-    - icon: fontawesome/brands/twitter
+    - icon: fontawesome/brands/x-twitter
       link: https://twitter.com/roboflow
   analytics:
     provider: google
