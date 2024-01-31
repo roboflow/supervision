@@ -138,6 +138,37 @@ def get_webcam_frames_generator(
     cap.release()
 
 
+class Annotator:
+
+    def __init__(self, thickness: int = 1, text_scale: float = 1.0):
+        self.box_annotator = sv.BoundingBoxAnnotator(
+            thickness=thickness)
+        self.trace_annotator = sv.TraceAnnotator(
+            thickness=thickness,
+            trace_length=50,
+            position=sv.Position.CENTER)
+        self.label_annotator = sv.LabelAnnotator(
+            text_scale=text_scale,
+            text_thickness=thickness)
+
+    def annotate(self, frame: np.ndarray, detections: sv.Detections) -> np.ndarray:
+        labels = [
+            f"#{tracker_id} {time:.2f}s"
+            for tracker_id, time
+            in zip(
+                detections.tracker_id,
+                detections["time"]
+            )
+        ]
+        annotated_frame = self.trace_annotator.annotate(
+            scene=frame, detections=detections)
+        annotated_frame = self.box_annotator.annotate(
+            scene=annotated_frame, detections=detections)
+        annotated_frame = self.label_annotator.annotate(
+            scene=annotated_frame, detections=detections, labels=labels)
+        return annotated_frame
+
+
 def main():
     args = parse_arguments()
     model = YOLO(args.source_weights_path)
@@ -148,9 +179,7 @@ def main():
 
     thickness = sv.calculate_dynamic_line_thickness(resolution_wh=(w, h))
     text_scale = sv.calculate_dynamic_text_scale(resolution_wh=(w, h))
-
-    bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=thickness)
-    label_annotator = sv.LabelAnnotator(text_scale=text_scale, text_thickness=thickness)
+    annotator = Annotator(thickness=thickness, text_scale=text_scale)
 
     fps_monitor = sv.FPSMonitor()
     tracker = sv.ByteTrack()
@@ -175,7 +204,8 @@ def main():
             device=args.device
         )[0]
         detections = sv.Detections.from_ultralytics(results)
-        detections = detections.with_nms(threshold=args.iou_threshold)
+        detections = detections.with_nms(
+            threshold=args.iou_threshold, class_agnostic=True)
         detections = detections[detections.confidence > args.confidence_threshold]
 
         # remove detections of class 0 (person)
@@ -197,31 +227,16 @@ def main():
             annotated_frame = sv.draw_polygon(
                 scene=annotated_frame,
                 polygon=zone.polygon,
-                color=sv.ColorPalette.LEGACY.by_idx(i + 1),
+                color=sv.ColorPalette.LEGACY.by_idx(i),
                 thickness=thickness
             )
 
             detections_in_zone = detections[zone.trigger(detections)]
             detections_in_zone = timers[i].update_with_detections(detections_in_zone)
 
-            labels = [
-                f"#{tracker_id} {results.names[class_id]} {time:.2f}s"
-                for class_id, tracker_id, time
-                in zip(
-                    detections_in_zone.class_id,
-                    detections_in_zone.tracker_id,
-                    detections_in_zone["time"]
-                )
-            ]
-
-            annotated_frame = bounding_box_annotator.annotate(
-                scene=annotated_frame,
+            annotated_frame = annotator.annotate(
+                frame=annotated_frame,
                 detections=detections_in_zone
-            )
-            annotated_frame = label_annotator.annotate(
-                scene=annotated_frame,
-                detections=detections_in_zone,
-                labels=labels
             )
 
         cv2.imshow("Webcam Frame", annotated_frame)

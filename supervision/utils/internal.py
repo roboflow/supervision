@@ -30,7 +30,7 @@ class classproperty(property):
             ...
     """
 
-    def __get__(self, owner_self: object, owner_cls: type) -> object:
+    def __get__(self, owner_self: object, owner_cls: type):
         """
         Override the __get__ method to return the result of the function call.
 
