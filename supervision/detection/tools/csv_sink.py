@@ -3,7 +3,6 @@ from __future__ import annotations
 import csv
 from typing import Any, Dict, List, Optional
 
-
 from supervision.detection.core import Detections
 
 BASE_HEADER = [
