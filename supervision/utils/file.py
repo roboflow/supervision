@@ -1,5 +1,4 @@
 import json
-import csv
 from pathlib import Path
 from typing import List, Optional, Union, Dict, Any
 from supervision.detection.core import Detections
@@ -70,7 +69,7 @@ class JSONSink:
                 detection_data[key] = value[i] if hasattr(value, '__getitem__') else value
             if custom_data:
                 detection_data.update(custom_data)
-                
+
             self.data.append(detection_data)
 
 class NumpyJsonEncoder(json.JSONEncoder):
