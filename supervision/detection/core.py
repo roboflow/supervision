@@ -152,6 +152,9 @@ class Detections:
 
         !!! Note
 
+            Class names can be accessed using the key 'class_name' in the returned
+            object's data attribute.
+
             `from_ultralytics` is compatible with
             [detection](https://docs.ultralytics.com/tasks/detect/),
             [segmentation](https://docs.ultralytics.com/tasks/segment/), and
@@ -181,7 +184,7 @@ class Detections:
         if ultralytics_results.obb is not None:
             return cls(
                 xyxy=ultralytics_results.obb.xyxy.cpu().numpy(),
-                data={"xyxyxyxy": ultralytics_results.obb.xyxyxyxy.cpu().numpy()},
+                data={"xyxyxyxy": ultralytics_results.obb.xyxyxyxy.cpu().numpy(), 'class_name': [ultralytics_results.obb.names[id] for id in ultralytics_results.obb.boxes.cls.cpu().numpy().astype(int)]},
                 confidence=ultralytics_results.obb.conf.cpu().numpy(),
                 class_id=ultralytics_results.obb.cls.cpu().numpy().astype(int),
                 tracker_id=ultralytics_results.obb.id.int().cpu().numpy()
@@ -193,6 +196,7 @@ class Detections:
             xyxy=ultralytics_results.boxes.xyxy.cpu().numpy(),
             confidence=ultralytics_results.boxes.conf.cpu().numpy(),
             class_id=ultralytics_results.boxes.cls.cpu().numpy().astype(int),
+            data={'class_name': [ultralytics_results.names[id] for id in ultralytics_results.boxes.cls.cpu().numpy().astype(int)]},
             mask=extract_ultralytics_masks(ultralytics_results),
             tracker_id=ultralytics_results.boxes.id.int().cpu().numpy()
             if ultralytics_results.boxes.id is not None
