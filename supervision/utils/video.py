@@ -24,15 +24,15 @@ class VideoInfo:
 
     Examples:
         ```python
-        >>> import supervision as sv
+        import supervision as sv
 
-        >>> video_info = sv.VideoInfo.from_video_path(video_path='video.mp4')
+        video_info = sv.VideoInfo.from_video_path(video_path='video.mp4')
 
-        >>> video_info
-        VideoInfo(width=3840, height=2160, fps=25, total_frames=538)
+        video_info
+        # VideoInfo(width=3840, height=2160, fps=25, total_frames=538)
 
-        >>> video_info.resolution_wh
-        (3840, 2160)
+        video_info.resolution_wh
+        # (3840, 2160)
         ```
     """
 
@@ -71,14 +71,14 @@ class VideoSink:
 
     Example:
         ```python
-        >>> import supervision as sv
+        import supervision as sv
 
-        >>> video_info = sv.VideoInfo.from_video_path('source.mp4')
-        >>> frames_generator = get_video_frames_generator('source.mp4')
+        video_info = sv.VideoInfo.from_video_path('source.mp4')
+        frames_generator = sv.get_video_frames_generator('source.mp4')
 
-        >>> with sv.VideoSink(target_path='target.mp4', video_info=video_info) as sink:
-        ...     for frame in frames_generator:
-        ...         sink.write_frame(frame=frame)
+        with sv.VideoSink(target_path='target.mp4', video_info=video_info) as sink:
+            for frame in frames_generator:
+                sink.write_frame(frame=frame)
         ```
     """
 
@@ -143,10 +143,10 @@ def get_video_frames_generator(
 
     Examples:
         ```python
-        >>> import supervision as sv
+        import supervision as sv
 
-        >>> for frame in sv.get_video_frames_generator(source_path='source_video.mp4'):
-        ...     ...
+        for frame in sv.get_video_frames_generator(source_path='source_video.mp4'):
+            ...
         ```
     """
     video, start, end = _validate_and_setup_video(source_path, start, end)
@@ -183,16 +183,16 @@ def process_video(
 
     Examples:
         ```python
-        >>> import supervision as sv
+        import supervision as sv
 
-        >>> def callback(scene: np.ndarray, index: int) -> np.ndarray:
-        ...     ...
+        def callback(scene: np.ndarray, index: int) -> np.ndarray:
+            ...
 
-        >>> process_video(
-        ...     source_path='...',
-        ...     target_path='...',
-        ...     callback=callback
-        ... )
+        process_video(
+            source_path='...',
+            target_path='...',
+            callback=callback
+        )
         ```
     """
     source_video_info = VideoInfo.from_video_path(video_path=source_path)
@@ -217,15 +217,15 @@ class FPSMonitor:
 
         Examples:
             ```python
-            >>> import supervision as sv
+            import supervision as sv
 
-            >>> frames_generator = sv.get_video_frames_generator('source.mp4')
-            >>> fps_monitor = sv.FPSMonitor()
+            frames_generator = sv.get_video_frames_generator('source.mp4')
+            fps_monitor = sv.FPSMonitor()
 
-            >>> for frame in frames_generator:
-            ...     # your processing code here
-            ...     fps_monitor.tick()
-            ...     fps = fps_monitor()
+            for frame in frames_generator:
+                # your processing code here
+                fps_monitor.tick()
+                fps = fps_monitor()
             ```
         """
         self.all_timestamps = deque(maxlen=sample_size)

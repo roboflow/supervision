@@ -1,3 +1,172 @@
+### 0.18.0 <small>January 25, 2024</small>
+
+- Added [#633](https://github.com/roboflow/supervision/pull/720): [`sv.PercentageBarAnnotator`](https://supervision.roboflow.com/annotators/#percentagebarannotator) allowing to annotate images and videos with percentage values representing confidence or other custom property.
+
+```python
+>>> import supervision as sv
+
+>>> image = ...
+>>> detections = sv.Detections(...)
+
+>>> percentage_bar_annotator = sv.PercentageBarAnnotator()
+>>> annotated_frame = percentage_bar_annotator.annotate(
+...     scene=image.copy(),
+...     detections=detections
+... )
+```
+
+- Added [#702](https://github.com/roboflow/supervision/pull/702): [`sv.RoundBoxAnnotator`](https://supervision.roboflow.com/annotators/#roundboxannotator) allowing to annotate images and videos with rounded corners bounding boxes.
+
+- Added [#770](https://github.com/roboflow/supervision/pull/770): [`sv.OrientedBoxAnnotator`](https://supervision.roboflow.com/annotators/#orientedboxannotator) allowing to annotate images and videos with OBB (Oriented Bounding Boxes).
+
+```python
+import cv2
+import supervision as sv
+from ultralytics import YOLO
+
+image = cv2.imread(<SOURCE_IMAGE_PATH>)
+model = YOLO("yolov8n-obb.pt")
+
+result = model(image)[0]
+detections = sv.Detections.from_ultralytics(result)
+
+oriented_box_annotator = sv.OrientedBoxAnnotator()
+annotated_frame = oriented_box_annotator.annotate(
+    scene=image.copy(),
+    detections=detections
+)
+```
+
+- Added [#696](https://github.com/roboflow/supervision/pull/696): [`sv.DetectionsSmoother`](https://supervision.roboflow.com/detection/tools/smoother/#detection-smoother) allowing for smoothing detections over multiple frames in video tracking.
+
+- Added [#769](https://github.com/roboflow/supervision/pull/769): [`sv.ColorPalette.from_matplotlib`](https://supervision.roboflow.com/draw/color/#supervision.draw.color.ColorPalette.from_matplotlib) allowing users to create a `sv.ColorPalette` instance from a Matplotlib color palette.
+
+```python
+>>> import supervision as sv
+
+>>> sv.ColorPalette.from_matplotlib('viridis', 5)
+ColorPalette(colors=[Color(r=68, g=1, b=84), Color(r=59, g=82, b=139), ...])
+```
+
+- Changed [#770](https://github.com/roboflow/supervision/pull/770): [`sv.Detections.from_ultralytics`](https://supervision.roboflow.com/detection/core/#supervision.detection.core.Detections.from_ultralytics) adding support for OBB (Oriented Bounding Boxes).
+
+- Changed [#735](https://github.com/roboflow/supervision/pull/735): [`sv.LineZone`](https://supervision.roboflow.com/detection/tools/line_zone/#linezone) to now accept a list of specific box anchors that must cross the line for a detection to be counted. This update marks a significant improvement from the previous requirement, where all four box corners were necessary. Users can now specify a single anchor, such as `sv.Position.BOTTOM_CENTER`, or any other combination of anchors defined as `List[sv.Position]`.
+
+- Changed [#756](https://github.com/roboflow/supervision/pull/756): [`sv.Color`](https://supervision.roboflow.com/draw/color/#color)'s and [`sv.ColorPalette`](https://supervision.roboflow.com/draw/color/#colorpalette)'s method of accessing predefined colors, transitioning from a function-based approach (`sv.Color.red()`) to a more intuitive and conventional property-based method (`sv.Color.RED`).
+
+!!! warning
+
+    `sv.ColorPalette.default()` is deprecated and will be removed in `supervision-0.21.0`. Use `sv.ColorPalette.DEFAULT` instead.
+
+
+- Changed [#769](https://github.com/roboflow/supervision/pull/769): [`sv.ColorPalette.DEFAULT`](https://supervision.roboflow.com/draw/color/#colorpalette) value, giving users a more extensive set of annotation colors.
+
+- Changed [#677](https://github.com/roboflow/supervision/pull/677): `sv.Detections.from_roboflow` to [`sv.Detections.from_inference`](https://supervision.roboflow.com/detection/core/#supervision.detection.core.Detections.from_inference) streamlining its functionality to be compatible with both the both [inference](https://github.com/roboflow/inference) pip package and the Robloflow [hosted API](https://docs.roboflow.com/deploy/hosted-api).
+
+!!! warning
+
+    `Detections.from_roboflow()` is deprecated and will be removed in `supervision-0.21.0`. Use `Detections.from_inference` instead.
+
+
+- Fixed [#735](https://github.com/roboflow/supervision/pull/735): [`sv.LineZone`](https://supervision.roboflow.com/detection/tools/line_zone/#linezone) functionality to accurately update the counter when an object crosses a line from any direction, including from the side. This enhancement enables more precise tracking and analytics, such as calculating individual in/out counts for each lane on the road.
+
+### 0.17.0 <small>December 06, 2023</small>
+
+- Added [#633](https://github.com/roboflow/supervision/pull/633): [`sv.PixelateAnnotator`](https://supervision.roboflow.com/annotators/#supervision.annotators.core.PixelateAnnotator) allowing to pixelate objects on images and videos.
+
+- Added [#652](https://github.com/roboflow/supervision/pull/652): [`sv.TriangleAnnotator`](https://supervision.roboflow.com/annotators/#supervision.annotators.core.TriangleAnnotator) allowing to annotate images and videos with triangle markers.
+
+- Added [#602](https://github.com/roboflow/supervision/pull/602): [`sv.PolygonAnnotator`](https://supervision.roboflow.com/annotators/#supervision.annotators.core.PolygonAnnotator) allowing to annotate images and videos with segmentation mask outline.
+
+```python
+>>> import supervision as sv
+
+>>> image = ...
+>>> detections = sv.Detections(...)
+
+>>> polygon_annotator = sv.PolygonAnnotator()
+>>> annotated_frame = polygon_annotator.annotate(
+...     scene=image.copy(),
+...     detections=detections
+... )
+```
+
+- Added [#476](https://github.com/roboflow/supervision/pull/476): [`sv.assets`](https://supervision.roboflow.com/assets/) allowing download of video files that you can use in your demos.
+
+```python
+>>> from supervision.assets import download_assets, VideoAssets
+>>> download_assets(VideoAssets.VEHICLES)
+"vehicles.mp4"
+```
+
+- Added [#605](https://github.com/roboflow/supervision/pull/605): [`Position.CENTER_OF_MASS`](https://supervision.roboflow.com/geometry/core/#position) allowing to place labels in center of mass of segmentation masks.
+
+- Added [#651](https://github.com/roboflow/supervision/pull/651): [`sv.scale_boxes`](https://supervision.roboflow.com/detection/utils/#supervision.detection.utils.scale_boxes) allowing to scale [`sv.Detections.xyxy`](https://supervision.roboflow.com/detection/core/#supervision.detection.core.Detections) values.
+
+- Added [#637](https://github.com/roboflow/supervision/pull/637): [`sv.calculate_dynamic_text_scale`](https://supervision.roboflow.com/draw/utils/#supervision.draw.utils.calculate_dynamic_text_scale) and [`sv.calculate_dynamic_line_thickness`](https://supervision.roboflow.com/draw/utils/#supervision.draw.utils.calculate_dynamic_line_thickness) allowing text scale and line thickness to match image resolution.
+
+- Added [#620](https://github.com/roboflow/supervision/pull/620): [`sv.Color.as_hex`](https://supervision.roboflow.com/draw/color/#supervision.draw.color.Color.as_hex) allowing to extract color value in HEX format.
+
+- Added [#572](https://github.com/roboflow/supervision/pull/572): [`sv.Classifications.from_timm`](https://supervision.roboflow.com/classification/core/#supervision.classification.core.Classifications.from_timm) allowing to load classification result from [timm](https://huggingface.co/docs/hub/timm) models.
+
+- Added [#478](https://github.com/roboflow/supervision/pull/478): [`sv.Classifications.from_clip`](https://supervision.roboflow.com/classification/core/#supervision.classification.core.Classifications.from_clip) allowing to load classification result from [clip](https://github.com/openai/clip) model.
+
+- Added [#571](https://github.com/roboflow/supervision/pull/571): [`sv.Detections.from_azure_analyze_image`](https://supervision.roboflow.com/detection/core/#supervision.detection.core.Detections.from_azure_analyze_image) allowing to load detection results from [Azure Image Analysis](https://learn.microsoft.com/en-us/azure/ai-services/computer-vision/concept-object-detection-40).
+
+- Changed [#646](https://github.com/roboflow/supervision/pull/646): `sv.BoxMaskAnnotator` renaming it to [`sv.ColorAnnotator`](https://supervision.roboflow.com/annotators/#supervision.annotators.core.ColorAnnotator).
+
+- Changed [#606](https://github.com/roboflow/supervision/pull/606): [`sv.MaskAnnotator`](https://supervision.roboflow.com/annotators/#supervision.annotators.core.MaskAnnotator) to make it **5x faster**.
+
+- Fixed [#584](https://github.com/roboflow/supervision/pull/584): [`sv.DetectionDataset.from_yolo`](https://supervision.roboflow.com/datasets/#supervision.dataset.core.DetectionDataset.from_yolo) to ignore empty lines in annotation files.
+
+- Fixed [#555](https://github.com/roboflow/supervision/pull/555): [`sv.BlurAnnotator`](https://supervision.roboflow.com/annotators/#supervision.annotators.core.BlurAnnotator) to trim negative coordinates before bluring detections.
+
+- Fixed [#511](https://github.com/roboflow/supervision/pull/511): [`sv.TraceAnnotator`](https://supervision.roboflow.com/annotators/#supervision.annotators.core.TraceAnnotator) to respect trace position.
+
+### 0.16.0 <small>October 19, 2023</small>
+
+- Added [#422](https://github.com/roboflow/supervision/pull/422): [`sv.BoxMaskAnnotator`](https://supervision.roboflow.com/annotators/#supervision.annotators.core.BoxMaskAnnotator) allowing to annotate images and videos with mox masks.
+
+- Added [#433](https://github.com/roboflow/supervision/pull/433): [`sv.HaloAnnotator`](https://supervision.roboflow.com/annotators/#supervision.annotators.core.HaloAnnotator) allowing to annotate images and videos with halo effect.
+
+```python
+>>> import supervision as sv
+
+>>> image = ...
+>>> detections = sv.Detections(...)
+
+>>> halo_annotator = sv.HaloAnnotator()
+>>> annotated_frame = halo_annotator.annotate(
+...     scene=image.copy(),
+...     detections=detections
+... )
+```
+
+- Added [#466](https://github.com/roboflow/supervision/pull/466): [`sv.HeatMapAnnotator`](https://supervision.roboflow.com/annotators/#supervision.annotators.core.HeatMapAnnotator) allowing to annotate videos with heat maps.
+
+- Added [#492](https://github.com/roboflow/supervision/pull/492): [`sv.DotAnnotator`](https://supervision.roboflow.com/annotators/#supervision.annotators.core.DotAnnotator) allowing to annotate images and videos with dots.
+
+- Added [#449](https://github.com/roboflow/supervision/pull/449): [`sv.draw_image`](https://supervision.roboflow.com/draw/utils/#supervision.draw.utils.draw_image) allowing to draw an image onto a given scene with specified opacity and dimensions.
+
+- Added [#280](https://github.com/roboflow/supervision/pull/280): [`sv.FPSMonitor`](https://supervision.roboflow.com/utils/video/#supervision.utils.video.FPSMonitor) for monitoring frames per second (FPS) to benchmark latency.
+
+- Added [#454](https://github.com/roboflow/supervision/pull/454): 🤗 Hugging Face Annotators [space](https://huggingface.co/spaces/Roboflow/Annotators).
+
+- Changed [#482](https://github.com/roboflow/supervision/pull/482): [`sv.LineZone.trigger`](https://supervision.roboflow.com/detection/tools/line_zone/#supervision.detection.line_counter.LineZone.trigger) now return `Tuple[np.ndarray, np.ndarray]`. The first array indicates which detections have crossed the line from outside to inside. The second array indicates which detections have crossed the line from inside to outside.
+
+- Changed [#465](https://github.com/roboflow/supervision/pull/465): Annotator argument name from `color_map: str` to `color_lookup: ColorLookup` enum to increase type safety.
+
+- Changed [#426](https://github.com/roboflow/supervision/pull/426): [`sv.MaskAnnotator`](https://supervision.roboflow.com/annotators/#supervision.annotators.core.MaskAnnotator) allowing 2x faster annotation.
+
+- Fixed [#477](https://github.com/roboflow/supervision/pull/477): Poetry env definition allowing proper local installation.
+
+- Fixed [#430](https://github.com/roboflow/supervision/pull/430):  [`sv.ByteTrack`](https://supervision.roboflow.com/trackers/#supervision.tracker.byte_tracker.core.ByteTrack) to return `np.array([], dtype=int)` when `svDetections` is empty.
+
+!!! warning
+
+    `sv.Detections.from_yolov8` and `sv.Classifications.from_yolov8` as those are now replaced by [`sv.Detections.from_ultralytics`](https://supervision.roboflow.com/detection/core/#supervision.detection.core.Detections.from_ultralytics) and [`sv.Classifications.from_ultralytics`](https://supervision.roboflow.com/classification/core/#supervision.classification.core.Classifications.from_ultralytics).
+
+
 ### 0.15.0 <small>October 5, 2023</small>
 
 - Added [#170](https://github.com/roboflow/supervision/pull/170): [`sv.BoundingBoxAnnotator`](https://supervision.roboflow.com/annotators/#supervision.annotators.core.BoundingBoxAnnotator) allowing to annotate images and videos with bounding boxes.
@@ -173,7 +342,7 @@ array([
 ... )
 ```
 
-- Added [#158](https://github.com/roboflow/supervision/pull/158): ability to marge multiple [`sv.DetectionDataset`](https://roboflow.github.io/supervision/dataset/core/#detectiondataset) together using [`merge`](https://roboflow.github.io/supervision/dataset/core/#supervision.dataset.core.DetectionDataset.merge) method.
+- Added [#158](https://github.com/roboflow/supervision/pull/158): ability to merge multiple [`sv.DetectionDataset`](https://roboflow.github.io/supervision/dataset/core/#detectiondataset) together using [`merge`](https://roboflow.github.io/supervision/dataset/core/#supervision.dataset.core.DetectionDataset.merge) method.
 
 ```python
 >>> import supervision as sv

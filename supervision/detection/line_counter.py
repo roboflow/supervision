@@ -1,12 +1,13 @@
 import math
-from typing import Dict, Optional, Tuple
+from typing import Dict, Iterable, Optional, Tuple
 
 import cv2
 import numpy as np
 
 from supervision.detection.core import Detections
 from supervision.draw.color import Color
-from supervision.geometry.core import Point, Rect, Vector
+from supervision.draw.utils import draw_text
+from supervision.geometry.core import Point, Position, Vector
 
 
 class LineZone:
@@ -18,7 +19,7 @@ class LineZone:
 
     !!! warning
 
-        LineZone utilizes the `tracker_id`. Read
+        LineZone uses the `tracker_id`. Read
         [here](https://supervision.roboflow.com/trackers/) to learn how to plug
         tracking into your inference pipeline.
 
@@ -30,25 +31,81 @@ class LineZone:
     """
 
     def __init__(
+        
         self,
+       
         start: Point,
+       
         end: Point,
         trigger_in: bool = True,
         trigger_out: bool = True,
+    ,
+        triggering_anchors: Iterable[Position] = (
+            Position.TOP_LEFT,
+            Position.TOP_RIGHT,
+            Position.BOTTOM_LEFT,
+            Position.BOTTOM_RIGHT,
+        ),
     ):
         """
         Args:
             start (Point): The starting point of the line.
             end (Point): The ending point of the line.
+            triggering_anchors (List[sv.Position]): A list of positions
+                specifying which anchors of the detections bounding box
+                to consider when deciding on whether the detection
+                has passed the line counter or not. By default, this
+                contains the four corners of the detection's bounding box
             trigger_in (bool): Count object crossing in the line.
             trigger_out (bool): Count object crossing out the line.
         """
         self.vector = Vector(start=start, end=end)
+        self.limits = self.calculate_region_of_interest_limits(vector=self.vector)
         self.tracker_state: Dict[str, bool] = {}
         self.in_count: int = 0
         self.out_count: int = 0
+        self.triggering_anchors = triggering_anchors
         self.trigger_in = trigger_in
         self.trigger_out = trigger_out
+
+    @staticmethod
+    def calculate_region_of_interest_limits(vector: Vector) -> Tuple[Vector, Vector]:
+        magnitude = vector.magnitude
+
+        if magnitude == 0:
+            raise ValueError("The magnitude of the vector cannot be zero.")
+
+        delta_x = vector.end.x - vector.start.x
+        delta_y = vector.end.y - vector.start.y
+
+        unit_vector_x = delta_x / magnitude
+        unit_vector_y = delta_y / magnitude
+
+        perpendicular_vector_x = -unit_vector_y
+        perpendicular_vector_y = unit_vector_x
+
+        start_region_limit = Vector(
+            start=vector.start,
+            end=Point(
+                x=vector.start.x + perpendicular_vector_x,
+                y=vector.start.y + perpendicular_vector_y,
+            ),
+        )
+        end_region_limit = Vector(
+            start=vector.end,
+            end=Point(
+                x=vector.end.x - perpendicular_vector_x,
+                y=vector.end.y - perpendicular_vector_y,
+            ),
+        )
+        return start_region_limit, end_region_limit
+
+    @staticmethod
+    def is_point_in_limits(point: Point, limits: Tuple[Vector, Vector]) -> bool:
+        cross_product_1 = limits[0].cross_product(point)
+        cross_product_2 = limits[1].cross_product(point)
+        return (cross_product_1 > 0) == (cross_product_2 > 0)
+
 
     def trigger(self, detections: Detections) -> Tuple[np.ndarray, np.ndarray]:
         """
@@ -67,18 +124,35 @@ class LineZone:
         crossed_in = np.full(len(detections), False)
         crossed_out = np.full(len(detections), False)
 
-        for i, (xyxy, _, confidence, class_id, tracker_id) in enumerate(detections):
+        if len(detections) == 0:
+            return crossed_in, crossed_out
+
+        all_anchors = np.array(
+            [
+                detections.get_anchors_coordinates(anchor)
+                for anchor in self.triggering_anchors
+            ]
+        )
+
+        for i, tracker_id in enumerate(detections.tracker_id):
             if tracker_id is None:
                 continue
 
-            x1, y1, x2, y2 = xyxy
-            anchors = [
-                Point(x=x1, y=y1),
-                Point(x=x1, y=y2),
-                Point(x=x2, y=y1),
-                Point(x=x2, y=y2),
+            box_anchors = [Point(x=x, y=y) for x, y in all_anchors[:, i, :]]
+
+            in_limits = all(
+                [
+                    self.is_point_in_limits(point=anchor, limits=self.limits)
+                    for anchor in box_anchors
+                ]
+            )
+
+            if not in_limits:
+                continue
+
+            triggers = [
+                self.vector.cross_product(point=anchor) > 0 for anchor in box_anchors
             ]
-            triggers = [self.vector.is_in(point=anchor) for anchor in anchors]
 
             if len(set(triggers)) == 2:
                 continue
@@ -107,14 +181,16 @@ class LineZoneAnnotator:
     def __init__(
         self,
         thickness: float = 2,
-        color: Color = Color.white(),
+        color: Color = Color.WHITE,
         text_thickness: float = 2,
-        text_color: Color = Color.black(),
+        text_color: Color = Color.BLACK,
         text_scale: float = 0.5,
         text_offset: float = 1.5,
         text_padding: int = 10,
         custom_in_text: Optional[str] = None,
         custom_out_text: Optional[str] = None,
+        display_in_count: bool = True,
+        display_out_count: bool = True,
     ):
         """
         Initialize the LineCounterAnnotator object with default values.
@@ -127,6 +203,8 @@ class LineZoneAnnotator:
             text_scale (float): The scale of the text that will be drawn.
             text_offset (float): The offset of the text that will be drawn.
             text_padding (int): The padding of the text that will be drawn.
+            display_in_count (bool): Whether to display the in count or not.
+            display_out_count (bool): Whether to display the out count or not.
 
         """
         self.thickness: float = thickness
@@ -138,6 +216,43 @@ class LineZoneAnnotator:
         self.text_padding: int = text_padding
         self.custom_in_text: str = custom_in_text
         self.custom_out_text: str = custom_out_text
+        self.display_in_count: bool = display_in_count
+        self.display_out_count: bool = display_out_count
+
+    def _annotate_count(
+        self,
+        frame: np.ndarray,
+        center_text_anchor: Point,
+        text: str,
+        is_in_count: bool,
+    ) -> None:
+        """This method is drawing the text on the frame.
+
+        Args:
+            frame (np.ndarray): The image on which the text will be drawn.
+            center_text_anchor: The center point that the text will be drawn.
+            text (str): The text that will be drawn.
+            is_in_count (bool): Whether to display the in count or out count.
+        """
+        _, text_height = cv2.getTextSize(
+            text, cv2.FONT_HERSHEY_SIMPLEX, self.text_scale, self.text_thickness
+        )[0]
+
+        if is_in_count:
+            center_text_anchor.y -= int(self.text_offset * text_height)
+        else:
+            center_text_anchor.y += int(self.text_offset * text_height)
+
+        draw_text(
+            scene=frame,
+            text=text,
+            text_anchor=center_text_anchor,
+            text_color=self.text_color,
+            text_scale=self.text_scale,
+            text_thickness=self.text_thickness,
+            text_padding=self.text_padding,
+            background_color=self.color,
+        )
 
     def annotate(self, frame: np.ndarray, line_counter: LineZone) -> np.ndarray:
         """
@@ -538,4 +653,33 @@ class LineZoneAnnotator:
             img[img != 0] / 255
         ) + self.color.as_bgr()[2] * (1 - (img[img != 0] / 255))
 
+        text_anchor = Vector(
+            start=line_counter.vector.start, end=line_counter.vector.end
+        )
+
+        if self.display_in_count:
+            in_text = (
+                f"{self.custom_in_text}: {line_counter.in_count}"
+                if self.custom_in_text is not None
+                else f"in: {line_counter.in_count}"
+            )
+            self._annotate_count(
+                frame=frame,
+                center_text_anchor=text_anchor.center,
+                text=in_text,
+                is_in_count=True,
+            )
+
+        if self.display_out_count:
+            out_text = (
+                f"{self.custom_out_text}: {line_counter.out_count}"
+                if self.custom_out_text is not None
+                else f"out: {line_counter.out_count}"
+            )
+            self._annotate_count(
+                frame=frame,
+                center_text_anchor=text_anchor.center,
+                text=out_text,
+                is_in_count=False,
+            )
         return frame

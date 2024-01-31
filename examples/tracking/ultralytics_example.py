@@ -17,7 +17,7 @@ def process_video(
 
     tracker = sv.ByteTrack()
     box_annotator = sv.BoundingBoxAnnotator()
-    label_annotator = sv.LabelAnnotator(classes=model.names)
+    label_annotator = sv.LabelAnnotator()
     frame_generator = sv.get_video_frames_generator(source_path=source_video_path)
     video_info = sv.VideoInfo.from_video_path(video_path=source_video_path)
 

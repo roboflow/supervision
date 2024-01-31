@@ -18,13 +18,13 @@ def plot_image(
 
     Examples:
         ```python
-        >>> import cv2
-        >>> import supervision as sv
+        import cv2
+        import supervision as sv
 
-        >>> image = cv2.imread("path/to/image.jpg")
+        image = cv2.imread("path/to/image.jpg")
 
         %matplotlib inline
-        >>> sv.plot_image(image=image, size=(16, 16))
+        sv.plot_image(image=image, size=(16, 16))
         ```
     """
     plt.figure(figsize=size)
@@ -63,18 +63,18 @@ def plot_images_grid(
 
     Examples:
         ```python
-        >>> import cv2
-        >>> import supervision as sv
+        import cv2
+        import supervision as sv
 
-        >>> image1 = cv2.imread("path/to/image1.jpg")
-        >>> image2 = cv2.imread("path/to/image2.jpg")
-        >>> image3 = cv2.imread("path/to/image3.jpg")
+        image1 = cv2.imread("path/to/image1.jpg")
+        image2 = cv2.imread("path/to/image2.jpg")
+        image3 = cv2.imread("path/to/image3.jpg")
 
-        >>> images = [image1, image2, image3]
-        >>> titles = ["Image 1", "Image 2", "Image 3"]
+        images = [image1, image2, image3]
+        titles = ["Image 1", "Image 2", "Image 3"]
 
         %matplotlib inline
-        >>> plot_images_grid(images, grid_size=(2, 2), titles=titles, size=(16, 16))
+        plot_images_grid(images, grid_size=(2, 2), titles=titles, size=(16, 16))
         ```
     """
     nrows, ncols = grid_size

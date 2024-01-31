@@ -10,13 +10,21 @@ from supervision.annotators.core import (
     BlurAnnotator,
     BoundingBoxAnnotator,
     BoxCornerAnnotator,
-    BoxMaskAnnotator,
     CircleAnnotator,
+    ColorAnnotator,
+    DotAnnotator,
     EllipseAnnotator,
     HaloAnnotator,
+    HeatMapAnnotator,
     LabelAnnotator,
     MaskAnnotator,
+    OrientedBoxAnnotator,
+    PercentageBarAnnotator,
+    PixelateAnnotator,
+    PolygonAnnotator,
+    RoundBoxAnnotator,
     TraceAnnotator,
+    TriangleAnnotator,
 )
 from supervision.annotators.utils import ColorLookup
 from supervision.classification.core import Classifications
@@ -30,17 +38,30 @@ from supervision.detection.core import Detections
 from supervision.detection.line_counter import LineZone, LineZoneAnnotator
 from supervision.detection.tools.inference_slicer import InferenceSlicer
 from supervision.detection.tools.polygon_zone import PolygonZone, PolygonZoneAnnotator
+from supervision.detection.tools.smoother import DetectionsSmoother
 from supervision.detection.utils import (
     box_iou_batch,
+    calculate_masks_centroids,
     filter_polygons_by_area,
     mask_to_polygons,
     mask_to_xyxy,
+    move_boxes,
     non_max_suppression,
     polygon_to_mask,
     polygon_to_xyxy,
+    scale_boxes,
 )
 from supervision.draw.color import Color, ColorPalette
-from supervision.draw.utils import draw_filled_rectangle, draw_polygon, draw_text
+from supervision.draw.utils import (
+    calculate_dynamic_line_thickness,
+    calculate_dynamic_text_scale,
+    draw_filled_rectangle,
+    draw_image,
+    draw_line,
+    draw_polygon,
+    draw_rectangle,
+    draw_text,
+)
 from supervision.geometry.core import Point, Position, Rect
 from supervision.geometry.utils import get_polygon_center
 from supervision.metrics.detection import ConfusionMatrix, MeanAveragePrecision
