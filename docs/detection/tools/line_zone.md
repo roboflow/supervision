@@ -2,6 +2,6 @@
 comments: true
 ---
 
-## LineZone
+# LineZone
 
 :::supervision.detection.line_counter.LineZone

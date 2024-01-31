@@ -26,7 +26,7 @@ class BoxAnnotator:
 
     def __init__(
         self,
-        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
         thickness: int = 2,
         text_color: Color = Color.BLACK,
         text_scale: float = 0.5,
@@ -63,23 +63,22 @@ class BoxAnnotator:
 
         Example:
             ```python
-            >>> import supervision as sv
+            import supervision as sv
 
-            >>> classes = ['person', ...]
-            >>> image = ...
-            >>> detections = sv.Detections(...)
+            classes = ['person', ...]
+            image = ...
+            detections = sv.Detections(...)
 
-            >>> box_annotator = sv.BoxAnnotator()
-            >>> labels = [
-            ...     f"{classes[class_id]} {confidence:0.2f}"
-            ...     for _, _, confidence, class_id, _
-            ...     in detections
-            ... ]
-            >>> annotated_frame = box_annotator.annotate(
-            ...     scene=image.copy(),
-            ...     detections=detections,
-            ...     labels=labels
-            ... )
+            box_annotator = sv.BoxAnnotator()
+            labels = [
+                f"{classes[class_id]} {confidence:0.2f}"
+                for _, _, confidence, class_id, _ in detections
+            ]
+            annotated_frame = box_annotator.annotate(
+                scene=image.copy(),
+                detections=detections,
+                labels=labels
+            )
             ```
         """
         font = cv2.FONT_HERSHEY_SIMPLEX

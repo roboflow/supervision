@@ -13,6 +13,7 @@ repos:
       - id: trailing-whitespace
         exclude: test/.*\.py
       - id: check-yaml
+        exclude: mkdocs.yml
       - id: check-docstring-first
       - id: check-executables-have-shebangs
       - id: check-toml
@@ -29,7 +30,7 @@ repos:
 
 
   -   repo: https://github.com/PyCQA/bandit
-      rev: '1.7.6'
+      rev: '1.7.7'
       hooks:
       -   id: bandit
           args: ["-c", "pyproject.toml"]
@@ -46,7 +47,7 @@ repos:
 
 
   -   repo: https://github.com/astral-sh/ruff-pre-commit
-      rev: v0.1.13
+      rev: v0.1.14
       hooks:
       -   id: ruff
           args: [--fix, --exit-non-zero-on-fix]

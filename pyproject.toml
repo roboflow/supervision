@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "supervision"
-version = "0.18.0rc2"
+version = "0.18.0"
 description = "A set of easy-to-use utils that will come in handy in any Computer Vision project"
 authors = ["Piotr Skalski <piotr.skalski92@gmail.com>"]
 maintainers = ["Piotr Skalski <piotr.skalski92@gmail.com>"]
@@ -37,14 +37,14 @@ scipy = [
     { version = "1.10.0", python = "<3.9" },
     { version = "^1.10.0", python = ">=3.9" }
 ]
-matplotlib = ">=3.5.0"
+matplotlib = ">=3.6.0"
 pyyaml = ">=5.3"
-pillow = ">=9.4"
 opencv-python = { version = ">=4.5.5.64", optional = true }
 opencv-python-headless = ">=4.5.5.64"
 requests = { version = ">=2.26.0,<=2.31.0", optional = true }
 tqdm = { version = ">=4.62.3,<=4.66.1", optional = true }
 defusedxml = "^0.7.1"
+
 
 
 [tool.poetry.extras]
@@ -53,7 +53,7 @@ assets = ["requests","tqdm"]
 
 [tool.poetry.group.dev.dependencies]
 twine = "^4.0.2"
-pytest = "^7.2.2"
+pytest = ">=7.2.2,<9.0.0"
 wheel = ">=0.40,<0.43"
 notebook = ">=6.5.3,<8.0.0"
 build = ">=0.10,<1.1"
@@ -65,8 +65,9 @@ tox = "^4.11.4"
 
 
 [tool.poetry.group.docs.dependencies]
-mkdocs-material = "^9.1.4"
+mkdocs-material = {extras = ["imaging"], version = "^9.5.5"}
 mkdocstrings = {extras = ["python"], version = ">=0.20,<0.25"}
+mike = "^2.0.0"
 
 
 [tool.isort]

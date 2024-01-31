@@ -6,6 +6,7 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 
+from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.utils import (
     calculate_masks_centroids,
     extract_ultralytics_masks,
@@ -24,7 +25,34 @@ from supervision.utils.internal import deprecated
 @dataclass
 class Detections:
     """
-    A dataclass representing detection results.
+    The `sv.Detections` allows you to convert results from a variety of object detection
+    and segmentation models into a single, unified format. The `sv.Detections` class
+    enables easy data manipulation and filtering, and provides a consistent API for
+    Supervision's tools like trackers, annotators, and zones.
+
+    ```python
+    import cv2
+    import supervision as sv
+    from ultralytics import YOLO
+
+    image = cv2.imread(<SOURCE_IMAGE_PATH>)
+    model = YOLO('yolov8s.pt')
+    annotator = sv.BoundingBoxAnnotator()
+
+    result = model(image)[0]
+    detections = sv.Detections.from_ultralytics(result)
+
+    annotated_image = annotator.annotate(image, detections)
+    ```
+
+    !!! tip
+
+        In `sv.Detections`, detection data is categorized into two main field types:
+        fixed and custom. The fixed fields include `xyxy`, `mask`, `confidence`,
+        `class_id`, and `tracker_id`. For any additional data requirements, custom
+        fields come into play, stored in the data field. These custom fields are easily
+        accessible using the `detections[<FIELD_NAME>]` syntax, providing flexibility
+        for diverse data handling needs.
 
     Attributes:
         xyxy (np.ndarray): An array of shape `(n, 4)` containing
@@ -126,14 +154,14 @@ class Detections:
 
         Example:
             ```python
-            >>> import cv2
-            >>> import torch
-            >>> import supervision as sv
+            import cv2
+            import torch
+            import supervision as sv
 
-            >>> image = cv2.imread(SOURCE_IMAGE_PATH)
-            >>> model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
-            >>> result = model(image)
-            >>> detections = sv.Detections.from_yolov5(result)
+            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
+            result = model(image)
+            detections = sv.Detections.from_yolov5(result)
             ```
         """
         yolov5_detections_predictions = yolov5_results.pred[0].cpu().cpu().numpy()
@@ -150,6 +178,13 @@ class Detections:
         Creates a Detections instance from a
             [YOLOv8](https://github.com/ultralytics/ultralytics) inference result.
 
+        !!! Note
+
+            `from_ultralytics` is compatible with
+            [detection](https://docs.ultralytics.com/tasks/detect/),
+            [segmentation](https://docs.ultralytics.com/tasks/segment/), and
+            [OBB](https://docs.ultralytics.com/tasks/obb/) models.
+
         Args:
             ultralytics_results (ultralytics.yolo.engine.results.Results):
                 The output Results instance from YOLOv8
@@ -159,25 +194,46 @@ class Detections:
 
         Example:
             ```python
-            >>> import cv2
-            >>> import supervision as sv
-            >>> from ultralytics import YOLO
+            import cv2
+            import supervision as sv
+            from ultralytics import YOLO
 
-            >>> image = cv2.imread(...)
-            >>> model = YOLO('yolov8s.pt')
-            >>> result = model(image)[0]
-            >>> detections = sv.Detections.from_ultralytics(result)
+            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            model = YOLO('yolov8s.pt')
+
+            result = model(image)[0]
+            detections = sv.Detections.from_ultralytics(result)
             ```
-        """
+        """  # noqa: E501 // docs
 
+        if ultralytics_results.obb is not None:
+            class_id = ultralytics_results.obb.cls.cpu().numpy().astype(int)
+            class_names = np.array([ultralytics_results.names[i] for i in class_id])
+            oriented_box_coordinates = ultralytics_results.obb.xyxyxyxy.cpu().numpy()
+            return cls(
+                xyxy=ultralytics_results.obb.xyxy.cpu().numpy(),
+                confidence=ultralytics_results.obb.conf.cpu().numpy(),
+                class_id=class_id,
+                tracker_id=ultralytics_results.obb.id.int().cpu().numpy()
+                if ultralytics_results.obb.id is not None
+                else None,
+                data={
+                    ORIENTED_BOX_COORDINATES: oriented_box_coordinates,
+                    CLASS_NAME_DATA_FIELD: class_names,
+                },
+            )
+
+        class_id = ultralytics_results.boxes.cls.cpu().numpy().astype(int)
+        class_names = np.array([ultralytics_results.names[i] for i in class_id])
         return cls(
             xyxy=ultralytics_results.boxes.xyxy.cpu().numpy(),
             confidence=ultralytics_results.boxes.conf.cpu().numpy(),
-            class_id=ultralytics_results.boxes.cls.cpu().numpy().astype(int),
+            class_id=class_id,
             mask=extract_ultralytics_masks(ultralytics_results),
             tracker_id=ultralytics_results.boxes.id.int().cpu().numpy()
             if ultralytics_results.boxes.id is not None
             else None,
+            data={CLASS_NAME_DATA_FIELD: class_names},
         )
 
     @classmethod
@@ -198,14 +254,15 @@ class Detections:
 
         Example:
             ```python
-            >>> import cv2
-            >>> from super_gradients.training import models
-            >>> import supervision as sv
+            import cv2
+            from super_gradients.training import models
+            import supervision as sv
 
-            >>> image = cv2.imread(SOURCE_IMAGE_PATH)
-            >>> model = models.get('yolo_nas_l', pretrained_weights="coco")
-            >>> result = list(model.predict(image, conf=0.35))[0]
-            >>> detections = sv.Detections.from_yolo_nas(result)
+            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            model = models.get('yolo_nas_l', pretrained_weights="coco")
+
+            result = list(model.predict(image, conf=0.35))[0]
+            detections = sv.Detections.from_yolo_nas(result)
             ```
         """
         if np.asarray(yolo_nas_results.prediction.bboxes_xyxy).shape[0] == 0:
@@ -235,20 +292,16 @@ class Detections:
 
         Example:
             ```python
-            >>> import tensorflow as tf
-            >>> import tensorflow_hub as hub
-            >>> import numpy as np
-            >>> import cv2
+            import tensorflow as tf
+            import tensorflow_hub as hub
+            import numpy as np
+            import cv2
 
-            >>> module_handle = "https://tfhub.dev/tensorflow/centernet/hourglass_512x512_kpts/1"
-
-            >>> model = hub.load(module_handle)
-
-            >>> img = np.array(cv2.imread(SOURCE_IMAGE_PATH))
-
-            >>> result = model(img)
-
-            >>> detections = sv.Detections.from_tensorflow(result)
+            module_handle = "https://tfhub.dev/tensorflow/centernet/hourglass_512x512_kpts/1"
+            model = hub.load(module_handle)
+            img = np.array(cv2.imread(SOURCE_IMAGE_PATH))
+            result = model(img)
+            detections = sv.Detections.from_tensorflow(result)
             ```
         """  # noqa: E501 // docs
 
@@ -278,15 +331,15 @@ class Detections:
 
         Example:
             ```python
-            >>> import supervision as sv
-            >>> from deepsparse import Pipeline
+            import supervision as sv
+            from deepsparse import Pipeline
 
-            >>> yolo_pipeline = Pipeline.create(
-            ...     task="yolo",
-            ...     model_path = "zoo:cv/detection/yolov5-l/pytorch/ultralytics/coco/pruned80_quant-none"
-            ... )
-            >>> result = yolo_pipeline(<SOURCE IMAGE PATH>)
-            >>> detections = sv.Detections.from_deepsparse(result)
+            yolo_pipeline = Pipeline.create(
+                task="yolo",
+                model_path = "zoo:cv/detection/yolov5-l/pytorch/ultralytics/coco/pruned80_quant-none"
+             )
+            result = yolo_pipeline(<SOURCE IMAGE PATH>)
+            detections = sv.Detections.from_deepsparse(result)
             ```
         """  # noqa: E501 // docs
 
@@ -302,9 +355,9 @@ class Detections:
     @classmethod
     def from_mmdetection(cls, mmdet_results) -> Detections:
         """
-        Creates a Detections instance from
-        a [mmdetection](https://github.com/open-mmlab/mmdetection) inference result.
-        Also supported for [mmyolo](https://github.com/open-mmlab/mmyolo)
+        Creates a Detections instance from a
+        [mmdetection](https://github.com/open-mmlab/mmdetection) and
+        [mmyolo](https://github.com/open-mmlab/mmyolo) inference result.
 
         Args:
             mmdet_results (mmdet.structures.DetDataSample):
@@ -315,16 +368,17 @@ class Detections:
 
         Example:
             ```python
-            >>> import cv2
-            >>> import supervision as sv
-            >>> from mmdet.apis import DetInferencer
+            import cv2
+            import supervision as sv
+            from mmdet.apis import init_detector, inference_detector
 
-            >>> inferencer = DetInferencer(model_name, checkpoint, device)
-            >>> mmdet_result = inferencer(SOURCE_IMAGE_PATH, out_dir='./output',
-            ...                           return_datasamples=True)["predictions"][0]
-            >>> detections = sv.Detections.from_mmdetection(mmdet_result)
+            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            model = init_detector(<CONFIG_PATH>, <WEIGHTS_PATH>, device=<DEVICE>)
+
+            result = inference_detector(model, image)
+            detections = sv.Detections.from_mmdetection(result)
             ```
-        """
+        """  # noqa: E501 // docs
 
         return cls(
             xyxy=mmdet_results.pred_instances.bboxes.cpu().numpy(),
@@ -364,18 +418,20 @@ class Detections:
 
         Example:
             ```python
-            >>> import cv2
-            >>> from detectron2.engine import DefaultPredictor
-            >>> from detectron2.config import get_cfg
-            >>> import supervision as sv
+            import cv2
+            import supervision as sv
+            from detectron2.engine import DefaultPredictor
+            from detectron2.config import get_cfg
 
-            >>> image = cv2.imread(SOURCE_IMAGE_PATH)
-            >>> cfg = get_cfg()
-            >>> cfg.merge_from_file("path/to/config.yaml")
-            >>> cfg.MODEL.WEIGHTS = "path/to/model_weights.pth"
-            >>> predictor = DefaultPredictor(cfg)
-            >>> result = predictor(image)
-            >>> detections = sv.Detections.from_detectron2(result)
+
+            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            cfg = get_cfg()
+            cfg.merge_from_file(<CONFIG_PATH>)
+            cfg.MODEL.WEIGHTS = <WEIGHTS_PATH>
+            predictor = DefaultPredictor(cfg)
+
+            result = predictor(image)
+            detections = sv.Detections.from_detectron2(result)
             ```
         """
 
@@ -412,14 +468,15 @@ class Detections:
 
         Example:
             ```python
-            >>> import cv2
-            >>> import supervision as sv
-            >>> from inference.models.utils import get_roboflow_model
+            import cv2
+            import supervision as sv
+            from inference.models.utils import get_roboflow_model
 
-            >>> image = cv2.imread(...)
-            >>> model = get_roboflow_model(model_id="yolov8s-640")
-            >>> result = model.infer(image)[0]
-            >>> detections = sv.Detections.from_inference(result)
+            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            model = get_roboflow_model(model_id="yolov8s-640")
+
+            result = model.infer(image)[0]
+            detections = sv.Detections.from_inference(result)
             ```
         """
         with suppress(AttributeError):
@@ -461,14 +518,15 @@ class Detections:
 
         Example:
             ```python
-            >>> import cv2
-            >>> import supervision as sv
-            >>> from inference.models.utils import get_roboflow_model
+            import cv2
+            import supervision as sv
+            from inference.models.utils import get_roboflow_model
 
-            >>> image = cv2.imread(...)
-            >>> model = get_roboflow_model(model_id="yolov8s-640")
-            >>> result = model.infer(image)[0]
-            >>> detections = sv.Detections.from_roboflow(result)
+            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            model = get_roboflow_model(model_id="yolov8s-640")
+
+            result = model.infer(image)[0]
+            detections = sv.Detections.from_roboflow(result)
             ```
         """
         return cls.from_inference(roboflow_result)
@@ -488,17 +546,17 @@ class Detections:
 
         Example:
             ```python
-            >>> import supervision as sv
-            >>> from segment_anything import (
-            ...     sam_model_registry,
-            ...     SamAutomaticMaskGenerator
-            ... )
+            import supervision as sv
+            from segment_anything import (
+                sam_model_registry,
+                SamAutomaticMaskGenerator
+             )
 
-            >>> sam_model_reg = sam_model_registry[MODEL_TYPE]
-            >>> sam = sam_model_reg(checkpoint=CHECKPOINT_PATH).to(device=DEVICE)
-            >>> mask_generator = SamAutomaticMaskGenerator(sam)
-            >>> sam_result = mask_generator.generate(IMAGE)
-            >>> detections = sv.Detections.from_sam(sam_result=sam_result)
+            sam_model_reg = sam_model_registry[MODEL_TYPE]
+            sam = sam_model_reg(checkpoint=CHECKPOINT_PATH).to(device=DEVICE)
+            mask_generator = SamAutomaticMaskGenerator(sam)
+            sam_result = mask_generator.generate(IMAGE)
+            detections = sv.Detections.from_sam(sam_result=sam_result)
             ```
         """
 
@@ -535,25 +593,25 @@ class Detections:
 
         Example:
             ```python
-            >>> import requests
-            >>> import supervision as sv
+            import requests
+            import supervision as sv
 
-            >>> image = open(input, "rb").read()
+            image = open(input, "rb").read()
 
-            >>> endpoint = "https://.cognitiveservices.azure.com/"
-            >>> subscription_key = "..."
+            endpoint = "https://.cognitiveservices.azure.com/"
+            subscription_key = ""
 
-            >>> headers = {
-            ...    "Content-Type": "application/octet-stream",
-            ...    "Ocp-Apim-Subscription-Key": subscription_key
-            ... }
+            headers = {
+                "Content-Type": "application/octet-stream",
+                "Ocp-Apim-Subscription-Key": subscription_key
+             }
 
-            >>> response = requests.post(endpoint,
-            ...     headers=self.headers,
-            ...     data=image
-            ... ).json()
+            response = requests.post(endpoint,
+                headers=self.headers,
+                data=image
+             ).json()
 
-            >>> detections = sv.Detections.from_azure_analyze_image(response)
+            detections = sv.Detections.from_azure_analyze_image(response)
             ```
         """
         if "error" in azure_result:
@@ -617,21 +675,21 @@ class Detections:
 
         Example:
             ```python
-            >>> import supervision as sv
-            >>> import paddle
-            >>> from ppdet.engine import Trainer
-            >>> from ppdet.core.workspace import load_config
+            import supervision as sv
+            import paddle
+            from ppdet.engine import Trainer
+            from ppdet.core.workspace import load_config
 
-            >>> weights = (...)
-            >>> config = (...)
+            weights = ()
+            config = ()
 
-            >>> cfg = load_config(config)
-            >>> trainer = Trainer(cfg, mode='test')
-            >>> trainer.load_weights(weights)
+            cfg = load_config(config)
+            trainer = Trainer(cfg, mode='test')
+            trainer.load_weights(weights)
 
-            >>> paddledet_result = trainer.predict([images])[0]
+            paddledet_result = trainer.predict([images])[0]
 
-            >>> detections = sv.Detections.from_paddledet(paddledet_result)
+            detections = sv.Detections.from_paddledet(paddledet_result)
             ```
         """
 
@@ -655,9 +713,9 @@ class Detections:
 
         Example:
             ```python
-            >>> from supervision import Detections
+            from supervision import Detections
 
-            >>> empty_detections = Detections.empty()
+            empty_detections = Detections.empty()
             ```
         """
         return cls(
@@ -689,29 +747,29 @@ class Detections:
             import numpy as np
             import supervision as sv
 
-            >>> detections_1 = sv.Detections(
-            ...     xyxy=np.array([[15, 15, 100, 100], [200, 200, 300, 300]]),
-            ...     class_id=np.array([1, 2]),
-            ...     data={'feature_vector': np.array([0.1, 0.2)])}
-            ... )
+            detections_1 = sv.Detections(
+                xyxy=np.array([[15, 15, 100, 100], [200, 200, 300, 300]]),
+                class_id=np.array([1, 2]),
+                data={'feature_vector': np.array([0.1, 0.2)])}
+             )
 
-            >>> detections_2 = sv.Detections(
-            ...     xyxy=np.array([[30, 30, 120, 120]]),
-            ...     class_id=np.array([1]),
-            ...     data={'feature_vector': [np.array([0.3])]}
-            ... )
+            detections_2 = sv.Detections(
+                xyxy=np.array([[30, 30, 120, 120]]),
+                class_id=np.array([1]),
+                data={'feature_vector': [np.array([0.3])]}
+             )
 
-            >>> merged_detections = Detections.merge([detections_1, detections_2])
+            merged_detections = Detections.merge([detections_1, detections_2])
 
-            >>> merged_detections.xyxy
+            merged_detections.xyxy
             array([[ 15,  15, 100, 100],
                    [200, 200, 300, 300],
                    [ 30,  30, 120, 120]])
 
-            >>> merged_detections.class_id
+            merged_detections.class_id
             array([1, 2, 1])
 
-            >>> merged_detections.data['feature_vector']
+            merged_detections.data['feature_vector']
             array([0.1, 0.2, 0.3])
             ```
         """
@@ -844,17 +902,17 @@ class Detections:
 
         Example:
             ```python
-            >>> import supervision as sv
+            import supervision as sv
 
-            >>> detections = sv.Detections(...)
+            detections = sv.Detections()
 
-            >>> first_detection = detections[0]
-            >>> first_10_detections = detections[0:10]
-            >>> some_detections = detections[[0, 2, 4]]
-            >>> class_0_detections = detections[detections.class_id == 0]
-            >>> high_confidence_detections = detections[detections.confidence > 0.5]
+            first_detection = detections[0]
+            first_10_detections = detections[0:10]
+            some_detections = detections[[0, 2, 4]]
+            class_0_detections = detections[detections.class_id == 0]
+            high_confidence_detections = detections[detections.confidence > 0.5]
 
-            >>> feature_vector = detections['feature_vector']
+            feature_vector = detections['feature_vector']
             ```
         """
         if isinstance(index, str):
@@ -880,22 +938,21 @@ class Detections:
 
         Example:
             ```python
-            >>> import cv2
-            >>> from ultralytics import YOLO
-            >>> import supervision as sv
+            import cv2
+            import supervision as sv
+            from ultralytics import YOLO
 
-            >>> model = YOLO('yolov8s.pt')
+            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            model = YOLO('yolov8s.pt')
 
-            >>> image = cv2.imread(SOURCE_IMAGE_PATH)
+            result = model(image)[0]
+            detections = sv.Detections.from_ultralytics(result)
 
-            >>> result = model(image)[0]
-            >>> detections = sv.Detections.from_ultralytics(result)
-
-            >>> detections['names'] = [
-            ...     model.model.names[class_id]
-            ...     for class_id
-            ...     in detections.class_id
-            ... ]
+            detections['names'] = [
+                 model.model.names[class_id]
+                 for class_id
+                 in detections.class_id
+             ]
             ```
         """
         if not isinstance(value, (np.ndarray, list)):
@@ -915,7 +972,7 @@ class Detections:
 
         Returns:
           np.ndarray: An array of floats containing the area of each detection
-            in the format of `(area_1, area_2, ..., area_n)`,
+            in the format of `(area_1, area_2, , area_n)`,
             where n is the number of detections.
         """
         if self.mask is not None:
@@ -930,7 +987,7 @@ class Detections:
 
         Returns:
             np.ndarray: An array of floats containing the area of each bounding
-                box in the format of `(area_1, area_2, ..., area_n)`,
+                box in the format of `(area_1, area_2, , area_n)`,
                 where n is the number of detections.
         """
         return (self.xyxy[:, 3] - self.xyxy[:, 1]) * (self.xyxy[:, 2] - self.xyxy[:, 0])
@@ -943,7 +1000,8 @@ class Detections:
 
         Args:
             threshold (float, optional): The intersection-over-union threshold
-                to use for non-maximum suppression. Defaults to 0.5.
+                to use for non-maximum suppression. I'm the lower the value the more
+                restrictive the NMS becomes. Defaults to 0.5.
             class_agnostic (bool, optional): Whether to perform class-agnostic
                 non-maximum suppression. If True, the class_id of each detection
                 will be ignored. Defaults to False.

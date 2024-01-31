@@ -5,7 +5,7 @@ site_description: A set of easy-to-use utilities that will come in handy in any 
 repo_name: roboflow/supervision
 repo_url: https://github.com/roboflow/supervision
 edit_uri: https://github.com/roboflow/supervision/tree/main/docs
-copyright: Roboflow 2023. All rights reserved.
+copyright: Roboflow 2024. All rights reserved.
 
 extra:
   social:
@@ -15,11 +15,13 @@ extra:
       link: https://www.youtube.com/roboflow
     - icon: fontawesome/brands/linkedin
       link: https://www.linkedin.com/company/roboflow-ai/mycompany/
-    - icon: fontawesome/brands/twitter
+    - icon: fontawesome/brands/x-twitter
       link: https://twitter.com/roboflow
   analytics:
     provider: google
     property: G-P7ZG0Y19G5
+  version:
+    provider: mike
 
 extra_css:
   - stylesheets/extra.css
@@ -28,10 +30,8 @@ nav:
   - Home: index.md
   - How to:
       - Detect and Annotate: how_to/detect_and_annotate.md
-      - Process Video: how_to/process_video.md
       - Track Objects: how_to/track_objects.md
       - Filter Detections: how_to/filter_detections.md
-      - Evaluate Model: how_to/evaluate_model.md
   - API:
     - Classifications:
         - Core: classification/core.md
@@ -42,6 +42,7 @@ nav:
         - Line Zone: detection/tools/line_zone.md
         - Polygon Zone: detection/tools/polygon_zone.md
         - Inference Slicer: detection/tools/inference_slicer.md
+        - Detection Smoother: detection/tools/smoother.md
     - Annotators: annotators.md
     - Trackers: trackers.md
     - Datasets: datasets.md
@@ -82,6 +83,7 @@ theme:
     code: Roboto Mono
   features:
     - content.code.copy
+    - content.code.annotate
 
 plugins:
   - mkdocstrings
@@ -97,6 +99,9 @@ markdown_extensions:
       alternate_style: true
   - toc:
       permalink: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
 
 extra_javascript:
   - "https://widget.kapa.ai/kapa-widget.bundle.js"

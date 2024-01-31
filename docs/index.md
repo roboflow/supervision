@@ -7,7 +7,7 @@ comments: true
     <a align="center" href="" target="_blank">
       <img
         width="850"
-        src="https://media.roboflow.com/open-source/supervision/roboflow-supervision-banner.png?ik-sdk-version=javascript-1.4.3&updatedAt=1674062891088"
+        src="https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png?updatedAt=1678995927529"
       >
     </a>
   </p>
@@ -16,6 +16,47 @@ comments: true
 ## 👋 Hello
 
 We write your reusable computer vision tools. Whether you need to load your dataset from your hard drive, draw detections on an image or video, or count how many detections are in a zone. You can count on us!
+
+<video controls>
+    <source
+        src="https://media.roboflow.com/traffic_analysis_result.mp4"
+        type="video/mp4"
+    >
+</video>
+
+## 🚀 Quickstart
+
+<div class="grid cards" markdown>
+
+-   __Detect and Annotate__
+
+    ---
+
+    Annotate predictions from a range of object detection and segmentation models
+
+    [:octicons-arrow-right-24: Tutorial](how_to/detect_and_annotate.md)
+
+-   __Track Objects__
+
+    ---
+
+    Discover how to enhance video analysis by implementing seamless object tracking
+
+    [:octicons-arrow-right-24: Tutorial](how_to/track_objects.md)
+
+-   > __Count Objects Crossing Line__
+
+    ---
+
+    Explore methods to accurately count and analyze objects crossing a predefined line
+
+-   > __Filter Objects in Zone__
+
+    ---
+
+    Master the techniques to selectively filter and focus on objects within a specific zone
+
+</div>
 
 ## 💻 Install
 

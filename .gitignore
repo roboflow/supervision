@@ -135,3 +135,24 @@ dmypy.json
 
 # Notebooks
 notebooks/
+
+# OSX folder attributes
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Thumbnails
+._*
+
+# Files that might appear on external disk
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Linux
+*~
+.directory
+.Trash-*

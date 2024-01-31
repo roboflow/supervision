@@ -6,7 +6,7 @@ import numpy as np
 
 from supervision.annotators.base import BaseAnnotator
 from supervision.annotators.utils import ColorLookup, Trace, resolve_color
-from supervision.config import CLASS_NAME_DATA_FIELD
+from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
 from supervision.detection.utils import clip_boxes, mask_to_polygons
 from supervision.draw.color import Color, ColorPalette
@@ -21,7 +21,7 @@ class BoundingBoxAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
         thickness: int = 2,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
@@ -57,16 +57,16 @@ class BoundingBoxAnnotator(BaseAnnotator):
 
         Example:
             ```python
-            >>> import supervision as sv
+            import supervision as sv
 
-            >>> image = ...
-            >>> detections = sv.Detections(...)
+            image = ...
+            detections = sv.Detections(...)
 
-            >>> bounding_box_annotator = sv.BoundingBoxAnnotator()
-            >>> annotated_frame = bounding_box_annotator.annotate(
-            ...     scene=image.copy(),
-            ...     detections=detections
-            ... )
+            bounding_box_annotator = sv.BoundingBoxAnnotator()
+            annotated_frame = bounding_box_annotator.annotate(
+                scene=image.copy(),
+                detections=detections
+            )
             ```
 
         ![bounding-box-annotator-example](https://media.roboflow.com/
@@ -92,18 +92,98 @@ class BoundingBoxAnnotator(BaseAnnotator):
         return scene
 
 
+class OrientedBoxAnnotator(BaseAnnotator):
+    """
+    A class for drawing oriented bounding boxes on an image using provided detections.
+    """
+
+    def __init__(
+        self,
+        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        thickness: int = 2,
+        color_lookup: ColorLookup = ColorLookup.CLASS,
+    ):
+        """
+        Args:
+            color (Union[Color, ColorPalette]): The color or color palette to use for
+                annotating detections.
+            thickness (int): Thickness of the bounding box lines.
+            color_lookup (str): Strategy for mapping colors to annotations.
+                Options are `INDEX`, `CLASS`, `TRACK`.
+        """
+        self.color: Union[Color, ColorPalette] = color
+        self.thickness: int = thickness
+        self.color_lookup: ColorLookup = color_lookup
+
+    def annotate(
+        self,
+        scene: np.ndarray,
+        detections: Detections,
+        custom_color_lookup: Optional[np.ndarray] = None,
+    ) -> np.ndarray:
+        """
+        Annotates the given scene with oriented bounding boxes based on the provided detections.
+
+        Args:
+            scene (np.ndarray): The image where bounding boxes will be drawn.
+            detections (Detections): Object detections to annotate.
+            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
+                Allows to override the default color mapping strategy.
+
+        Returns:
+            The annotated image.
+
+        Example:
+            ```python
+            import cv2
+            import supervision as sv
+            from ultralytics import YOLO
+
+            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            model = YOLO("yolov8n-obb.pt")
+
+            result = model(image)[0]
+            detections = sv.Detections.from_ultralytics(result)
+
+            oriented_box_annotator = sv.OrientedBoxAnnotator()
+            annotated_frame = oriented_box_annotator.annotate(
+                scene=image.copy(),
+                detections=detections
+            )
+            ```
+        """  # noqa E501 // docs
+
+        if detections.data is None or ORIENTED_BOX_COORDINATES not in detections.data:
+            return scene
+
+        for detection_idx in range(len(detections)):
+            bbox = np.int0(detections.data.get(ORIENTED_BOX_COORDINATES)[detection_idx])
+            color = resolve_color(
+                color=self.color,
+                detections=detections,
+                detection_idx=detection_idx,
+                color_lookup=self.color_lookup
+                if custom_color_lookup is None
+                else custom_color_lookup,
+            )
+
+            cv2.drawContours(scene, [bbox], 0, color.as_bgr(), self.thickness)
+
+        return scene
+
+
 class MaskAnnotator(BaseAnnotator):
     """
     A class for drawing masks on an image using provided detections.
 
     !!! warning
 
-        This annotator utilizes the `sv.Detections.mask`.
+        This annotator uses `sv.Detections.mask`.
     """
 
     def __init__(
         self,
-        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
         opacity: float = 0.5,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
@@ -139,16 +219,16 @@ class MaskAnnotator(BaseAnnotator):
 
         Example:
             ```python
-            >>> import supervision as sv
+            import supervision as sv
 
-            >>> image = ...
-            >>> detections = sv.Detections(...)
+            image = ...
+            detections = sv.Detections(...)
 
-            >>> mask_annotator = sv.MaskAnnotator()
-            >>> annotated_frame = mask_annotator.annotate(
-            ...     scene=image.copy(),
-            ...     detections=detections
-            ... )
+            mask_annotator = sv.MaskAnnotator()
+            annotated_frame = mask_annotator.annotate(
+                scene=image.copy(),
+                detections=detections
+            )
             ```
 
         ![mask-annotator-example](https://media.roboflow.com/
@@ -181,12 +261,12 @@ class PolygonAnnotator(BaseAnnotator):
 
     !!! warning
 
-        This annotator utilizes the `sv.Detections.mask`.
+        This annotator uses `sv.Detections.mask`.
     """
 
     def __init__(
         self,
-        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
         thickness: int = 2,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
@@ -222,16 +302,16 @@ class PolygonAnnotator(BaseAnnotator):
 
         Example:
             ```python
-            >>> import supervision as sv
+            import supervision as sv
 
-            >>> image = ...
-            >>> detections = sv.Detections(...)
+            image = ...
+            detections = sv.Detections(...)
 
-            >>> polygon_annotator = sv.PolygonAnnotator()
-            >>> annotated_frame = polygon_annotator.annotate(
-            ...     scene=image.copy(),
-            ...     detections=detections
-            ... )
+            polygon_annotator = sv.PolygonAnnotator()
+            annotated_frame = polygon_annotator.annotate(
+                scene=image.copy(),
+                detections=detections
+            )
             ```
 
         ![polygon-annotator-example](https://media.roboflow.com/
@@ -268,7 +348,7 @@ class ColorAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
         opacity: float = 0.5,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
@@ -304,16 +384,16 @@ class ColorAnnotator(BaseAnnotator):
 
         Example:
             ```python
-            >>> import supervision as sv
+            import supervision as sv
 
-            >>> image = ...
-            >>> detections = sv.Detections(...)
+            image = ...
+            detections = sv.Detections(...)
 
-            >>> color_annotator = sv.ColorAnnotator()
-            >>> annotated_frame = color_annotator.annotate(
-            ...     scene=image.copy(),
-            ...     detections=detections
-            ... )
+            color_annotator = sv.ColorAnnotator()
+            annotated_frame = color_annotator.annotate(
+                scene=image.copy(),
+                detections=detections
+            )
             ```
 
         ![box-mask-annotator-example](https://media.roboflow.com/
@@ -349,12 +429,12 @@ class HaloAnnotator(BaseAnnotator):
 
     !!! warning
 
-        This annotator utilizes the `sv.Detections.mask`.
+        This annotator uses `sv.Detections.mask`.
     """
 
     def __init__(
         self,
-        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
         opacity: float = 0.8,
         kernel_size: int = 40,
         color_lookup: ColorLookup = ColorLookup.CLASS,
@@ -394,16 +474,16 @@ class HaloAnnotator(BaseAnnotator):
 
         Example:
             ```python
-            >>> import supervision as sv
+            import supervision as sv
 
-            >>> image = ...
-            >>> detections = sv.Detections(...)
+            image = ...
+            detections = sv.Detections(...)
 
-            >>> halo_annotator = sv.HaloAnnotator()
-            >>> annotated_frame = halo_annotator.annotate(
-            ...     scene=image.copy(),
-            ...     detections=detections
-            ... )
+            halo_annotator = sv.HaloAnnotator()
+            annotated_frame = halo_annotator.annotate(
+                scene=image.copy(),
+                detections=detections
+            )
             ```
 
         ![halo-annotator-example](https://media.roboflow.com/
@@ -446,7 +526,7 @@ class EllipseAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
         thickness: int = 2,
         start_angle: int = -45,
         end_angle: int = 235,
@@ -488,16 +568,16 @@ class EllipseAnnotator(BaseAnnotator):
 
         Example:
             ```python
-            >>> import supervision as sv
+            import supervision as sv
 
-            >>> image = ...
-            >>> detections = sv.Detections(...)
+            image = ...
+            detections = sv.Detections(...)
 
-            >>> ellipse_annotator = sv.EllipseAnnotator()
-            >>> annotated_frame = ellipse_annotator.annotate(
-            ...     scene=image.copy(),
-            ...     detections=detections
-            ... )
+            ellipse_annotator = sv.EllipseAnnotator()
+            annotated_frame = ellipse_annotator.annotate(
+                scene=image.copy(),
+                detections=detections
+            )
             ```
 
         ![ellipse-annotator-example](https://media.roboflow.com/
@@ -536,7 +616,7 @@ class BoxCornerAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
         thickness: int = 4,
         corner_length: int = 15,
         color_lookup: ColorLookup = ColorLookup.CLASS,
@@ -575,16 +655,16 @@ class BoxCornerAnnotator(BaseAnnotator):
 
         Example:
             ```python
-            >>> import supervision as sv
+            import supervision as sv
 
-            >>> image = ...
-            >>> detections = sv.Detections(...)
+            image = ...
+            detections = sv.Detections(...)
 
-            >>> corner_annotator = sv.BoxCornerAnnotator()
-            >>> annotated_frame = corner_annotator.annotate(
-            ...     scene=image.copy(),
-            ...     detections=detections
-            ... )
+            corner_annotator = sv.BoxCornerAnnotator()
+            annotated_frame = corner_annotator.annotate(
+                scene=image.copy(),
+                detections=detections
+            )
             ```
 
         ![box-corner-annotator-example](https://media.roboflow.com/
@@ -622,7 +702,7 @@ class CircleAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
         thickness: int = 2,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
@@ -659,16 +739,16 @@ class CircleAnnotator(BaseAnnotator):
 
         Example:
             ```python
-            >>> import supervision as sv
+            import supervision as sv
 
-            >>> image = ...
-            >>> detections = sv.Detections(...)
+            image = ...
+            detections = sv.Detections(...)
 
-            >>> circle_annotator = sv.CircleAnnotator()
-            >>> annotated_frame = circle_annotator.annotate(
-            ...     scene=image.copy(),
-            ...     detections=detections
-            ... )
+            circle_annotator = sv.CircleAnnotator()
+            annotated_frame = circle_annotator.annotate(
+                scene=image.copy(),
+                detections=detections
+            )
             ```
 
 
@@ -706,7 +786,7 @@ class DotAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
         radius: int = 4,
         position: Position = Position.CENTER,
         color_lookup: ColorLookup = ColorLookup.CLASS,
@@ -745,16 +825,16 @@ class DotAnnotator(BaseAnnotator):
 
         Example:
             ```python
-            >>> import supervision as sv
+            import supervision as sv
 
-            >>> image = ...
-            >>> detections = sv.Detections(...)
+            image = ...
+            detections = sv.Detections(...)
 
-            >>> dot_annotator = sv.DotAnnotator()
-            >>> annotated_frame = dot_annotator.annotate(
-            ...     scene=image.copy(),
-            ...     detections=detections
-            ... )
+            dot_annotator = sv.DotAnnotator()
+            annotated_frame = dot_annotator.annotate(
+                scene=image.copy(),
+                detections=detections
+            )
             ```
 
         ![dot-annotator-example](https://media.roboflow.com/
@@ -782,8 +862,8 @@ class LabelAnnotator:
 
     def __init__(
         self,
-        color: Union[Color, ColorPalette] = ColorPalette.default(),
-        text_color: Color = Color.BLACK,
+        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
+        text_color: Color = Color.WHITE,
         text_scale: float = 0.5,
         text_thickness: int = 1,
         text_padding: int = 10,
@@ -872,16 +952,16 @@ class LabelAnnotator:
 
         Example:
             ```python
-            >>> import supervision as sv
+            import supervision as sv
 
-            >>> image = ...
-            >>> detections = sv.Detections(...)
+            image = ...
+            detections = sv.Detections(...)
 
-            >>> label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER)
-            >>> annotated_frame = label_annotator.annotate(
-            ...     scene=image.copy(),
-            ...     detections=detections
-            ... )
+            label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER)
+            annotated_frame = label_annotator.annotate(
+                scene=image.copy(),
+                detections=detections
+            )
             ```
 
         ![label-annotator-example](https://media.roboflow.com/
@@ -986,16 +1066,16 @@ class BlurAnnotator(BaseAnnotator):
 
         Example:
             ```python
-            >>> import supervision as sv
+            import supervision as sv
 
-            >>> image = ...
-            >>> detections = sv.Detections(...)
+            image = ...
+            detections = sv.Detections(...)
 
-            >>> blur_annotator = sv.BlurAnnotator()
-            >>> annotated_frame = circle_annotator.annotate(
-            ...     scene=image.copy(),
-            ...     detections=detections
-            ... )
+            blur_annotator = sv.BlurAnnotator()
+            annotated_frame = circle_annotator.annotate(
+                scene=image.copy(),
+                detections=detections
+            )
             ```
 
         ![blur-annotator-example](https://media.roboflow.com/
@@ -1020,14 +1100,14 @@ class TraceAnnotator:
 
     !!! warning
 
-        This annotator utilizes the `sv.Detections.tracker_id`. Read
+        This annotator uses the `sv.Detections.tracker_id`. Read
         [here](https://supervision.roboflow.com/trackers/) to learn how to plug
         tracking into your inference pipeline.
     """
 
     def __init__(
         self,
-        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
         position: Position = Position.CENTER,
         trace_length: int = 30,
         thickness: int = 2,
@@ -1071,26 +1151,25 @@ class TraceAnnotator:
 
         Example:
             ```python
-            >>> import supervision as sv
-            >>> from ultralytics import YOLO
+            import supervision as sv
+            from ultralytics import YOLO
 
-            >>> model = YOLO('yolov8x.pt')
+            model = YOLO('yolov8x.pt')
+            trace_annotator = sv.TraceAnnotator()
 
-            >>> trace_annotator = sv.TraceAnnotator()
+            video_info = sv.VideoInfo.from_video_path(video_path='...')
+            frames_generator = sv.get_video_frames_generator(source_path='...')
+            tracker = sv.ByteTrack()
 
-            >>> video_info = sv.VideoInfo.from_video_path(video_path='...')
-            >>> frames_generator = sv.get_video_frames_generator(source_path='...')
-            >>> tracker = sv.ByteTrack()
-
-            >>> with sv.VideoSink(target_path='...', video_info=video_info) as sink:
-            ...    for frame in frames_generator:
-            ...        result = model(frame)[0]
-            ...        detections = sv.Detections.from_ultralytics(result)
-            ...        detections = tracker.update_with_detections(detections)
-            ...        annotated_frame = trace_annotator.annotate(
-            ...            scene=frame.copy(),
-            ...            detections=detections)
-            ...        sink.write_frame(frame=annotated_frame)
+            with sv.VideoSink(target_path='...', video_info=video_info) as sink:
+               for frame in frames_generator:
+                   result = model(frame)[0]
+                   detections = sv.Detections.from_ultralytics(result)
+                   detections = tracker.update_with_detections(detections)
+                   annotated_frame = trace_annotator.annotate(
+                       scene=frame.copy(),
+                       detections=detections)
+                   sink.write_frame(frame=annotated_frame)
             ```
 
         ![trace-annotator-example](https://media.roboflow.com/
@@ -1167,24 +1246,24 @@ class HeatMapAnnotator:
 
         Example:
             ```python
-            >>> import supervision as sv
-            >>> from ultralytics import YOLO
+            import supervision as sv
+            from ultralytics import YOLO
 
-            >>> model = YOLO('yolov8x.pt')
+            model = YOLO('yolov8x.pt')
 
-            >>> heat_map_annotator = sv.HeatMapAnnotator()
+            heat_map_annotator = sv.HeatMapAnnotator()
 
-            >>> video_info = sv.VideoInfo.from_video_path(video_path='...')
-            >>> frames_generator = get_video_frames_generator(source_path='...')
+            video_info = sv.VideoInfo.from_video_path(video_path='...')
+            frames_generator = get_video_frames_generator(source_path='...')
 
-            >>> with sv.VideoSink(target_path='...', video_info=video_info) as sink:
-            ...    for frame in frames_generator:
-            ...        result = model(frame)[0]
-            ...        detections = sv.Detections.from_ultralytics(result)
-            ...        annotated_frame = heat_map_annotator.annotate(
-            ...            scene=frame.copy(),
-            ...            detections=detections)
-            ...        sink.write_frame(frame=annotated_frame)
+            with sv.VideoSink(target_path='...', video_info=video_info) as sink:
+               for frame in frames_generator:
+                   result = model(frame)[0]
+                   detections = sv.Detections.from_ultralytics(result)
+                   annotated_frame = heat_map_annotator.annotate(
+                       scene=frame.copy(),
+                       detections=detections)
+                   sink.write_frame(frame=annotated_frame)
             ```
 
         ![heatmap-annotator-example](https://media.roboflow.com/
@@ -1244,16 +1323,16 @@ class PixelateAnnotator(BaseAnnotator):
 
         Example:
             ```python
-            >>> import supervision as sv
+            import supervision as sv
 
-            >>> image = ...
-            >>> detections = sv.Detections(...)
+            image = ...
+            detections = sv.Detections(...)
 
-            >>> pixelate_annotator = sv.PixelateAnnotator()
-            >>> annotated_frame = pixelate_annotator.annotate(
-            ...     scene=image.copy(),
-            ...     detections=detections
-            ... )
+            pixelate_annotator = sv.PixelateAnnotator()
+            annotated_frame = pixelate_annotator.annotate(
+                scene=image.copy(),
+                detections=detections
+            )
             ```
 
         ![pixelate-annotator-example](https://media.roboflow.com/
@@ -1288,7 +1367,7 @@ class TriangleAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
         base: int = 10,
         height: int = 10,
         position: Position = Position.TOP_CENTER,
@@ -1330,16 +1409,16 @@ class TriangleAnnotator(BaseAnnotator):
 
         Example:
             ```python
-            >>> import supervision as sv
+            import supervision as sv
 
-            >>> image = ...
-            >>> detections = sv.Detections(...)
+            image = ...
+            detections = sv.Detections(...)
 
-            >>> triangle_annotator = sv.TriangleAnnotator()
-            >>> annotated_frame = triangle_annotator.annotate(
-            ...     scene=image.copy(),
-            ...     detections=detections
-            ... )
+            triangle_annotator = sv.TriangleAnnotator()
+            annotated_frame = triangle_annotator.annotate(
+                scene=image.copy(),
+                detections=detections
+            )
             ```
 
         ![triangle-annotator-example](https://media.roboflow.com/
@@ -1378,7 +1457,7 @@ class RoundBoxAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
         thickness: int = 2,
         color_lookup: ColorLookup = ColorLookup.CLASS,
         roundness: float = 0.6,
@@ -1423,20 +1502,20 @@ class RoundBoxAnnotator(BaseAnnotator):
 
         Example:
             ```python
-            >>> import supervision as sv
+            import supervision as sv
 
-            >>> image = ...
-            >>> detections = sv.Detections(...)
+            image = ...
+            detections = sv.Detections(...)
 
-            >>> round_box_annotator = sv.RoundBoxAnnotator()
-            >>> annotated_frame = round_box_annotator.annotate(
-            ...     scene=image.copy(),
-            ...     detections=detections
-            ... )
+            round_box_annotator = sv.RoundBoxAnnotator()
+            annotated_frame = round_box_annotator.annotate(
+                scene=image.copy(),
+                detections=detections
+            )
             ```
 
         ![round-box-annotator-example](https://media.roboflow.com/
-        supervision-annotator-examples/round-box-annotator-example.png)
+        supervision-annotator-examples/round-box-annotator-example-purple.png)
         """
 
         for detection_idx in range(len(detections)):
@@ -1496,3 +1575,177 @@ class RoundBoxAnnotator(BaseAnnotator):
                 )
 
         return scene
+
+
+class PercentageBarAnnotator(BaseAnnotator):
+    """
+    A class for drawing percentage bars on an image using provided detections.
+    """
+
+    def __init__(
+        self,
+        height: int = 16,
+        width: int = 80,
+        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
+        border_color: Color = Color.BLACK,
+        position: Position = Position.TOP_CENTER,
+        color_lookup: ColorLookup = ColorLookup.CLASS,
+        border_thickness: int = None,
+    ):
+        """
+        Args:
+            height (int): The height in pixels of the percentage bar.
+            width (int): The width in pixels of the percentage bar.
+            color (Union[Color, ColorPalette]): The color or color palette to use for
+                annotating detections.
+            border_color (Color): The color of the border lines.
+            position (Position): The anchor position of drawing the percentage bar.
+            color_lookup (str): Strategy for mapping colors to annotations.
+                Options are `INDEX`, `CLASS`, `TRACK`.
+            border_thickness (int): The thickness of the border lines.
+        """
+        self.height: int = height
+        self.width: int = width
+        self.color: Union[Color, ColorPalette] = color
+        self.border_color: Color = border_color
+        self.position: Position = position
+        self.color_lookup: ColorLookup = color_lookup
+
+        if border_thickness is None:
+            self.border_thickness = int(0.15 * self.height)
+
+    def annotate(
+        self,
+        scene: np.ndarray,
+        detections: Detections,
+        custom_color_lookup: Optional[np.ndarray] = None,
+        custom_values: Optional[np.ndarray] = None,
+    ) -> np.ndarray:
+        """
+        Annotates the given scene with percentage bars based on the provided
+        detections. The percentage bars visually represent the confidence or custom
+        values associated with each detection.
+
+        Args:
+            scene (np.ndarray): The image where percentage bars will be drawn.
+            detections (Detections): Object detections to annotate.
+            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
+                Allows to override the default color mapping strategy.
+            custom_values (Optional[np.ndarray]): Custom values array to use instead
+                of the default detection confidences. This array should have the
+                same length as the number of detections and contain a value between
+                0 and 1 (inclusive) for each detection, representing the percentage
+                to be displayed.
+
+        Returns:
+            The annotated image.
+
+        Example:
+            ```python
+            import supervision as sv
+
+            image = ...
+            detections = sv.Detections(...)
+
+            percentage_bar_annotator = sv.BoundingBoxAnnotator()
+            annotated_frame = percentage_bar_annotator.annotate(
+                scene=image.copy(),
+                detections=detections
+            )
+            ```
+
+        ![percentage-bar-example](https://media.roboflow.com/
+        supervision-annotator-examples/percentage-bar-annotator-example-purple.png)
+        """
+        self.validate_custom_values(
+            custom_values=custom_values, detections_count=len(detections)
+        )
+        anchors = detections.get_anchors_coordinates(anchor=self.position)
+        for detection_idx in range(len(detections)):
+            anchor = anchors[detection_idx]
+            border_coordinates = self.calculate_border_coordinates(
+                anchor_xy=(int(anchor[0]), int(anchor[1])),
+                border_wh=(self.width, self.height),
+                position=self.position,
+            )
+            border_width = border_coordinates[1][0] - border_coordinates[0][0]
+
+            value = (
+                custom_values[detection_idx]
+                if custom_values is not None
+                else detections.confidence[detection_idx]
+            )
+
+            color = resolve_color(
+                color=self.color,
+                detections=detections,
+                detection_idx=detection_idx,
+                color_lookup=self.color_lookup
+                if custom_color_lookup is None
+                else custom_color_lookup,
+            )
+            cv2.rectangle(
+                img=scene,
+                pt1=border_coordinates[0],
+                pt2=(
+                    border_coordinates[0][0] + int(border_width * value),
+                    border_coordinates[1][1],
+                ),
+                color=color.as_bgr(),
+                thickness=-1,
+            )
+            cv2.rectangle(
+                img=scene,
+                pt1=border_coordinates[0],
+                pt2=border_coordinates[1],
+                color=self.border_color.as_bgr(),
+                thickness=self.border_thickness,
+            )
+        return scene
+
+    @staticmethod
+    def calculate_border_coordinates(
+        anchor_xy: Tuple[int, int], border_wh: Tuple[int, int], position: Position
+    ) -> Tuple[Tuple[int, int], Tuple[int, int]]:
+        cx, cy = anchor_xy
+        width, height = border_wh
+
+        if position == Position.TOP_LEFT:
+            return (cx - width, cy - height), (cx, cy)
+        elif position == Position.TOP_CENTER:
+            return (cx - width // 2, cy), (cx + width // 2, cy - height)
+        elif position == Position.TOP_RIGHT:
+            return (cx, cy), (cx + width, cy - height)
+        elif position == Position.CENTER_LEFT:
+            return (cx - width, cy - height // 2), (cx, cy + height // 2)
+        elif position == Position.CENTER or position == Position.CENTER_OF_MASS:
+            return (
+                (cx - width // 2, cy - height // 2),
+                (cx + width // 2, cy + height // 2),
+            )
+        elif position == Position.CENTER_RIGHT:
+            return (cx, cy - height // 2), (cx + width, cy + height // 2)
+        elif position == Position.BOTTOM_LEFT:
+            return (cx - width, cy), (cx, cy + height)
+        elif position == Position.BOTTOM_CENTER:
+            return (cx - width // 2, cy), (cx + width // 2, cy + height)
+        elif position == Position.BOTTOM_RIGHT:
+            return (cx, cy), (cx + width, cy + height)
+
+    @staticmethod
+    def validate_custom_values(
+        custom_values: Optional[Union[np.ndarray, List[float]]], detections_count: int
+    ) -> None:
+        if custom_values is not None:
+            if not isinstance(custom_values, (np.ndarray, list)):
+                raise TypeError(
+                    "custom_values must be either a numpy array or a list of floats."
+                )
+
+            if len(custom_values) != detections_count:
+                raise ValueError(
+                    "The length of custom_values must match the number of detections."
+                )
+
+            if not all(0 <= value <= 1 for value in custom_values):
+                raise ValueError("All values in custom_values must be between 0 and 1.")

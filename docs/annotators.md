@@ -1,20 +1,23 @@
 ---
 comments: true
+status: new
 ---
+
+# Annotators
 
 === "BoundingBox"
 
     ```python
-    >>> import supervision as sv
+    import supervision as sv
 
-    >>> image = ...
-    >>> detections = sv.Detections(...)
+    image = ...
+    detections = sv.Detections(...)
 
-    >>> bounding_box_annotator = sv.BoundingBoxAnnotator()
-    >>> annotated_frame = bounding_box_annotator.annotate(
-    ...     scene=image.copy(),
-    ...     detections=detections
-    ... )
+    bounding_box_annotator = sv.BoundingBoxAnnotator()
+    annotated_frame = bounding_box_annotator.annotate(
+        scene=image.copy(),
+        detections=detections
+    )
     ```
 
     <div class="result" markdown>
@@ -26,16 +29,16 @@ comments: true
 === "RoundBox"
 
     ```python
-    >>> import supervision as sv
+    import supervision as sv
 
-    >>> image = ...
-    >>> detections = sv.Detections(...)
+    image = ...
+    detections = sv.Detections(...)
 
-    >>> round_box_annotator = sv.RoundBoxAnnotator()
-    >>> annotated_frame = round_box_annotator.annotate(
-    ...     scene=image.copy(),
-    ...     detections=detections
-    ... )
+    round_box_annotator = sv.RoundBoxAnnotator()
+    annotated_frame = round_box_annotator.annotate(
+        scene=image.copy(),
+        detections=detections
+    )
     ```
 
     <div class="result" markdown>
@@ -47,16 +50,16 @@ comments: true
 === "BoxCorner"
 
     ```python
-    >>> import supervision as sv
+    import supervision as sv
 
-    >>> image = ...
-    >>> detections = sv.Detections(...)
+    image = ...
+    detections = sv.Detections(...)
 
-    >>> corner_annotator = sv.BoxCornerAnnotator()
-    >>> annotated_frame = corner_annotator.annotate(
-    ...     scene=image.copy(),
-    ...     detections=detections
-    ... )
+    corner_annotator = sv.BoxCornerAnnotator()
+    annotated_frame = corner_annotator.annotate(
+        scene=image.copy(),
+        detections=detections
+    )
     ```
 
     <div class="result" markdown>
@@ -68,16 +71,16 @@ comments: true
 === "Color"
 
     ```python
-    >>> import supervision as sv
+    import supervision as sv
 
-    >>> image = ...
-    >>> detections = sv.Detections(...)
+    image = ...
+    detections = sv.Detections(...)
 
-    >>> color_annotator = sv.ColorAnnotator()
-    >>> annotated_frame = color_annotator.annotate(
-    ...     scene=image.copy(),
-    ...     detections=detections
-    ... )
+    color_annotator = sv.ColorAnnotator()
+    annotated_frame = color_annotator.annotate(
+        scene=image.copy(),
+        detections=detections
+    )
     ```
 
     <div class="result" markdown>
@@ -89,16 +92,16 @@ comments: true
 === "Circle"
 
     ```python
-    >>> import supervision as sv
+    import supervision as sv
 
-    >>> image = ...
-    >>> detections = sv.Detections(...)
+    image = ...
+    detections = sv.Detections(...)
 
-    >>> circle_annotator = sv.CircleAnnotator()
-    >>> annotated_frame = circle_annotator.annotate(
-    ...     scene=image.copy(),
-    ...     detections=detections
-    ... )
+    circle_annotator = sv.CircleAnnotator()
+    annotated_frame = circle_annotator.annotate(
+        scene=image.copy(),
+        detections=detections
+    )
     ```
 
     <div class="result" markdown>
@@ -110,37 +113,37 @@ comments: true
 === "Dot"
 
     ```python
-    >>> import supervision as sv
+    import supervision as sv
 
-    >>> image = ...
-    >>> detections = sv.Detections(...)
+    image = ...
+    detections = sv.Detections(...)
 
-    >>> dot_annotator = sv.DotAnnotator()
-    >>> annotated_frame = dot_annotator.annotate(
-    ...     scene=image.copy(),
-    ...     detections=detections
-    ... )
+    dot_annotator = sv.DotAnnotator()
+    annotated_frame = dot_annotator.annotate(
+        scene=image.copy(),
+        detections=detections
+    )
     ```
 
     <div class="result" markdown>
 
-    ![circle-annotator-example](https://media.roboflow.com/supervision-annotator-examples/dot-annotator-example-purple.png){ align=center width="800" }
+    ![dot-annotator-example](https://media.roboflow.com/supervision-annotator-examples/dot-annotator-example-purple.png){ align=center width="800" }
 
     </div>
 
 === "Triangle"
 
     ```python
-    >>> import supervision as sv
+    import supervision as sv
 
-    >>> image = ...
-    >>> detections = sv.Detections(...)
+    image = ...
+    detections = sv.Detections(...)
 
-    >>> triangle_annotator = sv.TriangleAnnotator()
-    >>> annotated_frame = triangle_annotator.annotate(
-    ...     scene=image.copy(),
-    ...     detections=detections
-    ... )
+    triangle_annotator = sv.TriangleAnnotator()
+    annotated_frame = triangle_annotator.annotate(
+        scene=image.copy(),
+        detections=detections
+    )
     ```
 
     <div class="result" markdown>
@@ -152,16 +155,16 @@ comments: true
 === "Ellipse"
 
     ```python
-    >>> import supervision as sv
+    import supervision as sv
 
-    >>> image = ...
-    >>> detections = sv.Detections(...)
+    image = ...
+    detections = sv.Detections(...)
 
-    >>> ellipse_annotator = sv.EllipseAnnotator()
-    >>> annotated_frame = ellipse_annotator.annotate(
-    ...     scene=image.copy(),
-    ...     detections=detections
-    ... )
+    ellipse_annotator = sv.EllipseAnnotator()
+    annotated_frame = ellipse_annotator.annotate(
+        scene=image.copy(),
+        detections=detections
+    )
     ```
 
     <div class="result" markdown>
@@ -173,37 +176,58 @@ comments: true
 === "Halo"
 
     ```python
-    >>> import supervision as sv
+    import supervision as sv
 
-    >>> image = ...
-    >>> detections = sv.Detections(...)
+    image = ...
+    detections = sv.Detections(...)
 
-    >>> halo_annotator = sv.HaloAnnotator()
-    >>> annotated_frame = halo_annotator.annotate(
-    ...     scene=image.copy(),
-    ...     detections=detections
-    ... )
+    halo_annotator = sv.HaloAnnotator()
+    annotated_frame = halo_annotator.annotate(
+        scene=image.copy(),
+        detections=detections
+    )
     ```
 
     <div class="result" markdown>
 
-    ![ellipse-annotator-example](https://media.roboflow.com/supervision-annotator-examples/halo-annotator-example-purple.png){ align=center width="800" }
+    ![halo-annotator-example](https://media.roboflow.com/supervision-annotator-examples/halo-annotator-example-purple.png){ align=center width="800" }
+
+    </div>
+
+=== "PercentageBar"
+
+    ```python
+    import supervision as sv
+
+    image = ...
+    detections = sv.Detections(...)
+
+    percentage_bar_annotator = sv.PercentageBarAnnotator()
+    annotated_frame = percentage_bar_annotator.annotate(
+        scene=image.copy(),
+        detections=detections
+    )
+    ```
+
+    <div class="result" markdown>
+
+    ![percentage-bar-annotator-example](https://media.roboflow.com/supervision-annotator-examples/percentage-bar-annotator-example-purple.png){ align=center width="800" }
 
     </div>
 
 === "Mask"
 
     ```python
-    >>> import supervision as sv
+    import supervision as sv
 
-    >>> image = ...
-    >>> detections = sv.Detections(...)
+    image = ...
+    detections = sv.Detections(...)
 
-    >>> mask_annotator = sv.MaskAnnotator()
-    >>> annotated_frame = mask_annotator.annotate(
-    ...     scene=image.copy(),
-    ...     detections=detections
-    ... )
+    mask_annotator = sv.MaskAnnotator()
+    annotated_frame = mask_annotator.annotate(
+        scene=image.copy(),
+        detections=detections
+    )
     ```
 
     <div class="result" markdown>
@@ -215,16 +239,16 @@ comments: true
 === "Polygon"
 
     ```python
-    >>> import supervision as sv
+    import supervision as sv
 
-    >>> image = ...
-    >>> detections = sv.Detections(...)
+    image = ...
+    detections = sv.Detections(...)
 
-    >>> polygon_annotator = sv.PolygonAnnotator()
-    >>> annotated_frame = polygon_annotator.annotate(
-    ...     scene=image.copy(),
-    ...     detections=detections
-    ... )
+    polygon_annotator = sv.PolygonAnnotator()
+    annotated_frame = polygon_annotator.annotate(
+        scene=image.copy(),
+        detections=detections
+    )
     ```
 
     <div class="result" markdown>
@@ -236,16 +260,16 @@ comments: true
 === "Label"
 
     ```python
-    >>> import supervision as sv
+     import supervision as sv
 
-    >>> image = ...
-    >>> detections = sv.Detections(...)
+    image = ...
+    detections = sv.Detections(...)
 
-    >>> label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER)
-    >>> annotated_frame = label_annotator.annotate(
-    ...     scene=image.copy(),
-    ...     detections=detections
-    ... )
+    label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER)
+    annotated_frame = label_annotator.annotate(
+        scene=image.copy(),
+        detections=detections
+    )
     ```
 
     <div class="result" markdown>
@@ -257,16 +281,16 @@ comments: true
 === "Blur"
 
     ```python
-    >>> import supervision as sv
+    import supervision as sv
 
-    >>> image = ...
-    >>> detections = sv.Detections(...)
+    image = ...
+    detections = sv.Detections(...)
 
-    >>> blur_annotator = sv.BlurAnnotator()
-    >>> annotated_frame = blur_annotator.annotate(
-    ...     scene=image.copy(),
-    ...     detections=detections
-    ... )
+    blur_annotator = sv.BlurAnnotator()
+    annotated_frame = blur_annotator.annotate(
+        scene=image.copy(),
+        detections=detections
+    )
     ```
 
     <div class="result" markdown>
@@ -278,16 +302,16 @@ comments: true
 === "Pixelate"
 
     ```python
-    >>> import supervision as sv
+    import supervision as sv
 
-    >>> image = ...
-    >>> detections = sv.Detections(...)
+    image = ...
+    detections = sv.Detections(...)
 
-    >>> pixelate_annotator = sv.PixelateAnnotator()
-    >>> annotated_frame = pixelate_annotator.annotate(
-    ...     scene=image.copy(),
-    ...     detections=detections
-    ... )
+    pixelate_annotator = sv.PixelateAnnotator()
+    annotated_frame = pixelate_annotator.annotate(
+        scene=image.copy(),
+        detections=detections
+    )
     ```
 
     <div class="result" markdown>
@@ -299,26 +323,26 @@ comments: true
 === "Trace"
 
     ```python
-    >>> import supervision as sv
-    >>> from ultralytics import YOLO
+    import supervision as sv
+    from ultralytics import YOLO
 
-    >>> model = YOLO('yolov8x.pt')
+    model = YOLO('yolov8x.pt')
 
-    >>> trace_annotator = sv.TraceAnnotator()
+    trace_annotator = sv.TraceAnnotator()
 
-    >>> video_info = sv.VideoInfo.from_video_path(video_path='...')
-    >>> frames_generator = get_video_frames_generator(source_path='...')
-    >>> tracker = sv.ByteTrack()
+    video_info = sv.VideoInfo.from_video_path(video_path='...')
+    frames_generator = get_video_frames_generator(source_path='...')
+    tracker = sv.ByteTrack()
 
-    >>> with sv.VideoSink(target_path='...', video_info=video_info) as sink:
-    ...    for frame in frames_generator:
-    ...        result = model(frame)[0]
-    ...        detections = sv.Detections.from_ultralytics(result)
-    ...        detections = tracker.update_with_detections(detections)
-    ...        annotated_frame = trace_annotator.annotate(
-    ...            scene=frame.copy(),
-    ...            detections=detections)
-    ...        sink.write_frame(frame=annotated_frame)
+    with sv.VideoSink(target_path='...', video_info=video_info) as sink:
+        for frame in frames_generator:
+            result = model(frame)[0]
+            detections = sv.Detections.from_ultralytics(result)
+            detections = tracker.update_with_detections(detections)
+            annotated_frame = trace_annotator.annotate(
+                scene=frame.copy(),
+                detections=detections)
+            sink.write_frame(frame=annotated_frame)
     ```
 
     <div class="result" markdown>
@@ -330,96 +354,142 @@ comments: true
 === "HeatMap"
 
     ```python
-    >>> import supervision as sv
-    >>> from ultralytics import YOLO
+    import supervision as sv
+    from ultralytics import YOLO
 
-    >>> model = YOLO('yolov8x.pt')
+    model = YOLO('yolov8x.pt')
 
-    >>> heat_map_annotator = sv.HeatMapAnnotator()
+    heat_map_annotator = sv.HeatMapAnnotator()
 
-    >>> video_info = sv.VideoInfo.from_video_path(video_path='...')
-    >>> frames_generator = get_video_frames_generator(source_path='...')
+    video_info = sv.VideoInfo.from_video_path(video_path='...')
+    frames_generator = get_video_frames_generator(source_path='...')
 
-    >>> with sv.VideoSink(target_path='...', video_info=video_info) as sink:
-    ...    for frame in frames_generator:
-    ...        result = model(frame)[0]
-    ...        detections = sv.Detections.from_ultralytics(result)
-    ...        annotated_frame = heat_map_annotator.annotate(
-    ...            scene=frame.copy(),
-    ...            detections=detections)
-    ...        sink.write_frame(frame=annotated_frame)
+    with sv.VideoSink(target_path='...', video_info=video_info) as sink:
+        for frame in frames_generator:
+            result = model(frame)[0]
+            detections = sv.Detections.from_ultralytics(result)
+            annotated_frame = heat_map_annotator.annotate(
+                scene=frame.copy(),
+                detections=detections)
+            sink.write_frame(frame=annotated_frame)
     ```
 
     <div class="result" markdown>
 
-    ![trace-annotator-example](https://media.roboflow.com/supervision-annotator-examples/heat-map-annotator-example-purple.png){ align=center width="800" }
+    ![heat-map-annotator-example](https://media.roboflow.com/supervision-annotator-examples/heat-map-annotator-example-purple.png){ align=center width="800" }
 
     </div>
 
-## BoundingBoxAnnotator
+<div class="md-typeset">
+  <h2>BoundingBoxAnnotator</h2>
+</div>
 
 :::supervision.annotators.core.BoundingBoxAnnotator
 
-## BoxCornerAnnotator
-
-:::supervision.annotators.core.BoxCornerAnnotator
-
-## ColorAnnotator
-
-:::supervision.annotators.core.ColorAnnotator
-
-## CircleAnnotator
-
-:::supervision.annotators.core.CircleAnnotator
-
-## DotAnnotator
-
-:::supervision.annotators.core.DotAnnotator
-
-## TriangleAnnotator
-
-:::supervision.annotators.core.TriangleAnnotator
-
-## EllipseAnnotator
-
-:::supervision.annotators.core.EllipseAnnotator
-
-## HaloAnnotator
-
-:::supervision.annotators.core.HaloAnnotator
-
-## HeatMapAnnotator
-
-:::supervision.annotators.core.HeatMapAnnotator
-
-## MaskAnnotator
-
-:::supervision.annotators.core.MaskAnnotator
-
-## PolygonAnnotator
-
-:::supervision.annotators.core.PolygonAnnotator
-
-## LabelAnnotator
-
-:::supervision.annotators.core.LabelAnnotator
-
-## BlurAnnotator
-
-:::supervision.annotators.core.BlurAnnotator
-
-## PixelateAnnotator
-
-:::supervision.annotators.core.PixelateAnnotator
-
-## TraceAnnotator
-
-:::supervision.annotators.core.TraceAnnotator
-
-## RoundBoxAnnotator
+<div class="md-typeset">
+  <h2>RoundBoxAnnotator</h2>
+</div>
 
 :::supervision.annotators.core.RoundBoxAnnotator
 
-## ColorLookup
+<div class="md-typeset">
+  <h2>BoxCornerAnnotator</h2>
+</div>
+
+:::supervision.annotators.core.BoxCornerAnnotator
+
+<div class="md-typeset">
+  <h2>OrientedBoxAnnotator</h2>
+</div>
+
+:::supervision.annotators.core.OrientedBoxAnnotator
+
+<div class="md-typeset">
+  <h2>ColorAnnotator</h2>
+</div>
+
+:::supervision.annotators.core.ColorAnnotator
+
+<div class="md-typeset">
+  <h2>CircleAnnotator</h2>
+</div>
+
+:::supervision.annotators.core.CircleAnnotator
+
+<div class="md-typeset">
+  <h2>DotAnnotator</h2>
+</div>
+
+:::supervision.annotators.core.DotAnnotator
+
+<div class="md-typeset">
+  <h2>TriangleAnnotator</h2>
+</div>
+
+:::supervision.annotators.core.TriangleAnnotator
+
+<div class="md-typeset">
+  <h2>EllipseAnnotator</h2>
+</div>
+
+:::supervision.annotators.core.EllipseAnnotator
+
+<div class="md-typeset">
+  <h2>HaloAnnotator</h2>
+</div>
+
+:::supervision.annotators.core.HaloAnnotator
+
+<div class="md-typeset">
+  <h2>PercentageBarAnnotator</h2>
+</div>
+
+:::supervision.annotators.core.PercentageBarAnnotator
+
+<div class="md-typeset">
+  <h2>HeatMapAnnotator</h2>
+</div>
+
+:::supervision.annotators.core.HeatMapAnnotator
+
+<div class="md-typeset">
+  <h2>MaskAnnotator</h2>
+</div>
+
+:::supervision.annotators.core.MaskAnnotator
+
+<div class="md-typeset">
+  <h2>PolygonAnnotator</h2>
+</div>
+
+:::supervision.annotators.core.PolygonAnnotator
+
+<div class="md-typeset">
+  <h2>LabelAnnotator</h2>
+</div>
+
+:::supervision.annotators.core.LabelAnnotator
+
+<div class="md-typeset">
+  <h2>BlurAnnotator</h2>
+</div>
+
+:::supervision.annotators.core.BlurAnnotator
+
+<div class="md-typeset">
+  <h2>PixelateAnnotator</h2>
+</div>
+
+:::supervision.annotators.core.PixelateAnnotator
+
+<div class="md-typeset">
+  <h2>TraceAnnotator</h2>
+</div>
+
+:::supervision.annotators.core.TraceAnnotator
+
+<div class="md-typeset">
+  <h2>ColorLookup</h2>
+</div>
 
 :::supervision.annotators.utils.ColorLookup

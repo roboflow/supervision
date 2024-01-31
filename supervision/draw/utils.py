@@ -135,9 +135,11 @@ def draw_text(
 
     Examples:
         ```python
-        >>> scene = np.zeros((100, 100, 3), dtype=np.uint8)
-        >>> text_anchor = Point(x=50, y=50)
-        >>> scene = draw_text(scene=scene, text="Hello, world!",text_anchor=text_anchor)
+        import numpy as np
+
+        scene = np.zeros((100, 100, 3), dtype=np.uint8)
+        text_anchor = Point(x=50, y=50)
+        scene = draw_text(scene=scene, text="Hello, world!",text_anchor=text_anchor)
         ```
     """
     text_width, text_height = cv2.getTextSize(
@@ -146,9 +148,12 @@ def draw_text(
         fontScale=text_scale,
         thickness=text_thickness,
     )[0]
+
+    text_anchor_x, text_anchor_y = text_anchor.as_xy_int_tuple()
+
     text_rect = Rect(
-        x=text_anchor.x - text_width // 2,
-        y=text_anchor.y - text_height // 2,
+        x=text_anchor_x - text_width // 2,
+        y=text_anchor_y - text_height // 2,
         width=text_width,
         height=text_height,
     ).pad(text_padding)
@@ -161,7 +166,7 @@ def draw_text(
     cv2.putText(
         img=scene,
         text=text,
-        org=(text_anchor.x - text_width // 2, text_anchor.y + text_height // 2),
+        org=(text_anchor_x - text_width // 2, text_anchor_y + text_height // 2),
         fontFace=text_font,
         fontScale=text_scale,
         color=text_color.as_bgr(),

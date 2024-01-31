@@ -2,6 +2,8 @@
 comments: true
 ---
 
+# Track Objects
+
 Leverage Supervision's advanced capabilities for enhancing your video analysis by
 seamlessly [tracking](https://supervision.roboflow.com/trackers/) objects recognized by
 a multitude of object detection and segmentation models. This comprehensive guide will

@@ -109,7 +109,7 @@ def detections_to_pascal_voc(
     segmented.text = "0"
 
     # Add object elements
-    for xyxy, mask, _, class_id, _ in detections:
+    for xyxy, mask, _, class_id, _, _ in detections:
         name = classes[class_id]
         if mask is not None:
             polygons = approximate_mask_with_polygons(
