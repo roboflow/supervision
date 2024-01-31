@@ -1,5 +1,4 @@
 import os
-import csv
 import pytest
 import numpy as np
 import json
@@ -69,7 +68,7 @@ def test_json_sink(detection_instances):
     # Clean up by removing the test JSON file
     os.remove(json_filename)
 
-def test_csv_sink_manual(detection_instances):
+def test_json_sink_manual(detection_instances):
     detections, custom_data, second_detections, second_custom_data = detection_instances
     json_filename = "test_detections.json"
     expected_data = [
