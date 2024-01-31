@@ -305,7 +305,7 @@ class ColorPalette:
 
             `ColorPalette.default()` is deprecated and will be removed in
             `supervision-0.22.0`. Use `Color.DEFAULT` instead.
-            
+
         Returns a default color palette.
 
         Returns:
