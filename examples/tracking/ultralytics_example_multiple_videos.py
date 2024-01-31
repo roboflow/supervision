@@ -30,9 +30,8 @@ def process_video(
             detections = tracker.update_with_detections(detections)
 
             labels = [
-                    f"#{tracker_id} {model.model.names[class_id]} {confidence:0.2f}"
-                for _, _, confidence, class_id, tracker_id, data
-                in detections
+                f"#{tracker_id} {model.model.names[class_id]} {confidence:0.2f}"
+                for _, _, confidence, class_id, tracker_id, data in detections
             ]
 
             annotated_frame = box_annotator.annotate(
@@ -84,14 +83,16 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    source_video_paths = args.source_video_paths[0].split(',')
-    target_video_paths = args.target_video_paths[0].split(',')
+    source_video_paths = args.source_video_paths[0].split(",")
+    target_video_paths = args.target_video_paths[0].split(",")
 
     source_video_paths = [path.strip() for path in source_video_paths]
     target_video_paths = [path.strip() for path in target_video_paths]
     tracker = sv.ByteTrack()
 
-    for source_video_path, target_video_path in zip(source_video_paths, target_video_paths):
+    for source_video_path, target_video_path in zip(
+        source_video_paths, target_video_paths
+    ):
         process_video(
             source_weights_path=args.source_weights_path,
             source_video_path=source_video_path,
