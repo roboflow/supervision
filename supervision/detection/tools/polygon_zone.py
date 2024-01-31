@@ -60,7 +60,7 @@ class PolygonZone:
         """
         self.class_in_count = {}
         self.class_out_count = {}
-        
+
         clipped_xyxy = clip_boxes(
             xyxy=detections.xyxy, resolution_wh=self.frame_resolution_wh
         )
@@ -75,7 +75,7 @@ class PolygonZone:
                 self.class_in_count[in_class_id] += 1
             else:
                 self.class_in_count[in_class_id] = 1
-        
+
         for out_class_id in detections.class_id[~is_in_zone]:
             if out_class_id in self.class_out_count:
                 self.class_out_count[out_class_id] += 1
@@ -84,7 +84,6 @@ class PolygonZone:
 
         self.current_count = int(np.sum(is_in_zone))
         return is_in_zone
-
 
 
 class PolygonZoneAnnotator:
