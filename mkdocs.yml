@@ -15,7 +15,7 @@ extra:
       link: https://www.youtube.com/roboflow
     - icon: fontawesome/brands/linkedin
       link: https://www.linkedin.com/company/roboflow-ai/mycompany/
-    - icon: fontawesome/brands/twitter
+    - icon: fontawesome/brands/x-twitter
       link: https://twitter.com/roboflow
   analytics:
     provider: google
