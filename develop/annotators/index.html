@@ -103,10 +103,6 @@
       
     </div>
     
-      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
-        
-      </div>
-    
     
       
 
@@ -4856,11 +4852,11 @@ supervision-annotator-examples/box-corner-annotator-example-purple.png" /></p>
 <span class="sd">            ```</span>
 <span class="sd">        &quot;&quot;&quot;</span>  <span class="c1"># noqa E501 // docs</span>
 
-        <span class="k">if</span> <span class="n">detections</span><span class="o">.</span><span class="n">data</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="s2">&quot;xyxyxyxy&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">detections</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">detections</span><span class="o">.</span><span class="n">data</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">ORIENTED_BOX_COORDINATES</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">detections</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">scene</span>
 
         <span class="k">for</span> <span class="n">detection_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">detections</span><span class="p">)):</span>
-            <span class="n">bbox</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">int0</span><span class="p">(</span><span class="n">detections</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;xyxyxyxy&quot;</span><span class="p">)[</span><span class="n">detection_idx</span><span class="p">])</span>
+            <span class="n">bbox</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">int0</span><span class="p">(</span><span class="n">detections</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ORIENTED_BOX_COORDINATES</span><span class="p">)[</span><span class="n">detection_idx</span><span class="p">])</span>
             <span class="n">color</span> <span class="o">=</span> <span class="n">resolve_color</span><span class="p">(</span>
                 <span class="n">color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">color</span><span class="p">,</span>
                 <span class="n">detections</span><span class="o">=</span><span class="n">detections</span><span class="p">,</span>
@@ -5214,11 +5210,11 @@ Allows to override the default color mapping strategy.</p>
 <span class="sd">        ```</span>
 <span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa E501 // docs</span>
 
-    <span class="k">if</span> <span class="n">detections</span><span class="o">.</span><span class="n">data</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="s2">&quot;xyxyxyxy&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">detections</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">detections</span><span class="o">.</span><span class="n">data</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">ORIENTED_BOX_COORDINATES</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">detections</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">scene</span>
 
     <span class="k">for</span> <span class="n">detection_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">detections</span><span class="p">)):</span>
-        <span class="n">bbox</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">int0</span><span class="p">(</span><span class="n">detections</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;xyxyxyxy&quot;</span><span class="p">)[</span><span class="n">detection_idx</span><span class="p">])</span>
+        <span class="n">bbox</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">int0</span><span class="p">(</span><span class="n">detections</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ORIENTED_BOX_COORDINATES</span><span class="p">)[</span><span class="n">detection_idx</span><span class="p">])</span>
         <span class="n">color</span> <span class="o">=</span> <span class="n">resolve_color</span><span class="p">(</span>
             <span class="n">color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">color</span><span class="p">,</span>
             <span class="n">detections</span><span class="o">=</span><span class="n">detections</span><span class="p">,</span>
@@ -14035,7 +14031,7 @@ supervision-annotator-examples/trace-annotator-example-purple.png" /></p>
     </div>
     
     
-    <script id="__config" type="application/json">{"base": "..", "features": ["content.code.copy", "content.code.annotate"], "search": "../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    <script id="__config" type="application/json">{"base": "..", "features": ["content.code.copy", "content.code.annotate"], "search": "../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
       <script src="../assets/javascripts/bundle.c18c5fb9.min.js"></script>
