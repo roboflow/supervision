@@ -1265,6 +1265,43 @@
   
   
   
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Changelog
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Changelog
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
     <li class="md-nav__item">
       <a href="../../changelog/" class="md-nav__link">
         
@@ -1275,6 +1312,35 @@
   
 
       </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../deprecated.md" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deprecated
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -1873,7 +1939,7 @@ codes, converting colors to hex strings, RGB tuples, and BGR tuples.</p>
     <span class="nd">@classmethod</span>
     <span class="nd">@deprecated</span><span class="p">(</span>
         <span class="s2">&quot;`Color.white()` is deprecated and will be removed in &quot;</span>
-        <span class="s2">&quot;`supervision-0.20.0`. Use `Color.WHITE` instead.&quot;</span>
+        <span class="s2">&quot;`supervision-0.22.0`. Use `Color.WHITE` instead.&quot;</span>
     <span class="p">)</span>
     <span class="k">def</span> <span class="nf">white</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Color</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">Color</span><span class="o">.</span><span class="n">from_hex</span><span class="p">(</span><span class="n">color_hex</span><span class="o">=</span><span class="s2">&quot;#ffffff&quot;</span><span class="p">)</span>
@@ -1881,7 +1947,7 @@ codes, converting colors to hex strings, RGB tuples, and BGR tuples.</p>
     <span class="nd">@classmethod</span>
     <span class="nd">@deprecated</span><span class="p">(</span>
         <span class="s2">&quot;`Color.black()` is deprecated and will be removed in &quot;</span>
-        <span class="s2">&quot;`supervision-0.20.0`. Use `Color.BLACK` instead.&quot;</span>
+        <span class="s2">&quot;`supervision-0.22.0`. Use `Color.BLACK` instead.&quot;</span>
     <span class="p">)</span>
     <span class="k">def</span> <span class="nf">black</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Color</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">Color</span><span class="o">.</span><span class="n">from_hex</span><span class="p">(</span><span class="n">color_hex</span><span class="o">=</span><span class="s2">&quot;#000000&quot;</span><span class="p">)</span>
@@ -1889,7 +1955,7 @@ codes, converting colors to hex strings, RGB tuples, and BGR tuples.</p>
     <span class="nd">@classmethod</span>
     <span class="nd">@deprecated</span><span class="p">(</span>
         <span class="s2">&quot;`Color.red()` is deprecated and will be removed in &quot;</span>
-        <span class="s2">&quot;`supervision-0.20.0`. Use `Color.RED` instead.&quot;</span>
+        <span class="s2">&quot;`supervision-0.22.0`. Use `Color.RED` instead.&quot;</span>
     <span class="p">)</span>
     <span class="k">def</span> <span class="nf">red</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Color</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">Color</span><span class="o">.</span><span class="n">from_hex</span><span class="p">(</span><span class="n">color_hex</span><span class="o">=</span><span class="s2">&quot;#ff0000&quot;</span><span class="p">)</span>
@@ -1897,7 +1963,7 @@ codes, converting colors to hex strings, RGB tuples, and BGR tuples.</p>
     <span class="nd">@classmethod</span>
     <span class="nd">@deprecated</span><span class="p">(</span>
         <span class="s2">&quot;`Color.green()` is deprecated and will be removed in &quot;</span>
-        <span class="s2">&quot;`supervision-0.20.0`. Use `Color.GREEN` instead.&quot;</span>
+        <span class="s2">&quot;`supervision-0.22.0`. Use `Color.GREEN` instead.&quot;</span>
     <span class="p">)</span>
     <span class="k">def</span> <span class="nf">green</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Color</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">Color</span><span class="o">.</span><span class="n">from_hex</span><span class="p">(</span><span class="n">color_hex</span><span class="o">=</span><span class="s2">&quot;#00ff00&quot;</span><span class="p">)</span>
@@ -1905,7 +1971,7 @@ codes, converting colors to hex strings, RGB tuples, and BGR tuples.</p>
     <span class="nd">@classmethod</span>
     <span class="nd">@deprecated</span><span class="p">(</span>
         <span class="s2">&quot;`Color.blue()` is deprecated and will be removed in &quot;</span>
-        <span class="s2">&quot;`supervision-0.20.0`. Use `Color.BLUE` instead.&quot;</span>
+        <span class="s2">&quot;`supervision-0.22.0`. Use `Color.BLUE` instead.&quot;</span>
     <span class="p">)</span>
     <span class="k">def</span> <span class="nf">blue</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Color</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">Color</span><span class="o">.</span><span class="n">from_hex</span><span class="p">(</span><span class="n">color_hex</span><span class="o">=</span><span class="s2">&quot;#0000ff&quot;</span><span class="p">)</span>
@@ -2489,7 +2555,12 @@ codes, converting colors to hex strings, RGB tuples, and BGR tuples.</p>
 <span class="normal">390</span>
 <span class="normal">391</span>
 <span class="normal">392</span>
-<span class="normal">393</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="normal">393</span>
+<span class="normal">394</span>
+<span class="normal">395</span>
+<span class="normal">396</span>
+<span class="normal">397</span>
+<span class="normal">398</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
 <span class="k">class</span> <span class="nc">ColorPalette</span><span class="p">:</span>
     <span class="n">colors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Color</span><span class="p">]</span>
 
@@ -2542,10 +2613,15 @@ codes, converting colors to hex strings, RGB tuples, and BGR tuples.</p>
     <span class="nd">@classmethod</span>
     <span class="nd">@deprecated</span><span class="p">(</span>
         <span class="s2">&quot;`ColorPalette.default()` is deprecated and will be removed in &quot;</span>
-        <span class="s2">&quot;`supervision-0.20.0`. Use `Color.DEFAULT` instead.&quot;</span>
+        <span class="s2">&quot;`supervision-0.22.0`. Use `Color.DEFAULT` instead.&quot;</span>
     <span class="p">)</span>
     <span class="k">def</span> <span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ColorPalette</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        !!! failure &quot;Deprecated&quot;</span>
+
+<span class="sd">            `ColorPalette.default()` is deprecated and will be removed in</span>
+<span class="sd">            `supervision-0.22.0`. Use `Color.DEFAULT` instead.</span>
+
 <span class="sd">        Returns a default color palette.</span>
 
 <span class="sd">        Returns:</span>
@@ -2923,12 +2999,7 @@ supervision-annotator-examples/roboflow-color-palette.png" /></p>
 </details>
           <details class="quote">
             <summary>Source code in <code>supervision/draw/color.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">371</span>
-<span class="normal">372</span>
-<span class="normal">373</span>
-<span class="normal">374</span>
-<span class="normal">375</span>
-<span class="normal">376</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">376</span>
 <span class="normal">377</span>
 <span class="normal">378</span>
 <span class="normal">379</span>
@@ -2945,7 +3016,12 @@ supervision-annotator-examples/roboflow-color-palette.png" /></p>
 <span class="normal">390</span>
 <span class="normal">391</span>
 <span class="normal">392</span>
-<span class="normal">393</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">by_idx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Color</span><span class="p">:</span>
+<span class="normal">393</span>
+<span class="normal">394</span>
+<span class="normal">395</span>
+<span class="normal">396</span>
+<span class="normal">397</span>
+<span class="normal">398</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">by_idx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Color</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return the color at a given index in the palette.</span>
 
@@ -2991,7 +3067,12 @@ supervision-annotator-examples/roboflow-color-palette.png" /></p>
 
   <div class="doc doc-contents ">
   
-      <p>Returns a default color palette.</p>
+      <div class="admonition failure">
+<p class="admonition-title">Deprecated</p>
+<p><code>ColorPalette.default()</code> is deprecated and will be removed in
+<code>supervision-0.22.0</code>. Use <code>Color.DEFAULT</code> instead.</p>
+</div>
+<p>Returns a default color palette.</p>
 
 
 
@@ -3047,13 +3128,23 @@ supervision-annotator-examples/roboflow-color-palette.png" /></p>
 <span class="normal">314</span>
 <span class="normal">315</span>
 <span class="normal">316</span>
-<span class="normal">317</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">317</span>
+<span class="normal">318</span>
+<span class="normal">319</span>
+<span class="normal">320</span>
+<span class="normal">321</span>
+<span class="normal">322</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="nd">@deprecated</span><span class="p">(</span>
     <span class="s2">&quot;`ColorPalette.default()` is deprecated and will be removed in &quot;</span>
-    <span class="s2">&quot;`supervision-0.20.0`. Use `Color.DEFAULT` instead.&quot;</span>
+    <span class="s2">&quot;`supervision-0.22.0`. Use `Color.DEFAULT` instead.&quot;</span>
 <span class="p">)</span>
 <span class="k">def</span> <span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ColorPalette</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    !!! failure &quot;Deprecated&quot;</span>
+
+<span class="sd">        `ColorPalette.default()` is deprecated and will be removed in</span>
+<span class="sd">        `supervision-0.22.0`. Use `Color.DEFAULT` instead.</span>
+
 <span class="sd">    Returns a default color palette.</span>
 
 <span class="sd">    Returns:</span>
@@ -3157,12 +3248,7 @@ supervision-annotator-examples/roboflow-color-palette.png" /></p>
 </details>
           <details class="quote">
             <summary>Source code in <code>supervision/draw/color.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">319</span>
-<span class="normal">320</span>
-<span class="normal">321</span>
-<span class="normal">322</span>
-<span class="normal">323</span>
-<span class="normal">324</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">324</span>
 <span class="normal">325</span>
 <span class="normal">326</span>
 <span class="normal">327</span>
@@ -3177,7 +3263,12 @@ supervision-annotator-examples/roboflow-color-palette.png" /></p>
 <span class="normal">336</span>
 <span class="normal">337</span>
 <span class="normal">338</span>
-<span class="normal">339</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">339</span>
+<span class="normal">340</span>
+<span class="normal">341</span>
+<span class="normal">342</span>
+<span class="normal">343</span>
+<span class="normal">344</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span> <span class="nf">from_hex</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">color_hex_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">ColorPalette</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Create a ColorPalette instance from a list of hex strings.</span>
@@ -3303,12 +3394,7 @@ supervision-annotator-examples/visualized_color_palette.png" /></p>
 
           <details class="quote">
             <summary>Source code in <code>supervision/draw/color.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">341</span>
-<span class="normal">342</span>
-<span class="normal">343</span>
-<span class="normal">344</span>
-<span class="normal">345</span>
-<span class="normal">346</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">346</span>
 <span class="normal">347</span>
 <span class="normal">348</span>
 <span class="normal">349</span>
@@ -3331,7 +3417,12 @@ supervision-annotator-examples/visualized_color_palette.png" /></p>
 <span class="normal">366</span>
 <span class="normal">367</span>
 <span class="normal">368</span>
-<span class="normal">369</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">369</span>
+<span class="normal">370</span>
+<span class="normal">371</span>
+<span class="normal">372</span>
+<span class="normal">373</span>
+<span class="normal">374</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span> <span class="nf">from_matplotlib</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">palette_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">color_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ColorPalette</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Create a ColorPalette instance from a Matplotlib color palette.</span>

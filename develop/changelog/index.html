@@ -1113,6 +1113,45 @@
   
   
   
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Changelog
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Changelog
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
     <li class="md-nav__item md-nav__item--active">
       
       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
@@ -1363,6 +1402,35 @@
     </ul>
   
 </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deprecated.md" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deprecated
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
       
     </li>
   
@@ -1682,9 +1750,9 @@
 <p>Changed <a href="https://github.com/roboflow/supervision/pull/756">#756</a>: <a href="https://supervision.roboflow.com/draw/color/#color"><code>sv.Color</code></a>'s and <a href="https://supervision.roboflow.com/draw/color/#colorpalette"><code>sv.ColorPalette</code></a>'s method of accessing predefined colors, transitioning from a function-based approach (<code>sv.Color.red()</code>) to a more intuitive and conventional property-based method (<code>sv.Color.RED</code>).</p>
 </li>
 </ul>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p><code>sv.ColorPalette.default()</code> is deprecated and will be removed in <code>supervision-0.21.0</code>. Use <code>sv.ColorPalette.DEFAULT</code> instead.</p>
+<div class="admonition failure">
+<p class="admonition-title">Deprecated</p>
+<p><code>sv.ColorPalette.default()</code> is deprecated and will be removed in <code>supervision-0.22.0</code>. Use <code>sv.ColorPalette.DEFAULT</code> instead.</p>
 </div>
 <ul>
 <li>
@@ -1694,9 +1762,9 @@
 <p>Changed <a href="https://github.com/roboflow/supervision/pull/677">#677</a>: <code>sv.Detections.from_roboflow</code> to <a href="https://supervision.roboflow.com/detection/core/#supervision.detection.core.Detections.from_inference"><code>sv.Detections.from_inference</code></a> streamlining its functionality to be compatible with both the both <a href="https://github.com/roboflow/inference">inference</a> pip package and the Robloflow <a href="https://docs.roboflow.com/deploy/hosted-api">hosted API</a>.</p>
 </li>
 </ul>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p><code>Detections.from_roboflow()</code> is deprecated and will be removed in <code>supervision-0.21.0</code>. Use <code>Detections.from_inference</code> instead.</p>
+<div class="admonition failure">
+<p class="admonition-title">Deprecated</p>
+<p><code>Detections.from_roboflow()</code> is deprecated and will be removed in <code>supervision-0.22.0</code>. Use <code>Detections.from_inference</code> instead.</p>
 </div>
 <ul>
 <li>Fixed <a href="https://github.com/roboflow/supervision/pull/735">#735</a>: <a href="https://supervision.roboflow.com/detection/tools/line_zone/#linezone"><code>sv.LineZone</code></a> functionality to accurately update the counter when an object crosses a line from any direction, including from the side. This enhancement enables more precise tracking and analytics, such as calculating individual in/out counts for each lane on the road.</li>
@@ -1821,8 +1889,8 @@
 <p>Fixed <a href="https://github.com/roboflow/supervision/pull/430">#430</a>:  <a href="https://supervision.roboflow.com/trackers/#supervision.tracker.byte_tracker.core.ByteTrack"><code>sv.ByteTrack</code></a> to return <code>np.array([], dtype=int)</code> when <code>svDetections</code> is empty.</p>
 </li>
 </ul>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
+<div class="admonition failure">
+<p class="admonition-title">Deprecated</p>
 <p><code>sv.Detections.from_yolov8</code> and <code>sv.Classifications.from_yolov8</code> as those are now replaced by <a href="https://supervision.roboflow.com/detection/core/#supervision.detection.core.Detections.from_ultralytics"><code>sv.Detections.from_ultralytics</code></a> and <a href="https://supervision.roboflow.com/classification/core/#supervision.classification.core.Classifications.from_ultralytics"><code>sv.Classifications.from_ultralytics</code></a>.</p>
 </div>
 <h3 id="0150-october-5-2023">0.15.0 <small>October 5, 2023</small><a class="headerlink" href="#0150-october-5-2023" title="Permanent link">&para;</a></h3>
@@ -1904,9 +1972,9 @@
 <p>Added <a href="https://github.com/roboflow/supervision/pull/281">#281</a>: <a href="https://supervision.roboflow.com/classification/core/#supervision.classification.core.Classifications.from_ultralytics"><code>sv.Classifications.from_ultralytics</code></a> to enable seamless integration with <a href="https://github.com/ultralytics/ultralytics">Ultralytics</a> framework. This will enable you to use supervision with all <a href="https://docs.ultralytics.com/models/">models</a> that Ultralytics supports.</p>
 </li>
 </ul>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p><a href="https://roboflow.github.io/supervision/detection/core/#supervision.detection.core.Detections.from_yolov8">sv.Detections.from_yolov8</a> and <a href="https://supervision.roboflow.com/classification/core/#supervision.classification.core.Classifications.from_yolov8">sv.Classifications.from_yolov8</a> are now deprecated and will be removed with supervision-0.16.0 release.</p>
+<div class="admonition failure">
+<p class="admonition-title">Deprecated</p>
+<p><a href="https://roboflow.github.io/supervision/detection/core/#supervision.detection.core.Detections.from_yolov8">sv.Detections.from_yolov8</a> and <a href="https://supervision.roboflow.com/classification/core/#supervision.classification.core.Classifications.from_yolov8">sv.Classifications.from_yolov8</a> are now deprecated and will be removed with <code>supervision-0.16.0</code> release.</p>
 </div>
 <ul>
 <li>
@@ -1949,8 +2017,8 @@
 <p>Added <a href="https://github.com/roboflow/supervision/pull/222">#222</a>: <a href="https://roboflow.github.io/supervision/detection/core/#supervision.detection.core.Detections.from_ultralytics"><code>sv.Detections.from_ultralytics</code></a> to enable seamless integration with <a href="https://github.com/ultralytics/ultralytics">Ultralytics</a> framework. This will enable you to use <code>supervision</code> with all <a href="https://docs.ultralytics.com/models/">models</a> that Ultralytics supports.</p>
 </li>
 </ul>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
+<div class="admonition failure">
+<p class="admonition-title">Deprecated</p>
 <p><a href="https://roboflow.github.io/supervision/detection/core/#supervision.detection.core.Detections.from_yolov8"><code>sv.Detections.from_yolov8</code></a> is now deprecated and will be removed with <code>supervision-0.15.0</code> release.</p>
 </div>
 <ul>
@@ -1962,8 +2030,8 @@
 </li>
 </ul>
 <h3 id="0120-july-24-2023">0.12.0 <small>July 24, 2023</small><a class="headerlink" href="#0120-july-24-2023" title="Permanent link">&para;</a></h3>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
+<div class="admonition failure">
+<p class="admonition-title">Python 3.7. Support Terminated</p>
 <p>With the <code>supervision-0.12.0</code> release, we are terminating official support for Python 3.7.</p>
 </div>
 <ul>
