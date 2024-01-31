@@ -75,19 +75,25 @@ class PolygonZone:
         is_in_zone = self.mask[clipped_anchors[:, 1], clipped_anchors[:, 0]]
         is_in_zone = is_in_zone.astype(bool)
         for in_class_id in detections.class_id[is_in_zone]:
-            if in_class_id in self.class_in_count:
+            if in_class_id in self.class_in_current_count:
                 self.class_in_current_count[in_class_id] += 1
-                self.class_in_total_count[in_class_id] += 1
             else:
                 self.class_in_current_count[in_class_id] = 1
+
+            if in_class_id in self.class_in_total_count:
+                self.class_in_total_count[in_class_id] += 1
+            else:
                 self.class_in_total_count[in_class_id] = 1
 
         for out_class_id in detections.class_id[~is_in_zone]:
-            if out_class_id in self.class_out_count:
+            if out_class_id in self.class_out_current_count:
                 self.class_out_current_count[out_class_id] += 1
-                self.class_out_total_count[out_class_id] += 1
             else:
                 self.class_out_current_count[out_class_id] = 1
+
+            if out_class_id in self.class_out_total_count:
+                self.class_out_total_count[out_class_id] += 1
+            else:
                 self.class_out_total_count[out_class_id] = 1
 
         self.current_count = int(np.sum(is_in_zone))
