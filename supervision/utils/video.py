@@ -234,10 +234,15 @@ class FPSMonitor:
 
     @deprecated(
         "`FPSMonitor.__call__` is deprecated and will be removed in "
-        "`supervision-0.21.0`. Use `FPSMonitor.fps` instead."
+        "`supervision-0.22.0`. Use `FPSMonitor.fps` instead."
     )
     def __call__(self) -> float:
         """
+        !!! failure "Deprecated"
+
+            `FPSMonitor.__call__` is deprecated and will be removed in
+            `supervision-0.22.0`. Use `FPSMonitor.fps` instead.
+
         Computes and returns the average FPS based on the stored time stamps.
 
         Returns:
