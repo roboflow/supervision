@@ -190,7 +190,6 @@ import supervision as sv
         ),  # Complex Data
     ],
 )
-
 def test_csv_sink(
     detections: mock_detections,
     custom_data: Dict[str, Any],
@@ -388,7 +387,6 @@ def test_csv_sink(
         ),  # Complex Data
     ],
 )
-
 def test_csv_sink_manual(
     detections: mock_detections,
     custom_data: Dict[str, Any],
