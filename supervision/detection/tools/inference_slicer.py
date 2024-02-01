@@ -54,26 +54,29 @@ class InferenceSlicer:
         overlap_ratio_wh: Tuple[float, float] = (0.2, 0.2),
         iou_threshold: Optional[float] = 0.5,
         thread_workers: int = 1,
+        batch_size = 1,
     ):
         self.slice_wh = slice_wh
         self.overlap_ratio_wh = overlap_ratio_wh
         self.iou_threshold = iou_threshold
         self.callback = callback
         self.thread_workers = thread_workers
+        self.batch_size = batch_size
+        self.all_detections = []
 
-    def __call__(self, image: np.ndarray) -> Detections:
+    def __call__(self, images: np.ndarray) -> List[Detections]:
         """
         Performs slicing-based inference on the provided image using the specified
             callback.
 
         Args:
-            image (np.ndarray): The input image on which inference needs to be
-                performed. The image should be in the format
-                `(height, width, channels)`.
+            images (np.ndarray): The input images on which inference needs to be
+                performed. The images should be in the format
+                `(batch_size, height, width, channels)`.
 
         Returns:
-            Detections: A collection of detections for the entire image after merging
-                results from all slices and applying NMS.
+            Detections: A list of detections for the batch of images after merging
+                results from all image slices and applying NMS.
 
         Example:
             ```python
@@ -93,24 +96,28 @@ class InferenceSlicer:
             detections = slicer(image)
             ```
         """
-        detections_list = []
-        resolution_wh = (image.shape[1], image.shape[0])
-        offsets = self._generate_offset(
-            resolution_wh=resolution_wh,
-            slice_wh=self.slice_wh,
-            overlap_ratio_wh=self.overlap_ratio_wh,
-        )
+        for image_num in range(self.batch_size):
+            image = images[image_num]
+            detections_list = []
+            resolution_wh = (image.shape[1], image.shape[0])
+            offsets = self._generate_offset(
+                resolution_wh=resolution_wh,
+                slice_wh=self.slice_wh,
+                overlap_ratio_wh=self.overlap_ratio_wh,
+            )
 
-        with ThreadPoolExecutor(max_workers=self.thread_workers) as executor:
-            futures = [
-                executor.submit(self._run_callback, image, offset) for offset in offsets
-            ]
-            for future in as_completed(futures):
-                detections_list.append(future.result())
+            with ThreadPoolExecutor(max_workers=self.thread_workers) as executor:
+                futures = [
+                    executor.submit(self._run_callback, image, offset) for offset in offsets
+                ]
+                for future in as_completed(futures):
+                    detections_list.append(future.result())
 
-        return Detections.merge(detections_list=detections_list).with_nms(
-            threshold=self.iou_threshold
-        )
+            per_image_detection = Detections.merge(detections_list=detections_list).with_nms(
+                threshold=self.iou_threshold
+            )
+        self.all_detections.append(per_image_detection)
+        return self.all_detections
 
     def _run_callback(self, image, offset) -> Detections:
         """
