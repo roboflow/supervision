@@ -1,5 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Callable, Optional, Tuple, List
+from typing import Callable, List, Optional, Tuple
 
 import numpy as np
 
@@ -54,7 +54,7 @@ class InferenceSlicer:
         overlap_ratio_wh: Tuple[float, float] = (0.2, 0.2),
         iou_threshold: Optional[float] = 0.5,
         thread_workers: int = 1,
-        batch_size = 1,
+        batch_size=1,
     ):
         self.slice_wh = slice_wh
         self.overlap_ratio_wh = overlap_ratio_wh
@@ -108,14 +108,15 @@ class InferenceSlicer:
 
             with ThreadPoolExecutor(max_workers=self.thread_workers) as executor:
                 futures = [
-                    executor.submit(self._run_callback, image, offset) for offset in offsets
+                    executor.submit(self._run_callback, image, offset)
+                    for offset in offsets
                 ]
                 for future in as_completed(futures):
                     detections_list.append(future.result())
 
-            per_image_detection = Detections.merge(detections_list=detections_list).with_nms(
-                threshold=self.iou_threshold
-            )
+            per_image_detection = Detections.merge(
+                detections_list=detections_list
+            ).with_nms(threshold=self.iou_threshold)
         self.all_detections.append(per_image_detection)
         return self.all_detections
 
