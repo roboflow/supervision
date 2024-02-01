@@ -268,14 +268,6 @@ class ByteTrack:
         and removed tracks, as well as resetting the frame counter. It's
         particularly useful when processing multiple videos sequentially,
         ensuring the tracker starts with a clean state for each new video.
-
-        Example:
-            tracker = ByteTrack()
-            tracker.reset()  # Call before processing a new video
-
-        This method requires no parameters and does not return any value.
-        It reinitializes the internal state variables of the tracker to
-        their default values.
         """
         self.frame_id = 0
         self.tracked_tracks: List[STrack] = []
