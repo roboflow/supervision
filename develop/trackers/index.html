@@ -820,6 +820,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#supervision.tracker.byte_tracker.core.ByteTrack.reset" class="md-nav__link">
+    <span class="md-ellipsis">
+      reset
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#supervision.tracker.byte_tracker.core.ByteTrack.update_with_detections" class="md-nav__link">
     <span class="md-ellipsis">
       update_with_detections
@@ -1305,6 +1314,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#supervision.tracker.byte_tracker.core.ByteTrack.reset" class="md-nav__link">
+    <span class="md-ellipsis">
+      reset
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#supervision.tracker.byte_tracker.core.ByteTrack.update_with_detections" class="md-nav__link">
     <span class="md-ellipsis">
       update_with_detections
@@ -1679,7 +1697,22 @@ for track activation.</p>
 <span class="normal">411</span>
 <span class="normal">412</span>
 <span class="normal">413</span>
-<span class="normal">414</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">ByteTrack</span><span class="p">:</span>
+<span class="normal">414</span>
+<span class="normal">415</span>
+<span class="normal">416</span>
+<span class="normal">417</span>
+<span class="normal">418</span>
+<span class="normal">419</span>
+<span class="normal">420</span>
+<span class="normal">421</span>
+<span class="normal">422</span>
+<span class="normal">423</span>
+<span class="normal">424</span>
+<span class="normal">425</span>
+<span class="normal">426</span>
+<span class="normal">427</span>
+<span class="normal">428</span>
+<span class="normal">429</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">ByteTrack</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Initialize the ByteTrack object.</span>
 
@@ -1726,7 +1759,6 @@ for track activation.</p>
 <span class="sd">            ```python</span>
 <span class="sd">            import supervision as sv</span>
 <span class="sd">            from ultralytics import YOLO</span>
-<span class="sd">            import numpy as np</span>
 
 <span class="sd">            model = YOLO(&lt;MODEL_PATH&gt;)</span>
 <span class="sd">            tracker = sv.ByteTrack()</span>
@@ -1777,6 +1809,21 @@ for track activation.</p>
 
         <span class="k">return</span> <span class="n">detections</span>
 
+    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Resets the internal state of the ByteTrack tracker.</span>
+
+<span class="sd">        This method clears the tracking data, including tracked, lost,</span>
+<span class="sd">        and removed tracks, as well as resetting the frame counter. It&#39;s</span>
+<span class="sd">        particularly useful when processing multiple videos sequentially,</span>
+<span class="sd">        ensuring the tracker starts with a clean state for each new video.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">frame_id</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tracked_tracks</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">STrack</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lost_tracks</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">STrack</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">removed_tracks</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">STrack</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">BaseTrack</span><span class="o">.</span><span class="n">reset_counter</span><span class="p">()</span>
+
     <span class="k">def</span> <span class="nf">update_with_tensors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tensors</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">STrack</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Updates the tracker with the provided tensors and returns the updated tracks.</span>
@@ -1822,6 +1869,7 @@ for track activation.</p>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot; Add newly detected tracklets to tracked_stracks&quot;&quot;&quot;</span>
         <span class="n">unconfirmed</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">tracked_stracks</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># type: list[STrack]</span>
+
         <span class="k">for</span> <span class="n">track</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tracked_tracks</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">track</span><span class="o">.</span><span class="n">is_activated</span><span class="p">:</span>
                 <span class="n">unconfirmed</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">track</span><span class="p">)</span>
@@ -1948,6 +1996,60 @@ for track activation.</p>
 
 
 
+<h2 id="supervision.tracker.byte_tracker.core.ByteTrack.reset" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">reset</span><span class="p">()</span></code>
+
+<a href="#supervision.tracker.byte_tracker.core.ByteTrack.reset" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+  <div class="doc doc-contents ">
+  
+      <p>Resets the internal state of the ByteTrack tracker.</p>
+<p>This method clears the tracking data, including tracked, lost,
+and removed tracks, as well as resetting the frame counter. It's
+particularly useful when processing multiple videos sequentially,
+ensuring the tracker starts with a clean state for each new video.</p>
+
+          <details class="quote">
+            <summary>Source code in <code>supervision/tracker/byte_tracker/core.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">263</span>
+<span class="normal">264</span>
+<span class="normal">265</span>
+<span class="normal">266</span>
+<span class="normal">267</span>
+<span class="normal">268</span>
+<span class="normal">269</span>
+<span class="normal">270</span>
+<span class="normal">271</span>
+<span class="normal">272</span>
+<span class="normal">273</span>
+<span class="normal">274</span>
+<span class="normal">275</span>
+<span class="normal">276</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Resets the internal state of the ByteTrack tracker.</span>
+
+<span class="sd">    This method clears the tracking data, including tracked, lost,</span>
+<span class="sd">    and removed tracks, as well as resetting the frame counter. It&#39;s</span>
+<span class="sd">    particularly useful when processing multiple videos sequentially,</span>
+<span class="sd">    ensuring the tracker starts with a clean state for each new video.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">frame_id</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">tracked_tracks</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">STrack</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">lost_tracks</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">STrack</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">removed_tracks</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">STrack</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">BaseTrack</span><span class="o">.</span><span class="n">reset_counter</span><span class="p">()</span>
+</code></pre></div></td></tr></table></div>
+          </details>
+  </div>
+
+</div>
+
+
+<div class="doc doc-object doc-function">
+
+
+
 <h2 id="supervision.tracker.byte_tracker.core.ByteTrack.update_with_detections" class="doc doc-heading">
           <code class="highlight language-python"><span class="n">update_with_detections</span><span class="p">(</span><span class="n">detections</span><span class="p">)</span></code>
 
@@ -1993,7 +2095,6 @@ detection results.</p>
   <summary>Example</summary>
   <div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
 <span class="kn">from</span> <span class="nn">ultralytics</span> <span class="kn">import</span> <span class="n">YOLO</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 <span class="n">model</span> <span class="o">=</span> <span class="n">YOLO</span><span class="p">(</span><span class="o">&lt;</span><span class="n">MODEL_PATH</span><span class="o">&gt;</span><span class="p">)</span>
 <span class="n">tracker</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">ByteTrack</span><span class="p">()</span>
@@ -2083,8 +2184,7 @@ detection results.</p>
 <span class="normal">258</span>
 <span class="normal">259</span>
 <span class="normal">260</span>
-<span class="normal">261</span>
-<span class="normal">262</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">update_with_detections</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+<span class="normal">261</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">update_with_detections</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Updates the tracker with the provided detections and returns the updated</span>
 <span class="sd">    detection results.</span>
@@ -2096,7 +2196,6 @@ detection results.</p>
 <span class="sd">        ```python</span>
 <span class="sd">        import supervision as sv</span>
 <span class="sd">        from ultralytics import YOLO</span>
-<span class="sd">        import numpy as np</span>
 
 <span class="sd">        model = YOLO(&lt;MODEL_PATH&gt;)</span>
 <span class="sd">        tracker = sv.ByteTrack()</span>
@@ -2223,21 +2322,7 @@ detection results.</p>
 
           <details class="quote">
             <summary>Source code in <code>supervision/tracker/byte_tracker/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">264</span>
-<span class="normal">265</span>
-<span class="normal">266</span>
-<span class="normal">267</span>
-<span class="normal">268</span>
-<span class="normal">269</span>
-<span class="normal">270</span>
-<span class="normal">271</span>
-<span class="normal">272</span>
-<span class="normal">273</span>
-<span class="normal">274</span>
-<span class="normal">275</span>
-<span class="normal">276</span>
-<span class="normal">277</span>
-<span class="normal">278</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">278</span>
 <span class="normal">279</span>
 <span class="normal">280</span>
 <span class="normal">281</span>
@@ -2373,7 +2458,22 @@ detection results.</p>
 <span class="normal">411</span>
 <span class="normal">412</span>
 <span class="normal">413</span>
-<span class="normal">414</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">update_with_tensors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tensors</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">STrack</span><span class="p">]:</span>
+<span class="normal">414</span>
+<span class="normal">415</span>
+<span class="normal">416</span>
+<span class="normal">417</span>
+<span class="normal">418</span>
+<span class="normal">419</span>
+<span class="normal">420</span>
+<span class="normal">421</span>
+<span class="normal">422</span>
+<span class="normal">423</span>
+<span class="normal">424</span>
+<span class="normal">425</span>
+<span class="normal">426</span>
+<span class="normal">427</span>
+<span class="normal">428</span>
+<span class="normal">429</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">update_with_tensors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tensors</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">STrack</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Updates the tracker with the provided tensors and returns the updated tracks.</span>
 
@@ -2418,6 +2518,7 @@ detection results.</p>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot; Add newly detected tracklets to tracked_stracks&quot;&quot;&quot;</span>
     <span class="n">unconfirmed</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">tracked_stracks</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># type: list[STrack]</span>
+
     <span class="k">for</span> <span class="n">track</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tracked_tracks</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">track</span><span class="o">.</span><span class="n">is_activated</span><span class="p">:</span>
             <span class="n">unconfirmed</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">track</span><span class="p">)</span>
