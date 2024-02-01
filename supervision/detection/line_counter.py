@@ -51,8 +51,8 @@ class LineZone:
         self.vector = Vector(start=start, end=end)
         self.limits = self.calculate_region_of_interest_limits(vector=self.vector)
         self.tracker_state: Dict[str, bool] = {}
-        #self.in_count: int = 0
-        #self.out_count: int = 0
+        # self.in_count: int = 0
+        # self.out_count: int = 0
         self.class_in_count: Dict[int, int] = {}  # Per-class in count
         self.class_out_count: Dict[int, int] = {}  # Per-class out count
         self.triggering_anchors = triggering_anchors
@@ -125,7 +125,7 @@ class LineZone:
         for i, tracker_id in enumerate(detections.tracker_id):
             if tracker_id is None:
                 continue
-            
+
             class_label = detections.class_labels[i]  # To get class label
             box_anchors = [Point(x=x, y=y) for x, y in all_anchors[:, i, :]]
 
@@ -324,5 +324,5 @@ class LineZoneAnnotator:
                     text=out_text,
                     is_in_count=False,
                 )
-            
+
         return frame
