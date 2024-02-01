@@ -21,6 +21,8 @@ extra:
       link: https://www.linkedin.com/company/roboflow-ai/mycompany/
     - icon: fontawesome/brands/x-twitter
       link: https://twitter.com/roboflow
+    - icon: fontawesome/brands/discord
+      link: https://discord.gg/GbfgXGJ8Bk
   analytics:
     provider: google
     property: G-P7ZG0Y19G5
