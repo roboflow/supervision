@@ -55,6 +55,8 @@ nav:
     - Draw:
         - Color: draw/color.md
         - Utils: draw/utils.md
+    - Geometry:
+        - Position: geometry/core.md
     - Utils:
         - Video: utils/video.md
         - Image: utils/image.md
@@ -97,8 +99,25 @@ theme:
     - content.code.annotate
 
 plugins:
-  - mkdocstrings
   - search
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          options:
+            parameter_headings: true
+            paths: [supervision]
+            load_external_modules: true
+            allow_inspection: true
+            show_bases: true
+            group_by_category: true
+            docstring_style: google
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            show_category_heading: true
+          import:
+          - https://docs.python-requests.org/en/master/objects.inv
+          domains: [std, py]
 
 markdown_extensions:
   - admonition
