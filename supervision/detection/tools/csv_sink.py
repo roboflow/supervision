@@ -4,7 +4,6 @@ import csv
 import os
 from typing import Any, Dict, List, Optional
 
-import numpy as np
 
 from supervision.detection.core import Detections
 
@@ -17,6 +16,7 @@ BASE_HEADER = [
     "confidence",
     "tracker_id",
 ]
+
 
 class CSVSink:
     """
@@ -63,7 +63,7 @@ class CSVSink:
         self.file: Optional[open] = None
         self.writer: Optional[csv.writer] = None
         self.header_written = False
-        self.field_names = [] 
+        self.field_names = []
 
     def __enter__(self) -> CSVSink:
         """
@@ -104,7 +104,7 @@ class CSVSink:
         parent_directory = os.path.dirname(self.file_name)
         if parent_directory and not os.path.exists(parent_directory):
             os.makedirs(parent_directory)
-        
+
         self.file = open(self.file_name, "w", newline="")
         self.writer = csv.writer(self.file)
 
@@ -139,18 +139,24 @@ class CSVSink:
                 "y_min": detections.xyxy[i][1],
                 "x_max": detections.xyxy[i][2],
                 "y_max": detections.xyxy[i][3],
-                "class_id": "" if detections.class_id is None else str(detections.class_id[i]),
-                "confidence": "" if detections.confidence is None else str(detections.confidence[i]),
-                "tracker_id": "" if detections.tracker_id is None else str(detections.tracker_id[i]),
+                "class_id": ""
+                if detections.class_id is None
+                else str(detections.class_id[i]),
+                "confidence": ""
+                if detections.confidence is None
+                else str(detections.confidence[i]),
+                "tracker_id": ""
+                if detections.tracker_id is None
+                else str(detections.tracker_id[i]),
             }
 
             if hasattr(detections, "data"):
                 for key, value in detections.data.items():
-                    if value.ndim == 0:  
+                    if value.ndim == 0:
                         row[key] = value
                     else:
                         row[key] = value[i]
-                        
+
             if custom_data:
                 row.update(custom_data)
             parsed_rows.append(row)
