@@ -1,6 +1,6 @@
 ### 0.18.0 <small>January 25, 2024</small>
 
-- Added [#633](https://github.com/roboflow/supervision/pull/720): [`sv.PercentageBarAnnotator`](https://supervision.roboflow.com/annotators/#percentagebarannotator) allowing to annotate images and videos with percentage values representing confidence or other custom property.
+- Added [#633](https://github.com/roboflow/supervision/pull/720): [`sv.PercentageBarAnnotator`](0.18.0/annotators.md/#percentagebarannotator) allowing to annotate images and videos with percentage values representing confidence or other custom property.
 
 ```python
 >>> import supervision as sv
@@ -15,7 +15,7 @@
 ... )
 ```
 
-- Added [#702](https://github.com/roboflow/supervision/pull/702): [`sv.RoundBoxAnnotator`](https://supervision.roboflow.com/annotators/#roundboxannotator) allowing to annotate images and videos with rounded corners bounding boxes.
+- Added [#702](https://github.com/roboflow/supervision/pull/702): [`sv.RoundBoxAnnotator`](0.18.0/annotators.md/#roundboxannotator) allowing to annotate images and videos with rounded corners bounding boxes.
 
 - Added [#770](https://github.com/roboflow/supervision/pull/770): [`sv.OrientedBoxAnnotator`](https://supervision.roboflow.com/annotators/#orientedboxannotator) allowing to annotate images and videos with OBB (Oriented Bounding Boxes).
 
