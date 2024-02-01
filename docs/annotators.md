@@ -381,115 +381,115 @@ status: new
     </div>
 
 <div class="md-typeset">
-  <h2>BoundingBoxAnnotator</h2>
+    <h2><a href="#supervision.annotators.core.BoundingBoxAnnotator">BoundingBoxAnnotator</a></h2>
 </div>
 
 :::supervision.annotators.core.BoundingBoxAnnotator
 
 <div class="md-typeset">
-  <h2>RoundBoxAnnotator</h2>
+    <h2><a href="#supervision.annotators.core.RoundBoxAnnotator">RoundBoxAnnotator</a></h2>
 </div>
 
 :::supervision.annotators.core.RoundBoxAnnotator
 
 <div class="md-typeset">
-  <h2>BoxCornerAnnotator</h2>
+    <h2><a href="#supervision.annotators.core.BoxCornerAnnotator">BoxCornerAnnotator</a></h2>
 </div>
 
 :::supervision.annotators.core.BoxCornerAnnotator
 
 <div class="md-typeset">
-  <h2>OrientedBoxAnnotator</h2>
+    <h2><a href="#supervision.annotators.core.OrientedBoxAnnotator">OrientedBoxAnnotator</a></h2>
 </div>
 
 :::supervision.annotators.core.OrientedBoxAnnotator
 
 <div class="md-typeset">
-  <h2>ColorAnnotator</h2>
+    <h2><a href="#supervision.annotators.core.ColorAnnotator">ColorAnnotator</a></h2>
 </div>
 
 :::supervision.annotators.core.ColorAnnotator
 
 <div class="md-typeset">
-  <h2>CircleAnnotator</h2>
+    <h2><a href="#supervision.annotators.core.CircleAnnotator">CircleAnnotator</a></h2>
 </div>
 
 :::supervision.annotators.core.CircleAnnotator
 
 <div class="md-typeset">
-  <h2>DotAnnotator</h2>
+    <h2><a href="#supervision.annotators.core.DotAnnotator">DotAnnotator</a></h2>
 </div>
 
 :::supervision.annotators.core.DotAnnotator
 
 <div class="md-typeset">
-  <h2>TriangleAnnotator</h2>
+    <h2><a href="#supervision.annotators.core.TriangleAnnotator">TriangleAnnotator</a></h2>
 </div>
 
 :::supervision.annotators.core.TriangleAnnotator
 
 <div class="md-typeset">
-  <h2>EllipseAnnotator</h2>
+    <h2><a href="#supervision.annotators.core.EllipseAnnotator">EllipseAnnotator</a></h2>
 </div>
 
 :::supervision.annotators.core.EllipseAnnotator
 
 <div class="md-typeset">
-  <h2>HaloAnnotator</h2>
+    <h2><a href="#supervision.annotators.core.HaloAnnotator">HaloAnnotator</a></h2>
 </div>
 
 :::supervision.annotators.core.HaloAnnotator
 
 <div class="md-typeset">
-  <h2>PercentageBarAnnotator</h2>
+    <h2><a href="#supervision.annotators.core.PercentageBarAnnotator">PercentageBarAnnotator</a></h2>
 </div>
 
 :::supervision.annotators.core.PercentageBarAnnotator
 
 <div class="md-typeset">
-  <h2>HeatMapAnnotator</h2>
+    <h2><a href="#supervision.annotators.core.HeatMapAnnotator">HeatMapAnnotator</a></h2>
 </div>
 
 :::supervision.annotators.core.HeatMapAnnotator
 
 <div class="md-typeset">
-  <h2>MaskAnnotator</h2>
+    <h2><a href="#supervision.annotators.core.MaskAnnotator">MaskAnnotator</a></h2>
 </div>
 
 :::supervision.annotators.core.MaskAnnotator
 
 <div class="md-typeset">
-  <h2>PolygonAnnotator</h2>
+    <h2><a href="#supervision.annotators.core.PolygonAnnotator">PolygonAnnotator</a></h2>
 </div>
 
 :::supervision.annotators.core.PolygonAnnotator
 
 <div class="md-typeset">
-  <h2>LabelAnnotator</h2>
+    <h2><a href="#supervision.annotators.core.LabelAnnotator">LabelAnnotator</a></h2>
 </div>
 
 :::supervision.annotators.core.LabelAnnotator
 
 <div class="md-typeset">
-  <h2>BlurAnnotator</h2>
+    <h2><a href="#supervision.annotators.core.BlurAnnotator">BlurAnnotator</a></h2>
 </div>
 
 :::supervision.annotators.core.BlurAnnotator
 
 <div class="md-typeset">
-  <h2>PixelateAnnotator</h2>
+    <h2><a href="#supervision.annotators.core.PixelateAnnotator">PixelateAnnotator</a></h2>
 </div>
 
 :::supervision.annotators.core.PixelateAnnotator
 
 <div class="md-typeset">
-  <h2>TraceAnnotator</h2>
+    <h2><a href="#supervision.annotators.core.TraceAnnotator">TraceAnnotator</a></h2>
 </div>
 
 :::supervision.annotators.core.TraceAnnotator
 
 <div class="md-typeset">
-  <h2>ColorLookup</h2>
+    <h2><a href="#supervision.annotators.core.ColorLookup">ColorLookup</a></h2>
 </div>
 
 :::supervision.annotators.utils.ColorLookup
