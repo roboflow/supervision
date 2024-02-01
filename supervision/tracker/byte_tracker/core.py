@@ -261,6 +261,20 @@ class ByteTrack:
         return detections
 
     def reset(self):
+        """
+        Resets the internal state of the ByteTrack tracker.
+
+        This method is designed to clear the tracking data, including tracked, lost, and removed tracks,
+        as well as resetting the frame counter. It is particularly useful when processing multiple videos
+        sequentially, as it ensures the tracker starts with a clean state for each new video.
+
+        Example:
+            tracker = ByteTrack()
+            tracker.reset()  # Call this method before processing a new video
+
+        No parameters are required for this method, and it does not return any value. It simply reinitializes
+        the internal state variables of the tracker to their default values.
+        """
         self.frame_id = 0
         self.tracked_tracks: List[STrack] = []
         self.lost_tracks: List[STrack] = []
