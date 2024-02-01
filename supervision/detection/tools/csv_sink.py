@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import csv
+import os
 from typing import Any, Dict, List, Optional
+
+import numpy as np
 
 from supervision.detection.core import Detections
 
@@ -15,7 +18,6 @@ BASE_HEADER = [
     "tracker_id",
 ]
 
-
 class CSVSink:
     """
     A utility class for saving detection data to a CSV file. This class is designed to
@@ -26,60 +28,50 @@ class CSVSink:
     providing flexibility for logging various types of information.
 
     Args:
-        filename (str): The name of the CSV file where the detections will be stored.
+        file_name (str): The name of the CSV file where the detections will be stored.
             Defaults to 'output.csv'.
 
     Example:
         ```python
-        import numpy as np
+        import cv2
         import supervision as sv
         from ultralytics import YOLO
-        import time
 
-        model = YOLO("yolov8n.pt")
-        tracker = sv.ByteTrack()
-        box_annotator = sv.BoundingBoxAnnotator()
-        label_annotator = sv.LabelAnnotator()
-        csv_sink = sv.CSVSink(...)
+        image = cv2.imread(<SOURCE_IMAGE_PATH>)
+        model = YOLO(<SOURCE_MODEL_PATH>)
 
-        def callback(frame: np.ndarray, _: int) -> np.ndarray:
-            start_time = time.time()
-            results = model(frame)[0]
-            detections = sv.Detections.from_ultralytics(results)
-            detections = tracker.update_with_detections(detections)
+        csv_sink = sv.CSVSink(<RESULT_CSV_FILE_PATH>)
 
-            labels = [
-                f"#{tracker_id} {results.names[class_id]}"
-                for class_id, tracker_id
-                in zip(detections.class_id, detections.tracker_id)
-            ]
-            time_frame = (time.time() - start_time)
-
-            csv_sink.append(detections, custom_data={"processing_time": time_frame})
-
-            annotated_frame = box_annotator.annotate(
-                frame.copy(), detections=detections)
-            return label_annotator.annotate(
-                annotated_frame, detections=detections, labels=labels)
-
-        csv_sink.open()
-        sv.process_video(
-            source_path="people-walking.mp4",
-            target_path="result.mp4",
-            callback=callback
-        )
-        csv_sink.close()
+        result = model(image)[0]
+        detections = sv.Detections.from_ultralytics(result)
+        with csv_sink as sink:
+            sink.append(detections, custom_data={'<CUSTOM_LABEL>':'<CUSTOM_DATA>'})
         ```
     """  # noqa: E501 // docs
 
-    def __init__(self, filename: str = "output.csv"):
-        self.filename = filename
+    def __init__(self, file_name: str = "output.csv"):
+        """
+        Initialize the CSVSink instance.
+
+        Args:
+            file_name (str): The name of the CSV file.
+
+        Returns:
+            None
+        """
+        self.file_name = file_name
         self.file: Optional[open] = None
         self.writer: Optional[csv.writer] = None
         self.header_written = False
-        self.fieldnames = []  # To keep track of header names
+        self.field_names = [] 
 
     def __enter__(self) -> CSVSink:
+        """
+        Enter the context manager.
+
+        Returns:
+            CSVSink: The CSVSink instance.
+        """
         self.open()
         return self
 
@@ -89,13 +81,40 @@ class CSVSink:
         exc_val: Optional[Exception],
         exc_tb: Optional[Any],
     ) -> None:
+        """
+        Exit the context manager.
+
+        Args:
+            exc_type (Optional[type]): The type of exception.
+            exc_val (Optional[Exception]): The exception instance.
+            exc_tb (Optional[Any]): The traceback.
+
+        Returns:
+            None
+        """
         self.close()
 
     def open(self) -> None:
-        self.file = open(self.filename, "w", newline="")
+        """
+        Open the CSV file for writing.
+
+        Returns:
+            None
+        """
+        parent_directory = os.path.dirname(self.file_name)
+        if parent_directory and not os.path.exists(parent_directory):
+            os.makedirs(parent_directory)
+        
+        self.file = open(self.file_name, "w", newline="")
         self.writer = csv.writer(self.file)
 
     def close(self) -> None:
+        """
+        Close the CSV file.
+
+        Returns:
+            None
+        """
         if self.file:
             self.file.close()
 
@@ -103,6 +122,16 @@ class CSVSink:
     def parse_detection_data(
         detections: Detections, custom_data: Dict[str, Any] = None
     ) -> List[Dict[str, Any]]:
+        """
+        Parse detection data into a list of dictionaries.
+
+        Args:
+            detections (Detections): The detection data.
+            custom_data (Dict[str, Any]): Custom data to include.
+
+        Returns:
+            List[Dict[str, Any]]: A list of dictionaries representing the data.
+        """
         parsed_rows = []
         for i in range(len(detections.xyxy)):
             row = {
@@ -110,13 +139,18 @@ class CSVSink:
                 "y_min": detections.xyxy[i][1],
                 "x_max": detections.xyxy[i][2],
                 "y_max": detections.xyxy[i][3],
-                "class_id": detections.class_id[i],
-                "confidence": detections.confidence[i],
-                "tracker_id": detections.tracker_id[i],
+                "class_id": "" if detections.class_id is None else str(detections.class_id[i]),
+                "confidence": "" if detections.confidence is None else str(detections.confidence[i]),
+                "tracker_id": "" if detections.tracker_id is None else str(detections.tracker_id[i]),
             }
+
             if hasattr(detections, "data"):
                 for key, value in detections.data.items():
-                    row[key] = value[i]
+                    if value.ndim == 0:  
+                        row[key] = value
+                    else:
+                        row[key] = value[i]
+                        
             if custom_data:
                 row.update(custom_data)
             parsed_rows.append(row)
@@ -125,9 +159,19 @@ class CSVSink:
     def append(
         self, detections: Detections, custom_data: Dict[str, Any] = None
     ) -> None:
+        """
+        Append detection data to the CSV file.
+
+        Args:
+            detections (Detections): The detection data.
+            custom_data (Dict[str, Any]): Custom data to include.
+
+        Returns:
+            None
+        """
         if not self.writer:
             raise Exception(
-                f"Cannot append to CSV: The file '{self.filename}' is not open."
+                f"Cannot append to CSV: The file '{self.file_name}' is not open."
             )
         if not self.header_written:
             self.write_header(detections, custom_data)
@@ -135,13 +179,23 @@ class CSVSink:
         parsed_rows = CSVSink.parse_detection_data(detections, custom_data)
         for row in parsed_rows:
             self.writer.writerow(
-                [row.get(fieldname, "") for fieldname in self.fieldnames]
+                [row.get(field_name, "") for field_name in self.field_names]
             )
 
     def write_header(self, detections: Detections, custom_data: Dict[str, Any]) -> None:
+        """
+        Write the CSV header based on the provided detection and custom data.
+
+        Args:
+            detections (Detections): The detection data.
+            custom_data (Dict[str, Any]): Custom data to include in the header.
+
+        Returns:
+            None
+        """
         dynamic_header = sorted(
             set(custom_data.keys()) | set(getattr(detections, "data", {}).keys())
         )
-        self.fieldnames = BASE_HEADER + dynamic_header
-        self.writer.writerow(self.fieldnames)
+        self.field_names = BASE_HEADER + dynamic_header
+        self.writer.writerow(self.field_names)
         self.header_written = True

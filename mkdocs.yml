@@ -41,7 +41,7 @@ nav:
         - Polygon Zone: detection/tools/polygon_zone.md
         - Inference Slicer: detection/tools/inference_slicer.md
         - Detection Smoother: detection/tools/smoother.md
-        - Save CSV Detection: detection/tools/csv_sink.md
+        - Save Detections: detection/tools/save_detections.md
     - Annotators: annotators.md
     - Trackers: trackers.md
     - Datasets: datasets.md
