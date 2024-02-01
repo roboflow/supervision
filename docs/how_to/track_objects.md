@@ -148,7 +148,7 @@ enabling the continuous following of the object's motion path across different f
 
 Annotating the video with tracking IDs helps in distinguishing and following each object
 distinctly. With the
-[`sv.LabelAnnotator`](https://supervision.roboflow.com/latest/annotators/#supervision.annotators.core.LabelAnnotator)
+[`sv.LabelAnnotator`](latest/annotators.md/#supervision.annotators.core.LabelAnnotator)
 in Supervision, we can overlay the tracker IDs and class labels on the detected objects,
 offering a clear visual representation of each object's class and unique identifier.
 
