@@ -1,4 +1,5 @@
 import csv
+import os
 from test.test_utils import mock_detections
 from typing import Any, Dict, List
 
@@ -8,7 +9,9 @@ import supervision as sv
 
 
 @pytest.mark.parametrize(
-    "detections, custom_data, second_detections, second_custom_data, file_name, expected_result",
+    "detections, custom_data, "
+    "second_detections, second_custom_data, "
+    "file_name, expected_result",
     [
         (
             mock_detections(
@@ -187,6 +190,7 @@ import supervision as sv
         ),  # Complex Data
     ],
 )
+
 def test_csv_sink(
     detections: mock_detections,
     custom_data: Dict[str, Any],
@@ -203,7 +207,9 @@ def test_csv_sink(
 
 
 @pytest.mark.parametrize(
-    "detections, custom_data, second_detections, second_custom_data, file_name, expected_result",
+    "detections, custom_data, "
+    "second_detections, second_custom_data, "
+    "file_name, expected_result",
     [
         (
             mock_detections(
@@ -382,6 +388,7 @@ def test_csv_sink(
         ),  # Complex Data
     ],
 )
+
 def test_csv_sink_manual(
     detections: mock_detections,
     custom_data: Dict[str, Any],
@@ -407,4 +414,4 @@ def assert_csv_equal(file_name, expected_rows):
                 [str(item) for item in expected_rows[i]] == row
             ), f"Row in CSV didn't match expected output: {row} != {expected_rows[i]}"
 
-    # os.remove(file_name)
+    os.remove(file_name)

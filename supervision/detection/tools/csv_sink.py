@@ -4,7 +4,6 @@ import csv
 import os
 from typing import Any, Dict, List, Optional
 
-
 from supervision.detection.core import Detections
 
 BASE_HEADER = [
