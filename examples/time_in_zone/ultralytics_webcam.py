@@ -192,7 +192,7 @@ def main():
     ]
     timers = [Timer() for _ in zones]
 
-    for frame in get_webcam_frames_generator(args.camera_index):
+    for frame in frames_generator:
 
         fps_monitor.tick()
         fps = fps_monitor.fps
