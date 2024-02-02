@@ -182,7 +182,7 @@ def main():
     annotator = Annotator(thickness=thickness, text_scale=text_scale)
 
     fps_monitor = sv.FPSMonitor()
-    tracker = sv.ByteTrack()
+    tracker = sv.ByteTrack(track_thresh=args.confidence_threshold)
 
     polygons = load_zones_config(args.zone_configuration_path)
     zones = [
