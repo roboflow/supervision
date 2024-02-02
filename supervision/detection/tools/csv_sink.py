@@ -19,14 +19,14 @@ BASE_HEADER = [
 
 class CSVSink:
     """
-    A utility class for saving detection data to a CSV file. This class is designed to 
-    efficiently serialize detection objects into a CSV format, allowing for the 
-    inclusion of bounding box coordinates and additional attributes like `confidence`, 
+    A utility class for saving detection data to a CSV file. This class is designed to
+    efficiently serialize detection objects into a CSV format, allowing for the
+    inclusion of bounding box coordinates and additional attributes like `confidence`,
     `class_id`, and `tracker_id`.
-    
+
     !!! tip
 
-        CSVSink allow to pass custom data alongside the detection fields, providing 
+        CSVSink allow to pass custom data alongside the detection fields, providing
         flexibility for logging various types of information.
 
     Args:
@@ -41,7 +41,7 @@ class CSVSink:
         model = YOLO(<SOURCE_MODEL_PATH>)
         csv_sink = sv.CSVSink(<RESULT_CSV_FILE_PATH>)
         frames_generator = sv.get_video_frames_generator(<SOURCE_VIDEO_PATH>)
-        
+
         with csv_sink:
             for frame in frames_generator:
                 result = model(frame)[0]
@@ -67,7 +67,6 @@ class CSVSink:
         self.field_names = []
 
     def __enter__(self) -> CSVSink:
-
         self.open()
         return self
 
@@ -77,7 +76,6 @@ class CSVSink:
         exc_val: Optional[Exception],
         exc_tb: Optional[Any],
     ) -> None:
-
         self.close()
 
     def open(self) -> None:
