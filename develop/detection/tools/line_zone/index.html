@@ -1912,7 +1912,7 @@ to outside.</p>
                 <span class="k">continue</span>
 
             <span class="n">triggers</span> <span class="o">=</span> <span class="p">[</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">vector</span><span class="o">.</span><span class="n">cross_product</span><span class="p">(</span><span class="n">point</span><span class="o">=</span><span class="n">anchor</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">anchor</span> <span class="ow">in</span> <span class="n">box_anchors</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">vector</span><span class="o">.</span><span class="n">cross_product</span><span class="p">(</span><span class="n">point</span><span class="o">=</span><span class="n">anchor</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">anchor</span> <span class="ow">in</span> <span class="n">box_anchors</span>
             <span class="p">]</span>
 
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">triggers</span><span class="p">))</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
@@ -2274,7 +2274,7 @@ outside.</p>
             <span class="k">continue</span>
 
         <span class="n">triggers</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">vector</span><span class="o">.</span><span class="n">cross_product</span><span class="p">(</span><span class="n">point</span><span class="o">=</span><span class="n">anchor</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">anchor</span> <span class="ow">in</span> <span class="n">box_anchors</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">vector</span><span class="o">.</span><span class="n">cross_product</span><span class="p">(</span><span class="n">point</span><span class="o">=</span><span class="n">anchor</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">anchor</span> <span class="ow">in</span> <span class="n">box_anchors</span>
         <span class="p">]</span>
 
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">triggers</span><span class="p">))</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
