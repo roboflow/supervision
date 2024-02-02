@@ -1,5 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Callable, Optional, Tuple
+from typing import Callable, Optional, Tuple, List
 
 import numpy as np
 
@@ -12,8 +12,8 @@ def move_detections(detections: Detections, offset: np.array) -> Detections:
     """
     Args:
         detections (sv.Detections): Detections object to be moved.
-        offset (np.array): An array of shape `(2,)` containing offset values in format
-            is `[dx, dy]`.
+        offset (np.array): An array of shape (2,) containing offset values in format
+            is [dx, dy].
     Returns:
         (sv.Detections) repositioned Detections object.
     """
@@ -31,9 +31,9 @@ class InferenceSlicer:
 
     Args:
         slice_wh (Tuple[int, int]): Dimensions of each slice in the format
-            `(width, height)`.
+            (width, height).
         overlap_ratio_wh (Tuple[float, float]): Overlap ratio between consecutive
-            slices in the format `(width_ratio, height_ratio)`.
+            slices in the format (width_ratio, height_ratio).
         iou_threshold (Optional[float]): Intersection over Union (IoU) threshold
             used for non-max suppression.
         callback (Callable): A function that performs inference on a given image
@@ -47,36 +47,39 @@ class InferenceSlicer:
         not a multiple of the slice's width or height minus the overlap.
     """
 
-    def __init__(
+    def _init_(
         self,
         callback: Callable[[np.ndarray], Detections],
         slice_wh: Tuple[int, int] = (320, 320),
         overlap_ratio_wh: Tuple[float, float] = (0.2, 0.2),
         iou_threshold: Optional[float] = 0.5,
         thread_workers: int = 1,
+        batch_size = 1,
     ):
         self.slice_wh = slice_wh
         self.overlap_ratio_wh = overlap_ratio_wh
         self.iou_threshold = iou_threshold
         self.callback = callback
         self.thread_workers = thread_workers
+        self.batch_size = batch_size
+        self.all_detections = []
 
-    def __call__(self, image: np.ndarray) -> Detections:
+    def _call_(self, images: np.ndarray) -> List[Detections]:
         """
         Performs slicing-based inference on the provided image using the specified
             callback.
 
         Args:
-            image (np.ndarray): The input image on which inference needs to be
-                performed. The image should be in the format
-                `(height, width, channels)`.
+            images (np.ndarray): The input images on which inference needs to be
+                performed. The images should be in the format
+                (batch_size, height, width, channels).
 
         Returns:
-            Detections: A collection of detections for the entire image after merging
-                results from all slices and applying NMS.
+            Detections: A list of detections for the batch of images after merging
+                results from all image slices and applying NMS.
 
         Example:
-            ```python
+            python
             import cv2
             import supervision as sv
             from ultralytics import YOLO
@@ -91,26 +94,30 @@ class InferenceSlicer:
             slicer = sv.InferenceSlicer(callback = callback)
 
             detections = slicer(image)
-            ```
+            
         """
-        detections_list = []
-        resolution_wh = (image.shape[1], image.shape[0])
-        offsets = self._generate_offset(
-            resolution_wh=resolution_wh,
-            slice_wh=self.slice_wh,
-            overlap_ratio_wh=self.overlap_ratio_wh,
-        )
+        for image_num in range(self.batch_size):
+            image = images[image_num]
+            detections_list = []
+            resolution_wh = (image.shape[1], image.shape[0])
+            offsets = self._generate_offset(
+                resolution_wh=resolution_wh,
+                slice_wh=self.slice_wh,
+                overlap_ratio_wh=self.overlap_ratio_wh,
+            )
 
-        with ThreadPoolExecutor(max_workers=self.thread_workers) as executor:
-            futures = [
-                executor.submit(self._run_callback, image, offset) for offset in offsets
-            ]
-            for future in as_completed(futures):
-                detections_list.append(future.result())
+            with ThreadPoolExecutor(max_workers=self.thread_workers) as executor:
+                futures = [
+                    executor.submit(self._run_callback, image, offset) for offset in offsets
+                ]
+                for future in as_completed(futures):
+                    detections_list.append(future.result())
 
-        return Detections.merge(detections_list=detections_list).with_nms(
-            threshold=self.iou_threshold
-        )
+            per_image_detection = Detections.merge(detections_list=detections_list).with_nms(
+                threshold=self.iou_threshold
+            )
+        self.all_detections.append(per_image_detection)
+        return self.all_detections
 
     def _run_callback(self, image, offset) -> Detections:
         """
@@ -118,7 +125,7 @@ class InferenceSlicer:
 
         Args:
             image (np.ndarray): The input image on which inference needs to run
-            offset (np.ndarray): An array of shape `(4,)` containing coordinates
+            offset (np.ndarray): An array of shape (4,) containing coordinates
                 for the slice.
 
         Returns:
@@ -151,8 +158,8 @@ class InferenceSlicer:
                 value close to 1 means high overlap.
 
         Returns:
-            np.ndarray: An array of shape `(n, 4)` containing coordinates for each
-                slice in the format `[xmin, ymin, xmax, ymax]`.
+            np.ndarray: An array of shape (n, 4) containing coordinates for each
+                slice in the format [xmin, ymin, xmax, ymax].
 
         Note:
             The function ensures that slices do not exceed the boundaries of the
