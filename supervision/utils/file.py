@@ -1,76 +1,10 @@
 import json
 from pathlib import Path
-from typing import List, Optional, Union, Dict, Any
-from supervision.detection.core import Detections
+from typing import List, Optional, Union
 
 import numpy as np
 import yaml
 
-class JSONSink:
-    """
-    A utility class for saving detection data to a JSON file. This class is designed to
-    efficiently serialize detection objects into a JSON format, allowing for the inclusion of
-    bounding box coordinates and additional attributes like confidence, class ID, and tracker ID.
-    
-    The class supports the capability to include custom data alongside the detection fields,
-    providing flexibility for logging various types of information in a structured JSON format.
-    
-    Args:
-        filename (str): The name of the JSON file where the detections will be stored.
-                        Defaults to 'output.json'.
-    
-    Usage:
-        ```python
-        from supervision.utils.detections import Detections
-        # Initialize JSONSink with a filename
-        json_sink = JSONSink('my_detections.json')
-        
-        # Assuming detections is an instance of Detections containing detection data
-        detections = Detections(...)
-        
-        # Open the JSONSink context, append detection data, and close the file automatically
-        with json_sink as sink:
-            sink.append(detections, custom_data={'frame': 1})
-        ```
-    """
-    def __init__(self, filename: str = 'output.json'):
-        self.filename: str = filename
-        self.file: Optional[open] = None
-        self.data: List[Dict[str, Any]] = []
-
-    def __enter__(self) -> 'JSONSink':
-        self.open()
-        return self
-
-    def __exit__(self, exc_type: Optional[type], exc_val: Optional[Exception], exc_tb: Optional[Any]) -> None:
-        self.write_and_close()
-
-    def open(self) -> None:
-        self.file = open(self.filename, 'w')
-
-    def write_and_close(self) -> None:
-        if self.file:
-            json.dump(self.data, self.file, indent=4)
-            self.file.close()
-
-    def append(self, detections: Detections, custom_data: Dict[str, Any] = None) -> None:
-        for i in range(len(detections.xyxy)):
-            detection_data = {
-                'x_min': int(detections.xyxy[i][0]),
-                'y_min': int(detections.xyxy[i][1]),
-                'x_max': int(detections.xyxy[i][2]),
-                'y_max': int(detections.xyxy[i][3]),
-                'class_id': int(detections.class_id[i]),
-                'confidence': float(detections.confidence[i]),
-                'tracker_id': int(detections.tracker_id[i])
-            }
-            
-            for key, value in detections.data.items():
-                detection_data[key] = value[i] if hasattr(value, '__getitem__') else value
-            if custom_data:
-                detection_data.update(custom_data)
-
-            self.data.append(detection_data)
 
 class NumpyJsonEncoder(json.JSONEncoder):
     def default(self, obj):
