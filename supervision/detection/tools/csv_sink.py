@@ -19,12 +19,15 @@ BASE_HEADER = [
 
 class CSVSink:
     """
-    A utility class for saving detection data to a CSV file. This class is designed to
-    efficiently serialize detection objects into a CSV format, allowing for the inclusion of
-    bounding box coordinates and additional attributes like confidence, class ID, and tracker ID.
+    A utility class for saving detection data to a CSV file. This class is designed to 
+    efficiently serialize detection objects into a CSV format, allowing for the 
+    inclusion of bounding box coordinates and additional attributes like `confidence`, 
+    `class_id`, and `tracker_id`.
+    
+    !!! tip
 
-    The class supports the capability to include custom data alongside the detection fields,
-    providing flexibility for logging various types of information.
+        CSVSink allow to pass custom data alongside the detection fields, providing 
+        flexibility for logging various types of information.
 
     Args:
         file_name (str): The name of the CSV file where the detections will be stored.
@@ -32,23 +35,22 @@ class CSVSink:
 
     Example:
         ```python
-        import cv2
         import supervision as sv
         from ultralytics import YOLO
 
-        image = cv2.imread(<SOURCE_IMAGE_PATH>)
         model = YOLO(<SOURCE_MODEL_PATH>)
-
         csv_sink = sv.CSVSink(<RESULT_CSV_FILE_PATH>)
-
-        result = model(image)[0]
-        detections = sv.Detections.from_ultralytics(result)
-        with csv_sink as sink:
-            sink.append(detections, custom_data={'<CUSTOM_LABEL>':'<CUSTOM_DATA>'})
+        frames_generator = sv.get_video_frames_generator(<SOURCE_VIDEO_PATH>)
+        
+        with csv_sink:
+            for frame in frames_generator:
+                result = model(frame)[0]
+                detections = sv.Detections.from_ultralytics(result)
+                sink.append(detections, custom_data={'<CUSTOM_LABEL>':'<CUSTOM_DATA>'})
         ```
     """  # noqa: E501 // docs
 
-    def __init__(self, file_name: str = "output.csv"):
+    def __init__(self, file_name: str = "output.csv") -> None:
         """
         Initialize the CSVSink instance.
 
@@ -65,12 +67,7 @@ class CSVSink:
         self.field_names = []
 
     def __enter__(self) -> CSVSink:
-        """
-        Enter the context manager.
 
-        Returns:
-            CSVSink: The CSVSink instance.
-        """
         self.open()
         return self
 
@@ -80,17 +77,7 @@ class CSVSink:
         exc_val: Optional[Exception],
         exc_tb: Optional[Any],
     ) -> None:
-        """
-        Exit the context manager.
 
-        Args:
-            exc_type (Optional[type]): The type of exception.
-            exc_val (Optional[Exception]): The exception instance.
-            exc_tb (Optional[Any]): The traceback.
-
-        Returns:
-            None
-        """
         self.close()
 
     def open(self) -> None:
@@ -121,16 +108,6 @@ class CSVSink:
     def parse_detection_data(
         detections: Detections, custom_data: Dict[str, Any] = None
     ) -> List[Dict[str, Any]]:
-        """
-        Parse detection data into a list of dictionaries.
-
-        Args:
-            detections (Detections): The detection data.
-            custom_data (Dict[str, Any]): Custom data to include.
-
-        Returns:
-            List[Dict[str, Any]]: A list of dictionaries representing the data.
-        """
         parsed_rows = []
         for i in range(len(detections.xyxy)):
             row = {
@@ -188,16 +165,6 @@ class CSVSink:
             )
 
     def write_header(self, detections: Detections, custom_data: Dict[str, Any]) -> None:
-        """
-        Write the CSV header based on the provided detection and custom data.
-
-        Args:
-            detections (Detections): The detection data.
-            custom_data (Dict[str, Any]): Custom data to include in the header.
-
-        Returns:
-            None
-        """
         dynamic_header = sorted(
             set(custom_data.keys()) | set(getattr(detections, "data", {}).keys())
         )
