@@ -137,7 +137,7 @@ class LineZone:
                 continue
 
             triggers = [
-                self.vector.cross_product(point=anchor) > 0 for anchor in box_anchors
+                self.vector.cross_product(point=anchor) < 0 for anchor in box_anchors
             ]
 
             if len(set(triggers)) == 2:
