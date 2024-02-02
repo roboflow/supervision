@@ -155,8 +155,17 @@ class CSVSink:
             raise Exception(
                 f"Cannot append to CSV: The file '{self.file_name}' is not open."
             )
+        field_names = CSVSink.parse_field_names(detections, custom_data)
         if not self.header_written:
-            self.write_header(detections, custom_data)
+            self.field_names = field_names
+            self.writer.writerow(field_names)
+            self.header_written = True
+
+        if field_names != self.field_names:
+            print(
+                f"Field names do not match the header. "
+                f"Expected: {self.field_names}, given: {field_names}"
+            )
 
         parsed_rows = CSVSink.parse_detection_data(detections, custom_data)
         for row in parsed_rows:
@@ -164,10 +173,12 @@ class CSVSink:
                 [row.get(field_name, "") for field_name in self.field_names]
             )
 
-    def write_header(self, detections: Detections, custom_data: Dict[str, Any]) -> None:
+    @staticmethod
+    def parse_field_names(
+        detections: Detections,
+        custom_data: Dict[str, Any]
+    ) -> List[str]:
         dynamic_header = sorted(
             set(custom_data.keys()) | set(getattr(detections, "data", {}).keys())
         )
-        self.field_names = BASE_HEADER + dynamic_header
-        self.writer.writerow(self.field_names)
-        self.header_written = True
+        return BASE_HEADER + dynamic_header
