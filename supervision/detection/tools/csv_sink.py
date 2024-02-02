@@ -173,8 +173,7 @@ class CSVSink:
 
     @staticmethod
     def parse_field_names(
-        detections: Detections,
-        custom_data: Dict[str, Any]
+        detections: Detections, custom_data: Dict[str, Any]
     ) -> List[str]:
         dynamic_header = sorted(
             set(custom_data.keys()) | set(getattr(detections, "data", {}).keys())
