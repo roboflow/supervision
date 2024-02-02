@@ -9,7 +9,7 @@ import numpy as np
 
 from supervision.dataset.core import DetectionDataset
 from supervision.detection.core import Detections
-from supervision.detection.utils import box_iou_batch
+from supervision.detection.utils import box_iou_batch, mask_iou_batch
 
 
 def detections_to_tensor(
@@ -55,12 +55,12 @@ def validate_input_tensors(predictions: List[np.ndarray], targets: List[np.ndarr
             targets[0], np.ndarray
         ):
             raise ValueError(
-                f"Predictions and targets must be lists of numpy arrays."
+                "Predictions and targets must be lists of numpy arrays."
                 f"Got {type(predictions[0])} and {type(targets[0])} instead."
             )
         if predictions[0].shape[1] != 6:
             raise ValueError(
-                f"Predictions must have shape (N, 6)."
+                "Predictions must have shape (N, 6)."
                 f"Got {predictions[0].shape} instead."
             )
         if targets[0].shape[1] != 5:
@@ -89,6 +89,7 @@ class ConfusionMatrix:
     classes: List[str]
     conf_threshold: float
     iou_threshold: float
+    segmentationMatrix: Optional[np.ndarray] = None
 
     @classmethod
     def from_detections(
@@ -98,6 +99,7 @@ class ConfusionMatrix:
         classes: List[str],
         conf_threshold: float = 0.3,
         iou_threshold: float = 0.5,
+        force_masks=True,
     ) -> ConfusionMatrix:
         """
         Calculate confusion matrix based on predicted and ground-truth detections.
@@ -110,6 +112,11 @@ class ConfusionMatrix:
                 Detections with lower confidence will be excluded.
             iou_threshold (float): Detection IoU threshold between `0` and `1`.
                 Detections with lower IoU will be classified as `FP`.
+            force_masks (bool, default=True):
+            If True, the ConfusionMatrix.segmentationMatrix is computed.
+            Otherwise, it is None
+            If this value is set to True and masks
+            are not present for some images, error will be thrown.
 
         Returns:
             ConfusionMatrix: New instance of ConfusionMatrix.
@@ -146,18 +153,39 @@ class ConfusionMatrix:
 
         prediction_tensors = []
         target_tensors = []
+
+        prediction_masks = [] if force_masks else None
+        target_masks = [] if force_masks else None
+
         for prediction, target in zip(predictions, targets):
             prediction_tensors.append(
                 detections_to_tensor(prediction, with_confidence=True)
             )
             target_tensors.append(detections_to_tensor(target, with_confidence=False))
-        return cls.from_tensors(
+
+            if force_masks:
+                if prediction.mask is None or target.mask is None:
+                    raise Exception(
+                        "Please make sure all images have corresponding mask"
+                        " annotations"
+                    )
+
+                # add none so that we can utilize the same order of classes
+                # as prediction_tensors
+                prediction_masks.append(prediction.mask)
+                target_masks.append(target.mask)
+
+        result = cls.from_tensors(
             predictions=prediction_tensors,
             targets=target_tensors,
+            prediction_masks=prediction_masks,
+            target_masks=target_masks,
             classes=classes,
             conf_threshold=conf_threshold,
             iou_threshold=iou_threshold,
         )
+
+        return result
 
     @classmethod
     def from_tensors(
@@ -165,6 +193,8 @@ class ConfusionMatrix:
         predictions: List[np.ndarray],
         targets: List[np.ndarray],
         classes: List[str],
+        prediction_masks: Optional[List[np.ndarray]] = None,
+        target_masks: Optional[List[np.ndarray]] = None,
         conf_threshold: float = 0.3,
         iou_threshold: float = 0.5,
     ) -> ConfusionMatrix:
@@ -181,6 +211,10 @@ class ConfusionMatrix:
                 ground-truth objects. Each row is expected to be in
                 `(x_min, y_min, x_max, y_max, class)` format.
             classes (List[str]): Model class names.
+            prediction_masks (Optional[List[np.ndarray]]): An array of shape
+            `(n, H, W)` containing the prediction segmentation masks.
+            target_masks (Optional[List[np.ndarray]]): An array of shape
+            `(n, H, W)` containing the target segmentation masks.
             conf_threshold (float): Detection confidence threshold between `0` and `1`.
                 Detections with lower confidence will be excluded.
             iou_threshold (float): Detection iou  threshold between `0` and `1`.
@@ -238,28 +272,110 @@ class ConfusionMatrix:
 
         num_classes = len(classes)
         matrix = np.zeros((num_classes + 1, num_classes + 1))
-        for true_batch, detection_batch in zip(targets, predictions):
-            matrix += cls.evaluate_detection_batch(
+
+        segmentation_matrix = (
+            prediction_masks
+            if prediction_masks is None
+            else (np.zeros((num_classes + 1, num_classes + 1)))
+        )
+
+        for i in range(len(predictions)):
+            detection_batch = predictions[i]
+            true_batch = targets[i]
+            detection_mask = (
+                prediction_masks if prediction_masks is None else prediction_masks[i]
+            )
+            true_mask = target_masks if target_masks is None else target_masks[i]
+
+            partial_matrix, partial_segmentation_matrix = cls.evaluate_detection_batch(
                 predictions=detection_batch,
                 targets=true_batch,
+                prediction_mask=detection_mask,
+                target_mask=true_mask,
                 num_classes=num_classes,
                 conf_threshold=conf_threshold,
                 iou_threshold=iou_threshold,
             )
+
+            matrix += partial_matrix
+            if prediction_masks:
+                segmentation_matrix += partial_segmentation_matrix
+
         return cls(
             matrix=matrix,
+            segmentationMatrix=segmentation_matrix,
             classes=classes,
             conf_threshold=conf_threshold,
             iou_threshold=iou_threshold,
         )
 
     @staticmethod
+    def calculate_confusion_matrix_from_iou_matrix(
+        iou_batch: np.ndarray,
+        iou_threshold: float,
+        true_classes: np.ndarray,
+        detection_classes: np.ndarray,
+        num_classes: int,
+    ) -> np.ndarray:
+        """
+        Calculate confusion matrix for a batch of detections for a single image.
+
+        Args:
+            iou_batch (np.ndarray): Pairwise IoU matrix with
+            `shape = (N, M)` where `N` is number of true objects and
+            `M` is number of detected objects.
+            iou_threshold (float): Detection iou  threshold between `0` and `1`.
+            Detections with lower iou will be classified as `FP`.
+            true_classes (np.ndarray): An array of shape `(n,)
+            containing class ids of each target
+            detection_classes (np.ndarray): An array of shape `(n,)
+            containing class ids of each prediction
+            num_classes (int): Number of classes.
+
+        Returns:
+            np.ndarray: Confusion matrix based on a single image.
+        """
+        matrix = np.zeros((num_classes + 1, num_classes + 1))
+
+        matched_idx = np.asarray(iou_batch > iou_threshold).nonzero()
+
+        if matched_idx[0].shape[0]:
+            matches = np.stack(
+                (matched_idx[0], matched_idx[1], iou_batch[matched_idx]), axis=1
+            )
+            matches = ConfusionMatrix._drop_extra_matches(matches=matches)
+        else:
+            matches = np.zeros((0, 3))
+
+        matched_true_idx, matched_detection_idx, _ = matches.transpose().astype(
+            np.int16
+        )
+
+        for i, true_class_value in enumerate(true_classes):
+            j = matched_true_idx == i
+            if matches.shape[0] > 0 and sum(j) == 1:
+                matrix[
+                    true_class_value, detection_classes[matched_detection_idx[j]]
+                ] += 1  # TP
+            else:
+                matrix[true_class_value, num_classes] += 1  # FN
+
+        for i, detection_class_value in enumerate(detection_classes):
+            if not any(matched_detection_idx == i):
+                matrix[num_classes, detection_class_value] += 1  # FP
+
+        return matrix
+
+    @classmethod
     def evaluate_detection_batch(
+        cls,
         predictions: np.ndarray,
         targets: np.ndarray,
         num_classes: int,
         conf_threshold: float,
         iou_threshold: float,
+        prediction_mask: Optional[np.ndarray] = None,
+        target_mask: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         """
         Calculate confusion matrix for a batch of detections for a single image.
@@ -278,15 +394,24 @@ class ConfusionMatrix:
                 Detections with lower confidence will be excluded.
             iou_threshold (float): Detection iou  threshold between `0` and `1`.
                 Detections with lower iou will be classified as `FP`.
+            prediction_mask (Optional[np.ndarray]): An array of shape
+            `(n, H, W)` containing the predicted segmentation masks.
+            target_mask (Optional[np.ndarray]): An array of shape
+            `(n, H, W)` containing the target segmentation masks.
+
 
         Returns:
             np.ndarray: Confusion matrix based on a single image.
         """
-        result_matrix = np.zeros((num_classes + 1, num_classes + 1))
 
         conf_idx = 5
         confidence = predictions[:, conf_idx]
         detection_batch_filtered = predictions[confidence > conf_threshold]
+        detection_mask_batch_filtered = (
+            prediction_mask
+            if prediction_mask is None
+            else prediction_mask[confidence > conf_threshold]
+        )
 
         class_id_idx = 4
         true_classes = np.array(targets[:, class_id_idx], dtype=np.int16)
@@ -299,34 +424,32 @@ class ConfusionMatrix:
         iou_batch = box_iou_batch(
             boxes_true=true_boxes, boxes_detection=detection_boxes
         )
-        matched_idx = np.asarray(iou_batch > iou_threshold).nonzero()
 
-        if matched_idx[0].shape[0]:
-            matches = np.stack(
-                (matched_idx[0], matched_idx[1], iou_batch[matched_idx]), axis=1
+        iou_mask = (
+            target_mask
+            if target_mask is None
+            else mask_iou_batch(
+                masks_true=target_mask, masks_detection=detection_mask_batch_filtered
             )
-            matches = ConfusionMatrix._drop_extra_matches(matches=matches)
-        else:
-            matches = np.zeros((0, 3))
-
-        matched_true_idx, matched_detection_idx, _ = matches.transpose().astype(
-            np.int16
         )
 
-        for i, true_class_value in enumerate(true_classes):
-            j = matched_true_idx == i
-            if matches.shape[0] > 0 and sum(j) == 1:
-                result_matrix[
-                    true_class_value, detection_classes[matched_detection_idx[j]]
-                ] += 1  # TP
-            else:
-                result_matrix[true_class_value, num_classes] += 1  # FN
+        box_confusion_matrix = cls.calculate_confusion_matrix_from_iou_matrix(
+            iou_batch, iou_threshold, true_classes, detection_classes, num_classes
+        )
 
-        for i, detection_class_value in enumerate(detection_classes):
-            if not any(matched_detection_idx == i):
-                result_matrix[num_classes, detection_class_value] += 1  # FP
+        segmentation_confusion_matrix = None
+        if prediction_mask is not None:
+            segmentation_confusion_matrix = (
+                cls.calculate_confusion_matrix_from_iou_matrix(
+                    iou_mask,
+                    iou_threshold,
+                    true_classes,
+                    detection_classes,
+                    num_classes,
+                )
+            )
 
-        return result_matrix
+        return box_confusion_matrix, segmentation_confusion_matrix
 
     @staticmethod
     def _drop_extra_matches(matches: np.ndarray) -> np.ndarray:
@@ -348,6 +471,7 @@ class ConfusionMatrix:
         callback: Callable[[np.ndarray], Detections],
         conf_threshold: float = 0.3,
         iou_threshold: float = 0.5,
+        force_masks=True,
     ) -> ConfusionMatrix:
         """
         Calculate confusion matrix from dataset and callback function.
@@ -402,6 +526,7 @@ class ConfusionMatrix:
             classes=dataset.classes,
             conf_threshold=conf_threshold,
             iou_threshold=iou_threshold,
+            force_masks=force_masks,
         )
 
     def plot(

@@ -59,6 +59,29 @@ def box_iou_batch(boxes_true: np.ndarray, boxes_detection: np.ndarray) -> np.nda
     return area_inter / (area_true[:, None] + area_detection - area_inter)
 
 
+def mask_iou_batch(masks_true: np.ndarray, masks_detection: np.ndarray) -> np.ndarray:
+    """
+    Compute Intersection over Union (IoU) of two sets of masks - `masks_true`
+    and `masks_detection`. Both sets of masks are expected to be of type np.ndarray
+
+    Args:
+        masks_true (np.ndarray):  3D `np.ndarray` representing ground-truth
+        segmentation mask. `shape = (N, W, H)` where `N` is number of true objects.
+        masks_detection (np.ndarray): 3D `np.ndarray` representing detection
+        segmentation mask. `shape = (M, W, H)` where `M` is number of detected objects.
+
+    Returns:
+        np.ndarray: Pairwise IoU of masks from `masks_true` and
+        `masks_detection`. `shape = (N, M)`
+        where `N` is number of true objects and `M` is number of detected objects.
+    """
+
+    intersection = np.logical_and(masks_true[:, None], masks_detection).sum((2, 3))
+    union = np.logical_or(masks_true[:, None], masks_detection).sum((2, 3))
+
+    return intersection / union
+
+
 def non_max_suppression(
     predictions: np.ndarray, iou_threshold: float = 0.5
 ) -> np.ndarray:
