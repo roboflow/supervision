@@ -1,4 +1,5 @@
 import json
+import os
 from test.test_utils import mock_detections
 from typing import Any, Dict, List
 
@@ -245,4 +246,4 @@ def assert_json_equal(file_name, expected_rows):
             data == expected_rows
         ), f"Data in JSON file didn't match expected output: {data} != {expected_rows}"
 
-    # os.remove(file_name)
+    os.remove(file_name)
