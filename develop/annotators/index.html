@@ -15,7 +15,7 @@
         <link rel="canonical" href="https://supervision.roboflow.com/develop/annotators/">
       
       
-        <link rel="prev" href="../detection/tools/smoother/">
+        <link rel="prev" href="../detection/tools/save_detections/">
       
       
         <link rel="next" href="../trackers/">
@@ -706,6 +706,34 @@
   
   <span class="md-ellipsis">
     Detection Smoother
+  </span>
+  
+    
+  
+  
+    <span class="md-status md-status--new"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../detection/tools/save_detections/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Save Detections
   </span>
   
     
@@ -5262,7 +5290,7 @@ supervision-annotator-examples/box-corner-annotator-example-purple.png" /></p>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">color</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Color</span><span class="p">,</span> <span class="n">ColorPalette</span><span class="p">]</span> <span class="o">=</span> <span class="n">ColorPalette</span><span class="o">.</span><span class="n">default</span><span class="p">(),</span>
+        <span class="n">color</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Color</span><span class="p">,</span> <span class="n">ColorPalette</span><span class="p">]</span> <span class="o">=</span> <span class="n">ColorPalette</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span>
         <span class="n">thickness</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
         <span class="n">color_lookup</span><span class="p">:</span> <span class="n">ColorLookup</span> <span class="o">=</span> <span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">,</span>
     <span class="p">):</span>
@@ -5354,7 +5382,7 @@ supervision-annotator-examples/box-corner-annotator-example-purple.png" /></p>
 
 
 <h3 id="supervision.annotators.core.OrientedBoxAnnotator.__init__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="n">ColorPalette</span><span class="o">.</span><span class="n">default</span><span class="p">(),</span> <span class="n">thickness</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">color_lookup</span><span class="o">=</span><span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="n">ColorPalette</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span> <span class="n">thickness</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">color_lookup</span><span class="o">=</span><span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">)</span></code>
 
 <a href="#supervision.annotators.core.OrientedBoxAnnotator.__init__" class="headerlink" title="Permanent link">&para;</a></h3>
 
@@ -5387,7 +5415,7 @@ annotating detections.</p>
             </div>
           </td>
           <td>
-                <code><a class="autorefs autorefs-internal" title="supervision.draw.color.ColorPalette.default" href="../draw/color/#supervision.draw.color.ColorPalette.default">default</a>()</code>
+                <code><a class="autorefs autorefs-internal" title="supervision.draw.color.ColorPalette.DEFAULT" href="../draw/color/#supervision.draw.color.ColorPalette.DEFAULT">DEFAULT</a></code>
           </td>
         </tr>
         <tr>
@@ -5442,7 +5470,7 @@ Options are <code>INDEX</code>, <code>CLASS</code>, <code>TRACK</code>.</p>
 <span class="normal">115</span>
 <span class="normal">116</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
-    <span class="n">color</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Color</span><span class="p">,</span> <span class="n">ColorPalette</span><span class="p">]</span> <span class="o">=</span> <span class="n">ColorPalette</span><span class="o">.</span><span class="n">default</span><span class="p">(),</span>
+    <span class="n">color</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Color</span><span class="p">,</span> <span class="n">ColorPalette</span><span class="p">]</span> <span class="o">=</span> <span class="n">ColorPalette</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span>
     <span class="n">thickness</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
     <span class="n">color_lookup</span><span class="p">:</span> <span class="n">ColorLookup</span> <span class="o">=</span> <span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">,</span>
 <span class="p">):</span>

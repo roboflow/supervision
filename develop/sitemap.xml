@@ -81,6 +81,11 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
+         <loc>https://supervision.roboflow.com/develop/detection/tools/save_detections/</loc>
+         <lastmod>2024-02-02</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
          <loc>https://supervision.roboflow.com/develop/detection/tools/smoother/</loc>
          <lastmod>2024-02-02</lastmod>
          <changefreq>daily</changefreq>
