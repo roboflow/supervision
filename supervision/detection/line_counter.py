@@ -12,9 +12,7 @@ from supervision.geometry.core import Point, Position, Vector
 
 class LineZone:
     """
-    Count the number of objects that cross a line.
-
-        This class is responsible for counting the number of objects that cross a
+    This class is responsible for counting the number of objects that cross a
     predefined line.
 
     !!! warning
@@ -31,15 +29,9 @@ class LineZone:
     """
 
     def __init__(
-        
         self,
-       
         start: Point,
-       
         end: Point,
-        trigger_in: bool = True,
-        trigger_out: bool = True,
-    ,
         triggering_anchors: Iterable[Position] = (
             Position.TOP_LEFT,
             Position.TOP_RIGHT,
@@ -55,9 +47,7 @@ class LineZone:
                 specifying which anchors of the detections bounding box
                 to consider when deciding on whether the detection
                 has passed the line counter or not. By default, this
-                contains the four corners of the detection's bounding box
-            trigger_in (bool): Count object crossing in the line.
-            trigger_out (bool): Count object crossing out the line.
+                contains the four corners of the detection's bounding box.
         """
         self.vector = Vector(start=start, end=end)
         self.limits = self.calculate_region_of_interest_limits(vector=self.vector)
@@ -65,8 +55,6 @@ class LineZone:
         self.in_count: int = 0
         self.out_count: int = 0
         self.triggering_anchors = triggering_anchors
-        self.trigger_in = trigger_in
-        self.trigger_out = trigger_out
 
     @staticmethod
     def calculate_region_of_interest_limits(vector: Vector) -> Tuple[Vector, Vector]:
@@ -105,7 +93,6 @@ class LineZone:
         cross_product_1 = limits[0].cross_product(point)
         cross_product_2 = limits[1].cross_product(point)
         return (cross_product_1 > 0) == (cross_product_2 > 0)
-
 
     def trigger(self, detections: Detections) -> Tuple[np.ndarray, np.ndarray]:
         """
@@ -187,6 +174,8 @@ class LineZoneAnnotator:
         text_scale: float = 0.5,
         text_offset: float = 1.5,
         text_padding: int = 10,
+        draw_text_box: bool = True,
+        draw_centered: bool = True,
         custom_in_text: Optional[str] = None,
         custom_out_text: Optional[str] = None,
         display_in_count: bool = True,
@@ -203,6 +192,8 @@ class LineZoneAnnotator:
             text_scale (float): The scale of the text that will be drawn.
             text_offset (float): The offset of the text that will be drawn.
             text_padding (int): The padding of the text that will be drawn.
+            draw_text_box (bool): Whether to draw a text box under the text or not.
+            draw_centered (bool): Wheter to draw the count centered in the line or not.
             display_in_count (bool): Whether to display the in count or not.
             display_out_count (bool): Whether to display the out count or not.
 
@@ -214,60 +205,25 @@ class LineZoneAnnotator:
         self.text_scale: float = text_scale
         self.text_offset: float = text_offset
         self.text_padding: int = text_padding
+        self.draw_text_box: bool = draw_text_box
+        self.draw_centered: bool = draw_centered
         self.custom_in_text: str = custom_in_text
         self.custom_out_text: str = custom_out_text
         self.display_in_count: bool = display_in_count
         self.display_out_count: bool = display_out_count
 
-    def _annotate_count(
-        self,
-        frame: np.ndarray,
-        center_text_anchor: Point,
-        text: str,
-        is_in_count: bool,
-    ) -> None:
-        """This method is drawing the text on the frame.
-
-        Args:
-            frame (np.ndarray): The image on which the text will be drawn.
-            center_text_anchor: The center point that the text will be drawn.
-            text (str): The text that will be drawn.
-            is_in_count (bool): Whether to display the in count or out count.
-        """
-        _, text_height = cv2.getTextSize(
-            text, cv2.FONT_HERSHEY_SIMPLEX, self.text_scale, self.text_thickness
-        )[0]
-
-        if is_in_count:
-            center_text_anchor.y -= int(self.text_offset * text_height)
-        else:
-            center_text_anchor.y += int(self.text_offset * text_height)
-
-        draw_text(
-            scene=frame,
-            text=text,
-            text_anchor=center_text_anchor,
-            text_color=self.text_color,
-            text_scale=self.text_scale,
-            text_thickness=self.text_thickness,
-            text_padding=self.text_padding,
-            background_color=self.color,
-        )
-
     def annotate(self, frame: np.ndarray, line_counter: LineZone) -> np.ndarray:
         """
-        Draws the line on the frame using the line_counter provided.
+        Draws the line and the count on the frame using the line_counter provided.
 
-        Attributes:
+        Args:
             frame (np.ndarray): The image on which the line will be drawn.
-            line_counter (LineZone): The line counter object used to annotate.
+            line_counter (LineCounter): The line counter
+                that will be used to draw the line.
 
         Returns:
-            np.ndarray: The image with the line drawn on it.
-
+            np.ndarray: The image with count drawn on it.
         """
-
-        # Draw line.
         cv2.line(
             frame,
             line_counter.vector.start.as_xy_int_tuple(),
@@ -286,22 +242,25 @@ class LineZoneAnnotator:
             lineType=cv2.LINE_AA,
         )
 
-        # Create in/out text.
-        in_text = (
-            f"{self.custom_in_text}: {line_counter.in_count}"
-            if self.custom_in_text is not None
-            else f"in: {line_counter.in_count}"
-        )
-        out_text = (
-            f"{self.custom_out_text}: {line_counter.out_count}"
-            if self.custom_out_text is not None
-            else f"out: {line_counter.out_count}"
-        )
+        if self.display_in_count:
+            in_text = (
+                f"{self.custom_in_text}: {line_counter.in_count}"
+                if self.custom_in_text is not None
+                else f"in: {line_counter.in_count}"
+            )
+            frame = self._annotate_count(
+                frame=frame, line_counter=line_counter, text=in_text, is_in_count=True
+            )
 
-        if line_counter.trigger_in:
-            frame = self._annotate_count(frame, line_counter, in_text, text_over=True)
-        if line_counter.trigger_out:
-            frame = self._annotate_count(frame, line_counter, out_text, text_over=False)
+        if self.display_out_count:
+            out_text = (
+                f"{self.custom_out_text}: {line_counter.out_count}"
+                if self.custom_out_text is not None
+                else f"out: {line_counter.out_count}"
+            )
+            frame = self._annotate_count(
+                frame=frame, line_counter=line_counter, text=out_text, is_in_count=False
+            )
 
         return frame
 
@@ -310,150 +269,79 @@ class LineZoneAnnotator:
         frame: np.ndarray,
         line_counter: LineZone,
         text: str,
-        text_over: bool = True,
-    ):
+        is_in_count: bool,
+    ) -> np.ndarray:
         """
-        Draws the counter for in/out counts aligned to the line.
+        Draws the in-count/out-count aligned to the line counter object.
 
-        Attributes:
-            text (str): Line of text to annotate alongside the count.
-            text_over (bool): Position of the text over/under the line.
+        Args:
+            frame (np.ndarray): The image on which the count will be drawn.
+            line_counter (LineCounter): The line counter
+                that will be used to draw the line.
+            text (str): The text that will be drawn.
+            is_in_count (bool): Whether to display the in-count or out-count.
 
         Returns:
-            np.ndarray: Annotated frame.
+            np.ndarray: The image with the count drawn on it.
         """
-        
-        (text_width, text_height), _ = cv2.getTextSize(
+        text_width, text_height = cv2.getTextSize(
             text, cv2.FONT_HERSHEY_SIMPLEX, self.text_scale, self.text_thickness
+        )[0]
+
+        # Create an auxiliar squared image for the count and its alpha channel
+        image_dim = int((max(text_width, text_height) + self.text_padding * 2) * 1.5)
+        image = np.zeros((image_dim, image_dim, 3), dtype=np.uint8)  # bgr
+        image_alpha = np.zeros((image_dim, image_dim, 1), dtype=np.uint8)  # gray
+
+        text_args = {
+            "text": text,
+            "text_anchor": Point(image_dim // 2, image_dim // 2),
+            "text_scale": self.text_scale,
+            "text_thickness": self.text_thickness,
+            "text_padding": self.text_padding,
+        }
+        draw_text(
+            scene=image,
+            text_color=self.text_color,
+            background_color=self.color if self.draw_text_box else None,
+            **text_args,
         )
-        background_dim = max(text_width, text_height) + 30
-
-        text_background_img = self._create_background_img(background_dim)
-        box_background_img = text_background_img.copy()
-
-        text_position = self._get_text_position(background_dim, text_width, text_height)
-
-        box_img = self._draw_box(
-            box_background_img, text_width, text_height, text_position
+        draw_text(
+            scene=image_alpha,
+            text_color=Color.WHITE,
+            background_color=Color.WHITE if self.draw_text_box else None,
+            **text_args,
         )
-        text_img = self._draw_text(text_background_img, text, text_position)
+        image = np.dstack((image, image_alpha))  # Stack bgr and alpha channels
 
-        box_img_rotated = self._rotate_img(box_img, line_counter)
-        text_img_rotated = self._rotate_img(text_img, line_counter)
-
-        img_position = self._get_img_position(
-            line_counter, text_width, text_height, text_over
+        anchor_in_frame = self._calculate_anchor_in_frame(
+            line_counter=line_counter,
+            text_width=text_width,
+            text_height=text_height,
+            is_in_count=is_in_count,
         )
 
-        img_bbox = self._get_img_bbox(box_img_rotated, frame, img_position)
+        xyxy_in_frame = self._calculate_xyxy_in_frame(
+            frame_dims=frame.shape[:2],
+            img_dim=image_dim,
+            anchor_in_frame=anchor_in_frame,
+        )
 
-        box_img_rotated = self._trim_img(box_img_rotated, frame, img_bbox)
-        text_img_rotated = self._trim_img(text_img_rotated, frame, img_bbox)
+        image_rotated = self._rotate_img(img=image, line_counter=line_counter)
 
-        frame = self._annotate_box(frame, box_img_rotated, img_bbox)
-        frame = self._annotate_text(frame, text_img_rotated, img_bbox)
+        image_cropped = self._crop_img(img=image_rotated, xyxy_in_frame=xyxy_in_frame)
+
+        frame = self._annotate_in_frame(
+            frame=frame, img=image_cropped, xyxy_in_frame=xyxy_in_frame
+        )
 
         return frame
 
-    def _create_background_img(self, background_dim: int):
-        """
-        Create squared background image to place text or text-box.
-
-        Attributes:
-            background_dim (int): Dimension of the squared background image.
-
-        Returns:
-            np.ndarray: Squared array representing an empty background image.
-        """
-        return np.zeros((background_dim, background_dim), dtype=np.uint8)
-
-    def _get_text_position(self, background_dim: int, text_width: int, text_height: int):
-        """
-        Get insertion point to center text in background image.
-
-        Attributes:
-            background_dim (int): Dimension of the squared background image.
-            text_width (int): Text width.
-            text_height (int): Text height.
-
-        Returns:
-            (int, int): xy point to center text insertion.
-        """
-        text_position = (
-            (background_dim // 2) - (text_width // 2),
-            (background_dim // 2) + (text_height // 2),
-        )
-
-        return text_position
-
-    def _draw_box(
-        self,
-        box_background_img: np.ndarray,
-        text_width: int,
-        text_height: int,
-        text_position: tuple,
-    ):
-        """
-        Draw text-box centered in the background image.
-
-        Attributes:
-            box_background_img (np.ndarray): Empty background image.
-            text_width (int): Text width.
-            text_height (int): Text height.
-            text_position (int, int): xy point to center text insertion.
-
-        Returns:
-            np.ndarray: Background image with text-box drawed in it.
-        """
-        box = Rect(
-            x=text_position[0],
-            y=text_position[1] - text_height,
-            width=text_width,
-            height=text_height,
-        ).pad(padding=self.text_padding)
-
-        cv2.rectangle(
-            box_background_img,
-            box.top_left.as_xy_int_tuple(),
-            box.bottom_right.as_xy_int_tuple(),
-            (255, 255, 255),
-            -1,
-        )
-
-        return box_background_img
-
-    def _draw_text(
-        self, text_background_img: np.ndarray, text: str, text_position: tuple
-    ):
-        """
-        Draw text-box centered in the background image.
-
-        Attributes:
-            text_background_img (np.ndarray): Empty background image.
-            text (str): Text to draw in the background image.
-            text_position (int, int): xy insertion point to center text in background.
-
-        Returns:
-            np.ndarray: Background image with text drawed in it.
-        """
-        cv2.putText(
-            text_background_img,
-            text,
-            text_position,
-            cv2.FONT_HERSHEY_SIMPLEX,
-            self.text_scale,
-            (255, 255, 255),
-            self.text_thickness,
-            cv2.LINE_AA,
-        )
-
-        return text_background_img
-
-    def _get_line_angle(self, line_counter: LineZone):
+    def _get_line_angle(self, line_counter: LineZone) -> float:
         """
         Calculate the line counter angle using trigonometry.
 
-        Attributes:
+        Args:
             line_counter (LineZone): The line counter object used to annotate.
 
         Returns:
@@ -478,22 +366,105 @@ class LineZoneAnnotator:
 
         return line_angle
 
-    def _rotate_img(self, img: np.ndarray, line_counter: LineZone):
+    def _calculate_anchor_in_frame(
+        self,
+        line_counter: LineZone,
+        text_width: int,
+        text_height: int,
+        is_in_count: bool,
+    ) -> Point:
         """
-        Rotate img using line counter angle.
+        Calculate insertion anchor in frame to position the center of the count image.
 
-        Attributes:
-            img (np.ndarray): Original image to rotate.
-            line_counter (LineZone): The line counter object used to annotate.
+        Args:
+            line_counter (LineZone): The line counter object used for counting.
+            text_width (int): Text width.
+            text_height (int): Text height.
+            is_in_count (bool): Whether the count should be placed over or below the line.
 
         Returns:
-            np.ndarray: Image with the same shape as input but with rotated content.
+            Point: xy insertion anchor to position count image in frame.
         """
-        img_dim = img.shape[0]
-
         line_angle = self._get_line_angle(line_counter)
 
-        rotation_center = ((img_dim // 2), (img_dim // 2))
+        if self.draw_centered:
+            mid_point = Vector(
+                start=line_counter.vector.start, end=line_counter.vector.end
+            ).center.as_xy_int_tuple()
+            anchor = list(mid_point)
+        else:
+            end_point = line_counter.vector.end.as_xy_int_tuple()
+            anchor = list(end_point)
+
+            move_along_x = int(
+                math.cos(math.radians(line_angle))
+                * (text_width / 2 + self.text_padding)
+            )
+            move_along_y = int(
+                math.sin(math.radians(line_angle))
+                * (text_width / 2 + self.text_padding)
+            )
+
+            anchor[0] -= move_along_x
+            anchor[1] -= move_along_y
+
+        move_perp_x = int(
+            math.sin(math.radians(line_angle)) * (self.text_offset * text_height)
+        )
+        move_perp_y = int(
+            math.cos(math.radians(line_angle)) * (self.text_offset * text_height)
+        )
+
+        if is_in_count:
+            anchor[0] += move_perp_x
+            anchor[1] -= move_perp_y
+        else:
+            anchor[0] -= move_perp_x
+            anchor[1] += move_perp_y
+
+        return Point(x=anchor[0], y=anchor[1])
+
+    def _calculate_xyxy_in_frame(
+        self, frame_dims: tuple, img_dim: int, anchor_in_frame: Point
+    ) -> tuple:
+        """
+        Calculate insertion bbox in frame to position count image.
+
+        Args:
+            frame_dims (int, int): Width and height of the frame.
+            img_dim (int): Width/height of squared count image.
+            anchor_in_frame (Point): xy insertion anchor to position image.
+
+        Returns:
+            (int, int, int, int): xyxy insertion bbox to position count image.
+        """
+        y1 = max(anchor_in_frame.y - img_dim // 2, 0)
+        y2 = min(
+            anchor_in_frame.y + img_dim // 2 + img_dim % 2,
+            frame_dims[0],
+        )
+        x1 = max(anchor_in_frame.x - img_dim // 2, 0)
+        x2 = min(
+            anchor_in_frame.x + img_dim // 2 + img_dim % 2,
+            frame_dims[1],
+        )
+
+        return (x1, y1, x2, y2)
+
+    def _rotate_img(self, img: np.ndarray, line_counter: LineZone) -> np.ndarray:
+        """
+        Rotate count image to align text with the line counter.
+
+        Attributes:
+            img (np.ndarray): Image to rotate.
+            line_counter (LineZone): The line counter object.
+
+        Returns:
+            np.ndarray: Image with the same shape as the input with aligned text.
+        """
+        line_angle = self._get_line_angle(line_counter)
+
+        rotation_center = (img.shape[0] // 2, img.shape[0] // 2)
         rotation_angle = -(line_angle)
         rotation_scale = 1
 
@@ -501,185 +472,64 @@ class LineZoneAnnotator:
             rotation_center, rotation_angle, rotation_scale
         )
 
-        img_rotated = cv2.warpAffine(img, rotation_matrix, (img_dim, img_dim))
+        img_rotated = cv2.warpAffine(img, rotation_matrix, (img.shape[1], img.shape[0]))
 
         return img_rotated
 
-    def _get_img_position(
-        self, line_counter: LineZone, text_width: int, text_height: int, text_over: bool
-    ):
+    def _crop_img(self, img, xyxy_in_frame) -> np.ndarray:
         """
-        Set the position of the rotated image using line counter end point as reference.
+        Crop image to fit insertion bbox boundaries.
 
-        Attributes:
-            line_counter (LineZone): The line counter object used to annotate.
-            text_width (int): Text width.
-            text_height (int): Text height.
-            text_over (bool): Whether the text should be placed over or below the line.
+        Args:
+            img (np.ndarray): Image to crop.
+            xyxy_in_frame (list): xyxy insertion bbox used to crop image.
 
         Returns:
-            [int, int]: xy insertion point to place text/text-box images in frame.
-        """
-        end_point = line_counter.vector.end.as_xy_int_tuple()
-        line_angle = self._get_line_angle(line_counter)
-        # Set position of the text along and perpendicular to the line.
-        img_position = list(end_point)
-
-        move_along_x = int(
-            math.cos(math.radians(line_angle)) * (text_width / 2 + self.text_padding)
-        )
-        move_along_y = int(
-            math.sin(math.radians(line_angle)) * (text_width / 2 + self.text_padding)
-        )
-
-        move_perp_x = int(
-            math.sin(math.radians(line_angle))
-            * (text_height / 2 + self.text_padding * 2)
-        )
-        move_perp_y = int(
-            math.cos(math.radians(line_angle))
-            * (text_height / 2 + self.text_padding * 2)
-        )
-
-        img_position[0] -= move_along_x
-        img_position[1] -= move_along_y
-        if text_over:
-            img_position[0] += move_perp_x
-            img_position[1] -= move_perp_y
-        else:
-            img_position[0] -= move_perp_x
-            img_position[1] += move_perp_y
-
-        return img_position
-
-    def _get_img_bbox(self, img: np.ndarray, frame: np.ndarray, img_position: list):
-        """
-        Calculate xyxy insertion bbox in the frame for the text/text-box images.
-
-        Attributes:
-            img (np.ndarray): text/text-box image.
-            frame (np.ndarray): Frame in which to insert the text/text-box images.
-            img_position (list): xy insertion point to place text/text-box images.
-
-        Returns:
-            (int, int, int, int): xyxy insertion bbox to place text/text-box images.
+            np.ndarray: Cropped image.
         """
         img_dim = img.shape[0]
-
-        y1 = max(img_position[1] - img_dim // 2, 0)
-        y2 = min(
-            img_position[1] + img_dim // 2 + img_dim % 2,
-            frame.shape[0],
-        )
-        x1 = max(img_position[0] - img_dim // 2, 0)
-        x2 = min(
-            img_position[0] + img_dim // 2 + img_dim % 2,
-            frame.shape[1],
-        )
-
-        return (x1, y1, x2, y2)
-
-    def _trim_img(self, img, frame, img_bbox):
-        """
-        Trim text/text-box images to the limits of the frame if needed.
-
-        Attributes:
-            img (np.ndarray): text/text-box image.
-            frame (np.ndarray): Frame in which to insert the text/text-box images.
-            img_bbox (list): xyxy insertion bbox to place text/text-box images.
-
-        Returns:
-            np.ndarray: Trimmed text/text-box images.
-        """
-        img_dim = img.shape[0]
-        (x1, y1, x2, y2) = img_bbox
+        (x1, y1, x2, y2) = xyxy_in_frame
 
         if y2 - y1 != img_dim:
-            if y1 == 0:
-                img = img[(img_dim - y2) :, :]
-            elif y2 == frame.shape[0]:
-                img = img[: (y2 - y1), :]
+            img = img[(img_dim - y2) :, ...] if y1 == 0 else img[: (y2 - y1), ...]
 
         if x2 - x1 != img_dim:
-            if x1 == 0:
-                img = img[:, (img_dim - x2) :]
-
-            elif x2 == frame.shape[1]:
-                img = img[:, : (x2 - x1)]
+            img = img[:, (img_dim - x2) :, ...] if x1 == 0 else img[:, : (x2 - x1), ...]
 
         return img
 
-    def _annotate_box(self, frame, img, img_bbox):
+    def _annotate_in_frame(
+        self, frame: np.ndarray, img: np.ndarray, xyxy_in_frame: tuple
+    ) -> np.ndarray:
         """
-        Annotate text-box image in the original frame.
+        Annotate count image in the original frame.
 
         Attributes:
             frame (np.ndarray): The base image on which to insert the text-box image.
-            img (np.ndarray): text-box image.
-            img_bbox (list): xyxy insertion bbox to place text-box image in frame.
+            img (np.ndarray): Count image with bgr channels + alpha channel.
+            xyxy_in_frame (int, int, int, int): xyxy insertion bbox.
 
         Returns:
             np.ndarray: Annotated frame.
         """
-        (x1, y1, x2, y2) = img_bbox
+        (x1, y1, x2, y2) = xyxy_in_frame
 
-        frame[y1:y2, x1:x2, 0][img > 95] = self.color.as_bgr()[0]
-        frame[y1:y2, x1:x2, 1][img > 95] = self.color.as_bgr()[1]
-        frame[y1:y2, x1:x2, 2][img > 95] = self.color.as_bgr()[2]
+        # Paste count image and alpha in empty backgrounds with frame width and height.
+        img_in_frame = np.zeros_like(frame, dtype=np.uint8)
+        img_in_frame[y1:y2, x1:x2, ...] = img[:, :, :3]
+        alpha_in_frame = np.zeros_like(frame[:, :, 0], dtype=np.uint8)
+        alpha_in_frame[y1:y2, x1:x2] = img[:, :, 3]
 
-        return frame
+        if self.draw_text_box:
+            mask = alpha_in_frame > 95
+            for i in range(3):
+                frame[:, :, i][mask] = img_in_frame[:, :, i][mask]
+        else:
+            mask = alpha_in_frame != 0
+            opacity = alpha_in_frame[mask] / 255
+            for i in range(3):
+                frame[:, :, i][mask] = (
+                    frame[:, :, i][mask] * (1 - opacity)
+                ) + self.text_color.as_bgr()[i] * opacity
 
-    def _annotate_text(self, frame, img, img_bbox):
-        """
-        Annotate text image in the original frame.
-
-        Attributes:
-            frame (np.ndarray): The base image on which to insert the text image.
-            img (np.ndarray): text image.
-            img_bbox (list): xyxy insertion bbox to place text image in frame.
-
-        Returns:
-            np.ndarray: Annotated frame.
-        """
-        (x1, y1, x2, y2) = img_bbox
-
-        frame[y1:y2, x1:x2, 0][img != 0] = self.text_color.as_bgr()[0] * (
-            img[img != 0] / 255
-        ) + self.color.as_bgr()[0] * (1 - (img[img != 0] / 255))
-        frame[y1:y2, x1:x2, 1][img != 0] = self.text_color.as_bgr()[1] * (
-            img[img != 0] / 255
-        ) + self.color.as_bgr()[1] * (1 - (img[img != 0] / 255))
-        frame[y1:y2, x1:x2, 2][img != 0] = self.text_color.as_bgr()[2] * (
-            img[img != 0] / 255
-        ) + self.color.as_bgr()[2] * (1 - (img[img != 0] / 255))
-
-        text_anchor = Vector(
-            start=line_counter.vector.start, end=line_counter.vector.end
-        )
-
-        if self.display_in_count:
-            in_text = (
-                f"{self.custom_in_text}: {line_counter.in_count}"
-                if self.custom_in_text is not None
-                else f"in: {line_counter.in_count}"
-            )
-            self._annotate_count(
-                frame=frame,
-                center_text_anchor=text_anchor.center,
-                text=in_text,
-                is_in_count=True,
-            )
-
-        if self.display_out_count:
-            out_text = (
-                f"{self.custom_out_text}: {line_counter.out_count}"
-                if self.custom_out_text is not None
-                else f"out: {line_counter.out_count}"
-            )
-            self._annotate_count(
-                frame=frame,
-                center_text_anchor=text_anchor.center,
-                text=out_text,
-                is_in_count=False,
-            )
         return frame
