@@ -113,7 +113,8 @@ def mask_non_max_suppression(
             non-maximum suppression.
 
     Raises:
-        AssertionError: If `iou_threshold` is not within the closed range from `0` to `1`.
+        AssertionError: If `iou_threshold` is not within the closed 
+        range from `0` to `1`.
     """
     assert 0 <= iou_threshold <= 1, (
         "Value of `iou_threshold` must be in the closed range from 0 to 1, "

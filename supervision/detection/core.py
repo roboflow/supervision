@@ -1002,7 +1002,8 @@ class Detections:
         self, threshold: float = 0.5, class_agnostic: bool = False
     ) -> Detections:
         """
-        Perform non-maximum suppression on the current set of object detections or segmentation prediction.
+        Perform non-maximum suppression on the current set 
+        of object detections or segmentation prediction.
 
         Args:
             threshold (float, optional): The intersection-over-union threshold
@@ -1031,8 +1032,8 @@ class Detections:
             predictions = np.hstack((self.xyxy, self.confidence.reshape(-1, 1)))
         else:
             assert self.class_id is not None, (
-                "Detections class_id must be given for NMS to be executed. If you intended"
-                " to perform class agnostic NMS set class_agnostic=True."
+                "Detections class_id must be given for NMS to be executed. If you"
+                " intended to perform class agnostic NMS set class_agnostic=True."
             )
             predictions = np.hstack(
                 (
