@@ -241,6 +241,15 @@ class LineZoneAnnotator:
             thickness=-1,
             lineType=cv2.LINE_AA,
         )
+        if self.draw_centered:
+            cv2.circle(
+                frame,
+                line_counter.vector.end.as_xy_int_tuple(),
+                radius=self.thickness,
+                color=self.color.as_bgr(),
+                thickness=-1,
+                lineType=cv2.LINE_AA,
+            )
 
         if self.display_in_count:
             in_text = (
