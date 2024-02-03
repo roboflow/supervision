@@ -1033,14 +1033,22 @@ class Detections:
             assert self.class_id is not None, (
                 "Detections class_id must be given for NMS to be executed. If you intended"
                 " to perform class agnostic NMS set class_agnostic=True."
-            )   
+            )
             predictions = np.hstack(
-                (self.xyxy, self.confidence.reshape(-1, 1), self.class_id.reshape(-1, 1))
+                (
+                    self.xyxy,
+                    self.confidence.reshape(-1, 1),
+                    self.class_id.reshape(-1, 1),
+                )
             )
 
-        if hasattr(self, 'mask') and self.mask is not None:
-            indices = mask_non_max_suppression(predictions=predictions, masks=self.mask, iou_threshold=threshold)
+        if hasattr(self, "mask") and self.mask is not None:
+            indices = mask_non_max_suppression(
+                predictions=predictions, masks=self.mask, iou_threshold=threshold
+            )
         else:
-            indices = box_non_max_suppression(predictions=predictions, iou_threshold=threshold)
+            indices = box_non_max_suppression(
+                predictions=predictions, iou_threshold=threshold
+            )
 
         return self[indices]

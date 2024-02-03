@@ -58,6 +58,7 @@ def box_iou_batch(boxes_true: np.ndarray, boxes_detection: np.ndarray) -> np.nda
     area_inter = np.prod(np.clip(bottom_right - top_left, a_min=0, a_max=None), 2)
     return area_inter / (area_true[:, None] + area_detection - area_inter)
 
+
 def mask_iou_batch(masks_true: np.ndarray, masks_detection: np.ndarray) -> np.ndarray:
     """
     Compute Intersection over Union (IoU) of two sets of masks -
@@ -82,13 +83,14 @@ def mask_iou_batch(masks_true: np.ndarray, masks_detection: np.ndarray) -> np.nd
     masks_detection = masks_detection.astype(bool)
 
     intersection = np.logical_and(masks_true[:, None], masks_detection)
-    intersection_area = intersection.sum(axis=(2, 3))  
+    intersection_area = intersection.sum(axis=(2, 3))
 
     union = np.logical_or(masks_true[:, None], masks_detection)
-    union_area = union.sum(axis=(2, 3)) 
+    union_area = union.sum(axis=(2, 3))
 
     iou = intersection_area / union_area
     return iou
+
 
 def mask_non_max_suppression(
     predictions: np.ndarray, masks: np.ndarray, iou_threshold: float = 0.5
@@ -125,7 +127,7 @@ def mask_non_max_suppression(
     sort_index = predictions[:, 4].argsort()[::-1]
     predictions_sorted = predictions[sort_index]
     masks_sorted = masks[sort_index]
-  
+
     ious = mask_iou_batch(masks_sorted, masks_sorted)
 
     keep = np.ones(num_predictions, dtype=bool)
@@ -134,10 +136,15 @@ def mask_non_max_suppression(
             continue
 
         for j in range(i + 1, num_predictions):
-            if keep[j] and ious[i, j] > iou_threshold and predictions_sorted[i, 5] == predictions_sorted[j, 5]:
+            if (
+                keep[j]
+                and ious[i, j] > iou_threshold
+                and predictions_sorted[i, 5] == predictions_sorted[j, 5]
+            ):
                 keep[j] = False
 
-    return keep[sort_index.argsort()] 
+    return keep[sort_index.argsort()]
+
 
 def box_non_max_suppression(
     predictions: np.ndarray, iou_threshold: float = 0.5
@@ -191,6 +198,7 @@ def box_non_max_suppression(
         keep = keep & ~condition
 
     return keep[sort_index.argsort()]
+
 
 def clip_boxes(xyxy: np.ndarray, resolution_wh: Tuple[int, int]) -> np.ndarray:
     """
