@@ -380,7 +380,7 @@ class LineZoneAnnotator:
             line_counter (LineZone): The line counter object used for counting.
             text_width (int): Text width.
             text_height (int): Text height.
-            is_in_count (bool): Whether the count should be placed over or below the line.
+            is_in_count (bool): Whether the count should be placed over or below line.
 
         Returns:
             Point: xy insertion anchor to position count image in frame.
