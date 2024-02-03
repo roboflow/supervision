@@ -99,7 +99,7 @@ class OrientedBoxAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
         thickness: int = 2,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
@@ -1101,7 +1101,7 @@ class TraceAnnotator:
     !!! warning
 
         This annotator uses the `sv.Detections.tracker_id`. Read
-        [here](https://supervision.roboflow.com/trackers/) to learn how to plug
+        [here](/latest/trackers/) to learn how to plug
         tracking into your inference pipeline.
     """
 

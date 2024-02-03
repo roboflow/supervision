@@ -1,4 +1,4 @@
-## examples
+# Examples
 
 This repository is packed with real-world use-cases, provided through Python scripts or
 interactive notebooks. Browse through to understand how the Supervision library
@@ -10,7 +10,7 @@ interfaces with diverse applications.
 - [speed estimation](./speed_estimation) by [@SkalskiP](https://github.com/SkalskiP)
 - [heatmap and track](./heatmap_and_track/) by [@HinePo](https://github.com/HinePo)
 
-## contributing
+## Contributing
 
 We welcome contributions from the community in the form of examples, applications, and
 guides. To contribute, please follow these steps:
