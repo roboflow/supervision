@@ -11,12 +11,18 @@ extra:
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/roboflow
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/supervision
+    - icon: fontawesome/brands/docker
+      link: https://hub.docker.com/u/roboflow
     - icon: fontawesome/brands/youtube
       link: https://www.youtube.com/roboflow
     - icon: fontawesome/brands/linkedin
-      link: https://www.linkedin.com/company/roboflow-ai/mycompany/
+      link: https://www.linkedin.com/company/roboflow-ai/
     - icon: fontawesome/brands/x-twitter
       link: https://twitter.com/roboflow
+    - icon: fontawesome/brands/discord
+      link: https://discord.gg/GbfgXGJ8Bk
   analytics:
     provider: google
     property: G-P7ZG0Y19G5
@@ -43,6 +49,7 @@ nav:
         - Polygon Zone: detection/tools/polygon_zone.md
         - Inference Slicer: detection/tools/inference_slicer.md
         - Detection Smoother: detection/tools/smoother.md
+        - Save Detections: detection/tools/save_detections.md
     - Annotators: annotators.md
     - Trackers: trackers.md
     - Datasets: datasets.md
@@ -51,15 +58,22 @@ nav:
     - Draw:
         - Color: draw/color.md
         - Utils: draw/utils.md
+    - Geometry:
+        - Position: geometry/core.md
     - Utils:
         - Video: utils/video.md
         - Image: utils/image.md
         - Notebook: utils/notebook.md
         - File: utils/file.md
   - Assets: assets.md
+  - Development:
+    - Contributing: contributing.md
+    - Code of Conduct: code_of_conduct.md
   - Changelog:
         - Changelog: changelog.md
         - Deprecated: deprecated.md
+  - License: license.md
+
 
 theme:
   name: 'material'
@@ -88,8 +102,25 @@ theme:
     - content.code.annotate
 
 plugins:
-  - mkdocstrings
   - search
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          options:
+            parameter_headings: true
+            paths: [supervision]
+            load_external_modules: true
+            allow_inspection: true
+            show_bases: true
+            group_by_category: true
+            docstring_style: google
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            show_category_heading: true
+          import:
+          - https://docs.python-requests.org/en/master/objects.inv
+          domains: [std, py]
 
 markdown_extensions:
   - admonition
@@ -104,6 +135,8 @@ markdown_extensions:
   - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.snippets:
+      check_paths: true
 
 extra_javascript:
   - "https://widget.kapa.ai/kapa-widget.bundle.js"

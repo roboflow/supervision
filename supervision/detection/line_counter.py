@@ -18,7 +18,7 @@ class LineZone:
     !!! warning
 
         LineZone uses the `tracker_id`. Read
-        [here](https://supervision.roboflow.com/trackers/) to learn how to plug
+        [here](/latest/trackers/) to learn how to plug
         tracking into your inference pipeline.
 
     Attributes:
@@ -138,7 +138,7 @@ class LineZone:
                 continue
 
             triggers = [
-                self.vector.cross_product(point=anchor) > 0 for anchor in box_anchors
+                self.vector.cross_product(point=anchor) < 0 for anchor in box_anchors
             ]
 
             if len(set(triggers)) == 2:
