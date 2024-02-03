@@ -58,8 +58,88 @@ def box_iou_batch(boxes_true: np.ndarray, boxes_detection: np.ndarray) -> np.nda
     area_inter = np.prod(np.clip(bottom_right - top_left, a_min=0, a_max=None), 2)
     return area_inter / (area_true[:, None] + area_detection - area_inter)
 
+def mask_iou_batch(masks_true: np.ndarray, masks_detection: np.ndarray) -> np.ndarray:
+    """
+    Compute Intersection over Union (IoU) of two sets of masks -
+        `masks_true` and `masks_detection`. Both sets
+        of masks are expected to be binary arrays where 1 represents the object
+        and 0 represents the background.
 
-def non_max_suppression(
+    Args:
+        masks_true (np.ndarray): 3D `np.ndarray` representing ground-truth masks.
+            `shape = (N, H, W)` where `N` is number of true objects, and H, W are
+            the dimensions of the masks.
+        masks_detection (np.ndarray): 3D `np.ndarray` representing detection masks.
+            `shape = (M, H, W)` where `M` is number of detected objects, and H, W are
+            the dimensions of the masks.
+
+    Returns:
+        np.ndarray: Pairwise IoU of masks from `masks_true` and `masks_detection`.
+            `shape = (N, M)` where `N` is number of true objects and
+            `M` is number of detected objects.
+    """
+    masks_true = masks_true.astype(bool)
+    masks_detection = masks_detection.astype(bool)
+
+    intersection = np.logical_and(masks_true[:, None], masks_detection)
+    intersection_area = intersection.sum(axis=(2, 3))  
+
+    union = np.logical_or(masks_true[:, None], masks_detection)
+    union_area = union.sum(axis=(2, 3)) 
+
+    iou = intersection_area / union_area
+    return iou
+
+def mask_non_max_suppression(
+    predictions: np.ndarray, masks: np.ndarray, iou_threshold: float = 0.5
+) -> np.ndarray:
+    """
+    Perform Non-Maximum Suppression (NMS) on segmentation predictions.
+
+    Args:
+        predictions (np.ndarray): An array of object detection predictions in
+            the format of `(x_min, y_min, x_max, y_max, score)`
+            or `(x_min, y_min, x_max, y_max, score, class)`.
+        masks (np.ndarray): A 3D array of binary masks corresponding to the predictions.
+            Shape: (N, H, W), where N is the number of predictions, and H, W are the
+            dimensions of each mask.
+        iou_threshold (float, optional): The intersection-over-union threshold
+            to use for non-maximum suppression.
+
+    Returns:
+        np.ndarray: A boolean array indicating which predictions to keep after
+            non-maximum suppression.
+
+    Raises:
+        AssertionError: If `iou_threshold` is not within the closed range from `0` to `1`.
+    """
+    assert 0 <= iou_threshold <= 1, (
+        "Value of `iou_threshold` must be in the closed range from 0 to 1, "
+        f"{iou_threshold} given."
+    )
+    num_predictions, columns = predictions.shape
+
+    if columns == 5:
+        predictions = np.c_[predictions, np.zeros(num_predictions)]
+
+    sort_index = predictions[:, 4].argsort()[::-1]
+    predictions_sorted = predictions[sort_index]
+    masks_sorted = masks[sort_index]
+  
+    ious = mask_iou_batch(masks_sorted, masks_sorted)
+
+    keep = np.ones(num_predictions, dtype=bool)
+    for i in range(num_predictions):
+        if not keep[i]:
+            continue
+
+        for j in range(i + 1, num_predictions):
+            if keep[j] and ious[i, j] > iou_threshold and predictions_sorted[i, 5] == predictions_sorted[j, 5]:
+                keep[j] = False
+
+    return keep[sort_index.argsort()] 
+
+def box_non_max_suppression(
     predictions: np.ndarray, iou_threshold: float = 0.5
 ) -> np.ndarray:
     """
@@ -111,7 +191,6 @@ def non_max_suppression(
         keep = keep & ~condition
 
     return keep[sort_index.argsort()]
-
 
 def clip_boxes(xyxy: np.ndarray, resolution_wh: Tuple[int, int]) -> np.ndarray:
     """

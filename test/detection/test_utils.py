@@ -6,13 +6,14 @@ import pytest
 
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.utils import (
+    box_non_max_suppression,
     calculate_masks_centroids,
     clip_boxes,
     filter_polygons_by_area,
     get_data_item,
+    mask_non_max_suppression,
     merge_data,
     move_boxes,
-    non_max_suppression,
     process_roboflow_result,
     scale_boxes,
 )
@@ -113,18 +114,134 @@ TEST_MASK[:, 300:351, 200:251] = True
         ),  # three boxes with different category
     ],
 )
-def test_non_max_suppression(
+def test_box_non_max_suppression(
     predictions: np.ndarray,
     iou_threshold: float,
     expected_result: Optional[np.ndarray],
     exception: Exception,
 ) -> None:
     with exception:
-        result = non_max_suppression(
+        result = box_non_max_suppression(
             predictions=predictions, iou_threshold=iou_threshold
         )
         assert np.array_equal(result, expected_result)
 
+@pytest.mark.parametrize(
+    "predictions, masks, iou_threshold, expected_result, exception",
+    [
+        (
+            np.empty((0, 6)), 
+            np.empty((0, 5, 5)), 
+            0.5,
+            np.array([]),
+            DoesNotRaise(),
+        ),  # single box with no category
+        (
+            np.array([[10, 10, 40, 40, 0.8]]), 
+            np.array([[[False, False, False, False, False],
+                       [False, True, True, True, False],
+                       [False, True, True, True, False],
+                       [False, True, True, True, False],
+                       [False, False, False, False, False]]]), 
+            0.5,
+            np.array([True]),
+            DoesNotRaise(),
+        ),  # single box with no category
+        (
+            np.array([[10, 10, 40, 40, 0.8, 0]]), 
+            np.array([[[False, False, False, False, False],
+                       [False, True, True, True, False],
+                       [False, True, True, True, False],
+                       [False, True, True, True, False],
+                       [False, False, False, False, False]]]), 
+            0.5,
+            np.array([True]),
+            DoesNotRaise(),
+        ),  # single box with category
+        (
+            np.array([[0, 0, 20, 20, 0.8], [50, 50, 70, 70, 0.9]]), 
+            np.array([[[False, False, False, False, False],
+                       [False, True, True, False, False],
+                       [False, True, True, False, False],
+                       [False, False, False, False, False],
+                       [False, False, False, False, False]],
+                      [[False, False, False, False, False],
+                       [False, False, False, False, False],
+                       [False, False, False, True, True],
+                       [False, False, False, True, True],
+                       [False, False, False, False, False]]]), 
+            0.5,
+            np.array([True, True]),
+            DoesNotRaise(),
+        ),  # two boxes with no category
+        (
+            np.array([[0, 0, 30, 30, 0.8], [20, 20, 50, 50, 0.9]]),  
+            np.array([[[False, False, False, False, False],
+                       [False, True, True, True, False],
+                       [False, True, True, True, False],
+                       [False, True, True, True, False],
+                       [False, False, False, False, False]],
+                      [[False, False, False, False, False],
+                       [False, False, True, True, True],
+                       [False, False, True, True, True],
+                       [False, False, True, True, True],
+                       [False, False, False, False, False]]]),  
+            0.4,
+            np.array([False, True]),
+            DoesNotRaise(),
+        ),  # two boxes with different category
+        (
+            np.array([[0, 0, 30, 30, 0.8, 0], [20, 20, 50, 50, 0.9, 1]]),
+            np.array([[[False, False, False, False, False],
+                       [False, True, True, True, False],
+                       [False, True, True, True, False],
+                       [False, True, True, True, False],
+                       [False, False, False, False, False]],
+                      [[False, False, False, False, False],
+                       [False, False, True, True, True],
+                       [False, False, True, True, True],
+                       [False, False, True, True, True],
+                       [False, False, False, False, False]]]),  
+            0.5,
+            np.array([True, True]),
+            DoesNotRaise(),
+        ),  # two boxes with same category
+        (
+            np.array([[0, 0, 30, 30, 0.8, 0], [15, 15, 45, 45, 0.85, 0], [30, 30, 60, 60, 0.9, 1]]), 
+            np.array([[[False, False, False, False, False],
+                       [False, True, True, False, False],
+                       [False, True, True, False, False],
+                       [False, False, False, False, False],
+                       [False, False, False, True, False]],
+                      [[False, False, False, False, False],
+                       [False, True, True, False, False],
+                       [False, True, True, False, False],
+                       [False, False, False, False, False],
+                       [False, False, False, False, False]],
+                      [[False, False, False, False, False],
+                       [False, False, False, True, True],
+                       [False, False, False, True, True],
+                       [False, False, False, False, False],
+                       [False, False, False, False, False]]]),
+            0.5,
+            np.array([False, True, True]),
+            DoesNotRaise(),
+        ),  # three boxes with no category
+    ],
+)
+
+def test_mask_non_max_suppression(
+    predictions: np.ndarray,
+    masks: np.ndarray,
+    iou_threshold: float,
+    expected_result: Optional[np.ndarray],
+    exception: Exception,
+) -> None:
+    with exception:
+        result = mask_non_max_suppression(
+            predictions=predictions, masks=masks, iou_threshold=iou_threshold
+        )
+        assert np.array_equal(result, expected_result)
 
 @pytest.mark.parametrize(
     "xyxy, resolution_wh, expected_result",
