@@ -1002,7 +1002,7 @@ class Detections:
         self, threshold: float = 0.5, class_agnostic: bool = False
     ) -> Detections:
         """
-        Perform non-maximum suppression on the current set 
+        Perform non-maximum suppression on the current set
         of object detections or segmentation prediction.
 
         Args:
