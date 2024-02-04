@@ -310,12 +310,12 @@ class ByteTrack:
         # Predict the current location with KF
         STrack.multi_predict(strack_pool)
         dists = matching.iou_distance(strack_pool, detections_to_track)
+
         dists = matching.fuse_score(dists, detections_to_track)
         high_matches, u_track, u_detection = matching.linear_assignment(
             dists, thresh=self.match_thresh
         )
-
-        # Update tracks based on high score matches
+        #old tracking id and new detection id
         for itracked, idet in high_matches.items():
             track = strack_pool[itracked]
             det = detections_to_track[idet]
@@ -326,8 +326,10 @@ class ByteTrack:
                 track.re_activate(det, self.frame_id, new_id=False)
                 refind_stracks.append(track)
 
-        # Step 3: Second association with low score detection boxes
+        """ Step 3: Second association, with low score detection boxes"""
+        # association the untrack to the low score detections
         if len(dets_second) > 0:
+            """Detections"""
             detections_second = [
                 STrack(STrack.tlbr_to_tlwh(tlbr), s, c)
                 for (tlbr, s, c) in zip(
@@ -336,13 +338,13 @@ class ByteTrack:
             ]
         else:
             detections_second = []
-
         r_tracked_stracks = [
             strack_pool[i]
             for i in u_track
             if strack_pool[i].state == TrackState.Tracked
         ]
         dists = matching.iou_distance(r_tracked_stracks, detections_second)
+        #TODO: How to handle u_detection_second. In this case i have the boxes but it has not a good score to be tracked
         second_matches, u_track, u_detection_second = matching.linear_assignment(
             dists, thresh=0.5
         )
@@ -364,9 +366,11 @@ class ByteTrack:
                 track.mark_lost()
                 lost_stracks.append(track)
 
-        # Associate unconfirmed tracks with low score detections
+        """Deal with unconfirmed tracks, usually tracks with only one beginning frame"""
         detections_u_to_track = [detections_to_track[i] for i in u_detection]
+        detections_map = {k:i for k,i in enumerate(u_detection)} #track id: detection id
         dists = matching.iou_distance(unconfirmed, detections_u_to_track)
+
         dists = matching.fuse_score(dists, detections_u_to_track)
         matches, u_unconfirmed, u_detection_unconf = matching.linear_assignment(
             dists, thresh=0.7
@@ -380,16 +384,15 @@ class ByteTrack:
             track = unconfirmed[it]
             track.mark_removed()
             removed_stracks.append(track)
-        
-        # Initialize new stracks
+
+        """ Step 4: Init new stracks""" 
         for inew in u_detection_unconf:
             track = detections_u_to_track[inew]
             if track.score < self.det_thresh:
                 continue
             track.activate(self.kalman_filter, self.frame_id)
             activated_starcks.append(track)
-
-        # Update lost tracks
+        """ Step 5: Update state"""
         for track in self.lost_tracks:
             if self.frame_id - track.end_frame > self.max_time_lost:
                 track.mark_removed()
