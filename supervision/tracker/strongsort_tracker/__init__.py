@@ -1,4 +1,4 @@
-from .strong_sort import StrongSort
+from supervision.tracker.strongsort_tracker.strong_sort import StrongSort
 
 
 __all__ = ['StrongSort', 'build_tracker']
