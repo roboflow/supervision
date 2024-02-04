@@ -14,10 +14,10 @@ from .deep.reid_model_factory import show_downloadeable_models, get_model_url, g
 from supervision.tracker.strongsort_tracker.deep.reid.torchreid.utils import FeatureExtractor
 from supervision.tracker.strongsort_tracker.deep.reid.torchreid.utils.tools import download_url
 from supervision.detection.core import Detections
-__all__ = ['StrongSORT']
+__all__ = ['StrongSrt']
 
 
-class StrongSORT(object):
+class StrongSrt(object):
     def __init__(self, 
         device=None, 
         max_dist=0.2,
@@ -64,6 +64,8 @@ class StrongSORT(object):
             cfg = yaml.load(f.read(), Loader=yaml.FullLoader)
         cfg = SimpleNamespace(**cfg) 
         model_url = "https://drive.google.com/uc?id=1sSwXSUlj4_tHZequ_iZ8w_Jh0VaRQMqF"
+
+        os.makedirs("./supervision/tracker/strongsort_tracker/weights",exist_ok=True)
         reid_weights = "./supervision/tracker/strongsort_tracker/weights/osnet_x0_25_msmt17.pt"  ##The suffix of the file name is pt
         if not os.path.exists(reid_weights):
             gdown.download(model_url, str(reid_weights), quiet=False)
