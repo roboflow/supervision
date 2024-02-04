@@ -32,6 +32,7 @@ extra:
 extra_css:
   - stylesheets/extra.css
 
+
 nav:
   - Home: index.md
   - How to:
@@ -73,13 +74,25 @@ nav:
         - Changelog: changelog.md
         - Deprecated: deprecated.md
   - License: license.md
+  - Cookbooks: cookbooks.md
+  - Supervision: notebooks/demo.ipynb
 
 
 theme:
   name: 'material'
+  icon:
+    edit: material/pencil
   logo: assets/supervision-lenny.png
   favicon: assets/supervision-lenny.png
   custom_dir: docs/theme
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - content.code.copy
+    - content.action.edit
+    - content.tooltips
+    - content.code.annotate
+
   palette:
     # Palette for light mode
     - scheme: default
@@ -94,15 +107,22 @@ theme:
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
+
+
   font:
     text: Roboto
     code: Roboto Mono
-  features:
-    - content.code.copy
-    - content.code.annotate
+    features:
+      - content.code.copy
+      - content.code.annotate
 
 plugins:
   - search
+  - mkdocs-jupyter:
+        kernel_name: python3
+        execute: false
+        include_source: True
+        include_requirejs: true
   - mkdocstrings:
       default_handler: python
       handlers:
@@ -118,9 +138,14 @@ plugins:
             show_symbol_type_heading: true
             show_symbol_type_toc: true
             show_category_heading: true
-          import:
-          - https://docs.python-requests.org/en/master/objects.inv
           domains: [std, py]
+  - git-committers:
+      repository: roboflow/supervision
+      branch: develop
+  - git-revision-date-localized:
+      enable_creation_date: true
+
+
 
 markdown_extensions:
   - admonition
@@ -137,6 +162,8 @@ markdown_extensions:
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - pymdownx.snippets:
       check_paths: true
+  - pymdownx.highlight:
+      anchor_linenums: true
 
 extra_javascript:
   - "https://widget.kapa.ai/kapa-widget.bundle.js"

@@ -1,0 +1,20 @@
+{% extends "main.html" %}
+{% block libs %}
+<script src="/javascript/cookbooks-card.js"></script>
+
+<link rel="stylesheet" href="/stylesheets/cookbooks.css">
+{% endblock %}
+{% block content %}
+<section class="mdx-container portfolio-section">
+  <div class="md-grid md-typeset">
+    <div class="text-center">
+      <h1>Supervision Cookbooks</h1>
+    </div>
+    <div class="grid">
+      <p class="card repo-card" data-name="Supervision" data-desc="Notebook desc" data-labels="annotator,linezone" data-version="v0.18.0"></p>
+      <p class="card repo-card" data-name="Supervision" data-desc="Notebook desc" data-labels="" data-version="v0.18.0"></p>
+      <p class="card repo-card" data-name="Supervision" data-desc="Notebook desc" data-labels="" data-version="v0.18.0"></p>
+    </div>
+  </div>
+</section>
+{% endblock %}

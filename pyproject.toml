@@ -39,13 +39,11 @@ scipy = [
 ]
 matplotlib = ">=3.6.0"
 pyyaml = ">=5.3"
+defusedxml = "^0.7.1"
 opencv-python = { version = ">=4.5.5.64", optional = true }
 opencv-python-headless = ">=4.5.5.64"
 requests = { version = ">=2.26.0,<=2.31.0", optional = true }
 tqdm = { version = ">=4.62.3,<=4.66.1", optional = true }
-defusedxml = "^0.7.1"
-
-
 
 [tool.poetry.extras]
 desktop = ["opencv-python"]
@@ -55,19 +53,27 @@ assets = ["requests","tqdm"]
 twine = "^4.0.2"
 pytest = ">=7.2.2,<9.0.0"
 wheel = ">=0.40,<0.43"
-notebook = ">=6.5.3,<8.0.0"
 build = ">=0.10,<1.1"
 ruff = ">=0.1.0"
-isort = "^5.12.0"
 mypy = "^1.4.1"
 pre-commit = "^3.3.3"
 tox = "^4.11.4"
+notebook = ">=6.5.3,<8.0.0"
+ipywidgets = "^8.1.1"
+jupytext = "^1.16.1"
+nbconvert = "^7.14.2"
 
 
 [tool.poetry.group.docs.dependencies]
 mkdocs-material = {extras = ["imaging"], version = "^9.5.5"}
 mkdocstrings = {extras = ["python"], version = ">=0.20,<0.25"}
 mike = "^2.0.0"
+# For Documentation Development use Python 3.10 or above
+# Use Latest mkdocs-jupyter min 0.24.6 for Jupyter Notebook Theme support
+mkdocs-jupyter = "^0.24.3"
+mkdocs-git-committers-plugin-2 = "^2.2.3"
+mkdocs-git-revision-date-localized-plugin = "^1.2.4"
+
 
 
 [tool.isort]
