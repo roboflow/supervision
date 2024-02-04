@@ -11,7 +11,7 @@ from supervision.tracker.byte_tracker.kalman_filter import KalmanFilter
 class STrack(BaseTrack):
     shared_kalman = KalmanFilter()
 
-    def __init__(self, tlwh, score, class_ids, mask: Optional[np.array] = None):
+    def __init__(self, tlwh, score, class_ids):
         # wait activate
         self._tlwh = np.asarray(tlwh, dtype=np.float32)
         self.kalman_filter = None
@@ -21,7 +21,6 @@ class STrack(BaseTrack):
         self.score = score
         self.class_ids = class_ids
         self.tracklet_len = 0
-        self.mask = mask
 
     def predict(self):
         mean_state = self.mean.copy()
@@ -75,7 +74,6 @@ class STrack(BaseTrack):
         if new_id:
             self.track_id = self.next_id()
         self.score = new_track.score
-        self.mask = new_track.mask
 
     def update(self, new_track, frame_id):
         """
