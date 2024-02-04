@@ -15,6 +15,7 @@ def indices_to_matches(
     matches = indices[matched_mask]
     unmatched_a = tuple(set(range(cost_matrix.shape[0])) - set(matches[:, 0]))
     unmatched_b = tuple(set(range(cost_matrix.shape[1])) - set(matches[:, 1]))
+    matches = {k:v for (k,v) in matches}
     return matches, unmatched_a, unmatched_b
 
 
@@ -23,7 +24,7 @@ def linear_assignment(
 ) -> [np.ndarray, Tuple[int], Tuple[int, int]]:
     if cost_matrix.size == 0:
         return (
-            np.empty((0, 2), dtype=int),
+            {}, #np.empty((0, 2), dtype=int),
             tuple(range(cost_matrix.shape[0])),
             tuple(range(cost_matrix.shape[1])),
         )
