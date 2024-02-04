@@ -529,11 +529,8 @@ class LineZoneAnnotator:
         alpha_in_frame = np.zeros_like(frame[:, :, 0], dtype=np.uint8)
         alpha_in_frame[y1:y2, x1:x2] = img[:, :, 3]
 
-        mask = alpha_in_frame != 0
-        opacity = alpha_in_frame[mask] / 255
+        opacity = alpha_in_frame / 255
         for i in range(3):
-            frame[:, :, i][mask] = (
-                frame[:, :, i][mask] * (1 - opacity)
-            ) + img_in_frame[:, :, i][mask]
+            frame[:, :, i] = frame[:, :, i] * (1 - opacity) + img_in_frame[:, :, i]
 
         return frame
