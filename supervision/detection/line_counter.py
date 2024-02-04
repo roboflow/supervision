@@ -529,16 +529,11 @@ class LineZoneAnnotator:
         alpha_in_frame = np.zeros_like(frame[:, :, 0], dtype=np.uint8)
         alpha_in_frame[y1:y2, x1:x2] = img[:, :, 3]
 
-        if self.draw_text_box:
-            mask = alpha_in_frame > 95
-            for i in range(3):
-                frame[:, :, i][mask] = img_in_frame[:, :, i][mask]
-        else:
-            mask = alpha_in_frame != 0
-            opacity = alpha_in_frame[mask] / 255
-            for i in range(3):
-                frame[:, :, i][mask] = (
-                    frame[:, :, i][mask] * (1 - opacity)
-                ) + self.text_color.as_bgr()[i] * opacity
+        mask = alpha_in_frame != 0
+        opacity = alpha_in_frame[mask] / 255
+        for i in range(3):
+            frame[:, :, i][mask] = (
+                frame[:, :, i][mask] * (1 - opacity)
+            ) + img_in_frame[:, :, i][mask]
 
         return frame
