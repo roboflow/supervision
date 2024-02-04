@@ -1178,7 +1178,9 @@ class TraceAnnotator:
         self.trace.put(detections)
 
         for detection_idx in range(len(detections)):
-            tracker_id = int(detections.tracker_id[detection_idx])
+            tracker_id = detections.tracker_id[detection_idx]
+            if tracker_id is None: continue #No tracker ID assigned to i-Detection
+            
             color = resolve_color(
                 color=self.color,
                 detections=detections,
@@ -1187,7 +1189,7 @@ class TraceAnnotator:
                 if custom_color_lookup is None
                 else custom_color_lookup,
             )
-            xy = self.trace.get(tracker_id=tracker_id)
+            xy = self.trace.get(tracker_id=int(tracker_id))
             if len(xy) > 1:
                 scene = cv2.polylines(
                     scene,
