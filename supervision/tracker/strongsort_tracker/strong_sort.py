@@ -14,10 +14,10 @@ from .deep.reid_model_factory import show_downloadeable_models, get_model_url, g
 from supervision.tracker.strongsort_tracker.deep.reid.torchreid.utils import FeatureExtractor
 from supervision.tracker.strongsort_tracker.deep.reid.torchreid.utils.tools import download_url
 from supervision.detection.core import Detections
-__all__ = ['StrongSrt']
+__all__ = ['StrongSort']
 
 
-class StrongSrt(object):
+class StrongSort(object):
     def __init__(self, 
         device=None, 
         max_dist=0.2,
