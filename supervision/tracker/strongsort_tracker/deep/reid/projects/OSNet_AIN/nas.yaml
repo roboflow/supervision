@@ -1,0 +1,44 @@
+model:
+  name: 'osnet_nas'
+  pretrained: False
+
+nas:
+  mc_iter: 1
+  init_lmda: 10.
+  min_lmda: 1.
+  lmda_decay_step: 20
+  lmda_decay_rate: 0.5
+  fixed_lmda: False
+
+data:
+  type: 'image'
+  sources: ['msmt17']
+  targets: ['market1501']
+  height: 256
+  width: 128
+  combineall: True
+  transforms: ['random_flip', 'color_jitter']
+  save_dir: 'log/osnet_nas'
+
+loss:
+  name: 'softmax'
+  softmax:
+    label_smooth: True
+
+train:
+  optim: 'sgd'
+  lr: 0.1
+  max_epoch: 120
+  batch_size: 512
+  fixbase_epoch: 0
+  open_layers: ['classifier']
+  lr_scheduler: 'cosine'
+
+test:
+  batch_size: 300
+  dist_metric: 'cosine'
+  normalize_feature: False
+  evaluate: False
+  eval_freq: -1
+  rerank: False
+  visactmap: False

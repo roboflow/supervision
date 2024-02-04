@@ -1,0 +1,36 @@
+model:
+  name: 'osnet_x1_0'
+  pretrained: True
+
+data:
+  type: 'image'
+  sources: ['market1501']
+  targets: ['market1501']
+  height: 256
+  width: 128
+  combineall: False
+  transforms: ['random_flip']
+  save_dir: 'log/osnet_x1_0_market1501_softmax'
+
+loss:
+  name: 'softmax'
+  softmax:
+    label_smooth: True
+
+train:
+  optim: 'amsgrad'
+  lr: 0.0015
+  max_epoch: 150
+  batch_size: 64
+  fixbase_epoch: 10
+  open_layers: ['classifier']
+  lr_scheduler: 'single_step'
+  stepsize: [60]
+
+test:
+  batch_size: 300
+  dist_metric: 'euclidean'
+  normalize_feature: False
+  evaluate: False
+  eval_freq: -1
+  rerank: False

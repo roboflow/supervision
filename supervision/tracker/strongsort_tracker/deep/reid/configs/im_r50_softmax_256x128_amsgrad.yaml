@@ -1,0 +1,36 @@
+model:
+  name: 'resnet50_fc512'
+  pretrained: True
+
+data:
+  type: 'image'
+  sources: ['market1501']
+  targets: ['market1501']
+  height: 256
+  width: 128
+  combineall: False
+  transforms: ['random_flip']
+  save_dir: 'log/resnet50_market1501_softmax'
+
+loss:
+  name: 'softmax'
+  softmax:
+    label_smooth: True
+
+train:
+  optim: 'amsgrad'
+  lr: 0.0003
+  max_epoch: 60
+  batch_size: 32
+  fixbase_epoch: 5
+  open_layers: ['classifier']
+  lr_scheduler: 'single_step'
+  stepsize: [20]
+
+test:
+  batch_size: 100
+  dist_metric: 'euclidean'
+  normalize_feature: False
+  evaluate: False
+  eval_freq: -1
+  rerank: False
