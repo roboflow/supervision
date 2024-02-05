@@ -21,13 +21,13 @@ def indices_to_matches(
 def linear_assignment(
     cost_matrix: np.ndarray, thresh: float
 ) -> [np.ndarray, Tuple[int], Tuple[int, int]]:
-    '''
-        Returns:
-        matched idx (Tracklet idx - Detection idx),
-        unmatched Tracklet idx,
-        unmatched Detection idx
+    """
+    Returns:
+    matched idx (Tracklet idx - Detection idx),
+    unmatched Tracklet idx,
+    unmatched Detection idx
 
-    '''
+    """
     if cost_matrix.size == 0:
         return (
             np.empty((0, 2), dtype=int),

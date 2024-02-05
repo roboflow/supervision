@@ -90,10 +90,14 @@ class BoxAnnotator:
         """
         font = cv2.FONT_HERSHEY_SIMPLEX
         for i in range(len(detections)):
-
-            if only_tracked: # annotate only detection with tracker id
-                trackid = detections.tracker_id[i] if detections.tracker_id is not None else None
-                if trackid is None: continue
+            if only_tracked:  # annotate only detection with tracker id
+                trackid = (
+                    detections.tracker_id[i]
+                    if detections.tracker_id is not None
+                    else None
+                )
+                if trackid is None:
+                    continue
 
             x1, y1, x2, y2 = detections.xyxy[i].astype(int)
             class_id = (
@@ -114,7 +118,7 @@ class BoxAnnotator:
             )
             if skip_label:
                 continue
-            
+
             text = (
                 f"{class_id}"
                 if (labels is None or len(detections) != len(labels))

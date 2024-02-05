@@ -1179,8 +1179,9 @@ class TraceAnnotator:
 
         for detection_idx in range(len(detections)):
             tracker_id = detections.tracker_id[detection_idx]
-            if tracker_id is None: continue #No tracker ID assigned to i-Detection
-            
+            if tracker_id is None:
+                continue  # No tracker ID assigned to i-Detection
+
             color = resolve_color(
                 color=self.color,
                 detections=detections,
