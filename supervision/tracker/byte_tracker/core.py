@@ -241,7 +241,7 @@ class ByteTrack:
 
     def update_detections(self, detections: Detections) -> Detections:
         """
-        Updates the tracker with the provided Detections and returns the 
+        Updates the tracker with the provided Detections and returns the
         updated Detections.
 
         Parameters:
