@@ -1806,23 +1806,82 @@ class CropAnnotator(BaseAnnotator):
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
             anchor = anchors[detection_idx].astype(int)
-            crop_part = base_scene[y1:y2, x1:x2]
+            cropped_scene = base_scene[y1:y2, x1:x2]
 
-            crop_part = cv2.resize(
-                crop_part,
-                (self.zoom_factor * crop_part.shape[1],
-                 self.zoom_factor * crop_part.shape[0])
+            resized_scene = self.apply_zoom(
+                cropped_scene=cropped_scene,
+                zoom_factor=self.zoom_factor
             )
-            
-            x = anchor[0]
-            y = anchor[1]
-            
-            y_len = crop_part.shape[0]
-            x_len = crop_part.shape[1]
+                       
+            coordinates = self.clip_cropped_scene(
+                scene=base_scene,
+                cropped_scene=resized_scene,
+                paste_point=anchor
+            )
 
-            try:
-                scene[y:y + y_len, x:x + x_len] = crop_part
-            except ValueError:
-                pass
+            scene = self.paste_cropped_scene(
+                scene=base_scene,
+                cropped_scene=resized_scene,
+                clipped_point=coordinates
+            )
+
+        return scene
+
+    @staticmethod    
+    def apply_zoom(
+        cropped_scene: np.ndarray,
+        zoom_factor: int
+    ) -> np.ndarray:
+        '''
+        Applies resize (zoom) to the cropped part of detections
+
+        Args:
+            cropped_scene (np.ndarray): the cropped part of detections
+
+        Returns:
+            resized_scene (np.ndarray): the resized cropped scene
+        '''
+        resized_scene = cv2.resize(
+            cropped_scene,
+            (zoom_factor * cropped_scene.shape[1],
+             zoom_factor * cropped_scene.shape[0])
+        )
+        
+        return resized_scene
+    
+    @staticmethod
+    def clip_cropped_scene(
+        scene: np.ndarray,
+        cropped_scene: np.ndarray,
+        paste_point: np.ndarray
+    ) -> Tuple[int,int]:
+        
+        h, w = scene.shape[:2]
+        h_cropped, w_cropped = cropped_scene.shape[:2]
+
+        # Clip the coordinates to ensure they are within the bounds
+        x_clip = max(0, min(paste_point[0], w - w_cropped))
+        y_clip = max(0, min(paste_point[1], h - h_cropped))
+
+        # Calculate the valid region to paste the cropped part
+        x_end = min(x_clip + w_cropped, w)
+        y_end = min(y_clip + h_cropped, h)
+
+        return x_clip, y_clip, x_end, y_end
+    
+    @staticmethod
+    def paste_cropped_scene(
+        scene: np.ndarray,
+        cropped_scene: np.ndarray,
+        clipped_point: np.ndarray 
+    ) -> np.ndarray:
+        
+        x_clip, y_clip, x_end, y_end = clipped_point
+        # Adjust the cropped part based on the valid region
+        cropped_part_clipped = cropped_scene[:y_end - y_clip, :x_end - x_clip]
+
+        # Paste the cropped part onto the image
+        scene[y_clip:y_clip + cropped_part_clipped.shape[0],
+              x_clip:x_clip + cropped_part_clipped.shape[1]] = cropped_part_clipped
 
         return scene
