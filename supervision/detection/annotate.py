@@ -64,7 +64,8 @@ class BoxAnnotator:
                 corresponding to each detection. If `labels` are not provided,
                 corresponding `class_id` will be used as label.
             skip_label (bool): If set to `True`, skips bounding box label annotation.
-            only_tracked (bool): If set to `True`, skips bounding box label annotation without track-ID.
+            only_tracked (bool): If set to `True`, skips bounding box label annotation 
+            without track-ID.
         Returns:
             np.ndarray: The image with the bounding boxes drawn on it
 
@@ -92,7 +93,9 @@ class BoxAnnotator:
         for i in range(len(detections)):
 
             if only_tracked: # annotate only detection with tracker id
-                trackid = detections.tracker_id[i] if detections.tracker_id is not None else None
+                trackid =  None 
+                if detections.tracker_id is not None: 
+                    trackid = detections.tracker_id[i]
                 if trackid is None: continue
 
             x1, y1, x2, y2 = detections.xyxy[i].astype(int)

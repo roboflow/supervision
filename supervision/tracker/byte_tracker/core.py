@@ -241,7 +241,8 @@ class ByteTrack:
 
     def update_detections(self, detections: Detections) -> Detections:
         """
-        Updates the tracker with the provided Detections and returns the updated Detections.
+        Updates the tracker with the provided Detections and returns the 
+        updated Detections.
 
         Parameters:
             detections: Detections class with all the detections.
@@ -433,7 +434,8 @@ class ByteTrack:
     def _get_track_id(self,strack:STrack):
         return strack.track_id if hasattr(strack, "track_id") else None
     
-    def _update_detection_track_id(self, detections:Detections, track_ids_list:List[Optional[int]]):
+    def _update_detection_track_id(self, detections:Detections, 
+                                   track_ids_list:List[Optional[int]]):
         """
         Update the detection tracker ID.
 
