@@ -117,7 +117,7 @@ class BoxAnnotator:
             )
             if skip_label:
                 continue
-            
+
             text = (
                 f"{class_id}"
                 if (labels is None or len(detections) != len(labels))

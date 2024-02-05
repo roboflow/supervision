@@ -260,7 +260,7 @@ class ByteTrack:
         tensors = detections2boxes(detections=detections)
         # Separate detections based on scores
         detection_index = np.array([j for j in range(len(tensors))])
-        
+
         class_ids = tensors[:, 5]
         scores = tensors[:, 4]
         bboxes = tensors[:, :4]
@@ -278,7 +278,7 @@ class ByteTrack:
         scores_second = scores[inds_second]
 
         class_ids_keep = class_ids[remain_inds]
-        class_ids_second= class_ids[inds_second]
+        class_ids_second = class_ids[inds_second]
 
         low_score_det_idx = detection_index[inds_second]
 
@@ -288,29 +288,32 @@ class ByteTrack:
             # Convert valid detections to STrack objects
             detections_to_track = [
                 STrack(STrack.tlbr_to_tlwh(tlbr), s, c)
-                for (tlbr, s, c) in zip(
-                    dets, scores_keep, class_ids_keep
-                )
-            ]          
+                for (tlbr, s, c) in zip(dets, scores_keep, class_ids_keep)
+            ]
         """ Add newly detected tracklets to tracked_stracks"""
         unconfirmed = []
         tracked_stracks = []  # type: list[STrack]
 
         for track in self.tracked_tracks:
-            if not track.is_activated: unconfirmed.append(track)
-            else: tracked_stracks.append(track)
+            if not track.is_activated:
+                unconfirmed.append(track)
+            else:
+                tracked_stracks.append(track)
 
         """ Step 2: First association, with high score detection boxes"""
         strack_pool = joint_tracks(tracked_stracks, self.lost_tracks)
         # Predict the current location with KF
         STrack.multi_predict(strack_pool)
         dists = matching.iou_distance(strack_pool, detections_to_track)
-    
+
         dists = matching.fuse_score(dists, detections_to_track)
         matches_keep, u_track, u_detection = matching.linear_assignment(
             dists, thresh=self.match_thresh
         )
-        for itracked, idet in matches_keep: # tracking object index and new detection index
+        for (
+            itracked,
+            idet,
+        ) in matches_keep:  # tracking object index and new detection index
             track = strack_pool[itracked]
             det = detections_to_track[idet]
             if track.state == TrackState.Tracked:
@@ -327,18 +330,16 @@ class ByteTrack:
             """Detections"""
             detections_second = [
                 STrack(STrack.tlbr_to_tlwh(tlbr), s, c)
-                for (tlbr, s, c) in zip(
-                    dets_second, scores_second, class_ids_second
-                )
-            ]            
-        #remaining sTraks
+                for (tlbr, s, c) in zip(dets_second, scores_second, class_ids_second)
+            ]
+        # remaining sTraks
         r_tracked_stracks = [
             strack_pool[i]
             for i in u_track
             if strack_pool[i].state == TrackState.Tracked
         ]
         dists = matching.iou_distance(r_tracked_stracks, detections_second)
-        # u_detection_second: Detection with low score and without match 
+        # u_detection_second: Detection with low score and without match
         matches_second, u_track_second, u_detection_second = matching.linear_assignment(
             dists, thresh=0.5
         )
@@ -362,13 +363,17 @@ class ByteTrack:
 
         """Deal with unconfirmed tracks, usually tracks with only one beginning frame"""
         detections_u_to_track = [detections_to_track[i] for i in u_detection]
-        detections_u_map = {k:i for k,i in enumerate(u_detection)} #track id: detection id
+        detections_u_map = {
+            k: i for k, i in enumerate(u_detection)
+        }  # track id: detection id
         dists = matching.iou_distance(unconfirmed, detections_u_to_track)
 
         dists = matching.fuse_score(dists, detections_u_to_track)
-        matches_unconfirmed, u_unconfirmed, u_detection_unconf = matching.linear_assignment(
-            dists, thresh=0.7
-        )
+        (
+            matches_unconfirmed,
+            u_unconfirmed,
+            u_detection_unconf,
+        ) = matching.linear_assignment(dists, thresh=0.7)
 
         # Update unconfirmed tracks
         for itracked, idet in matches_unconfirmed:
@@ -379,7 +384,7 @@ class ByteTrack:
             track.mark_removed()
             removed_stracks.append(track)
 
-        """ Step 4: Init new stracks""" 
+        """ Step 4: Init new stracks"""
         for inew in u_detection_unconf:
             track = detections_u_to_track[inew]
             if track.score < self.det_thresh:
@@ -416,7 +421,9 @@ class ByteTrack:
         # Update IDs list with ID from low_score tracked detection
         if len(matches_second) > 0:
             for k, idx in matches_second:
-                tracked_ids[low_score_det_idx[idx]] = self._get_track_id(r_tracked_stracks[k])
+                tracked_ids[low_score_det_idx[idx]] = self._get_track_id(
+                    r_tracked_stracks[k]
+                )
 
         # Update IDs list with ID from unconfirmed tracked detection
         if len(matches_unconfirmed) > 0:
@@ -426,16 +433,18 @@ class ByteTrack:
         # Update IDs list with ID from new detection
         if len(u_detection_unconf) > 0:
             for k in u_detection_unconf:
-                tracked_ids[detections_u_map[k]] = self._get_track_id(detections_u_to_track[k])
+                tracked_ids[detections_u_map[k]] = self._get_track_id(
+                    detections_u_to_track[k]
+                )
 
         return self._update_detection_track_id(detections, tracked_ids)
 
-
-    def _get_track_id(self,strack:STrack):
+    def _get_track_id(self, strack: STrack):
         return strack.track_id if hasattr(strack, "track_id") else None
-    
-    def _update_detection_track_id(self, detections:Detections, 
-                                   track_ids_list:List[Optional[int]]):
+
+    def _update_detection_track_id(
+        self, detections: Detections, track_ids_list: List[Optional[int]]
+    ):
         """
         Update the detection tracker ID.
 
