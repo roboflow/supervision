@@ -197,7 +197,7 @@ class ByteTrack:
         self.tracked_tracks: List[STrack] = []
         self.lost_tracks: List[STrack] = []
         self.removed_tracks: List[STrack] = []
-    
+
     def update_with_tensors(self, tensors: np.ndarray) -> List[STrack]:
         """
         Updates the tracker with the provided tensors and returns the updated tracks.
@@ -351,8 +351,9 @@ class ByteTrack:
 
         return output_stracks
 
-    def update_with_detections(self, detections: Detections, 
-                               keep_all: bool = False) -> Detections:
+    def update_with_detections(
+        self, detections: Detections, keep_all: bool = False
+    ) -> Detections:
         """
         Updates the tracker with the provided detections and returns the updated
         detection results.
@@ -397,7 +398,7 @@ class ByteTrack:
         if not keep_all:
             return self._get_valid_detections(detections)
         return detections
-    
+
     def _update_detections(self, detections: Detections) -> Detections:
         """
         Updates the tracker with the provided Detections and returns the
