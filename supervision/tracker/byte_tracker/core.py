@@ -618,7 +618,7 @@ class ByteTrack:
         detections.tracker_id = np.array(track_ids_list)
         return detections
 
-    def _get_valid_detections(self,dets:Detections) -> Detections:
+    def _get_valid_detections(self, dets: Detections) -> Detections:
         """
         Filter detections with tracker id
 
@@ -630,7 +630,8 @@ class ByteTrack:
         """
         no_none_idx = np.where(dets.tracker_id != None)[0]
         return dets[no_none_idx] if len(no_none_idx) > 0 else dets.empty()
-    
+
+
 def joint_tracks(
     track_list_a: List[STrack], track_list_b: List[STrack]
 ) -> List[STrack]:
