@@ -618,7 +618,7 @@ class ByteTrack:
         detections.tracker_id = np.array(track_ids_list)
         return detections
 
-    def _get_valid_detections(self,dets:Detections) -> Detections:
+    def _get_valid_detections(self, dets: Detections) -> Detections:
         """
         Filter detections with tracker id
 
