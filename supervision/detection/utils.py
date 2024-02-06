@@ -2,6 +2,7 @@ from itertools import chain
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import cv2
+import time
 import numpy as np
 
 from supervision.config import CLASS_NAME_DATA_FIELD
@@ -129,7 +130,11 @@ def mask_non_max_suppression(
     predictions_sorted = predictions[sort_index]
     masks_sorted = masks[sort_index]
 
+    start_time = time.time()
     ious = mask_iou_batch(masks_sorted, masks_sorted)
+    end_time = time.time()
+    execution_time = end_time - start_time
+    print(f"mask_iou_batch execution time: {execution_time} seconds")
 
     keep = np.ones(num_predictions, dtype=bool)
     for i in range(num_predictions):
