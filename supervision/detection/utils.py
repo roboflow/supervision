@@ -1,8 +1,8 @@
+import time
 from itertools import chain
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import cv2
-import time
 import numpy as np
 
 from supervision.config import CLASS_NAME_DATA_FIELD
