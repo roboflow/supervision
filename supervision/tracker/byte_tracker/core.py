@@ -393,8 +393,9 @@ class ByteTrack:
             ```
         """
         detections = self._update_detections(detections)
+
         if not keep_all:
-            return detections[detections.tracker_id != None]
+            return self._get_valid_detections(detections)
         return detections
     
     def _update_detections(self, detections: Detections) -> Detections:
@@ -597,12 +598,12 @@ class ByteTrack:
 
         return self._update_detection_track_id(detections, tracked_ids)
 
-    def _get_track_id(self, strack: STrack):
+    def _get_track_id(self, strack: STrack) -> Optional[int]:
         return strack.track_id if hasattr(strack, "track_id") else None
 
     def _update_detection_track_id(
         self, detections: Detections, track_ids_list: List[Optional[int]]
-    ):
+    ) -> Detections:
         """
         Update the detection tracker ID.
 
@@ -616,7 +617,19 @@ class ByteTrack:
         detections.tracker_id = np.array(track_ids_list)
         return detections
 
+    def _get_valid_detections(self,dets:Detections) -> Detections:
+        """
+        Filter detections with tracker id
 
+        Parameters:
+            detections: Detections object.
+
+        Returns:
+            detections object where tracker id is not None
+        """
+        no_none_idx = np.where(dets.tracker_id != None)[0]
+        return dets[no_none_idx] if len(no_none_idx) > 0 else dets.empty()
+    
 def joint_tracks(
     track_list_a: List[STrack], track_list_b: List[STrack]
 ) -> List[STrack]:
