@@ -168,7 +168,7 @@ def mask_non_max_suppression(
             condition = (ious[i] > iou_threshold) & (categories[i] == categories)
             keep[i + 1 :] = np.where(condition[i + 1 :], False, keep[i + 1 :])
 
-    return keep
+    return keep[sort_index.argsort()]
 
 
 def box_non_max_suppression(
