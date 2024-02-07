@@ -211,18 +211,12 @@ def mask_non_max_suppression_2(
     ious = mask_iou_batch(masks_resized, masks_resized)
     categories = predictions[:, 5]
 
-    keep = np.ones(num_predictions, dtype=bool)
+    for i in range(num_predictions):
+        if keep[i]:
+            condition = (ious[i] > iou_threshold) & (categories == category)
+            keep[i + 1:] = np.where(condition[i + 1:], False, keep[i + 1:])
 
-    for index, (iou, category) in enumerate(zip(ious, categories)):
-        if not keep[index]:
-            continue
-
-        # drop detections with iou > iou_threshold and
-        # same category as current detections
-        condition = (iou > iou_threshold) & (categories == category)
-        keep = keep & ~condition
-
-    return keep[sort_index.argsort()]
+    return keep
 
 
 def box_non_max_suppression(
