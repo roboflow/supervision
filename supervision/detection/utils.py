@@ -1,4 +1,3 @@
-import time
 from itertools import chain
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -153,13 +152,8 @@ def mask_non_max_suppression(
     sort_index = predictions[:, 4].argsort()[::-1]
     predictions_sorted = predictions[sort_index]
     masks_sorted = masks[sort_index]
-
-    start_time = time.time()
-    resized_masks = resize_masks(masks_sorted, max_dimension=640)
-    ious = mask_iou_batch(resized_masks, resized_masks)
-    end_time = time.time()
-    execution_time = end_time - start_time
-    print(f"mask_iou_batch execution time: {execution_time} seconds")
+    masks_resized = resize_masks(masks_sorted, max_dimension=640)
+    ious = mask_iou_batch(masks_resized, masks_resized)
 
     keep = np.ones(num_predictions, dtype=bool)
     for i in range(num_predictions):
@@ -173,6 +167,60 @@ def mask_non_max_suppression(
                 and predictions_sorted[i, 5] == predictions_sorted[j, 5]
             ):
                 keep[j] = False
+
+    return keep[sort_index.argsort()]
+
+
+def mask_non_max_suppression_2(
+    predictions: np.ndarray, masks: np.ndarray, iou_threshold: float = 0.5
+) -> np.ndarray:
+    """
+    Perform Non-Maximum Suppression (NMS) on segmentation predictions.
+
+    Args:
+        predictions (np.ndarray): An array of object detection predictions in
+            the format of `(x_min, y_min, x_max, y_max, score)`
+            or `(x_min, y_min, x_max, y_max, score, class)`.
+        masks (np.ndarray): A 3D array of binary masks corresponding to the predictions.
+            Shape: (N, H, W), where N is the number of predictions, and H, W are the
+            dimensions of each mask.
+        iou_threshold (float, optional): The intersection-over-union threshold
+            to use for non-maximum suppression.
+
+    Returns:
+        np.ndarray: A boolean array indicating which predictions to keep after
+            non-maximum suppression.
+
+    Raises:
+        AssertionError: If `iou_threshold` is not within the closed
+        range from `0` to `1`.
+    """
+    assert 0 <= iou_threshold <= 1, (
+        "Value of `iou_threshold` must be in the closed range from 0 to 1, "
+        f"{iou_threshold} given."
+    )
+    num_predictions, columns = predictions.shape
+
+    if columns == 5:
+        predictions = np.c_[predictions, np.zeros(num_predictions)]
+
+    sort_index = predictions[:, 4].argsort()[::-1]
+    predictions = predictions[sort_index]
+    masks = masks[sort_index]
+    masks_resized = resize_masks(masks, max_dimension=640)
+    ious = mask_iou_batch(masks_resized, masks_resized)
+    categories = predictions[:, 5]
+
+    keep = np.ones(num_predictions, dtype=bool)
+
+    for index, (iou, category) in enumerate(zip(ious, categories)):
+        if not keep[index]:
+            continue
+
+        # drop detections with iou > iou_threshold and
+        # same category as current detections
+        condition = (iou > iou_threshold) & (categories == category)
+        keep = keep & ~condition
 
     return keep[sort_index.argsort()]
 
