@@ -59,7 +59,119 @@ def box_iou_batch(boxes_true: np.ndarray, boxes_detection: np.ndarray) -> np.nda
     return area_inter / (area_true[:, None] + area_detection - area_inter)
 
 
-def non_max_suppression(
+def mask_iou_batch(masks_true: np.ndarray, masks_detection: np.ndarray) -> np.ndarray:
+    """
+    Compute Intersection over Union (IoU) of two sets of masks -
+        `masks_true` and `masks_detection`.
+
+    Args:
+        masks_true (np.ndarray): 3D `np.ndarray` representing ground-truth masks.
+        masks_detection (np.ndarray): 3D `np.ndarray` representing detection masks.
+
+    Returns:
+        np.ndarray: Pairwise IoU of masks from `masks_true` and `masks_detection`.
+    """
+    intersection_area = np.logical_and(masks_true[:, None], masks_detection).sum(
+        axis=(2, 3)
+    )
+    masks_true_area = masks_true.sum(axis=(1, 2))
+    masks_detection_area = masks_detection.sum(axis=(1, 2))
+
+    union_area = masks_true_area[:, None] + masks_detection_area - intersection_area
+
+    return np.divide(
+        intersection_area,
+        union_area,
+        out=np.zeros_like(intersection_area, dtype=float),
+        where=union_area != 0,
+    )
+
+
+def resize_masks(masks: np.ndarray, max_dimension: int = 640) -> np.ndarray:
+    """
+    Resize all masks in the array to have a maximum dimension of max_dimension,
+    maintaining aspect ratio.
+
+    Args:
+        masks (np.ndarray): 3D array of binary masks with shape (N, H, W).
+        max_dimension (int): The maximum dimension for the resized masks.
+
+    Returns:
+        np.ndarray: Array of resized masks.
+    """
+    max_height = np.max(masks.shape[1])
+    max_width = np.max(masks.shape[2])
+    scale = min(max_dimension / max_height, max_dimension / max_width)
+
+    new_height = int(scale * max_height)
+    new_width = int(scale * max_width)
+
+    x = np.linspace(0, max_width - 1, new_width).astype(int)
+    y = np.linspace(0, max_height - 1, new_height).astype(int)
+    xv, yv = np.meshgrid(x, y)
+
+    resized_masks = masks[:, yv, xv]
+
+    resized_masks = resized_masks.reshape(masks.shape[0], new_height, new_width)
+    return resized_masks
+
+
+def mask_non_max_suppression(
+    predictions: np.ndarray,
+    masks: np.ndarray,
+    iou_threshold: float = 0.5,
+    mask_dimension: int = 640,
+) -> np.ndarray:
+    """
+    Perform Non-Maximum Suppression (NMS) on segmentation predictions.
+
+    Args:
+        predictions (np.ndarray): A 2D array of object detection predictions in
+            the format of `(x_min, y_min, x_max, y_max, score)`
+            or `(x_min, y_min, x_max, y_max, score, class)`. Shape: `(N, 5)` or
+            `(N, 6)`, where N is the number of predictions.
+        masks (np.ndarray): A 3D array of binary masks corresponding to the predictions.
+            Shape: `(N, H, W)`, where N is the number of predictions, and H, W are the
+            dimensions of each mask.
+        iou_threshold (float, optional): The intersection-over-union threshold
+            to use for non-maximum suppression.
+        mask_dimension (int, optional): The dimension to which the masks should be
+            resized before computing IOU values. Defaults to 640.
+
+    Returns:
+        np.ndarray: A boolean array indicating which predictions to keep after
+            non-maximum suppression.
+
+    Raises:
+        AssertionError: If `iou_threshold` is not within the closed
+        range from `0` to `1`.
+    """
+    assert 0 <= iou_threshold <= 1, (
+        "Value of `iou_threshold` must be in the closed range from 0 to 1, "
+        f"{iou_threshold} given."
+    )
+    rows, columns = predictions.shape
+
+    if columns == 5:
+        predictions = np.c_[predictions, np.zeros(rows)]
+
+    sort_index = predictions[:, 4].argsort()[::-1]
+    predictions = predictions[sort_index]
+    masks = masks[sort_index]
+    masks_resized = resize_masks(masks, mask_dimension)
+    ious = mask_iou_batch(masks_resized, masks_resized)
+    categories = predictions[:, 5]
+
+    keep = np.ones(rows, dtype=bool)
+    for i in range(rows):
+        if keep[i]:
+            condition = (ious[i] > iou_threshold) & (categories[i] == categories)
+            keep[i + 1 :] = np.where(condition[i + 1 :], False, keep[i + 1 :])
+
+    return keep[sort_index.argsort()]
+
+
+def box_non_max_suppression(
     predictions: np.ndarray, iou_threshold: float = 0.5
 ) -> np.ndarray:
     """
