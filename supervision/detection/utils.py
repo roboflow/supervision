@@ -117,75 +117,26 @@ def resize_masks(masks: np.ndarray, max_dimension: int = 640) -> np.ndarray:
 
 
 def mask_non_max_suppression(
-    predictions: np.ndarray, masks: np.ndarray, iou_threshold: float = 0.5
+    predictions: np.ndarray,
+    masks: np.ndarray,
+    iou_threshold: float = 0.5,
+    mask_dimension: int = 640
 ) -> np.ndarray:
     """
     Perform Non-Maximum Suppression (NMS) on segmentation predictions.
 
     Args:
-        predictions (np.ndarray): An array of object detection predictions in
+        predictions (np.ndarray): A 2D array of object detection predictions in
             the format of `(x_min, y_min, x_max, y_max, score)`
-            or `(x_min, y_min, x_max, y_max, score, class)`.
+            or `(x_min, y_min, x_max, y_max, score, class)`. Shape: `(N, 5)` or
+            `(N, 6)`, where N is the number of predictions.
         masks (np.ndarray): A 3D array of binary masks corresponding to the predictions.
-            Shape: (N, H, W), where N is the number of predictions, and H, W are the
+            Shape: `(N, H, W)`, where N is the number of predictions, and H, W are the
             dimensions of each mask.
         iou_threshold (float, optional): The intersection-over-union threshold
             to use for non-maximum suppression.
-
-    Returns:
-        np.ndarray: A boolean array indicating which predictions to keep after
-            non-maximum suppression.
-
-    Raises:
-        AssertionError: If `iou_threshold` is not within the closed
-        range from `0` to `1`.
-    """
-    assert 0 <= iou_threshold <= 1, (
-        "Value of `iou_threshold` must be in the closed range from 0 to 1, "
-        f"{iou_threshold} given."
-    )
-    num_predictions, columns = predictions.shape
-
-    if columns == 5:
-        predictions = np.c_[predictions, np.zeros(num_predictions)]
-
-    sort_index = predictions[:, 4].argsort()[::-1]
-    predictions_sorted = predictions[sort_index]
-    masks_sorted = masks[sort_index]
-    masks_resized = resize_masks(masks_sorted, max_dimension=640)
-    ious = mask_iou_batch(masks_resized, masks_resized)
-
-    keep = np.ones(num_predictions, dtype=bool)
-    for i in range(num_predictions):
-        if not keep[i]:
-            continue
-
-        for j in range(i + 1, num_predictions):
-            if (
-                keep[j]
-                and ious[i, j] > iou_threshold
-                and predictions_sorted[i, 5] == predictions_sorted[j, 5]
-            ):
-                keep[j] = False
-
-    return keep[sort_index.argsort()]
-
-
-def mask_non_max_suppression_2(
-    predictions: np.ndarray, masks: np.ndarray, iou_threshold: float = 0.5
-) -> np.ndarray:
-    """
-    Perform Non-Maximum Suppression (NMS) on segmentation predictions.
-
-    Args:
-        predictions (np.ndarray): An array of object detection predictions in
-            the format of `(x_min, y_min, x_max, y_max, score)`
-            or `(x_min, y_min, x_max, y_max, score, class)`.
-        masks (np.ndarray): A 3D array of binary masks corresponding to the predictions.
-            Shape: (N, H, W), where N is the number of predictions, and H, W are the
-            dimensions of each mask.
-        iou_threshold (float, optional): The intersection-over-union threshold
-            to use for non-maximum suppression.
+        mask_dimension (int, optional): The dimension to which the masks should be
+            resized before computing IOU values. Defaults to 640.
 
     Returns:
         np.ndarray: A boolean array indicating which predictions to keep after
@@ -207,7 +158,7 @@ def mask_non_max_suppression_2(
     sort_index = predictions[:, 4].argsort()[::-1]
     predictions = predictions[sort_index]
     masks = masks[sort_index]
-    masks_resized = resize_masks(masks, max_dimension=640)
+    masks_resized = resize_masks(masks, mask_dimension)
     ious = mask_iou_batch(masks_resized, masks_resized)
     categories = predictions[:, 5]
 
