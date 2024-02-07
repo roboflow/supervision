@@ -72,13 +72,21 @@ def mask_iou_batch(masks_true: np.ndarray, masks_detection: np.ndarray) -> np.nd
     Returns:
         np.ndarray: Pairwise IoU of masks from `masks_true` and `masks_detection`.
     """
-    intersection_area = np.logical_and(masks_true[:, None], masks_detection).sum(axis=(2, 3))
-    masks_true_area = masks_true.sum(axis=(1, 2)) 
+    intersection_area = np.logical_and(masks_true[:, None], masks_detection).sum(
+        axis=(2, 3)
+    )
+    masks_true_area = masks_true.sum(axis=(1, 2))
     masks_detection_area = masks_detection.sum(axis=(1, 2))
 
     union_area = masks_true_area[:, None] + masks_detection_area - intersection_area
 
-    return np.divide(intersection_area, union_area, out=np.zeros_like(intersection_area, dtype=float), where=union_area != 0)
+    return np.divide(
+        intersection_area,
+        union_area,
+        out=np.zeros_like(intersection_area, dtype=float),
+        where=union_area != 0,
+    )
+
 
 def resize_masks(masks: np.ndarray, max_dimension: int = 640) -> np.ndarray:
     """
@@ -107,6 +115,7 @@ def resize_masks(masks: np.ndarray, max_dimension: int = 640) -> np.ndarray:
 
     resized_masks = resized_masks.reshape(masks.shape[0], new_height, new_width)
     return resized_masks
+
 
 def mask_non_max_suppression(
     predictions: np.ndarray, masks: np.ndarray, iou_threshold: float = 0.5

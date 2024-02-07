@@ -1002,7 +1002,7 @@ class Detections:
         self, threshold: float = 0.5, class_agnostic: bool = False
     ) -> Detections:
         """
-        Performs non-max suppression on detection set. If the detections result 
+        Performs non-max suppression on detection set. If the detections result
         from a segmentation model, the IoU mask is applied. Otherwise, box IoU is used.
 
         Args:
