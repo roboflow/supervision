@@ -120,7 +120,7 @@ def mask_non_max_suppression(
     predictions: np.ndarray,
     masks: np.ndarray,
     iou_threshold: float = 0.5,
-    mask_dimension: int = 640
+    mask_dimension: int = 640,
 ) -> np.ndarray:
     """
     Perform Non-Maximum Suppression (NMS) on segmentation predictions.
