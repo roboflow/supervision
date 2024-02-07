@@ -199,10 +199,10 @@ def mask_non_max_suppression_2(
         "Value of `iou_threshold` must be in the closed range from 0 to 1, "
         f"{iou_threshold} given."
     )
-    num_predictions, columns = predictions.shape
+    rows, columns = predictions.shape
 
     if columns == 5:
-        predictions = np.c_[predictions, np.zeros(num_predictions)]
+        predictions = np.c_[predictions, np.zeros(rows)]
 
     sort_index = predictions[:, 4].argsort()[::-1]
     predictions = predictions[sort_index]
@@ -212,7 +212,7 @@ def mask_non_max_suppression_2(
     categories = predictions[:, 5]
 
     keep = np.ones(rows, dtype=bool)
-    for i in range(num_predictions):
+    for i in range(rows):
         if keep[i]:
             condition = (ious[i] > iou_threshold) & (categories == category)
             keep[i + 1:] = np.where(condition[i + 1:], False, keep[i + 1:])
