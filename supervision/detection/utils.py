@@ -214,7 +214,7 @@ def mask_non_max_suppression_2(
     for i in range(num_predictions):
         if keep[i]:
             condition = (ious[i] > iou_threshold) & (categories == category)
-            keep[i + 1:] = np.where(condition[i + 1:], False, keep[i + 1:])
+            keep[i + 1 :] = np.where(condition[i + 1 :], False, keep[i + 1 :])
 
     return keep
 
