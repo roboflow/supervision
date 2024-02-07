@@ -22,7 +22,7 @@
       
       
       <link rel="icon" href="../../assets/supervision-lenny.png">
-      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.7">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.8">
     
     
       
@@ -2123,8 +2123,7 @@ also to be prepared for potential modifications in upcoming releases.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/detection/core.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">  25</span>
-<span class="normal">  26</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">  26</span>
 <span class="normal">  27</span>
 <span class="normal">  28</span>
 <span class="normal">  29</span>
@@ -3143,7 +3142,17 @@ also to be prepared for potential modifications in upcoming releases.</p>
 <span class="normal">1042</span>
 <span class="normal">1043</span>
 <span class="normal">1044</span>
-<span class="normal">1045</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="normal">1045</span>
+<span class="normal">1046</span>
+<span class="normal">1047</span>
+<span class="normal">1048</span>
+<span class="normal">1049</span>
+<span class="normal">1050</span>
+<span class="normal">1051</span>
+<span class="normal">1052</span>
+<span class="normal">1053</span>
+<span class="normal">1054</span>
+<span class="normal">1055</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
 <span class="k">class</span> <span class="nc">Detections</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    The `sv.Detections` allows you to convert results from a variety of object detection</span>
@@ -4122,7 +4131,8 @@ also to be prepared for potential modifications in upcoming releases.</p>
         <span class="bp">self</span><span class="p">,</span> <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">class_agnostic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Perform non-maximum suppression on the current set of object detections.</span>
+<span class="sd">        Performs non-max suppression on detection set. If the detections result</span>
+<span class="sd">        from a segmentation model, the IoU mask is applied. Otherwise, box IoU is used.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            threshold (float, optional): The intersection-over-union threshold</span>
@@ -4149,20 +4159,28 @@ also to be prepared for potential modifications in upcoming releases.</p>
 
         <span class="k">if</span> <span class="n">class_agnostic</span><span class="p">:</span>
             <span class="n">predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
-            <span class="n">indices</span> <span class="o">=</span> <span class="n">non_max_suppression</span><span class="p">(</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
+                <span class="s2">&quot;Detections class_id must be given for NMS to be executed. If you&quot;</span>
+                <span class="s2">&quot; intended to perform class agnostic NMS set class_agnostic=True.&quot;</span>
+            <span class="p">)</span>
+            <span class="n">predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span>
+                <span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">class_id</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">indices</span> <span class="o">=</span> <span class="n">mask_non_max_suppression</span><span class="p">(</span>
+                <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span> <span class="n">masks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span> <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">indices</span> <span class="o">=</span> <span class="n">box_non_max_suppression</span><span class="p">(</span>
                 <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span> <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span>
             <span class="p">)</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="n">indices</span><span class="p">]</span>
 
-        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
-            <span class="s2">&quot;Detections class_id must be given for NMS to be executed. If you intended&quot;</span>
-            <span class="s2">&quot; to perform class agnostic NMS set class_agnostic=True.&quot;</span>
-        <span class="p">)</span>
-
-        <span class="n">predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span>
-            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_id</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
-        <span class="p">)</span>
-        <span class="n">indices</span> <span class="o">=</span> <span class="n">non_max_suppression</span><span class="p">(</span><span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span> <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="n">indices</span><span class="p">]</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -4367,8 +4385,7 @@ the data field.</p>
 </details>
           <details class="quote">
             <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">889</span>
-<span class="normal">890</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">890</span>
 <span class="normal">891</span>
 <span class="normal">892</span>
 <span class="normal">893</span>
@@ -4412,7 +4429,8 @@ the data field.</p>
 <span class="normal">931</span>
 <span class="normal">932</span>
 <span class="normal">933</span>
-<span class="normal">934</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span>
+<span class="normal">934</span>
+<span class="normal">935</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">slice</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Detections</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -4482,8 +4500,7 @@ the data field.</p>
 
           <details class="quote">
             <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">104</span>
-<span class="normal">105</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">105</span>
 <span class="normal">106</span>
 <span class="normal">107</span>
 <span class="normal">108</span>
@@ -4506,7 +4523,8 @@ the data field.</p>
 <span class="normal">125</span>
 <span class="normal">126</span>
 <span class="normal">127</span>
-<span class="normal">128</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span>
+<span class="normal">128</span>
+<span class="normal">129</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span>
     <span class="n">Tuple</span><span class="p">[</span>
@@ -4554,11 +4572,11 @@ the data field.</p>
 
           <details class="quote">
             <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 98</span>
-<span class="normal"> 99</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 99</span>
 <span class="normal">100</span>
 <span class="normal">101</span>
-<span class="normal">102</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">102</span>
+<span class="normal">103</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Returns the number of detections in the Detections object.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -4649,8 +4667,7 @@ the data field.</p>
 </details>
           <details class="quote">
             <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">936</span>
-<span class="normal">937</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">937</span>
 <span class="normal">938</span>
 <span class="normal">939</span>
 <span class="normal">940</span>
@@ -4682,7 +4699,8 @@ the data field.</p>
 <span class="normal">966</span>
 <span class="normal">967</span>
 <span class="normal">968</span>
-<span class="normal">969</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">List</span><span class="p">]):</span>
+<span class="normal">969</span>
+<span class="normal">970</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">List</span><span class="p">]):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Set a value in the data dictionary of the Detections object.</span>
 
@@ -4775,8 +4793,7 @@ the data field.</p>
 </details>
           <details class="quote">
             <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">710</span>
-<span class="normal">711</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">711</span>
 <span class="normal">712</span>
 <span class="normal">713</span>
 <span class="normal">714</span>
@@ -4795,7 +4812,8 @@ the data field.</p>
 <span class="normal">727</span>
 <span class="normal">728</span>
 <span class="normal">729</span>
-<span class="normal">730</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">730</span>
+<span class="normal">731</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span> <span class="nf">empty</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Create an empty Detections object with no bounding boxes,</span>
@@ -4937,8 +4955,7 @@ names (str). If None, a new mapping is created dynamically.</p>
 </details>
           <details class="quote">
             <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">581</span>
-<span class="normal">582</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">582</span>
 <span class="normal">583</span>
 <span class="normal">584</span>
 <span class="normal">585</span>
@@ -5022,7 +5039,8 @@ names (str). If None, a new mapping is created dynamically.</p>
 <span class="normal">663</span>
 <span class="normal">664</span>
 <span class="normal">665</span>
-<span class="normal">666</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">666</span>
+<span class="normal">667</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span> <span class="nf">from_azure_analyze_image</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">,</span> <span class="n">azure_result</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">class_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
@@ -5204,8 +5222,7 @@ inference result.</p>
 </details>
           <details class="quote">
             <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">318</span>
-<span class="normal">319</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">319</span>
 <span class="normal">320</span>
 <span class="normal">321</span>
 <span class="normal">322</span>
@@ -5239,7 +5256,8 @@ inference result.</p>
 <span class="normal">350</span>
 <span class="normal">351</span>
 <span class="normal">352</span>
-<span class="normal">353</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">353</span>
+<span class="normal">354</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span> <span class="nf">from_deepsparse</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">deepsparse_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Creates a Detections instance from a</span>
@@ -5376,8 +5394,7 @@ class IDs, and confidences of the predictions.</p>
 </details>
           <details class="quote">
             <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">405</span>
-<span class="normal">406</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">406</span>
 <span class="normal">407</span>
 <span class="normal">408</span>
 <span class="normal">409</span>
@@ -5416,7 +5433,8 @@ class IDs, and confidences of the predictions.</p>
 <span class="normal">442</span>
 <span class="normal">443</span>
 <span class="normal">444</span>
-<span class="normal">445</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">445</span>
+<span class="normal">446</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span> <span class="nf">from_detectron2</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">detectron2_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Create a Detections object from the</span>
@@ -5562,8 +5580,7 @@ and confidences of the predictions.</p>
 </details>
           <details class="quote">
             <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">447</span>
-<span class="normal">448</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">448</span>
 <span class="normal">449</span>
 <span class="normal">450</span>
 <span class="normal">451</span>
@@ -5613,7 +5630,8 @@ and confidences of the predictions.</p>
 <span class="normal">495</span>
 <span class="normal">496</span>
 <span class="normal">497</span>
-<span class="normal">498</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">498</span>
+<span class="normal">499</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span> <span class="nf">from_inference</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">roboflow_result</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Create a Detections object from the [Roboflow](https://roboflow.com/)</span>
@@ -5761,8 +5779,7 @@ and confidences of the predictions.</p>
 </details>
           <details class="quote">
             <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">355</span>
-<span class="normal">356</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">356</span>
 <span class="normal">357</span>
 <span class="normal">358</span>
 <span class="normal">359</span>
@@ -5793,7 +5810,8 @@ and confidences of the predictions.</p>
 <span class="normal">384</span>
 <span class="normal">385</span>
 <span class="normal">386</span>
-<span class="normal">387</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">387</span>
+<span class="normal">388</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span> <span class="nf">from_mmdetection</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">mmdet_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Creates a Detections instance from a</span>
@@ -5928,8 +5946,7 @@ and confidences of the predictions.</p>
 </details>
           <details class="quote">
             <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">668</span>
-<span class="normal">669</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">669</span>
 <span class="normal">670</span>
 <span class="normal">671</span>
 <span class="normal">672</span>
@@ -5968,7 +5985,8 @@ and confidences of the predictions.</p>
 <span class="normal">705</span>
 <span class="normal">706</span>
 <span class="normal">707</span>
-<span class="normal">708</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">708</span>
+<span class="normal">709</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span> <span class="nf">from_paddledet</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">paddledet_result</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Creates a Detections instance from</span>
@@ -6112,8 +6130,7 @@ and confidences of the predictions.</p>
 </details>
           <details class="quote">
             <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">500</span>
-<span class="normal">501</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">501</span>
 <span class="normal">502</span>
 <span class="normal">503</span>
 <span class="normal">504</span>
@@ -6149,7 +6166,8 @@ and confidences of the predictions.</p>
 <span class="normal">534</span>
 <span class="normal">535</span>
 <span class="normal">536</span>
-<span class="normal">537</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">537</span>
+<span class="normal">538</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="nd">@deprecated</span><span class="p">(</span>
     <span class="s2">&quot;`Detections.from_roboflow` is deprecated and will be removed in &quot;</span>
     <span class="s2">&quot;`supervision-0.22.0`. Use `Detections.from_inference` instead.&quot;</span>
@@ -6285,8 +6303,7 @@ inference result.</p>
 </details>
           <details class="quote">
             <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">539</span>
-<span class="normal">540</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">540</span>
 <span class="normal">541</span>
 <span class="normal">542</span>
 <span class="normal">543</span>
@@ -6325,7 +6342,8 @@ inference result.</p>
 <span class="normal">576</span>
 <span class="normal">577</span>
 <span class="normal">578</span>
-<span class="normal">579</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">579</span>
+<span class="normal">580</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span> <span class="nf">from_sam</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">sam_result</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Creates a Detections instance from</span>
@@ -6463,8 +6481,7 @@ inference result.</p>
 </details>
           <details class="quote">
             <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">277</span>
-<span class="normal">278</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">278</span>
 <span class="normal">279</span>
 <span class="normal">280</span>
 <span class="normal">281</span>
@@ -6502,7 +6519,8 @@ inference result.</p>
 <span class="normal">313</span>
 <span class="normal">314</span>
 <span class="normal">315</span>
-<span class="normal">316</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">316</span>
+<span class="normal">317</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span> <span class="nf">from_tensorflow</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">,</span> <span class="n">tensorflow_results</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">resolution_wh</span><span class="p">:</span> <span class="nb">tuple</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
@@ -6594,8 +6612,7 @@ inference result.</p>
 
           <details class="quote">
             <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">389</span>
-<span class="normal">390</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">390</span>
 <span class="normal">391</span>
 <span class="normal">392</span>
 <span class="normal">393</span>
@@ -6608,7 +6625,8 @@ inference result.</p>
 <span class="normal">400</span>
 <span class="normal">401</span>
 <span class="normal">402</span>
-<span class="normal">403</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">403</span>
+<span class="normal">404</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span> <span class="nf">from_transformers</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">transformers_results</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Creates a Detections instance from object detection</span>
@@ -6725,8 +6743,7 @@ inference result.</p>
 </details>
           <details class="quote">
             <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">175</span>
-<span class="normal">176</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">176</span>
 <span class="normal">177</span>
 <span class="normal">178</span>
 <span class="normal">179</span>
@@ -6787,7 +6804,8 @@ inference result.</p>
 <span class="normal">234</span>
 <span class="normal">235</span>
 <span class="normal">236</span>
-<span class="normal">237</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">237</span>
+<span class="normal">238</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span> <span class="nf">from_ultralytics</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">ultralytics_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Creates a Detections instance from a</span>
@@ -6948,8 +6966,7 @@ ImageDetectionPrediction is coming from
 </details>
           <details class="quote">
             <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">239</span>
-<span class="normal">240</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">240</span>
 <span class="normal">241</span>
 <span class="normal">242</span>
 <span class="normal">243</span>
@@ -6984,7 +7001,8 @@ ImageDetectionPrediction is coming from
 <span class="normal">272</span>
 <span class="normal">273</span>
 <span class="normal">274</span>
-<span class="normal">275</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">275</span>
+<span class="normal">276</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span> <span class="nf">from_yolo_nas</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">yolo_nas_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Creates a Detections instance from a</span>
@@ -7115,8 +7133,7 @@ ImageDetectionPrediction is coming from
 </details>
           <details class="quote">
             <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">142</span>
-<span class="normal">143</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">143</span>
 <span class="normal">144</span>
 <span class="normal">145</span>
 <span class="normal">146</span>
@@ -7146,7 +7163,8 @@ ImageDetectionPrediction is coming from
 <span class="normal">170</span>
 <span class="normal">171</span>
 <span class="normal">172</span>
-<span class="normal">173</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">173</span>
+<span class="normal">174</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span> <span class="nf">from_yolov5</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">yolov5_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Creates a Detections instance from a</span>
@@ -7286,8 +7304,7 @@ anchor point for the corresponding bounding box.</p>
 
           <details class="quote">
             <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">823</span>
-<span class="normal">824</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">824</span>
 <span class="normal">825</span>
 <span class="normal">826</span>
 <span class="normal">827</span>
@@ -7350,7 +7367,8 @@ anchor point for the corresponding bounding box.</p>
 <span class="normal">884</span>
 <span class="normal">885</span>
 <span class="normal">886</span>
-<span class="normal">887</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">get_anchors_coordinates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">anchor</span><span class="p">:</span> <span class="n">Position</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="normal">887</span>
+<span class="normal">888</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">get_anchors_coordinates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">anchor</span><span class="p">:</span> <span class="n">Position</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Calculates and returns the coordinates of a specific anchor point</span>
 <span class="sd">    within the bounding boxes defined by the `xyxy` attribute. The anchor</span>
@@ -7533,8 +7551,7 @@ the merged data from the input list.</p>
 </details>
           <details class="quote">
             <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">732</span>
-<span class="normal">733</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">733</span>
 <span class="normal">734</span>
 <span class="normal">735</span>
 <span class="normal">736</span>
@@ -7622,7 +7639,8 @@ the merged data from the input list.</p>
 <span class="normal">818</span>
 <span class="normal">819</span>
 <span class="normal">820</span>
-<span class="normal">821</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">821</span>
+<span class="normal">822</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span> <span class="nf">merge</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">detections_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Detections</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Merge a list of Detections objects into a single Detections object.</span>
@@ -7731,7 +7749,8 @@ the merged data from the input list.</p>
 
   <div class="doc doc-contents ">
   
-      <p>Perform non-maximum suppression on the current set of object detections.</p>
+      <p>Performs non-max suppression on detection set. If the detections result
+from a segmentation model, the IoU mask is applied. Otherwise, box IoU is used.</p>
 
 
 
@@ -7833,8 +7852,7 @@ If <code>class_id</code> is None and class_agnostic is False.</p>
 
           <details class="quote">
             <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1000</span>
-<span class="normal">1001</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1001</span>
 <span class="normal">1002</span>
 <span class="normal">1003</span>
 <span class="normal">1004</span>
@@ -7878,11 +7896,22 @@ If <code>class_id</code> is None and class_agnostic is False.</p>
 <span class="normal">1042</span>
 <span class="normal">1043</span>
 <span class="normal">1044</span>
-<span class="normal">1045</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">with_nms</span><span class="p">(</span>
+<span class="normal">1045</span>
+<span class="normal">1046</span>
+<span class="normal">1047</span>
+<span class="normal">1048</span>
+<span class="normal">1049</span>
+<span class="normal">1050</span>
+<span class="normal">1051</span>
+<span class="normal">1052</span>
+<span class="normal">1053</span>
+<span class="normal">1054</span>
+<span class="normal">1055</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">with_nms</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span> <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">class_agnostic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Perform non-maximum suppression on the current set of object detections.</span>
+<span class="sd">    Performs non-max suppression on detection set. If the detections result</span>
+<span class="sd">    from a segmentation model, the IoU mask is applied. Otherwise, box IoU is used.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        threshold (float, optional): The intersection-over-union threshold</span>
@@ -7909,20 +7938,28 @@ If <code>class_id</code> is None and class_agnostic is False.</p>
 
     <span class="k">if</span> <span class="n">class_agnostic</span><span class="p">:</span>
         <span class="n">predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
-        <span class="n">indices</span> <span class="o">=</span> <span class="n">non_max_suppression</span><span class="p">(</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s2">&quot;Detections class_id must be given for NMS to be executed. If you&quot;</span>
+            <span class="s2">&quot; intended to perform class agnostic NMS set class_agnostic=True.&quot;</span>
+        <span class="p">)</span>
+        <span class="n">predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span>
+            <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">class_id</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="n">mask_non_max_suppression</span><span class="p">(</span>
+            <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span> <span class="n">masks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span> <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="n">box_non_max_suppression</span><span class="p">(</span>
             <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span> <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="n">indices</span><span class="p">]</span>
 
-    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
-        <span class="s2">&quot;Detections class_id must be given for NMS to be executed. If you intended&quot;</span>
-        <span class="s2">&quot; to perform class agnostic NMS set class_agnostic=True.&quot;</span>
-    <span class="p">)</span>
-
-    <span class="n">predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span>
-        <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_id</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
-    <span class="p">)</span>
-    <span class="n">indices</span> <span class="o">=</span> <span class="n">non_max_suppression</span><span class="p">(</span><span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span> <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">)</span>
     <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="n">indices</span><span class="p">]</span>
 </code></pre></div></td></tr></table></div>
           </details>
@@ -8127,7 +8164,7 @@ If <code>class_id</code> is None and class_agnostic is False.</p>
     <script id="__config" type="application/json">{"base": "../..", "features": ["content.code.copy", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.caa56a14.min.js"></script>
+      <script src="../../assets/javascripts/bundle.8fd75fb4.min.js"></script>
       
         <script src="https://widget.kapa.ai/kapa-widget.bundle.js"></script>
       
