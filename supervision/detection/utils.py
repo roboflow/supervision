@@ -63,35 +63,50 @@ def box_iou_batch(boxes_true: np.ndarray, boxes_detection: np.ndarray) -> np.nda
 def mask_iou_batch(masks_true: np.ndarray, masks_detection: np.ndarray) -> np.ndarray:
     """
     Compute Intersection over Union (IoU) of two sets of masks -
-        `masks_true` and `masks_detection`. Both sets
-        of masks are expected to be binary arrays where 1 represents the object
-        and 0 represents the background.
+        `masks_true` and `masks_detection`.
 
     Args:
         masks_true (np.ndarray): 3D `np.ndarray` representing ground-truth masks.
-            `shape = (N, H, W)` where `N` is number of true objects, and H, W are
-            the dimensions of the masks.
         masks_detection (np.ndarray): 3D `np.ndarray` representing detection masks.
-            `shape = (M, H, W)` where `M` is number of detected objects, and H, W are
-            the dimensions of the masks.
 
     Returns:
         np.ndarray: Pairwise IoU of masks from `masks_true` and `masks_detection`.
-            `shape = (N, M)` where `N` is number of true objects and
-            `M` is number of detected objects.
     """
-    masks_true = masks_true.astype(bool)
-    masks_detection = masks_detection.astype(bool)
+    intersection_area = np.logical_and(masks_true[:, None], masks_detection).sum(axis=(2, 3))
+    masks_true_area = masks_true.sum(axis=(1, 2)) 
+    masks_detection_area = masks_detection.sum(axis=(1, 2))
 
-    intersection = np.logical_and(masks_true[:, None], masks_detection)
-    intersection_area = intersection.sum(axis=(2, 3))
+    union_area = masks_true_area[:, None] + masks_detection_area - intersection_area
 
-    union = np.logical_or(masks_true[:, None], masks_detection)
-    union_area = union.sum(axis=(2, 3))
+    return np.divide(intersection_area, union_area, out=np.zeros_like(intersection_area, dtype=float), where=union_area != 0)
 
-    iou = intersection_area / union_area
-    return iou
+def resize_masks(masks: np.ndarray, max_dimension: int = 640) -> np.ndarray:
+    """
+    Resize all masks in the array to have a maximum dimension of max_dimension,
+    maintaining aspect ratio.
 
+    Args:
+        masks (np.ndarray): 3D array of binary masks with shape (N, H, W).
+        max_dimension (int): The maximum dimension for the resized masks.
+
+    Returns:
+        np.ndarray: Array of resized masks.
+    """
+    max_height = np.max(masks.shape[1])
+    max_width = np.max(masks.shape[2])
+    scale = min(max_dimension / max_height, max_dimension / max_width)
+
+    new_height = int(scale * max_height)
+    new_width = int(scale * max_width)
+
+    x = np.linspace(0, max_width - 1, new_width).astype(int)
+    y = np.linspace(0, max_height - 1, new_height).astype(int)
+    xv, yv = np.meshgrid(x, y)
+
+    resized_masks = masks[:, yv, xv]
+
+    resized_masks = resized_masks.reshape(masks.shape[0], new_height, new_width)
+    return resized_masks
 
 def mask_non_max_suppression(
     predictions: np.ndarray, masks: np.ndarray, iou_threshold: float = 0.5
@@ -131,7 +146,8 @@ def mask_non_max_suppression(
     masks_sorted = masks[sort_index]
 
     start_time = time.time()
-    ious = mask_iou_batch(masks_sorted, masks_sorted)
+    resized_masks = resize_masks(masks_sorted, max_dimension=640)
+    ious = mask_iou_batch(resized_masks, resized_masks)
     end_time = time.time()
     execution_time = end_time - start_time
     print(f"mask_iou_batch execution time: {execution_time} seconds")

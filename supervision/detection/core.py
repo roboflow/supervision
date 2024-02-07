@@ -1002,8 +1002,8 @@ class Detections:
         self, threshold: float = 0.5, class_agnostic: bool = False
     ) -> Detections:
         """
-        Perform non-maximum suppression on the current set
-        of object detections or segmentation prediction.
+        Performs non-max suppression on detection set. If the detections result 
+        from a segmentation model, the IoU mask is applied. Otherwise, box IoU is used.
 
         Args:
             threshold (float, optional): The intersection-over-union threshold
@@ -1043,7 +1043,7 @@ class Detections:
                 )
             )
 
-        if hasattr(self, "mask") and self.mask is not None:
+        if self.mask is not None:
             indices = mask_non_max_suppression(
                 predictions=predictions, masks=self.mask, iou_threshold=threshold
             )

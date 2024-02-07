@@ -45,6 +45,7 @@ from supervision.detection.utils import (
     box_non_max_suppression,
     calculate_masks_centroids,
     filter_polygons_by_area,
+    mask_iou_batch,
     mask_non_max_suppression,
     mask_to_polygons,
     mask_to_xyxy,
