@@ -8,12 +8,13 @@ import numpy as np
 
 from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.utils import (
+    box_non_max_suppression,
     calculate_masks_centroids,
     extract_ultralytics_masks,
     get_data_item,
     is_data_equal,
+    mask_non_max_suppression,
     merge_data,
-    non_max_suppression,
     process_roboflow_result,
     validate_detections_fields,
     xywh_to_xyxy,
@@ -1001,7 +1002,8 @@ class Detections:
         self, threshold: float = 0.5, class_agnostic: bool = False
     ) -> Detections:
         """
-        Perform non-maximum suppression on the current set of object detections.
+        Performs non-max suppression on detection set. If the detections result
+        from a segmentation model, the IoU mask is applied. Otherwise, box IoU is used.
 
         Args:
             threshold (float, optional): The intersection-over-union threshold
@@ -1028,18 +1030,26 @@ class Detections:
 
         if class_agnostic:
             predictions = np.hstack((self.xyxy, self.confidence.reshape(-1, 1)))
-            indices = non_max_suppression(
+        else:
+            assert self.class_id is not None, (
+                "Detections class_id must be given for NMS to be executed. If you"
+                " intended to perform class agnostic NMS set class_agnostic=True."
+            )
+            predictions = np.hstack(
+                (
+                    self.xyxy,
+                    self.confidence.reshape(-1, 1),
+                    self.class_id.reshape(-1, 1),
+                )
+            )
+
+        if self.mask is not None:
+            indices = mask_non_max_suppression(
+                predictions=predictions, masks=self.mask, iou_threshold=threshold
+            )
+        else:
+            indices = box_non_max_suppression(
                 predictions=predictions, iou_threshold=threshold
             )
-            return self[indices]
 
-        assert self.class_id is not None, (
-            "Detections class_id must be given for NMS to be executed. If you intended"
-            " to perform class agnostic NMS set class_agnostic=True."
-        )
-
-        predictions = np.hstack(
-            (self.xyxy, self.confidence.reshape(-1, 1), self.class_id.reshape(-1, 1))
-        )
-        indices = non_max_suppression(predictions=predictions, iou_threshold=threshold)
         return self[indices]
