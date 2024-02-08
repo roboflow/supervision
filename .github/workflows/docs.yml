@@ -44,4 +44,4 @@ jobs:
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
       - name: 🚀 Deploy MkDoc-Material with mike
         run: |
-          mike deploy --push develop
+          MKDOCS_GIT_COMMITTERS_APIKEY=${{ secrets.GH_TOKEN }} mike deploy --push develop
