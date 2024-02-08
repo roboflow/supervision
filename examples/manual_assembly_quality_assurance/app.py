@@ -1,5 +1,4 @@
 import optparse
-import os
 
 import cv2
 from inference import InferencePipeline
