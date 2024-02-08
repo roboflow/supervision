@@ -27,8 +27,6 @@ document.addEventListener("DOMContentLoaded", function () {
     let authorHTML = '';
     authorDataArray.forEach((authorData, index) => {
       const marginLeft = index === 0 ? '0' : '-15px';
-      const backgroundColor = theme === 'light-default' ? 'rgba(0, 0, 0, 0.5)' : 'rgba(255, 255, 255, 0.5)';
-      const textColor = theme === 'light-default' ? '#fff' : '#000';
       authorHTML += `
           <div class="author-container" style="display: inline-block; margin-left: ${marginLeft}; position: relative;">
           <a href="https://github.com/${authorData.login}" target="_blank">
@@ -85,21 +83,6 @@ document.addEventListener("DOMContentLoaded", function () {
     let sanitizedHTML = DOMPurify.sanitize(el.innerText);
     el.innerHTML = sanitizedHTML;
   }
-  const themes = {
-    'light-default': {
-      background: 'white',
-      borderColor: '#e1e4e8',
-      color: '#586069',
-      linkColor: '#0366d6',
-    },
-    'dark-theme': {
-      background: '#1e2129',
-      borderColor: '#607D8B',
-      color: '#ECEFF1',
-      linkColor: '#9E9E9E',
-    }
-  }
-
   for (const el of document.querySelectorAll('.repo-card')) {
     const url = el.getAttribute('data-url');
     const name = el.getAttribute('data-name');
