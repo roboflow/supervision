@@ -75,7 +75,7 @@ nav:
   - Changelog:
         - Changelog: changelog.md
         - Deprecated: deprecated.md
-  
+
 
 
 theme:
