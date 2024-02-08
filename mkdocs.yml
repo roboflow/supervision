@@ -75,7 +75,6 @@ nav:
         - Deprecated: deprecated.md
   - License: license.md
   - Cookbooks: cookbooks.md
-  - Supervision: notebooks/demo.ipynb
 
 
 theme:
@@ -86,7 +85,6 @@ theme:
   favicon: assets/supervision-lenny.png
   custom_dir: docs/theme
   features:
-    - navigation.instant
     - navigation.tracking
     - content.code.copy
     - content.action.edit

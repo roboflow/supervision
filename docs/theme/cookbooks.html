@@ -1,8 +1,8 @@
 {% extends "main.html" %}
 {% block libs %}
-<script src="/javascript/cookbooks-card.js"></script>
-
 <link rel="stylesheet" href="/stylesheets/cookbooks.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.3.3/purify.min.js"></script>
+<script src="/javascript/cookbooks-card.js"></script>
 {% endblock %}
 {% block content %}
 <section class="mdx-container portfolio-section">
@@ -11,9 +11,9 @@
       <h1>Supervision Cookbooks</h1>
     </div>
     <div class="grid">
-      <p class="card repo-card" data-name="Supervision" data-desc="Notebook desc" data-labels="annotator,linezone" data-version="v0.18.0"></p>
-      <p class="card repo-card" data-name="Supervision" data-desc="Notebook desc" data-labels="" data-version="v0.18.0"></p>
-      <p class="card repo-card" data-name="Supervision" data-desc="Notebook desc" data-labels="" data-version="v0.18.0"></p>
+      <p class="card repo-card" data-name="Supervision Quickstart" data-desc="Supervision's Quickstart Notebook" data-labels="annotator,annotator,linezone" data-version="v0.18.0" data-author="onuralpszr,roboflow,SkalskiP"></p>
+      <p class="card repo-card" data-name="Yolov8" data-desc="Notebook desc" data-labels="annotator,yolov8" data-version="v0.18.0" data-author="onuralpszr"></p>
+      <p class="card repo-card" data-name="Segment Anything" data-desc="Notebook desc" data-labels="segmentation,sam" data-version="v0.18.0" data-author="onuralpszr"></p>
     </div>
   </div>
 </section>

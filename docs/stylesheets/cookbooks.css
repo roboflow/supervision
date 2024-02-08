@@ -9,3 +9,11 @@
 .md-typeset h1 {
     margin: 0 0 0.75rem;
 }
+
+.author-name {
+  opacity: 0;
+}
+
+div:hover .author-name {
+  opacity: 1;
+}
