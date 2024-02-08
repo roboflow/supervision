@@ -1,7 +1,7 @@
 
 document.addEventListener("DOMContentLoaded", function () {
 
-  async function setCard(el, name, desc, labels, version, theme, authors) {
+  async function setCard(el, url, name, desc, labels, version, theme, authors) {
     const colorList = [
       "A351FB", "FF4040", "FFA1A0", "FF7633", "FFB633", "D1D435", "4CFB12",
       "94CF1A", "40DE8A", "1B9640", "00D6C1", "2E9CAA", "00C4FF", "364797",
@@ -61,7 +61,7 @@ document.addEventListener("DOMContentLoaded", function () {
         <div style="display: flex; align-items: center;">
           <i class="fa-solid:book-open" style="color: ${theme.color}; margin-right: 8px;"></i>
           <span style="font-weight: 600; color: ${theme.linkColor};">
-            <a style="text-decoration: none; color: inherit;" href="/notebooks/demo/">${name}</a>
+            <a style="text-decoration: none; color: inherit;" href="${url}">${name}</a>
           </span>
         </div>
         <div style="font-size: 12px; margin-bottom: 10px; margin-top: 8px; color: ${theme.color}; flex: 1;">${desc}</div>
@@ -101,6 +101,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   for (const el of document.querySelectorAll('.repo-card')) {
+    const url = el.getAttribute('data-url');
     const name = el.getAttribute('data-name');
     const desc = el.getAttribute('data-desc');
     const labels = el.getAttribute('data-labels');
@@ -113,6 +114,6 @@ document.addEventListener("DOMContentLoaded", function () {
       var theme = "light-default"
     }
 
-    setCard(el, name, desc, labels, version, theme, authors);
+    setCard(el, url, name, desc, labels, version, theme, authors);
   }
 })
