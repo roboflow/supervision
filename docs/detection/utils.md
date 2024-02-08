@@ -11,10 +11,22 @@ comments: true
 :::supervision.detection.utils.box_iou_batch
 
 <div class="md-typeset">
-  <h2>non_max_suppression</h2>
+  <h2>mask_iou_batch</h2>
 </div>
 
-:::supervision.detection.utils.non_max_suppression
+:::supervision.detection.utils.mask_iou_batch
+
+<div class="md-typeset">
+  <h2>box_non_max_suppression</h2>
+</div>
+
+:::supervision.detection.utils.box_non_max_suppression
+
+<div class="md-typeset">
+  <h2>mask_non_max_suppression</h2>
+</div>
+
+:::supervision.detection.utils.mask_non_max_suppression
 
 <div class="md-typeset">
     <h2>polygon_to_mask</h2>
