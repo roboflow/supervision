@@ -1,5 +1,34 @@
+.custom-grid {
+    display: grid;
+    grid-gap: 1rem;
+    /* Start with a single column layout */
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+/* Medium screens (640px and up) */
+@media (min-width: 640px) {
+    .custom-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* Large screens (1024px and up) */
+@media (min-width: 1024px) {
+    .custom-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
 .repo-card {
-    min-height: 130px;
+    background: radial-gradient(at right top, #A351FB25, #A5F9EA25);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    transition: transform 0.2s ease-in-out; /* Smooth transition for the transform */
+    cursor: pointer;
+}
+
+.repo-card:hover {
+    transform: translateY(-0.125rem); /* Move up by -0.125rem on hover */
 }
 
 .portfolio-section {
@@ -16,4 +45,11 @@
 
 div:hover .author-name {
   opacity: 1;
+}
+
+.non-selectable-text {
+    -webkit-user-select: none; /* Safari */
+    -moz-user-select: none; /* Firefox */
+    -ms-user-select: none; /* Internet Explorer/Edge */
+    user-select: none; /* Non-prefixed version, currently supported by Chrome, Opera, and Edge */
 }
