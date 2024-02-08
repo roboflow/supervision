@@ -143,7 +143,6 @@ plugins:
   - git-committers:
       repository: roboflow/supervision
       branch: develop
-      token: !ENV ["GH_TOKEN"]
   - git-revision-date-localized:
       enable_creation_date: true
 

@@ -1,6 +1,8 @@
 name: Docs WorkFlow - Develop Tag 📚
 
 on:
+  pull_request:
+    branches: [develop]
   push:
     branches:
       - develop
