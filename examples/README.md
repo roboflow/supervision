@@ -9,6 +9,7 @@ interfaces with diverse applications.
 - [traffic analysis](./traffic_analysis) by [@SkalskiP](https://github.com/SkalskiP)
 - [speed estimation](./speed_estimation) by [@SkalskiP](https://github.com/SkalskiP)
 - [heatmap and track](./heatmap_and_track/) by [@HinePo](https://github.com/HinePo)
+- [manual assembly quality assurance](./manual_assembly_quality_assurance) by [@capjamesg](https://github.com/capjamesg)
 
 ## Contributing
 
