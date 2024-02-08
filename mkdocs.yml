@@ -66,15 +66,16 @@ nav:
         - Image: utils/image.md
         - Notebook: utils/notebook.md
         - File: utils/file.md
-  - Assets: assets.md
-  - Development:
+    - Assets: assets.md
+  - Cookbooks: cookbooks.md
+  - Contribute:
     - Contributing: contributing.md
     - Code of Conduct: code_of_conduct.md
+    - License: license.md
   - Changelog:
         - Changelog: changelog.md
         - Deprecated: deprecated.md
-  - License: license.md
-  - Cookbooks: cookbooks.md
+  
 
 
 theme:
@@ -90,6 +91,7 @@ theme:
     - content.action.edit
     - content.tooltips
     - content.code.annotate
+    - navigation.tabs
 
   palette:
     # Palette for light mode

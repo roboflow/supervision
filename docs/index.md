@@ -1,5 +1,7 @@
 ---
 comments: true
+hide:
+  - navigation
 ---
 
 <div align="center">
