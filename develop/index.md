@@ -5,13 +5,6 @@ hide:
   - toc
 ---
 
-<style>
-  .md-typeset h1,
-  .md-content__button {
-    display: none;
-  }
-</style>
-
 <div align="center">
   <p>
     <a align="center" href="" target="_blank">
