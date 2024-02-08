@@ -14,6 +14,7 @@
 
   <br>
 
+[![Supervision](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/roboflow/supervision/sv-badge/assets/badge/v1.json)](https://github.com/roboflow/supervision)
 [![version](https://badge.fury.io/py/supervision.svg)](https://badge.fury.io/py/supervision)
 [![downloads](https://img.shields.io/pypi/dm/supervision)](https://pypistats.org/packages/supervision)
 [![license](https://img.shields.io/pypi/l/supervision)](https://github.com/roboflow/supervision/blob/main/LICENSE.md)
