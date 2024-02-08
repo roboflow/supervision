@@ -1,0 +1,18 @@
+{% extends "main.html" %}
+{% block libs %}
+<link rel="stylesheet" href="/stylesheets/cookbooks.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.3.3/purify.min.js"></script>
+<script src="/javascripts/cookbooks-card.js"></script>
+{% endblock %}
+{% block content %}
+<section class="mdx-container portfolio-section">
+  <div class="md-grid md-typeset">
+    <div class="text-center">
+      <h1>Supervision Cookbooks</h1>
+    </div>
+    <div class="grid">
+      <p class="card repo-card" data-url="/latest/notebooks/quickstart" data-name="Supervision Quickstart" data-desc="Quickstart to Supervision" data-labels="annotator,detection,sam" data-version="v0.18.0" data-author="SkalskiP,onuralpszr"></p>
+    </div>
+  </div>
+</section>
+{% endblock %}
