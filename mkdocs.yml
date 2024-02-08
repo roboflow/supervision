@@ -41,6 +41,7 @@ nav:
       - Track Objects: how_to/track_objects.md
       - Filter Detections: how_to/filter_detections.md
   - API:
+    - Annotators: annotators.md
     - Classifications:
         - Core: classification/core.md
     - Detections:
@@ -52,7 +53,6 @@ nav:
         - Inference Slicer: detection/tools/inference_slicer.md
         - Detection Smoother: detection/tools/smoother.md
         - Save Detections: detection/tools/save_detections.md
-    - Annotators: annotators.md
     - Trackers: trackers.md
     - Datasets: datasets.md
     - Metrics:
