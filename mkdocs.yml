@@ -31,6 +31,7 @@ extra:
 
 extra_css:
   - stylesheets/extra.css
+  - stylesheets/cookbooks-card.css
 
 
 nav:
@@ -169,3 +170,5 @@ markdown_extensions:
 extra_javascript:
   - "https://widget.kapa.ai/kapa-widget.bundle.js"
   - "javascripts/init_kapa_widget.js"
+  - "javascripts/cookbooks-card.js"
+  - "https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js"
