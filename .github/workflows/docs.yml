@@ -23,7 +23,7 @@ jobs:
         with:
           python-version: '3.10'
       - name: 📦 Install mkdocs-material
-        run: pip install mkdocs-material
+        run: pip install "mkdocs-material[all]"
       - name: 📦 Install mkdocstrings[python]
         run: pip install "mkdocstrings[python]"
       - name: 📦 Install mkdocs-material[imaging]
@@ -36,8 +36,6 @@ jobs:
         run: pip install jupyterlab
       - name: 📦 Install mkdocs-jupyter
         run: pip install mkdocs-jupyter
-      - name: 📦 Install mkdocs-material[all]
-        run: pip install "mkdocs-material[all]"
       - name: 📦 Install mkdocs-git-committers-plugin-2
         run: pip install mkdocs-git-committers-plugin-2
       - name: ⚙️ Configure git for github-actions
