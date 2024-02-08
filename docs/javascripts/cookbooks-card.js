@@ -75,7 +75,7 @@ document.addEventListener("DOMContentLoaded", function () {
           <div style="font-size: 12px; color: ${theme.color}; display: flex; flex: 0; justify-content: space-between">
             <div style="display: flex; align-items: center;">
               <img src="/assets/supervision-lenny.png" aria-label="stars" width="20" height="20" role="img" />
-              &nbsp; 
+              &nbsp;
               <span style="margin-left: 4px">${version}</span>
             </div>
             <div style="display: flex; align-items: center;">
