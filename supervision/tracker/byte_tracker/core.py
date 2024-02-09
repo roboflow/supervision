@@ -209,7 +209,6 @@ class ByteTrack:
             List[STrack]: Updated tracks.
         """
         return self._update_tracklets(tensors=tensors)
-  
 
     def update_with_detections(
         self, detections: Detections, keep_all: bool = False
@@ -253,16 +252,20 @@ class ByteTrack:
             )
             ```
         """
-        
+
         # Create tensors from detections to use during track match
         tensors = detections2boxes(detections=detections)
 
-        detections.tracker_id = self._update_tracklets(tensors=tensors,return_track_ids=True)
+        detections.tracker_id = self._update_tracklets(
+            tensors=tensors, return_track_ids=True
+        )
         if not keep_all:
             return self._get_valid_detections(detections)
         return detections
 
-    def _update_tracklets(self, tensors: np.ndarray,return_track_ids=False) -> Union[List[STrack],np.ndarray]:
+    def _update_tracklets(
+        self, tensors: np.ndarray, return_track_ids=False
+    ) -> Union[List[STrack], np.ndarray]:
         """
         Updates the tracker with the provided Detections and returns the
         updated Detections.
@@ -456,20 +459,21 @@ class ByteTrack:
             # Update IDs list with ID from unconfirmed tracked detection
             if len(matches_unconfirmed) > 0:
                 for k, idx in matches_unconfirmed:
-                    tracked_ids[detections_u_map[idx]] = self._get_track_id(unconfirmed[k])
+                    tracked_ids[detections_u_map[idx]] = self._get_track_id(
+                        unconfirmed[k]
+                    )
 
             # Update IDs list with ID from new detection
             if len(u_detection_unconf) > 0:
                 for k in u_detection_unconf:
                     tracked_ids[detections_u_map[k]] = self._get_track_id(
                         detections_u_to_track[k]
-                )
-            
+                    )
+
             return np.array(tracked_ids)
-        
+
         output_stracks = [track for track in self.tracked_tracks if track.is_activated]
         return output_stracks
-      
 
     def _get_track_id(self, strack: STrack) -> Optional[int]:
         return strack.track_id if hasattr(strack, "track_id") else None
