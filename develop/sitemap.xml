@@ -131,6 +131,21 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
+         <loc>https://supervision.roboflow.com/develop/notebooks/annotate-video-with-detections/</loc>
+         <lastmod>2024-02-09</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://supervision.roboflow.com/develop/notebooks/download-supervision-assets/</loc>
+         <lastmod>2024-02-09</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://supervision.roboflow.com/develop/notebooks/object-tracking/</loc>
+         <lastmod>2024-02-09</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
          <loc>https://supervision.roboflow.com/develop/notebooks/quickstart/</loc>
          <lastmod>2024-02-09</lastmod>
          <changefreq>daily</changefreq>
