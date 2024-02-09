@@ -474,22 +474,6 @@ class ByteTrack:
     def _get_track_id(self, strack: STrack) -> Optional[int]:
         return strack.track_id if hasattr(strack, "track_id") else None
 
-    def _update_detection_track_id(
-        self, detections: Detections, track_ids_list: List[Optional[int]]
-    ) -> Detections:
-        """
-        Update the detection tracker ID.
-
-        Parameters:
-            detections: Detections object.
-            strack: List of track IDs.
-
-        Returns:
-            Updated detections object.
-        """
-        detections.tracker_id = np.array(track_ids_list)
-        return detections
-
     def _get_valid_detections(self, dets: Detections) -> Detections:
         """
         Filter detections with tracker id
