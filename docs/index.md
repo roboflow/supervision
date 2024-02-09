@@ -1,19 +1,20 @@
 ---
+template: index.html
 comments: true
 hide:
   - navigation
   - toc
 ---
 
-<div align="center">
-  <p>
-    <a align="center" href="" target="_blank">
-      <img
-        width="850"
-        src="https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png?updatedAt=1678995927529"
-      >
-    </a>
-  </p>
+<div class="md-typeset">
+  <h1></h1>
+</div>
+
+<div align="center" id="logo">
+  <a align="center" href="" target="_blank">
+      <img width="850"
+          src="https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png?updatedAt=1678995927529">
+  </a>
 </div>
 
 ## 👋 Hello
@@ -45,7 +46,7 @@ You can install `supervision` with pip in a
         If you require the full version of `supervision` with GUI support you can install the desktop version. This version includes the GUI components of OpenCV, allowing you to display images and videos on the screen.
 
         ```bash
-        pip install supervision[desktop]
+        pip install "supervision[desktop]"
         ```
 
 !!! example "git clone (for development)"
