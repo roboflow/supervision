@@ -38,8 +38,8 @@ document.addEventListener("DOMContentLoaded", function () {
     const labelHTML = labels ? labels.split(',').filter(label => label !== '').map((label, index) => {
         const color = labelToColor[label.trim()];
         return `
-            <span 
-                class="label non-selectable-text" 
+            <span
+                class="label non-selectable-text"
                 style="background-color: ${color}"
             >
                 ${label.trim()}
@@ -57,19 +57,19 @@ document.addEventListener("DOMContentLoaded", function () {
         const marginLeft = index === 0 ? '0' : '-10px';
         const zIndex = 100 - index;
         return `
-            <div 
-                class="author-container" 
-                data-login="${authorData.login}-${elementIndex}" 
+            <div
+                class="author-container"
+                data-login="${authorData.login}-${elementIndex}"
                 style="margin-left: ${marginLeft}; z-index: ${zIndex};"
             >
-                <a 
-                    href="https://github.com/${authorData.login}" 
-                    target="_blank" 
+                <a
+                    href="https://github.com/${authorData.login}"
+                    target="_blank"
                     style="line-height: 0;"
                 >
-                    <img 
-                        class="author-avatar" 
-                        src="${authorData.avatar_url}" 
+                    <img
+                        class="author-avatar"
+                        src="${authorData.avatar_url}"
                         alt="${authorData.login}'s avatar"
                     >
                 </a>
@@ -79,9 +79,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
     let authorNamesHTML = authorDataArray.map(
         authorData => `
-            <span 
-                class="author-name" 
-                data-login="${authorData.login}-${elementIndex}" 
+            <span
+                class="author-name"
+                data-login="${authorData.login}-${elementIndex}"
                 style="color: ${theme.color}"
             >
             <a href="https://github.com/${authorData.login}" target="_blank">
