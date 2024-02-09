@@ -14,15 +14,29 @@ document.addEventListener("DOMContentLoaded", function () {
         "#3b82f6",
     ]
 
-  async function renderCard(element) {
+    const repoCards = document.querySelectorAll(".repo-card");
+    const labelsAll = Array
+        .from(repoCards)
+        .flatMap((element) => element.getAttribute('data-labels').split(','))
+        .map(label => label.trim())
+        .filter(label => label !== '');
+    const uniqueLabels = [...new Set(labelsAll)];
+
+    const labelToColor = uniqueLabels.reduce((map, label, index) => {
+        map[label] = colorList[index % colorList.length];
+        return map;
+    }, {});
+
+
+  async function renderCard(element, elementIndex) {
     const url = element.getAttribute('data-url');
     const name = element.getAttribute('data-name');
     const labels = element.getAttribute('data-labels');
     const version = element.getAttribute('data-version');
     const authors = element.getAttribute('data-author');
 
-    const labelHTML = labels ? labels.split(',').map((label, index) => {
-        const color = colorList[index % colorList.length];
+    const labelHTML = labels ? labels.split(',').filter(label => label !== '').map((label, index) => {
+        const color = labelToColor[label.trim()];
         return `
             <span 
                 class="label non-selectable-text" 
@@ -45,7 +59,7 @@ document.addEventListener("DOMContentLoaded", function () {
         return `
             <div 
                 class="author-container" 
-                data-login="${authorData.login}" 
+                data-login="${authorData.login}-${elementIndex}" 
                 style="margin-left: ${marginLeft}; z-index: ${zIndex};"
             >
                 <a 
@@ -67,7 +81,7 @@ document.addEventListener("DOMContentLoaded", function () {
         authorData => `
             <span 
                 class="author-name" 
-                data-login="${authorData.login}" 
+                data-login="${authorData.login}-${elementIndex}" 
                 style="color: ${theme.color}"
             >
             <a href="https://github.com/${authorData.login}" target="_blank">
@@ -82,20 +96,6 @@ document.addEventListener("DOMContentLoaded", function () {
             <div class="author-names">${authorNamesHTML}</div>
         </div>
     `;
-
-    document.querySelectorAll('.author-name').forEach(element => {
-        element.addEventListener('mouseenter', function() {
-            const login = this.getAttribute('data-login');
-            console.log(login, "enter")
-            document.querySelector(`.author-container[data-login="${login}"]`).classList.add('hover');
-        });
-
-        element.addEventListener('mouseleave', function() {
-            const login = this.getAttribute('data-login');
-            console.log(login, "leave")
-            document.querySelector(`.author-container[data-login="${login}"]`).classList.remove('hover');
-        });
-    });
 
     element.innerText = `
       <a style="text-decoration: none; color: inherit;" href="${url}">
@@ -113,7 +113,7 @@ document.addEventListener("DOMContentLoaded", function () {
               &nbsp;
               <span style="margin-left: 4px">${version}</span>
             </div>
-            <div style="display: flex; align-items: center;">
+            <div style="display: flex; align-items: center; flex-wrap: wrap">
               ${labelHTML}
             </div>
           </div>
@@ -123,8 +123,20 @@ document.addEventListener("DOMContentLoaded", function () {
 
     let sanitizedHTML = DOMPurify.sanitize(element.innerText);
     element.innerHTML = sanitizedHTML;
+
+    document.querySelectorAll('.author-name').forEach(element => {
+        element.addEventListener('mouseenter', function() {
+            const login = this.getAttribute('data-login');
+            document.querySelector(`.author-container[data-login="${login}"]`).classList.add('hover');
+        });
+
+        element.addEventListener('mouseleave', function() {
+            const login = this.getAttribute('data-login');
+            document.querySelector(`.author-container[data-login="${login}"]`).classList.remove('hover');
+        });
+    });
   }
-    document.querySelectorAll('.repo-card').forEach((element, index) => {
-        renderCard(element);
+    repoCards.forEach((element, index) => {
+        renderCard(element, index);
     });
 })
