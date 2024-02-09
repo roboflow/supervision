@@ -104,8 +104,8 @@ class Trace:
         self.xy = np.concatenate(
             [self.xy, detections.get_anchors_coordinates(self.anchor)]
         )
-        if detections.tracker_id is not None:
-            self.tracker_id = np.concatenate([self.tracker_id, detections.tracker_id])
+    
+        self.tracker_id = np.concatenate([self.tracker_id, detections.tracker_id])
 
         unique_frame_id = np.unique(self.frame_id)
 
