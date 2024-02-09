@@ -502,7 +502,8 @@ class ByteTrack:
         """
         not_none_idx = np.where(dets.tracker_id)[0]
         return dets[not_none_idx] if len(not_none_idx) > 0 else dets.empty()
-    
+
+
 def joint_tracks(
     track_list_a: List[STrack], track_list_b: List[STrack]
 ) -> List[STrack]:
