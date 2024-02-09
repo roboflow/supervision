@@ -23,10 +23,14 @@ class PolygonZone:
         triggering_position (Position): The position within the bounding
             box that triggers the zone (default: Position.BOTTOM_CENTER)
         current_count (int): The current count of detected objects within the zone
-        class_in_count (Dict[str, int]): A dictionary storing per-class
-            counts of objects inside the zone
-        class_out_count (Dict[str, int]): A dictionary storing per-class
-            counts of objects outside the zone
+        class_in_current_count (Dict[int, int]): A dictionary storing per-class
+            counts of objects inside the zone for current frame
+        class_out_current_count (Dict[int, int]): A dictionary storing per-class
+            counts of objects outside the zone for current frame
+        class_in_total_count (Dict[int, int]): A dictionary storing per-class counts
+            of objects inside the zone for all frames
+        class_out_total_count (Dict[int, int]): A dictionary storing per-class counts
+            of objects outside the zone for all frames
         mask (np.ndarray): The 2D bool mask for the polygon zone
     """
 
