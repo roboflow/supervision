@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -208,148 +208,8 @@ class ByteTrack:
         Returns:
             List[STrack]: Updated tracks.
         """
-        self.frame_id += 1
-        activated_starcks = []
-        refind_stracks = []
-        lost_stracks = []
-        removed_stracks = []
-
-        class_ids = tensors[:, 5]
-        scores = tensors[:, 4]
-        bboxes = tensors[:, :4]
-
-        remain_inds = scores > self.track_thresh
-        inds_low = scores > 0.1
-        inds_high = scores < self.track_thresh
-
-        inds_second = np.logical_and(inds_low, inds_high)
-        dets_second = bboxes[inds_second]
-        dets = bboxes[remain_inds]
-        scores_keep = scores[remain_inds]
-        scores_second = scores[inds_second]
-
-        class_ids_keep = class_ids[remain_inds]
-        class_ids_second = class_ids[inds_second]
-
-        if len(dets) > 0:
-            """Detections"""
-            detections = [
-                STrack(STrack.tlbr_to_tlwh(tlbr), s, c)
-                for (tlbr, s, c) in zip(dets, scores_keep, class_ids_keep)
-            ]
-        else:
-            detections = []
-
-        """ Add newly detected tracklets to tracked_stracks"""
-        unconfirmed = []
-        tracked_stracks = []  # type: list[STrack]
-
-        for track in self.tracked_tracks:
-            if not track.is_activated:
-                unconfirmed.append(track)
-            else:
-                tracked_stracks.append(track)
-
-        """ Step 2: First association, with high score detection boxes"""
-        strack_pool = joint_tracks(tracked_stracks, self.lost_tracks)
-        # Predict the current location with KF
-        STrack.multi_predict(strack_pool)
-        dists = matching.iou_distance(strack_pool, detections)
-
-        dists = matching.fuse_score(dists, detections)
-        matches, u_track, u_detection = matching.linear_assignment(
-            dists, thresh=self.match_thresh
-        )
-
-        for itracked, idet in matches:
-            track = strack_pool[itracked]
-            det = detections[idet]
-            if track.state == TrackState.Tracked:
-                track.update(detections[idet], self.frame_id)
-                activated_starcks.append(track)
-            else:
-                track.re_activate(det, self.frame_id, new_id=False)
-                refind_stracks.append(track)
-
-        """ Step 3: Second association, with low score detection boxes"""
-        # association the untrack to the low score detections
-        if len(dets_second) > 0:
-            """Detections"""
-            detections_second = [
-                STrack(STrack.tlbr_to_tlwh(tlbr), s, c)
-                for (tlbr, s, c) in zip(dets_second, scores_second, class_ids_second)
-            ]
-        else:
-            detections_second = []
-        r_tracked_stracks = [
-            strack_pool[i]
-            for i in u_track
-            if strack_pool[i].state == TrackState.Tracked
-        ]
-        dists = matching.iou_distance(r_tracked_stracks, detections_second)
-        matches, u_track, u_detection_second = matching.linear_assignment(
-            dists, thresh=0.5
-        )
-        for itracked, idet in matches:
-            track = r_tracked_stracks[itracked]
-            det = detections_second[idet]
-            if track.state == TrackState.Tracked:
-                track.update(det, self.frame_id)
-                activated_starcks.append(track)
-            else:
-                track.re_activate(det, self.frame_id, new_id=False)
-                refind_stracks.append(track)
-
-        for it in u_track:
-            track = r_tracked_stracks[it]
-            if not track.state == TrackState.Lost:
-                track.mark_lost()
-                lost_stracks.append(track)
-
-        """Deal with unconfirmed tracks, usually tracks with only one beginning frame"""
-        detections = [detections[i] for i in u_detection]
-        dists = matching.iou_distance(unconfirmed, detections)
-
-        dists = matching.fuse_score(dists, detections)
-        matches, u_unconfirmed, u_detection = matching.linear_assignment(
-            dists, thresh=0.7
-        )
-        for itracked, idet in matches:
-            unconfirmed[itracked].update(detections[idet], self.frame_id)
-            activated_starcks.append(unconfirmed[itracked])
-        for it in u_unconfirmed:
-            track = unconfirmed[it]
-            track.mark_removed()
-            removed_stracks.append(track)
-
-        """ Step 4: Init new stracks"""
-        for inew in u_detection:
-            track = detections[inew]
-            if track.score < self.det_thresh:
-                continue
-            track.activate(self.kalman_filter, self.frame_id)
-            activated_starcks.append(track)
-        """ Step 5: Update state"""
-        for track in self.lost_tracks:
-            if self.frame_id - track.end_frame > self.max_time_lost:
-                track.mark_removed()
-                removed_stracks.append(track)
-
-        self.tracked_tracks = [
-            t for t in self.tracked_tracks if t.state == TrackState.Tracked
-        ]
-        self.tracked_tracks = joint_tracks(self.tracked_tracks, activated_starcks)
-        self.tracked_tracks = joint_tracks(self.tracked_tracks, refind_stracks)
-        self.lost_tracks = sub_tracks(self.lost_tracks, self.tracked_tracks)
-        self.lost_tracks.extend(lost_stracks)
-        self.lost_tracks = sub_tracks(self.lost_tracks, self.removed_tracks)
-        self.removed_tracks.extend(removed_stracks)
-        self.tracked_tracks, self.lost_tracks = remove_duplicate_tracks(
-            self.tracked_tracks, self.lost_tracks
-        )
-        output_stracks = [track for track in self.tracked_tracks if track.is_activated]
-
-        return output_stracks
+        return self._update_tracklets(tensors=tensors)
+  
 
     def update_with_detections(
         self, detections: Detections, keep_all: bool = False
@@ -393,34 +253,41 @@ class ByteTrack:
             )
             ```
         """
-        detections = self._update_detections(detections)
+        
+        # Create tensors from detections to use during track match
+        tensors = detections2boxes(detections=detections)
 
+        detections.tracker_id = self._update_tracklets(tensors=tensors,return_track_ids=True)
         if not keep_all:
             return self._get_valid_detections(detections)
         return detections
 
-    def _update_detections(self, detections: Detections) -> Detections:
+    def _update_tracklets(self, tensors: np.ndarray,return_track_ids=False) -> Union[List[STrack],np.ndarray]:
         """
         Updates the tracker with the provided Detections and returns the
         updated Detections.
 
         Parameters:
-            detections: Detections class with all the detections.
+            tensors (np.ndarray): The new tensors to update with.
+
+            return_track_ids (bool): If True, returns an array of track IDs
+                corresponding to each detection. If False (default), returns a list
+                of updated STrack objects.
 
         Returns:
-            Detections: Updated Detections with track IDs.
+            If return_track_ids is True:
+                np.ndarray: Tracker ID for each tensor.
+            If return_track_ids is False:
+                List[STrack]: Updated tracks.
+
         """
         self.frame_id += 1
         activated_starcks = []
         refind_stracks = []
         lost_stracks = []
         removed_stracks = []
-
-        # Create tensors from detections to use during track match
-        tensors = detections2boxes(detections=detections)
-        # Separate detections based on scores
         detection_index = np.array([j for j in range(len(tensors))])
-
+        # Separate detections based on scores
         class_ids = tensors[:, 5]
         scores = tensors[:, 4]
         bboxes = tensors[:, :4]
@@ -571,33 +438,38 @@ class ByteTrack:
             self.tracked_tracks, self.lost_tracks
         )
 
-        # Initialize the new track IDs for detections
-        tracked_ids = [None] * len(detections)
+        if return_track_ids:
+            # Initialize the new track IDs for detections
+            tracked_ids = [None] * len(detection_index)
 
-        # Update IDs list with ID from high_score tracked detection
-        if len(matches_keep) > 0:
-            for k, idx in matches_keep:
-                tracked_ids[idx] = self._get_track_id(strack_pool[k])
-        # Update IDs list with ID from low_score tracked detection
-        if len(matches_second) > 0:
-            for k, idx in matches_second:
-                tracked_ids[low_score_det_idx[idx]] = self._get_track_id(
-                    r_tracked_stracks[k]
+            # Update IDs list with ID from high_score tracked detection
+            if len(matches_keep) > 0:
+                for k, idx in matches_keep:
+                    tracked_ids[idx] = self._get_track_id(strack_pool[k])
+            # Update IDs list with ID from low_score tracked detection
+            if len(matches_second) > 0:
+                for k, idx in matches_second:
+                    tracked_ids[low_score_det_idx[idx]] = self._get_track_id(
+                        r_tracked_stracks[k]
+                    )
+
+            # Update IDs list with ID from unconfirmed tracked detection
+            if len(matches_unconfirmed) > 0:
+                for k, idx in matches_unconfirmed:
+                    tracked_ids[detections_u_map[idx]] = self._get_track_id(unconfirmed[k])
+
+            # Update IDs list with ID from new detection
+            if len(u_detection_unconf) > 0:
+                for k in u_detection_unconf:
+                    tracked_ids[detections_u_map[k]] = self._get_track_id(
+                        detections_u_to_track[k]
                 )
-
-        # Update IDs list with ID from unconfirmed tracked detection
-        if len(matches_unconfirmed) > 0:
-            for k, idx in matches_unconfirmed:
-                tracked_ids[detections_u_map[idx]] = self._get_track_id(unconfirmed[k])
-
-        # Update IDs list with ID from new detection
-        if len(u_detection_unconf) > 0:
-            for k in u_detection_unconf:
-                tracked_ids[detections_u_map[k]] = self._get_track_id(
-                    detections_u_to_track[k]
-                )
-
-        return self._update_detection_track_id(detections, tracked_ids)
+            
+            return np.array(tracked_ids)
+        
+        output_stracks = [track for track in self.tracked_tracks if track.is_activated]
+        return output_stracks
+      
 
     def _get_track_id(self, strack: STrack) -> Optional[int]:
         return strack.track_id if hasattr(strack, "track_id") else None
