@@ -1175,6 +1175,8 @@ class TraceAnnotator:
         ![trace-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/trace-annotator-example-purple.png)
         """
+        if detections.tracker_id is None:
+            return scene
         self.trace.put(detections)
 
         for detection_idx in range(len(detections)):
