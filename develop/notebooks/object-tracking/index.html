@@ -22,7 +22,7 @@
     
     
       
-        <title>Tracking Objects in a Video - Supervision</title>
+        <title>Object Tracking - Supervision</title>
       
     
     
@@ -92,7 +92,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#tracking-objects-in-a-video" class="md-skip">
+        <a href="#object-tracking" class="md-skip">
           Skip to content
         </a>
       
@@ -129,7 +129,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Tracking Objects in a Video
+              Object Tracking
             
           </span>
         </div>
@@ -2089,11 +2089,9 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h1 id="tracking-objects-in-a-video">Tracking Objects in a Video<a class="anchor-link" href="#tracking-objects-in-a-video">¶</a></h1><hr/>
-<p align="center">
-<a href="https://colab.research.google.com/github/roboflow/supervision/blob/main/docs/notebooks/tracking.ipynb"><img alt="Colab" src="https://colab.research.google.com/assets/colab-badge.svg"/></a>
-</p>
-<p>In some cases, it's important for us to track objects across multiple frames of a video. For example, we may need to figure out the direction a vehicle is moving, or count objects in a frame. Some Supvervision <a href="https://supervision.roboflow.com/latest/annotators/">Annotators</a> and Tools like <a href="https://supervision.roboflow.com/latest/detection/tools/line_zone/">LineZone</a> require tracking to be setup.  In this cookbook, we'll cover how to get a tracker up and running for use in your computer vision applications.</p>
+<h1 id="object-tracking">Object Tracking<a class="anchor-link" href="#object-tracking">¶</a></h1><hr/>
+<p><a href="https://colab.research.google.com/github/roboflow/supervision/blob/main/docs/notebooks/object-tracking.ipynb"><img alt="Colab" src="https://colab.research.google.com/assets/colab-badge.svg"/></a></p>
+<p>In some cases, it's important for us to track objects across multiple frames of a video. For example, we may need to figure out the direction a vehicle is moving, or count objects in a frame. Some Supervision <a href="https://supervision.roboflow.com/latest/annotators/">Annotators</a> and Tools like <a href="https://supervision.roboflow.com/latest/detection/tools/line_zone/">LineZone</a> require tracking to be setup.  In this cookbook, we'll cover how to get a tracker up and running for use in your computer vision applications.</p>
 <h2 id="what-is-a-tracker">What is a Tracker?<a class="anchor-link" href="#what-is-a-tracker">¶</a></h2><p>Trackers are a piece of code that identifies objects across frames and assigns them a unique <code>tracker_id</code>. There are a few popular trackers at the time of writing this including ByteTrack and Bot-SORT. Supervision makes using trackers a breeze and comes with ByteTrack built-in. But first, let's get our deppendencies installed.</p>
 <h2 id="install-dependencies">Install Dependencies<a class="anchor-link" href="#install-dependencies">¶</a></h2>
 </div>
@@ -2370,6 +2368,11 @@ if __name__ == '__main__':
 
     
     <nav>
+      
+        <a href="https://github.com/apps/pre-commit-ci" class="md-author" title="@pre-commit-ci[bot]">
+          
+          <img src="https://avatars.githubusercontent.com/in/68672?v=4&size=72" alt="pre-commit-ci[bot]">
+        </a>
       
         <a href="https://github.com/SkalskiP" class="md-author" title="@SkalskiP">
           

@@ -22,7 +22,7 @@
     
     
       
-        <title>Experimenting with Supervision Assets - Supervision</title>
+        <title>Download Supervision Assets - Supervision</title>
       
     
     
@@ -92,7 +92,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#experimenting-with-supervision-assets" class="md-skip">
+        <a href="#download-supervision-assets" class="md-skip">
           Skip to content
         </a>
       
@@ -129,7 +129,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Experimenting with Supervision Assets
+              Download Supervision Assets
             
           </span>
         </div>
@@ -1581,9 +1581,9 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#install-with-pip" class="md-nav__link">
+  <a href="#install-dependencies" class="md-nav__link">
     <span class="md-ellipsis">
-      Install with Pip
+      Install Dependencies
     </span>
   </a>
   
@@ -2071,26 +2071,10 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h1 id="experimenting-with-supervision-assets">Experimenting with Supervision Assets<a class="anchor-link" href="#experimenting-with-supervision-assets">¶</a></h1><hr/>
-<p align="center">
-<a href="https://colab.research.google.com/github/roboflow/supervision/blob/develop/docs/notebooks/supervision-assets.ipynb"><img alt="Colab" src="https://colab.research.google.com/assets/colab-badge.svg"/></a>
-</p>
-<p>When experimenting with interesting and useful features of the Supervision package, its important to have some sort of image or video data to experiment with. Luckily for us, Supervision ships with <a href="https://supervision.roboflow.com/latest/assets/">Assets</a>! Assets is a collection of videos that you can utilize to start experimenting with the various features Supervision has to offer. Let's take a look at how to use this resource.</p>
-<h2 id="install-with-pip">Install with Pip<a class="anchor-link" href="#install-with-pip">¶</a></h2><p>If you're running this code outside a Jupyter notebook, it's generally a best practice to create a virtual environment so that your projects deppendencies are isolated. Run the following ing your command line of choice to create and source one.</p>
-<div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>venv
-<span class="nb">source</span><span class="w"> </span>venv/bin/activate
-</pre></div>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
-</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<p>Now that we've got a virtual enviornment installed and sourced, let's install the pip package with the assets "extra" package. Make sure to remove the "!" if running this in your command line.</p>
+<h1 id="download-supervision-assets">Download Supervision Assets<a class="anchor-link" href="#download-supervision-assets">¶</a></h1><hr/>
+<p><a href="https://colab.research.google.com/github/roboflow/supervision/blob/develop/docs/notebooks/download-supervision-assets.ipynb"><img alt="Colab" src="https://colab.research.google.com/assets/colab-badge.svg"/></a></p>
+<p>When experimenting with interesting and useful features of the Supervision package, it's important to have some sort of image or video data to experiment with. Luckily for us, Supervision ships with <a href="https://supervision.roboflow.com/latest/assets/">Assets</a>! Assets is a collection of videos that you can utilize to start experimenting with the various features Supervision has to offer. Let's take a look at how to use this resource.</p>
+<h2 id="install-dependencies">Install Dependencies<a class="anchor-link" href="#install-dependencies">¶</a></h2>
 </div>
 </div>
 </div>
@@ -2153,12 +2137,10 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span> <span class="nn">supervision.assets</span> <span class="kn">import</span> <span class="n">download_assets</span><span class="p">,</span> <span class="n">VideoAssets</span>
 
-<span class="c1"># Download a video asset from the supervision package.</span>
 <span class="n">path_to_video</span> <span class="o">=</span> <span class="n">download_assets</span><span class="p">(</span><span class="n">VideoAssets</span><span class="o">.</span><span class="n">SUBWAY</span><span class="p">)</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-2">from supervision.assets import download_assets, VideoAssets
 
-# Download a video asset from the supervision package.
 path_to_video = download_assets(VideoAssets.SUBWAY)</div>
 </div>
 </div>
@@ -2172,7 +2154,7 @@ path_to_video = download_assets(VideoAssets.SUBWAY)</div>
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<p>We're now equipt with a video asset from Supervision to run some experiements on! For more information on available video assets, visit the <a href="https://supervision.roboflow.com/latest/assets/#videoassets">Supervision API Reference</a>. Happy building!</p>
+<p>We're now equipt with a video asset from Supervision to run some experiments on! For more information on available video assets, visit the <a href="https://supervision.roboflow.com/latest/assets/#videoassets">Supervision API Reference</a>. Happy building!</p>
 </div>
 </div>
 </div>
@@ -2233,6 +2215,11 @@ path_to_video = download_assets(VideoAssets.SUBWAY)</div>
 
     
     <nav>
+      
+        <a href="https://github.com/apps/pre-commit-ci" class="md-author" title="@pre-commit-ci[bot]">
+          
+          <img src="https://avatars.githubusercontent.com/in/68672?v=4&size=72" alt="pre-commit-ci[bot]">
+        </a>
       
         <a href="https://github.com/SkalskiP" class="md-author" title="@SkalskiP">
           
