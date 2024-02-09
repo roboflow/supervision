@@ -15,7 +15,7 @@ as an extra within the Supervision package.
 !!! example "pip install"
 
     ```bash
-    pip install supervision[assets]
+    pip install "supervision[assets]"
     ```
 
 <div class="md-typeset">
