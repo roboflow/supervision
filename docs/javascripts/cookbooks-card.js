@@ -1,26 +1,37 @@
-
 document.addEventListener("DOMContentLoaded", function () {
 
-  async function setCard(el, url, name, labels, version, theme, authors) {
+    const palette = __md_get("__palette")
+    const useDark = palette && typeof palette.color === "object" && palette.color.scheme === "slate"
+    const theme = useDark ? "dark-theme" : "light-default";
+
     const colorList = [
-      "#22c55e",
-      "#14b8a6",
-      "#ef4444",
-      "#eab308",
-      "#8b5cf6",
-      "#f97316",
-      "#3b82f6",
+        "#22c55e",
+        "#14b8a6",
+        "#ef4444",
+        "#eab308",
+        "#8b5cf6",
+        "#f97316",
+        "#3b82f6",
     ]
 
-    let labelHTML = ''
-    if (labels) {
-      const labelArray = labels.split(',').map((label, index) => {
-        const color = colorList[index % colorList.length]
-        return `<span class="non-selectable-text" style="background-color: ${color}; color: #fff; padding: 2px 4px; border-radius: 4px; margin-right: 4px;">${label}</span>`
-      })
+  async function renderCard(element) {
+    const url = element.getAttribute('data-url');
+    const name = element.getAttribute('data-name');
+    const labels = element.getAttribute('data-labels');
+    const version = element.getAttribute('data-version');
+    const authors = element.getAttribute('data-author');
 
-      labelHTML = labelArray.join(' ')
-    }
+    const labelHTML = labels ? labels.split(',').map((label, index) => {
+        const color = colorList[index % colorList.length];
+        return `
+            <span 
+                class="label non-selectable-text" 
+                style="background-color: ${color}"
+            >
+                ${label.trim()}
+            </span>
+        `;
+    }).join(' ') : '';
 
     const authorArray = authors.split(',');
     const authorDataArray = await Promise.all(authorArray.map(async (author) => {
@@ -32,16 +43,33 @@ document.addEventListener("DOMContentLoaded", function () {
         const marginLeft = index === 0 ? '0' : '-10px';
         const zIndex = 100 - index;
         return `
-            <div class="author-container" style="margin-left: ${marginLeft}; z-index: ${zIndex};">
-                <a href="https://github.com/${authorData.login}" target="_blank" style="line-height: 0;">
-                    <img class="author-avatar" src="${authorData.avatar_url}" alt="${authorData.login}'s avatar">
+            <div 
+                class="author-container" 
+                data-login="${authorData.login}" 
+                style="margin-left: ${marginLeft}; z-index: ${zIndex};"
+            >
+                <a 
+                    href="https://github.com/${authorData.login}" 
+                    target="_blank" 
+                    style="line-height: 0;"
+                >
+                    <img 
+                        class="author-avatar" 
+                        src="${authorData.avatar_url}" 
+                        alt="${authorData.login}'s avatar"
+                    >
                 </a>
             </div>
         `;
     }).join('');
 
     let authorNamesHTML = authorDataArray.map(
-        authorData => `<span class="author-name" style="color: ${theme.color}">
+        authorData => `
+            <span 
+                class="author-name" 
+                data-login="${authorData.login}" 
+                style="color: ${theme.color}"
+            >
             <a href="https://github.com/${authorData.login}" target="_blank">
                 ${authorData.login}
             </a>
@@ -55,7 +83,21 @@ document.addEventListener("DOMContentLoaded", function () {
         </div>
     `;
 
-    el.innerText = `
+    document.querySelectorAll('.author-name').forEach(element => {
+        element.addEventListener('mouseenter', function() {
+            const login = this.getAttribute('data-login');
+            console.log(login, "enter")
+            document.querySelector(`.author-container[data-login="${login}"]`).classList.add('hover');
+        });
+
+        element.addEventListener('mouseleave', function() {
+            const login = this.getAttribute('data-login');
+            console.log(login, "leave")
+            document.querySelector(`.author-container[data-login="${login}"]`).classList.remove('hover');
+        });
+    });
+
+    element.innerText = `
       <a style="text-decoration: none; color: inherit;" href="${url}">
         <div style="flex-direction: column; height: 100%; display: flex;
         font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji; background: ${theme.background}; font-size: 14px; line-height: 1.5; color: ${theme.color}">
@@ -79,22 +121,10 @@ document.addEventListener("DOMContentLoaded", function () {
       </a>
         `
 
-    let sanitizedHTML = DOMPurify.sanitize(el.innerText);
-    el.innerHTML = sanitizedHTML;
+    let sanitizedHTML = DOMPurify.sanitize(element.innerText);
+    element.innerHTML = sanitizedHTML;
   }
-  for (const el of document.querySelectorAll('.repo-card')) {
-    const url = el.getAttribute('data-url');
-    const name = el.getAttribute('data-name');
-    const labels = el.getAttribute('data-labels');
-    const version = el.getAttribute('data-version');
-    const authors = el.getAttribute('data-author');
-    const palette = __md_get("__palette")
-    if (palette && typeof palette.color === "object") {
-      var theme = palette.color.scheme === "slate" ? "dark-theme" : "light-default"
-    } else {
-      var theme = "light-default"
-    }
-
-    setCard(el, url, name, labels, version, theme, authors);
-  }
+    document.querySelectorAll('.repo-card').forEach((element, index) => {
+        renderCard(element);
+    });
 })

@@ -61,6 +61,10 @@
     transition: transform 0.2s;
 }
 
+.author-container.hover {
+    transform: translateY(-0.125rem);
+}
+
 .author-container:hover {
     transform: translateY(-0.125rem);
 }
@@ -86,6 +90,13 @@
 .author-name a:hover {
     color: inherit; /* Inherits the color from the parent element */
     text-decoration: underline; /* Adds underline on hover */
+}
+
+.label {
+    color: #fff;
+    padding: 2px 4px;
+    border-radius: 4px;
+    margin-right: 4px;
 }
 
 .non-selectable-text {
