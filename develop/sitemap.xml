@@ -136,6 +136,11 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
+         <loc>https://supervision.roboflow.com/develop/notebooks/count-objects-crossing-the-line/</loc>
+         <lastmod>2024-02-09</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
          <loc>https://supervision.roboflow.com/develop/notebooks/download-supervision-assets/</loc>
          <lastmod>2024-02-09</lastmod>
          <changefreq>daily</changefreq>
