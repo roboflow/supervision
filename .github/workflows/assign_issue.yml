@@ -1,0 +1,23 @@
+name: Take Issue
+
+on:
+  issue_comment:
+    types:
+      - created
+      - edited
+
+jobs:
+  take-issue:
+    name: Take issue
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    timeout-minutes: 10
+    steps:
+      - name: take an issue
+        uses: bdougie/take-action@v1.6.1
+        with:
+          message: Thank you for looking into this issue! Please let us know if you have any questions or require any help.
+          issueCurrentlyAssignedMessage: Thanks for being interested in this issue. It looks like this ticket is already assigned to a contributor. Please communicate with the assigned contributor to confirm the status of the issue.
+          trigger: .take
+          token: ${{ secrets.GITHUB_TOKEN }}
