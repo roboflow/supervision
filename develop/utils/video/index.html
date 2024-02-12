@@ -863,13 +863,6 @@
     Detection Smoother
   </span>
   
-    
-  
-  
-    <span class="md-status md-status--new"></span>
-  
-
-  
 
       </a>
     </li>
@@ -1980,7 +1973,7 @@ default is None</p>
 <p><strong>Examples:</strong></p>
     <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">video_info</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">VideoInfo</span><span class="o">.</span><span class="n">from_video_path</span><span class="p">(</span><span class="n">video_path</span><span class="o">=</span><span class="s1">&#39;video.mp4&#39;</span><span class="p">)</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">video_info</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">VideoInfo</span><span class="o">.</span><span class="n">from_video_path</span><span class="p">(</span><span class="n">video_path</span><span class="o">=&lt;</span><span class="n">SOURCE_VIDEO_FILE</span><span class="o">&gt;</span><span class="p">)</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">video_info</span>
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="c1"># VideoInfo(width=3840, height=2160, fps=25, total_frames=538)</span>
@@ -2055,7 +2048,7 @@ default is None</p>
 <a id="__codelineno-0-28" name="__codelineno-0-28"></a><span class="sd">        ```python</span>
 <a id="__codelineno-0-29" name="__codelineno-0-29"></a><span class="sd">        import supervision as sv</span>
 <a id="__codelineno-0-30" name="__codelineno-0-30"></a>
-<a id="__codelineno-0-31" name="__codelineno-0-31"></a><span class="sd">        video_info = sv.VideoInfo.from_video_path(video_path=&#39;video.mp4&#39;)</span>
+<a id="__codelineno-0-31" name="__codelineno-0-31"></a><span class="sd">        video_info = sv.VideoInfo.from_video_path(video_path=&lt;SOURCE_VIDEO_FILE&gt;)</span>
 <a id="__codelineno-0-32" name="__codelineno-0-32"></a>
 <a id="__codelineno-0-33" name="__codelineno-0-33"></a><span class="sd">        video_info</span>
 <a id="__codelineno-0-34" name="__codelineno-0-34"></a><span class="sd">        # VideoInfo(width=3840, height=2160, fps=25, total_frames=538)</span>
@@ -2177,10 +2170,10 @@ and total frame count.</p>
   <summary>Example</summary>
   <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">video_info</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">VideoInfo</span><span class="o">.</span><span class="n">from_video_path</span><span class="p">(</span><span class="s1">&#39;source.mp4&#39;</span><span class="p">)</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">frames_generator</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">get_video_frames_generator</span><span class="p">(</span><span class="s1">&#39;source.mp4&#39;</span><span class="p">)</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">video_info</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">VideoInfo</span><span class="o">.</span><span class="n">from_video_path</span><span class="p">(</span><span class="o">&lt;</span><span class="n">SOURCE_VIDEO_PATH</span><span class="o">&gt;</span><span class="p">)</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">frames_generator</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">get_video_frames_generator</span><span class="p">(</span><span class="o">&lt;</span><span class="n">SOURCE_VIDEO_PATH</span><span class="o">&gt;</span><span class="p">)</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="k">with</span> <span class="n">sv</span><span class="o">.</span><span class="n">VideoSink</span><span class="p">(</span><span class="n">target_path</span><span class="o">=</span><span class="s1">&#39;target.mp4&#39;</span><span class="p">,</span> <span class="n">video_info</span><span class="o">=</span><span class="n">video_info</span><span class="p">)</span> <span class="k">as</span> <span class="n">sink</span><span class="p">:</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="k">with</span> <span class="n">sv</span><span class="o">.</span><span class="n">VideoSink</span><span class="p">(</span><span class="n">target_path</span><span class="o">=&lt;</span><span class="n">TARGET_VIDEO_PATH</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">video_info</span><span class="o">=</span><span class="n">video_info</span><span class="p">)</span> <span class="k">as</span> <span class="n">sink</span><span class="p">:</span>
 <a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="k">for</span> <span class="n">frame</span> <span class="ow">in</span> <span class="n">frames_generator</span><span class="p">:</span>
 <a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>        <span class="n">sink</span><span class="o">.</span><span class="n">write_frame</span><span class="p">(</span><span class="n">frame</span><span class="o">=</span><span class="n">frame</span><span class="p">)</span>
 </code></pre></div>
@@ -2248,14 +2241,14 @@ and total frame count.</p>
 <a id="__codelineno-0-75" name="__codelineno-0-75"></a><span class="sd">        ```python</span>
 <a id="__codelineno-0-76" name="__codelineno-0-76"></a><span class="sd">        import supervision as sv</span>
 <a id="__codelineno-0-77" name="__codelineno-0-77"></a>
-<a id="__codelineno-0-78" name="__codelineno-0-78"></a><span class="sd">        video_info = sv.VideoInfo.from_video_path(&#39;source.mp4&#39;)</span>
-<a id="__codelineno-0-79" name="__codelineno-0-79"></a><span class="sd">        frames_generator = sv.get_video_frames_generator(&#39;source.mp4&#39;)</span>
+<a id="__codelineno-0-78" name="__codelineno-0-78"></a><span class="sd">        video_info = sv.VideoInfo.from_video_path(&lt;SOURCE_VIDEO_PATH&gt;)</span>
+<a id="__codelineno-0-79" name="__codelineno-0-79"></a><span class="sd">        frames_generator = sv.get_video_frames_generator(&lt;SOURCE_VIDEO_PATH&gt;)</span>
 <a id="__codelineno-0-80" name="__codelineno-0-80"></a>
-<a id="__codelineno-0-81" name="__codelineno-0-81"></a><span class="sd">        with sv.VideoSink(target_path=&#39;target.mp4&#39;, video_info=video_info) as sink:</span>
+<a id="__codelineno-0-81" name="__codelineno-0-81"></a><span class="sd">        with sv.VideoSink(target_path=&lt;TARGET_VIDEO_PATH&gt;, video_info=video_info) as sink:</span>
 <a id="__codelineno-0-82" name="__codelineno-0-82"></a><span class="sd">            for frame in frames_generator:</span>
 <a id="__codelineno-0-83" name="__codelineno-0-83"></a><span class="sd">                sink.write_frame(frame=frame)</span>
 <a id="__codelineno-0-84" name="__codelineno-0-84"></a><span class="sd">        ```</span>
-<a id="__codelineno-0-85" name="__codelineno-0-85"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-85" name="__codelineno-0-85"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
 <a id="__codelineno-0-86" name="__codelineno-0-86"></a>
 <a id="__codelineno-0-87" name="__codelineno-0-87"></a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">video_info</span><span class="p">:</span> <span class="n">VideoInfo</span><span class="p">,</span> <span class="n">codec</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;mp4v&quot;</span><span class="p">):</span>
 <a id="__codelineno-0-88" name="__codelineno-0-88"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">target_path</span> <span class="o">=</span> <span class="n">target_path</span>
@@ -2901,7 +2894,7 @@ frames of the video.</p>
 <p><strong>Examples:</strong></p>
     <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="k">for</span> <span class="n">frame</span> <span class="ow">in</span> <span class="n">sv</span><span class="o">.</span><span class="n">get_video_frames_generator</span><span class="p">(</span><span class="n">source_path</span><span class="o">=</span><span class="s1">&#39;source_video.mp4&#39;</span><span class="p">):</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="k">for</span> <span class="n">frame</span> <span class="ow">in</span> <span class="n">sv</span><span class="o">.</span><span class="n">get_video_frames_generator</span><span class="p">(</span><span class="n">source_path</span><span class="o">=&lt;</span><span class="n">SOURCE_VIDEO_PATH</span><span class="o">&gt;</span><span class="p">):</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="o">...</span>
 </code></pre></div>
 
@@ -2969,7 +2962,7 @@ frames of the video.</p>
 <a id="__codelineno-0-147" name="__codelineno-0-147"></a><span class="sd">        ```python</span>
 <a id="__codelineno-0-148" name="__codelineno-0-148"></a><span class="sd">        import supervision as sv</span>
 <a id="__codelineno-0-149" name="__codelineno-0-149"></a>
-<a id="__codelineno-0-150" name="__codelineno-0-150"></a><span class="sd">        for frame in sv.get_video_frames_generator(source_path=&#39;source_video.mp4&#39;):</span>
+<a id="__codelineno-0-150" name="__codelineno-0-150"></a><span class="sd">        for frame in sv.get_video_frames_generator(source_path=&lt;SOURCE_VIDEO_PATH&gt;):</span>
 <a id="__codelineno-0-151" name="__codelineno-0-151"></a><span class="sd">            ...</span>
 <a id="__codelineno-0-152" name="__codelineno-0-152"></a><span class="sd">        ```</span>
 <a id="__codelineno-0-153" name="__codelineno-0-153"></a><span class="sd">    &quot;&quot;&quot;</span>
@@ -3078,8 +3071,8 @@ representation of the frame.</p>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="o">...</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">process_video</span><span class="p">(</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">source_path</span><span class="o">=</span><span class="s1">&#39;...&#39;</span><span class="p">,</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">target_path</span><span class="o">=</span><span class="s1">&#39;...&#39;</span><span class="p">,</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">source_path</span><span class="o">=&lt;</span><span class="n">SOURCE_VIDEO_PATH</span><span class="o">&gt;</span><span class="p">,</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">target_path</span><span class="o">=&lt;</span><span class="n">TARGET_VIDEO_PATH</span><span class="o">&gt;</span><span class="p">,</span>
 <a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">callback</span><span class="o">=</span><span class="n">callback</span>
 <a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="p">)</span>
 </code></pre></div>
@@ -3148,8 +3141,8 @@ representation of the frame.</p>
 <a id="__codelineno-0-191" name="__codelineno-0-191"></a><span class="sd">            ...</span>
 <a id="__codelineno-0-192" name="__codelineno-0-192"></a>
 <a id="__codelineno-0-193" name="__codelineno-0-193"></a><span class="sd">        process_video(</span>
-<a id="__codelineno-0-194" name="__codelineno-0-194"></a><span class="sd">            source_path=&#39;...&#39;,</span>
-<a id="__codelineno-0-195" name="__codelineno-0-195"></a><span class="sd">            target_path=&#39;...&#39;,</span>
+<a id="__codelineno-0-194" name="__codelineno-0-194"></a><span class="sd">            source_path=&lt;SOURCE_VIDEO_PATH&gt;,</span>
+<a id="__codelineno-0-195" name="__codelineno-0-195"></a><span class="sd">            target_path=&lt;TARGET_VIDEO_PATH&gt;,</span>
 <a id="__codelineno-0-196" name="__codelineno-0-196"></a><span class="sd">            callback=callback</span>
 <a id="__codelineno-0-197" name="__codelineno-0-197"></a><span class="sd">        )</span>
 <a id="__codelineno-0-198" name="__codelineno-0-198"></a><span class="sd">        ```</span>
