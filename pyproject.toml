@@ -50,7 +50,7 @@ desktop = ["opencv-python"]
 assets = ["requests","tqdm"]
 
 [tool.poetry.group.dev.dependencies]
-twine = "^4.0.2"
+twine = ">=4.0.2,<6.0.0"
 pytest = ">=7.2.2,<9.0.0"
 wheel = ">=0.40,<0.43"
 build = ">=0.10,<1.1"
