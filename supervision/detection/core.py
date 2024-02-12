@@ -797,15 +797,15 @@ class Detections:
         def stack_or_none(name: str):
             if all(d.__getattribute__(name) is None for d in detections_list):
                 return None
-            if any(d.__getattribute__(name) is None for d in detections_list):
-                raise ValueError(f"All or none of the '{name}' fields must be None")
-            return (
-                np.vstack([d.__getattribute__(name) for d in detections_list])
-                if name == "mask"
-                else np.hstack([d.__getattribute__(name) for d in detections_list])
-            )
+            if name != "mask":
+                if any(d.__getattribute__(name) is None for d in detections_list):
+                    raise ValueError(f"All or none of the '{name}' fields must be None")
+                return np.hstack([d.__getattribute__(name) for d in detections_list])
+            else:
+                merged_mask = np.concatenate([d.mask for d in detections_list if d.mask is not None], axis=0)
+                return merged_mask
 
-        mask = stack_or_none("mask")
+        mask = stack_or_none("mask")   
         confidence = stack_or_none("confidence")
         class_id = stack_or_none("class_id")
         tracker_id = stack_or_none("tracker_id")
