@@ -21,12 +21,14 @@
 [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/roboflow/supervision/blob/main/demo.ipynb)
 [![Gradio](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/Roboflow/Annotators)
 [![Discord](https://img.shields.io/discord/1159501506232451173)](https://discord.gg/GbfgXGJ8Bk)
-
+[![Built with Material for MkDocs](https://img.shields.io/badge/Material_for_MkDocs-526CFE?logo=MaterialForMkDocs&logoColor=white)](https://squidfunk.github.io/mkdocs-material/)
 </div>
 
 ## 👋 hello
 
 **We write your reusable computer vision tools.** Whether you need to load your dataset from your hard drive, draw detections on an image or video, or count how many detections are in a zone. You can count on us! 🤝
+
+[![supervision-hackfest](https://github.com/roboflow/supervision/assets/26109316/c05cc954-b9a6-4ed5-9a52-d0b4b619ff65)](https://github.com/orgs/roboflow/projects/10)
 
 ## 💻 install
 
@@ -43,7 +45,7 @@ Read more about desktop, headless, and local installation in our [guide](https:/
 
 ### models
 
-Supervision was designed to be model agnostic. Just plug in any classification, detection, or segmentation model. For your convenience, we have created [connectors](https://supervision.roboflow.com/detection/core/#detections) for the most popular libraries like Ultralytics, Transformers, or MMDetection.
+Supervision was designed to be model agnostic. Just plug in any classification, detection, or segmentation model. For your convenience, we have created [connectors](https://supervision.roboflow.com/latest/detection/core/#detections) for the most popular libraries like Ultralytics, Transformers, or MMDetection.
 
 ```python
 import cv2
@@ -85,7 +87,7 @@ len(detections)
 
 ### annotators
 
-Supervision offers a wide range of highly customizable [annotators](https://supervision.roboflow.com/annotators/), allowing you to compose the perfect visualization for your use case.
+Supervision offers a wide range of highly customizable [annotators](https://supervision.roboflow.com/latest/annotators/), allowing you to compose the perfect visualization for your use case.
 
 ```python
 import cv2
@@ -105,7 +107,7 @@ https://github.com/roboflow/supervision/assets/26109316/691e219c-0565-4403-9218-
 
 ### datasets
 
-Supervision provides a set of [utils](https://supervision.roboflow.com/datasets/) that allow you to load, split, merge, and save datasets in one of the supported formats.
+Supervision provides a set of [utils](https://supervision.roboflow.com/latest/datasets/) that allow you to load, split, merge, and save datasets in one of the supported formats.
 
 ```python
 import supervision as sv

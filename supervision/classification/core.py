@@ -118,7 +118,7 @@ class Classifications:
         [timm](https://huggingface.co/docs/hub/timm) inference result.
 
         Args:
-            timm_results: The inference result from timm model.
+            timm_results (torch.Tensor): The inference result from timm model.
 
         Returns:
             Classifications: A new Classifications object.

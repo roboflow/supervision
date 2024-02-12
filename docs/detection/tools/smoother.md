@@ -1,8 +1,7 @@
 ---
 comments: true
-status: new
 ---
 
-## Detection Smoother
+# Detection Smoother
 
 :::supervision.detection.tools.smoother.DetectionsSmoother

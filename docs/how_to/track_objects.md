@@ -2,8 +2,10 @@
 comments: true
 ---
 
+# Track Objects
+
 Leverage Supervision's advanced capabilities for enhancing your video analysis by
-seamlessly [tracking](https://supervision.roboflow.com/trackers/) objects recognized by
+seamlessly [tracking](/latest/trackers/) objects recognized by
 a multitude of object detection and segmentation models. This comprehensive guide will
 take you through the steps to perform inference using the YOLOv8 model via either the
 [Inference](https://github.com/roboflow/inference) or
@@ -13,7 +15,7 @@ for a deeper analysis.
 
 To make it easier for you to follow our tutorial download the video we will use as an
 example. You can do this using
-[`supervision[assets]`](https://supervision.roboflow.com/assets/) extension.
+[`supervision[assets]`](/latest/assets/) extension.
 
 ```python
 from supervision.assets import download_assets, VideoAssets
@@ -30,7 +32,7 @@ download_assets(VideoAssets.PEOPLE_WALKING)
 First, you'll need to obtain predictions from your object detection or segmentation
 model. In this tutorial, we are using the YOLOv8 model as an example. However,
 Supervision is versatile and compatible with various models. Check this
-[link](https://supervision.roboflow.com/how_to/detect_and_annotate/#load-predictions-into-supervision)
+[link](latest/how_to/detect_and_annotate/#load-predictions-into-supervision)
 for guidance on how to plug in other models.
 
 We will define a `callback` function, which will process each frame of the video
@@ -90,7 +92,7 @@ it will be modified to include tracking, labeling, and trace annotations.
 
 After running inference and obtaining predictions, the next step is to track the
 detected objects throughout the video. Utilizing Supervision’s
-[`sv.ByteTrack`](https://supervision.roboflow.com/trackers/#supervision.tracker.byte_tracker.core.ByteTrack)
+[`sv.ByteTrack`](/latest/trackers/#supervision.tracker.byte_tracker.core.ByteTrack)
 functionality, each detected object is assigned a unique tracker ID,
 enabling the continuous following of the object's motion path across different frames.
 
@@ -146,7 +148,7 @@ enabling the continuous following of the object's motion path across different f
 
 Annotating the video with tracking IDs helps in distinguishing and following each object
 distinctly. With the
-[`sv.LabelAnnotator`](https://supervision.roboflow.com/annotators/#supervision.annotators.core.LabelAnnotator)
+[`sv.LabelAnnotator`](/latest/annotators.md/#supervision.annotators.core.LabelAnnotator)
 in Supervision, we can overlay the tracker IDs and class labels on the detected objects,
 offering a clear visual representation of each object's class and unique identifier.
 
@@ -228,7 +230,7 @@ offering a clear visual representation of each object's class and unique identif
 
 Adding traces to the video involves overlaying the historical paths of the detected
 objects. This feature, powered by the
-[`sv.TraceAnnotator`](https://supervision.roboflow.com/annotators/#supervision.annotators.core.TraceAnnotator),
+[`sv.TraceAnnotator`](/latest/annotators/#supervision.annotators.core.TraceAnnotator),
 allows for visualizing the trajectories of objects, helping in understanding the
 movement patterns and interactions between objects in the video.
 

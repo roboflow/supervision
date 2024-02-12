@@ -210,7 +210,6 @@ class ByteTrack:
             ```python
             import supervision as sv
             from ultralytics import YOLO
-            import numpy as np
 
             model = YOLO(<MODEL_PATH>)
             tracker = sv.ByteTrack()
@@ -261,6 +260,21 @@ class ByteTrack:
 
         return detections
 
+    def reset(self):
+        """
+        Resets the internal state of the ByteTrack tracker.
+
+        This method clears the tracking data, including tracked, lost,
+        and removed tracks, as well as resetting the frame counter. It's
+        particularly useful when processing multiple videos sequentially,
+        ensuring the tracker starts with a clean state for each new video.
+        """
+        self.frame_id = 0
+        self.tracked_tracks: List[STrack] = []
+        self.lost_tracks: List[STrack] = []
+        self.removed_tracks: List[STrack] = []
+        BaseTrack.reset_counter()
+
     def update_with_tensors(self, tensors: np.ndarray) -> List[STrack]:
         """
         Updates the tracker with the provided tensors and returns the updated tracks.
@@ -306,6 +320,7 @@ class ByteTrack:
         """ Add newly detected tracklets to tracked_stracks"""
         unconfirmed = []
         tracked_stracks = []  # type: list[STrack]
+
         for track in self.tracked_tracks:
             if not track.is_activated:
                 unconfirmed.append(track)

@@ -1,5 +1,8 @@
 ---
 comments: true
+hide:
+  - navigation
+  - toc
 ---
 
 <div align="center">
@@ -23,40 +26,6 @@ We write your reusable computer vision tools. Whether you need to load your data
         type="video/mp4"
     >
 </video>
-
-## 🚀 Quickstart
-
-<div class="grid cards" markdown>
-
--   __Detect and Annotate__
-
-    ---
-
-    Annotate predictions from a range of object detection and segmentation models
-
-    [:octicons-arrow-right-24: Tutorial](how_to/detect_and_annotate)
-
--   __Track Objects__
-
-    ---
-
-    Discover how to enhance video analysis by implementing seamless object tracking
-
-    [:octicons-arrow-right-24: Tutorial](how_to/track_objects)
-
--   > __Count Objects Crossing Line__
-
-    ---
-
-    Explore methods to accurately count and analyze objects crossing a predefined line
-
--   > __Filter Objects in Zone__
-
-    ---
-
-    Master the techniques to selectively filter and focus on objects within a specific zone
-
-</div>
 
 ## 💻 Install
 
@@ -117,3 +86,38 @@ You can install `supervision` with pip in a
         # desktop install
         poetry install --extras "desktop"
         ```
+
+
+## 🚀 Quickstart
+
+<div class="grid cards" markdown>
+
+-   __Detect and Annotate__
+
+    ---
+
+    Annotate predictions from a range of object detection and segmentation models
+
+    [:octicons-arrow-right-24: Tutorial](how_to/detect_and_annotate.md)
+
+-   __Track Objects__
+
+    ---
+
+    Discover how to enhance video analysis by implementing seamless object tracking
+
+    [:octicons-arrow-right-24: Tutorial](how_to/track_objects.md)
+
+-   > __Count Objects Crossing Line__
+
+    ---
+
+    Explore methods to accurately count and analyze objects crossing a predefined line
+
+-   > __Filter Objects in Zone__
+
+    ---
+
+    Master the techniques to selectively filter and focus on objects within a specific zone
+
+</div>

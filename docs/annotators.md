@@ -3,6 +3,8 @@ comments: true
 status: new
 ---
 
+# Annotators
+
 === "BoundingBox"
 
     ```python
@@ -378,78 +380,116 @@ status: new
 
     </div>
 
-## BoundingBoxAnnotator
+<div class="md-typeset">
+    <h2><a href="#supervision.annotators.core.BoundingBoxAnnotator">BoundingBoxAnnotator</a></h2>
+</div>
 
 :::supervision.annotators.core.BoundingBoxAnnotator
 
-## RoundBoxAnnotator
+<div class="md-typeset">
+    <h2><a href="#supervision.annotators.core.RoundBoxAnnotator">RoundBoxAnnotator</a></h2>
+</div>
 
 :::supervision.annotators.core.RoundBoxAnnotator
 
-## BoxCornerAnnotator
+<div class="md-typeset">
+    <h2><a href="#supervision.annotators.core.BoxCornerAnnotator">BoxCornerAnnotator</a></h2>
+</div>
 
 :::supervision.annotators.core.BoxCornerAnnotator
 
-## OrientedBoxAnnotator
+<div class="md-typeset">
+    <h2><a href="#supervision.annotators.core.OrientedBoxAnnotator">OrientedBoxAnnotator</a></h2>
+</div>
 
 :::supervision.annotators.core.OrientedBoxAnnotator
 
-## ColorAnnotator
+<div class="md-typeset">
+    <h2><a href="#supervision.annotators.core.ColorAnnotator">ColorAnnotator</a></h2>
+</div>
 
 :::supervision.annotators.core.ColorAnnotator
 
-## CircleAnnotator
+<div class="md-typeset">
+    <h2><a href="#supervision.annotators.core.CircleAnnotator">CircleAnnotator</a></h2>
+</div>
 
 :::supervision.annotators.core.CircleAnnotator
 
-## DotAnnotator
+<div class="md-typeset">
+    <h2><a href="#supervision.annotators.core.DotAnnotator">DotAnnotator</a></h2>
+</div>
 
 :::supervision.annotators.core.DotAnnotator
 
-## TriangleAnnotator
+<div class="md-typeset">
+    <h2><a href="#supervision.annotators.core.TriangleAnnotator">TriangleAnnotator</a></h2>
+</div>
 
 :::supervision.annotators.core.TriangleAnnotator
 
-## EllipseAnnotator
+<div class="md-typeset">
+    <h2><a href="#supervision.annotators.core.EllipseAnnotator">EllipseAnnotator</a></h2>
+</div>
 
 :::supervision.annotators.core.EllipseAnnotator
 
-## HaloAnnotator
+<div class="md-typeset">
+    <h2><a href="#supervision.annotators.core.HaloAnnotator">HaloAnnotator</a></h2>
+</div>
 
 :::supervision.annotators.core.HaloAnnotator
 
-## PercentageBarAnnotator
+<div class="md-typeset">
+    <h2><a href="#supervision.annotators.core.PercentageBarAnnotator">PercentageBarAnnotator</a></h2>
+</div>
 
 :::supervision.annotators.core.PercentageBarAnnotator
 
-## HeatMapAnnotator
+<div class="md-typeset">
+    <h2><a href="#supervision.annotators.core.HeatMapAnnotator">HeatMapAnnotator</a></h2>
+</div>
 
 :::supervision.annotators.core.HeatMapAnnotator
 
-## MaskAnnotator
+<div class="md-typeset">
+    <h2><a href="#supervision.annotators.core.MaskAnnotator">MaskAnnotator</a></h2>
+</div>
 
 :::supervision.annotators.core.MaskAnnotator
 
-## PolygonAnnotator
+<div class="md-typeset">
+    <h2><a href="#supervision.annotators.core.PolygonAnnotator">PolygonAnnotator</a></h2>
+</div>
 
 :::supervision.annotators.core.PolygonAnnotator
 
-## LabelAnnotator
+<div class="md-typeset">
+    <h2><a href="#supervision.annotators.core.LabelAnnotator">LabelAnnotator</a></h2>
+</div>
 
 :::supervision.annotators.core.LabelAnnotator
 
-## BlurAnnotator
+<div class="md-typeset">
+    <h2><a href="#supervision.annotators.core.BlurAnnotator">BlurAnnotator</a></h2>
+</div>
 
 :::supervision.annotators.core.BlurAnnotator
 
-## PixelateAnnotator
+<div class="md-typeset">
+    <h2><a href="#supervision.annotators.core.PixelateAnnotator">PixelateAnnotator</a></h2>
+</div>
 
 :::supervision.annotators.core.PixelateAnnotator
 
-## TraceAnnotator
+<div class="md-typeset">
+    <h2><a href="#supervision.annotators.core.TraceAnnotator">TraceAnnotator</a></h2>
+</div>
 
 :::supervision.annotators.core.TraceAnnotator
 
-## ColorLookup
+<div class="md-typeset">
+    <h2><a href="#supervision.annotators.core.ColorLookup">ColorLookup</a></h2>
+</div>
 
 :::supervision.annotators.utils.ColorLookup

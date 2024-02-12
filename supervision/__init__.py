@@ -36,18 +36,21 @@ from supervision.dataset.core import (
 )
 from supervision.detection.annotate import BoxAnnotator
 from supervision.detection.core import Detections
-from supervision.detection.line_counter import LineZone, LineZoneAnnotator
+from supervision.detection.line_zone import LineZone, LineZoneAnnotator
+from supervision.detection.tools.csv_sink import CSVSink
 from supervision.detection.tools.inference_slicer import InferenceSlicer
 from supervision.detection.tools.polygon_zone import PolygonZone, PolygonZoneAnnotator
 from supervision.detection.tools.smoother import DetectionsSmoother
 from supervision.detection.utils import (
     box_iou_batch,
+    box_non_max_suppression,
     calculate_masks_centroids,
     filter_polygons_by_area,
+    mask_iou_batch,
+    mask_non_max_suppression,
     mask_to_polygons,
     mask_to_xyxy,
     move_boxes,
-    non_max_suppression,
     polygon_to_mask,
     polygon_to_xyxy,
     scale_boxes,
