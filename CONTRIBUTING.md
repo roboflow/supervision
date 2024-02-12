@@ -112,6 +112,20 @@ To run the documentation, install the project requirements with `poetry install 
 
 You can learn more about mkdocs on the [mkdocs website](https://www.mkdocs.org/).
 
+## 🧑‍🍳 cookbooks
+
+We are always looking for new examples and cookbooks to add to the `supervision`
+documentation. If you have a use case that you think would be helpful to others, please
+submit a PR with your example. Here are some guidelines for submitting a new example:
+
+- Create a new notebook in the [`docs/nodebooks`](https://github.com/roboflow/supervision/tree/develop/docs/notebooks) folder.
+- Add a link to the new notebook in [`docs/theme/cookbooks.html`](https://github.com/roboflow/supervision/blob/develop/docs/theme/cookbooks.html). Make sure to add the path to the new notebook, as well as a title, labels, author and supervision version.
+- Use the [Count Objects Crossing the Line](https://supervision.roboflow.com/develop/notebooks/count-objects-crossing-the-line/) example as a template for your new example.
+- Freeze the version of `supervision` you are using.
+- Place an appropriate Open in Colab button at the top of the notebook. You can find an example of such a button in the aforementioned `Count Objects Crossing the Line` cookbook.
+- Notebook should be self-contained. If you rely on external data ( videos, images, etc.) or libraries, include download and installation commands in the notebook.
+- Annotate the code with appropriate comments, including links to the documentation describing each of the tools you have used.
+
 ## 🧪 tests
 
 [`pytests`](https://docs.pytest.org/en/7.1.x/) is used to run our tests.
