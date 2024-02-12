@@ -1530,6 +1530,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#cookbooks" class="md-nav__link">
+    <span class="md-ellipsis">
+      🧑‍🍳 cookbooks
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#tests" class="md-nav__link">
     <span class="md-ellipsis">
       🧪 tests
@@ -1810,6 +1819,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#cookbooks" class="md-nav__link">
+    <span class="md-ellipsis">
+      🧑‍🍳 cookbooks
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#tests" class="md-nav__link">
     <span class="md-ellipsis">
       🧪 tests
@@ -1928,6 +1946,19 @@
 <p>The <code>supervision</code> documentation is stored in a folder called <code>docs</code>. The project documentation is built using <code>mkdocs</code>.</p>
 <p>To run the documentation, install the project requirements with <code>poetry install --with dev</code>. Then, run <code>mkdocs serve</code> to start the documentation server.</p>
 <p>You can learn more about mkdocs on the <a href="https://www.mkdocs.org/">mkdocs website</a>.</p>
+<h2 id="cookbooks">🧑‍🍳 cookbooks<a class="headerlink" href="#cookbooks" title="Permanent link">&para;</a></h2>
+<p>We are always looking for new examples and cookbooks to add to the <code>supervision</code>
+documentation. If you have a use case that you think would be helpful to others, please
+submit a PR with your example. Here are some guidelines for submitting a new example:</p>
+<ul>
+<li>Create a new notebook in the <a href="https://github.com/roboflow/supervision/tree/develop/docs/notebooks"><code>docs/nodebooks</code></a> folder.</li>
+<li>Add a link to the new notebook in <a href="https://github.com/roboflow/supervision/blob/develop/docs/theme/cookbooks.html"><code>docs/theme/cookbooks.html</code></a>. Make sure to add the path to the new notebook, as well as a title, labels, author and supervision version.</li>
+<li>Use the <a href="https://supervision.roboflow.com/develop/notebooks/count-objects-crossing-the-line/">Count Objects Crossing the Line</a> example as a template for your new example.</li>
+<li>Freeze the version of <code>supervision</code> you are using.</li>
+<li>Place an appropriate Open in Colab button at the top of the notebook. You can find an example of such a button in the aforementioned <code>Count Objects Crossing the Line</code> cookbook.</li>
+<li>Notebook should be self-contained. If you rely on external data ( videos, images, etc.) or libraries, include download and installation commands in the notebook.</li>
+<li>Annotate the code with appropriate comments, including links to the documentation describing each of the tools you have used.</li>
+</ul>
 <h2 id="tests">🧪 tests<a class="headerlink" href="#tests" title="Permanent link">&para;</a></h2>
 <p><a href="https://docs.pytest.org/en/7.1.x/"><code>pytests</code></a> is used to run our tests.</p>
 <h2 id="license">📄 license<a class="headerlink" href="#license" title="Permanent link">&para;</a></h2>
