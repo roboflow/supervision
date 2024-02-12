@@ -802,10 +802,12 @@ class Detections:
                     raise ValueError(f"All or none of the '{name}' fields must be None")
                 return np.hstack([d.__getattribute__(name) for d in detections_list])
             else:
-                merged_mask = np.concatenate([d.mask for d in detections_list if d.mask is not None], axis=0)
+                merged_mask = np.concatenate(
+                    [d.mask for d in detections_list if d.mask is not None], axis=0
+                )
                 return merged_mask
 
-        mask = stack_or_none("mask")   
+        mask = stack_or_none("mask")
         confidence = stack_or_none("confidence")
         class_id = stack_or_none("class_id")
         tracker_id = stack_or_none("tracker_id")

@@ -8,13 +8,15 @@ from supervision.detection.utils import move_boxes, move_masks
 from supervision.utils.image import crop_image
 
 
-def move_detections(detections: Detections, offset: np.array, image_size: Tuple[int, int]) -> Detections:
+def move_detections(
+    detections: Detections, offset: np.array, image_size: Tuple[int, int]
+) -> Detections:
     """
     Args:
         detections (sv.Detections): Detections object to be moved.
         offset (np.array): An array of shape `(2,)` containing offset values in format
             is `[dx, dy]`.
-        image_size (Tuple[int, int]): The size of the full image to constrain 
+        image_size (Tuple[int, int]): The size of the full image to constrain
             the moved detections.
     Returns:
         (sv.Detections) repositioned Detections object.
@@ -24,6 +26,7 @@ def move_detections(detections: Detections, offset: np.array, image_size: Tuple[
     if detections.mask is not None:
         detections.mask = move_masks(detections.mask, offset, image_size[:2])
     return detections
+
 
 class InferenceSlicer:
     """
@@ -128,12 +131,12 @@ class InferenceSlicer:
             np.ndarray: The padded image slice.
         """
         pad_width = (
-            (0, target_size[0] - slice.shape[0]),  
-            (0, target_size[1] - slice.shape[1]),  
-            (0, 0)  
+            (0, target_size[0] - slice.shape[0]),
+            (0, target_size[1] - slice.shape[1]),
+            (0, 0),
         )
-        
-        padded_slice = np.pad(slice, pad_width, mode='constant', constant_values=128)
+
+        padded_slice = np.pad(slice, pad_width, mode="constant", constant_values=128)
         return padded_slice
 
     def _run_callback(self, image, offset) -> Detections:
@@ -154,7 +157,9 @@ class InferenceSlicer:
             image_slice = self._apply_padding_to_slice(image_slice, self.slice_wh)
 
         detections = self.callback(image_slice)
-        detections = move_detections(detections=detections, offset=offset[:2], image_size=image.shape)
+        detections = move_detections(
+            detections=detections, offset=offset[:2], image_size=image.shape
+        )
 
         return detections
 
