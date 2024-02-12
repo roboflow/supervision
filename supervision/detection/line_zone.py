@@ -48,7 +48,7 @@ class LineZone:
             detections = sv.Detections.from_ultralytics(result)
             detections = tracker.update_with_detections(detections)
             crossed_in, crossed_out = line_zone.trigger(detections)
-            
+
         line_zone.in_count, line_zone.out_count
         # 7, 2
         ```
