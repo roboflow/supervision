@@ -799,10 +799,11 @@ class Detections:
                 return None
             return (
                 np.hstack([getattr(d, name) for d in detections_list])
-                if name != "mask" and all(getattr(d, name) is not None for d in detections_list)
+                if name != "mask"
+                and all(getattr(d, name) is not None for d in detections_list)
                 else np.vstack([d.mask for d in detections_list if d.mask is not None])
             )
-        
+
         mask = stack_or_none("mask")
         confidence = stack_or_none("confidence")
         class_id = stack_or_none("class_id")
