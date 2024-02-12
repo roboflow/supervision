@@ -1869,10 +1869,27 @@ class CropAnnotator(BaseAnnotator):
                 cropped_scene = cropped_scene[:,abs(cx-crop_w):]
             if y == 0 and (cy-crop_h < 0):
                 cropped_scene = cropped_scene[abs(cy-crop_h):,:]
+
             return x, y, cropped_scene
         
         elif position == Position.TOP_CENTER:
+
+            if (cx - crop_w//2) < 0:
+                x = 0
+                cropped_scene = cropped_scene[:,abs(cx-crop_w//2):]
+            else:
+                x = cx - crop_w//2
+
+            if (cx + crop_w//2) >= w:
+                cropped_scene = cropped_scene[:,:-((cx + crop_w//2) - w + 1)]
+
+            y = max(0, (cy - crop_h))
+
+            if y == 0 and (cy-crop_h < 0):
+                cropped_scene = cropped_scene[abs(cy-crop_h):,:]
+
             return x, y, cropped_scene
+        
         elif position == Position.TOP_RIGHT:
             x = cx
 
@@ -1883,14 +1900,65 @@ class CropAnnotator(BaseAnnotator):
                 cropped_scene = cropped_scene[:,:(w - cx)]
             if y == 0 and (cy-crop_h < 0):
                 cropped_scene = cropped_scene[abs(cy-crop_h):,:]
+
             return x, y, cropped_scene
         
         elif position == Position.CENTER_LEFT:
+            x = max(0, (cx - crop_w))
+
+            if x == 0 and (cx-crop_w < 0):
+                cropped_scene = cropped_scene[:,abs(cx-crop_w):]
+            if (cy - crop_h//2) < 0:
+                y = 0
+                cropped_scene = cropped_scene[abs(cy-crop_h//2):,:]
+            else:
+                y = cy - crop_h//2
+
+            if (cy + crop_h//2) >= h:
+                cropped_scene = cropped_scene[:-((cy + crop_h//2) - h + 1),:]
+
             return x, y, cropped_scene
+        
         elif position == (Position.CENTER or Position.CENTER_OF_MASS):
+            
+            if (cx - crop_w//2) < 0:
+                x = 0
+                cropped_scene = cropped_scene[:,abs(cx-crop_w//2):]
+            else:
+                x = cx - crop_w//2
+
+            if (cx + crop_w//2) >= w:
+                cropped_scene = cropped_scene[:,:-((cx + crop_w//2) - w + 1)]
+            
+            if (cy - crop_h//2) < 0:
+                y = 0
+                cropped_scene = cropped_scene[abs(cy-crop_h//2):,:]
+            else:
+                y = cy - crop_h//2
+
+            if (cy + crop_h//2) >= h:
+                cropped_scene = cropped_scene[:-((cy + crop_h//2) - h + 1),:]
+            
             return x, y, cropped_scene
+        
         elif position == Position.CENTER_RIGHT:
+            x = cx
+            x_max = min(w, (cx + crop_w))
+            
+            if x_max == w and (cx + crop_w > w):
+                cropped_scene = cropped_scene[:,:(w - cx)]
+
+            if (cy - crop_h//2) < 0:
+                y = 0
+                cropped_scene = cropped_scene[abs(cy-crop_h//2):,:]
+            else:
+                y = cy - crop_h//2
+
+            if (cy + crop_h//2) >= h:
+                cropped_scene = cropped_scene[:-((cy + crop_h//2) - h + 1),:]
+            
             return x, y, cropped_scene
+        
         elif position == Position.BOTTOM_LEFT:
             x = max(0, (cx - crop_w))
             y = cy
@@ -1904,7 +1972,24 @@ class CropAnnotator(BaseAnnotator):
             return x, y, cropped_scene
         
         elif position == Position.BOTTOM_CENTER:
+
+            if (cx - crop_w//2) < 0:
+                x = 0
+                cropped_scene = cropped_scene[:,abs(cx-crop_w//2):]
+            else:
+                x = cx - crop_w//2
+
+            if (cx + crop_w//2) >= w:
+                cropped_scene = cropped_scene[:,:-((cx + crop_w//2) - w + 1)]
+
+            y = cy
+            y_max = min(h, (cy + crop_h))
+
+            if y_max == h and (cy + crop_h > h):
+                cropped_scene = cropped_scene[:h-cy,:]
+
             return x, y, cropped_scene
+
         elif position == Position.BOTTOM_RIGHT:
             x = cx
             y = cy
@@ -1926,43 +2011,5 @@ class CropAnnotator(BaseAnnotator):
         x,y = coordinates_and_image[0:2]
         cropped_scene = coordinates_and_image[2]
         scene[y:y+cropped_scene.shape[0], x:x+cropped_scene.shape[1]] = cropped_scene
-
-        return scene
-
-    
-    # @staticmethod
-    # def clip_cropped_scene(
-    #     scene: np.ndarray,
-    #     cropped_scene: np.ndarray,
-    #     paste_point: np.ndarray
-    # ) -> Tuple[int,int]:
-        
-    #     h, w = scene.shape[:2]
-    #     h_cropped, w_cropped = cropped_scene.shape[:2]
-
-    #     # Clip the coordinates to ensure they are within the bounds
-    #     x_clip = max(0, min(paste_point[0], w - w_cropped))
-    #     y_clip = max(0, min(paste_point[1], h - h_cropped))
-
-    #     # Calculate the valid region to paste the cropped part
-    #     x_end = min(x_clip + w_cropped, w)
-    #     y_end = min(y_clip + h_cropped, h)
-
-    #     return x_clip, y_clip, x_end, y_end
-    
-    @staticmethod
-    def paste_cropped_scene(
-        scene: np.ndarray,
-        cropped_scene: np.ndarray,
-        clipped_point: np.ndarray 
-    ) -> np.ndarray:
-        
-        x_clip, y_clip, x_end, y_end = clipped_point
-        # Adjust the cropped part based on the valid region
-        cropped_part_clipped = cropped_scene[:y_end - y_clip, :x_end - x_clip]
-
-        # Paste the cropped part onto the image
-        scene[y_clip:y_clip + cropped_part_clipped.shape[0],
-              x_clip:x_clip + cropped_part_clipped.shape[1]] = cropped_part_clipped
 
         return scene
