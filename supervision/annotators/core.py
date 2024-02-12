@@ -1813,7 +1813,7 @@ class CropAnnotator(BaseAnnotator):
                 zoom_factor=self.zoom_factor
             )
                        
-            coordinates_and_images = self.calculate_place_coordinates(
+            coordinates_and_images = self.calculate_place_coordinates_and_crop(
                 scene=base_scene,
                 cropped_scene=resized_scene,
                 position=self.position,
@@ -1850,12 +1850,26 @@ class CropAnnotator(BaseAnnotator):
         return resized_scene
     
     @staticmethod
-    def calculate_place_coordinates(
+    def calculate_place_coordinates_and_crop(
         scene: np.ndarray,
         cropped_scene: np.ndarray,
         position: Position,
         anchor_xy: np.ndarray
     ) -> Tuple[Tuple[int,int],np.ndarray]:
+        '''
+        This method is responsible to calculate the x,y coordinates that the cropped
+        part of the detections will be placed and crop any exceeding part.
+        The returned x,y in all position cases is the final top left pixel.
+
+        -Args:
+            scene (np.ndarray): The image where cropped detections will be placed.
+            cropped_scene (np.ndarray): The cropped part of the detections.
+
+        -Returns:
+            x (int): position in horizontal axis to use for placement of cropped part.
+            y (int): position in vertical axis to use for placement of cropped part.
+            cropped_scene (np.ndarray): The cropped part after any applied trim.
+        '''
         
         h, w = scene.shape[:2]
         crop_h, crop_w = cropped_scene.shape[:2]
