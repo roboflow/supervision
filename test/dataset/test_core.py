@@ -1,6 +1,6 @@
 from contextlib import ExitStack as DoesNotRaise
 from pathlib import Path
-from test.utils import mock_detections
+from test.test_utils import mock_detections
 from typing import List, Optional
 
 import pytest

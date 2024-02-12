@@ -1,11 +1,12 @@
 from contextlib import ExitStack as DoesNotRaise
-from test.utils import mock_detections
+from test.test_utils import mock_detections
 from typing import List, Optional, Union
 
 import numpy as np
 import pytest
 
-from supervision import Detections
+from supervision.detection.core import Detections
+from supervision.geometry.core import Position
 
 PREDICTIONS = np.array(
     [
@@ -152,7 +153,10 @@ def test_getitem(
             DoesNotRaise(),
         ),  # single detection with xyxy field
         (
-            [mock_detections(xyxy=[[10, 10, 20, 20]]), Detections.empty()],
+            [
+                mock_detections(xyxy=[[10, 10, 20, 20]]),
+                mock_detections(xyxy=np.empty((0, 4), dtype=np.float32)),
+            ],
             mock_detections(xyxy=[[10, 10, 20, 20]]),
             DoesNotRaise(),
         ),  # single detection with xyxy field + empty detection
@@ -170,7 +174,7 @@ def test_getitem(
                 mock_detections(xyxy=[[20, 20, 30, 30]]),
             ],
             mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
-            DoesNotRaise(),
+            pytest.raises(ValueError),
         ),  # detection with xyxy, class_id fields + detection with xyxy field
         (
             [
@@ -180,6 +184,16 @@ def test_getitem(
             mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]], class_id=[0, 1]),
             DoesNotRaise(),
         ),  # two detections with xyxy, class_id fields
+        (
+            [
+                mock_detections(xyxy=[[10, 10, 20, 20]], data={"test": [1]}),
+                mock_detections(xyxy=[[20, 20, 30, 30]], data={"test": [2]}),
+            ],
+            mock_detections(
+                xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]], data={"test": [1, 2]}
+            ),
+            DoesNotRaise(),
+        ),  # two detections with xyxy, data fields
     ],
 )
 def test_merge(
@@ -190,3 +204,136 @@ def test_merge(
     with exception:
         result = Detections.merge(detections_list=detections_list)
         assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    "detections, anchor, expected_result, exception",
+    [
+        (
+            Detections.empty(),
+            Position.CENTER,
+            np.empty((0, 2), dtype=np.float32),
+            DoesNotRaise(),
+        ),  # empty detections
+        (
+            mock_detections(xyxy=[[10, 10, 20, 20]]),
+            Position.CENTER,
+            np.array([[15, 15]], dtype=np.float32),
+            DoesNotRaise(),
+        ),  # single detection; center anchor
+        (
+            mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
+            Position.CENTER,
+            np.array([[15, 15], [25, 25]], dtype=np.float32),
+            DoesNotRaise(),
+        ),  # two detections; center anchor
+        (
+            mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
+            Position.CENTER_LEFT,
+            np.array([[10, 15], [20, 25]], dtype=np.float32),
+            DoesNotRaise(),
+        ),  # two detections; center left anchor
+        (
+            mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
+            Position.CENTER_RIGHT,
+            np.array([[20, 15], [30, 25]], dtype=np.float32),
+            DoesNotRaise(),
+        ),  # two detections; center right anchor
+        (
+            mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
+            Position.TOP_CENTER,
+            np.array([[15, 10], [25, 20]], dtype=np.float32),
+            DoesNotRaise(),
+        ),  # two detections; top center anchor
+        (
+            mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
+            Position.TOP_LEFT,
+            np.array([[10, 10], [20, 20]], dtype=np.float32),
+            DoesNotRaise(),
+        ),  # two detections; top left anchor
+        (
+            mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
+            Position.TOP_RIGHT,
+            np.array([[20, 10], [30, 20]], dtype=np.float32),
+            DoesNotRaise(),
+        ),  # two detections; top right anchor
+        (
+            mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
+            Position.BOTTOM_CENTER,
+            np.array([[15, 20], [25, 30]], dtype=np.float32),
+            DoesNotRaise(),
+        ),  # two detections; bottom center anchor
+        (
+            mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
+            Position.BOTTOM_LEFT,
+            np.array([[10, 20], [20, 30]], dtype=np.float32),
+            DoesNotRaise(),
+        ),  # two detections; bottom left anchor
+        (
+            mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
+            Position.BOTTOM_RIGHT,
+            np.array([[20, 20], [30, 30]], dtype=np.float32),
+            DoesNotRaise(),
+        ),  # two detections; bottom right anchor
+    ],
+)
+def test_get_anchor_coordinates(
+    detections: Detections,
+    anchor: Position,
+    expected_result: np.ndarray,
+    exception: Exception,
+) -> None:
+    result = detections.get_anchors_coordinates(anchor)
+    with exception:
+        assert np.array_equal(result, expected_result)
+
+
+@pytest.mark.parametrize(
+    "detections_a, detections_b, expected_result",
+    [
+        (
+            Detections.empty(),
+            Detections.empty(),
+            True,
+        ),  # empty detections
+        (
+            mock_detections(xyxy=[[10, 10, 20, 20]]),
+            mock_detections(xyxy=[[10, 10, 20, 20]]),
+            True,
+        ),  # detections with xyxy field
+        (
+            mock_detections(xyxy=[[10, 10, 20, 20]], confidence=[0.5]),
+            mock_detections(xyxy=[[10, 10, 20, 20]], confidence=[0.5]),
+            True,
+        ),  # detections with xyxy, confidence fields
+        (
+            mock_detections(xyxy=[[10, 10, 20, 20]], confidence=[0.5]),
+            mock_detections(xyxy=[[10, 10, 20, 20]]),
+            False,
+        ),  # detection with xyxy field + detection with xyxy, confidence fields
+        (
+            mock_detections(xyxy=[[10, 10, 20, 20]], data={"test": [1]}),
+            mock_detections(xyxy=[[10, 10, 20, 20]], data={"test": [1]}),
+            True,
+        ),  # detections with xyxy, data fields
+        (
+            mock_detections(xyxy=[[10, 10, 20, 20]], data={"test": [1]}),
+            mock_detections(xyxy=[[10, 10, 20, 20]]),
+            False,
+        ),  # detection with xyxy field + detection with xyxy, data fields
+        (
+            mock_detections(xyxy=[[10, 10, 20, 20]], data={"test_1": [1]}),
+            mock_detections(xyxy=[[10, 10, 20, 20]], data={"test_2": [1]}),
+            False,
+        ),  # detections with xyxy, and different data field names
+        (
+            mock_detections(xyxy=[[10, 10, 20, 20]], data={"test_1": [1]}),
+            mock_detections(xyxy=[[10, 10, 20, 20]], data={"test_1": [3]}),
+            False,
+        ),  # detections with xyxy, and different data field values
+    ],
+)
+def test_equal(
+    detections_a: Detections, detections_b: Detections, expected_result: bool
+) -> None:
+    assert (detections_a == detections_b) == expected_result

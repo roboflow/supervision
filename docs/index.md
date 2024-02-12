@@ -1,9 +1,16 @@
+---
+comments: true
+hide:
+  - navigation
+  - toc
+---
+
 <div align="center">
   <p>
     <a align="center" href="" target="_blank">
       <img
         width="850"
-        src="https://media.roboflow.com/open-source/supervision/roboflow-supervision-banner.png?ik-sdk-version=javascript-1.4.3&updatedAt=1674062891088"
+        src="https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png?updatedAt=1678995927529"
       >
     </a>
   </p>
@@ -13,10 +20,17 @@
 
 We write your reusable computer vision tools. Whether you need to load your dataset from your hard drive, draw detections on an image or video, or count how many detections are in a zone. You can count on us!
 
+<video controls>
+    <source
+        src="https://media.roboflow.com/traffic_analysis_result.mp4"
+        type="video/mp4"
+    >
+</video>
+
 ## 💻 Install
 
 You can install `supervision` with pip in a
-[**3.11>=Python>=3.8**](https://www.python.org/) environment.
+[**Python>=3.8**](https://www.python.org/) environment.
 
 !!! example "pip install (recommended)"
 
@@ -46,6 +60,7 @@ You can install `supervision` with pip in a
         # setup python environment and activate it
         python3 -m venv venv
         source venv/bin/activate
+        pip install --upgrade pip
 
         # headless install
         pip install -e "."
@@ -62,7 +77,7 @@ You can install `supervision` with pip in a
         cd supervision
 
         # setup python environment and activate it
-        poetry env use python 3.10
+        poetry env use python3.10
         poetry shell
 
         # headless install
@@ -71,3 +86,38 @@ You can install `supervision` with pip in a
         # desktop install
         poetry install --extras "desktop"
         ```
+
+
+## 🚀 Quickstart
+
+<div class="grid cards" markdown>
+
+-   __Detect and Annotate__
+
+    ---
+
+    Annotate predictions from a range of object detection and segmentation models
+
+    [:octicons-arrow-right-24: Tutorial](how_to/detect_and_annotate.md)
+
+-   __Track Objects__
+
+    ---
+
+    Discover how to enhance video analysis by implementing seamless object tracking
+
+    [:octicons-arrow-right-24: Tutorial](how_to/track_objects.md)
+
+-   > __Count Objects Crossing Line__
+
+    ---
+
+    Explore methods to accurately count and analyze objects crossing a predefined line
+
+-   > __Filter Objects in Zone__
+
+    ---
+
+    Master the techniques to selectively filter and focus on objects within a specific zone
+
+</div>

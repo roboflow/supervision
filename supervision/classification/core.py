@@ -5,8 +5,6 @@ from typing import Any, Optional, Tuple
 
 import numpy as np
 
-from supervision.utils.internal import deprecated
-
 
 def _validate_class_ids(class_id: Any, n: int) -> None:
     """
@@ -41,70 +39,120 @@ class Classifications:
         _validate_class_ids(self.class_id, n)
         _validate_confidence(self.confidence, n)
 
+    def __len__(self) -> int:
+        """
+        Returns the number of classifications.
+        """
+        return len(self.class_id)
+
     @classmethod
-    @deprecated(
-        """
-        This method is deprecated and removed in 0.16.0 release.
-        Use sv.Classifications.from_ultralytics() instead as it is more generic and
-        can be used for detections from any ultralytics.engine.results.Results Object
-        """
-    )
-    def from_yolov8(cls, yolov8_results) -> Classifications:
+    def from_clip(cls, clip_results) -> Classifications:
         """
         Creates a Classifications instance from a
-        [YOLOv8](https://github.com/ultralytics/ultralytics) inference result.
+        [clip](https://github.com/openai/clip) inference result.
 
         Args:
-            yolov8_results (ultralytics.yolo.engine.results.Results):
-                The output Results instance from YOLOv8
+            clip_results (np.ndarray): The inference result from clip model.
 
         Returns:
             Classifications: A new Classifications object.
 
         Example:
             ```python
-            >>> import cv2
-            >>> from ultralytics import YOLO
-            >>> import supervision as sv
+            from PIL import Image
+            import clip
+            import supervision as sv
 
-            >>> image = cv2.imread(SOURCE_IMAGE_PATH)
-            >>> model = YOLO('yolov8s-cls.pt')
-            >>> result = model(image)[0]
-            >>> classifications = sv.Classifications.from_yolov8(result)
+            model, preprocess = clip.load('ViT-B/32')
+
+            image = cv2.imread(SOURCE_IMAGE_PATH)
+            image = preprocess(image).unsqueeze(0)
+
+            text = clip.tokenize(["a diagram", "a dog", "a cat"])
+            output, _ = model(image, text)
+            classifications = sv.Classifications.from_clip(output)
             ```
         """
-        confidence = yolov8_results.probs.data.cpu().numpy()
-        return cls(class_id=np.arange(confidence.shape[0]), confidence=confidence)
+
+        confidence = clip_results.softmax(dim=-1).cpu().detach().numpy()[0]
+
+        if len(confidence) == 0:
+            return cls(class_id=np.array([]), confidence=np.array([]))
+
+        class_ids = np.arange(len(confidence))
+        return cls(class_id=class_ids, confidence=confidence)
 
     @classmethod
     def from_ultralytics(cls, ultralytics_results) -> Classifications:
         """
         Creates a Classifications instance from a
-        (https://github.com/ultralytics/ultralytics) inference result.
+        [ultralytics](https://github.com/ultralytics/ultralytics) inference result.
 
         Args:
             ultralytics_results (ultralytics.engine.results.Results):
-            The output Results instance from ultralytics model
+                The inference result from ultralytics model.
 
         Returns:
             Classifications: A new Classifications object.
 
         Example:
             ```python
-            >>> import cv2
-            >>> from ultralytics import YOLO
-            >>> import supervision as sv
+            import cv2
+            from ultralytics import YOLO
+            import supervision as sv
 
-            >>> image = cv2.imread(SOURCE_IMAGE_PATH)
-            >>> model = YOLO('yolov8n-cls.pt')
-            >>> model = YOLO('yolov8s-cls.pt')
+            image = cv2.imread(SOURCE_IMAGE_PATH)
+            model = YOLO('yolov8n-cls.pt')
 
-            >>> result = model(image)[0]
-            >>> classifications = sv.Classifications.from_ultralytics(result)
+            output = model(image)[0]
+            classifications = sv.Classifications.from_ultralytics(output)
             ```
         """
         confidence = ultralytics_results.probs.data.cpu().numpy()
         return cls(class_id=np.arange(confidence.shape[0]), confidence=confidence)
+
+    @classmethod
+    def from_timm(cls, timm_results) -> Classifications:
+        """
+        Creates a Classifications instance from a
+        [timm](https://huggingface.co/docs/hub/timm) inference result.
+
+        Args:
+            timm_results (torch.Tensor): The inference result from timm model.
+
+        Returns:
+            Classifications: A new Classifications object.
+
+        Example:
+            ```python
+            from PIL import Image
+            import timm
+            from timm.data import resolve_data_config, create_transform
+            import supervision as sv
+
+            model = timm.create_model(
+                model_name='hf-hub:nateraw/resnet50-oxford-iiit-pet',
+                pretrained=True
+            ).eval()
+
+            config = resolve_data_config({}, model=model)
+            transform = create_transform(**config)
+
+            image = Image.open(SOURCE_IMAGE_PATH).convert('RGB')
+            x = transform(image).unsqueeze(0)
+
+            output = model(x)
+
+            classifications = sv.Classifications.from_timm(output)
+            ```
+        """
+        confidence = timm_results.cpu().detach().numpy()[0]
+
+        if len(confidence) == 0:
+            return cls(class_id=np.array([]), confidence=np.array([]))
+
+        class_id = np.arange(len(confidence))
+        return cls(class_id=class_id, confidence=confidence)
 
     def get_top_k(self, k: int) -> Tuple[np.ndarray, np.ndarray]:
         """
@@ -120,11 +168,11 @@ class Classifications:
 
         Example:
             ```python
-            >>> import supervision as sv
+            import supervision as sv
 
-            >>> classifications = sv.Classifications(...)
+            classifications = sv.Classifications(...)
 
-            >>> classifications.get_top_k(1)
+            classifications.get_top_k(1)
 
             (array([1]), array([0.9]))
             ```

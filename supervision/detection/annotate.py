@@ -5,8 +5,13 @@ import numpy as np
 
 from supervision.detection.core import Detections
 from supervision.draw.color import Color, ColorPalette
+from supervision.utils.internal import deprecated
 
 
+@deprecated(
+    "`BoxAnnotator` is deprecated and will be removed in "
+    "`supervision-0.22.0`. Use `BoundingBoxAnnotator` and `LabelAnnotator` instead"
+)
 class BoxAnnotator:
     """
     A class for drawing bounding boxes on an image using detections provided.
@@ -26,9 +31,9 @@ class BoxAnnotator:
 
     def __init__(
         self,
-        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
         thickness: int = 2,
-        text_color: Color = Color.black(),
+        text_color: Color = Color.BLACK,
         text_scale: float = 0.5,
         text_thickness: int = 1,
         text_padding: int = 10,
@@ -63,23 +68,22 @@ class BoxAnnotator:
 
         Example:
             ```python
-            >>> import supervision as sv
+            import supervision as sv
 
-            >>> classes = ['person', ...]
-            >>> image = ...
-            >>> detections = sv.Detections(...)
+            classes = ['person', ...]
+            image = ...
+            detections = sv.Detections(...)
 
-            >>> box_annotator = sv.BoxAnnotator()
-            >>> labels = [
-            ...     f"{classes[class_id]} {confidence:0.2f}"
-            ...     for _, _, confidence, class_id, _
-            ...     in detections
-            ... ]
-            >>> annotated_frame = box_annotator.annotate(
-            ...     scene=image.copy(),
-            ...     detections=detections,
-            ...     labels=labels
-            ... )
+            box_annotator = sv.BoxAnnotator()
+            labels = [
+                f"{classes[class_id]} {confidence:0.2f}"
+                for _, _, confidence, class_id, _ in detections
+            ]
+            annotated_frame = box_annotator.annotate(
+                scene=image.copy(),
+                detections=detections,
+                labels=labels
+            )
             ```
         """
         font = cv2.FONT_HERSHEY_SIMPLEX
@@ -143,62 +147,4 @@ class BoxAnnotator:
                 thickness=self.text_thickness,
                 lineType=cv2.LINE_AA,
             )
-        return scene
-
-
-class MaskAnnotator:
-    """
-    A class for overlaying masks on an image using detections provided.
-
-    Attributes:
-        color (Union[Color, ColorPalette]): The color to fill the mask,
-            can be a single color or a color palette
-    """
-
-    def __init__(
-        self,
-        color: Union[Color, ColorPalette] = ColorPalette.default(),
-    ):
-        self.color: Union[Color, ColorPalette] = color
-
-    def annotate(
-        self, scene: np.ndarray, detections: Detections, opacity: float = 0.5
-    ) -> np.ndarray:
-        """
-        Overlays the masks on the given image based on the provided detections,
-            with a specified opacity.
-
-        Args:
-            scene (np.ndarray): The image on which the masks will be overlaid
-            detections (Detections): The detections for which the
-                masks will be overlaid
-            opacity (float): The opacity of the masks, between 0 and 1, default is 0.5
-
-        Returns:
-            np.ndarray: The image with the masks overlaid
-        """
-        if detections.mask is None:
-            return scene
-
-        for i in np.flip(np.argsort(detections.area)):
-            class_id = (
-                detections.class_id[i] if detections.class_id is not None else None
-            )
-            idx = class_id if class_id is not None else i
-            color = (
-                self.color.by_idx(idx)
-                if isinstance(self.color, ColorPalette)
-                else self.color
-            )
-
-            mask = detections.mask[i]
-            colored_mask = np.zeros_like(scene, dtype=np.uint8)
-            colored_mask[:] = color.as_bgr()
-
-            scene = np.where(
-                np.expand_dims(mask, axis=-1),
-                np.uint8(opacity * colored_mask + (1 - opacity) * scene),
-                scene,
-            )
-
         return scene
