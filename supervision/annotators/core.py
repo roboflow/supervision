@@ -1813,16 +1813,16 @@ class CropAnnotator(BaseAnnotator):
                 zoom_factor=self.zoom_factor
             )
                        
-            coordinates = self.clip_cropped_scene(
+            coordinates_and_images = self.calculate_place_coordinates(
                 scene=base_scene,
                 cropped_scene=resized_scene,
-                paste_point=anchor
+                position=self.position,
+                anchor_xy=anchor
             )
 
-            scene = self.paste_cropped_scene(
+            scene = self.place_cropped_scene(
                 scene=base_scene,
-                cropped_scene=resized_scene,
-                clipped_point=coordinates
+                coordinates_and_image=coordinates_and_images
             )
 
         return scene
@@ -1850,24 +1850,105 @@ class CropAnnotator(BaseAnnotator):
         return resized_scene
     
     @staticmethod
-    def clip_cropped_scene(
+    def calculate_place_coordinates(
         scene: np.ndarray,
         cropped_scene: np.ndarray,
-        paste_point: np.ndarray
-    ) -> Tuple[int,int]:
+        position: Position,
+        anchor_xy: np.ndarray
+    ) -> Tuple[Tuple[int,int],np.ndarray]:
         
         h, w = scene.shape[:2]
-        h_cropped, w_cropped = cropped_scene.shape[:2]
+        crop_h, crop_w = cropped_scene.shape[:2]
+        cx, cy = anchor_xy
 
-        # Clip the coordinates to ensure they are within the bounds
-        x_clip = max(0, min(paste_point[0], w - w_cropped))
-        y_clip = max(0, min(paste_point[1], h - h_cropped))
+        if position == Position.TOP_LEFT:
+            x = max(0, (cx - crop_w))
+            y = max(0, (cy - crop_h))
+            
+            if x == 0 and (cx-crop_w < 0):
+                cropped_scene = cropped_scene[:,abs(cx-crop_w):]
+            if y == 0 and (cy-crop_h < 0):
+                cropped_scene = cropped_scene[abs(cy-crop_h):,:]
+            return x, y, cropped_scene
+        
+        elif position == Position.TOP_CENTER:
+            return x, y, cropped_scene
+        elif position == Position.TOP_RIGHT:
+            x = cx
 
-        # Calculate the valid region to paste the cropped part
-        x_end = min(x_clip + w_cropped, w)
-        y_end = min(y_clip + h_cropped, h)
+            x_max = min(w, (cx + crop_w))
+            y = max(0, (cy - crop_h))
 
-        return x_clip, y_clip, x_end, y_end
+            if x_max == w and (cx + crop_w > w):
+                cropped_scene = cropped_scene[:,:(w - cx)]
+            if y == 0 and (cy-crop_h < 0):
+                cropped_scene = cropped_scene[abs(cy-crop_h):,:]
+            return x, y, cropped_scene
+        
+        elif position == Position.CENTER_LEFT:
+            return x, y, cropped_scene
+        elif position == (Position.CENTER or Position.CENTER_OF_MASS):
+            return x, y, cropped_scene
+        elif position == Position.CENTER_RIGHT:
+            return x, y, cropped_scene
+        elif position == Position.BOTTOM_LEFT:
+            x = max(0, (cx - crop_w))
+            y = cy
+            y_max = min(h, (cy + crop_h))
+
+            if x == 0 and (cx - crop_w < 0):
+                cropped_scene = cropped_scene[:,abs(cx-crop_w):]
+            if y_max == h and (cy + crop_h > h):
+                cropped_scene = cropped_scene[:h-cy,:] 
+
+            return x, y, cropped_scene
+        
+        elif position == Position.BOTTOM_CENTER:
+            return x, y, cropped_scene
+        elif position == Position.BOTTOM_RIGHT:
+            x = cx
+            y = cy
+            x_max = min(w, (cx + crop_w))
+            y_max = min(h, (cy + crop_h))
+
+            if x_max == w and (cx + crop_w > w):
+                cropped_scene = cropped_scene[:, :(w - cx)]
+            if y_max == h and (cy + crop_h > h):
+                cropped_scene = cropped_scene[:h-cy,:]
+
+            return x, y, cropped_scene
+
+    @staticmethod
+    def place_cropped_scene(
+        scene: np.ndarray,
+        coordinates_and_image:Tuple[Tuple[int,int], np.ndarray]
+    ) -> np.ndarray:
+        x,y = coordinates_and_image[0:2]
+        cropped_scene = coordinates_and_image[2]
+        scene[y:y+cropped_scene.shape[0], x:x+cropped_scene.shape[1]] = cropped_scene
+
+        return scene
+
+    
+    # @staticmethod
+    # def clip_cropped_scene(
+    #     scene: np.ndarray,
+    #     cropped_scene: np.ndarray,
+    #     paste_point: np.ndarray
+    # ) -> Tuple[int,int]:
+        
+    #     h, w = scene.shape[:2]
+    #     h_cropped, w_cropped = cropped_scene.shape[:2]
+
+    #     # Clip the coordinates to ensure they are within the bounds
+    #     x_clip = max(0, min(paste_point[0], w - w_cropped))
+    #     y_clip = max(0, min(paste_point[1], h - h_cropped))
+
+    #     # Calculate the valid region to paste the cropped part
+    #     x_end = min(x_clip + w_cropped, w)
+    #     y_end = min(y_clip + h_cropped, h)
+
+    #     return x_clip, y_clip, x_end, y_end
     
     @staticmethod
     def paste_cropped_scene(
