@@ -114,8 +114,8 @@ You can learn more about mkdocs on the [mkdocs website](https://www.mkdocs.org/)
 
 ## 🧑‍🍳 cookbooks
 
-We are always looking for new examples and cookbooks to add to the `supervision` 
-documentation. If you have a use case that you think would be helpful to others, please 
+We are always looking for new examples and cookbooks to add to the `supervision`
+documentation. If you have a use case that you think would be helpful to others, please
 submit a PR with your example. Here are some guidelines for submitting a new example:
 
 - Create a new notebook in the [`docs/nodebooks`](https://github.com/roboflow/supervision/tree/develop/docs/notebooks) folder.
