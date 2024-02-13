@@ -46,8 +46,6 @@ tqdm = { version = ">=4.62.3,<=4.66.1", optional = true }
 defusedxml = "^0.7.1"
 gdown = "^4.6.3"
 
-
-
 [tool.poetry.extras]
 desktop = ["opencv-python"]
 assets = ["requests","tqdm"]
