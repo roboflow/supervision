@@ -1,37 +1,55 @@
-import sys
-import os 
-import yaml 
-import torch
-import gdown
-import numpy as np
+import os
+from os.path import exists as file_exists
 from pathlib import Path
 from types import SimpleNamespace
-from os.path import exists as file_exists, join
-from .sort.detection import Detection
-from .sort.tracker import Tracker
-from .sort.nn_matching import NearestNeighborDistanceMetric
-from .deep.reid_model_factory import show_downloadeable_models, get_model_url, get_model_name
-from supervision.tracker.strongsort_tracker.deep.reid.torchreid.utils import FeatureExtractor
-from supervision.tracker.strongsort_tracker.deep.reid.torchreid.utils.tools import download_url
+
+import gdown
+import numpy as np
+import torch
+import yaml
+
 from supervision.detection.core import Detections
-__all__ = ['StrongSort']
+from supervision.tracker.strongsort_tracker.deep.reid.torchreid.utils import (
+    FeatureExtractor,
+)
+
+from .deep.reid_model_factory import (
+    get_model_name,
+    get_model_url,
+    show_downloadeable_models,
+)
+from .sort.detection import Detection
+from .sort.nn_matching import NearestNeighborDistanceMetric
+from .sort.tracker import Tracker
+
+__all__ = ["StrongSort"]
 
 
 class StrongSort(object):
-    def __init__(self, 
-        device=None, 
+    def __init__(
+        self,
+        device=None,
         max_dist=0.2,
         max_iou_distance=0.7,
-        max_age=70, 
+        max_age=70,
         n_init=3,
         nn_budget=100,
         mc_lambda=0.995,
-        ema_alpha=0.9
+        ema_alpha=0.9,
     ):
-
-        model_weights, dev, max_dist, max_iou_distance, max_age, n_init, nn_budget, mc_lambda, ema_alpha = self.load_config()
+        (
+            model_weights,
+            dev,
+            max_dist,
+            max_iou_distance,
+            max_age,
+            n_init,
+            nn_budget,
+            mc_lambda,
+            ema_alpha,
+        ) = self.load_config()
         if device == None:
-            device = dev 
+            device = dev
         model_name = get_model_name(model_weights)
         model_url = get_model_url(model_weights)
 
@@ -40,65 +58,68 @@ class StrongSort(object):
         elif file_exists(model_weights):
             pass
         elif model_url is None:
-            print('No URL associated to the chosen StrongSort weights. Choose between:')
+            print("No URL associated to the chosen StrongSort weights. Choose between:")
             show_downloadeable_models()
             exit()
 
         self.extractor = FeatureExtractor(
-            model_name=model_name,
-            model_path=model_weights,
-            device=str(device)
+            model_name=model_name, model_path=model_weights, device=str(device)
         )
 
         self.max_dist = max_dist
-        metric = NearestNeighborDistanceMetric(
-            "cosine", self.max_dist, nn_budget)
+        metric = NearestNeighborDistanceMetric("cosine", self.max_dist, nn_budget)
         self.tracker = Tracker(
-            metric, max_iou_distance=max_iou_distance, max_age=max_age, n_init=n_init)
+            metric, max_iou_distance=max_iou_distance, max_age=max_age, n_init=n_init
+        )
 
     def load_config(self):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         half = False
-        tracker_config = "./supervision/tracker/strongsort_tracker/configs/strong_sort.yaml"
+        tracker_config = (
+            "./supervision/tracker/strongsort_tracker/configs/strong_sort.yaml"
+        )
         with open(tracker_config, "r") as f:
             cfg = yaml.load(f.read(), Loader=yaml.FullLoader)
-        cfg = SimpleNamespace(**cfg) 
+        cfg = SimpleNamespace(**cfg)
         model_url = "https://drive.google.com/uc?id=1sSwXSUlj4_tHZequ_iZ8w_Jh0VaRQMqF"
 
-        os.makedirs("./supervision/tracker/strongsort_tracker/weights",exist_ok=True)
+        os.makedirs("./supervision/tracker/strongsort_tracker/weights", exist_ok=True)
         reid_weights = "./supervision/tracker/strongsort_tracker/weights/osnet_x0_25_msmt17.pt"  ##The suffix of the file name is pt
         if not os.path.exists(reid_weights):
             gdown.download(model_url, str(reid_weights), quiet=False)
         reid_weights = Path(reid_weights)
 
-        return reid_weights, device, cfg.max_dist, cfg.max_iou_dist, cfg.max_age, cfg.n_init, cfg.nn_budget, cfg.mc_lambda, cfg.ema_alpha
+        return (
+            reid_weights,
+            device,
+            cfg.max_dist,
+            cfg.max_iou_dist,
+            cfg.max_age,
+            cfg.n_init,
+            cfg.nn_budget,
+            cfg.mc_lambda,
+            cfg.ema_alpha,
+        )
+
     def update_with_detections(self, detections, ori_img):
         bbox_xywh = detections.xyxy
         confidences = detections.confidence
         class_ids = detections.class_id
-        
-        
+
         tracks = self.update(bbox_xywh, confidences, class_ids, ori_img)
-        
+
         detections = Detections.empty()
         if len(tracks) > 0:
             detections.xyxy = np.array(
                 [track[0:4] for track in tracks], dtype=np.float32
             )
-            detections.class_id = np.array(
-                [int(t[5]) for t in tracks], dtype=int
-            )
-            detections.tracker_id = np.array(
-                [int(t[4]) for t in tracks], dtype=int
-            )
-            detections.confidence = np.array(
-                [t[-1] for t in tracks], dtype=np.float32
-            )
+            detections.class_id = np.array([int(t[5]) for t in tracks], dtype=int)
+            detections.tracker_id = np.array([int(t[4]) for t in tracks], dtype=int)
+            detections.confidence = np.array([t[-1] for t in tracks], dtype=np.float32)
         else:
             detections.tracker_id = np.array([], dtype=int)
 
         return detections
-
 
     @staticmethod
     def _convert_xyxy_tlwh(bbox_xyxy):
@@ -106,20 +127,23 @@ class StrongSort(object):
 
         for bbox in bbox_xyxy:
             bbox = [int(e) for e in bbox]
-            tlx,tly,brx,bry = bbox
+            tlx, tly, brx, bry = bbox
 
             w = brx - tlx
             h = bry - tly
             bbox_tlwh.append([tlx, tly, w, h])
 
         return bbox_tlwh
+
     def update(self, bbox_xywh, confidences, classes, ori_img):
         self.height, self.width = ori_img.shape[:2]
         # generate detections
         features = self._get_features(bbox_xywh, ori_img)
         bbox_tlwh = self._convert_xyxy_tlwh(bbox_xywh)
-        detections = [Detection(bbox_tlwh[i], conf, features[i]) for i, conf in enumerate(
-            confidences)]
+        detections = [
+            Detection(bbox_tlwh[i], conf, features[i])
+            for i, conf in enumerate(confidences)
+        ]
 
         # run on non-maximum supression
         boxes = np.array([d.tlwh for d in detections])
@@ -139,7 +163,7 @@ class StrongSort(object):
 
             box = track.to_tlwh()
             x1, y1, x2, y2 = self._tlwh_to_xyxy(box)
-            
+
             track_id = track.track_id
             class_id = track.class_id
             conf = track.conf
@@ -154,8 +178,8 @@ class StrongSort(object):
             bbox_tlwh = bbox_xywh.copy()
         elif isinstance(bbox_xywh, torch.Tensor):
             bbox_tlwh = bbox_xywh.clone()
-        bbox_tlwh[:, 0] = bbox_xywh[:, 0] - bbox_xywh[:, 2] / 2.
-        bbox_tlwh[:, 1] = bbox_xywh[:, 1] - bbox_xywh[:, 3] / 2.
+        bbox_tlwh[:, 0] = bbox_xywh[:, 0] - bbox_xywh[:, 2] / 2.0
+        bbox_tlwh[:, 1] = bbox_xywh[:, 1] - bbox_xywh[:, 3] / 2.0
         return bbox_tlwh
 
     def _xywh_to_xyxy(self, bbox_xywh):
@@ -169,9 +193,9 @@ class StrongSort(object):
     def _tlwh_to_xyxy(self, bbox_tlwh):
         x, y, w, h = bbox_tlwh
         x1 = max(int(x), 0)
-        x2 = min(int(x+w), self.width - 1)
+        x2 = min(int(x + w), self.width - 1)
         y1 = max(int(y), 0)
-        y2 = min(int(y+h), self.height - 1)
+        y2 = min(int(y + h), self.height - 1)
         return x1, y1, x2, y2
 
     def increment_ages(self):

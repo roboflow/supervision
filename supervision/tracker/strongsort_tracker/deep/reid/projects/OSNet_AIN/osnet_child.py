@@ -1,4 +1,5 @@
-from __future__ import division, absolute_import
+from __future__ import absolute_import, division
+
 from torch import nn
 from torch.nn import functional as F
 
@@ -17,7 +18,7 @@ class ConvLayer(nn.Module):
         stride=1,
         padding=0,
         groups=1,
-        IN=False
+        IN=False,
     ):
         super(ConvLayer, self).__init__()
         self.conv = nn.Conv2d(
@@ -27,7 +28,7 @@ class ConvLayer(nn.Module):
             stride=stride,
             padding=padding,
             bias=False,
-            groups=groups
+            groups=groups,
         )
         if IN:
             self.bn = nn.InstanceNorm2d(out_channels, affine=True)
@@ -53,7 +54,7 @@ class Conv1x1(nn.Module):
             stride=stride,
             padding=0,
             bias=False,
-            groups=groups
+            groups=groups,
         )
         self.bn = nn.BatchNorm2d(out_channels)
         self.relu = nn.ReLU(inplace=True)
@@ -95,7 +96,7 @@ class Conv3x3(nn.Module):
             stride=stride,
             padding=1,
             bias=False,
-            groups=groups
+            groups=groups,
         )
         self.bn = nn.BatchNorm2d(out_channels)
         self.relu = nn.ReLU(inplace=True)
@@ -124,7 +125,7 @@ class LightConv3x3(nn.Module):
             stride=1,
             padding=1,
             bias=False,
-            groups=out_channels
+            groups=out_channels,
         )
         self.bn = nn.BatchNorm2d(out_channels)
         self.relu = nn.ReLU(inplace=True)
@@ -141,7 +142,7 @@ class LightConvStream(nn.Module):
 
     def __init__(self, in_channels, out_channels, depth):
         super(LightConvStream, self).__init__()
-        assert depth >= 1, 'depth must be equal to or larger than 1, but got {}'.format(
+        assert depth >= 1, "depth must be equal to or larger than 1, but got {}".format(
             depth
         )
         layers = []
@@ -165,9 +166,9 @@ class ChannelGate(nn.Module):
         in_channels,
         num_gates=None,
         return_gates=False,
-        gate_activation='sigmoid',
+        gate_activation="sigmoid",
         reduction=16,
-        layer_norm=False
+        layer_norm=False,
     ):
         super(ChannelGate, self).__init__()
         if num_gates is None:
@@ -175,33 +176,23 @@ class ChannelGate(nn.Module):
         self.return_gates = return_gates
         self.global_avgpool = nn.AdaptiveAvgPool2d(1)
         self.fc1 = nn.Conv2d(
-            in_channels,
-            in_channels // reduction,
-            kernel_size=1,
-            bias=True,
-            padding=0
+            in_channels, in_channels // reduction, kernel_size=1, bias=True, padding=0
         )
         self.norm1 = None
         if layer_norm:
             self.norm1 = nn.LayerNorm((in_channels // reduction, 1, 1))
         self.relu = nn.ReLU(inplace=True)
         self.fc2 = nn.Conv2d(
-            in_channels // reduction,
-            num_gates,
-            kernel_size=1,
-            bias=True,
-            padding=0
+            in_channels // reduction, num_gates, kernel_size=1, bias=True, padding=0
         )
-        if gate_activation == 'sigmoid':
+        if gate_activation == "sigmoid":
             self.gate_activation = nn.Sigmoid()
-        elif gate_activation == 'relu':
+        elif gate_activation == "relu":
             self.gate_activation = nn.ReLU(inplace=True)
-        elif gate_activation == 'linear':
+        elif gate_activation == "linear":
             self.gate_activation = None
         else:
-            raise RuntimeError(
-                "Unknown gate activation: {}".format(gate_activation)
-            )
+            raise RuntimeError("Unknown gate activation: {}".format(gate_activation))
 
     def forward(self, x):
         input = x
@@ -279,7 +270,7 @@ class OSBlockINv1(nn.Module):
             x2_t = conv2_t(x1)
             x2 = x2 + self.gate(x2_t)
         x3 = self.conv3(x2)
-        x3 = self.IN(x3) # IN inside residual
+        x3 = self.IN(x3)  # IN inside residual
         if self.downsample is not None:
             identity = self.downsample(identity)
         out = x3 + identity
@@ -317,7 +308,7 @@ class OSBlockINv2(nn.Module):
         if self.downsample is not None:
             identity = self.downsample(identity)
         out = x3 + identity
-        out = self.IN(out) # IN outside residual
+        out = self.IN(out)  # IN outside residual
         return F.relu(out)
 
 
@@ -350,11 +341,11 @@ class OSBlockINv3(nn.Module):
             x2_t = conv2_t(x1)
             x2 = x2 + self.gate(x2_t)
         x3 = self.conv3(x2)
-        x3 = self.IN_in(x3) # IN inside residual
+        x3 = self.IN_in(x3)  # IN inside residual
         if self.downsample is not None:
             identity = self.downsample(identity)
         out = x3 + identity
-        out = self.IN_out(out) # IN outside residual
+        out = self.IN_out(out)  # IN outside residual
         return F.relu(out)
 
 
@@ -363,7 +354,7 @@ class OSBlockINv3(nn.Module):
 ##########
 class OSNet(nn.Module):
     """Omni-Scale Network.
-    
+
     Reference:
         - Zhou et al. Omni-Scale Feature Learning for Person Re-Identification. ICCV, 2019.
         - Zhou et al. Learning Generalisable Omni-Scale Representations
@@ -377,9 +368,9 @@ class OSNet(nn.Module):
         layers,
         channels,
         feature_dim=512,
-        loss='softmax',
+        loss="softmax",
         conv1_IN=True,
-        **kwargs
+        **kwargs,
     ):
         super(OSNet, self).__init__()
         num_blocks = len(blocks)
@@ -389,25 +380,17 @@ class OSNet(nn.Module):
         self.feature_dim = feature_dim
 
         # convolutional backbone
-        self.conv1 = ConvLayer(
-            3, channels[0], 7, stride=2, padding=3, IN=conv1_IN
-        )
+        self.conv1 = ConvLayer(3, channels[0], 7, stride=2, padding=3, IN=conv1_IN)
         self.maxpool = nn.MaxPool2d(3, stride=2, padding=1)
-        self.conv2 = self._make_layer(
-            blocks[0], layers[0], channels[0], channels[1]
-        )
+        self.conv2 = self._make_layer(blocks[0], layers[0], channels[0], channels[1])
         self.pool2 = nn.Sequential(
             Conv1x1(channels[1], channels[1]), nn.AvgPool2d(2, stride=2)
         )
-        self.conv3 = self._make_layer(
-            blocks[1], layers[1], channels[1], channels[2]
-        )
+        self.conv3 = self._make_layer(blocks[1], layers[1], channels[1], channels[2])
         self.pool3 = nn.Sequential(
             Conv1x1(channels[2], channels[2]), nn.AvgPool2d(2, stride=2)
         )
-        self.conv4 = self._make_layer(
-            blocks[2], layers[2], channels[2], channels[3]
-        )
+        self.conv4 = self._make_layer(blocks[2], layers[2], channels[2], channels[3])
         self.conv5 = Conv1x1(channels[3], channels[3])
         self.global_avgpool = nn.AdaptiveAvgPool2d(1)
         # fully connected layer
@@ -450,9 +433,7 @@ class OSNet(nn.Module):
     def _init_params(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(
-                    m.weight, mode='fan_out', nonlinearity='relu'
-                )
+                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
                 if m.bias is not None:
                     nn.init.constant_(m.bias, 0)
 
@@ -494,9 +475,9 @@ class OSNet(nn.Module):
         if not self.training:
             return v
         y = self.classifier(v)
-        if self.loss == 'softmax':
+        if self.loss == "softmax":
             return y
-        elif self.loss == 'triplet':
+        elif self.loss == "triplet":
             return y, v
         else:
             raise KeyError("Unsupported loss: {}".format(self.loss))
@@ -505,31 +486,28 @@ class OSNet(nn.Module):
 ##########
 # Instantiation
 ##########
-def osnet_ain_x1_0(
-    num_classes=1000, pretrained=True, loss='softmax', **kwargs
-):
+def osnet_ain_x1_0(num_classes=1000, pretrained=True, loss="softmax", **kwargs):
     model = OSNet(
         num_classes,
         blocks=[
-            [OSBlockINv1, OSBlockINv1], [OSBlock, OSBlockINv1],
-            [OSBlockINv1, OSBlock]
+            [OSBlockINv1, OSBlockINv1],
+            [OSBlock, OSBlockINv1],
+            [OSBlockINv1, OSBlock],
         ],
         layers=[2, 2, 2],
         channels=[64, 256, 384, 512],
         loss=loss,
         conv1_IN=True,
-        **kwargs
+        **kwargs,
     )
     return model
 
 
-__models = {'osnet_ain_x1_0': osnet_ain_x1_0}
+__models = {"osnet_ain_x1_0": osnet_ain_x1_0}
 
 
 def build_model(name, num_classes=100):
     avai_models = list(__models.keys())
     if name not in avai_models:
-        raise KeyError(
-            'Unknown model: {}. Must be one of {}'.format(name, avai_models)
-        )
+        raise KeyError("Unknown model: {}. Must be one of {}".format(name, avai_models))
     return __models[name](num_classes=num_classes)

@@ -1,13 +1,18 @@
-from __future__ import division, absolute_import
+from __future__ import absolute_import, division
+
 import copy
-import numpy as np
 import random
 from collections import defaultdict
-from torch.utils.data.sampler import Sampler, RandomSampler, SequentialSampler
+
+import numpy as np
+from torch.utils.data.sampler import RandomSampler, Sampler, SequentialSampler
 
 AVAI_SAMPLERS = [
-    'RandomIdentitySampler', 'SequentialSampler', 'RandomSampler',
-    'RandomDomainSampler', 'RandomDatasetSampler'
+    "RandomIdentitySampler",
+    "SequentialSampler",
+    "RandomSampler",
+    "RandomDomainSampler",
+    "RandomDatasetSampler",
 ]
 
 
@@ -23,8 +28,9 @@ class RandomIdentitySampler(Sampler):
     def __init__(self, data_source, batch_size, num_instances):
         if batch_size < num_instances:
             raise ValueError(
-                'batch_size={} must be no less '
-                'than num_instances={}'.format(batch_size, num_instances)
+                "batch_size={} must be no less " "than num_instances={}".format(
+                    batch_size, num_instances
+                )
             )
 
         self.data_source = data_source
@@ -54,9 +60,7 @@ class RandomIdentitySampler(Sampler):
         for pid in self.pids:
             idxs = copy.deepcopy(self.index_dic[pid])
             if len(idxs) < self.num_instances:
-                idxs = np.random.choice(
-                    idxs, size=self.num_instances, replace=True
-                )
+                idxs = np.random.choice(idxs, size=self.num_instances, replace=True)
             random.shuffle(idxs)
             batch_idxs = []
             for idx in idxs:
@@ -209,7 +213,7 @@ def build_train_sampler(
     num_instances=4,
     num_cams=1,
     num_datasets=1,
-    **kwargs
+    **kwargs,
 ):
     """Builds a training sampler.
 
@@ -224,22 +228,25 @@ def build_train_sampler(
         num_datasets (int, optional): number of datasets to sample in a batch (when
             using ``RandomDatasetSampler``). Default is 1.
     """
-    assert train_sampler in AVAI_SAMPLERS, \
-        'train_sampler must be one of {}, but got {}'.format(AVAI_SAMPLERS, train_sampler)
+    assert (
+        train_sampler in AVAI_SAMPLERS
+    ), "train_sampler must be one of {}, but got {}".format(
+        AVAI_SAMPLERS, train_sampler
+    )
 
-    if train_sampler == 'RandomIdentitySampler':
+    if train_sampler == "RandomIdentitySampler":
         sampler = RandomIdentitySampler(data_source, batch_size, num_instances)
 
-    elif train_sampler == 'RandomDomainSampler':
+    elif train_sampler == "RandomDomainSampler":
         sampler = RandomDomainSampler(data_source, batch_size, num_cams)
 
-    elif train_sampler == 'RandomDatasetSampler':
+    elif train_sampler == "RandomDatasetSampler":
         sampler = RandomDatasetSampler(data_source, batch_size, num_datasets)
 
-    elif train_sampler == 'SequentialSampler':
+    elif train_sampler == "SequentialSampler":
         sampler = SequentialSampler(data_source)
 
-    elif train_sampler == 'RandomSampler':
+    elif train_sampler == "RandomSampler":
         sampler = RandomSampler(data_source)
 
     return sampler

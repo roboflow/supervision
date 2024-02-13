@@ -1,7 +1,9 @@
 # cython: boundscheck=False, wraparound=False, nonecheck=False, cdivision=True
 
 from __future__ import print_function
+
 import numpy as np
+
 from libc.stdint cimport int64_t, uint64_t
 
 import cython

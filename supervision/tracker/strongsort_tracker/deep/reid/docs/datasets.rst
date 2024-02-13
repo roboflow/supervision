@@ -38,7 +38,7 @@ Market1501 :math:`^\dagger` (``market1501``)
 - The data structure should look like
 
 .. code-block:: none
-    
+
     market1501/
         Market-1501-v15.09.15/
             query/
@@ -56,7 +56,7 @@ CUHK03 (``cuhk03``)
 - The data structure should look like
 
 .. code-block:: none
-    
+
     cuhk03/
         cuhk03_release/
         cuhk03_new_protocol_config_detected.mat
@@ -67,7 +67,7 @@ CUHK03 (``cuhk03``)
 
 .. note::
     The code will extract images in "cuhk-03.mat" and save them under "cuhk03/images_detected" and "cuhk03/images_labeled". Also, four json files will be automatically generated, i.e. "splits_classic_detected.json", "splits_classic_labeled.json", "splits_new_detected.json" and "splits_new_labeled.json". If the parent path of ``$REID`` is changed, these json files should be manually deleted. The code can automatically generate new json files to match the new path.
-    
+
 
 DukeMTMC-reID :math:`^\dagger` (``dukemtmcreid``)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -76,7 +76,7 @@ DukeMTMC-reID :math:`^\dagger` (``dukemtmcreid``)
 - The data structure should look like
 
 .. code-block:: none
-    
+
     dukemtmc-reid/
         DukeMTMC-reID/
             query/
@@ -91,7 +91,7 @@ MSMT17 (``msmt17``)
 - The data structure should look like
 
 .. code-block:: none
-    
+
     msmt17/
         MSMT17_V1/ # or MSMT17_V2
             train/
@@ -107,7 +107,7 @@ VIPeR :math:`^\dagger` (``viper``)
 - Organize the dataset in a folder named "viper" as follows
 
 .. code-block:: none
-    
+
     viper/
         VIPeR/
             cam_a/
@@ -119,7 +119,7 @@ GRID :math:`^\dagger` (``grid``)
 - Organize the dataset in a folder named "grid" as follows
 
 .. code-block:: none
-    
+
     grid/
         underground_reid/
             probe/
@@ -134,7 +134,7 @@ CUHK01 (``cuhk01``)
 - The data structure should look like
 
 .. code-block:: none
-    
+
     cuhk01/
         campus/
 
@@ -157,7 +157,7 @@ QMUL-iLIDS :math:`^\dagger` (``ilids``)
 - Download the dataset from http://www.eecs.qmul.ac.uk/~jason/data/i-LIDS_Pedestrian.tgz and organize it to look like
 
 .. code-block:: none
-    
+
     ilids/
         i-LIDS_Pedestrian/
             Persons/
@@ -182,7 +182,7 @@ CUHK02 (``cuhk02``)
 - Extract the file so the data structure looks like
 
 .. code-block:: none
-    
+
     cuhk02/
         Dataset/
             P1/
@@ -199,7 +199,7 @@ CUHKSYSU (``cuhksysu``)
 - The data structure should look like
 
 .. code-block:: none
-    
+
     cuhksysu/
         cropped_images
 
@@ -216,7 +216,7 @@ MARS (``mars``)
 - The data structure should end up with
 
 .. code-block:: none
-    
+
     mars/
         bbox_test/
         bbox_train/
@@ -229,7 +229,7 @@ iLIDS-VID :math:`^\dagger` (``ilidsvid``)
 - Organize the data structure to match
 
 .. code-block:: none
-    
+
     ilids-vid/
         i-LIDS-VID/
         train-test people splits/
@@ -256,7 +256,7 @@ DukeMTMC-VideoReID :math:`^\dagger` (``dukemtmcvidreid``)
 - The data structure should look like
 
 .. code-block:: none
-    
+
     dukemtmc-vidreid/
         DukeMTMC-VideoReID/
             train/

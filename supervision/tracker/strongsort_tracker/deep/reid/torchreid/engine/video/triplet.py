@@ -1,7 +1,10 @@
-from __future__ import division, print_function, absolute_import
+from __future__ import absolute_import, division, print_function
+
 import torch
 
-from supervision.tracker.strongsort_tracker.deep.reid.torchreid.engine.image import ImageTripletEngine
+from supervision.tracker.strongsort_tracker.deep.reid.torchreid.engine.image import (
+    ImageTripletEngine,
+)
 
 
 class VideoTripletEngine(ImageTripletEngine):
@@ -75,7 +78,7 @@ class VideoTripletEngine(ImageTripletEngine):
         scheduler=None,
         use_gpu=True,
         label_smooth=True,
-        pooling_method='avg'
+        pooling_method="avg",
     ):
         super(VideoTripletEngine, self).__init__(
             datamanager,
@@ -86,13 +89,13 @@ class VideoTripletEngine(ImageTripletEngine):
             weight_x=weight_x,
             scheduler=scheduler,
             use_gpu=use_gpu,
-            label_smooth=label_smooth
+            label_smooth=label_smooth,
         )
         self.pooling_method = pooling_method
 
     def parse_data_for_train(self, data):
-        imgs = data['img']
-        pids = data['pid']
+        imgs = data["img"]
+        pids = data["pid"]
         if imgs.dim() == 5:
             # b: batch size
             # s: sqeuence length
@@ -115,7 +118,7 @@ class VideoTripletEngine(ImageTripletEngine):
         input = input.view(b * s, c, h, w)
         features = self.model(input)
         features = features.view(b, s, -1)
-        if self.pooling_method == 'avg':
+        if self.pooling_method == "avg":
             features = torch.mean(features, 1)
         else:
             features = torch.max(features, 1)[0]

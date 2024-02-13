@@ -18,8 +18,8 @@ import torchreid
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('root', type=str)
-    parser.add_argument('sources', type=str)
+    parser.add_argument("root", type=str)
+    parser.add_argument("sources", type=str)
     args = parser.parse_args()
 
     datamanager = torchreid.data.ImageDataManager(
@@ -31,18 +31,18 @@ def main():
         batch_size_train=100,
         batch_size_test=100,
         transforms=None,
-        norm_mean=[0., 0., 0.],
-        norm_std=[1., 1., 1.],
-        train_sampler='SequentialSampler'
+        norm_mean=[0.0, 0.0, 0.0],
+        norm_std=[1.0, 1.0, 1.0],
+        train_sampler="SequentialSampler",
     )
     train_loader = datamanager.train_loader
 
-    print('Computing mean and std ...')
-    mean = 0.
-    std = 0.
-    n_samples = 0.
+    print("Computing mean and std ...")
+    mean = 0.0
+    std = 0.0
+    n_samples = 0.0
     for data in train_loader:
-        data = data['img']
+        data = data["img"]
         batch_size = data.size(0)
         data = data.view(batch_size, data.size(1), -1)
         mean += data.mean(2).sum(0)
@@ -51,9 +51,9 @@ def main():
 
     mean /= n_samples
     std /= n_samples
-    print('Mean: {}'.format(mean))
-    print('Std: {}'.format(std))
+    print("Mean: {}".format(mean))
+    print("Std: {}".format(std))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

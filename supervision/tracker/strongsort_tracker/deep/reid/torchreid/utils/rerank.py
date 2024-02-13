@@ -22,28 +22,26 @@ k1, k2, lambda_value: parameters, the original paper is (k1=20, k2=6, lambda_val
 Returns:
   final_dist: re-ranked distance, numpy array, shape [num_query, num_gallery]
 """
-from __future__ import division, print_function, absolute_import
+from __future__ import absolute_import, division, print_function
+
 import numpy as np
 
-__all__ = ['re_ranking']
+__all__ = ["re_ranking"]
 
 
 def re_ranking(q_g_dist, q_q_dist, g_g_dist, k1=20, k2=6, lambda_value=0.3):
-
     # The following naming, e.g. gallery_num, is different from outer scope.
     # Don't care about it.
 
     original_dist = np.concatenate(
         [
             np.concatenate([q_q_dist, q_g_dist], axis=1),
-            np.concatenate([q_g_dist.T, g_g_dist], axis=1)
+            np.concatenate([q_g_dist.T, g_g_dist], axis=1),
         ],
-        axis=0
+        axis=0,
     )
     original_dist = np.power(original_dist, 2).astype(np.float32)
-    original_dist = np.transpose(
-        1. * original_dist / np.max(original_dist, axis=0)
-    )
+    original_dist = np.transpose(1.0 * original_dist / np.max(original_dist, axis=0))
     V = np.zeros_like(original_dist).astype(np.float32)
     initial_rank = np.argsort(original_dist).astype(np.int32)
 
@@ -53,34 +51,32 @@ def re_ranking(q_g_dist, q_q_dist, g_g_dist, k1=20, k2=6, lambda_value=0.3):
 
     for i in range(all_num):
         # k-reciprocal neighbors
-        forward_k_neigh_index = initial_rank[i, :k1 + 1]
-        backward_k_neigh_index = initial_rank[forward_k_neigh_index, :k1 + 1]
+        forward_k_neigh_index = initial_rank[i, : k1 + 1]
+        backward_k_neigh_index = initial_rank[forward_k_neigh_index, : k1 + 1]
         fi = np.where(backward_k_neigh_index == i)[0]
         k_reciprocal_index = forward_k_neigh_index[fi]
         k_reciprocal_expansion_index = k_reciprocal_index
         for j in range(len(k_reciprocal_index)):
             candidate = k_reciprocal_index[j]
             candidate_forward_k_neigh_index = initial_rank[
-                candidate, :int(np.around(k1 / 2.)) + 1]
+                candidate, : int(np.around(k1 / 2.0)) + 1
+            ]
             candidate_backward_k_neigh_index = initial_rank[
-                candidate_forward_k_neigh_index, :int(np.around(k1 / 2.)) + 1]
-            fi_candidate = np.where(
-                candidate_backward_k_neigh_index == candidate
-            )[0]
-            candidate_k_reciprocal_index = candidate_forward_k_neigh_index[
-                fi_candidate]
+                candidate_forward_k_neigh_index, : int(np.around(k1 / 2.0)) + 1
+            ]
+            fi_candidate = np.where(candidate_backward_k_neigh_index == candidate)[0]
+            candidate_k_reciprocal_index = candidate_forward_k_neigh_index[fi_candidate]
             if len(
-                np.
-                intersect1d(candidate_k_reciprocal_index, k_reciprocal_index)
-            ) > 2. / 3 * len(candidate_k_reciprocal_index):
+                np.intersect1d(candidate_k_reciprocal_index, k_reciprocal_index)
+            ) > 2.0 / 3 * len(candidate_k_reciprocal_index):
                 k_reciprocal_expansion_index = np.append(
                     k_reciprocal_expansion_index, candidate_k_reciprocal_index
                 )
 
         k_reciprocal_expansion_index = np.unique(k_reciprocal_expansion_index)
         weight = np.exp(-original_dist[i, k_reciprocal_expansion_index])
-        V[i, k_reciprocal_expansion_index] = 1. * weight / np.sum(weight)
-    original_dist = original_dist[:query_num, ]
+        V[i, k_reciprocal_expansion_index] = 1.0 * weight / np.sum(weight)
+    original_dist = original_dist[:query_num,]
     if k2 != 1:
         V_qe = np.zeros_like(V, dtype=np.float32)
         for i in range(all_num):
@@ -103,9 +99,9 @@ def re_ranking(q_g_dist, q_q_dist, g_g_dist, k1=20, k2=6, lambda_value=0.3):
             temp_min[0, indImages[j]] = temp_min[0, indImages[j]] + np.minimum(
                 V[i, indNonZero[j]], V[indImages[j], indNonZero[j]]
             )
-        jaccard_dist[i] = 1 - temp_min / (2.-temp_min)
+        jaccard_dist[i] = 1 - temp_min / (2.0 - temp_min)
 
-    final_dist = jaccard_dist * (1-lambda_value) + original_dist*lambda_value
+    final_dist = jaccard_dist * (1 - lambda_value) + original_dist * lambda_value
     del original_dist
     del V
     del jaccard_dist

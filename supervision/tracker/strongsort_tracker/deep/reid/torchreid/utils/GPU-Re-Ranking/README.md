@@ -2,8 +2,8 @@
 
 [[Paper]](https://arxiv.org/abs/2012.07620v2)
 
-On the Market-1501 dataset, we accelerate the re-ranking processing from **89.2s** to **9.4ms** with one K40m GPU, facilitating the real-time post-processing. 
-Similarly, we observe that our method achieves comparable or even better retrieval results on the other four image retrieval benchmarks, 
+On the Market-1501 dataset, we accelerate the re-ranking processing from **89.2s** to **9.4ms** with one K40m GPU, facilitating the real-time post-processing.
+Similarly, we observe that our method achieves comparable or even better retrieval results on the other four image retrieval benchmarks,
 i.e., VeRi-776, Oxford-5k, Paris-6k and University-1652, with limited time cost.
 
 ## Prerequisites
@@ -19,7 +19,7 @@ sh make.sh
 
 ## Demo
 
-The demo script `main.py` provides the gnn re-ranking  method using the prepared feature. 
+The demo script `main.py` provides the gnn re-ranking  method using the prepared feature.
 
 ```shell
 python main.py --data_path PATH_TO_DATA --k1 26 --k2 7
@@ -34,4 +34,3 @@ python main.py --data_path PATH_TO_DATA --k1 26 --k2 7
   year={2020}
 }
 ```
-

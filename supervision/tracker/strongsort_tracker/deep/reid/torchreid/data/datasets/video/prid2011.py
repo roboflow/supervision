@@ -1,4 +1,5 @@
-from __future__ import division, print_function, absolute_import
+from __future__ import absolute_import, division, print_function
+
 import glob
 import os.path as osp
 
@@ -15,27 +16,24 @@ class PRID2011(VideoDataset):
         Discriminative Classification. SCIA 2011.
 
     URL: `<https://www.tugraz.at/institute/icg/research/team-bischof/lrs/downloads/PRID11/>`_
-    
+
     Dataset statistics:
         - identities: 200.
         - tracklets: 400.
         - cameras: 2.
     """
-    dataset_dir = 'prid2011'
+
+    dataset_dir = "prid2011"
     dataset_url = None
 
-    def __init__(self, root='', split_id=0, **kwargs):
+    def __init__(self, root="", split_id=0, **kwargs):
         self.root = osp.abspath(osp.expanduser(root))
         self.dataset_dir = osp.join(self.root, self.dataset_dir)
         self.download_dataset(self.dataset_dir, self.dataset_url)
 
-        self.split_path = osp.join(self.dataset_dir, 'splits_prid2011.json')
-        self.cam_a_dir = osp.join(
-            self.dataset_dir, 'prid_2011', 'multi_shot', 'cam_a'
-        )
-        self.cam_b_dir = osp.join(
-            self.dataset_dir, 'prid_2011', 'multi_shot', 'cam_b'
-        )
+        self.split_path = osp.join(self.dataset_dir, "splits_prid2011.json")
+        self.cam_a_dir = osp.join(self.dataset_dir, "prid_2011", "multi_shot", "cam_a")
+        self.cam_b_dir = osp.join(self.dataset_dir, "prid_2011", "multi_shot", "cam_b")
 
         required_files = [self.dataset_dir, self.cam_a_dir, self.cam_b_dir]
         self.check_before_run(required_files)
@@ -43,12 +41,12 @@ class PRID2011(VideoDataset):
         splits = read_json(self.split_path)
         if split_id >= len(splits):
             raise ValueError(
-                'split_id exceeds range, received {}, but expected between 0 and {}'
-                .format(split_id,
-                        len(splits) - 1)
+                "split_id exceeds range, received {}, but expected between 0 and {}".format(
+                    split_id, len(splits) - 1
+                )
             )
         split = splits[split_id]
-        train_dirs, test_dirs = split['train'], split['test']
+        train_dirs, test_dirs = split["train"], split["test"]
 
         train = self.process_dir(train_dirs, cam1=True, cam2=True)
         query = self.process_dir(test_dirs, cam1=True, cam2=False)
@@ -63,7 +61,7 @@ class PRID2011(VideoDataset):
         for dirname in dirnames:
             if cam1:
                 person_dir = osp.join(self.cam_a_dir, dirname)
-                img_names = glob.glob(osp.join(person_dir, '*.png'))
+                img_names = glob.glob(osp.join(person_dir, "*.png"))
                 assert len(img_names) > 0
                 img_names = tuple(img_names)
                 pid = dirname2pid[dirname]
@@ -71,7 +69,7 @@ class PRID2011(VideoDataset):
 
             if cam2:
                 person_dir = osp.join(self.cam_b_dir, dirname)
-                img_names = glob.glob(osp.join(person_dir, '*.png'))
+                img_names = glob.glob(osp.join(person_dir, "*.png"))
                 assert len(img_names) > 0
                 img_names = tuple(img_names)
                 pid = dirname2pid[dirname]

@@ -1,11 +1,12 @@
 from __future__ import absolute_import
+
 import os
-import sys
 import os.path as osp
+import sys
 
 from .tools import mkdir_if_missing
 
-__all__ = ['Logger', 'RankLogger']
+__all__ = ["Logger", "RankLogger"]
 
 
 class Logger(object):
@@ -31,7 +32,7 @@ class Logger(object):
         self.file = None
         if fpath is not None:
             mkdir_if_missing(osp.dirname(fpath))
-            self.file = open(fpath, 'w')
+            self.file = open(fpath, "w")
 
     def __del__(self):
         self.close()
@@ -115,13 +116,7 @@ class RankLogger(object):
         if isinstance(self.targets, str):
             self.targets = [self.targets]
 
-        self.logger = {
-            name: {
-                'epoch': [],
-                'rank1': []
-            }
-            for name in self.targets
-        }
+        self.logger = {name: {"epoch": [], "rank1": []} for name in self.targets}
 
     def write(self, name, epoch, rank1):
         """Writes result.
@@ -131,16 +126,16 @@ class RankLogger(object):
            epoch (int): current epoch.
            rank1 (float): rank1 result.
         """
-        self.logger[name]['epoch'].append(epoch)
-        self.logger[name]['rank1'].append(rank1)
+        self.logger[name]["epoch"].append(epoch)
+        self.logger[name]["rank1"].append(rank1)
 
     def show_summary(self):
         """Shows saved results."""
-        print('=> Show performance summary')
+        print("=> Show performance summary")
         for name in self.targets:
-            from_where = 'source' if name in self.sources else 'target'
-            print('{} ({})'.format(name, from_where))
+            from_where = "source" if name in self.sources else "target"
+            print("{} ({})".format(name, from_where))
             for epoch, rank1 in zip(
-                self.logger[name]['epoch'], self.logger[name]['rank1']
+                self.logger[name]["epoch"], self.logger[name]["rank1"]
             ):
-                print('- epoch {}\t rank1 {:.1%}'.format(epoch, rank1))
+                print("- epoch {}\t rank1 {:.1%}".format(epoch, rank1))

@@ -1,23 +1,22 @@
-from __future__ import division, absolute_import
+from __future__ import absolute_import, division
+
 import torch.utils.model_zoo as model_zoo
 from torch import nn
 from torch.nn import functional as F
 
-__all__ = ['mobilenetv2_x1_0', 'mobilenetv2_x1_4']
+__all__ = ["mobilenetv2_x1_0", "mobilenetv2_x1_4"]
 
 model_urls = {
     # 1.0: top-1 71.3
-    'mobilenetv2_x1_0':
-    'https://mega.nz/#!NKp2wAIA!1NH1pbNzY_M2hVk_hdsxNM1NUOWvvGPHhaNr-fASF6c',
+    "mobilenetv2_x1_0": "https://mega.nz/#!NKp2wAIA!1NH1pbNzY_M2hVk_hdsxNM1NUOWvvGPHhaNr-fASF6c",
     # 1.4: top-1 73.9
-    'mobilenetv2_x1_4':
-    'https://mega.nz/#!RGhgEIwS!xN2s2ZdyqI6vQ3EwgmRXLEW3khr9tpXg96G9SUJugGk',
+    "mobilenetv2_x1_4": "https://mega.nz/#!RGhgEIwS!xN2s2ZdyqI6vQ3EwgmRXLEW3khr9tpXg96G9SUJugGk",
 }
 
 
 class ConvBlock(nn.Module):
     """Basic convolutional block.
-    
+
     convolution (bias discarded) + batch normalization + relu6.
 
     Args:
@@ -32,9 +31,7 @@ class ConvBlock(nn.Module):
 
     def __init__(self, in_c, out_c, k, s=1, p=0, g=1):
         super(ConvBlock, self).__init__()
-        self.conv = nn.Conv2d(
-            in_c, out_c, k, stride=s, padding=p, bias=False, groups=g
-        )
+        self.conv = nn.Conv2d(in_c, out_c, k, stride=s, padding=p, bias=False, groups=g)
         self.bn = nn.BatchNorm2d(out_c)
 
     def forward(self, x):
@@ -42,7 +39,6 @@ class ConvBlock(nn.Module):
 
 
 class Bottleneck(nn.Module):
-
     def __init__(self, in_channels, out_channels, expansion_factor, stride=1):
         super(Bottleneck, self).__init__()
         mid_channels = in_channels * expansion_factor
@@ -82,10 +78,10 @@ class MobileNetV2(nn.Module):
         self,
         num_classes,
         width_mult=1,
-        loss='softmax',
+        loss="softmax",
         fc_dims=None,
         dropout_p=None,
-        **kwargs
+        **kwargs,
     ):
         super(MobileNetV2, self).__init__()
         self.loss = loss
@@ -94,33 +90,17 @@ class MobileNetV2(nn.Module):
 
         # construct layers
         self.conv1 = ConvBlock(3, self.in_channels, 3, s=2, p=1)
-        self.conv2 = self._make_layer(
-            Bottleneck, 1, int(16 * width_mult), 1, 1
-        )
-        self.conv3 = self._make_layer(
-            Bottleneck, 6, int(24 * width_mult), 2, 2
-        )
-        self.conv4 = self._make_layer(
-            Bottleneck, 6, int(32 * width_mult), 3, 2
-        )
-        self.conv5 = self._make_layer(
-            Bottleneck, 6, int(64 * width_mult), 4, 2
-        )
-        self.conv6 = self._make_layer(
-            Bottleneck, 6, int(96 * width_mult), 3, 1
-        )
-        self.conv7 = self._make_layer(
-            Bottleneck, 6, int(160 * width_mult), 3, 2
-        )
-        self.conv8 = self._make_layer(
-            Bottleneck, 6, int(320 * width_mult), 1, 1
-        )
+        self.conv2 = self._make_layer(Bottleneck, 1, int(16 * width_mult), 1, 1)
+        self.conv3 = self._make_layer(Bottleneck, 6, int(24 * width_mult), 2, 2)
+        self.conv4 = self._make_layer(Bottleneck, 6, int(32 * width_mult), 3, 2)
+        self.conv5 = self._make_layer(Bottleneck, 6, int(64 * width_mult), 4, 2)
+        self.conv6 = self._make_layer(Bottleneck, 6, int(96 * width_mult), 3, 1)
+        self.conv7 = self._make_layer(Bottleneck, 6, int(160 * width_mult), 3, 2)
+        self.conv8 = self._make_layer(Bottleneck, 6, int(320 * width_mult), 1, 1)
         self.conv9 = ConvBlock(self.in_channels, self.feature_dim, 1)
 
         self.global_avgpool = nn.AdaptiveAvgPool2d(1)
-        self.fc = self._construct_fc_layer(
-            fc_dims, self.feature_dim, dropout_p
-        )
+        self.fc = self._construct_fc_layer(fc_dims, self.feature_dim, dropout_p)
         self.classifier = nn.Linear(self.feature_dim, num_classes)
 
         self._init_params()
@@ -151,9 +131,7 @@ class MobileNetV2(nn.Module):
 
         assert isinstance(
             fc_dims, (list, tuple)
-        ), 'fc_dims must be either list or tuple, but got {}'.format(
-            type(fc_dims)
-        )
+        ), "fc_dims must be either list or tuple, but got {}".format(type(fc_dims))
 
         layers = []
         for dim in fc_dims:
@@ -171,9 +149,7 @@ class MobileNetV2(nn.Module):
     def _init_params(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(
-                    m.weight, mode='fan_out', nonlinearity='relu'
-                )
+                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
                 if m.bias is not None:
                     nn.init.constant_(m.bias, 0)
             elif isinstance(m, nn.BatchNorm2d):
@@ -212,9 +188,9 @@ class MobileNetV2(nn.Module):
 
         y = self.classifier(v)
 
-        if self.loss == 'softmax':
+        if self.loss == "softmax":
             return y
-        elif self.loss == 'triplet':
+        elif self.loss == "triplet":
             return y, v
         else:
             raise KeyError("Unsupported loss: {}".format(self.loss))
@@ -222,7 +198,7 @@ class MobileNetV2(nn.Module):
 
 def init_pretrained_weights(model, model_url):
     """Initializes model with pretrained weights.
-    
+
     Layers that don't match with pretrained layers in name or size are kept unchanged.
     """
     pretrain_dict = model_zoo.load_url(model_url)
@@ -238,37 +214,31 @@ def init_pretrained_weights(model, model_url):
 
 def mobilenetv2_x1_0(num_classes, loss, pretrained=True, **kwargs):
     model = MobileNetV2(
-        num_classes,
-        loss=loss,
-        width_mult=1,
-        fc_dims=None,
-        dropout_p=None,
-        **kwargs
+        num_classes, loss=loss, width_mult=1, fc_dims=None, dropout_p=None, **kwargs
     )
     if pretrained:
         # init_pretrained_weights(model, model_urls['mobilenetv2_x1_0'])
         import warnings
+
         warnings.warn(
-            'The imagenet pretrained weights need to be manually downloaded from {}'
-            .format(model_urls['mobilenetv2_x1_0'])
+            "The imagenet pretrained weights need to be manually downloaded from {}".format(
+                model_urls["mobilenetv2_x1_0"]
+            )
         )
     return model
 
 
 def mobilenetv2_x1_4(num_classes, loss, pretrained=True, **kwargs):
     model = MobileNetV2(
-        num_classes,
-        loss=loss,
-        width_mult=1.4,
-        fc_dims=None,
-        dropout_p=None,
-        **kwargs
+        num_classes, loss=loss, width_mult=1.4, fc_dims=None, dropout_p=None, **kwargs
     )
     if pretrained:
         # init_pretrained_weights(model, model_urls['mobilenetv2_x1_4'])
         import warnings
+
         warnings.warn(
-            'The imagenet pretrained weights need to be manually downloaded from {}'
-            .format(model_urls['mobilenetv2_x1_4'])
+            "The imagenet pretrained weights need to be manually downloaded from {}".format(
+                model_urls["mobilenetv2_x1_4"]
+            )
         )
     return model

@@ -1,12 +1,18 @@
-from __future__ import division, print_function, absolute_import
+from __future__ import absolute_import, division, print_function
+
 import copy
-import numpy as np
 import os.path as osp
 import tarfile
 import zipfile
+
+import numpy as np
 import torch
 
-from supervision.tracker.strongsort_tracker.deep.reid.torchreid.utils import read_image, download_url, mkdir_if_missing
+from supervision.tracker.strongsort_tracker.deep.reid.torchreid.utils import (
+    download_url,
+    mkdir_if_missing,
+    read_image,
+)
 
 
 class Dataset(object):
@@ -46,10 +52,10 @@ class Dataset(object):
         gallery,
         transform=None,
         k_tfm=1,
-        mode='train',
+        mode="train",
         combineall=False,
         verbose=True,
-        **kwargs
+        **kwargs,
     ):
         # extend 3-tuple (img_path(s), pid, camid) to
         # 4-tuple (img_path(s), pid, camid, dsetid) by
@@ -77,16 +83,16 @@ class Dataset(object):
         if self.combineall:
             self.combine_all()
 
-        if self.mode == 'train':
+        if self.mode == "train":
             self.data = self.train
-        elif self.mode == 'query':
+        elif self.mode == "query":
             self.data = self.query
-        elif self.mode == 'gallery':
+        elif self.mode == "gallery":
             self.data = self.gallery
         else:
             raise ValueError(
-                'Invalid mode. Got {}, but expected to be '
-                'one of [train | query | gallery]'.format(self.mode)
+                "Invalid mode. Got {}, but expected to be "
+                "one of [train | query | gallery]".format(self.mode)
             )
 
         if self.verbose:
@@ -123,7 +129,7 @@ class Dataset(object):
                 transform=self.transform,
                 mode=self.mode,
                 combineall=False,
-                verbose=False
+                verbose=False,
             )
         else:
             return VideoDataset(
@@ -135,7 +141,7 @@ class Dataset(object):
                 combineall=False,
                 verbose=False,
                 seq_len=self.seq_len,
-                sample_method=self.sample_method
+                sample_method=self.sample_method,
             )
 
     def __radd__(self, other):
@@ -223,11 +229,9 @@ class Dataset(object):
 
         if dataset_url is None:
             raise RuntimeError(
-                '{} dataset needs to be manually '
-                'prepared, please follow the '
-                'document to prepare this dataset'.format(
-                    self.__class__.__name__
-                )
+                "{} dataset needs to be manually "
+                "prepared, please follow the "
+                "document to prepare this dataset".format(self.__class__.__name__)
             )
 
         print('Creating directory "{}"'.format(dataset_dir))
@@ -247,11 +251,11 @@ class Dataset(object):
             tar.extractall(path=dataset_dir)
             tar.close()
         except:
-            zip_ref = zipfile.ZipFile(fpath, 'r')
+            zip_ref = zipfile.ZipFile(fpath, "r")
             zip_ref.extractall(dataset_dir)
             zip_ref.close()
 
-        print('{} dataset is ready'.format(self.__class__.__name__))
+        print("{} dataset is ready".format(self.__class__.__name__))
 
     def check_before_run(self, required_files):
         """Checks if required files exist before going deeper.
@@ -276,18 +280,26 @@ class Dataset(object):
         num_gallery_pids = self.get_num_pids(self.gallery)
         num_gallery_cams = self.get_num_cams(self.gallery)
 
-        msg = '  ----------------------------------------\n' \
-              '  subset   | # ids | # items | # cameras\n' \
-              '  ----------------------------------------\n' \
-              '  train    | {:5d} | {:7d} | {:9d}\n' \
-              '  query    | {:5d} | {:7d} | {:9d}\n' \
-              '  gallery  | {:5d} | {:7d} | {:9d}\n' \
-              '  ----------------------------------------\n' \
-              '  items: images/tracklets for image/video dataset\n'.format(
-                  num_train_pids, len(self.train), num_train_cams,
-                  num_query_pids, len(self.query), num_query_cams,
-                  num_gallery_pids, len(self.gallery), num_gallery_cams
-              )
+        msg = (
+            "  ----------------------------------------\n"
+            "  subset   | # ids | # items | # cameras\n"
+            "  ----------------------------------------\n"
+            "  train    | {:5d} | {:7d} | {:9d}\n"
+            "  query    | {:5d} | {:7d} | {:9d}\n"
+            "  gallery  | {:5d} | {:7d} | {:9d}\n"
+            "  ----------------------------------------\n"
+            "  items: images/tracklets for image/video dataset\n".format(
+                num_train_pids,
+                len(self.train),
+                num_train_cams,
+                num_query_pids,
+                len(self.query),
+                num_query_cams,
+                num_gallery_pids,
+                len(self.gallery),
+                num_gallery_cams,
+            )
+        )
 
         return msg
 
@@ -327,11 +339,11 @@ class ImageDataset(Dataset):
         if self.transform is not None:
             img = self._transform_image(self.transform, self.k_tfm, img)
         item = {
-            'img': img,
-            'pid': pid,
-            'camid': camid,
-            'impath': img_path,
-            'dsetid': dsetid
+            "img": img,
+            "pid": pid,
+            "camid": camid,
+            "impath": img_path,
+            "dsetid": dsetid,
         }
         return item
 
@@ -345,26 +357,26 @@ class ImageDataset(Dataset):
         num_gallery_pids = self.get_num_pids(self.gallery)
         num_gallery_cams = self.get_num_cams(self.gallery)
 
-        print('=> Loaded {}'.format(self.__class__.__name__))
-        print('  ----------------------------------------')
-        print('  subset   | # ids | # images | # cameras')
-        print('  ----------------------------------------')
+        print("=> Loaded {}".format(self.__class__.__name__))
+        print("  ----------------------------------------")
+        print("  subset   | # ids | # images | # cameras")
+        print("  ----------------------------------------")
         print(
-            '  train    | {:5d} | {:8d} | {:9d}'.format(
+            "  train    | {:5d} | {:8d} | {:9d}".format(
                 num_train_pids, len(self.train), num_train_cams
             )
         )
         print(
-            '  query    | {:5d} | {:8d} | {:9d}'.format(
+            "  query    | {:5d} | {:8d} | {:9d}".format(
                 num_query_pids, len(self.query), num_query_cams
             )
         )
         print(
-            '  gallery  | {:5d} | {:8d} | {:9d}'.format(
+            "  gallery  | {:5d} | {:8d} | {:9d}".format(
                 num_gallery_pids, len(self.gallery), num_gallery_cams
             )
         )
-        print('  ----------------------------------------')
+        print("  ----------------------------------------")
 
 
 class VideoDataset(Dataset):
@@ -379,37 +391,29 @@ class VideoDataset(Dataset):
     """
 
     def __init__(
-        self,
-        train,
-        query,
-        gallery,
-        seq_len=15,
-        sample_method='evenly',
-        **kwargs
+        self, train, query, gallery, seq_len=15, sample_method="evenly", **kwargs
     ):
         super(VideoDataset, self).__init__(train, query, gallery, **kwargs)
         self.seq_len = seq_len
         self.sample_method = sample_method
 
         if self.transform is None:
-            raise RuntimeError('transform must not be None')
+            raise RuntimeError("transform must not be None")
 
     def __getitem__(self, index):
         img_paths, pid, camid, dsetid = self.data[index]
         num_imgs = len(img_paths)
 
-        if self.sample_method == 'random':
+        if self.sample_method == "random":
             # Randomly samples seq_len images from a tracklet of length num_imgs,
             # if num_imgs is smaller than seq_len, then replicates images
             indices = np.arange(num_imgs)
             replace = False if num_imgs >= self.seq_len else True
-            indices = np.random.choice(
-                indices, size=self.seq_len, replace=replace
-            )
+            indices = np.random.choice(indices, size=self.seq_len, replace=replace)
             # sort indices to keep temporal order (comment it to be order-agnostic)
             indices = np.sort(indices)
 
-        elif self.sample_method == 'evenly':
+        elif self.sample_method == "evenly":
             # Evenly samples seq_len images from a tracklet
             if num_imgs >= self.seq_len:
                 num_imgs -= num_imgs % self.seq_len
@@ -420,21 +424,16 @@ class VideoDataset(Dataset):
                 indices = np.arange(0, num_imgs)
                 num_pads = self.seq_len - num_imgs
                 indices = np.concatenate(
-                    [
-                        indices,
-                        np.ones(num_pads).astype(np.int32) * (num_imgs-1)
-                    ]
+                    [indices, np.ones(num_pads).astype(np.int32) * (num_imgs - 1)]
                 )
             assert len(indices) == self.seq_len
 
-        elif self.sample_method == 'all':
+        elif self.sample_method == "all":
             # Samples all images in a tracklet. batch_size must be set to 1
             indices = np.arange(num_imgs)
 
         else:
-            raise ValueError(
-                'Unknown sample method: {}'.format(self.sample_method)
-            )
+            raise ValueError("Unknown sample method: {}".format(self.sample_method))
 
         imgs = []
         for index in indices:
@@ -442,11 +441,11 @@ class VideoDataset(Dataset):
             img = read_image(img_path)
             if self.transform is not None:
                 img = self.transform(img)
-            img = img.unsqueeze(0) # img must be torch.Tensor
+            img = img.unsqueeze(0)  # img must be torch.Tensor
             imgs.append(img)
         imgs = torch.cat(imgs, dim=0)
 
-        item = {'img': imgs, 'pid': pid, 'camid': camid, 'dsetid': dsetid}
+        item = {"img": imgs, "pid": pid, "camid": camid, "dsetid": dsetid}
 
         return item
 
@@ -460,23 +459,23 @@ class VideoDataset(Dataset):
         num_gallery_pids = self.get_num_pids(self.gallery)
         num_gallery_cams = self.get_num_cams(self.gallery)
 
-        print('=> Loaded {}'.format(self.__class__.__name__))
-        print('  -------------------------------------------')
-        print('  subset   | # ids | # tracklets | # cameras')
-        print('  -------------------------------------------')
+        print("=> Loaded {}".format(self.__class__.__name__))
+        print("  -------------------------------------------")
+        print("  subset   | # ids | # tracklets | # cameras")
+        print("  -------------------------------------------")
         print(
-            '  train    | {:5d} | {:11d} | {:9d}'.format(
+            "  train    | {:5d} | {:11d} | {:9d}".format(
                 num_train_pids, len(self.train), num_train_cams
             )
         )
         print(
-            '  query    | {:5d} | {:11d} | {:9d}'.format(
+            "  query    | {:5d} | {:11d} | {:9d}".format(
                 num_query_pids, len(self.query), num_query_cams
             )
         )
         print(
-            '  gallery  | {:5d} | {:11d} | {:9d}'.format(
+            "  gallery  | {:5d} | {:11d} | {:9d}".format(
                 num_gallery_pids, len(self.gallery), num_gallery_cams
             )
         )
-        print('  -------------------------------------------')
+        print("  -------------------------------------------")

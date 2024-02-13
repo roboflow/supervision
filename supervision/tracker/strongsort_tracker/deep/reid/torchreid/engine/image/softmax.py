@@ -1,7 +1,9 @@
-from __future__ import division, print_function, absolute_import
+from __future__ import absolute_import, division, print_function
 
 from supervision.tracker.strongsort_tracker.deep.reid.torchreid import metrics
-from supervision.tracker.strongsort_tracker.deep.reid.torchreid.losses import CrossEntropyLoss
+from supervision.tracker.strongsort_tracker.deep.reid.torchreid.losses import (
+    CrossEntropyLoss,
+)
 
 from ..engine import Engine
 
@@ -19,7 +21,7 @@ class ImageSoftmaxEngine(Engine):
         label_smooth (bool, optional): use label smoothing regularizer. Default is True.
 
     Examples::
-        
+
         import torchreid
         datamanager = torchreid.data.ImageDataManager(
             root='path/to/reid-data',
@@ -60,19 +62,19 @@ class ImageSoftmaxEngine(Engine):
         optimizer,
         scheduler=None,
         use_gpu=True,
-        label_smooth=True
+        label_smooth=True,
     ):
         super(ImageSoftmaxEngine, self).__init__(datamanager, use_gpu)
 
         self.model = model
         self.optimizer = optimizer
         self.scheduler = scheduler
-        self.register_model('model', model, optimizer, scheduler)
+        self.register_model("model", model, optimizer, scheduler)
 
         self.criterion = CrossEntropyLoss(
             num_classes=self.datamanager.num_train_pids,
             use_gpu=self.use_gpu,
-            label_smooth=label_smooth
+            label_smooth=label_smooth,
         )
 
     def forward_backward(self, data):
@@ -90,8 +92,8 @@ class ImageSoftmaxEngine(Engine):
         self.optimizer.step()
 
         loss_summary = {
-            'loss': loss.item(),
-            'acc': metrics.accuracy(outputs, pids)[0].item()
+            "loss": loss.item(),
+            "acc": metrics.accuracy(outputs, pids)[0].item(),
         }
 
         return loss_summary

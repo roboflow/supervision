@@ -1,18 +1,19 @@
-from __future__ import division, print_function, absolute_import
+from __future__ import absolute_import, division, print_function
+
 import math
-import numpy as np
+from collections import defaultdict, namedtuple
 from itertools import repeat
-from collections import namedtuple, defaultdict
+
+import numpy as np
 import torch
 
-__all__ = ['compute_model_complexity']
+__all__ = ["compute_model_complexity"]
 """
 Utility
 """
 
 
 def _ntuple(n):
-
     def parse(x):
         if isinstance(x, int):
             return tuple(repeat(x, n))
@@ -32,7 +33,7 @@ Convolution
 def hook_convNd(m, x, y):
     k = torch.prod(torch.Tensor(m.kernel_size)).item()
     cin = m.in_channels
-    flops_per_ele = k * cin # + (k*cin-1)
+    flops_per_ele = k * cin  # + (k*cin-1)
     if m.bias is not None:
         flops_per_ele += 1
     flops = flops_per_ele * y.numel() / m.groups
@@ -172,9 +173,9 @@ Normalization
 
 def hook_batchnormNd(m, x, y):
     num_ele = y.numel()
-    flops = 2 * num_ele # mean and std
+    flops = 2 * num_ele  # mean and std
     if m.affine:
-        flops += 2 * num_ele # gamma and beta
+        flops += 2 * num_ele  # gamma and beta
     return int(flops)
 
 
@@ -188,9 +189,9 @@ def hook_groupnorm(m, x, y):
 
 def hook_layernorm(m, x, y):
     num_ele = y.numel()
-    flops = 2 * num_ele # mean and std
+    flops = 2 * num_ele  # mean and std
     if m.elementwise_affine:
-        flops += 2 * num_ele # gamma and beta
+        flops += 2 * num_ele  # gamma and beta
     return int(flops)
 
 
@@ -200,7 +201,7 @@ Linear
 
 
 def hook_linear(m, x, y):
-    flops_per_ele = m.in_features # + (m.in_features-1)
+    flops_per_ele = m.in_features  # + (m.in_features-1)
     if m.bias is not None:
         flops_per_ele += 1
     flops = flops_per_ele * y.numel()
@@ -209,46 +210,46 @@ def hook_linear(m, x, y):
 
 __generic_flops_counter = {
     # Convolution
-    'Conv1d': hook_convNd,
-    'Conv2d': hook_convNd,
-    'Conv3d': hook_convNd,
+    "Conv1d": hook_convNd,
+    "Conv2d": hook_convNd,
+    "Conv3d": hook_convNd,
     # Pooling
-    'MaxPool1d': hook_maxpool1d,
-    'MaxPool2d': hook_maxpool2d,
-    'MaxPool3d': hook_maxpool3d,
-    'AvgPool1d': hook_avgpool1d,
-    'AvgPool2d': hook_avgpool2d,
-    'AvgPool3d': hook_avgpool3d,
-    'AdaptiveMaxPool1d': hook_adapmaxpool1d,
-    'AdaptiveMaxPool2d': hook_adapmaxpool2d,
-    'AdaptiveMaxPool3d': hook_adapmaxpool3d,
-    'AdaptiveAvgPool1d': hook_adapavgpool1d,
-    'AdaptiveAvgPool2d': hook_adapavgpool2d,
-    'AdaptiveAvgPool3d': hook_adapavgpool3d,
+    "MaxPool1d": hook_maxpool1d,
+    "MaxPool2d": hook_maxpool2d,
+    "MaxPool3d": hook_maxpool3d,
+    "AvgPool1d": hook_avgpool1d,
+    "AvgPool2d": hook_avgpool2d,
+    "AvgPool3d": hook_avgpool3d,
+    "AdaptiveMaxPool1d": hook_adapmaxpool1d,
+    "AdaptiveMaxPool2d": hook_adapmaxpool2d,
+    "AdaptiveMaxPool3d": hook_adapmaxpool3d,
+    "AdaptiveAvgPool1d": hook_adapavgpool1d,
+    "AdaptiveAvgPool2d": hook_adapavgpool2d,
+    "AdaptiveAvgPool3d": hook_adapavgpool3d,
     # Non-linear activations
-    'ReLU': hook_relu,
-    'ReLU6': hook_relu,
-    'LeakyReLU': hook_leakyrelu,
+    "ReLU": hook_relu,
+    "ReLU6": hook_relu,
+    "LeakyReLU": hook_leakyrelu,
     # Normalization
-    'BatchNorm1d': hook_batchnormNd,
-    'BatchNorm2d': hook_batchnormNd,
-    'BatchNorm3d': hook_batchnormNd,
-    'InstanceNorm1d': hook_instancenormNd,
-    'InstanceNorm2d': hook_instancenormNd,
-    'InstanceNorm3d': hook_instancenormNd,
-    'GroupNorm': hook_groupnorm,
-    'LayerNorm': hook_layernorm,
+    "BatchNorm1d": hook_batchnormNd,
+    "BatchNorm2d": hook_batchnormNd,
+    "BatchNorm3d": hook_batchnormNd,
+    "InstanceNorm1d": hook_instancenormNd,
+    "InstanceNorm2d": hook_instancenormNd,
+    "InstanceNorm3d": hook_instancenormNd,
+    "GroupNorm": hook_groupnorm,
+    "LayerNorm": hook_layernorm,
     # Linear
-    'Linear': hook_linear,
+    "Linear": hook_linear,
 }
 
 __conv_linear_flops_counter = {
     # Convolution
-    'Conv1d': hook_convNd,
-    'Conv2d': hook_convNd,
-    'Conv3d': hook_convNd,
+    "Conv1d": hook_convNd,
+    "Conv2d": hook_convNd,
+    "Conv3d": hook_convNd,
     # Linear
-    'Linear': hook_linear,
+    "Linear": hook_linear,
 }
 
 
@@ -258,9 +259,7 @@ def _get_flops_counter(only_conv_linear):
     return __generic_flops_counter
 
 
-def compute_model_complexity(
-    model, input_size, verbose=False, only_conv_linear=True
-):
+def compute_model_complexity(model, input_size, verbose=False, only_conv_linear=True):
     """Returns number of parameters and FLOPs.
 
     .. note::
@@ -287,10 +286,9 @@ def compute_model_complexity(
     """
     registered_handles = []
     layer_list = []
-    layer = namedtuple('layer', ['class_name', 'params', 'flops'])
+    layer = namedtuple("layer", ["class_name", "params", "flops"])
 
     def _add_hooks(m):
-
         def _has_submodule(m):
             return len(list(m.children())) > 0
 
@@ -302,9 +300,7 @@ def compute_model_complexity(
                 flops = flops_counter[class_name](m, x, y)
             else:
                 flops = 0
-            layer_list.append(
-                layer(class_name=class_name, params=params, flops=flops)
-            )
+            layer_list.append(layer(class_name=class_name, params=params, flops=flops))
 
         # only consider the very basic nn layer
         if _has_submodule(m):
@@ -319,7 +315,7 @@ def compute_model_complexity(
     input = torch.rand(input_size)
     if next(model.parameters()).is_cuda:
         input = input.cuda()
-    model(input) # forward
+    model(input)  # forward
 
     for handle in registered_handles:
         handle.remove()
@@ -341,23 +337,15 @@ def compute_model_complexity(
 
     if verbose:
         num_udscore = 55
-        print('  {}'.format('-' * num_udscore))
-        print('  Model complexity with input size {}'.format(input_size))
-        print('  {}'.format('-' * num_udscore))
+        print("  {}".format("-" * num_udscore))
+        print("  Model complexity with input size {}".format(input_size))
+        print("  {}".format("-" * num_udscore))
         for class_name in per_module_params:
             params = int(np.sum(per_module_params[class_name]))
             flops = int(np.sum(per_module_flops[class_name]))
-            print(
-                '  {} (params={:,}, flops={:,})'.format(
-                    class_name, params, flops
-                )
-            )
-        print('  {}'.format('-' * num_udscore))
-        print(
-            '  Total (params={:,}, flops={:,})'.format(
-                total_params, total_flops
-            )
-        )
-        print('  {}'.format('-' * num_udscore))
+            print("  {} (params={:,}, flops={:,})".format(class_name, params, flops))
+        print("  {}".format("-" * num_udscore))
+        print("  Total (params={:,}, flops={:,})".format(total_params, total_flops))
+        print("  {}".format("-" * num_udscore))
 
     return total_params, total_flops

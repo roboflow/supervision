@@ -89,13 +89,13 @@ Get started: 30 seconds to Torchreid
 1. Import ``torchreid``
 
 .. code-block:: python
-    
+
     import torchreid
 
 2. Load data manager
 
 .. code-block:: python
-    
+
     datamanager = torchreid.data.ImageDataManager(
         root="reid-data",
         sources="market1501",
@@ -110,7 +110,7 @@ Get started: 30 seconds to Torchreid
 3 Build model, optimizer and lr_scheduler
 
 .. code-block:: python
-    
+
     model = torchreid.models.build_model(
         name="resnet50",
         num_classes=datamanager.num_train_pids,
@@ -135,7 +135,7 @@ Get started: 30 seconds to Torchreid
 4. Build engine
 
 .. code-block:: python
-    
+
     engine = torchreid.engine.ImageSoftmaxEngine(
         datamanager,
         model,
@@ -147,7 +147,7 @@ Get started: 30 seconds to Torchreid
 5. Run training and test
 
 .. code-block:: python
-    
+
     engine.run(
         save_dir="log/resnet50",
         max_epoch=60,
@@ -301,7 +301,7 @@ If you use this code or the models in your research, please give credit to the f
       journal={arXiv preprint arXiv:1910.10093},
       year={2019}
     }
-    
+
     @inproceedings{zhou2019osnet,
       title={Omni-Scale Feature Learning for Person Re-Identification},
       author={Zhou, Kaiyang and Yang, Yongxin and Cavallaro, Andrea and Xiang, Tao},

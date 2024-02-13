@@ -1,4 +1,5 @@
-from __future__ import division, print_function, absolute_import
+from __future__ import absolute_import, division, print_function
+
 import copy
 import glob
 import os.path as osp
@@ -21,18 +22,17 @@ class SenseReID(ImageDataset):
         - query: 522 ids, 1040 images.
         - gallery: 1717 ids, 3388 images.
     """
-    dataset_dir = 'sensereid'
+
+    dataset_dir = "sensereid"
     dataset_url = None
 
-    def __init__(self, root='', **kwargs):
+    def __init__(self, root="", **kwargs):
         self.root = osp.abspath(osp.expanduser(root))
         self.dataset_dir = osp.join(self.root, self.dataset_dir)
         self.download_dataset(self.dataset_dir, self.dataset_url)
 
-        self.query_dir = osp.join(self.dataset_dir, 'SenseReID', 'test_probe')
-        self.gallery_dir = osp.join(
-            self.dataset_dir, 'SenseReID', 'test_gallery'
-        )
+        self.query_dir = osp.join(self.dataset_dir, "SenseReID", "test_probe")
+        self.gallery_dir = osp.join(self.dataset_dir, "SenseReID", "test_gallery")
 
         required_files = [self.dataset_dir, self.query_dir, self.gallery_dir]
         self.check_before_run(required_files)
@@ -46,24 +46,21 @@ class SenseReID(ImageDataset):
             g_pids.add(pid)
         pid2label = {pid: i for i, pid in enumerate(g_pids)}
 
-        query = [
-            (img_path, pid2label[pid], camid) for img_path, pid, camid in query
-        ]
+        query = [(img_path, pid2label[pid], camid) for img_path, pid, camid in query]
         gallery = [
-            (img_path, pid2label[pid], camid)
-            for img_path, pid, camid in gallery
+            (img_path, pid2label[pid], camid) for img_path, pid, camid in gallery
         ]
-        train = copy.deepcopy(query) + copy.deepcopy(gallery) # dummy variable
+        train = copy.deepcopy(query) + copy.deepcopy(gallery)  # dummy variable
 
         super(SenseReID, self).__init__(train, query, gallery, **kwargs)
 
     def process_dir(self, dir_path):
-        img_paths = glob.glob(osp.join(dir_path, '*.jpg'))
+        img_paths = glob.glob(osp.join(dir_path, "*.jpg"))
         data = []
 
         for img_path in img_paths:
             img_name = osp.splitext(osp.basename(img_path))[0]
-            pid, camid = img_name.split('_')
+            pid, camid = img_name.split("_")
             pid, camid = int(pid), int(camid)
             data.append((img_path, pid, camid))
 

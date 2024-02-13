@@ -1,4 +1,5 @@
 import os
+
 import yaml
 from easydict import EasyDict as edict
 
@@ -13,15 +14,15 @@ class YamlParser(edict):
             cfg_dict = {}
 
         if config_file is not None:
-            assert(os.path.isfile(config_file))
-            with open(config_file, 'r') as fo:
+            assert os.path.isfile(config_file)
+            with open(config_file, "r") as fo:
                 yaml_ = yaml.load(fo.read(), Loader=yaml.FullLoader)
                 cfg_dict.update(yaml_)
 
         super(YamlParser, self).__init__(cfg_dict)
 
     def merge_from_file(self, config_file):
-        with open(config_file, 'r') as fo:
+        with open(config_file, "r") as fo:
             yaml_ = yaml.load(fo.read(), Loader=yaml.FullLoader)
             self.update(yaml_)
 
@@ -38,4 +39,5 @@ if __name__ == "__main__":
     cfg.merge_from_file("../configs/strong_sort.yaml")
 
     import ipdb
+
     ipdb.set_trace()

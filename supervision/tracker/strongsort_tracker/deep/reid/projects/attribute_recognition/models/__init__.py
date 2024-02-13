@@ -2,10 +2,7 @@ from __future__ import absolute_import
 
 from .osnet import *
 
-__model_factory = {
-    'osnet_avgpool': osnet_avgpool,
-    'osnet_maxpool': osnet_maxpool
-}
+__model_factory = {"osnet_avgpool": osnet_avgpool, "osnet_maxpool": osnet_maxpool}
 
 
 def build_model(name, num_classes, pretrained=True, use_gpu=True):

@@ -1,19 +1,28 @@
-from __future__ import division, print_function, absolute_import
-import time
-import numpy as np
-import os.path as osp
+from __future__ import absolute_import, division, print_function
+
 import datetime
+import os.path as osp
+import time
 from collections import OrderedDict
+
+import numpy as np
 import torch
 from torch.nn import functional as F
 from torch.utils.tensorboard import SummaryWriter
 
 from supervision.tracker.strongsort_tracker.deep.reid.torchreid import metrics
-from supervision.tracker.strongsort_tracker.deep.reid.torchreid.utils import (
-    MetricMeter, AverageMeter, re_ranking, open_all_layers, save_checkpoint,
-    open_specified_layers, visualize_ranked_results
+from supervision.tracker.strongsort_tracker.deep.reid.torchreid.losses import (
+    DeepSupervision,
 )
-from supervision.tracker.strongsort_tracker.deep.reid.torchreid.losses import DeepSupervision
+from supervision.tracker.strongsort_tracker.deep.reid.torchreid.utils import (
+    AverageMeter,
+    MetricMeter,
+    open_all_layers,
+    open_specified_layers,
+    re_ranking,
+    save_checkpoint,
+    visualize_ranked_results,
+)
 
 
 class Engine(object):
@@ -29,7 +38,7 @@ class Engine(object):
         self.datamanager = datamanager
         self.train_loader = self.datamanager.train_loader
         self.test_loader = self.datamanager.test_loader
-        self.use_gpu = (torch.cuda.is_available() and use_gpu)
+        self.use_gpu = torch.cuda.is_available() and use_gpu
         self.writer = None
         self.epoch = 0
 
@@ -41,21 +50,15 @@ class Engine(object):
         self._optims = OrderedDict()
         self._scheds = OrderedDict()
 
-    def register_model(self, name='model', model=None, optim=None, sched=None):
-        if self.__dict__.get('_models') is None:
-            raise AttributeError(
-                'Cannot assign model before super().__init__() call'
-            )
+    def register_model(self, name="model", model=None, optim=None, sched=None):
+        if self.__dict__.get("_models") is None:
+            raise AttributeError("Cannot assign model before super().__init__() call")
 
-        if self.__dict__.get('_optims') is None:
-            raise AttributeError(
-                'Cannot assign optim before super().__init__() call'
-            )
+        if self.__dict__.get("_optims") is None:
+            raise AttributeError("Cannot assign optim before super().__init__() call")
 
-        if self.__dict__.get('_scheds') is None:
-            raise AttributeError(
-                'Cannot assign sched before super().__init__() call'
-            )
+        if self.__dict__.get("_scheds") is None:
+            raise AttributeError("Cannot assign sched before super().__init__() call")
 
         self._models[name] = model
         self._optims[name] = optim
@@ -78,22 +81,22 @@ class Engine(object):
         for name in names:
             save_checkpoint(
                 {
-                    'state_dict': self._models[name].state_dict(),
-                    'epoch': epoch + 1,
-                    'rank1': rank1,
-                    'optimizer': self._optims[name].state_dict(),
-                    'scheduler': self._scheds[name].state_dict()
+                    "state_dict": self._models[name].state_dict(),
+                    "epoch": epoch + 1,
+                    "rank1": rank1,
+                    "optimizer": self._optims[name].state_dict(),
+                    "scheduler": self._scheds[name].state_dict(),
                 },
                 osp.join(save_dir, name),
-                is_best=is_best
+                is_best=is_best,
             )
 
-    def set_model_mode(self, mode='train', names=None):
-        assert mode in ['train', 'eval', 'test']
+    def set_model_mode(self, mode="train", names=None):
+        assert mode in ["train", "eval", "test"]
         names = self.get_model_names(names)
 
         for name in names:
-            if mode == 'train':
+            if mode == "train":
                 self._models[name].train()
             else:
                 self._models[name].eval()
@@ -101,7 +104,7 @@ class Engine(object):
     def get_current_lr(self, names=None):
         names = self.get_model_names(names)
         name = names[0]
-        return self._optims[name].param_groups[-1]['lr']
+        return self._optims[name].param_groups[-1]["lr"]
 
     def update_lr(self, names=None):
         names = self.get_model_names(names)
@@ -112,7 +115,7 @@ class Engine(object):
 
     def run(
         self,
-        save_dir='log',
+        save_dir="log",
         max_epoch=0,
         start_epoch=0,
         print_freq=10,
@@ -121,13 +124,13 @@ class Engine(object):
         start_eval=0,
         eval_freq=-1,
         test_only=False,
-        dist_metric='euclidean',
+        dist_metric="euclidean",
         normalize_feature=False,
         visrank=False,
         visrank_topk=10,
         use_metric_cuhk03=False,
         ranks=[1, 5, 10, 20],
-        rerank=False
+        rerank=False,
     ):
         r"""A unified pipeline for training and evaluating a model.
 
@@ -161,9 +164,7 @@ class Engine(object):
         """
 
         if visrank and not test_only:
-            raise ValueError(
-                'visrank can be set to True only if test_only=True'
-            )
+            raise ValueError("visrank can be set to True only if test_only=True")
 
         if test_only:
             self.test(
@@ -174,7 +175,7 @@ class Engine(object):
                 save_dir=save_dir,
                 use_metric_cuhk03=use_metric_cuhk03,
                 ranks=ranks,
-                rerank=rerank
+                rerank=rerank,
             )
             return
 
@@ -184,19 +185,21 @@ class Engine(object):
         time_start = time.time()
         self.start_epoch = start_epoch
         self.max_epoch = max_epoch
-        print('=> Start training')
+        print("=> Start training")
 
         for self.epoch in range(self.start_epoch, self.max_epoch):
             self.train(
                 print_freq=print_freq,
                 fixbase_epoch=fixbase_epoch,
-                open_layers=open_layers
+                open_layers=open_layers,
             )
 
-            if (self.epoch + 1) >= start_eval \
-               and eval_freq > 0 \
-               and (self.epoch+1) % eval_freq == 0 \
-               and (self.epoch + 1) != self.max_epoch:
+            if (
+                (self.epoch + 1) >= start_eval
+                and eval_freq > 0
+                and (self.epoch + 1) % eval_freq == 0
+                and (self.epoch + 1) != self.max_epoch
+            ):
                 rank1 = self.test(
                     dist_metric=dist_metric,
                     normalize_feature=normalize_feature,
@@ -204,12 +207,12 @@ class Engine(object):
                     visrank_topk=visrank_topk,
                     save_dir=save_dir,
                     use_metric_cuhk03=use_metric_cuhk03,
-                    ranks=ranks
+                    ranks=ranks,
                 )
                 self.save_model(self.epoch, rank1, save_dir)
 
         if self.max_epoch > 0:
-            print('=> Final test')
+            print("=> Final test")
             rank1 = self.test(
                 dist_metric=dist_metric,
                 normalize_feature=normalize_feature,
@@ -217,13 +220,13 @@ class Engine(object):
                 visrank_topk=visrank_topk,
                 save_dir=save_dir,
                 use_metric_cuhk03=use_metric_cuhk03,
-                ranks=ranks
+                ranks=ranks,
             )
             self.save_model(self.epoch, rank1, save_dir)
 
         elapsed = round(time.time() - time_start)
         elapsed = str(datetime.timedelta(seconds=elapsed))
-        print('Elapsed {}'.format(elapsed))
+        print("Elapsed {}".format(elapsed))
         if self.writer is not None:
             self.writer.close()
 
@@ -232,11 +235,9 @@ class Engine(object):
         batch_time = AverageMeter()
         data_time = AverageMeter()
 
-        self.set_model_mode('train')
+        self.set_model_mode("train")
 
-        self.two_stepped_transfer_learning(
-            self.epoch, fixbase_epoch, open_layers
-        )
+        self.two_stepped_transfer_learning(self.epoch, fixbase_epoch, open_layers)
 
         self.num_batches = len(self.train_loader)
         end = time.time()
@@ -251,15 +252,15 @@ class Engine(object):
                 nb_future_epochs = (
                     self.max_epoch - (self.epoch + 1)
                 ) * self.num_batches
-                eta_seconds = batch_time.avg * (nb_this_epoch+nb_future_epochs)
+                eta_seconds = batch_time.avg * (nb_this_epoch + nb_future_epochs)
                 eta_str = str(datetime.timedelta(seconds=int(eta_seconds)))
                 print(
-                    'epoch: [{0}/{1}][{2}/{3}]\t'
-                    'time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                    'data {data_time.val:.3f} ({data_time.avg:.3f})\t'
-                    'eta {eta}\t'
-                    '{losses}\t'
-                    'lr {lr:.6f}'.format(
+                    "epoch: [{0}/{1}][{2}/{3}]\t"
+                    "time {batch_time.val:.3f} ({batch_time.avg:.3f})\t"
+                    "data {data_time.val:.3f} ({data_time.avg:.3f})\t"
+                    "eta {eta}\t"
+                    "{losses}\t"
+                    "lr {lr:.6f}".format(
                         self.epoch + 1,
                         self.max_epoch,
                         self.batch_idx + 1,
@@ -268,19 +269,17 @@ class Engine(object):
                         data_time=data_time,
                         eta=eta_str,
                         losses=losses,
-                        lr=self.get_current_lr()
+                        lr=self.get_current_lr(),
                     )
                 )
 
             if self.writer is not None:
                 n_iter = self.epoch * self.num_batches + self.batch_idx
-                self.writer.add_scalar('Train/time', batch_time.avg, n_iter)
-                self.writer.add_scalar('Train/data', data_time.avg, n_iter)
+                self.writer.add_scalar("Train/time", batch_time.avg, n_iter)
+                self.writer.add_scalar("Train/data", data_time.avg, n_iter)
                 for name, meter in losses.meters.items():
-                    self.writer.add_scalar('Train/' + name, meter.avg, n_iter)
-                self.writer.add_scalar(
-                    'Train/lr', self.get_current_lr(), n_iter
-                )
+                    self.writer.add_scalar("Train/" + name, meter.avg, n_iter)
+                self.writer.add_scalar("Train/lr", self.get_current_lr(), n_iter)
 
             end = time.time()
 
@@ -291,14 +290,14 @@ class Engine(object):
 
     def test(
         self,
-        dist_metric='euclidean',
+        dist_metric="euclidean",
         normalize_feature=False,
         visrank=False,
         visrank_topk=10,
-        save_dir='',
+        save_dir="",
         use_metric_cuhk03=False,
         ranks=[1, 5, 10, 20],
-        rerank=False
+        rerank=False,
     ):
         r"""Tests model on target datasets.
 
@@ -313,14 +312,14 @@ class Engine(object):
             ``extract_features()`` and ``parse_data_for_eval()`` (most of the time),
             but not a must. Please refer to the source code for more details.
         """
-        self.set_model_mode('eval')
+        self.set_model_mode("eval")
         targets = list(self.test_loader.keys())
 
         for name in targets:
-            domain = 'source' if name in self.datamanager.sources else 'target'
-            print('##### Evaluating {} ({}) #####'.format(name, domain))
-            query_loader = self.test_loader[name]['query']
-            gallery_loader = self.test_loader[name]['gallery']
+            domain = "source" if name in self.datamanager.sources else "target"
+            print("##### Evaluating {} ({}) #####".format(name, domain))
+            query_loader = self.test_loader[name]["query"]
+            gallery_loader = self.test_loader[name]["gallery"]
             rank1, mAP = self._evaluate(
                 dataset_name=name,
                 query_loader=query_loader,
@@ -332,29 +331,29 @@ class Engine(object):
                 save_dir=save_dir,
                 use_metric_cuhk03=use_metric_cuhk03,
                 ranks=ranks,
-                rerank=rerank
+                rerank=rerank,
             )
 
             if self.writer is not None:
-                self.writer.add_scalar(f'Test/{name}/rank1', rank1, self.epoch)
-                self.writer.add_scalar(f'Test/{name}/mAP', mAP, self.epoch)
+                self.writer.add_scalar(f"Test/{name}/rank1", rank1, self.epoch)
+                self.writer.add_scalar(f"Test/{name}/mAP", mAP, self.epoch)
 
         return rank1
 
     @torch.no_grad()
     def _evaluate(
         self,
-        dataset_name='',
+        dataset_name="",
         query_loader=None,
         gallery_loader=None,
-        dist_metric='euclidean',
+        dist_metric="euclidean",
         normalize_feature=False,
         visrank=False,
         visrank_topk=10,
-        save_dir='',
+        save_dir="",
         use_metric_cuhk03=False,
         ranks=[1, 5, 10, 20],
-        rerank=False
+        rerank=False,
     ):
         batch_time = AverageMeter()
 
@@ -376,48 +375,46 @@ class Engine(object):
             camids_ = np.asarray(camids_)
             return f_, pids_, camids_
 
-        print('Extracting features from query set ...')
+        print("Extracting features from query set ...")
         qf, q_pids, q_camids = _feature_extraction(query_loader)
-        print('Done, obtained {}-by-{} matrix'.format(qf.size(0), qf.size(1)))
+        print("Done, obtained {}-by-{} matrix".format(qf.size(0), qf.size(1)))
 
-        print('Extracting features from gallery set ...')
+        print("Extracting features from gallery set ...")
         gf, g_pids, g_camids = _feature_extraction(gallery_loader)
-        print('Done, obtained {}-by-{} matrix'.format(gf.size(0), gf.size(1)))
+        print("Done, obtained {}-by-{} matrix".format(gf.size(0), gf.size(1)))
 
-        print('Speed: {:.4f} sec/batch'.format(batch_time.avg))
+        print("Speed: {:.4f} sec/batch".format(batch_time.avg))
 
         if normalize_feature:
-            print('Normalzing features with L2 norm ...')
+            print("Normalzing features with L2 norm ...")
             qf = F.normalize(qf, p=2, dim=1)
             gf = F.normalize(gf, p=2, dim=1)
 
-        print(
-            'Computing distance matrix with metric={} ...'.format(dist_metric)
-        )
+        print("Computing distance matrix with metric={} ...".format(dist_metric))
         distmat = metrics.compute_distance_matrix(qf, gf, dist_metric)
         distmat = distmat.numpy()
 
         if rerank:
-            print('Applying person re-ranking ...')
+            print("Applying person re-ranking ...")
             distmat_qq = metrics.compute_distance_matrix(qf, qf, dist_metric)
             distmat_gg = metrics.compute_distance_matrix(gf, gf, dist_metric)
             distmat = re_ranking(distmat, distmat_qq, distmat_gg)
 
-        print('Computing CMC and mAP ...')
+        print("Computing CMC and mAP ...")
         cmc, mAP = metrics.evaluate_rank(
             distmat,
             q_pids,
             g_pids,
             q_camids,
             g_camids,
-            use_metric_cuhk03=use_metric_cuhk03
+            use_metric_cuhk03=use_metric_cuhk03,
         )
 
-        print('** Results **')
-        print('mAP: {:.1%}'.format(mAP))
-        print('CMC curve')
+        print("** Results **")
+        print("mAP: {:.1%}".format(mAP))
+        print("CMC curve")
         for r in ranks:
-            print('Rank-{:<3}: {:.1%}'.format(r, cmc[r - 1]))
+            print("Rank-{:<3}: {:.1%}".format(r, cmc[r - 1]))
 
         if visrank:
             visualize_ranked_results(
@@ -426,8 +423,8 @@ class Engine(object):
                 self.datamanager.data_type,
                 width=self.datamanager.width,
                 height=self.datamanager.height,
-                save_dir=osp.join(save_dir, 'visrank_' + dataset_name),
-                topk=visrank_topk
+                save_dir=osp.join(save_dir, "visrank_" + dataset_name),
+                topk=visrank_topk,
             )
 
         return cmc[0], mAP
@@ -443,14 +440,14 @@ class Engine(object):
         return self.model(input)
 
     def parse_data_for_train(self, data):
-        imgs = data['img']
-        pids = data['pid']
+        imgs = data["img"]
+        pids = data["pid"]
         return imgs, pids
 
     def parse_data_for_eval(self, data):
-        imgs = data['img']
-        pids = data['pid']
-        camids = data['camid']
+        imgs = data["img"]
+        pids = data["pid"]
+        camids = data["camid"]
         return imgs, pids, camids
 
     def two_stepped_transfer_learning(
@@ -469,7 +466,7 @@ class Engine(object):
 
         if (epoch + 1) <= fixbase_epoch and open_layers is not None:
             print(
-                '* Only train {} (epoch: {}/{})'.format(
+                "* Only train {} (epoch: {}/{})".format(
                     open_layers, epoch + 1, fixbase_epoch
                 )
             )

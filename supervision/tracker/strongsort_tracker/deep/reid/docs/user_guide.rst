@@ -19,7 +19,7 @@ Show available models
 ----------------------
 
 .. code-block:: python
-    
+
     import torchreid
     torchreid.models.show_avai_models()
 
@@ -39,7 +39,7 @@ Resume training
 Suppose the checkpoint is saved in "log/resnet50/model.pth.tar-30", you can do
 
 .. code-block:: python
-    
+
     start_epoch = torchreid.utils.resume_from_checkpoint(
         'log/resnet50/model.pth.tar-30',
         model,
@@ -58,9 +58,9 @@ Compute model complexity
 We provide a tool in ``torchreid.utils.model_complexity.py`` to automatically compute the model complexity, i.e. number of parameters and FLOPs.
 
 .. code-block:: python
-    
+
     from supervision.tracker.stronsort_tracker.torchreid import models, utils
-    
+
     model = models.build_model(name='resnet50', num_classes=1000)
     num_params, flops = utils.compute_model_complexity(model, (1, 3, 256, 128))
 
@@ -78,7 +78,7 @@ Combine multiple datasets
 Easy. Just give whatever datasets (keys) you want to the ``sources`` argument when instantiating a data manager. For example,
 
 .. code-block:: python
-    
+
     datamanager = torchreid.data.ImageDataManager(
         root='reid-data',
         sources=['market1501', 'dukemtmcreid', 'cuhk03', 'msmt17'],
@@ -95,7 +95,7 @@ Do cross-dataset evaluation
 Easy. Just give whatever datasets (keys) you want to the argument ``targets``, like
 
 .. code-block:: python
-    
+
     datamanager = torchreid.data.ImageDataManager(
         root='reid-data',
         sources='market1501',
@@ -111,7 +111,7 @@ Combine train, query and gallery
 This can be easily done by setting ``combineall=True`` when instantiating a data manager. Below is an example of using Market1501,
 
 .. code-block:: python
-    
+
     datamanager = torchreid.data.ImageDataManager(
         root='reid-data',
         sources='market1501',
@@ -125,7 +125,7 @@ This can be easily done by setting ``combineall=True`` when instantiating a data
 More specifically, with ``combineall=False``, you will get
 
 .. code-block:: none
-    
+
     => Loaded Market1501
       ----------------------------------------
       subset   | # ids | # images | # cameras
@@ -138,7 +138,7 @@ More specifically, with ``combineall=False``, you will get
 with ``combineall=True``, you will get
 
 .. code-block:: none
-    
+
     => Loaded Market1501
       ----------------------------------------
       subset   | # ids | # images | # cameras
@@ -156,7 +156,7 @@ A common practice for fine-tuning pretrained models is to use a smaller learning
 Below is an example of setting different learning rates for base layers and new layers in ResNet50,
 
 .. code-block:: python
-    
+
     # New layer "classifier" has a learning rate of 0.01
     # The base layers have a learning rate of 0.001
     optimizer = torchreid.optim.build_optimizer(
@@ -180,7 +180,7 @@ This has been implemented in ``Engine.train()`` (see :ref:`torchreid_engine`). T
 For example, say you want to pretrain the classification layer named "classifier" in ResNet50 for 5 epochs before training all layers, you can do
 
 .. code-block:: python
-    
+
     engine.run(
         save_dir='log/resnet50',
         max_epoch=60,
@@ -225,7 +225,7 @@ Visualize activation maps
 To understand where the CNN focuses on to extract features for ReID, you can visualize the activation maps as in `OSNet <https://arxiv.org/abs/1905.00953>`_. This is implemented in ``tools/visualize_actmap.py`` (check the code for more details). An example running command is
 
 .. code-block:: shell
-    
+
     python tools/visualize_actmap.py \
     --root $DATA/reid \
     -d market1501 \
@@ -249,7 +249,7 @@ Use your own dataset
 1. Write your own dataset class. Below is a template for image dataset. However, it can also be applied to a video dataset class, for which you simply change ``ImageDataset`` to ``VideoDataset``.
 
 .. code-block:: python
-    
+
     from __future__ import absolute_import
     from __future__ import print_function
     from __future__ import division
@@ -292,7 +292,7 @@ Use your own dataset
 2. Register your dataset.
 
 .. code-block:: python
-    
+
     import torchreid
     torchreid.data.register_image_dataset('new_dataset', NewDataset)
 
@@ -300,7 +300,7 @@ Use your own dataset
 3. Initialize a data manager with your dataset.
 
 .. code-block:: python
-    
+
     # use your own dataset only
     datamanager = torchreid.data.ImageDataManager(
         root='reid-data',

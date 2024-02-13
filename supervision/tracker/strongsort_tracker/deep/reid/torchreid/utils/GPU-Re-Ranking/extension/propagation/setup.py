@@ -8,29 +8,27 @@
     Paper: https://arxiv.org/abs/2012.07620v2
 
     ======================================================================
-   
+
     On the Market-1501 dataset, we accelerate the re-ranking processing from 89.2s to 9.4ms
-    with one K40m GPU, facilitating the real-time post-processing. Similarly, we observe 
-    that our method achieves comparable or even better retrieval results on the other four 
-    image retrieval benchmarks, i.e., VeRi-776, Oxford-5k, Paris-6k and University-1652, 
+    with one K40m GPU, facilitating the real-time post-processing. Similarly, we observe
+    that our method achieves comparable or even better retrieval results on the other four
+    image retrieval benchmarks, i.e., VeRi-776, Oxford-5k, Paris-6k and University-1652,
     with limited time cost.
 """
 
-from setuptools import Extension, setup
-import torch
-import torch.nn as nn
-from torch.autograd import Function
-from torch.utils.cpp_extension import CUDAExtension, BuildExtension
+from setuptools import setup
+from torch.utils.cpp_extension import BuildExtension, CUDAExtension
 
 setup(
-    name='gnn_propagate',
+    name="gnn_propagate",
     ext_modules=[
         CUDAExtension(
-            'gnn_propagate', [
-                'gnn_propagate.cpp',
-                'gnn_propagate_kernel.cu',
-            ]
+            "gnn_propagate",
+            [
+                "gnn_propagate.cpp",
+                "gnn_propagate_kernel.cu",
+            ],
         ),
     ],
-    cmdclass={'build_ext': BuildExtension}
+    cmdclass={"build_ext": BuildExtension},
 )

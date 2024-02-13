@@ -4,7 +4,7 @@ ignore =
     E261,
     # Line lengths are recommended to be no greater than 79 characters
     E501,
-    # Missing whitespace around arithmetic operator 
+    # Missing whitespace around arithmetic operator
     E226,
     # Blank line contains whitespace
     W293,

@@ -24,7 +24,7 @@ at::Tensor gnn_propagate_forward(at::Tensor A, at::Tensor initial_rank, at::Tens
     const auto sample_num = A.size(0);
     const auto topk = initial_rank.size(1);
 
-    const auto total_num = sample_num * sample_num ; 
+    const auto total_num = sample_num * sample_num ;
     auto A_qe = torch::zeros({sample_num, sample_num}, at::device(initial_rank.device()).dtype(at::ScalarType::Float));
 
     const int threads = 1024;

@@ -1,60 +1,64 @@
 """
 Code source: https://github.com/pytorch/vision
 """
-from __future__ import division, absolute_import
+from __future__ import absolute_import, division
+
 import re
 from collections import OrderedDict
+
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
 from torch.utils import model_zoo
 
 __all__ = [
-    'densenet121', 'densenet169', 'densenet201', 'densenet161',
-    'densenet121_fc512'
+    "densenet121",
+    "densenet169",
+    "densenet201",
+    "densenet161",
+    "densenet121_fc512",
 ]
 
 model_urls = {
-    'densenet121':
-    'https://download.pytorch.org/models/densenet121-a639ec97.pth',
-    'densenet169':
-    'https://download.pytorch.org/models/densenet169-b2777c0a.pth',
-    'densenet201':
-    'https://download.pytorch.org/models/densenet201-c1103571.pth',
-    'densenet161':
-    'https://download.pytorch.org/models/densenet161-8d451a50.pth',
+    "densenet121": "https://download.pytorch.org/models/densenet121-a639ec97.pth",
+    "densenet169": "https://download.pytorch.org/models/densenet169-b2777c0a.pth",
+    "densenet201": "https://download.pytorch.org/models/densenet201-c1103571.pth",
+    "densenet161": "https://download.pytorch.org/models/densenet161-8d451a50.pth",
 }
 
 
 class _DenseLayer(nn.Sequential):
-
     def __init__(self, num_input_features, growth_rate, bn_size, drop_rate):
         super(_DenseLayer, self).__init__()
-        self.add_module('norm1', nn.BatchNorm2d(num_input_features)),
-        self.add_module('relu1', nn.ReLU(inplace=True)),
-        self.add_module(
-            'conv1',
-            nn.Conv2d(
-                num_input_features,
-                bn_size * growth_rate,
-                kernel_size=1,
-                stride=1,
-                bias=False
-            )
-        ),
-        self.add_module('norm2', nn.BatchNorm2d(bn_size * growth_rate)),
-        self.add_module('relu2', nn.ReLU(inplace=True)),
-        self.add_module(
-            'conv2',
-            nn.Conv2d(
-                bn_size * growth_rate,
-                growth_rate,
-                kernel_size=3,
-                stride=1,
-                padding=1,
-                bias=False
-            )
-        ),
+        (self.add_module("norm1", nn.BatchNorm2d(num_input_features)),)
+        (self.add_module("relu1", nn.ReLU(inplace=True)),)
+        (
+            self.add_module(
+                "conv1",
+                nn.Conv2d(
+                    num_input_features,
+                    bn_size * growth_rate,
+                    kernel_size=1,
+                    stride=1,
+                    bias=False,
+                ),
+            ),
+        )
+        (self.add_module("norm2", nn.BatchNorm2d(bn_size * growth_rate)),)
+        (self.add_module("relu2", nn.ReLU(inplace=True)),)
+        (
+            self.add_module(
+                "conv2",
+                nn.Conv2d(
+                    bn_size * growth_rate,
+                    growth_rate,
+                    kernel_size=3,
+                    stride=1,
+                    padding=1,
+                    bias=False,
+                ),
+            ),
+        )
         self.drop_rate = drop_rate
 
     def forward(self, x):
@@ -67,41 +71,36 @@ class _DenseLayer(nn.Sequential):
 
 
 class _DenseBlock(nn.Sequential):
-
-    def __init__(
-        self, num_layers, num_input_features, bn_size, growth_rate, drop_rate
-    ):
+    def __init__(self, num_layers, num_input_features, bn_size, growth_rate, drop_rate):
         super(_DenseBlock, self).__init__()
         for i in range(num_layers):
             layer = _DenseLayer(
-                num_input_features + i*growth_rate, growth_rate, bn_size,
-                drop_rate
+                num_input_features + i * growth_rate, growth_rate, bn_size, drop_rate
             )
-            self.add_module('denselayer%d' % (i+1), layer)
+            self.add_module("denselayer%d" % (i + 1), layer)
 
 
 class _Transition(nn.Sequential):
-
     def __init__(self, num_input_features, num_output_features):
         super(_Transition, self).__init__()
-        self.add_module('norm', nn.BatchNorm2d(num_input_features))
-        self.add_module('relu', nn.ReLU(inplace=True))
+        self.add_module("norm", nn.BatchNorm2d(num_input_features))
+        self.add_module("relu", nn.ReLU(inplace=True))
         self.add_module(
-            'conv',
+            "conv",
             nn.Conv2d(
                 num_input_features,
                 num_output_features,
                 kernel_size=1,
                 stride=1,
-                bias=False
-            )
+                bias=False,
+            ),
         )
-        self.add_module('pool', nn.AvgPool2d(kernel_size=2, stride=2))
+        self.add_module("pool", nn.AvgPool2d(kernel_size=2, stride=2))
 
 
 class DenseNet(nn.Module):
     """Densely connected network.
-    
+
     Reference:
         Huang et al. Densely Connected Convolutional Networks. CVPR 2017.
 
@@ -124,9 +123,8 @@ class DenseNet(nn.Module):
         drop_rate=0,
         fc_dims=None,
         dropout_p=None,
-        **kwargs
+        **kwargs,
     ):
-
         super(DenseNet, self).__init__()
         self.loss = loss
 
@@ -135,22 +133,19 @@ class DenseNet(nn.Module):
             OrderedDict(
                 [
                     (
-                        'conv0',
+                        "conv0",
                         nn.Conv2d(
                             3,
                             num_init_features,
                             kernel_size=7,
                             stride=2,
                             padding=3,
-                            bias=False
-                        )
+                            bias=False,
+                        ),
                     ),
-                    ('norm0', nn.BatchNorm2d(num_init_features)),
-                    ('relu0', nn.ReLU(inplace=True)),
-                    (
-                        'pool0',
-                        nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
-                    ),
+                    ("norm0", nn.BatchNorm2d(num_init_features)),
+                    ("relu0", nn.ReLU(inplace=True)),
+                    ("pool0", nn.MaxPool2d(kernel_size=3, stride=2, padding=1)),
                 ]
             )
         )
@@ -163,20 +158,20 @@ class DenseNet(nn.Module):
                 num_input_features=num_features,
                 bn_size=bn_size,
                 growth_rate=growth_rate,
-                drop_rate=drop_rate
+                drop_rate=drop_rate,
             )
-            self.features.add_module('denseblock%d' % (i+1), block)
-            num_features = num_features + num_layers*growth_rate
+            self.features.add_module("denseblock%d" % (i + 1), block)
+            num_features = num_features + num_layers * growth_rate
             if i != len(block_config) - 1:
                 trans = _Transition(
                     num_input_features=num_features,
-                    num_output_features=num_features // 2
+                    num_output_features=num_features // 2,
                 )
-                self.features.add_module('transition%d' % (i+1), trans)
+                self.features.add_module("transition%d" % (i + 1), trans)
                 num_features = num_features // 2
 
         # Final batch norm
-        self.features.add_module('norm5', nn.BatchNorm2d(num_features))
+        self.features.add_module("norm5", nn.BatchNorm2d(num_features))
 
         self.global_avgpool = nn.AdaptiveAvgPool2d(1)
         self.feature_dim = num_features
@@ -201,9 +196,7 @@ class DenseNet(nn.Module):
 
         assert isinstance(
             fc_dims, (list, tuple)
-        ), 'fc_dims must be either list or tuple, but got {}'.format(
-            type(fc_dims)
-        )
+        ), "fc_dims must be either list or tuple, but got {}".format(type(fc_dims))
 
         layers = []
         for dim in fc_dims:
@@ -221,9 +214,7 @@ class DenseNet(nn.Module):
     def _init_params(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(
-                    m.weight, mode='fan_out', nonlinearity='relu'
-                )
+                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
                 if m.bias is not None:
                     nn.init.constant_(m.bias, 0)
             elif isinstance(m, nn.BatchNorm2d):
@@ -251,17 +242,17 @@ class DenseNet(nn.Module):
 
         y = self.classifier(v)
 
-        if self.loss == 'softmax':
+        if self.loss == "softmax":
             return y
-        elif self.loss == 'triplet':
+        elif self.loss == "triplet":
             return y, v
         else:
-            raise KeyError('Unsupported loss: {}'.format(self.loss))
+            raise KeyError("Unsupported loss: {}".format(self.loss))
 
 
 def init_pretrained_weights(model, model_url):
     """Initializes model with pretrained weights.
-    
+
     Layers that don't match with pretrained layers in name or size are kept unchanged.
     """
     pretrain_dict = model_zoo.load_url(model_url)
@@ -271,7 +262,7 @@ def init_pretrained_weights(model, model_url):
     # They are also in the checkpoints in model_urls. This pattern is used
     # to find such keys.
     pattern = re.compile(
-        r'^(.*denselayer\d+\.(?:norm|relu|conv))\.((?:[12])\.(?:weight|bias|running_mean|running_var))$'
+        r"^(.*denselayer\d+\.(?:norm|relu|conv))\.((?:[12])\.(?:weight|bias|running_mean|running_var))$"
     )
     for key in list(pretrain_dict.keys()):
         res = pattern.match(key)
@@ -300,7 +291,7 @@ densenet161: num_init_features=96, growth_rate=48, block_config=(6, 12, 36, 24)
 """
 
 
-def densenet121(num_classes, loss='softmax', pretrained=True, **kwargs):
+def densenet121(num_classes, loss="softmax", pretrained=True, **kwargs):
     model = DenseNet(
         num_classes=num_classes,
         loss=loss,
@@ -309,14 +300,14 @@ def densenet121(num_classes, loss='softmax', pretrained=True, **kwargs):
         block_config=(6, 12, 24, 16),
         fc_dims=None,
         dropout_p=None,
-        **kwargs
+        **kwargs,
     )
     if pretrained:
-        init_pretrained_weights(model, model_urls['densenet121'])
+        init_pretrained_weights(model, model_urls["densenet121"])
     return model
 
 
-def densenet169(num_classes, loss='softmax', pretrained=True, **kwargs):
+def densenet169(num_classes, loss="softmax", pretrained=True, **kwargs):
     model = DenseNet(
         num_classes=num_classes,
         loss=loss,
@@ -325,14 +316,14 @@ def densenet169(num_classes, loss='softmax', pretrained=True, **kwargs):
         block_config=(6, 12, 32, 32),
         fc_dims=None,
         dropout_p=None,
-        **kwargs
+        **kwargs,
     )
     if pretrained:
-        init_pretrained_weights(model, model_urls['densenet169'])
+        init_pretrained_weights(model, model_urls["densenet169"])
     return model
 
 
-def densenet201(num_classes, loss='softmax', pretrained=True, **kwargs):
+def densenet201(num_classes, loss="softmax", pretrained=True, **kwargs):
     model = DenseNet(
         num_classes=num_classes,
         loss=loss,
@@ -341,14 +332,14 @@ def densenet201(num_classes, loss='softmax', pretrained=True, **kwargs):
         block_config=(6, 12, 48, 32),
         fc_dims=None,
         dropout_p=None,
-        **kwargs
+        **kwargs,
     )
     if pretrained:
-        init_pretrained_weights(model, model_urls['densenet201'])
+        init_pretrained_weights(model, model_urls["densenet201"])
     return model
 
 
-def densenet161(num_classes, loss='softmax', pretrained=True, **kwargs):
+def densenet161(num_classes, loss="softmax", pretrained=True, **kwargs):
     model = DenseNet(
         num_classes=num_classes,
         loss=loss,
@@ -357,14 +348,14 @@ def densenet161(num_classes, loss='softmax', pretrained=True, **kwargs):
         block_config=(6, 12, 36, 24),
         fc_dims=None,
         dropout_p=None,
-        **kwargs
+        **kwargs,
     )
     if pretrained:
-        init_pretrained_weights(model, model_urls['densenet161'])
+        init_pretrained_weights(model, model_urls["densenet161"])
     return model
 
 
-def densenet121_fc512(num_classes, loss='softmax', pretrained=True, **kwargs):
+def densenet121_fc512(num_classes, loss="softmax", pretrained=True, **kwargs):
     model = DenseNet(
         num_classes=num_classes,
         loss=loss,
@@ -373,8 +364,8 @@ def densenet121_fc512(num_classes, loss='softmax', pretrained=True, **kwargs):
         block_config=(6, 12, 24, 16),
         fc_dims=[512],
         dropout_p=None,
-        **kwargs
+        **kwargs,
     )
     if pretrained:
-        init_pretrained_weights(model, model_urls['densenet121'])
+        init_pretrained_weights(model, model_urls["densenet121"])
     return model

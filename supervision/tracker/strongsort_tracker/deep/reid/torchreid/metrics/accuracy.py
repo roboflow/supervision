@@ -1,7 +1,7 @@
-from __future__ import division, print_function, absolute_import
+from __future__ import absolute_import, division, print_function
 
 
-def accuracy(output, target, topk=(1, )):
+def accuracy(output, target, topk=(1,)):
     """Computes the accuracy over the k top predictions for
     the specified values of k.
 

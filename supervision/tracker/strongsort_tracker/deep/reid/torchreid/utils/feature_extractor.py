@@ -1,13 +1,18 @@
 from __future__ import absolute_import
+
 import numpy as np
 import torch
 import torchvision.transforms as T
 from PIL import Image
 
-from supervision.tracker.strongsort_tracker.deep.reid.torchreid.utils import (
-    check_isfile, load_pretrained_weights, compute_model_complexity
+from supervision.tracker.strongsort_tracker.deep.reid.torchreid.models import (
+    build_model,
 )
-from supervision.tracker.strongsort_tracker.deep.reid.torchreid.models import build_model
+from supervision.tracker.strongsort_tracker.deep.reid.torchreid.utils import (
+    check_isfile,
+    compute_model_complexity,
+    load_pretrained_weights,
+)
 
 
 class FeatureExtractor(object):
@@ -58,21 +63,21 @@ class FeatureExtractor(object):
 
     def __init__(
         self,
-        model_name='',
-        model_path='',
+        model_name="",
+        model_path="",
         image_size=(256, 128),
         pixel_mean=[0.485, 0.456, 0.406],
         pixel_std=[0.229, 0.224, 0.225],
         pixel_norm=True,
-        device='cuda',
-        verbose=True
+        device="cuda",
+        verbose=True,
     ):
         # Build model
         model = build_model(
             model_name,
             num_classes=1,
             pretrained=not (model_path and check_isfile(model_path)),
-            use_gpu=device.startswith('cuda')
+            use_gpu=device.startswith("cuda"),
         )
         model.eval()
 
@@ -112,14 +117,14 @@ class FeatureExtractor(object):
 
             for element in input:
                 if isinstance(element, str):
-                    image = Image.open(element).convert('RGB')
+                    image = Image.open(element).convert("RGB")
 
                 elif isinstance(element, np.ndarray):
                     image = self.to_pil(element)
 
                 else:
                     raise TypeError(
-                        'Type of each element must belong to [str | numpy.ndarray]'
+                        "Type of each element must belong to [str | numpy.ndarray]"
                     )
 
                 image = self.preprocess(image)
@@ -129,7 +134,7 @@ class FeatureExtractor(object):
             images = images.to(self.device)
 
         elif isinstance(input, str):
-            image = Image.open(input).convert('RGB')
+            image = Image.open(input).convert("RGB")
             image = self.preprocess(image)
             images = image.unsqueeze(0).to(self.device)
 
