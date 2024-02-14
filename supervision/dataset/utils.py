@@ -60,13 +60,14 @@ def build_class_index_mapping(
 ) -> Dict[int, int]:
     index_mapping = {}
 
+    inverse_target_classes = {v: k for k, v in target_classes.items()}
     for i, class_name in source_classes.items():
-        if class_name not in target_classes:
+        if class_name not in inverse_target_classes:
             raise ValueError(
                 f"Class {class_name} not found in target classes. "
                 "source_classes must be a subset of target_classes."
             )
-        corresponding_index = target_classes.index(class_name)
+        corresponding_index = inverse_target_classes[class_name]
         index_mapping[i] = corresponding_index
 
     return index_mapping

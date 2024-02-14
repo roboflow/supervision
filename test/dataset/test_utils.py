@@ -124,43 +124,43 @@ def test_merge_class_maps(
 @pytest.mark.parametrize(
     "source_classes, target_classes, expected_result, exception",
     [
-        ([], [], {}, DoesNotRaise()),  # empty class lists
-        ([], ["dog", "person"], {}, DoesNotRaise()),  # empty source class list
+        ({}, {}, {}, DoesNotRaise()),  # empty class lists
+        ({}, {0: "dog", 1: "person"}, {}, DoesNotRaise()),  # empty source class list
         (
-            ["dog", "person"],
-            [],
+            {0: "dog", 1: "person"},
+            {},
             None,
             pytest.raises(ValueError),
         ),  # empty target class list
         (
-            ["dog", "person"],
-            ["dog", "person"],
+            {0: "dog", 1: "person"},
+            {0: "dog", 1: "person"},
             {0: 0, 1: 1},
             DoesNotRaise(),
         ),  # same class lists
         (
-            ["dog", "person"],
-            ["person", "dog"],
+            {0: "dog", 1: "person"},
+            {0: "person", 1: "dog"},
             {0: 1, 1: 0},
             DoesNotRaise(),
         ),  # same class lists but not alphabetically sorted
         (
-            ["dog", "person"],
-            ["cat", "dog", "person"],
+            {0: "dog", 1: "person"},
+            {0: "cat", 1: "dog", 2: "person"},
             {0: 1, 1: 2},
             DoesNotRaise(),
         ),  # source class list is a subset of target class list
         (
-            ["dog", "person"],
-            ["cat", "dog"],
+            {0: "dog", 1: "person"},
+            {0: "cat", 1: "dog"},
             None,
             pytest.raises(ValueError),
         ),  # source class list is not a subset of target class list
     ],
 )
 def test_build_class_index_mapping(
-    source_classes: List[str],
-    target_classes: List[str],
+    source_classes: Dict[int, str],
+    target_classes: Dict[int, str],
     expected_result: Optional[Dict[int, int]],
     exception: Exception,
 ) -> None:

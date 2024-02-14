@@ -13,36 +13,44 @@ from supervision import DetectionDataset
     [
         (
             [],
-            DetectionDataset(classes=[], images={}, annotations={}),
+            DetectionDataset(classes={}, images={}, annotations={}),
             DoesNotRaise(),
         ),  # empty dataset list
         (
-            [DetectionDataset(classes=[], images={}, annotations={})],
-            DetectionDataset(classes=[], images={}, annotations={}),
+            [DetectionDataset(classes={}, images={}, annotations={})],
+            DetectionDataset(classes={}, images={}, annotations={}),
             DoesNotRaise(),
         ),  # single empty dataset
         (
             [
-                DetectionDataset(classes=["dog", "person"], images={}, annotations={}),
-                DetectionDataset(classes=["dog", "person"], images={}, annotations={}),
+                DetectionDataset(
+                    classes={0: "dog", 1: "person"}, images={}, annotations={}
+                ),
+                DetectionDataset(
+                    classes={0: "dog", 1: "person"}, images={}, annotations={}
+                ),
             ],
-            DetectionDataset(classes=["dog", "person"], images={}, annotations={}),
+            DetectionDataset(
+                classes={0: "dog", 1: "person"}, images={}, annotations={}
+            ),
             DoesNotRaise(),
         ),  # two datasets; no images and annotations, the same classes
         (
             [
-                DetectionDataset(classes=["dog", "person"], images={}, annotations={}),
-                DetectionDataset(classes=["cat"], images={}, annotations={}),
+                DetectionDataset(
+                    classes={0: "dog", 1: "person"}, images={}, annotations={}
+                ),
+                DetectionDataset(classes={0: "cat"}, images={}, annotations={}),
             ],
             DetectionDataset(
-                classes=["cat", "dog", "person"], images={}, annotations={}
+                classes={0: "cat", 1: "dog", 2: "person"}, images={}, annotations={}
             ),
             DoesNotRaise(),
         ),  # two datasets; no images and annotations, different classes
         (
             [
                 DetectionDataset(
-                    classes=["dog", "person"],
+                    classes={0: "dog", 1: "person"},
                     images={
                         "image-1.png": np.zeros((100, 100, 3), dtype=np.uint8),
                         "image-2.png": np.zeros((100, 100, 3), dtype=np.uint8),
@@ -56,10 +64,10 @@ from supervision import DetectionDataset
                         ),
                     },
                 ),
-                DetectionDataset(classes=[], images={}, annotations={}),
+                DetectionDataset(classes={}, images={}, annotations={}),
             ],
             DetectionDataset(
-                classes=["dog", "person"],
+                classes={0: "dog", 1: "person"},
                 images={
                     "image-1.png": np.zeros((100, 100, 3), dtype=np.uint8),
                     "image-2.png": np.zeros((100, 100, 3), dtype=np.uint8),
@@ -74,7 +82,7 @@ from supervision import DetectionDataset
         (
             [
                 DetectionDataset(
-                    classes=["dog", "person"],
+                    classes={0: "dog", 1: "person"},
                     images={
                         "image-1.png": np.zeros((100, 100, 3), dtype=np.uint8),
                         "image-2.png": np.zeros((100, 100, 3), dtype=np.uint8),
@@ -88,10 +96,10 @@ from supervision import DetectionDataset
                         ),
                     },
                 ),
-                DetectionDataset(classes=["cat"], images={}, annotations={}),
+                DetectionDataset(classes={0: "cat"}, images={}, annotations={}),
             ],
             DetectionDataset(
-                classes=["cat", "dog", "person"],
+                classes={0: "cat", 1: "dog", 2: "person"},
                 images={
                     "image-1.png": np.zeros((100, 100, 3), dtype=np.uint8),
                     "image-2.png": np.zeros((100, 100, 3), dtype=np.uint8),
@@ -106,7 +114,7 @@ from supervision import DetectionDataset
         (
             [
                 DetectionDataset(
-                    classes=["dog", "person"],
+                    classes={0: "dog", 1: "person"},
                     images={
                         "image-1.png": np.zeros((100, 100, 3), dtype=np.uint8),
                         "image-2.png": np.zeros((100, 100, 3), dtype=np.uint8),
@@ -121,7 +129,7 @@ from supervision import DetectionDataset
                     },
                 ),
                 DetectionDataset(
-                    classes=["cat"],
+                    classes={0: "cat"},
                     images={
                         "image-3.png": np.zeros((100, 100, 3), dtype=np.uint8),
                     },
@@ -133,7 +141,7 @@ from supervision import DetectionDataset
                 ),
             ],
             DetectionDataset(
-                classes=["cat", "dog", "person"],
+                classes={0: "cat", 1: "dog", 2: "person"},
                 images={
                     "image-1.png": np.zeros((100, 100, 3), dtype=np.uint8),
                     "image-2.png": np.zeros((100, 100, 3), dtype=np.uint8),
@@ -150,7 +158,7 @@ from supervision import DetectionDataset
         (
             [
                 DetectionDataset(
-                    classes=["dog", "person"],
+                    classes={0: "dog", 1: "person"},
                     images={
                         "image-1.png": np.zeros((100, 100, 3), dtype=np.uint8),
                         "image-2.png": np.zeros((100, 100, 3), dtype=np.uint8),
@@ -165,7 +173,7 @@ from supervision import DetectionDataset
                     },
                 ),
                 DetectionDataset(
-                    classes=["dog", "person"],
+                    classes={0: "dog", 1: "person"},
                     images={
                         "image-2.png": np.zeros((100, 100, 3), dtype=np.uint8),
                         "image-3.png": np.zeros((100, 100, 3), dtype=np.uint8),
