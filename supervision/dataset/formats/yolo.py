@@ -58,8 +58,10 @@ def _with_mask(lines: List[str]) -> bool:
 
 def _extract_class_names(file_path: str) -> Dict[int, str]:
     data = read_yaml_file(file_path=file_path)
-    if isinstance(data, dict):
-        names = {i: c for i, c in enumerate(sorted(data["names"]))}
+
+    names = data["names"]
+    if isinstance(names, dict):
+        names = {i: c for i, c in enumerate(sorted(names))}
     return names
 
 
