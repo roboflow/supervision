@@ -28,7 +28,7 @@ class VideoInfo:
         ```python
         import supervision as sv
 
-        video_info = sv.VideoInfo.from_video_path(video_path='video.mp4')
+        video_info = sv.VideoInfo.from_video_path(video_path=<SOURCE_VIDEO_FILE>)
 
         video_info
         # VideoInfo(width=3840, height=2160, fps=25, total_frames=538)
@@ -75,14 +75,14 @@ class VideoSink:
         ```python
         import supervision as sv
 
-        video_info = sv.VideoInfo.from_video_path('source.mp4')
-        frames_generator = sv.get_video_frames_generator('source.mp4')
+        video_info = sv.VideoInfo.from_video_path(<SOURCE_VIDEO_PATH>)
+        frames_generator = sv.get_video_frames_generator(<SOURCE_VIDEO_PATH>)
 
-        with sv.VideoSink(target_path='target.mp4', video_info=video_info) as sink:
+        with sv.VideoSink(target_path=<TARGET_VIDEO_PATH>, video_info=video_info) as sink:
             for frame in frames_generator:
                 sink.write_frame(frame=frame)
         ```
-    """
+    """  # noqa: E501 // docs
 
     def __init__(self, target_path: str, video_info: VideoInfo, codec: str = "mp4v"):
         self.target_path = target_path
@@ -147,7 +147,7 @@ def get_video_frames_generator(
         ```python
         import supervision as sv
 
-        for frame in sv.get_video_frames_generator(source_path='source_video.mp4'):
+        for frame in sv.get_video_frames_generator(source_path=<SOURCE_VIDEO_PATH>):
             ...
         ```
     """
@@ -191,8 +191,8 @@ def process_video(
             ...
 
         process_video(
-            source_path='...',
-            target_path='...',
+            source_path=<SOURCE_VIDEO_PATH>,
+            target_path=<TARGET_VIDEO_PATH>,
             callback=callback
         )
         ```
