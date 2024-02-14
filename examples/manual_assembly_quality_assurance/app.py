@@ -10,17 +10,31 @@ parser = optparse.OptionParser()
 parser.add_option(
     "-o", "--order", action="store", dest="order", help="Order of parts to be assembled"
 )
-parser.add_option(
-    "-k", "--roboflow_api_key", action="store", dest="api_key", help="Roboflow API Key"
-)
 parser.add_option("-m", "--model_id", action="store", dest="model_id", help="Model ID")
+parser.add_option(
+    "-v",
+    "--video",
+    action="store",
+    dest="video",
+    help="Specify a camera ID or video file on which to run inference",
+)
+parser.add_option(
+    "-c", "--classes", action="store", dest="classes", help="Classes of the model"
+)
 
-order = parser.order
+args = parser.parse_args()[0]
+
+if not any([args.order, args.model_id, args.video, args.classes]):
+    parser.error("Missing required arguments")
+
+order = [i.strip() for i in args.order.split(",")]
 
 tracked_ids = set({})
 current_step = 0
 active_parts_not_in_place = set({})
 last_detection_was_wrong = False
+classes = [i.strip() for i in args.classes.split(",")]
+complete = False
 
 tracker = sv.ByteTrack()
 smoother = sv.DetectionsSmoother()
@@ -29,10 +43,13 @@ smoother = sv.DetectionsSmoother()
 def on_prediction(inference_results, frame):
     global current_step
     global last_detection_was_wrong
+    global complete
 
-    predictions = sv.Detections.from_inference(inference_results)
+    predictions = sv.Detections.from_inference(inference_results).with_nms()
     predictions = tracker.update_with_detections(predictions)
     predictions = smoother.update_with_detections(predictions)
+
+    predictions = predictions[predictions.confidence > 0.85]
 
     message = (
         f"Wrong part! Expected {order[current_step]}"
@@ -41,15 +58,20 @@ def on_prediction(inference_results, frame):
     )
 
     for prediction in predictions:
-        if prediction[4] in tracked_ids or current_step == len(order) - 1:
+        if prediction[4] in tracked_ids:
             continue
+
+        print(prediction)
 
         class_name = classes[int(prediction[3])]
 
         if class_name == order[current_step]:
             tracked_ids.add(prediction[4])
 
+            print(f"Part {class_name} in place")
             if current_step == len(order) - 1:
+                print("Assembly complete!")
+                complete = True
                 break
 
             current_step = current_step + 1
@@ -66,7 +88,11 @@ def on_prediction(inference_results, frame):
     bounding_box_annotator = sv.BoundingBoxAnnotator()
     label_annotator = sv.LabelAnnotator()
 
-    text_anchor = sv.Point(x=500, y=100)
+    text_anchor = sv.Point(x=700, y=100)
+
+    if complete:
+        message = "Assembly complete!"
+
     next_step = f"Next part: {order[current_step]}" if message is None else message
 
     annotated_image = bounding_box_annotator.annotate(
@@ -91,10 +117,7 @@ def on_prediction(inference_results, frame):
 
 
 pipeline = InferencePipeline.init(
-    model_id=parser.model_id,
-    video_reference=0,
-    on_prediction=on_prediction,
-    api_key=parser.api_key,
+    model_id=args.model_id, video_reference=args.video, on_prediction=on_prediction
 )
 
 pipeline.start()

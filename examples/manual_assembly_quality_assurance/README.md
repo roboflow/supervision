@@ -1,10 +1,12 @@
 # Manual Assembly Quality Assurance
 
-[![Roboflow](https://raw.githubusercontent.com/roboflow-ai/notebooks/main/assets/badges/roboflow-blogpost.svg)](https://blog.roboflow.com/manual-assembly-qa/)
+[![Roboflow](https://raw.githubusercontent.com/roboflow-ai/notebooks/main/assets/badges/roboflow-blogpost.svg)](https://blog.roboflow.com/manual-assembly-qa-computer-vision/)
 
 ## 👋 hello
 
-This example shows how to build a manual assembly quality assurance system with computer vision. The accompanying blog post walks through how to train a model to identify industrial parts. The code in this project lets you run the model with Inference and process predictions with supervision's tracking and smoothing. Predictions are visualized with supervision and OpenCV.
+This example shows how to build a manual assembly quality assurance system with computer vision. The accompanying blog post walks through how to train a model to identify industrial parts.
+
+The code in this project lets you run the model with Inference and process predictions with supervision's tracking and smoothing. Predictions are visualized with supervision and OpenCV.
 
 ## 💻 install
 
@@ -28,26 +30,36 @@ This example shows how to build a manual assembly quality assurance system with 
   pip install -r requirements.txt
   ```
 
+- set Roboflow API key as environment variable
+
+  ```bash
+  export ROBOFLOW_API_KEY=<YOUR_ROBOFLOW_API_KEY>
+  ```
+  Follow [this guide](https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key)
+  to acquire your Roboflow API key.
+
 ## 🛠️ script arguments
 
-- `--roboflow_api_key` (optional): The API key for Roboflow services. If not provided
-  directly, the script tries to fetch it from the `ROBOFLOW_API_KEY` environment
-  variable. Follow [this guide](https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key)
-  to acquire your `API KEY`.
-- `--model_id` (optional): Designates the Roboflow model ID to be used. The default
-  value is `lego-assembly/2`. [Learn how to retrieve your model ID](https://docs.roboflow.com/api-reference/workspace-and-project-ids).
+- `--model_id`: Designates the Roboflow model ID to be used. [Learn how to retrieve your model ID](https://docs.roboflow.com/api-reference/workspace-and-project-ids).
 
 - `--order`: Required. The order in which the parts are assembled. This is used to
-  ensure an assembler picks up pieces in the correct order. This should be a list of comma-separated strings. Each item in the list must be exactly equal to the class name associated with the object you want to identify. You can find your class names using the "Class Name" tab in the Roboflow model's "Model Info" section. For the Lego demo, the classes are `Orange 4x2 Brick`, `Green 4x2 Brick`, and `Blue 4x2 Brick`.
+  ensure an assembler picks up pieces in the correct order. This should be a list of comma-separated strings. Each item in the list must be exactly equal to the class name associated with the object you want to identify. You can find your class names using the "Class Name" tab in the Roboflow model's "Classes" section.
+
+- `--video`: Required. The path to the video file you want to process.
+
+- `--classes`: Required. The classes that the model is trained to identify. This should be a list of comma-separated strings. Each item in the list must be exactly equal to the class name associated with the object you want to identify. You can find your class names using the "Class Name" tab in the Roboflow model's "Classes" section.
 
 ## ⚙️ run
 
   ```bash
-    python app.py \
-    --roboflow_api_key <ROBOFLOW API KEY> \
-    --order "Orange 4x2 Brick,Green 4x2 Brick,Blue 4x2 Brick,Orange 4x2 Brick"
-    --model_id "lego-assembly/2"
+    python3 app.py \
+      -o "Yellow 4x2 Brick, Blue 4x2 Brick, Green 4x2 Brick" \
+      -v ./parts2.MOV \
+      -m "lego-assembly/4" \
+      -c "Blue 4x2 Brick, Green 4x2 Brick, Yellow 4x2 Brick"
   ```
+
+  The script above would look for the order `Yellow 4x2 Brick, Blue 4x2 Brick, Green 4x2 Brick` in the video `./parts2.MOV` using the model with ID `lego-assembly/4`. The classes are `Blue 4x2 Brick, Green 4x2 Brick, Yellow 4x2 Brick`.
 
 ## © license
 
