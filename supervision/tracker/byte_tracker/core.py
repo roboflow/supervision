@@ -173,9 +173,16 @@ class ByteTrack:
 
     Parameters:
         track_activation_threshold (float, optional): Detection confidence threshold
-            for track activation.
+            for track activation. Increasing track_activation_threshold improves accuracy
+            and stability but might miss true detections. Decreasing it increases
+            completeness but risks introducing noise and instability.
         lost_track_buffer (int, optional): Number of frames to buffer when a track is lost.
+            Increasing lost_track_buffer enhances occlusion handling, significantly
+            reducing the likelihood of track fragmentation or disappearance caused
+            by brief detection gaps.
         minimum_matching_threshold (float, optional): Threshold for matching tracks with detections.
+            Increasing minimum_matching_threshold improves accuracy but risks fragmentation.
+            Decreasing it improves completeness but risks false positives and drift.
         frame_rate (int, optional): The frame rate of the video.
     """  # noqa: E501 // docs
 
