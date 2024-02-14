@@ -687,7 +687,7 @@ class ClassificationDataset(BaseDataset):
             ```
         """
         classes_list = os.listdir(root_directory_path)
-        classes = {i: c for i, c in sorted(set(classes_list))}
+        classes = {i: c for i, c in enumerate(sorted(set(classes_list)))}
 
         images = {}
         annotations = {}

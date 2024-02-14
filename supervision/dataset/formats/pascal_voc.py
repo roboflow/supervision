@@ -162,7 +162,7 @@ def load_pascal_voc_annotations(
         directory=images_directory_path, extensions=["jpg", "jpeg", "png"]
     )
 
-    classes = []
+    classes_list = []
     images = {}
     annotations = {}
 
@@ -181,14 +181,14 @@ def load_pascal_voc_annotations(
         root = tree.getroot()
 
         resolution_wh = (image.shape[1], image.shape[0])
-        annotation, classes = detections_from_xml_obj(
-            root, classes, resolution_wh, force_masks
+        annotation, classes_list = detections_from_xml_obj(
+            root, classes_list, resolution_wh, force_masks
         )
 
         images[image_path] = image
         annotations[image_path] = annotation
 
-    classes = {i: c for i, c in enumerate(classes)}
+    classes = {i: c for i, c in enumerate(classes_list)}
 
     return classes, images, annotations
 
