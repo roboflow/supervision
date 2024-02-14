@@ -50,7 +50,7 @@ def object_to_pascal_voc(
 
 def detections_to_pascal_voc(
     detections: Detections,
-    classes: List[str],
+    classes: Dict[int, str],
     filename: str,
     image_shape: Tuple[int, int, int],
     min_image_area_percentage: float = 0.0,
@@ -138,7 +138,7 @@ def load_pascal_voc_annotations(
     images_directory_path: str,
     annotations_directory_path: str,
     force_masks: bool = False,
-) -> Tuple[List[str], Dict[str, np.ndarray], Dict[str, Detections]]:
+) -> Tuple[Dict[int, str], Dict[str, np.ndarray], Dict[str, Detections]]:
     """
     Loads PASCAL VOC XML annotations and returns the image name,
         a Detections instance, and a list of class names.
@@ -187,6 +187,8 @@ def load_pascal_voc_annotations(
 
         images[image_path] = image
         annotations[image_path] = annotation
+
+    classes = {i: c for i, c in enumerate(classes)}
 
     return classes, images, annotations
 

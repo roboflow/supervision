@@ -56,11 +56,11 @@ def merge_class_lists(class_lists: List[List[str]]) -> List[str]:
 
 
 def build_class_index_mapping(
-    source_classes: List[str], target_classes: List[str]
+    source_classes: Dict[int, str], target_classes: Dict[int, str]
 ) -> Dict[int, int]:
     index_mapping = {}
 
-    for i, class_name in enumerate(source_classes):
+    for i, class_name in source_classes.items():
         if class_name not in target_classes:
             raise ValueError(
                 f"Class {class_name} not found in target classes. "

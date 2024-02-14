@@ -52,15 +52,25 @@ class DetectionDataset(BaseDataset):
     Dataclass containing information about object detection dataset.
 
     Attributes:
-        classes (List[str]): List containing dataset class names.
+        classes (Dict[int, str]): List containing dataset class names. Keys are indices,
+            values are class names.
         images (Dict[str, np.ndarray]): Dictionary mapping image name to image.
         annotations (Dict[str, Detections]): Dictionary mapping
             image name to annotations.
     """
 
-    classes: List[str]
+    classes: Dict[int, str]
     images: Dict[str, np.ndarray]
     annotations: Dict[str, Detections]
+
+    @property
+    def classes_list(self) -> List[str]:
+        return [
+            v
+            for _, v in sorted(
+                self.classes.items(), key=lambda item: item[0], reverse=False
+            )
+        ]
 
     def __len__(self) -> int:
         """
@@ -87,7 +97,7 @@ class DetectionDataset(BaseDataset):
         if not isinstance(other, DetectionDataset):
             return False
 
-        if set(self.classes) != set(other.classes):
+        if set(self.classes_list) != set(other.classes_list):
             return False
 
         for key in self.images:
@@ -248,7 +258,7 @@ class DetectionDataset(BaseDataset):
             )
 
             ds.classes
-            # ['dog', 'person']
+            # {0: 'dog', 1: 'person'}
             ```
         """
 
@@ -305,7 +315,7 @@ class DetectionDataset(BaseDataset):
             )
 
             ds.classes
-            # ['dog', 'person']
+            # {0: 'dog', 1: 'person'}
             ```
         """
         classes, images, annotations = load_yolo_annotations(
@@ -409,7 +419,7 @@ class DetectionDataset(BaseDataset):
             )
 
             ds.classes
-            # ['dog', 'person']
+            # {0: 'dog', 1: 'person'}
             ```
         """
         classes, images, annotations = load_coco_annotations(
@@ -490,24 +500,26 @@ class DetectionDataset(BaseDataset):
             len(ds_1)
             # 100
             ds_1.classes
-            # ['dog', 'person']
+            # {0: 'dog', 1: 'person'}
 
             ds_2 = sv.DetectionDataset(...)
             len(ds_2)
             # 200
             ds_2.classes
-            # ['cat']
+            # [0: 'cat']
 
             ds_merged = sv.DetectionDataset.merge([ds_1, ds_2])
             len(ds_merged)
             # 300
             ds_merged.classes
-            # ['cat', 'dog', 'person']
+            # {0: 'dog', 1: 'person', 2: 'cat'}
             ```
         """
         merged_images, merged_annotations = {}, {}
-        class_lists = [dataset.classes for dataset in dataset_list]
-        merged_classes = merge_class_lists(class_lists=class_lists)
+        class_lists = [dataset.classes_list for dataset in dataset_list]
+        merged_classes = {
+            i: c for i, c in enumerate(merge_class_lists(class_lists=class_lists))
+        }
 
         for dataset in dataset_list:
             class_index_mapping = build_class_index_mapping(
@@ -542,9 +554,18 @@ class ClassificationDataset(BaseDataset):
             image name to annotations.
     """
 
-    classes: List[str]
+    classes: Dict[int, str]
     images: Dict[str, np.ndarray]
     annotations: Dict[str, Classifications]
+
+    @property
+    def classes_list(self) -> List[str]:
+        return [
+            v
+            for _, v in sorted(
+                self.classes.items(), key=lambda item: item[0], reverse=False
+            )
+        ]
 
     def __len__(self) -> int:
         return len(self.images)
@@ -608,7 +629,7 @@ class ClassificationDataset(BaseDataset):
         """
         os.makedirs(root_directory_path, exist_ok=True)
 
-        for class_name in self.classes:
+        for class_name in self.classes.values():
             os.makedirs(os.path.join(root_directory_path, class_name), exist_ok=True)
 
         for image_path in self.images:
@@ -653,13 +674,12 @@ class ClassificationDataset(BaseDataset):
             ```
         """
         classes = os.listdir(root_directory_path)
-        classes = sorted(set(classes))
+        classes = {i: c for i,c in sorted(set(classes))}
 
         images = {}
         annotations = {}
 
-        for class_name in classes:
-            class_id = classes.index(class_name)
+        for class_id, class_name in classes.items():
 
             for image in os.listdir(os.path.join(root_directory_path, class_name)):
                 image_path = str(os.path.join(root_directory_path, class_name, image))

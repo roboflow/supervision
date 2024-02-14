@@ -56,11 +56,9 @@ def _with_mask(lines: List[str]) -> bool:
     return any([len(line.split()) > 5 for line in lines])
 
 
-def _extract_class_names(file_path: str) -> List[str]:
+def _extract_class_names(file_path: str) -> Dict[int, str]:
     data = read_yaml_file(file_path=file_path)
     names = data["names"]
-    if isinstance(names, dict):
-        names = [names[key] for key in sorted(names.keys())]
     return names
 
 
@@ -110,7 +108,7 @@ def load_yolo_annotations(
     annotations_directory_path: str,
     data_yaml_path: str,
     force_masks: bool = False,
-) -> Tuple[List[str], Dict[str, np.ndarray], Dict[str, Detections]]:
+) -> Tuple[Dict[int, str], Dict[str, np.ndarray], Dict[str, Detections]]:
     """
     Loads YOLO annotations and returns class names, images,
         and their corresponding detections.
@@ -245,7 +243,7 @@ def save_yolo_annotations(
         save_text_file(lines=lines, file_path=yolo_annotations_path)
 
 
-def save_data_yaml(data_yaml_path: str, classes: List[str]) -> None:
+def save_data_yaml(data_yaml_path: str, classes: Dict[int, str]) -> None:
     data = {"nc": len(classes), "names": classes}
     Path(data_yaml_path).parent.mkdir(parents=True, exist_ok=True)
     save_yaml_file(data=data, file_path=data_yaml_path)
