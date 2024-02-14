@@ -63,8 +63,8 @@ def detections_to_pascal_voc(
     Args:
         detections (Detections): A Detections object containing bounding boxes,
             class ids, and other relevant information.
-        classes (List[str]): A list of class names corresponding to the
-            class ids in the Detections object.
+        classes (Dict[int, str]): List containing dataset class names. Keys are indices,
+            values are class names.
         filename (str): The name of the image file associated with the detections.
         image_shape (Tuple[int, int, int]): The shape of the image
             file associated with the detections.
