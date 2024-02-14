@@ -4106,18 +4106,6 @@ rich = ">=12.0.0"
 urllib3 = ">=1.26.0"
 
 [[package]]
-name = "types-pillow"
-version = "10.2.0.20240206"
-description = "Typing stubs for Pillow"
-category = "main"
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "types-Pillow-10.2.0.20240206.tar.gz", hash = "sha256:f0de5107ff8362ffdbbd53ec896202ac905e6ab22ae784b46bcdad160ea143b9"},
-    {file = "types_Pillow-10.2.0.20240206-py3-none-any.whl", hash = "sha256:abc339ae28af5916146a7729261480d68ac902cd4ff57e0bdd402eee7962644d"},
-]
-
-[[package]]
 name = "types-python-dateutil"
 version = "2.8.19.20240106"
 description = "Typing stubs for python-dateutil"
@@ -4356,4 +4344,4 @@ desktop = ["opencv-python"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "fb7dad1d3b29d11473fcaad69324e04fa3b2ee6fade58830fc663c36008fffbd"
+content-hash = "844f11f37895e0e56d43bd31f189e84e64c21248e120260a067597c822f35cc1"

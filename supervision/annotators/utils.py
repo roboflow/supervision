@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 from PIL import Image
 
-from supervision.annotators.base import ImgType
+from supervision.annotators.base import ImageType
 from supervision.detection.core import Detections
 from supervision.draw.color import Color, ColorPalette
 from supervision.geometry.core import Position
@@ -133,7 +133,7 @@ def scene_to_annotator_img_type(annotate_func):
     """
 
     @wraps(annotate_func)
-    def wrapper(self, scene: ImgType, *args, **kwargs):
+    def wrapper(self, scene: ImageType, *args, **kwargs):
         if isinstance(scene, np.ndarray):
             return annotate_func(self, scene, *args, **kwargs)
 

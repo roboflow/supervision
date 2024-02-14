@@ -2,7 +2,7 @@ from typing import List, Optional, Union
 
 import cv2
 
-from supervision.annotators.base import ImgType
+from supervision.annotators.base import ImageType
 from supervision.annotators.utils import scene_to_annotator_img_type
 from supervision.detection.core import Detections
 from supervision.draw.color import Color, ColorPalette
@@ -49,16 +49,18 @@ class BoxAnnotator:
     @scene_to_annotator_img_type
     def annotate(
         self,
-        scene: ImgType,
+        scene: ImageType,
         detections: Detections,
         labels: Optional[List[str]] = None,
         skip_label: bool = False,
-    ) -> ImgType:
+    ) -> ImageType:
         """
         Draws bounding boxes on the frame using the detections provided.
 
         Args:
-            scene (ImgType): The image on which the bounding boxes will be drawn
+            scene (ImageType): The image on which the bounding boxes will be drawn.
+                `ImageType` is a flexible type, accepting either `numpy.ndarray`
+                or `PIL.Image.Image`.
             detections (Detections): The detections for which the
                 bounding boxes will be drawn
             labels (Optional[List[str]]): An optional list of labels
@@ -66,7 +68,8 @@ class BoxAnnotator:
                 corresponding `class_id` will be used as label.
             skip_label (bool): Is set to `True`, skips bounding box label annotation.
         Returns:
-            ImgType: The image with the bounding boxes drawn on it
+            ImageType: The image with the bounding boxes drawn on it, matching the
+                type of `scene` (`numpy.ndarray` or `PIL.Image.Image`)
 
         Example:
             ```python
