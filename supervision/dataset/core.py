@@ -65,6 +65,12 @@ class DetectionDataset(BaseDataset):
 
     @property
     def classes_list(self) -> List[str]:
+        """
+        Returns a sorted list of class names, derived from self.classes
+
+        Returns:
+            List[str]: A sorted list of classes.
+        """
         return [
             v
             for _, v in sorted(
@@ -681,13 +687,12 @@ class ClassificationDataset(BaseDataset):
             ```
         """
         classes_list = os.listdir(root_directory_path)
-        classes = {i: c for i,c in sorted(set(classes_list))}
+        classes = {i: c for i, c in sorted(set(classes_list))}
 
         images = {}
         annotations = {}
 
         for class_id, class_name in classes.items():
-
             for image in os.listdir(os.path.join(root_directory_path, class_name)):
                 image_path = str(os.path.join(root_directory_path, class_name, image))
                 images[image_path] = cv2.imread(image_path)
