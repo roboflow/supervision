@@ -52,7 +52,7 @@ class DetectionDataset(BaseDataset):
     Dataclass containing information about object detection dataset.
 
     Attributes:
-        classes (Dict[int, str]): List containing dataset class names. Keys are indices,
+        classes (Dict[int, str]): Dict containing dataset class names. Keys are indices,
             values are class names.
         images (Dict[str, np.ndarray]): Dictionary mapping image name to image.
         annotations (Dict[str, Detections]): Dictionary mapping
@@ -548,7 +548,8 @@ class ClassificationDataset(BaseDataset):
     Dataclass containing information about a classification dataset.
 
     Attributes:
-        classes (List[str]): List containing dataset class names.
+        classes (Dict[int, str]): Dict containing dataset class names. Keys are indices,
+            values are class names.
         images (Dict[str, np.ndarray]): Dictionary mapping image name to image.
         annotations (Dict[str, Detections]): Dictionary mapping
             image name to annotations.
@@ -560,6 +561,12 @@ class ClassificationDataset(BaseDataset):
 
     @property
     def classes_list(self) -> List[str]:
+        """
+        Returns a sorted list of class names, derived from self.classes
+
+        Returns:
+            List[str]: A sorted list of class names.
+        """
         return [
             v
             for _, v in sorted(
@@ -673,8 +680,8 @@ class ClassificationDataset(BaseDataset):
             )
             ```
         """
-        classes = os.listdir(root_directory_path)
-        classes = {i: c for i,c in sorted(set(classes))}
+        classes_list = os.listdir(root_directory_path)
+        classes = {i: c for i,c in sorted(set(classes_list))}
 
         images = {}
         annotations = {}
