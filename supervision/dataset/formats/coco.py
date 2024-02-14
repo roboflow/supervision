@@ -34,14 +34,14 @@ def build_coco_class_index_mapping(
     }
 
 
-def classes_to_coco_categories(classes: List[str]) -> List[dict]:
+def classes_to_coco_categories(classes: Dict[int, str]) -> List[dict]:
     return [
         {
             "id": class_id,
             "name": class_name,
             "supercategory": "common-objects",
         }
-        for class_id, class_name in enumerate(classes)
+        for class_id, class_name in classes.items()
     ]
 
 
@@ -136,11 +136,13 @@ def load_coco_annotations(
     images_directory_path: str,
     annotations_path: str,
     force_masks: bool = False,
-) -> Tuple[List[str], Dict[str, np.ndarray], Dict[str, Detections]]:
+) -> Tuple[Dict[int, str], Dict[str, np.ndarray], Dict[str, Detections]]:
     coco_data = read_json_file(file_path=annotations_path)
-    classes = coco_categories_to_classes(coco_categories=coco_data["categories"])
+    classes_list = coco_categories_to_classes(coco_categories=coco_data["categories"])
+    classes = {i: c for i, c in enumerate(classes_list)}
+
     class_index_mapping = build_coco_class_index_mapping(
-        coco_categories=coco_data["categories"], target_classes=classes
+        coco_categories=coco_data["categories"], target_classes=classes_list
     )
     coco_images = coco_data["images"]
     coco_annotations_groups = group_coco_annotations_by_image_id(
@@ -180,7 +182,7 @@ def save_coco_annotations(
     annotation_path: str,
     images: Dict[str, np.ndarray],
     annotations: Dict[str, Detections],
-    classes: List[str],
+    classes: Dict[int, str],
     min_image_area_percentage: float = 0.0,
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.75,

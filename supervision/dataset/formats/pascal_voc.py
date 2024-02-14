@@ -184,6 +184,7 @@ def load_pascal_voc_annotations(
         annotation, classes_list = detections_from_xml_obj(
             root, classes_list, resolution_wh, force_masks
         )
+        print(classes_list)
 
         images[image_path] = image
         annotations[image_path] = annotation

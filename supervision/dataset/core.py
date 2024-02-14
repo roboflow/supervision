@@ -433,6 +433,7 @@ class DetectionDataset(BaseDataset):
             annotations_path=annotations_path,
             force_masks=force_masks,
         )
+
         return DetectionDataset(classes=classes, images=images, annotations=annotations)
 
     def as_coco(
