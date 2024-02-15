@@ -69,7 +69,7 @@ class PolygonZone:
         )
 
         is_in_zone = self.mask[all_clipped_anchors[:, :, 1], all_clipped_anchors[:, :, 0]].transpose().astype(bool)
-        is_in_zone = np.sum(is_in_zone, axis=1) == is_in_zone.shape[1]
+        is_in_zone = np.all(is_in_zone, axis=1)
 
         self.current_count = int(np.sum(is_in_zone))
         return is_in_zone.astype(bool)
