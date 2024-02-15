@@ -20,7 +20,9 @@ DETECTION_BOXES = np.array(
     dtype=np.float32,
 )
 
-DETECTIONS = sv.Detections(xyxy=DETECTION_BOXES, class_id=np.array([0, 0, 0, 0, 0, 0, 0, 0, 0]))
+DETECTIONS = sv.Detections(
+    xyxy=DETECTION_BOXES, class_id=np.array([0, 0, 0, 0, 0, 0, 0, 0, 0])
+)
 
 POLYGON = np.array([[100, 100], [200, 100], [200, 200], [100, 200]])
 FRAME_RESOLUTION = (300, 300)
@@ -41,7 +43,9 @@ FRAME_RESOLUTION = (300, 300)
                     sv.Position.BOTTOM_RIGHT,
                 ),
             ),
-            np.array([False, False, False, True, True, True, False, False, False], dtype=bool),
+            np.array(
+                [False, False, False, True, True, True, False, False, False], dtype=bool
+            ),
             DoesNotRaise(),
         ),  # Test all four corners
         (
@@ -50,13 +54,19 @@ FRAME_RESOLUTION = (300, 300)
                 POLYGON,
                 FRAME_RESOLUTION,
             ),
-            np.array([False, False, True, True, True, True, False, False, False], dtype=bool),
+            np.array(
+                [False, False, True, True, True, True, False, False, False], dtype=bool
+            ),
             DoesNotRaise(),
         ),  # Test default behaviour when no anchors are provided
         (
             DETECTIONS,
-            sv.PolygonZone(POLYGON, FRAME_RESOLUTION, triggering_position=sv.Position.BOTTOM_CENTER),
-            np.array([False, False, True, True, True, True, False, False, False], dtype=bool),
+            sv.PolygonZone(
+                POLYGON, FRAME_RESOLUTION, triggering_position=sv.Position.BOTTOM_CENTER
+            ),
+            np.array(
+                [False, False, True, True, True, True, False, False, False], dtype=bool
+            ),
             DoesNotRaise(),
         ),  # Test default behaviour with deprecated api.
         (
@@ -83,6 +93,10 @@ def test_polygon_zone_trigger(
 
 def test_polygon_zone_deprecated() -> None:
     with pytest.deprecated_call():
-        sv.PolygonZone(POLYGON, FRAME_RESOLUTION, triggering_position=sv.Position.CENTER)
+        sv.PolygonZone(
+            POLYGON, FRAME_RESOLUTION, triggering_position=sv.Position.CENTER
+        )
     with DoesNotRaise():
-        sv.PolygonZone(POLYGON, FRAME_RESOLUTION, triggering_anchors=(sv.Position.CENTER,))
+        sv.PolygonZone(
+            POLYGON, FRAME_RESOLUTION, triggering_anchors=(sv.Position.CENTER,)
+        )
