@@ -1,5 +1,5 @@
 from dataclasses import replace
-from typing import Optional, Tuple
+from typing import Iterable, Optional, Tuple
 
 import cv2
 import numpy as np
@@ -30,17 +30,15 @@ class PolygonZone:
         self,
         polygon: np.ndarray,
         frame_resolution_wh: Tuple[int, int],
-        triggering_position: Position = Position.BOTTOM_CENTER,
+        triggering_anchors: Iterable[Position] = (Position.BOTTOM_CENTER,),
     ):
         self.polygon = polygon.astype(int)
         self.frame_resolution_wh = frame_resolution_wh
-        self.triggering_position = triggering_position
+        self.triggering_anchors = triggering_anchors
         self.current_count = 0
 
         width, height = frame_resolution_wh
-        self.mask = polygon_to_mask(
-            polygon=polygon, resolution_wh=(width + 1, height + 1)
-        )
+        self.mask = polygon_to_mask(polygon=polygon, resolution_wh=(width + 1, height + 1))
 
     def trigger(self, detections: Detections) -> np.ndarray:
         """
@@ -55,14 +53,18 @@ class PolygonZone:
                 if each detection is within the polygon zone
         """
 
-        clipped_xyxy = clip_boxes(
-            xyxy=detections.xyxy, resolution_wh=self.frame_resolution_wh
-        )
+        clipped_xyxy = clip_boxes(xyxy=detections.xyxy, resolution_wh=self.frame_resolution_wh)
         clipped_detections = replace(detections, xyxy=clipped_xyxy)
-        clipped_anchors = np.ceil(
-            clipped_detections.get_anchors_coordinates(anchor=self.triggering_position)
-        ).astype(int)
-        is_in_zone = self.mask[clipped_anchors[:, 1], clipped_anchors[:, 0]]
+        all_clipped_anchors = np.array(
+            [
+                np.ceil(clipped_detections.get_anchors_coordinates(anchor)).astype(int)
+                for anchor in self.triggering_anchors
+            ]
+        )
+
+        is_in_zone = self.mask[all_clipped_anchors[:, :, 1], all_clipped_anchors[:, :, 0]].transpose().astype(bool)
+        is_in_zone = np.sum(is_in_zone, axis=1) == is_in_zone.shape[1]
+
         self.current_count = int(np.sum(is_in_zone))
         return is_in_zone.astype(bool)
 
