@@ -742,14 +742,18 @@ class Detections:
             # For device and nn setup, refer:
                 [RGB & TinyYOLO](https://docs.luxonis.com/projects/api/en/latest/samples/SpatialDetection/spatial_tiny_yolo/)
         """
-        depthai_detections_predictions = np.array([[
-            depthai_results.xmin,
-            depthai_results.ymin,
-            depthai_results.xmax,
-            depthai_results.ymax,
-            depthai_results.confidence,
-            depthai_results.label
-        ]])
+        depthai_detections_predictions = np.array(
+            [
+                [
+                    depthai_results.xmin,
+                    depthai_results.ymin,
+                    depthai_results.xmax,
+                    depthai_results.ymax,
+                    depthai_results.confidence,
+                    depthai_results.label,
+                ]
+            ]
+        )
 
         return cls(
             xyxy=depthai_detections_predictions[:, :4],
