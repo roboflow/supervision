@@ -21,8 +21,9 @@ class PolygonZone:
         polygon (np.ndarray): A polygon represented by a numpy array of shape
             `(N, 2)`, containing the `x`, `y` coordinates of the points.
         frame_resolution_wh (Tuple[int, int]): The frame resolution (width, height)
-        triggering_position (Position): The position within the bounding
-            box that triggers the zone (default: Position.BOTTOM_CENTER)
+        triggering_anchors (Iterable[sv.Position]): A list of positions specifying
+            which anchors of the detections bounding box to consider when deciding on
+            whether the detection fits within the PolygonZone (default: (sv.Position.BOTTOM_CENTER,)).
         current_count (int): The current count of detected objects within the zone
         mask (np.ndarray): The 2D bool mask for the polygon zone
     """
@@ -41,6 +42,7 @@ class PolygonZone:
         self.polygon = polygon.astype(int)
         self.frame_resolution_wh = frame_resolution_wh
         self.triggering_anchors = triggering_anchors
+
         self.current_count = 0
 
         width, height = frame_resolution_wh
