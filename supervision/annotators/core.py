@@ -929,6 +929,20 @@ class LabelAnnotator:
                 center_x + text_w // 2,
                 center_y + text_h,
             )
+        elif position == Position.CENTER_LEFT:
+            return (
+                center_x - text_w,
+                center_y - text_h // 2,
+                center_x,
+                center_y + text_h // 2,
+            )
+        elif position == Position.CENTER_RIGHT:
+            return (
+                center_x,
+                center_y - text_h // 2,
+                center_x + text_w,
+                center_y + text_h // 2,
+            )
 
     def annotate(
         self,
