@@ -10,6 +10,7 @@ from supervision.draw.color import Color
 from supervision.draw.utils import draw_polygon, draw_text
 from supervision.geometry.core import Position
 from supervision.geometry.utils import get_polygon_center
+from supervision.utils.internal import deprecated_parameter
 
 
 class PolygonZone:
@@ -26,6 +27,11 @@ class PolygonZone:
         mask (np.ndarray): The 2D bool mask for the polygon zone
     """
 
+    @deprecated_parameter(
+        old_param="triggering_position",
+        new_param="triggering_anchors",
+        map_func=lambda x: [x],
+    )
     def __init__(
         self,
         polygon: np.ndarray,

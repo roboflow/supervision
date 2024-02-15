@@ -1,5 +1,34 @@
 import functools
 import warnings
+from typing import Callable
+
+
+def deprecated_parameter(old_param: str, new_param: str, map_func: Callable = lambda x: x):
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            if old_param in kwargs:
+                # In case of a method, display also the class name.
+                if args and hasattr(args[0], "__class__"):
+                    class_name = args[0].__class__.__name__
+                    function_name = f"{class_name}.{func.__name__}"
+                else:
+                    function_name = func.__name__
+
+                # Display deprecation warning
+                warnings.warn(
+                    f"Warning: '{old_param}' in '{function_name}' is deprecated: use '{new_param}' instead.",
+                    category=DeprecationWarning,
+                    stacklevel=2,
+                )
+                # Map old_param to new_param
+                kwargs[new_param] = map_func(kwargs.pop(old_param))
+
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
 
 
 def deprecated(reason: str):
