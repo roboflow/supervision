@@ -23,7 +23,8 @@ class PolygonZone:
         frame_resolution_wh (Tuple[int, int]): The frame resolution (width, height)
         triggering_anchors (Iterable[sv.Position]): A list of positions specifying
             which anchors of the detections bounding box to consider when deciding on
-            whether the detection fits within the PolygonZone (default: (sv.Position.BOTTOM_CENTER,)).
+            whether the detection fits within the PolygonZone
+            (default: (sv.Position.BOTTOM_CENTER,)).
         current_count (int): The current count of detected objects within the zone
         mask (np.ndarray): The 2D bool mask for the polygon zone
     """
@@ -46,7 +47,9 @@ class PolygonZone:
         self.current_count = 0
 
         width, height = frame_resolution_wh
-        self.mask = polygon_to_mask(polygon=polygon, resolution_wh=(width + 1, height + 1))
+        self.mask = polygon_to_mask(
+            polygon=polygon, resolution_wh=(width + 1, height + 1)
+        )
 
     def trigger(self, detections: Detections) -> np.ndarray:
         """
@@ -61,7 +64,9 @@ class PolygonZone:
                 if each detection is within the polygon zone
         """
 
-        clipped_xyxy = clip_boxes(xyxy=detections.xyxy, resolution_wh=self.frame_resolution_wh)
+        clipped_xyxy = clip_boxes(
+            xyxy=detections.xyxy, resolution_wh=self.frame_resolution_wh
+        )
         clipped_detections = replace(detections, xyxy=clipped_xyxy)
         all_clipped_anchors = np.array(
             [
@@ -70,7 +75,11 @@ class PolygonZone:
             ]
         )
 
-        is_in_zone = self.mask[all_clipped_anchors[:, :, 1], all_clipped_anchors[:, :, 0]].transpose().astype(bool)
+        is_in_zone = (
+            self.mask[all_clipped_anchors[:, :, 1], all_clipped_anchors[:, :, 0]]
+            .transpose()
+            .astype(bool)
+        )
         is_in_zone = np.all(is_in_zone, axis=1)
 
         self.current_count = int(np.sum(is_in_zone))

@@ -3,7 +3,9 @@ import warnings
 from typing import Callable
 
 
-def deprecated_parameter(old_param: str, new_param: str, map_func: Callable = lambda x: x):
+def deprecated_parameter(
+    old_param: str, new_param: str, map_func: Callable = lambda x: x
+):
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -17,7 +19,8 @@ def deprecated_parameter(old_param: str, new_param: str, map_func: Callable = la
 
                 # Display deprecation warning
                 warnings.warn(
-                    f"Warning: '{old_param}' in '{function_name}' is deprecated: use '{new_param}' instead.",
+                    f"Warning: '{old_param}' in '{function_name}' is deprecated: "
+                    f"use '{new_param}' instead.",
                     category=DeprecationWarning,
                     stacklevel=2,
                 )
