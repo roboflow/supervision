@@ -1877,6 +1877,7 @@ class IconAnnotator(BaseAnnotator):
         resized_icon = cv2.resize(
             self.icon, (resized_icon_h, resized_icon_w), interpolation=cv2.INTER_AREA
         )
+
         xy = detections.get_anchors_coordinates(anchor=self.position)
         for detection_idx in range(len(detections)):
             color = resolve_color(
