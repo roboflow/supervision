@@ -30,7 +30,7 @@ def function_that_logs(logger: logging.Logger, i: int):
 
 def test_time_between_occurrences_filter(capsys: pytest.CaptureFixture[str]):
     setup_logger()
-    logger = logging.getLogger("supervision.test_time_elapsed_filter")
+    logger = logging.getLogger("supervision.test_time_between_occurrences_filter")
     logger.addFilter(TimeBetweenOccurrencesFilter(timedelta(milliseconds=100)))
 
     function_that_logs(logger, 0)
