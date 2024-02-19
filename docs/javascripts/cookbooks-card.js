@@ -55,12 +55,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
     let authorAvatarsHTML = authorDataArray.map((authorData, index) => {
         const marginLeft = index === 0 ? '0' : '-10px';
-        const zIndex = 100 - index;
         return `
             <div
                 class="author-container"
                 data-login="${authorData.login}-${elementIndex}"
-                style="margin-left: ${marginLeft}; z-index: ${zIndex};"
+                style="margin-left: ${marginLeft};"
             >
                 <a
                     href="https://github.com/${authorData.login}"
