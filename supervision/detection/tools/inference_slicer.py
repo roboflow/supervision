@@ -113,12 +113,11 @@ class InferenceSlicer:
                 executor.submit(self._run_callback, image, offset) for offset in offsets
             ]
             for future in as_completed(futures):
-                detections_list.append(future.result().with_nms(
-                    threshold=self.iou_threshold
-                ))
+                detections_list.append(
+                    future.result().with_nms(threshold=self.iou_threshold)
+                )
 
         return Detections.merge(detections_list=detections_list)
-
 
     def _apply_padding_to_slice(self, slice, target_size):
         """

@@ -998,7 +998,10 @@ class Detections:
         return (self.xyxy[:, 3] - self.xyxy[:, 1]) * (self.xyxy[:, 2] - self.xyxy[:, 0])
 
     def with_nms(
-        self, threshold: float = 0.5, class_agnostic: bool = False, nms_mask: bool = False
+        self,
+        threshold: float = 0.5,
+        class_agnostic: bool = False,
+        nms_mask: bool = False,
     ) -> Detections:
         """
         Performs non-max suppression on detection set. If the detections result
@@ -1011,7 +1014,7 @@ class Detections:
             class_agnostic (bool, optional): Whether to perform class-agnostic
                 non-maximum suppression. If True, the class_id of each detection
                 will be ignored. Defaults to False.
-            nms_mask (bool, optional): Whether to perform non-maximum suppression with mash. 
+            nms_mask (bool, optional): Whether to perform non-maximum suppression with mash.
                 If True, the nms would be performance with the mask. Defaults to False.
 
         Returns:
