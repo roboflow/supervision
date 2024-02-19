@@ -1014,8 +1014,8 @@ class Detections:
             class_agnostic (bool, optional): Whether to perform class-agnostic
                 non-maximum suppression. If True, the class_id of each detection
                 will be ignored. Defaults to False.
-            nms_mask (bool, optional): Whether to perform non-maximum suppression 
-                with mash. If True, the nms would be performance with the mask. 
+            nms_mask (bool, optional): Whether to perform non-maximum suppression
+                with mash. If True, the nms would be performance with the mask.
                 Defaults to False.
 
         Returns:
