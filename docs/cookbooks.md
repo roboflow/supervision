@@ -4,4 +4,5 @@ comments: true
 status: new
 hide:
   - toc
+  - navigation
 ---
