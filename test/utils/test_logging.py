@@ -4,7 +4,7 @@ from datetime import timedelta
 
 import pytest
 
-from supervision.utils.logging import TimeElapsedFilter, setup_logger
+from supervision.utils.logging import TimeBetweenOccurrencesFilter, setup_logger
 
 
 def test_logging_without_setup_logger(capsys: pytest.CaptureFixture[str]):
@@ -28,10 +28,10 @@ def function_that_logs(logger: logging.Logger, i: int):
     logger.warning("Info message %d", i)
 
 
-def test_time_elapsed_filter(capsys: pytest.CaptureFixture[str]):
+def test_time_between_occurrences_filter(capsys: pytest.CaptureFixture[str]):
     setup_logger()
     logger = logging.getLogger("supervision.test_time_elapsed_filter")
-    logger.addFilter(TimeElapsedFilter(timedelta(milliseconds=100)))
+    logger.addFilter(TimeBetweenOccurrencesFilter(timedelta(milliseconds=100)))
 
     function_that_logs(logger, 0)
     captured = capsys.readouterr()

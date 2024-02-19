@@ -27,7 +27,7 @@ def _get_record_id(record: logging.LogRecord) -> _LogId:
     return record.pathname, record.lineno
 
 
-class TimeElapsedFilter(logging.Filter):
+class TimeBetweenOccurrencesFilter(logging.Filter):
     """
     Adds filtering based on time elapsed between two same logging calls.
     Useful to prevent displaying too much messages, e.g. in the loop.
