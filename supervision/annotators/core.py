@@ -1764,26 +1764,25 @@ class PercentageBarAnnotator(BaseAnnotator):
             if not all(0 <= value <= 1 for value in custom_values):
                 raise ValueError("All values in custom_values must be between 0 and 1.")
 
+
 class IconAnnotator(BaseAnnotator):
     """
     A class for drawing an icon on an image, using provided detections.
     """
 
     def __init__(
-            self,
-            icon_path: str,
-            position: Position = Position.TOP_CENTER,
-            icon_size: float = 0.2,
-            color: Union[Color, ColorPalette] = ColorPalette.default(),
-            color_lookup: ColorLookup = ColorLookup.CLASS,
+        self,
+        icon_path: str,
+        position: Position = Position.TOP_CENTER,
+        icon_size: float = 0.2,
+        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
         """
         Args:
             icon_path (str): path of the icon in png format.
-            position (Position): The position of the heatmap. Defaults to
+            position (Position): The position of the icon. Defaults to
                 `TOP_CENTER`.
-            color (Union[Color, ColorPalette]): The color or color palette to use for
-                annotating detections.
             icon_size (float): Represents the fraction of the original icon size to
               be displayed, with a default value of 0.2
               (equivalent to 20% of the original size).
@@ -1795,60 +1794,24 @@ class IconAnnotator(BaseAnnotator):
         self.color: Union[Color, ColorPalette] = color
         self.color_lookup: ColorLookup = color_lookup
         self.position = position
-        self.icon = cv2.imread(icon_path, cv2.IMREAD_UNCHANGED)
-        if self.icon is None:
+        icon = cv2.imread(icon_path, cv2.IMREAD_UNCHANGED)
+        if icon is None:
             print(f"Error: Couldn't load the icon image from {icon_path}")
             return
 
-        self.icon_size = icon_size
-
-    @staticmethod
-    def draw_icon(
-            icon: np.ndarray,
-            new_color: List,
-            scene: np.ndarray,
-            cordinates: Tuple[int, int],
-    ) -> np.ndarray:
-        new_icon = np.ones_like(icon) * new_color
-        new_icon[:, :, 3] = icon[:, :, 3]
-        x, y = cordinates
-
-        icon_height, icon_width, _ = new_icon.shape
-        scene_height, scene_width, _ = scene.shape
-        w = min(icon_width, scene_width, icon_width + x, scene_width - x)
-        h = min(icon_height, scene_height, icon_height + y, scene_height - y)
-
-        if w < 1 or h < 1:
-            print("Icon size too small")
-            return
-
-        # clip icon and scene  to the overlapping regions
-        icon_x = max(0, x)
-        icon_y = max(0, y)
-        scene_x = max(0, x * -1)
-        scene_y = max(0, y * -1)
-
-        # Create a copy of the background region where the icon will be pasted
-        new_icon = new_icon[scene_y: scene_y + h, scene_x: scene_x + w]
-        bg_region = scene[icon_y: icon_y + h, icon_x: icon_x + w].copy()
-
-        # Extract the alpha channel from the icon
-        alpha_channel = new_icon[:, :, 3]
-        # Apply alpha blending to combine the icon and the background
-        for c in range(3):  # Iterate over RGB channels
-            bg_region[:, :, c] = (1 - alpha_channel / 255.0) * bg_region[:, :, c] + (
-                    alpha_channel / 255.0
-            ) * new_icon[:, :, c]
-
-        # Paste the blended icon region back into the background
-        scene[icon_y: icon_y + h, icon_x: icon_x + w] = bg_region
-        return scene
+        resized_icon_h, resized_icon_w = (
+            int(icon.shape[0] * icon_size),
+            int(icon.shape[1] * icon_size),
+        )
+        self.icon = cv2.resize(
+            icon, (resized_icon_h, resized_icon_w), interpolation=cv2.INTER_AREA
+        )
 
     def annotate(
-            self,
-            scene: np.ndarray,
-            detections: Detections,
-            custom_color_lookup: Optional[np.ndarray] = None,
+        self,
+        scene: np.ndarray,
+        detections: Detections,
+        custom_color_lookup: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         """
         Annotates the given scene with icons based on the provided detections.
@@ -1871,12 +1834,7 @@ class IconAnnotator(BaseAnnotator):
             ... )
             ```
         """
-        resized_icon_h, resized_icon_w = int(self.icon.shape[0] * self.icon_size), int(
-            self.icon.shape[1] * self.icon_size
-        )
-        resized_icon = cv2.resize(
-            self.icon, (resized_icon_h, resized_icon_w), interpolation=cv2.INTER_AREA
-        )
+        icon_h, icon_w = self.icon.shape[:2]
 
         xy = detections.get_anchors_coordinates(anchor=self.position)
         for detection_idx in range(len(detections)):
@@ -1884,16 +1842,34 @@ class IconAnnotator(BaseAnnotator):
                 color=self.color,
                 detections=detections,
                 detection_idx=detection_idx,
-                color_lookup=self.color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
+                color_lookup=(
+                    self.color_lookup
+                    if custom_color_lookup is None
+                    else custom_color_lookup
+                ),
             )
-            coordinates = (
-                int(xy[detection_idx, 0] - resized_icon_w / 2),
-                int(xy[detection_idx, 1] - resized_icon_h),
+            # Convert Color type to numpy list in BGRA format, and color icon with it
+            colored_icon = np.ones_like(self.icon) * (list(color.as_bgr()) + [1])
+
+            # The current positions of the anchors don't account for annotations that
+            # have mass. This visually centers the anchor, given the size of the icon
+            x_offset = 0
+            if self.position in [
+                Position.TOP_CENTER,
+                Position.CENTER,
+                Position.BOTTOM_CENTER,
+            ]:
+                x_offset = icon_w / 2
+
+            x, y = (
+                int(xy[detection_idx, 0] - x_offset),
+                int(xy[detection_idx, 1]),
             )
-            new_color = list(color.as_bgr()) + [
-                1
-            ]  # [1](alpha) is added to convert the color to BGRA format
-            scene = self.draw_icon(resized_icon, new_color, scene, coordinates)
+
+            # Takes the alpha channel from the original icon
+            alpha_channel = self.icon[:, :, 3]
+            # Apply alpha blending to paste the icon onto the larger image
+            scene[y : y + icon_h, x : x + icon_w][alpha_channel != 0] = colored_icon[
+                :, :, :3
+            ][alpha_channel != 0]
         return scene

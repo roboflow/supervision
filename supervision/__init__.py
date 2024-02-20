@@ -16,6 +16,7 @@ from supervision.annotators.core import (
     EllipseAnnotator,
     HaloAnnotator,
     HeatMapAnnotator,
+    IconAnnotator,
     LabelAnnotator,
     MaskAnnotator,
     OrientedBoxAnnotator,
@@ -25,7 +26,6 @@ from supervision.annotators.core import (
     RoundBoxAnnotator,
     TraceAnnotator,
     TriangleAnnotator,
-    IconAnnotator
 )
 from supervision.annotators.utils import ColorLookup
 from supervision.classification.core import Classifications
