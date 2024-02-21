@@ -4,7 +4,7 @@ from pathlib import Path
 from shutil import copyfileobj
 from typing import Union
 
-from supervision.assets.list import VIDEO_ASSETS, VideoAssets
+from supervision.assets.list import Assets, ASSETS, VideoAssets, ImageAssets
 
 try:
     from requests import get
@@ -41,12 +41,12 @@ def is_md5_hash_matching(filename: str, original_md5_hash: str) -> bool:
     return computed_md5_hash.hexdigest() == original_md5_hash
 
 
-def download_assets(asset_name: Union[VideoAssets, str]) -> str:
+def download_assets(asset_name: Union[VideoAssets, ImageAssets, str]) -> str:
     """
     Download a specified asset if it doesn't already exist or is corrupted.
 
     Parameters:
-        asset_name (Union[VideoAssets, str]): The name or type of the asset to be
+        asset_name (Union[VideoAssets, ImageAssets, str]): The name or type of the asset to be
             downloaded.
 
     Returns:
@@ -54,18 +54,21 @@ def download_assets(asset_name: Union[VideoAssets, str]) -> str:
 
     Example:
         ```python
-        from supervision.assets import download_assets, VideoAssets
+        from supervision.assets import download_assets, VideoAssets, ImageAssets
 
         download_assets(VideoAssets.VEHICLES)
         "vehicles.mp4"
+
+        download_assets(ImageAssets.PEOPLE_WALKING)
+        "people-walking.jpg"
         ```
     """
 
-    filename = asset_name.value if isinstance(asset_name, VideoAssets) else asset_name
+    filename = asset_name.filename if isinstance(asset_name, Assets) else asset_name
 
-    if not Path(filename).exists() and filename in VIDEO_ASSETS:
+    if not Path(filename).exists() and filename in ASSETS:
         print(f"Downloading {filename} assets \n")
-        response = get(VIDEO_ASSETS[filename][0], stream=True, allow_redirects=True)
+        response = get(ASSETS[filename][0], stream=True, allow_redirects=True)
         response.raise_for_status()
 
         file_size = int(response.headers.get("Content-Length", 0))
@@ -79,7 +82,8 @@ def download_assets(asset_name: Union[VideoAssets, str]) -> str:
                 copyfileobj(raw_resp, file)
 
     elif Path(filename).exists():
-        if not is_md5_hash_matching(filename, VIDEO_ASSETS[filename][1]):
+
+        if not is_md5_hash_matching(filename, ASSETS[filename][1]):
             print("File corrupted. Re-downloading... \n")
             os.remove(filename)
             return download_assets(filename)
@@ -87,7 +91,7 @@ def download_assets(asset_name: Union[VideoAssets, str]) -> str:
         print(f"{filename} asset download complete. \n")
 
     else:
-        valid_assets = ", ".join(asset.value for asset in VideoAssets)
+        valid_assets = ", ".join(filename for filename in ASSETS.keys())
         raise ValueError(
             f"Invalid asset. It should be one of the following: {valid_assets}."
         )
