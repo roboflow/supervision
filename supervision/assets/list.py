@@ -4,15 +4,17 @@ from typing import Dict, Tuple
 BASE_VIDEO_URL = "https://media.roboflow.com/supervision/video-examples/"
 BASE_IMAGE_URL = "https://media.roboflow.com/inference/"
 
+
 class Assets(Enum):
     def __init__(self, filename: str, hash: str):
         self.filename = filename
         self.hash = hash
 
+
 class VideoAssets(Assets):
     """
     Each member of this class represents a video asset. The value associated with each
-    member has a filename and hash of the video. File names and links can be seen below. 
+    member has a filename and hash of the video. File names and links can be seen below.
 
     | Asset                  | Video Filename             | Video URL                                                                             |
     |------------------------|----------------------------|---------------------------------------------------------------------------------------|
@@ -26,12 +28,16 @@ class VideoAssets(Assets):
     """  # noqa: E501 // docs
 
     VEHICLES = ("vehicles.mp4", "8155ff4e4de08cfa25f39de96483f918")
-    MILK_BOTTLING_PLANT = ("milk-bottling-plant.mp4", "9e8fb6e883f842a38b3d34267290bdc7")
+    MILK_BOTTLING_PLANT = (
+        "milk-bottling-plant.mp4",
+        "9e8fb6e883f842a38b3d34267290bdc7",
+    )
     VEHICLES_2 = ("vehicles-2.mp4", "830af6fba21ffbf14867a7fea595937b")
     GROCERY_STORE = ("grocery-store.mp4", "453475750691fb23c56a0cffef089194")
     SUBWAY = ("subway.mp4", "453475750691fb23c56a0cffef089194")
     MARKET_SQUARE = ("market-square.mp4", "859179bf4a21f80a8baabfdb2ed716dc")
     PEOPLE_WALKING = ("people-walking.mp4", "0574c053c8686c3f1dc0aa3743e45cb9")
+
 
 class ImageAssets(Assets):
     """

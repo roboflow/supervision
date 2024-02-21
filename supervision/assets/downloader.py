@@ -4,7 +4,7 @@ from pathlib import Path
 from shutil import copyfileobj
 from typing import Union
 
-from supervision.assets.list import Assets, ASSETS, VideoAssets, ImageAssets
+from supervision.assets.list import ASSETS, Assets, ImageAssets, VideoAssets
 
 try:
     from requests import get
@@ -82,7 +82,6 @@ def download_assets(asset_name: Union[VideoAssets, ImageAssets, str]) -> str:
                 copyfileobj(raw_resp, file)
 
     elif Path(filename).exists():
-
         if not is_md5_hash_matching(filename, ASSETS[filename][1]):
             print("File corrupted. Re-downloading... \n")
             os.remove(filename)
