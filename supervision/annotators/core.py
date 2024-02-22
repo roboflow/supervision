@@ -1774,7 +1774,7 @@ class IconAnnotator(BaseAnnotator):
         self,
         icon_path: str,
         position: Position = Position.TOP_CENTER,
-        icon_size: float = 0.2,
+        icon_scale: float = 0.2,
         color: Union[Color, ColorPalette] = ColorPalette.default(),
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
@@ -1783,7 +1783,7 @@ class IconAnnotator(BaseAnnotator):
             icon_path (str): path of the icon in png format.
             position (Position): The position of the icon. Defaults to
                 `TOP_CENTER`.
-            icon_size (float): Represents the fraction of the original icon size to
+            icon_scale (float): Represents the fraction of the original icon size to
               be displayed, with a default value of 0.2
               (equivalent to 20% of the original size).
             color (Union[Color, ColorPalette]): The color to draw the trace, can be
@@ -1796,12 +1796,13 @@ class IconAnnotator(BaseAnnotator):
         self.position = position
         icon = cv2.imread(icon_path, cv2.IMREAD_UNCHANGED)
         if icon is None:
-            print(f"Error: Couldn't load the icon image from {icon_path}")
-            return
+            raise FileNotFoundError(
+                f"Error: Couldn't load the icon image from {icon_path}"
+            )
 
         resized_icon_h, resized_icon_w = (
-            int(icon.shape[0] * icon_size),
-            int(icon.shape[1] * icon_size),
+            int(icon.shape[0] * icon_scale),
+            int(icon.shape[1] * icon_scale),
         )
         self.icon = cv2.resize(
             icon, (resized_icon_h, resized_icon_w), interpolation=cv2.INTER_AREA
@@ -1827,7 +1828,7 @@ class IconAnnotator(BaseAnnotator):
             >>> import supervision as sv
             >>> image = ...
             >>> detections = sv.Detections(...)
-            >>> icon_annotator = sv.IconAnnotator(icon_path='path_of_icon')
+            >>> icon_annotator = sv.IconAnnotator(icon_path='<PATH_TO_ICON>')
             >>> annotated_frame = icon_annotator.annotate(
             ...     scene=image.copy(),
             ...     detections=detections
@@ -1848,8 +1849,8 @@ class IconAnnotator(BaseAnnotator):
                     else custom_color_lookup
                 ),
             )
-            # Convert Color type to numpy list in BGRA format, and color icon with it
-            colored_icon = np.ones_like(self.icon) * (list(color.as_bgr()) + [1])
+            color_in_bgra = list(color.as_bgr()) + [1]
+            colored_icon = np.ones_like(self.icon) * color_in_bgra
 
             # The current positions of the anchors don't account for annotations that
             # have mass. This visually centers the anchor, given the size of the icon
@@ -1866,7 +1867,6 @@ class IconAnnotator(BaseAnnotator):
                 int(xy[detection_idx, 1]),
             )
 
-            # Takes the alpha channel from the original icon
             alpha_channel = self.icon[:, :, 3]
             # Apply alpha blending to paste the icon onto the larger image
             scene[y : y + icon_h, x : x + icon_w][alpha_channel != 0] = colored_icon[
