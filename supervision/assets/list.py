@@ -46,8 +46,8 @@ class ImageAssets(Assets):
 
     | Asset              | Image Filename         | Video URL                                                                             |
     |--------------------|------------------------|---------------------------------------------------------------------------------------|
-    | `PEOPLE_WALKING`   | `people-walking.jpg`   | [Link](https://media.roboflow.com/supervision/image-examples/people-walking.jpg)                      |
-    | `SOCCER`           | `soccer.jpg`           | [Link](https://media.roboflow.com/supervision/image-examples/soccer.jpg)                      |
+    | `PEOPLE_WALKING`   | `people-walking.jpg`   | [Link](https://media.roboflow.com/supervision/image-examples/people-walking.jpg)      |
+    | `SOCCER`           | `soccer.jpg`           | [Link](https://media.roboflow.com/supervision/image-examples/soccer.jpg)              |
 
     """  # noqa: E501 // docs
 
