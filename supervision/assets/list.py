@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Dict, Tuple
 
 BASE_VIDEO_URL = "https://media.roboflow.com/supervision/video-examples/"
-BASE_IMAGE_URL = "https://media.roboflow.com/inference/"
+BASE_IMAGE_URL = "https://media.roboflow.com/supervision/image-examples/"
 
 
 class Assets(Enum):
@@ -44,13 +44,15 @@ class ImageAssets(Assets):
     Each member of this enum represents a image asset. The value associated with each
     member is the filename of the image.
 
-    | Asset                  | Image Filename             | Video URL                                                                             |
-    |------------------------|----------------------------|---------------------------------------------------------------------------------------|
-    | `PEOPLE_WALKING`       | `people-walking.jpg`       | [Link](https://media.roboflow.com/inference/people-walking.jpg)                      |
+    | Asset              | Image Filename         | Video URL                                                                             |
+    |--------------------|------------------------|---------------------------------------------------------------------------------------|
+    | `PEOPLE_WALKING`   | `people-walking.jpg`   | [Link](https://media.roboflow.com/supervision/image-examples/people-walking.jpg)                      |
+    | `SOCCER`           | `soccer.jpg`           | [Link](https://media.roboflow.com/supervision/image-examples/soccer.jpg)                      |
 
     """  # noqa: E501 // docs
 
     PEOPLE_WALKING = ("people-walking.jpg", "e6bda00b47f2908eeae7df86ef995dcd")
+    SOCCER = ("soccer.jpg", "0f5a4b98abf3e3973faf9e9260a7d876")
 
 
 ASSETS: Dict[str, Tuple[str, str]] = {
