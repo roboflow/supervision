@@ -59,7 +59,9 @@ def box_iou_batch(boxes_true: np.ndarray, boxes_detection: np.ndarray) -> np.nda
     return area_inter / (area_true[:, None] + area_detection - area_inter)
 
 
-def _mask_iou_batch_split(masks_true: np.ndarray, masks_detection: np.ndarray) -> np.ndarray:
+def _mask_iou_batch_split(
+    masks_true: np.ndarray, masks_detection: np.ndarray
+) -> np.ndarray:
     """
     Internal function.
     Compute Intersection over Union (IoU) of two sets of masks -
@@ -75,11 +77,11 @@ def _mask_iou_batch_split(masks_true: np.ndarray, masks_detection: np.ndarray) -
     intersection_area = np.logical_and(masks_true[:, None], masks_detection).sum(
         axis=(2, 3)
     )
-    
+
     masks_true_area = masks_true.sum(axis=(1, 2))
     masks_detection_area = masks_detection.sum(axis=(1, 2))
     union_area = masks_true_area[:, None] + masks_detection_area - intersection_area
-    
+
     return np.divide(
         intersection_area,
         union_area,
@@ -88,7 +90,11 @@ def _mask_iou_batch_split(masks_true: np.ndarray, masks_detection: np.ndarray) -
     )
 
 
-def mask_iou_batch(masks_true: np.ndarray, masks_detection: np.ndarray, memory_limit: int = 1024 * 1024 * 5) -> np.ndarray:
+def mask_iou_batch(
+    masks_true: np.ndarray,
+    masks_detection: np.ndarray,
+    memory_limit: int = 1024 * 1024 * 5,
+) -> np.ndarray:
     """
     Compute Intersection over Union (IoU) of two sets of masks -
         `masks_true` and `masks_detection`.
@@ -101,15 +107,28 @@ def mask_iou_batch(masks_true: np.ndarray, masks_detection: np.ndarray, memory_l
     Returns:
         np.ndarray: Pairwise IoU of masks from `masks_true` and `masks_detection`.
     """
-    memory = masks_true.shape[0] * masks_true.shape[1] * masks_true.shape[2] * masks_detection.shape[0]
-    if memory <= memory_limit: # 5GB memory
+    memory = (
+        masks_true.shape[0]
+        * masks_true.shape[1]
+        * masks_true.shape[2]
+        * masks_detection.shape[0]
+    )
+    if memory <= memory_limit:  # 5GB memory
         return _mask_iou_batch_split(masks_true, masks_detection)
-    
+
     ious = []
-    step = max(memory_limit // (masks_detection.shape[0] * masks_detection.shape[1] * masks_detection.shape[2]), 1)
+    step = max(
+        memory_limit
+        // (
+            masks_detection.shape[0]
+            * masks_detection.shape[1]
+            * masks_detection.shape[2]
+        ),
+        1,
+    )
     for i in range(0, masks_true.shape[0], step):
-        ious.append(_mask_iou_batch_split(masks_true[i:i + step], masks_detection))
-    
+        ious.append(_mask_iou_batch_split(masks_true[i : i + step], masks_detection))
+
     return np.vstack(ious)
 
 
