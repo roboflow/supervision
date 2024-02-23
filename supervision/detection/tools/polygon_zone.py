@@ -83,6 +83,7 @@ class PolygonZoneAnnotator:
         font (int): The font type for the text on the polygon,
             default is cv2.FONT_HERSHEY_SIMPLEX
         center (Tuple[int, int]): The center of the polygon for text placement
+        display_in_zone_count (bool): Show the label of the zone or not. Default is True
     """
 
     def __init__(
@@ -94,6 +95,7 @@ class PolygonZoneAnnotator:
         text_scale: float = 0.5,
         text_thickness: int = 1,
         text_padding: int = 10,
+        display_in_zone_count: bool = True,
     ):
         self.zone = zone
         self.color = color
@@ -104,6 +106,7 @@ class PolygonZoneAnnotator:
         self.text_padding = text_padding
         self.font = cv2.FONT_HERSHEY_SIMPLEX
         self.center = get_polygon_center(polygon=zone.polygon)
+        self.display_in_zone_count = display_in_zone_count
 
     def annotate(self, scene: np.ndarray, label: Optional[str] = None) -> np.ndarray:
         """
@@ -124,16 +127,17 @@ class PolygonZoneAnnotator:
             thickness=self.thickness,
         )
 
-        annotated_frame = draw_text(
-            scene=annotated_frame,
-            text=str(self.zone.current_count) if label is None else label,
-            text_anchor=self.center,
-            background_color=self.color,
-            text_color=self.text_color,
-            text_scale=self.text_scale,
-            text_thickness=self.text_thickness,
-            text_padding=self.text_padding,
-            text_font=self.font,
-        )
+        if self.display_in_zone_count:
+            annotated_frame = draw_text(
+                scene=annotated_frame,
+                text=str(self.zone.current_count) if label is None else label,
+                text_anchor=self.center,
+                background_color=self.color,
+                text_color=self.text_color,
+                text_scale=self.text_scale,
+                text_thickness=self.text_thickness,
+                text_padding=self.text_padding,
+                text_font=self.font,
+            )
 
         return annotated_frame
