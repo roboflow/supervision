@@ -115,4 +115,8 @@ class DetectionsSmoother:
             if track is not None:
                 tracked_detections.append(track)
 
-        return Detections.merge(tracked_detections)
+        detections = Detections.merge(tracked_detections)
+        if len(tracked_detections) == 0:
+            detections.tracker_id = np.array([], dtype=int)
+
+        return detections
