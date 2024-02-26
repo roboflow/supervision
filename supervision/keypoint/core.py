@@ -65,15 +65,15 @@ class Keypoints:
 
         Example:
             ```python
-            >>> import cv2
-            >>> from ultralytics import YOLO
-            >>> import supervision as sv
+            import cv2
+            from ultralytics import YOLO
+            import supervision as sv
 
-            >>> image = cv2.imread(SOURCE_IMAGE_PATH)
-            >>> model = YOLO('yolov8n-pose.pt')
+            image = cv2.imread(SOURCE_IMAGE_PATH)
+            model = YOLO('yolov8n-pose.pt')
 
-            >>> result = model(image)[0]
-            >>> classifications = sv.Classifications.from_ultralytics(result)
+            result = model(image)[0]
+            keypoints = sv.Keypoints.from_ultralytics(result)
             ```
         """
         xy = [item.keypoints.xy.data.cpu().numpy() for item in ultralytics_results]
@@ -102,25 +102,25 @@ class Keypoints:
 
         Example:
             ```python
-            >>> import mediapipe as mp
-            >>> from mediapipe.tasks import python
-            >>> from mediapipe.tasks.python import vision
-            >>> import supervision as sv
+            import mediapipe as mp
+            from mediapipe.tasks import python
+            from mediapipe.tasks.python import vision
+            import supervision as sv
 
-            >>> base_options = python.BaseOptions(
-            ... model_asset_path='pose_landmarker.task'
-            >>> )
-            >>> options = vision.PoseLandmarkerOptions(
-            ...     base_options=base_options,
-            ...     output_segmentation_masks=True
-            ... )
-            >>> detector = vision.PoseLandmarker.create_from_options(options)
+            base_options = python.BaseOptions(
+            model_asset_path='pose_landmarker.task'
+            )
+            options = vision.PoseLandmarkerOptions(
+                base_options=base_options,
+                output_segmentation_masks=True
+            )
+            detector = vision.PoseLandmarker.create_from_options(options)
 
-            >>> image = mp.Image.create_from_file("image.jpg")
+            image = mp.Image.create_from_file("image.jpg")
 
-            >>> detection_result = detector.detect(image)
+            detection_result = detector.detect(image)
 
-            >>> pose_landmarks = sv.Keypoints.from_mediapipe(detection_result)
+            pose_landmarks = sv.Keypoints.from_mediapipe(detection_result)
             ```
         """
 
@@ -146,9 +146,9 @@ class Keypoints:
 
         Example:
             ```python
-            >>> from supervision import Keypoints
+            from supervision import Keypoints
 
-            >>> empty_keypoints = Keypoints.empty()
+            empty_keypoints = Keypoints.empty()
             ```
         """
         return cls(
