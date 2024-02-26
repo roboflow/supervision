@@ -30,9 +30,9 @@ class PolygonZone:
     """
 
     @deprecated_parameter(
-        old_param="triggering_position",
-        new_param="triggering_anchors",
-        map_func=lambda x: [x],
+        old_parameter="triggering_position",
+        new_parameter="triggering_anchors",
+        map_function=lambda x: [x],
     )
     def __init__(
         self,
