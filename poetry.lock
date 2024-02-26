@@ -1073,6 +1073,7 @@ colorama = ">=0.4"
 name = "h11"
 version = "0.14.0"
 description = "A pure-Python, bring-your-own-I/O implementation of HTTP/1.1"
+category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
@@ -1084,6 +1085,7 @@ files = [
 name = "httpcore"
 version = "1.0.2"
 description = "A minimal low-level HTTP client."
+category = "dev"
 optional = false
 python-versions = ">=3.8"
 files = [
@@ -1098,13 +1100,14 @@ h11 = ">=0.13,<0.15"
 [package.extras]
 asyncio = ["anyio (>=4.0,<5.0)"]
 http2 = ["h2 (>=3,<5)"]
-socks = ["socksio (==1.*)"]
+socks = ["socksio (>=1.0.0,<2.0.0)"]
 trio = ["trio (>=0.22.0,<0.23.0)"]
 
 [[package]]
 name = "httpx"
 version = "0.26.0"
 description = "The next generation HTTP client."
+category = "dev"
 optional = false
 python-versions = ">=3.8"
 files = [
@@ -1115,15 +1118,15 @@ files = [
 [package.dependencies]
 anyio = "*"
 certifi = "*"
-httpcore = "==1.*"
+httpcore = ">=1.0.0,<2.0.0"
 idna = "*"
 sniffio = "*"
 
 [package.extras]
 brotli = ["brotli", "brotlicffi"]
-cli = ["click (==8.*)", "pygments (==2.*)", "rich (>=10,<14)"]
+cli = ["click (>=8.0.0,<9.0.0)", "pygments (>=2.0.0,<3.0.0)", "rich (>=10,<14)"]
 http2 = ["h2 (>=3,<5)"]
-socks = ["socksio (==1.*)"]
+socks = ["socksio (>=1.0.0,<2.0.0)"]
 
 [[package]]
 name = "identify"
@@ -2434,6 +2437,7 @@ test = ["flaky", "ipykernel (>=6.19.3)", "ipython", "ipywidgets", "nbconvert (>=
 name = "nbconvert"
 version = "7.16.1"
 description = "Converting Jupyter Notebooks (.ipynb files) to other formats.  Output formats include asciidoc, html, latex, markdown, pdf, py, rst, script.  nbconvert can be used both as a Python library (`import nbconvert`) or as a command line tool (invoked as `jupyter nbconvert ...`)."
+category = "dev"
 optional = false
 python-versions = ">=3.8"
 files = [
@@ -4400,4 +4404,4 @@ desktop = ["opencv-python"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "d635be9c5f61a2af5901d9ad00f31cdb714074ab5d5537e8280214d9d98aed64"
+content-hash = "0b3373e56b5c445af512ff78b721b11108100904d7aa85d84924baaf7a736fbe"
