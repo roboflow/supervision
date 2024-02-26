@@ -81,6 +81,9 @@ class Keypoints:
             item.keypoints.conf.data.cpu().numpy() for item in ultralytics_results
         ]
 
+        if len(xy) == 0:
+            return cls.empty()
+
         return cls(keypoints=np.array(xy)[0], confidence=np.array(confidence)[0])
 
     @classmethod
@@ -127,6 +130,9 @@ class Keypoints:
         for pose_landmarks in mediapipe_results.pose_landmarks:
             xyz.append([[item.x, item.y, item.z] for item in pose_landmarks])
             confidence.append([item.visibility for item in pose_landmarks])
+
+        if len(xyz) == 0:
+            return cls.empty()
 
         return cls(keypoints=np.array(xyz), confidence=np.array(confidence))
 
