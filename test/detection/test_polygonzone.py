@@ -1,4 +1,5 @@
 from contextlib import ExitStack as DoesNotRaise
+from test.test_utils import mock_detections
 
 import numpy as np
 import pytest
@@ -20,7 +21,7 @@ DETECTION_BOXES = np.array(
     dtype=np.float32,
 )
 
-DETECTIONS = sv.Detections(
+DETECTIONS = mock_detections(
     xyxy=DETECTION_BOXES, class_id=np.array([0, 0, 0, 0, 0, 0, 0, 0, 0])
 )
 
@@ -89,4 +90,3 @@ def test_polygon_zone_trigger(
     with exception:
         in_zone = polygon_zone.trigger(detections)
         assert np.all(in_zone == expected_results)
-        
