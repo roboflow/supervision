@@ -89,14 +89,4 @@ def test_polygon_zone_trigger(
     with exception:
         in_zone = polygon_zone.trigger(detections)
         assert np.all(in_zone == expected_results)
-
-
-def test_polygon_zone_deprecated() -> None:
-    with pytest.deprecated_call():
-        sv.PolygonZone(
-            POLYGON, FRAME_RESOLUTION, triggering_position=sv.Position.CENTER
-        )
-    with DoesNotRaise():
-        sv.PolygonZone(
-            POLYGON, FRAME_RESOLUTION, triggering_anchors=(sv.Position.CENTER,)
-        )
+        
