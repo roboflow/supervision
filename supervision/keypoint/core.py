@@ -32,7 +32,8 @@ def _validate_confidence(confidence: Any, n: int, m: int) -> None:
 @dataclass
 class Keypoints:
     keypoints: np.ndarray
-    """Keypoints, array of shape (num_detections, keypoint_count, 2) or (num_detections, keypoint_count, 3)"""
+    """Keypoints, array of shape (num_detections, keypoint_count, 2) or
+    (num_detections, keypoint_count, 3)"""
 
     confidence: Optional[np.ndarray] = None
     """Confidence, array of shape (num_detections, keypoint_count)"""
