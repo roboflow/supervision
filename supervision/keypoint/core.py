@@ -32,7 +32,10 @@ def _validate_confidence(confidence: Any, n: int, m: int) -> None:
 @dataclass
 class Keypoints:
     keypoints: np.ndarray
+    """Keypoints, array of shape (num_detections, keypoint_count, 2) or (num_detections, keypoint_count, 3)"""
+
     confidence: Optional[np.ndarray] = None
+    """Confidence, array of shape (num_detections, keypoint_count)"""
 
     def __len__(self) -> int:
         """
@@ -76,15 +79,16 @@ class Keypoints:
             keypoints = sv.Keypoints.from_ultralytics(result)
             ```
         """
-        xy = [item.keypoints.xy.data.cpu().numpy() for item in ultralytics_results]
+
+        xy = [item.keypoints.xy.cpu().numpy()[0] for item in ultralytics_results]
         confidence = [
-            item.keypoints.conf.data.cpu().numpy() for item in ultralytics_results
+            item.keypoints.conf.cpu().numpy()[0] for item in ultralytics_results
         ]
 
         if len(xy) == 0:
             return cls.empty()
 
-        return cls(keypoints=np.array(xy)[0], confidence=np.array(confidence)[0])
+        return cls(keypoints=np.array(xy), confidence=np.array(confidence))
 
     @classmethod
     def from_mediapipe(cls, mediapipe_results) -> Keypoints:
@@ -118,9 +122,9 @@ class Keypoints:
 
             image = mp.Image.create_from_file("image.jpg")
 
-            detection_result = detector.detect(image)
+            result = detector.detect(image)
 
-            pose_landmarks = sv.Keypoints.from_mediapipe(detection_result)
+            pose_landmarks = sv.Keypoints.from_mediapipe(result)
             ```
         """
 
