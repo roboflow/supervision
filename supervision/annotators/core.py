@@ -169,8 +169,7 @@ class OrientedBoxAnnotator(BaseAnnotator):
             return scene
 
         for detection_idx in range(len(detections)):
-            bbox = np.int0(detections.data.get(
-                ORIENTED_BOX_COORDINATES)[detection_idx])
+            bbox = np.int0(detections.data.get(ORIENTED_BOX_COORDINATES)[detection_idx])
             color = resolve_color(
                 color=self.color,
                 detections=detections,
@@ -268,8 +267,7 @@ class MaskAnnotator(BaseAnnotator):
             mask = detections.mask[detection_idx]
             colored_mask[mask] = color.as_bgr()
 
-        scene = cv2.addWeighted(
-            colored_mask, self.opacity, scene, 1 - self.opacity, 0)
+        scene = cv2.addWeighted(colored_mask, self.opacity, scene, 1 - self.opacity, 0)
         return scene.astype(np.uint8)
 
 
@@ -540,14 +538,12 @@ class HaloAnnotator(BaseAnnotator):
             color_bgr = color.as_bgr()
             colored_mask[mask] = color_bgr
 
-        colored_mask = cv2.blur(
-            colored_mask, (self.kernel_size, self.kernel_size))
+        colored_mask = cv2.blur(colored_mask, (self.kernel_size, self.kernel_size))
         colored_mask[fmask] = [0, 0, 0]
         gray = cv2.cvtColor(colored_mask, cv2.COLOR_BGR2GRAY)
         alpha = self.opacity * gray / gray.max()
         alpha_mask = alpha[:, :, np.newaxis]
-        scene = np.uint8(scene * (1 - alpha_mask) +
-                         colored_mask * self.opacity)
+        scene = np.uint8(scene * (1 - alpha_mask) + colored_mask * self.opacity)
         return scene
 
 
@@ -1350,8 +1346,7 @@ class HeatMapAnnotator:
         hsv[..., 1] = 255
         hsv[..., 2] = 255
         temp = cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2BGR)
-        mask = cv2.cvtColor(self.heat_mask.astype(
-            np.uint8), cv2.COLOR_GRAY2BGR) > 0
+        mask = cv2.cvtColor(self.heat_mask.astype(np.uint8), cv2.COLOR_GRAY2BGR) > 0
         scene[mask] = cv2.addWeighted(temp, self.opacity, scene, 1 - self.opacity, 0)[
             mask
         ]
@@ -1551,8 +1546,7 @@ class RoundBoxAnnotator(BaseAnnotator):
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
         if not 0 < roundness <= 1.0:
-            raise ValueError(
-                "roundness attribute must be float between (0, 1.0]")
+            raise ValueError("roundness attribute must be float between (0, 1.0]")
         self.roundness: float = roundness
 
     @scene_to_annotator_img_type
@@ -1830,5 +1824,4 @@ class PercentageBarAnnotator(BaseAnnotator):
                 )
 
             if not all(0 <= value <= 1 for value in custom_values):
-                raise ValueError(
-                    "All values in custom_values must be between 0 and 1.")
+                raise ValueError("All values in custom_values must be between 0 and 1.")
