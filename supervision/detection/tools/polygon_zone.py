@@ -23,6 +23,14 @@ class PolygonZone:
         triggering_position (Position): The position within the bounding
             box that triggers the zone (default: Position.BOTTOM_CENTER)
         current_count (int): The current count of detected objects within the zone
+        class_in_current_count (Dict[int, int]): A dictionary storing per-class
+            counts of objects inside the zone for current frame
+        class_out_current_count (Dict[int, int]): A dictionary storing per-class
+            counts of objects outside the zone for current frame
+        class_in_total_count (Dict[int, int]): A dictionary storing per-class counts
+            of objects inside the zone for all frames
+        class_out_total_count (Dict[int, int]): A dictionary storing per-class counts
+            of objects outside the zone for all frames
         mask (np.ndarray): The 2D bool mask for the polygon zone
     """
 
@@ -36,6 +44,10 @@ class PolygonZone:
         self.frame_resolution_wh = frame_resolution_wh
         self.triggering_position = triggering_position
         self.current_count = 0
+        self.class_in_current_count = {}
+        self.class_out_current_count = {}
+        self.class_in_total_count = {}
+        self.class_out_total_count = {}
 
         width, height = frame_resolution_wh
         self.mask = polygon_to_mask(
@@ -54,6 +66,8 @@ class PolygonZone:
             np.ndarray: A boolean numpy array indicating
                 if each detection is within the polygon zone
         """
+        self.class_in_current_count = {}
+        self.class_out_current_count = {}
 
         clipped_xyxy = clip_boxes(
             xyxy=detections.xyxy, resolution_wh=self.frame_resolution_wh
@@ -63,8 +77,31 @@ class PolygonZone:
             clipped_detections.get_anchors_coordinates(anchor=self.triggering_position)
         ).astype(int)
         is_in_zone = self.mask[clipped_anchors[:, 1], clipped_anchors[:, 0]]
+        is_in_zone = is_in_zone.astype(bool)
+        for in_class_id in detections.class_id[is_in_zone]:
+            if in_class_id in self.class_in_current_count:
+                self.class_in_current_count[in_class_id] += 1
+            else:
+                self.class_in_current_count[in_class_id] = 1
+
+            if in_class_id in self.class_in_total_count:
+                self.class_in_total_count[in_class_id] += 1
+            else:
+                self.class_in_total_count[in_class_id] = 1
+
+        for out_class_id in detections.class_id[~is_in_zone]:
+            if out_class_id in self.class_out_current_count:
+                self.class_out_current_count[out_class_id] += 1
+            else:
+                self.class_out_current_count[out_class_id] = 1
+
+            if out_class_id in self.class_out_total_count:
+                self.class_out_total_count[out_class_id] += 1
+            else:
+                self.class_out_total_count[out_class_id] = 1
+
         self.current_count = int(np.sum(is_in_zone))
-        return is_in_zone.astype(bool)
+        return is_in_zone
 
 
 class PolygonZoneAnnotator:
