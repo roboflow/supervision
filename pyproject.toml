@@ -44,7 +44,7 @@ opencv-python = { version = ">=4.5.5.64", optional = true }
 opencv-python-headless = ">=4.5.5.64"
 requests = { version = ">=2.26.0,<=2.31.0", optional = true }
 tqdm = { version = ">=4.62.3,<=4.66.2", optional = true }
-pillow = "^10.2.0"
+pillow = ">=9.4"
 
 [tool.poetry.extras]
 desktop = ["opencv-python"]
