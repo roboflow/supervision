@@ -61,12 +61,14 @@ class InferenceSlicer:
         overlap_ratio_wh: Tuple[float, float] = (0.2, 0.2),
         iou_threshold: Optional[float] = 0.5,
         thread_workers: int = 1,
+        nms_mask: Optional[bool] = False,
     ):
         self.slice_wh = slice_wh
         self.overlap_ratio_wh = overlap_ratio_wh
         self.iou_threshold = iou_threshold
         self.callback = callback
         self.thread_workers = thread_workers
+        self.nms_mask = nms_mask
 
     def __call__(self, image: np.ndarray) -> Detections:
         """
@@ -114,7 +116,7 @@ class InferenceSlicer:
             ]
             for future in as_completed(futures):
                 detections_list.append(
-                    future.result().with_nms(threshold=self.iou_threshold)
+                    future.result().with_nms(threshold=self.iou_threshold, nms_mask=self.nms_mask)
                 )
 
         return Detections.merge(detections_list=detections_list)
