@@ -116,7 +116,7 @@ class DetectionsSmoother:
                 tracked_detections.append(track)
 
         detections = Detections.merge(tracked_detections)
-        if len(tracked_detections) == 0:
+        if len(detections) == 0:
             detections.tracker_id = np.array([], dtype=int)
 
         return detections
