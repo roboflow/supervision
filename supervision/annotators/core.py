@@ -1737,7 +1737,7 @@ class PercentageBarAnnotator(BaseAnnotator):
             image = ...
             detections = sv.Detections(...)
 
-            percentage_bar_annotator = sv.BoundingBoxAnnotator()
+            percentage_bar_annotator = sv.PercentageBarAnnotator()
             annotated_frame = percentage_bar_annotator.annotate(
                 scene=image.copy(),
                 detections=detections
