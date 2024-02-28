@@ -93,7 +93,7 @@ def _mask_iou_batch_split(
 def mask_iou_batch(
     masks_true: np.ndarray,
     masks_detection: np.ndarray,
-    memory_limit: int = 1024 * 1024 * 5,
+    memory_limit: int = 1024 * 1024 * 1024 * 5,
 ) -> np.ndarray:
     """
     Compute Intersection over Union (IoU) of two sets of masks -
@@ -113,7 +113,7 @@ def mask_iou_batch(
         * masks_true.shape[2]
         * masks_detection.shape[0]
     )
-    if memory <= memory_limit:  # 5GB memory
+    if memory <= memory_limit:
         return _mask_iou_batch_split(masks_true, masks_detection)
 
     ious = []
