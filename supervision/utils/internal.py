@@ -7,7 +7,7 @@ def deprecated_parameter(
     old_parameter: str,
     new_parameter: str,
     map_function: Callable = lambda x: x,
-    warn_message: str = "Warning: '{old_parameter}' in '{function_name}' "
+    warning_message: str = "Warning: '{old_parameter}' in '{function_name}' "
     "is deprecated: use '{new_parameter}' instead.",
     **message_kwargs,
 ):
@@ -56,7 +56,7 @@ def deprecated_parameter(
 
                 # Display deprecation warning
                 warnings.warn(
-                    message=warn_message.format(
+                    message=warning_message.format(
                         function_name=function_name,
                         old_parameter=old_parameter,
                         new_parameter=new_parameter,
