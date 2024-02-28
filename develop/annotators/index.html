@@ -9836,7 +9836,7 @@ supervision-annotator-examples/halo-annotator-example-purple.png" /></p>
 <a id="__codelineno-0-1737" name="__codelineno-0-1737"></a><span class="sd">            image = ...</span>
 <a id="__codelineno-0-1738" name="__codelineno-0-1738"></a><span class="sd">            detections = sv.Detections(...)</span>
 <a id="__codelineno-0-1739" name="__codelineno-0-1739"></a>
-<a id="__codelineno-0-1740" name="__codelineno-0-1740"></a><span class="sd">            percentage_bar_annotator = sv.BoundingBoxAnnotator()</span>
+<a id="__codelineno-0-1740" name="__codelineno-0-1740"></a><span class="sd">            percentage_bar_annotator = sv.PercentageBarAnnotator()</span>
 <a id="__codelineno-0-1741" name="__codelineno-0-1741"></a><span class="sd">            annotated_frame = percentage_bar_annotator.annotate(</span>
 <a id="__codelineno-0-1742" name="__codelineno-0-1742"></a><span class="sd">                scene=image.copy(),</span>
 <a id="__codelineno-0-1743" name="__codelineno-0-1743"></a><span class="sd">                detections=detections</span>
@@ -10280,7 +10280,7 @@ or <code>PIL.Image.Image</code>)</p>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">image</span> <span class="o">=</span> <span class="o">...</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">percentage_bar_annotator</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">BoundingBoxAnnotator</span><span class="p">()</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">percentage_bar_annotator</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">PercentageBarAnnotator</span><span class="p">()</span>
 <a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">annotated_frame</span> <span class="o">=</span> <span class="n">percentage_bar_annotator</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
 <a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">scene</span><span class="o">=</span><span class="n">image</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
 <a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">detections</span><span class="o">=</span><span class="n">detections</span>
@@ -10419,7 +10419,7 @@ supervision-annotator-examples/percentage-bar-annotator-example-purple.png" /></
 <a id="__codelineno-0-1737" name="__codelineno-0-1737"></a><span class="sd">        image = ...</span>
 <a id="__codelineno-0-1738" name="__codelineno-0-1738"></a><span class="sd">        detections = sv.Detections(...)</span>
 <a id="__codelineno-0-1739" name="__codelineno-0-1739"></a>
-<a id="__codelineno-0-1740" name="__codelineno-0-1740"></a><span class="sd">        percentage_bar_annotator = sv.BoundingBoxAnnotator()</span>
+<a id="__codelineno-0-1740" name="__codelineno-0-1740"></a><span class="sd">        percentage_bar_annotator = sv.PercentageBarAnnotator()</span>
 <a id="__codelineno-0-1741" name="__codelineno-0-1741"></a><span class="sd">        annotated_frame = percentage_bar_annotator.annotate(</span>
 <a id="__codelineno-0-1742" name="__codelineno-0-1742"></a><span class="sd">            scene=image.copy(),</span>
 <a id="__codelineno-0-1743" name="__codelineno-0-1743"></a><span class="sd">            detections=detections</span>
