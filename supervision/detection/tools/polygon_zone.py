@@ -1,5 +1,5 @@
 from dataclasses import replace
-from typing import Optional, Tuple
+from typing import Iterable, Optional, Tuple
 
 import cv2
 import numpy as np
@@ -10,6 +10,7 @@ from supervision.draw.color import Color
 from supervision.draw.utils import draw_polygon, draw_text
 from supervision.geometry.core import Position
 from supervision.geometry.utils import get_polygon_center
+from supervision.utils.internal import deprecated_parameter
 
 
 class PolygonZone:
@@ -20,21 +21,33 @@ class PolygonZone:
         polygon (np.ndarray): A polygon represented by a numpy array of shape
             `(N, 2)`, containing the `x`, `y` coordinates of the points.
         frame_resolution_wh (Tuple[int, int]): The frame resolution (width, height)
-        triggering_position (Position): The position within the bounding
-            box that triggers the zone (default: Position.BOTTOM_CENTER)
+        triggering_anchors (Iterable[sv.Position]): A list of positions specifying
+            which anchors of the detections bounding box to consider when deciding on
+            whether the detection fits within the PolygonZone
+            (default: (sv.Position.BOTTOM_CENTER,)).
         current_count (int): The current count of detected objects within the zone
         mask (np.ndarray): The 2D bool mask for the polygon zone
     """
 
+    @deprecated_parameter(
+        old_parameter="triggering_position",
+        new_parameter="triggering_anchors",
+        map_function=lambda x: [x],
+        warning_message="Warning: '{old_parameter}' in '{function_name}' "
+        "is deprecated and will be remove in "
+        "'{removal_sv_version}: use '{new_parameter}' instead.",
+        removal_sv_version="supervision-0.23.0",
+    )
     def __init__(
         self,
         polygon: np.ndarray,
         frame_resolution_wh: Tuple[int, int],
-        triggering_position: Position = Position.BOTTOM_CENTER,
+        triggering_anchors: Iterable[Position] = (Position.BOTTOM_CENTER,),
     ):
         self.polygon = polygon.astype(int)
         self.frame_resolution_wh = frame_resolution_wh
-        self.triggering_position = triggering_position
+        self.triggering_anchors = triggering_anchors
+
         self.current_count = 0
 
         width, height = frame_resolution_wh
@@ -59,10 +72,20 @@ class PolygonZone:
             xyxy=detections.xyxy, resolution_wh=self.frame_resolution_wh
         )
         clipped_detections = replace(detections, xyxy=clipped_xyxy)
-        clipped_anchors = np.ceil(
-            clipped_detections.get_anchors_coordinates(anchor=self.triggering_position)
-        ).astype(int)
-        is_in_zone = self.mask[clipped_anchors[:, 1], clipped_anchors[:, 0]]
+        all_clipped_anchors = np.array(
+            [
+                np.ceil(clipped_detections.get_anchors_coordinates(anchor)).astype(int)
+                for anchor in self.triggering_anchors
+            ]
+        )
+
+        is_in_zone = (
+            self.mask[all_clipped_anchors[:, :, 1], all_clipped_anchors[:, :, 0]]
+            .transpose()
+            .astype(bool)
+        )
+        is_in_zone = np.all(is_in_zone, axis=1)
+
         self.current_count = int(np.sum(is_in_zone))
         return is_in_zone.astype(bool)
 
