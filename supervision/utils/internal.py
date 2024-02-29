@@ -2,6 +2,8 @@ import functools
 import warnings
 from typing import Callable
 
+warnings.simplefilter("always", DeprecationWarning)
+
 
 def deprecated_parameter(
     old_parameter: str,
