@@ -487,7 +487,9 @@ class Detections:
         )
 
         if np.asarray(xyxy).shape[0] == 0:
-            return cls.empty()
+            empty_detection = cls.empty()
+            empty_detection.data = {CLASS_NAME_DATA_FIELD: np.empty(0)}
+            return empty_detection
 
         return cls(
             xyxy=xyxy,

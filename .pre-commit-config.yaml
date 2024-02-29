@@ -14,7 +14,6 @@ repos:
         exclude: test/.*\.py
       - id: check-yaml
         exclude: mkdocs.yml
-      - id: check-docstring-first
       - id: check-executables-have-shebangs
       - id: check-toml
       - id: check-case-conflict
@@ -47,7 +46,7 @@ repos:
 
 
   -   repo: https://github.com/astral-sh/ruff-pre-commit
-      rev: v0.2.0
+      rev: v0.2.2
       hooks:
       -   id: ruff
           args: [--fix, --exit-non-zero-on-fix]
