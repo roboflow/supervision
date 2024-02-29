@@ -14,6 +14,16 @@ class SupervisionWarnings(Warning):
     pass
 
 
+def format_warning(msg, category, filename, lineno, line=None):
+    """
+    Format a warning the same way as the default formatter, but also include the
+    category name in the output.
+    """
+    return f"{category.__name__}: {msg}\n"
+
+
+warnings.formatwarning = format_warning
+
 if os.getenv("SUPERVISON_DEPRECATION_WARNING") == "0":
     warnings.simplefilter("ignore", SupervisionWarnings)
 else:
