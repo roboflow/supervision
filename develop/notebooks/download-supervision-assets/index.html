@@ -2076,7 +2076,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [10]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy for="cell-1">
@@ -2129,10 +2129,12 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span> <span class="nn">supervision.assets</span> <span class="kn">import</span> <span class="n">download_assets</span><span class="p">,</span> <span class="n">VideoAssets</span>
 
+<span class="c1"># Download the a video of the subway.</span>
 <span class="n">path_to_video</span> <span class="o">=</span> <span class="n">download_assets</span><span class="p">(</span><span class="n">VideoAssets</span><span class="o">.</span><span class="n">SUBWAY</span><span class="p">)</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-2">from supervision.assets import download_assets, VideoAssets
 
+# Download the a video of the subway.
 path_to_video = download_assets(VideoAssets.SUBWAY)</div>
 </div>
 </div>
@@ -2146,7 +2148,33 @@ path_to_video = download_assets(VideoAssets.SUBWAY)</div>
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<p>We're now equipt with a video asset from Supervision to run some experiments on! For more information on available video assets, visit the <a href="https://supervision.roboflow.com/latest/assets/#videoassets">Supervision API Reference</a>. Happy building!</p>
+<p>With this, we now have a high quality video asset for use in demos. Let's take a look at what we downloaded. Keep in mind that the video preview below works only in the web version of the cookbooks and not in Google Colab.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<div style="display: flex; justify-content: center;">
+<video controls="" height="240" width="320">
+<source src="https://media.roboflow.com/supervision/video-examples/subway.mp4" type="video/mp4"/>
+</video>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<p>We're now equipt with a video asset from Supervision to run some experiments on! For more information on available assets, visit the <a href="https://supervision.roboflow.com/latest/assets">Supervision API Reference</a>. Happy building!</p>
 </div>
 </div>
 </div>
@@ -2180,7 +2208,7 @@ path_to_video = download_assets(VideoAssets.SUBWAY)</div>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1-2.1-2M12.5 7v5.2l4 2.4-1 1L11 13V7h1.5M11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2v1.8Z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">February 9, 2024</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">February 21, 2024</span>
   </span>
 
     
@@ -2207,6 +2235,11 @@ path_to_video = download_assets(VideoAssets.SUBWAY)</div>
 
     
     <nav>
+      
+        <a href="https://github.com/NickHerrig" class="md-author" title="@NickHerrig">
+          
+          <img src="https://avatars.githubusercontent.com/u/33797354?v=4&size=72" alt="NickHerrig">
+        </a>
       
         <a href="https://github.com/apps/pre-commit-ci" class="md-author" title="@pre-commit-ci[bot]">
           
