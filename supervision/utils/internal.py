@@ -1,8 +1,23 @@
 import functools
+import os
 import warnings
 from typing import Callable
 
-warnings.simplefilter("always", DeprecationWarning)
+
+class SupervisionWarnings(Warning):
+    """Supervision warning category.
+    Set the deprecation warnings visibility for Supervision library.
+    You can set the environment variable SUPERVISON_DEPRECATION_WARNING to '0' to
+    disable the deprecation warnings.
+    """
+
+    pass
+
+
+if os.getenv("SUPERVISON_DEPRECATION_WARNING") == "0":
+    warnings.simplefilter("ignore", SupervisionWarnings)
+else:
+    warnings.simplefilter("always", SupervisionWarnings)
 
 
 def deprecated_parameter(
@@ -63,7 +78,7 @@ def deprecated_parameter(
                         new_parameter=new_parameter,
                         **message_kwargs,
                     ),
-                    category=DeprecationWarning,
+                    category=SupervisionWarnings,
                     stacklevel=2,
                 )
 
@@ -82,7 +97,7 @@ def deprecated(reason: str):
         def wrapper(*args, **kwargs):
             warnings.warn(
                 f"{func.__name__} is deprecated: {reason}",
-                category=DeprecationWarning,
+                category=SupervisionWarnings,
                 stacklevel=2,
             )
             return func(*args, **kwargs)
