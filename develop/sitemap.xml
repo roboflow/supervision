@@ -146,6 +146,11 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
+         <loc>https://supervision.roboflow.com/develop/notebooks/evaluating-alignment-of-text-to-image-diffusion-models/</loc>
+         <lastmod>2024-02-29</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
          <loc>https://supervision.roboflow.com/develop/notebooks/object-tracking/</loc>
          <lastmod>2024-02-29</lastmod>
          <changefreq>daily</changefreq>
