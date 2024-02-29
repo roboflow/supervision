@@ -125,6 +125,12 @@ class Trace:
         return self.xy[self.tracker_id == tracker_id]
 
 
+def pillow_to_cv2(image: Image.Image) -> np.ndarray:
+    scene = np.array(image)
+    scene = cv2.cvtColor(scene, cv2.COLOR_RGB2BGR)
+    return scene
+
+
 def scene_to_annotator_img_type(annotate_func):
     """
     Decorates `BaseAnnotator.annotate` implementations, converts scene to
@@ -138,8 +144,7 @@ def scene_to_annotator_img_type(annotate_func):
             return annotate_func(self, scene, *args, **kwargs)
 
         if isinstance(scene, Image.Image):
-            scene = np.array(scene)
-            scene = cv2.cvtColor(scene, cv2.COLOR_RGB2BGR)
+            scene = pillow_to_cv2(scene)
             annotated = annotate_func(self, scene, *args, **kwargs)
             annotated = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
             annotated = Image.fromarray(annotated)
