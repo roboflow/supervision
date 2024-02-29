@@ -33,10 +33,9 @@ class PolygonZone:
         old_parameter="triggering_position",
         new_parameter="triggering_anchors",
         map_function=lambda x: [x],
-        warning_message="Warning: '{old_parameter}' in '{function_name}' "
-        "is deprecated and will be remove in "
-        "'{removal_sv_version}: use '{new_parameter}' instead.",
-        removal_sv_version="supervision-0.23.0",
+        warning_message="`{old_parameter}` in `{function_name}` is deprecated and will "
+        "be remove in `supervision-0.23.0`. Use '{new_parameter}' "
+        "instead.",
     )
     def __init__(
         self,
