@@ -998,6 +998,66 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#supervision.detection.tools.json_sink.JSONSink" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;JSONSink
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#supervision.detection.tools.json_sink.JSONSink-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Functions
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Functions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#supervision.detection.tools.json_sink.JSONSink.__init__" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;__init__
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#supervision.detection.tools.json_sink.JSONSink.append" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;append
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#supervision.detection.tools.json_sink.JSONSink.open" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;open
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#supervision.detection.tools.json_sink.JSONSink.write_and_close" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;write_and_close
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1742,6 +1802,66 @@
   <a href="#supervision.detection.tools.csv_sink.CSVSink.open" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;open
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#supervision.detection.tools.json_sink.JSONSink" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;JSONSink
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#supervision.detection.tools.json_sink.JSONSink-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Functions
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Functions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#supervision.detection.tools.json_sink.JSONSink.__init__" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;__init__
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#supervision.detection.tools.json_sink.JSONSink.append" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;append
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#supervision.detection.tools.json_sink.JSONSink.open" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;open
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#supervision.detection.tools.json_sink.JSONSink.write_and_close" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;write_and_close
     </span>
   </a>
   
@@ -2596,6 +2716,724 @@ Defaults to 'output.csv'.</p>
   </div>
 
 
+</div><div class="md-typeset">
+  <h2>JSON Sink</h2>
+</div>
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<a id="supervision.detection.tools.json_sink.JSONSink"></a>
+  <div class="doc doc-contents first">
+
+  
+      <p>A utility class for saving detection data to a JSON file. This class is designed to
+efficiently serialize detection objects into a JSON format, allowing for the
+inclusion of bounding box coordinates and additional attributes like <code>confidence</code>,
+<code>class_id</code>, and <code>tracker_id</code>.</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>JSONsink allow to pass custom data alongside the detection fields, providing
+flexibility for logging various types of information.</p>
+</div>
+
+
+
+  <p><strong>Parameters:</strong></p>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Default</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td><code>file_name</code></td>
+          <td>
+                <code>str</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>The name of the JSON file where the detections will be stored.
+Defaults to 'output.json'.</p>
+            </div>
+          </td>
+          <td>
+                <code>&#39;output.json&#39;</code>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+<details class="example" open>
+  <summary>Example</summary>
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span> <span class="nn">ultralytics</span> <span class="kn">import</span> <span class="n">YOLO</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">model</span> <span class="o">=</span> <span class="n">YOLO</span><span class="p">(</span><span class="o">&lt;</span><span class="n">SOURCE_MODEL_PATH</span><span class="o">&gt;</span><span class="p">)</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">json_sink</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">JSONSink</span><span class="p">(</span><span class="o">&lt;</span><span class="n">RESULT_JSON_FILE_PATH</span><span class="o">&gt;</span><span class="p">)</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">frames_generator</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">get_video_frames_generator</span><span class="p">(</span><span class="o">&lt;</span><span class="n">SOURCE_VIDEO_PATH</span><span class="o">&gt;</span><span class="p">)</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="k">with</span> <span class="n">json_sink</span><span class="p">:</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="k">for</span> <span class="n">frame</span> <span class="ow">in</span> <span class="n">frames_generator</span><span class="p">:</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>        <span class="n">result</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">frame</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        <span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_ultralytics</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>        <span class="n">sink</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">detections</span><span class="p">,</span> <span class="n">custom_data</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;&lt;CUSTOM_LABEL&gt;&#39;</span><span class="p">:</span><span class="s1">&#39;&lt;CUSTOM_DATA&gt;&#39;</span><span class="p">})</span>
+</code></pre></div>
+</details>
+            <details class="quote">
+              <summary>Source code in <code>supervision/detection/tools/json_sink.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-10"> 10</a></span>
+<span class="normal"><a href="#__codelineno-0-11"> 11</a></span>
+<span class="normal"><a href="#__codelineno-0-12"> 12</a></span>
+<span class="normal"><a href="#__codelineno-0-13"> 13</a></span>
+<span class="normal"><a href="#__codelineno-0-14"> 14</a></span>
+<span class="normal"><a href="#__codelineno-0-15"> 15</a></span>
+<span class="normal"><a href="#__codelineno-0-16"> 16</a></span>
+<span class="normal"><a href="#__codelineno-0-17"> 17</a></span>
+<span class="normal"><a href="#__codelineno-0-18"> 18</a></span>
+<span class="normal"><a href="#__codelineno-0-19"> 19</a></span>
+<span class="normal"><a href="#__codelineno-0-20"> 20</a></span>
+<span class="normal"><a href="#__codelineno-0-21"> 21</a></span>
+<span class="normal"><a href="#__codelineno-0-22"> 22</a></span>
+<span class="normal"><a href="#__codelineno-0-23"> 23</a></span>
+<span class="normal"><a href="#__codelineno-0-24"> 24</a></span>
+<span class="normal"><a href="#__codelineno-0-25"> 25</a></span>
+<span class="normal"><a href="#__codelineno-0-26"> 26</a></span>
+<span class="normal"><a href="#__codelineno-0-27"> 27</a></span>
+<span class="normal"><a href="#__codelineno-0-28"> 28</a></span>
+<span class="normal"><a href="#__codelineno-0-29"> 29</a></span>
+<span class="normal"><a href="#__codelineno-0-30"> 30</a></span>
+<span class="normal"><a href="#__codelineno-0-31"> 31</a></span>
+<span class="normal"><a href="#__codelineno-0-32"> 32</a></span>
+<span class="normal"><a href="#__codelineno-0-33"> 33</a></span>
+<span class="normal"><a href="#__codelineno-0-34"> 34</a></span>
+<span class="normal"><a href="#__codelineno-0-35"> 35</a></span>
+<span class="normal"><a href="#__codelineno-0-36"> 36</a></span>
+<span class="normal"><a href="#__codelineno-0-37"> 37</a></span>
+<span class="normal"><a href="#__codelineno-0-38"> 38</a></span>
+<span class="normal"><a href="#__codelineno-0-39"> 39</a></span>
+<span class="normal"><a href="#__codelineno-0-40"> 40</a></span>
+<span class="normal"><a href="#__codelineno-0-41"> 41</a></span>
+<span class="normal"><a href="#__codelineno-0-42"> 42</a></span>
+<span class="normal"><a href="#__codelineno-0-43"> 43</a></span>
+<span class="normal"><a href="#__codelineno-0-44"> 44</a></span>
+<span class="normal"><a href="#__codelineno-0-45"> 45</a></span>
+<span class="normal"><a href="#__codelineno-0-46"> 46</a></span>
+<span class="normal"><a href="#__codelineno-0-47"> 47</a></span>
+<span class="normal"><a href="#__codelineno-0-48"> 48</a></span>
+<span class="normal"><a href="#__codelineno-0-49"> 49</a></span>
+<span class="normal"><a href="#__codelineno-0-50"> 50</a></span>
+<span class="normal"><a href="#__codelineno-0-51"> 51</a></span>
+<span class="normal"><a href="#__codelineno-0-52"> 52</a></span>
+<span class="normal"><a href="#__codelineno-0-53"> 53</a></span>
+<span class="normal"><a href="#__codelineno-0-54"> 54</a></span>
+<span class="normal"><a href="#__codelineno-0-55"> 55</a></span>
+<span class="normal"><a href="#__codelineno-0-56"> 56</a></span>
+<span class="normal"><a href="#__codelineno-0-57"> 57</a></span>
+<span class="normal"><a href="#__codelineno-0-58"> 58</a></span>
+<span class="normal"><a href="#__codelineno-0-59"> 59</a></span>
+<span class="normal"><a href="#__codelineno-0-60"> 60</a></span>
+<span class="normal"><a href="#__codelineno-0-61"> 61</a></span>
+<span class="normal"><a href="#__codelineno-0-62"> 62</a></span>
+<span class="normal"><a href="#__codelineno-0-63"> 63</a></span>
+<span class="normal"><a href="#__codelineno-0-64"> 64</a></span>
+<span class="normal"><a href="#__codelineno-0-65"> 65</a></span>
+<span class="normal"><a href="#__codelineno-0-66"> 66</a></span>
+<span class="normal"><a href="#__codelineno-0-67"> 67</a></span>
+<span class="normal"><a href="#__codelineno-0-68"> 68</a></span>
+<span class="normal"><a href="#__codelineno-0-69"> 69</a></span>
+<span class="normal"><a href="#__codelineno-0-70"> 70</a></span>
+<span class="normal"><a href="#__codelineno-0-71"> 71</a></span>
+<span class="normal"><a href="#__codelineno-0-72"> 72</a></span>
+<span class="normal"><a href="#__codelineno-0-73"> 73</a></span>
+<span class="normal"><a href="#__codelineno-0-74"> 74</a></span>
+<span class="normal"><a href="#__codelineno-0-75"> 75</a></span>
+<span class="normal"><a href="#__codelineno-0-76"> 76</a></span>
+<span class="normal"><a href="#__codelineno-0-77"> 77</a></span>
+<span class="normal"><a href="#__codelineno-0-78"> 78</a></span>
+<span class="normal"><a href="#__codelineno-0-79"> 79</a></span>
+<span class="normal"><a href="#__codelineno-0-80"> 80</a></span>
+<span class="normal"><a href="#__codelineno-0-81"> 81</a></span>
+<span class="normal"><a href="#__codelineno-0-82"> 82</a></span>
+<span class="normal"><a href="#__codelineno-0-83"> 83</a></span>
+<span class="normal"><a href="#__codelineno-0-84"> 84</a></span>
+<span class="normal"><a href="#__codelineno-0-85"> 85</a></span>
+<span class="normal"><a href="#__codelineno-0-86"> 86</a></span>
+<span class="normal"><a href="#__codelineno-0-87"> 87</a></span>
+<span class="normal"><a href="#__codelineno-0-88"> 88</a></span>
+<span class="normal"><a href="#__codelineno-0-89"> 89</a></span>
+<span class="normal"><a href="#__codelineno-0-90"> 90</a></span>
+<span class="normal"><a href="#__codelineno-0-91"> 91</a></span>
+<span class="normal"><a href="#__codelineno-0-92"> 92</a></span>
+<span class="normal"><a href="#__codelineno-0-93"> 93</a></span>
+<span class="normal"><a href="#__codelineno-0-94"> 94</a></span>
+<span class="normal"><a href="#__codelineno-0-95"> 95</a></span>
+<span class="normal"><a href="#__codelineno-0-96"> 96</a></span>
+<span class="normal"><a href="#__codelineno-0-97"> 97</a></span>
+<span class="normal"><a href="#__codelineno-0-98"> 98</a></span>
+<span class="normal"><a href="#__codelineno-0-99"> 99</a></span>
+<span class="normal"><a href="#__codelineno-0-100">100</a></span>
+<span class="normal"><a href="#__codelineno-0-101">101</a></span>
+<span class="normal"><a href="#__codelineno-0-102">102</a></span>
+<span class="normal"><a href="#__codelineno-0-103">103</a></span>
+<span class="normal"><a href="#__codelineno-0-104">104</a></span>
+<span class="normal"><a href="#__codelineno-0-105">105</a></span>
+<span class="normal"><a href="#__codelineno-0-106">106</a></span>
+<span class="normal"><a href="#__codelineno-0-107">107</a></span>
+<span class="normal"><a href="#__codelineno-0-108">108</a></span>
+<span class="normal"><a href="#__codelineno-0-109">109</a></span>
+<span class="normal"><a href="#__codelineno-0-110">110</a></span>
+<span class="normal"><a href="#__codelineno-0-111">111</a></span>
+<span class="normal"><a href="#__codelineno-0-112">112</a></span>
+<span class="normal"><a href="#__codelineno-0-113">113</a></span>
+<span class="normal"><a href="#__codelineno-0-114">114</a></span>
+<span class="normal"><a href="#__codelineno-0-115">115</a></span>
+<span class="normal"><a href="#__codelineno-0-116">116</a></span>
+<span class="normal"><a href="#__codelineno-0-117">117</a></span>
+<span class="normal"><a href="#__codelineno-0-118">118</a></span>
+<span class="normal"><a href="#__codelineno-0-119">119</a></span>
+<span class="normal"><a href="#__codelineno-0-120">120</a></span>
+<span class="normal"><a href="#__codelineno-0-121">121</a></span>
+<span class="normal"><a href="#__codelineno-0-122">122</a></span>
+<span class="normal"><a href="#__codelineno-0-123">123</a></span>
+<span class="normal"><a href="#__codelineno-0-124">124</a></span>
+<span class="normal"><a href="#__codelineno-0-125">125</a></span>
+<span class="normal"><a href="#__codelineno-0-126">126</a></span>
+<span class="normal"><a href="#__codelineno-0-127">127</a></span>
+<span class="normal"><a href="#__codelineno-0-128">128</a></span>
+<span class="normal"><a href="#__codelineno-0-129">129</a></span>
+<span class="normal"><a href="#__codelineno-0-130">130</a></span>
+<span class="normal"><a href="#__codelineno-0-131">131</a></span>
+<span class="normal"><a href="#__codelineno-0-132">132</a></span>
+<span class="normal"><a href="#__codelineno-0-133">133</a></span>
+<span class="normal"><a href="#__codelineno-0-134">134</a></span>
+<span class="normal"><a href="#__codelineno-0-135">135</a></span>
+<span class="normal"><a href="#__codelineno-0-136">136</a></span>
+<span class="normal"><a href="#__codelineno-0-137">137</a></span>
+<span class="normal"><a href="#__codelineno-0-138">138</a></span>
+<span class="normal"><a href="#__codelineno-0-139">139</a></span>
+<span class="normal"><a href="#__codelineno-0-140">140</a></span>
+<span class="normal"><a href="#__codelineno-0-141">141</a></span>
+<span class="normal"><a href="#__codelineno-0-142">142</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-10" name="__codelineno-0-10"></a><span class="k">class</span> <span class="nc">JSONSink</span><span class="p">:</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12"></a><span class="sd">    A utility class for saving detection data to a JSON file. This class is designed to</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13"></a><span class="sd">    efficiently serialize detection objects into a JSON format, allowing for the</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14"></a><span class="sd">    inclusion of bounding box coordinates and additional attributes like `confidence`,</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15"></a><span class="sd">    `class_id`, and `tracker_id`.</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16"></a>
+<a id="__codelineno-0-17" name="__codelineno-0-17"></a><span class="sd">    !!! tip</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18"></a>
+<a id="__codelineno-0-19" name="__codelineno-0-19"></a><span class="sd">        JSONsink allow to pass custom data alongside the detection fields, providing</span>
+<a id="__codelineno-0-20" name="__codelineno-0-20"></a><span class="sd">        flexibility for logging various types of information.</span>
+<a id="__codelineno-0-21" name="__codelineno-0-21"></a>
+<a id="__codelineno-0-22" name="__codelineno-0-22"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-23" name="__codelineno-0-23"></a><span class="sd">        file_name (str): The name of the JSON file where the detections will be stored.</span>
+<a id="__codelineno-0-24" name="__codelineno-0-24"></a><span class="sd">            Defaults to &#39;output.json&#39;.</span>
+<a id="__codelineno-0-25" name="__codelineno-0-25"></a>
+<a id="__codelineno-0-26" name="__codelineno-0-26"></a><span class="sd">    Example:</span>
+<a id="__codelineno-0-27" name="__codelineno-0-27"></a><span class="sd">        ```python</span>
+<a id="__codelineno-0-28" name="__codelineno-0-28"></a><span class="sd">        import supervision as sv</span>
+<a id="__codelineno-0-29" name="__codelineno-0-29"></a><span class="sd">        from ultralytics import YOLO</span>
+<a id="__codelineno-0-30" name="__codelineno-0-30"></a>
+<a id="__codelineno-0-31" name="__codelineno-0-31"></a><span class="sd">        model = YOLO(&lt;SOURCE_MODEL_PATH&gt;)</span>
+<a id="__codelineno-0-32" name="__codelineno-0-32"></a><span class="sd">        json_sink = sv.JSONSink(&lt;RESULT_JSON_FILE_PATH&gt;)</span>
+<a id="__codelineno-0-33" name="__codelineno-0-33"></a><span class="sd">        frames_generator = sv.get_video_frames_generator(&lt;SOURCE_VIDEO_PATH&gt;)</span>
+<a id="__codelineno-0-34" name="__codelineno-0-34"></a>
+<a id="__codelineno-0-35" name="__codelineno-0-35"></a><span class="sd">        with json_sink:</span>
+<a id="__codelineno-0-36" name="__codelineno-0-36"></a><span class="sd">            for frame in frames_generator:</span>
+<a id="__codelineno-0-37" name="__codelineno-0-37"></a><span class="sd">                result = model(frame)[0]</span>
+<a id="__codelineno-0-38" name="__codelineno-0-38"></a><span class="sd">                detections = sv.Detections.from_ultralytics(result)</span>
+<a id="__codelineno-0-39" name="__codelineno-0-39"></a><span class="sd">                sink.append(detections, custom_data={&#39;&lt;CUSTOM_LABEL&gt;&#39;:&#39;&lt;CUSTOM_DATA&gt;&#39;})</span>
+<a id="__codelineno-0-40" name="__codelineno-0-40"></a><span class="sd">        ```</span>
+<a id="__codelineno-0-41" name="__codelineno-0-41"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
+<a id="__codelineno-0-42" name="__codelineno-0-42"></a>
+<a id="__codelineno-0-43" name="__codelineno-0-43"></a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;output.json&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-44" name="__codelineno-0-44"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-45" name="__codelineno-0-45"></a><span class="sd">        Initialize the JSONSink instance.</span>
+<a id="__codelineno-0-46" name="__codelineno-0-46"></a>
+<a id="__codelineno-0-47" name="__codelineno-0-47"></a><span class="sd">        Args:</span>
+<a id="__codelineno-0-48" name="__codelineno-0-48"></a><span class="sd">            file_name (str): The name of the JSON file.</span>
+<a id="__codelineno-0-49" name="__codelineno-0-49"></a>
+<a id="__codelineno-0-50" name="__codelineno-0-50"></a><span class="sd">        Returns:</span>
+<a id="__codelineno-0-51" name="__codelineno-0-51"></a><span class="sd">            None</span>
+<a id="__codelineno-0-52" name="__codelineno-0-52"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-53" name="__codelineno-0-53"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">file_name</span> <span class="o">=</span> <span class="n">file_name</span>
+<a id="__codelineno-0-54" name="__codelineno-0-54"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">open</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-55" name="__codelineno-0-55"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="__codelineno-0-56" name="__codelineno-0-56"></a>
+<a id="__codelineno-0-57" name="__codelineno-0-57"></a>    <span class="k">def</span> <span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">JSONSink</span><span class="p">:</span>
+<a id="__codelineno-0-58" name="__codelineno-0-58"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">open</span><span class="p">()</span>
+<a id="__codelineno-0-59" name="__codelineno-0-59"></a>        <span class="k">return</span> <span class="bp">self</span>
+<a id="__codelineno-0-60" name="__codelineno-0-60"></a>
+<a id="__codelineno-0-61" name="__codelineno-0-61"></a>    <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span>
+<a id="__codelineno-0-62" name="__codelineno-0-62"></a>        <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-0-63" name="__codelineno-0-63"></a>        <span class="n">exc_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">type</span><span class="p">],</span>
+<a id="__codelineno-0-64" name="__codelineno-0-64"></a>        <span class="n">exc_val</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="ne">Exception</span><span class="p">],</span>
+<a id="__codelineno-0-65" name="__codelineno-0-65"></a>        <span class="n">exc_tb</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+<a id="__codelineno-0-66" name="__codelineno-0-66"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-67" name="__codelineno-0-67"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">write_and_close</span><span class="p">()</span>
+<a id="__codelineno-0-68" name="__codelineno-0-68"></a>
+<a id="__codelineno-0-69" name="__codelineno-0-69"></a>    <span class="k">def</span> <span class="nf">open</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-70" name="__codelineno-0-70"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-71" name="__codelineno-0-71"></a><span class="sd">        Open the JSON file for writing.</span>
+<a id="__codelineno-0-72" name="__codelineno-0-72"></a>
+<a id="__codelineno-0-73" name="__codelineno-0-73"></a><span class="sd">        Returns:</span>
+<a id="__codelineno-0-74" name="__codelineno-0-74"></a><span class="sd">            None</span>
+<a id="__codelineno-0-75" name="__codelineno-0-75"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-76" name="__codelineno-0-76"></a>        <span class="n">parent_directory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_name</span><span class="p">)</span>
+<a id="__codelineno-0-77" name="__codelineno-0-77"></a>        <span class="k">if</span> <span class="n">parent_directory</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">parent_directory</span><span class="p">):</span>
+<a id="__codelineno-0-78" name="__codelineno-0-78"></a>            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">parent_directory</span><span class="p">)</span>
+<a id="__codelineno-0-79" name="__codelineno-0-79"></a>
+<a id="__codelineno-0-80" name="__codelineno-0-80"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_name</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-81" name="__codelineno-0-81"></a>
+<a id="__codelineno-0-82" name="__codelineno-0-82"></a>    <span class="k">def</span> <span class="nf">write_and_close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-83" name="__codelineno-0-83"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-84" name="__codelineno-0-84"></a><span class="sd">        Write and close the JSON file.</span>
+<a id="__codelineno-0-85" name="__codelineno-0-85"></a>
+<a id="__codelineno-0-86" name="__codelineno-0-86"></a><span class="sd">        Returns:</span>
+<a id="__codelineno-0-87" name="__codelineno-0-87"></a><span class="sd">            None</span>
+<a id="__codelineno-0-88" name="__codelineno-0-88"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-89" name="__codelineno-0-89"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="p">:</span>
+<a id="__codelineno-0-90" name="__codelineno-0-90"></a>            <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+<a id="__codelineno-0-91" name="__codelineno-0-91"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+<a id="__codelineno-0-92" name="__codelineno-0-92"></a>
+<a id="__codelineno-0-93" name="__codelineno-0-93"></a>    <span class="nd">@staticmethod</span>
+<a id="__codelineno-0-94" name="__codelineno-0-94"></a>    <span class="k">def</span> <span class="nf">parse_detection_data</span><span class="p">(</span>
+<a id="__codelineno-0-95" name="__codelineno-0-95"></a>        <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">,</span> <span class="n">custom_data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-96" name="__codelineno-0-96"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<a id="__codelineno-0-97" name="__codelineno-0-97"></a>        <span class="n">parsed_rows</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="__codelineno-0-98" name="__codelineno-0-98"></a>        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">detections</span><span class="o">.</span><span class="n">xyxy</span><span class="p">)):</span>
+<a id="__codelineno-0-99" name="__codelineno-0-99"></a>            <span class="n">row</span> <span class="o">=</span> <span class="p">{</span>
+<a id="__codelineno-0-100" name="__codelineno-0-100"></a>                <span class="s2">&quot;x_min&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">detections</span><span class="o">.</span><span class="n">xyxy</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]),</span>
+<a id="__codelineno-0-101" name="__codelineno-0-101"></a>                <span class="s2">&quot;y_min&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">detections</span><span class="o">.</span><span class="n">xyxy</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]),</span>
+<a id="__codelineno-0-102" name="__codelineno-0-102"></a>                <span class="s2">&quot;x_max&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">detections</span><span class="o">.</span><span class="n">xyxy</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">2</span><span class="p">]),</span>
+<a id="__codelineno-0-103" name="__codelineno-0-103"></a>                <span class="s2">&quot;y_max&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">detections</span><span class="o">.</span><span class="n">xyxy</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">3</span><span class="p">]),</span>
+<a id="__codelineno-0-104" name="__codelineno-0-104"></a>                <span class="s2">&quot;class_id&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span>
+<a id="__codelineno-0-105" name="__codelineno-0-105"></a>                <span class="k">if</span> <span class="n">detections</span><span class="o">.</span><span class="n">class_id</span> <span class="ow">is</span> <span class="kc">None</span>
+<a id="__codelineno-0-106" name="__codelineno-0-106"></a>                <span class="k">else</span> <span class="nb">int</span><span class="p">(</span><span class="n">detections</span><span class="o">.</span><span class="n">class_id</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span>
+<a id="__codelineno-0-107" name="__codelineno-0-107"></a>                <span class="s2">&quot;confidence&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span>
+<a id="__codelineno-0-108" name="__codelineno-0-108"></a>                <span class="k">if</span> <span class="n">detections</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="kc">None</span>
+<a id="__codelineno-0-109" name="__codelineno-0-109"></a>                <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="n">detections</span><span class="o">.</span><span class="n">confidence</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span>
+<a id="__codelineno-0-110" name="__codelineno-0-110"></a>                <span class="s2">&quot;tracker_id&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span>
+<a id="__codelineno-0-111" name="__codelineno-0-111"></a>                <span class="k">if</span> <span class="n">detections</span><span class="o">.</span><span class="n">tracker_id</span> <span class="ow">is</span> <span class="kc">None</span>
+<a id="__codelineno-0-112" name="__codelineno-0-112"></a>                <span class="k">else</span> <span class="nb">int</span><span class="p">(</span><span class="n">detections</span><span class="o">.</span><span class="n">tracker_id</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span>
+<a id="__codelineno-0-113" name="__codelineno-0-113"></a>            <span class="p">}</span>
+<a id="__codelineno-0-114" name="__codelineno-0-114"></a>
+<a id="__codelineno-0-115" name="__codelineno-0-115"></a>            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">detections</span><span class="p">,</span> <span class="s2">&quot;data&quot;</span><span class="p">):</span>
+<a id="__codelineno-0-116" name="__codelineno-0-116"></a>                <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">detections</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+<a id="__codelineno-0-117" name="__codelineno-0-117"></a>                    <span class="n">row</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+<a id="__codelineno-0-118" name="__codelineno-0-118"></a>                        <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+<a id="__codelineno-0-119" name="__codelineno-0-119"></a>                        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="s2">&quot;__getitem__&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">value</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">0</span>
+<a id="__codelineno-0-120" name="__codelineno-0-120"></a>                        <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+<a id="__codelineno-0-121" name="__codelineno-0-121"></a>                    <span class="p">)</span>
+<a id="__codelineno-0-122" name="__codelineno-0-122"></a>
+<a id="__codelineno-0-123" name="__codelineno-0-123"></a>            <span class="k">if</span> <span class="n">custom_data</span><span class="p">:</span>
+<a id="__codelineno-0-124" name="__codelineno-0-124"></a>                <span class="n">row</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">custom_data</span><span class="p">)</span>
+<a id="__codelineno-0-125" name="__codelineno-0-125"></a>            <span class="n">parsed_rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+<a id="__codelineno-0-126" name="__codelineno-0-126"></a>        <span class="k">return</span> <span class="n">parsed_rows</span>
+<a id="__codelineno-0-127" name="__codelineno-0-127"></a>
+<a id="__codelineno-0-128" name="__codelineno-0-128"></a>    <span class="k">def</span> <span class="nf">append</span><span class="p">(</span>
+<a id="__codelineno-0-129" name="__codelineno-0-129"></a>        <span class="bp">self</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">,</span> <span class="n">custom_data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-130" name="__codelineno-0-130"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-131" name="__codelineno-0-131"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-132" name="__codelineno-0-132"></a><span class="sd">        Append detection data to the JSON file.</span>
+<a id="__codelineno-0-133" name="__codelineno-0-133"></a>
+<a id="__codelineno-0-134" name="__codelineno-0-134"></a><span class="sd">        Args:</span>
+<a id="__codelineno-0-135" name="__codelineno-0-135"></a><span class="sd">            detections (Detections): The detection data.</span>
+<a id="__codelineno-0-136" name="__codelineno-0-136"></a><span class="sd">            custom_data (Dict[str, Any]): Custom data to include.</span>
+<a id="__codelineno-0-137" name="__codelineno-0-137"></a>
+<a id="__codelineno-0-138" name="__codelineno-0-138"></a><span class="sd">        Returns:</span>
+<a id="__codelineno-0-139" name="__codelineno-0-139"></a><span class="sd">            None</span>
+<a id="__codelineno-0-140" name="__codelineno-0-140"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-141" name="__codelineno-0-141"></a>        <span class="n">parsed_rows</span> <span class="o">=</span> <span class="n">JSONSink</span><span class="o">.</span><span class="n">parse_detection_data</span><span class="p">(</span><span class="n">detections</span><span class="p">,</span> <span class="n">custom_data</span><span class="p">)</span>
+<a id="__codelineno-0-142" name="__codelineno-0-142"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">parsed_rows</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+
+  
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+<h2 id="supervision.detection.tools.json_sink.JSONSink-functions">Functions<a href="#supervision.detection.tools.json_sink.JSONSink-functions" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<h3 id="supervision.detection.tools.json_sink.JSONSink.__init__" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">file_name</span><span class="o">=</span><span class="s1">&#39;output.json&#39;</span><span class="p">)</span></code>
+
+<a href="#supervision.detection.tools.json_sink.JSONSink.__init__" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+  <div class="doc doc-contents ">
+  
+      <p>Initialize the JSONSink instance.</p>
+
+
+
+  <p><strong>Parameters:</strong></p>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Default</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td><code>file_name</code></td>
+          <td>
+                <code>str</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>The name of the JSON file.</p>
+            </div>
+          </td>
+          <td>
+                <code>&#39;output.json&#39;</code>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+
+  <p><strong>Returns:</strong></p>
+  <table>
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td>
+                <code>None</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>None</p>
+            </div>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+          <details class="quote">
+            <summary>Source code in <code>supervision/detection/tools/json_sink.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-43">43</a></span>
+<span class="normal"><a href="#__codelineno-0-44">44</a></span>
+<span class="normal"><a href="#__codelineno-0-45">45</a></span>
+<span class="normal"><a href="#__codelineno-0-46">46</a></span>
+<span class="normal"><a href="#__codelineno-0-47">47</a></span>
+<span class="normal"><a href="#__codelineno-0-48">48</a></span>
+<span class="normal"><a href="#__codelineno-0-49">49</a></span>
+<span class="normal"><a href="#__codelineno-0-50">50</a></span>
+<span class="normal"><a href="#__codelineno-0-51">51</a></span>
+<span class="normal"><a href="#__codelineno-0-52">52</a></span>
+<span class="normal"><a href="#__codelineno-0-53">53</a></span>
+<span class="normal"><a href="#__codelineno-0-54">54</a></span>
+<span class="normal"><a href="#__codelineno-0-55">55</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-43" name="__codelineno-0-43"></a><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;output.json&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-44" name="__codelineno-0-44"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-45" name="__codelineno-0-45"></a><span class="sd">    Initialize the JSONSink instance.</span>
+<a id="__codelineno-0-46" name="__codelineno-0-46"></a>
+<a id="__codelineno-0-47" name="__codelineno-0-47"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-48" name="__codelineno-0-48"></a><span class="sd">        file_name (str): The name of the JSON file.</span>
+<a id="__codelineno-0-49" name="__codelineno-0-49"></a>
+<a id="__codelineno-0-50" name="__codelineno-0-50"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-51" name="__codelineno-0-51"></a><span class="sd">        None</span>
+<a id="__codelineno-0-52" name="__codelineno-0-52"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-53" name="__codelineno-0-53"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">file_name</span> <span class="o">=</span> <span class="n">file_name</span>
+<a id="__codelineno-0-54" name="__codelineno-0-54"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">open</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-55" name="__codelineno-0-55"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+</code></pre></div></td></tr></table></div>
+          </details>
+  </div>
+
+</div>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<h3 id="supervision.detection.tools.json_sink.JSONSink.append" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">append</span><span class="p">(</span><span class="n">detections</span><span class="p">,</span> <span class="n">custom_data</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+<a href="#supervision.detection.tools.json_sink.JSONSink.append" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+  <div class="doc doc-contents ">
+  
+      <p>Append detection data to the JSON file.</p>
+
+
+
+  <p><strong>Parameters:</strong></p>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Default</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td><code>detections</code></td>
+          <td>
+                <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../../core/#supervision.detection.core.Detections">Detections</a></code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>The detection data.</p>
+            </div>
+          </td>
+          <td>
+              <em>required</em>
+          </td>
+        </tr>
+        <tr>
+          <td><code>custom_data</code></td>
+          <td>
+                <code><span title="typing.Dict">Dict</span>[str, <span title="typing.Any">Any</span>]</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>Custom data to include.</p>
+            </div>
+          </td>
+          <td>
+                <code>None</code>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+
+  <p><strong>Returns:</strong></p>
+  <table>
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td>
+                <code>None</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>None</p>
+            </div>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+          <details class="quote">
+            <summary>Source code in <code>supervision/detection/tools/json_sink.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-128">128</a></span>
+<span class="normal"><a href="#__codelineno-0-129">129</a></span>
+<span class="normal"><a href="#__codelineno-0-130">130</a></span>
+<span class="normal"><a href="#__codelineno-0-131">131</a></span>
+<span class="normal"><a href="#__codelineno-0-132">132</a></span>
+<span class="normal"><a href="#__codelineno-0-133">133</a></span>
+<span class="normal"><a href="#__codelineno-0-134">134</a></span>
+<span class="normal"><a href="#__codelineno-0-135">135</a></span>
+<span class="normal"><a href="#__codelineno-0-136">136</a></span>
+<span class="normal"><a href="#__codelineno-0-137">137</a></span>
+<span class="normal"><a href="#__codelineno-0-138">138</a></span>
+<span class="normal"><a href="#__codelineno-0-139">139</a></span>
+<span class="normal"><a href="#__codelineno-0-140">140</a></span>
+<span class="normal"><a href="#__codelineno-0-141">141</a></span>
+<span class="normal"><a href="#__codelineno-0-142">142</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-128" name="__codelineno-0-128"></a><span class="k">def</span> <span class="nf">append</span><span class="p">(</span>
+<a id="__codelineno-0-129" name="__codelineno-0-129"></a>    <span class="bp">self</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">,</span> <span class="n">custom_data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-130" name="__codelineno-0-130"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-131" name="__codelineno-0-131"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-132" name="__codelineno-0-132"></a><span class="sd">    Append detection data to the JSON file.</span>
+<a id="__codelineno-0-133" name="__codelineno-0-133"></a>
+<a id="__codelineno-0-134" name="__codelineno-0-134"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-135" name="__codelineno-0-135"></a><span class="sd">        detections (Detections): The detection data.</span>
+<a id="__codelineno-0-136" name="__codelineno-0-136"></a><span class="sd">        custom_data (Dict[str, Any]): Custom data to include.</span>
+<a id="__codelineno-0-137" name="__codelineno-0-137"></a>
+<a id="__codelineno-0-138" name="__codelineno-0-138"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-139" name="__codelineno-0-139"></a><span class="sd">        None</span>
+<a id="__codelineno-0-140" name="__codelineno-0-140"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-141" name="__codelineno-0-141"></a>    <span class="n">parsed_rows</span> <span class="o">=</span> <span class="n">JSONSink</span><span class="o">.</span><span class="n">parse_detection_data</span><span class="p">(</span><span class="n">detections</span><span class="p">,</span> <span class="n">custom_data</span><span class="p">)</span>
+<a id="__codelineno-0-142" name="__codelineno-0-142"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">parsed_rows</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+          </details>
+  </div>
+
+</div>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<h3 id="supervision.detection.tools.json_sink.JSONSink.open" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="nb">open</span><span class="p">()</span></code>
+
+<a href="#supervision.detection.tools.json_sink.JSONSink.open" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+  <div class="doc doc-contents ">
+  
+      <p>Open the JSON file for writing.</p>
+
+
+
+  <p><strong>Returns:</strong></p>
+  <table>
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td>
+                <code>None</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>None</p>
+            </div>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+          <details class="quote">
+            <summary>Source code in <code>supervision/detection/tools/json_sink.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-69">69</a></span>
+<span class="normal"><a href="#__codelineno-0-70">70</a></span>
+<span class="normal"><a href="#__codelineno-0-71">71</a></span>
+<span class="normal"><a href="#__codelineno-0-72">72</a></span>
+<span class="normal"><a href="#__codelineno-0-73">73</a></span>
+<span class="normal"><a href="#__codelineno-0-74">74</a></span>
+<span class="normal"><a href="#__codelineno-0-75">75</a></span>
+<span class="normal"><a href="#__codelineno-0-76">76</a></span>
+<span class="normal"><a href="#__codelineno-0-77">77</a></span>
+<span class="normal"><a href="#__codelineno-0-78">78</a></span>
+<span class="normal"><a href="#__codelineno-0-79">79</a></span>
+<span class="normal"><a href="#__codelineno-0-80">80</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-69" name="__codelineno-0-69"></a><span class="k">def</span> <span class="nf">open</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-70" name="__codelineno-0-70"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-71" name="__codelineno-0-71"></a><span class="sd">    Open the JSON file for writing.</span>
+<a id="__codelineno-0-72" name="__codelineno-0-72"></a>
+<a id="__codelineno-0-73" name="__codelineno-0-73"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-74" name="__codelineno-0-74"></a><span class="sd">        None</span>
+<a id="__codelineno-0-75" name="__codelineno-0-75"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-76" name="__codelineno-0-76"></a>    <span class="n">parent_directory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_name</span><span class="p">)</span>
+<a id="__codelineno-0-77" name="__codelineno-0-77"></a>    <span class="k">if</span> <span class="n">parent_directory</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">parent_directory</span><span class="p">):</span>
+<a id="__codelineno-0-78" name="__codelineno-0-78"></a>        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">parent_directory</span><span class="p">)</span>
+<a id="__codelineno-0-79" name="__codelineno-0-79"></a>
+<a id="__codelineno-0-80" name="__codelineno-0-80"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_name</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+          </details>
+  </div>
+
+</div>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<h3 id="supervision.detection.tools.json_sink.JSONSink.write_and_close" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">write_and_close</span><span class="p">()</span></code>
+
+<a href="#supervision.detection.tools.json_sink.JSONSink.write_and_close" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+  <div class="doc doc-contents ">
+  
+      <p>Write and close the JSON file.</p>
+
+
+
+  <p><strong>Returns:</strong></p>
+  <table>
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td>
+                <code>None</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>None</p>
+            </div>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+          <details class="quote">
+            <summary>Source code in <code>supervision/detection/tools/json_sink.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-82">82</a></span>
+<span class="normal"><a href="#__codelineno-0-83">83</a></span>
+<span class="normal"><a href="#__codelineno-0-84">84</a></span>
+<span class="normal"><a href="#__codelineno-0-85">85</a></span>
+<span class="normal"><a href="#__codelineno-0-86">86</a></span>
+<span class="normal"><a href="#__codelineno-0-87">87</a></span>
+<span class="normal"><a href="#__codelineno-0-88">88</a></span>
+<span class="normal"><a href="#__codelineno-0-89">89</a></span>
+<span class="normal"><a href="#__codelineno-0-90">90</a></span>
+<span class="normal"><a href="#__codelineno-0-91">91</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-82" name="__codelineno-0-82"></a><span class="k">def</span> <span class="nf">write_and_close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-83" name="__codelineno-0-83"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-84" name="__codelineno-0-84"></a><span class="sd">    Write and close the JSON file.</span>
+<a id="__codelineno-0-85" name="__codelineno-0-85"></a>
+<a id="__codelineno-0-86" name="__codelineno-0-86"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-87" name="__codelineno-0-87"></a><span class="sd">        None</span>
+<a id="__codelineno-0-88" name="__codelineno-0-88"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-89" name="__codelineno-0-89"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="p">:</span>
+<a id="__codelineno-0-90" name="__codelineno-0-90"></a>        <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+<a id="__codelineno-0-91" name="__codelineno-0-91"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</code></pre></div></td></tr></table></div>
+          </details>
+  </div>
+
+</div>
+
+
+
+  </div>
+
+  </div>
+
+
 </div>
 
 
@@ -2619,7 +3457,7 @@ Defaults to 'output.csv'.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1-2.1-2M12.5 7v5.2l4 2.4-1 1L11 13V7h1.5M11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2v1.8Z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">February 1, 2024</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">February 2, 2024</span>
   </span>
 
     
@@ -2647,14 +3485,14 @@ Defaults to 'output.csv'.</p>
     
     <nav>
       
-        <a href="https://github.com/apps/pre-commit-ci" class="md-author" title="@pre-commit-ci[bot]">
-          
-          <img src="https://avatars.githubusercontent.com/in/68672?v=4&size=72" alt="pre-commit-ci[bot]">
-        </a>
-      
         <a href="https://github.com/AdonaiVera" class="md-author" title="@AdonaiVera">
           
           <img src="https://avatars.githubusercontent.com/u/45982251?v=4&size=72" alt="AdonaiVera">
+        </a>
+      
+        <a href="https://github.com/apps/pre-commit-ci" class="md-author" title="@pre-commit-ci[bot]">
+          
+          <img src="https://avatars.githubusercontent.com/in/68672?v=4&size=72" alt="pre-commit-ci[bot]">
         </a>
       
       
