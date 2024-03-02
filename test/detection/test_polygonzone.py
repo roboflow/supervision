@@ -63,7 +63,9 @@ FRAME_RESOLUTION = (300, 300)
         (
             DETECTIONS,
             sv.PolygonZone(
-                POLYGON, FRAME_RESOLUTION, triggering_position=sv.Position.BOTTOM_CENTER
+                POLYGON,
+                FRAME_RESOLUTION,
+                triggering_anchors=[sv.Position.BOTTOM_CENTER],
             ),
             np.array(
                 [False, False, True, True, True, True, False, False, False], dtype=bool
