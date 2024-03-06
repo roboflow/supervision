@@ -1,6 +1,6 @@
 <div align="center">
   <p>
-    <a align="center" href="" target="_blank">
+    <a align="center" href="" target="https://supervision.roboflow.com">
       <img
         width="100%"
         src="https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png?updatedAt=1678995927529"
@@ -10,7 +10,7 @@
 
   <br>
 
-[notebooks](https://github.com/roboflow/notebooks) | [inference](https://github.com/roboflow/inference) | [autodistill](https://github.com/autodistill/autodistill) | [collect](https://github.com/roboflow/roboflow-collect)
+[notebooks](https://github.com/roboflow/notebooks) | [inference](https://github.com/roboflow/inference) | [autodistill](https://github.com/autodistill/autodistill) | [maestro](https://github.com/roboflow/multimodal-maestro)
 
   <br>
 
