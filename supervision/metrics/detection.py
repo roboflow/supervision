@@ -493,6 +493,73 @@ class ConfusionMatrix:
             )
         return fig
 
+    def f1_score(self) -> (np.ndarray, float):
+        """
+        Calculates the F1 score for each class and the overall F1 score.
+
+        Returns:
+            numpy.ndarray: The F1 score for each class.
+            float: The overall F1 score.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+
+            >>> dataset = sv.DetectionDataset.from_yolo(...)
+
+            >>> def callback(image: np.ndarray) -> sv.Detections:
+            ...     ...
+
+            >>> confusion_matrix = sv.ConfusionMatrix.benchmark(
+            ...     dataset = dataset,
+            ...     callback = callback
+            ... )
+
+            >>> confusion_matrix.matrix
+            array([
+                [0., 0., 0., 0.],
+                [0., 1., 0., 1.],
+                [0., 1., 1., 0.],
+                [1., 1., 0., 0.]
+            ])
+
+            >>> ef1_score,af1_score=mattrix.calculate_f1_score()
+
+            >>> ef1_score
+            np.array([0., 0.4, 0.66666667, 0.])
+
+            >>> af1_score
+            0.26666666666666666)
+            ```
+
+        """
+        matrix = self.matrix.copy()
+        num_classes = matrix.shape[0]
+        f1_scores = np.zeros(num_classes)
+        for i in range(num_classes):
+            true_positives = matrix[i, i]
+            false_positives = np.sum(matrix[i, :]) - true_positives
+            false_negatives = np.sum(matrix[:, i]) - true_positives
+
+            if true_positives + false_positives == 0:
+                precision = 0
+            else:
+                precision = true_positives / (true_positives + false_positives)
+
+            if true_positives + false_negatives == 0:
+                recall = 0
+            else:
+                recall = true_positives / (true_positives + false_negatives)
+
+            if precision + recall == 0:
+                f1_scores[i] = 0
+            else:
+                f1_scores[i] = 2 * precision * recall / (precision + recall)
+
+        overall_f1_score = np.mean(f1_scores)
+
+        return f1_scores, overall_f1_score
+
 
 @dataclass(frozen=True)
 class MeanAveragePrecision:
