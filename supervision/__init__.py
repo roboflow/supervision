@@ -36,6 +36,7 @@ from supervision.dataset.core import (
 from supervision.detection.annotate import BoxAnnotator
 from supervision.detection.core import Detections
 from supervision.detection.line_zone import LineZone, LineZoneAnnotator
+from supervision.detection.match_pattern import MatchPattern
 from supervision.detection.tools.csv_sink import CSVSink
 from supervision.detection.tools.inference_slicer import InferenceSlicer
 from supervision.detection.tools.json_sink import JSONSink
