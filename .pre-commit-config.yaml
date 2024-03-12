@@ -29,7 +29,7 @@ repos:
 
 
   -   repo: https://github.com/PyCQA/bandit
-      rev: '1.7.7'
+      rev: '1.7.8'
       hooks:
       -   id: bandit
           args: ["-c", "pyproject.toml"]
@@ -46,7 +46,7 @@ repos:
 
 
   -   repo: https://github.com/astral-sh/ruff-pre-commit
-      rev: v0.2.2
+      rev: v0.3.2
       hooks:
       -   id: ruff
           args: [--fix, --exit-non-zero-on-fix]
