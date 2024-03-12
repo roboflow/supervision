@@ -836,10 +836,10 @@ class MeanAveragePrecision:
             precision = true_positives / (true_positives + false_positives)
 
             for iou_level_idx in range(matches.shape[1]):
-                average_precisions[
-                    class_idx, iou_level_idx
-                ] = MeanAveragePrecision.compute_average_precision(
-                    recall[:, iou_level_idx], precision[:, iou_level_idx]
+                average_precisions[class_idx, iou_level_idx] = (
+                    MeanAveragePrecision.compute_average_precision(
+                        recall[:, iou_level_idx], precision[:, iou_level_idx]
+                    )
                 )
 
         return average_precisions
