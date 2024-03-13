@@ -489,6 +489,12 @@ status: new
 :::supervision.annotators.core.TraceAnnotator
 
 <div class="md-typeset">
+    <h2><a href="#supervision.annotators.core.IconAnnotator">IconAnnotator</a></h2>
+</div>
+
+:::supervision.annotators.core.IconAnnotator
+
+<div class="md-typeset">
     <h2><a href="#supervision.annotators.core.ColorLookup">ColorLookup</a></h2>
 </div>
 
