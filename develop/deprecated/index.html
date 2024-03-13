@@ -722,6 +722,13 @@
     Utils
   </span>
   
+    
+  
+  
+    <span class="md-status md-status--new"></span>
+  
+
+  
 
       </a>
     </li>
@@ -908,6 +915,13 @@
   <span class="md-ellipsis">
     Trackers
   </span>
+  
+    
+  
+  
+    <span class="md-status md-status--new"></span>
+  
+
   
 
       </a>
@@ -1605,14 +1619,16 @@
 <p>These features are phased out due to better alternatives or potential issues in future versions. Deprecated functionalities are supported for <strong>three subsequent releases</strong>, providing time for users to transition to updated methods.</p>
 <ul>
 <li><a href="../detection/core/#supervision.detection.core.Detections.from_roboflow"><code>Detections.from_froboflow</code></a> is deprecated and will be removed in <code>supervision-0.22.0</code>. Use <a href="../detection/core/#supervision.detection.core.Detections.from_inference"><code>Detections.from_inference</code></a> instead.</li>
-<li><code>Color.white()</code> is deprecated and will be removed in <code>supervision-0.22.0</code>. Use <code>Color.WHITE</code> instead.</li>
-<li><code>Color.black()</code> is deprecated and will be removed in <code>supervision-0.22.0</code>. Use <code>Color.BLACK</code> instead.</li>
-<li><code>Color.red()</code> is deprecated and will be removed in <code>supervision-0.22.0</code>. Use <code>Color.RED</code> instead.</li>
-<li><code>Color.green()</code> is deprecated and will be removed in <code>supervision-0.22.0</code>. Use <code>Color.GREEN</code> instead.</li>
-<li><code>Color.blue()</code> is deprecated and will be removed in <code>supervision-0.22.0</code>. Use <code>Color.BLUE</code> instead.</li>
-<li><a href="../draw/color/#supervision.draw.color.ColorPalette.default"><code>ColorPalette.default()</code></a> is deprecated and will be removed in <code>supervision-0.22.0</code>. Use <a href="../draw/color/#supervision.draw.color.ColorPalette.DEFAULT"><code>ColorPalette.DEFAULT</code></a> instead.</li>
+<li>The method <code>Color.white()</code> is deprecated and will be removed in <code>supervision-0.22.0</code>. Use the constant <code>Color.WHITE</code> instead.</li>
+<li>The method <code>Color.black()</code> is deprecated and will be removed in <code>supervision-0.22.0</code>. Use the constant <code>Color.BLACK</code> instead.</li>
+<li>The method <code>Color.red()</code> is deprecated and will be removed in <code>supervision-0.22.0</code>. Use the constant <code>Color.RED</code> instead.</li>
+<li>The method <code>Color.green()</code> is deprecated and will be removed in <code>supervision-0.22.0</code>. Use the constant <code>Color.GREEN</code> instead.</li>
+<li>The method <code>Color.blue()</code> is deprecated and will be removed in <code>supervision-0.22.0</code>. Use the constant <code>Color.BLUE</code> instead.</li>
+<li>The method <a href="../draw/color/#supervision.draw.color.ColorPalette.default"><code>ColorPalette.default()</code></a> is deprecated and will be removed in <code>supervision-0.22.0</code>. Use the constant <a href="../draw/color/#supervision.draw.color.ColorPalette.DEFAULT"><code>ColorPalette.DEFAULT</code></a> instead.</li>
 <li><code>BoxAnnotator</code> is deprecated and will be removed in <code>supervision-0.22.0</code>. Use <a href="../annotators/#supervision.annotators.core.BoundingBoxAnnotator"><code>BoundingBoxAnnotator</code></a> and <a href="../annotators/#supervision.annotators.core.LabelAnnotator"><code>LabelAnnotator</code></a> instead.</li>
-<li><a href="../utils/video/#supervision.utils.video.FPSMonitor.__call__"><code>FPSMonitor.__call__</code></a> is deprecated and will be removed in <code>supervision-0.22.0</code>. Use <a href="../utils/video/#supervision.utils.video.FPSMonitor.fps"><code>FPSMonitor.fps</code></a> instead.</li>
+<li>The method <a href="../utils/video/#supervision.utils.video.FPSMonitor.__call__"><code>FPSMonitor.__call__</code></a> is deprecated and will be removed in <code>supervision-0.22.0</code>. Use the attribute <a href="../utils/video/#supervision.utils.video.FPSMonitor.fps"><code>FPSMonitor.fps</code></a> instead.</li>
+<li>The <code>track_buffer</code>, <code>track_thresh</code>, and <code>match_thresh</code> parameters in <a href="../trackers/#supervision.tracker.byte_tracker.core.ByteTrack"><code>ByterTrack</code></a> are deprecated and will be removed in <code>supervision-0.23.0</code>. Use <code>lost_track_buffer,</code> <code>track_activation_threshold</code>, and <code>minimum_matching_threshold</code> instead.</li>
+<li>The <code>triggering_position</code> parameter in <a href="../detection/tools/polygon_zone/#supervision.detection.tools.polygon_zone.PolygonZone"><code>sv.PolygonZone</code></a> is deprecated and will be removed in <code>supervision-0.23.0</code>. Use <code>triggering_anchors</code> instead.</li>
 </ul>
 
 
@@ -1636,7 +1652,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1-2.1-2M12.5 7v5.2l4 2.4-1 1L11 13V7h1.5M11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2v1.8Z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">January 31, 2024</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">March 13, 2024</span>
   </span>
 
     
@@ -1664,14 +1680,14 @@
     
     <nav>
       
-        <a href="https://github.com/apps/pre-commit-ci" class="md-author" title="@pre-commit-ci[bot]">
-          
-          <img src="https://avatars.githubusercontent.com/in/68672?v=4&size=72" alt="pre-commit-ci[bot]">
-        </a>
-      
         <a href="https://github.com/SkalskiP" class="md-author" title="@SkalskiP">
           
           <img src="https://avatars.githubusercontent.com/u/26109316?v=4&size=72" alt="SkalskiP">
+        </a>
+      
+        <a href="https://github.com/apps/pre-commit-ci" class="md-author" title="@pre-commit-ci[bot]">
+          
+          <img src="https://avatars.githubusercontent.com/in/68672?v=4&size=72" alt="pre-commit-ci[bot]">
         </a>
       
       
