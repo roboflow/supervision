@@ -12,6 +12,7 @@ from supervision.annotators.core import (
     BoxCornerAnnotator,
     CircleAnnotator,
     ColorAnnotator,
+    CropAnnotator,
     DotAnnotator,
     EllipseAnnotator,
     HaloAnnotator,
@@ -71,7 +72,7 @@ from supervision.geometry.utils import get_polygon_center
 from supervision.metrics.detection import ConfusionMatrix, MeanAveragePrecision
 from supervision.tracker.byte_tracker.core import ByteTrack
 from supervision.utils.file import list_files_with_extensions
-from supervision.utils.image import ImageSink, crop_image
+from supervision.utils.image import ImageSink, crop_image, place_image, resize_image
 from supervision.utils.notebook import plot_image, plot_images_grid
 from supervision.utils.video import (
     FPSMonitor,

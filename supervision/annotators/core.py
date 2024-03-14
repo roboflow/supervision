@@ -17,6 +17,7 @@ from supervision.detection.utils import clip_boxes, mask_to_polygons
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import draw_polygon
 from supervision.geometry.core import Position
+from supervision.utils.image import crop_image, place_image, resize_image
 
 
 class BoundingBoxAnnotator(BaseAnnotator):
@@ -1839,3 +1840,97 @@ class PercentageBarAnnotator(BaseAnnotator):
 
             if not all(0 <= value <= 1 for value in custom_values):
                 raise ValueError("All values in custom_values must be between 0 and 1.")
+
+
+class CropAnnotator(BaseAnnotator):
+    """
+    A class for drawing scaled up crops of detections on the scene.
+    """
+
+    def __init__(self, position: Position = Position.TOP_CENTER, scale_factor: int = 2):
+        """
+        Args:
+            position (Position): The anchor position for placing the cropped and scaled
+                part of the detection in the scene.
+            scale_factor (int): The factor by which to scale the cropped image part. A
+                factor of 2, for example, would double the size of the cropped area,
+                allowing for a closer view of the detection.
+        """
+        self.position: Position = position
+        self.scale_factor: int = scale_factor
+
+    def annotate(
+        self,
+        scene: np.ndarray,
+        detections: Detections,
+    ) -> np.ndarray:
+        """
+        Annotates the provided scene with scaled and cropped parts of the image based
+        on the provided detections. Each detection is cropped from the original scene
+        and scaled according to the annotator's scale factor before being placed back
+        onto the scene at the specified position.
+
+
+        Args:
+            scene (np.ndarray): The image where cropped detection will be placed.
+            detections (Detections): Object detections to annotate.
+
+        Returns:
+            The annotated image.
+
+        Example:
+            ```python
+            import supervision as sv
+
+            image = ...
+            detections = sv.Detections(...)
+
+            crop_annotator = sv.CropAnnotator()
+            annotated_frame = crop_annotator.annotate(
+                scene=image.copy(),
+                detections=detections
+            )
+            ```
+        """
+        crops = [
+            crop_image(image=scene, xyxy=xyxy) for xyxy in detections.xyxy.astype(int)
+        ]
+        resized_crops = [
+            resize_image(image=crop, scale_factor=self.scale_factor) for crop in crops
+        ]
+        anchors = detections.get_anchors_coordinates(anchor=self.position).astype(int)
+
+        for resized_crop, anchor in zip(resized_crops, anchors):
+            crop_wh = resized_crop.shape[1], resized_crop.shape[0]
+            crop_anchor = self.calculate_crop_coordinates(
+                anchor=anchor, crop_wh=crop_wh, position=self.position
+            )
+            scene = place_image(scene=scene, image=resized_crop, anchor=crop_anchor)
+
+        return scene
+
+    @staticmethod
+    def calculate_crop_coordinates(
+        anchor: Tuple[int, int], crop_wh: Tuple[int, int], position: Position
+    ) -> Tuple[int, int]:
+        anchor_x, anchor_y = anchor
+        width, height = crop_wh
+
+        if position == Position.TOP_LEFT:
+            return anchor_x - width, anchor_y - height
+        elif position == Position.TOP_CENTER:
+            return anchor_x - width // 2, anchor_y - height
+        elif position == Position.TOP_RIGHT:
+            return anchor_x, anchor_y - height
+        elif position == Position.CENTER_LEFT:
+            return anchor_x - width, anchor_y - height // 2
+        elif position == Position.CENTER or position == Position.CENTER_OF_MASS:
+            return anchor_x - width // 2, anchor_y - height // 2
+        elif position == Position.CENTER_RIGHT:
+            return anchor_x, anchor_y - height // 2
+        elif position == Position.BOTTOM_LEFT:
+            return anchor_x - width, anchor_y
+        elif position == Position.BOTTOM_CENTER:
+            return anchor_x - width // 2, anchor_y
+        elif position == Position.BOTTOM_RIGHT:
+            return anchor_x, anchor_y

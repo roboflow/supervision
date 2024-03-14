@@ -1,6 +1,6 @@
 import os
 import shutil
-from typing import Optional
+from typing import Optional, Tuple
 
 import cv2
 import numpy as np
@@ -32,8 +32,76 @@ def crop_image(image: np.ndarray, xyxy: np.ndarray) -> np.ndarray:
 
     xyxy = np.round(xyxy).astype(int)
     x1, y1, x2, y2 = xyxy
-    cropped_img = image[y1:y2, x1:x2]
-    return cropped_img
+    return image[y1:y2, x1:x2]
+
+
+def resize_image(image: np.ndarray, scale_factor: float) -> np.ndarray:
+    """
+    Resizes an image by a given scale factor using cv2.INTER_LINEAR interpolation.
+
+    Args:
+        image (np.ndarray): The input image to be resized.
+        scale_factor (float): The factor by which the image will be scaled. Scale factor
+            > 1.0 zooms in, < 1.0 zooms out.
+
+    Returns:
+        np.ndarray: The resized image.
+
+    Raises:
+        ValueError: If the scale factor is non-positive.
+    """
+    if scale_factor <= 0:
+        raise ValueError("Scale factor must be positive.")
+
+    old_width, old_height = image.shape[1], image.shape[0]
+    nwe_width = int(old_width * scale_factor)
+    new_height = int(old_height * scale_factor)
+
+    return cv2.resize(image, (nwe_width, new_height), interpolation=cv2.INTER_LINEAR)
+
+
+def place_image(
+    scene: np.ndarray, image: np.ndarray, anchor: Tuple[int, int]
+) -> np.ndarray:
+    """
+    Places an image onto a scene at a given anchor point, handling cases where
+    the image's position is partially or completely outside the scene's bounds.
+
+    Args:
+        scene (np.ndarray): The background scene onto which the image is placed.
+        image (np.ndarray): The image to be placed onto the scene.
+        anchor (Tuple[int, int]): The (x, y) coordinates in the scene where the
+            top-left corner of the image will be placed.
+
+    Returns:
+        np.ndarray: The modified scene with the image placed at the anchor point,
+            or unchanged if the image placement is completely outside the scene.
+    """
+    scene_height, scene_width = scene.shape[:2]
+    image_height, image_width = image.shape[:2]
+    anchor_x, anchor_y = anchor
+
+    is_out_horizontally = anchor_x + image_width <= 0 or anchor_x >= scene_width
+    is_out_vertically = anchor_y + image_height <= 0 or anchor_y >= scene_height
+
+    if is_out_horizontally or is_out_vertically:
+        return scene
+
+    start_y = max(anchor_y, 0)
+    start_x = max(anchor_x, 0)
+    end_y = min(scene_height, anchor_y + image_height)
+    end_x = min(scene_width, anchor_x + image_width)
+
+    crop_start_y = max(-anchor_y, 0)
+    crop_start_x = max(-anchor_x, 0)
+    crop_end_y = image_height - max((anchor_y + image_height) - scene_height, 0)
+    crop_end_x = image_width - max((anchor_x + image_width) - scene_width, 0)
+
+    scene[start_y:end_y, start_x:end_x] = image[
+        crop_start_y:crop_end_y, crop_start_x:crop_end_x
+    ]
+
+    return scene
 
 
 class ImageSink:
