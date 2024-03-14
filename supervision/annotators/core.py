@@ -12,7 +12,7 @@ from supervision.detection.utils import clip_boxes, mask_to_polygons
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import draw_polygon
 from supervision.geometry.core import Position
-from supervision.utils.image import crop_image, resize_image, place_image
+from supervision.utils.image import crop_image, place_image, resize_image
 
 
 class BoundingBoxAnnotator(BaseAnnotator):
@@ -1796,23 +1796,17 @@ class CropAnnotator(BaseAnnotator):
             ```
         """
         crops = [
-            crop_image(image=scene, xyxy=xyxy)
-            for xyxy
-            in detections.xyxy.astype(int)
+            crop_image(image=scene, xyxy=xyxy) for xyxy in detections.xyxy.astype(int)
         ]
         resized_crops = [
-            resize_image(image=crop, scale_factor=self.scale_factor)
-            for crop
-            in crops
+            resize_image(image=crop, scale_factor=self.scale_factor) for crop in crops
         ]
         anchors = detections.get_anchors_coordinates(anchor=self.position).astype(int)
 
         for resized_crop, anchor in zip(resized_crops, anchors):
             crop_wh = resized_crop.shape[1], resized_crop.shape[0]
             crop_anchor = self.calculate_crop_coordinates(
-                anchor=anchor,
-                crop_wh=crop_wh,
-                position=self.position
+                anchor=anchor, crop_wh=crop_wh, position=self.position
             )
             scene = place_image(scene=scene, image=resized_crop, anchor=crop_anchor)
 
