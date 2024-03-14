@@ -1754,14 +1754,17 @@ class PercentageBarAnnotator(BaseAnnotator):
 
 class CropAnnotator(BaseAnnotator):
     """
-    A class for viewing a cropped part of detections with a selected zoom scale.
+    A class for drawing scaled up crops of detections on the scene.
     """
 
     def __init__(self, position: Position = Position.TOP_CENTER, scale_factor: int = 2):
         """
         Args:
-            position (Position): the anchor position to place cropped detections
-            scale_factor (int): the percentage factor to zoom cropped image part
+            position (Position): The anchor position for placing the cropped and scaled
+                part of the detection in the scene.
+            scale_factor (int): The factor by which to scale the cropped image part. A
+                factor of 2, for example, would double the size of the cropped area,
+                allowing for a closer view of the detection.
         """
         self.position: Position = position
         self.scale_factor: int = scale_factor
@@ -1772,7 +1775,11 @@ class CropAnnotator(BaseAnnotator):
         detections: Detections,
     ) -> np.ndarray:
         """
-        Annotates the given scene with cropped parts from the provided detections.
+        Annotates the provided scene with scaled and cropped parts of the image based
+        on the provided detections. Each detection is cropped from the original scene
+        and scaled according to the annotator's scale factor before being placed back
+        onto the scene at the specified position.
+
 
         Args:
             scene (np.ndarray): The image where cropped detection will be placed.
