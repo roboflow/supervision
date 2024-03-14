@@ -42,7 +42,7 @@ class CSVSink:
         csv_sink = sv.CSVSink(<RESULT_CSV_FILE_PATH>)
         frames_generator = sv.get_video_frames_generator(<SOURCE_VIDEO_PATH>)
 
-        with csv_sink:
+        with csv_sink as sink:
             for frame in frames_generator:
                 result = model(frame)[0]
                 detections = sv.Detections.from_ultralytics(result)
