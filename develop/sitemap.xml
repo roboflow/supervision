@@ -156,6 +156,11 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
+         <loc>https://supervision.roboflow.com/develop/notebooks/occupancy_analytics/</loc>
+         <lastmod>2024-03-14</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
          <loc>https://supervision.roboflow.com/develop/notebooks/quickstart/</loc>
          <lastmod>2024-03-14</lastmod>
          <changefreq>daily</changefreq>
