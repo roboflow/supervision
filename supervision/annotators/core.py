@@ -12,6 +12,7 @@ from supervision.detection.utils import clip_boxes, mask_to_polygons
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import draw_polygon
 from supervision.geometry.core import Position
+from supervision.utils.image import crop_image, resize_image, place_image
 
 
 class BoundingBoxAnnotator(BaseAnnotator):
@@ -1756,14 +1757,14 @@ class CropAnnotator(BaseAnnotator):
     A class for viewing a cropped part of detections with a selected zoom scale.
     """
 
-    def __init__(self, position: Position = Position.TOP_CENTER, zoom_factor: int = 2):
+    def __init__(self, position: Position = Position.TOP_CENTER, scale_factor: int = 2):
         """
         Args:
             position (Position): the anchor position to place cropped detections
-            zoom_factor (int): the percentage factor to zoom cropped image part
+            scale_factor (int): the percentage factor to zoom cropped image part
         """
         self.position: Position = position
-        self.zoom_factor: int = zoom_factor
+        self.scale_factor: int = scale_factor
 
     def annotate(
         self,
@@ -1793,228 +1794,55 @@ class CropAnnotator(BaseAnnotator):
                 detections=detections
             )
             ```
-
-        ![crop-annotator-example](https://media.roboflow.com/ #TODO update link
-        supervision-annotator-examples/______.png)
         """
-        base_scene = scene.copy()
+        crops = [
+            crop_image(image=scene, xyxy=xyxy)
+            for xyxy
+            in detections.xyxy.astype(int)
+        ]
+        resized_crops = [
+            resize_image(image=crop, scale_factor=self.scale_factor)
+            for crop
+            in crops
+        ]
         anchors = detections.get_anchors_coordinates(anchor=self.position)
-        for detection_idx in range(len(detections)):
-            x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
-            anchor = anchors[detection_idx].astype(int)
-            cropped_scene = base_scene[y1:y2, x1:x2]
 
-            resized_scene = self.apply_zoom(
-                cropped_scene=cropped_scene, zoom_factor=self.zoom_factor
-            )
-
-            coordinates_and_images = self.calculate_place_coordinates_and_crop(
-                scene=base_scene,
-                cropped_scene=resized_scene,
-                position=self.position,
+        for resized_crop, anchor in zip(resized_crops, anchors):
+            crop_wh = resized_crop.shape[1], resized_crop.shape[0]
+            xy, _ = self.calculate_border_coordinates(
                 anchor_xy=anchor,
+                border_wh=crop_wh,
+                position=self.position
             )
-
-            scene = self.place_cropped_scene(
-                scene=base_scene, coordinates_and_image=coordinates_and_images
-            )
+            scene = place_image(scene=scene, image=resized_crop, anchor=xy)
 
         return scene
 
     @staticmethod
-    def apply_zoom(cropped_scene: np.ndarray, zoom_factor: int) -> np.ndarray:
-        """
-        Applies resize (zoom) to the cropped part of detections
-
-        Args:
-            cropped_scene (np.ndarray): the cropped part of detections
-
-        Returns:
-            resized_scene (np.ndarray): the resized cropped scene
-        """
-        resized_scene = cv2.resize(
-            cropped_scene,
-            (
-                zoom_factor * cropped_scene.shape[1],
-                zoom_factor * cropped_scene.shape[0],
-            ),
-        )
-
-        return resized_scene
-
-    @staticmethod
-    def calculate_place_coordinates_and_crop(
-        scene: np.ndarray,
-        cropped_scene: np.ndarray,
-        position: Position,
-        anchor_xy: np.ndarray,
-    ) -> Tuple[Tuple[int, int], np.ndarray]:
-        """
-        This method is responsible to calculate the x,y coordinates that the cropped
-        part of the detections will be placed and crop any exceeding part.
-        The returned x,y in all position cases is the final top left pixel.
-
-        -Args:
-            scene (np.ndarray): The image where cropped detections will be placed.
-            cropped_scene (np.ndarray): The cropped part of the detections.
-
-        -Returns:
-            x (int): position in horizontal axis to use for placement of cropped part.
-            y (int): position in vertical axis to use for placement of cropped part.
-            cropped_scene (np.ndarray): The cropped part after any applied trim.
-        """
-
-        h, w = scene.shape[:2]
-        crop_h, crop_w = cropped_scene.shape[:2]
+    def calculate_border_coordinates(
+        anchor_xy: Tuple[int, int], border_wh: Tuple[int, int], position: Position
+    ) -> Tuple[Tuple[int, int], Tuple[int, int]]:
         cx, cy = anchor_xy
+        width, height = border_wh
 
         if position == Position.TOP_LEFT:
-            x = max(0, (cx - crop_w))
-            y = max(0, (cy - crop_h))
-
-            if x == 0 and (cx - crop_w < 0):
-                cropped_scene = cropped_scene[:, abs(cx - crop_w) :]
-            if y == 0 and (cy - crop_h < 0):
-                cropped_scene = cropped_scene[abs(cy - crop_h) :, :]
-
-            return x, y, cropped_scene
-
+            return (cx - width, cy - height), (cx, cy)
         elif position == Position.TOP_CENTER:
-            if (cx - crop_w // 2) < 0:
-                x = 0
-                cropped_scene = cropped_scene[:, abs(cx - crop_w // 2) :]
-            else:
-                x = cx - crop_w // 2
-
-            if (cx + crop_w // 2) >= w:
-                cropped_scene = cropped_scene[:, : -((cx + crop_w // 2) - w + 1)]
-
-            y = max(0, (cy - crop_h))
-
-            if y == 0 and (cy - crop_h < 0):
-                cropped_scene = cropped_scene[abs(cy - crop_h) :, :]
-
-            return x, y, cropped_scene
-
+            return (cx - width // 2, cy), (cx + width // 2, cy - height)
         elif position == Position.TOP_RIGHT:
-            x = cx
-
-            x_max = min(w, (cx + crop_w))
-            y = max(0, (cy - crop_h))
-
-            if x_max == w and (cx + crop_w > w):
-                cropped_scene = cropped_scene[:, : (w - cx)]
-            if y == 0 and (cy - crop_h < 0):
-                cropped_scene = cropped_scene[abs(cy - crop_h) :, :]
-
-            return x, y, cropped_scene
-
+            return (cx, cy), (cx + width, cy - height)
         elif position == Position.CENTER_LEFT:
-            x = max(0, (cx - crop_w))
-
-            if x == 0 and (cx - crop_w < 0):
-                cropped_scene = cropped_scene[:, abs(cx - crop_w) :]
-            if (cy - crop_h // 2) < 0:
-                y = 0
-                cropped_scene = cropped_scene[abs(cy - crop_h // 2) :, :]
-            else:
-                y = cy - crop_h // 2
-
-            if (cy + crop_h // 2) >= h:
-                cropped_scene = cropped_scene[: -((cy + crop_h // 2) - h + 1), :]
-
-            return x, y, cropped_scene
-
-        elif position == (Position.CENTER or Position.CENTER_OF_MASS):
-            if (cx - crop_w // 2) < 0:
-                x = 0
-                cropped_scene = cropped_scene[:, abs(cx - crop_w // 2) :]
-            else:
-                x = cx - crop_w // 2
-
-            if (cx + crop_w // 2) >= w:
-                cropped_scene = cropped_scene[:, : -((cx + crop_w // 2) - w + 1)]
-
-            if (cy - crop_h // 2) < 0:
-                y = 0
-                cropped_scene = cropped_scene[abs(cy - crop_h // 2) :, :]
-            else:
-                y = cy - crop_h // 2
-
-            if (cy + crop_h // 2) >= h:
-                cropped_scene = cropped_scene[: -((cy + crop_h // 2) - h + 1), :]
-
-            return x, y, cropped_scene
-
+            return (cx - width, cy - height // 2), (cx, cy + height // 2)
+        elif position == Position.CENTER or position == Position.CENTER_OF_MASS:
+            return (
+                (cx - width // 2, cy - height // 2),
+                (cx + width // 2, cy + height // 2),
+            )
         elif position == Position.CENTER_RIGHT:
-            x = cx
-            x_max = min(w, (cx + crop_w))
-
-            if x_max == w and (cx + crop_w > w):
-                cropped_scene = cropped_scene[:, : (w - cx)]
-
-            if (cy - crop_h // 2) < 0:
-                y = 0
-                cropped_scene = cropped_scene[abs(cy - crop_h // 2) :, :]
-            else:
-                y = cy - crop_h // 2
-
-            if (cy + crop_h // 2) >= h:
-                cropped_scene = cropped_scene[: -((cy + crop_h // 2) - h + 1), :]
-
-            return x, y, cropped_scene
-
+            return (cx, cy - height // 2), (cx + width, cy + height // 2)
         elif position == Position.BOTTOM_LEFT:
-            x = max(0, (cx - crop_w))
-            y = cy
-            y_max = min(h, (cy + crop_h))
-
-            if x == 0 and (cx - crop_w < 0):
-                cropped_scene = cropped_scene[:, abs(cx - crop_w) :]
-            if y_max == h and (cy + crop_h > h):
-                cropped_scene = cropped_scene[: h - cy, :]
-
-            return x, y, cropped_scene
-
+            return (cx - width, cy), (cx, cy + height)
         elif position == Position.BOTTOM_CENTER:
-            if (cx - crop_w // 2) < 0:
-                x = 0
-                cropped_scene = cropped_scene[:, abs(cx - crop_w // 2) :]
-            else:
-                x = cx - crop_w // 2
-
-            if (cx + crop_w // 2) >= w:
-                cropped_scene = cropped_scene[:, : -((cx + crop_w // 2) - w + 1)]
-
-            y = cy
-            y_max = min(h, (cy + crop_h))
-
-            if y_max == h and (cy + crop_h > h):
-                cropped_scene = cropped_scene[: h - cy, :]
-
-            return x, y, cropped_scene
-
+            return (cx - width // 2, cy), (cx + width // 2, cy + height)
         elif position == Position.BOTTOM_RIGHT:
-            x = cx
-            y = cy
-            x_max = min(w, (cx + crop_w))
-            y_max = min(h, (cy + crop_h))
-
-            if x_max == w and (cx + crop_w > w):
-                cropped_scene = cropped_scene[:, : (w - cx)]
-            if y_max == h and (cy + crop_h > h):
-                cropped_scene = cropped_scene[: h - cy, :]
-
-            return x, y, cropped_scene
-
-    @staticmethod
-    def place_cropped_scene(
-        scene: np.ndarray, coordinates_and_image: Tuple[Tuple[int, int], np.ndarray]
-    ) -> np.ndarray:
-        x, y = coordinates_and_image[0:2]
-        cropped_scene = coordinates_and_image[2]
-        scene[
-            y : y + cropped_scene.shape[0], x : x + cropped_scene.shape[1]
-        ] = cropped_scene
-
-        return scene
+            return (cx, cy), (cx + width, cy + height)

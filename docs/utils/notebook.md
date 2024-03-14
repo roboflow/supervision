@@ -2,7 +2,7 @@
 comments: true
 ---
 
-# Notebooks
+# Notebooks Utils
 
 <div class="md-typeset">
   <h2>plot_image</h2>
