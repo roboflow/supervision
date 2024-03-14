@@ -12,7 +12,7 @@ from supervision.detection.utils import clip_boxes, mask_to_polygons
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import draw_polygon
 from supervision.geometry.core import Position
-from supervision.utils.image import crop_image, place_image, resize_image
+from supervision.utils.image import crop_image, resize_image, place_image
 
 
 class BoundingBoxAnnotator(BaseAnnotator):
@@ -1796,47 +1796,50 @@ class CropAnnotator(BaseAnnotator):
             ```
         """
         crops = [
-            crop_image(image=scene, xyxy=xyxy) for xyxy in detections.xyxy.astype(int)
+            crop_image(image=scene, xyxy=xyxy)
+            for xyxy
+            in detections.xyxy.astype(int)
         ]
         resized_crops = [
-            resize_image(image=crop, scale_factor=self.scale_factor) for crop in crops
+            resize_image(image=crop, scale_factor=self.scale_factor)
+            for crop
+            in crops
         ]
-        anchors = detections.get_anchors_coordinates(anchor=self.position)
+        anchors = detections.get_anchors_coordinates(anchor=self.position).astype(int)
 
         for resized_crop, anchor in zip(resized_crops, anchors):
             crop_wh = resized_crop.shape[1], resized_crop.shape[0]
-            xy, _ = self.calculate_border_coordinates(
-                anchor_xy=anchor, border_wh=crop_wh, position=self.position
+            crop_anchor = self.calculate_crop_coordinates(
+                anchor=anchor,
+                crop_wh=crop_wh,
+                position=self.position
             )
-            scene = place_image(scene=scene, image=resized_crop, anchor=xy)
+            scene = place_image(scene=scene, image=resized_crop, anchor=crop_anchor)
 
         return scene
 
     @staticmethod
-    def calculate_border_coordinates(
-        anchor_xy: Tuple[int, int], border_wh: Tuple[int, int], position: Position
-    ) -> Tuple[Tuple[int, int], Tuple[int, int]]:
-        cx, cy = anchor_xy
-        width, height = border_wh
+    def calculate_crop_coordinates(
+        anchor: Tuple[int, int], crop_wh: Tuple[int, int], position: Position
+    ) -> Tuple[int, int]:
+        anchor_x, anchor_y = anchor
+        width, height = crop_wh
 
         if position == Position.TOP_LEFT:
-            return (cx - width, cy - height), (cx, cy)
+            return anchor_x - width, anchor_y - height
         elif position == Position.TOP_CENTER:
-            return (cx - width // 2, cy), (cx + width // 2, cy - height)
+            return anchor_x - width // 2, anchor_y - height
         elif position == Position.TOP_RIGHT:
-            return (cx, cy), (cx + width, cy - height)
+            return anchor_x, anchor_y - height
         elif position == Position.CENTER_LEFT:
-            return (cx - width, cy - height // 2), (cx, cy + height // 2)
+            return anchor_x - width, anchor_y - height // 2
         elif position == Position.CENTER or position == Position.CENTER_OF_MASS:
-            return (
-                (cx - width // 2, cy - height // 2),
-                (cx + width // 2, cy + height // 2),
-            )
+            return anchor_x - width // 2, anchor_y - height // 2
         elif position == Position.CENTER_RIGHT:
-            return (cx, cy - height // 2), (cx + width, cy + height // 2)
+            return anchor_x, anchor_y - height // 2
         elif position == Position.BOTTOM_LEFT:
-            return (cx - width, cy), (cx, cy + height)
+            return anchor_x - width, anchor_y
         elif position == Position.BOTTOM_CENTER:
-            return (cx - width // 2, cy), (cx + width // 2, cy + height)
+            return anchor_x - width // 2, anchor_y
         elif position == Position.BOTTOM_RIGHT:
-            return (cx, cy), (cx + width, cy + height)
+            return anchor_x, anchor_y
