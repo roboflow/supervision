@@ -61,9 +61,7 @@ def resize_image(image: np.ndarray, scale_factor: float) -> np.ndarray:
 
 
 def place_image(
-    scene: np.ndarray,
-    image: np.ndarray,
-    anchor: Tuple[int, int]
+    scene: np.ndarray, image: np.ndarray, anchor: Tuple[int, int]
 ) -> np.ndarray:
     """
     Places an image onto a scene at a given anchor point, handling cases where
