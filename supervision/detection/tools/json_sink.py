@@ -32,7 +32,7 @@ class JSONSink:
         json_sink = sv.JSONSink(<RESULT_JSON_FILE_PATH>)
         frames_generator = sv.get_video_frames_generator(<SOURCE_VIDEO_PATH>)
 
-        with json_sink:
+        with json_sink as sink:
             for frame in frames_generator:
                 result = model(frame)[0]
                 detections = sv.Detections.from_ultralytics(result)
