@@ -4,11 +4,17 @@ on:
   push:
     branches:
       - develop
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'push' && github.ref}}
+  cancel-in-progress: true
 
 permissions:
   contents: write
   pages: write
   pull-requests: write
+
 
 jobs:
   deploy:
@@ -23,7 +29,7 @@ jobs:
         with:
           python-version: '3.10'
       - name: 📦 Install mkdocs-material
-        run: pip install "mkdocs-material[all]"
+        run: pip install "mkdocs-material"
       - name: 📦 Install mkdocstrings[python]
         run: pip install "mkdocstrings[python]"
       - name: 📦 Install mkdocs-material[imaging]
