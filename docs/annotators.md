@@ -293,12 +293,6 @@ status: new
     )
     ```
 
-    <div class="result" markdown>
-
-    ![label-annotator-example](https://media.roboflow.com/supervision-annotator-examples/label-annotator-example-purple.png){ align=center width="800" }
-
-    </div>
-
 === "Blur"
 
     ```python
