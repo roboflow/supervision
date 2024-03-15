@@ -1936,33 +1936,37 @@ class CropAnnotator(BaseAnnotator):
         elif position == Position.BOTTOM_RIGHT:
             return anchor_x, anchor_y
 
+
 class ImageMaskAnnotator(BaseAnnotator):
-    """A class to overlay a detection with an inputted image on a specific class, or set of classes."""
+    """
+    A class to overlay a detection with an inputted image on a specific class,
+    or set of classes.
+    """
 
     def __init__(
-            self,
-            image: Union[str, ImageType],
-            classes: Union[int, List] = 0
-        ) -> None:
+        self, image: Union[str, ImageType], classes: Union[int, List] = 0
+    ) -> None:
         """
         Args:
             image (str | ImageType): The image to overlay on specified object types.
-            classes (int | List): The class or list of classes to overlay with the specified image, defaults to the base class 0.
+            classes (int | List): The class or list of classes to overlay with the
+                                  specified image, defaults to the base class 0.
         """
         super().__init__()
-        self.image = cv2.imread(image) if type(image)==str else image
-        self.classes = [classes] if type(classes)==int else classes
+        self.image = cv2.imread(image) if isinstance(image, str) else image
+        self.classes = [classes] if isinstance(classes, int) else classes
 
     @scene_to_annotator_img_type
     def annotate(
-            self,
-            scene: ImageType,
-            detections: Detections,
-        ) -> ImageType:
+        self,
+        scene: ImageType,
+        detections: Detections,
+    ) -> ImageType:
         """
-        Annotates the provided scene by overlaying a specified image over a class of detections. 
-        Each detection of a selected class (or classes) is covered by the image associated with the annotator.
-        When any part of a detection is out of frame, the image overlay will not appear, and the object will be visible.
+        Annotates the provided scene by overlaying a specified image over a class
+        of detections. Each detection of a selected class (or classes) is covered
+        by the image associated with the annotator. When any part of a detection is
+        out of frame, the image overlay will not appear, and the object will be visible.
 
         Args:
             scene (ImageType): The image where percentage bars will be drawn.
@@ -1977,7 +1981,7 @@ class ImageMaskAnnotator(BaseAnnotator):
             ```python
             import supervision as sv
 
-            
+
             frame = ...
             detections = sv.Detections(...)
 
@@ -1988,10 +1992,10 @@ class ImageMaskAnnotator(BaseAnnotator):
             )
             ```
         """
-        
+
         img = self.image
         classes = self.classes
-    
+
         for i in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[i].astype(int)
             class_id = (
@@ -1999,21 +2003,21 @@ class ImageMaskAnnotator(BaseAnnotator):
             )
             if class_id in classes:
                 try:
-                    width = x2-x1
-                    height = y2-y1
+                    width = x2 - x1
+                    height = y2 - y1
                     img = cv2.resize(img, (width, height))
 
                     # Create mask of the image
-                    grayscale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) 
-                    ret, mask = cv2.threshold(grayscale, 1, 255, cv2.THRESH_BINARY)  
-                    
-                    # Region of Image (ROI), where we want to insert logo 
-                    roi = scene[y1:y2, x1:x2] 
+                    grayscale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                    ret, mask = cv2.threshold(grayscale, 1, 255, cv2.THRESH_BINARY)
+
+                    # Region of Image (ROI), where we want to insert logo
+                    roi = scene[y1:y2, x1:x2]
                     roi[np.where(mask)] = 0
-                    roi += img     
+                    roi += img
                 except Exception as e:
                     if type(e) == IndexError:
-                        pass # This error occurs when a point of the bounding box is outside of the frame
+                        pass  # occurs when bounding box is outside of the frame
                     else:
                         print(e)
         return scene
