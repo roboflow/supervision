@@ -2469,13 +2469,13 @@ setuptools = "*"
 
 [[package]]
 name = "notebook"
-version = "7.1.1"
+version = "7.1.2"
 description = "Jupyter Notebook - A web-based notebook environment for interactive computing"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "notebook-7.1.1-py3-none-any.whl", hash = "sha256:197d8e0595acabf4005851c8716e952a81b405f7aefb648067a761fbde267ce7"},
-    {file = "notebook-7.1.1.tar.gz", hash = "sha256:818e7420fa21f402e726afb9f02df7f3c10f294c02e383ed19852866c316108b"},
+    {file = "notebook-7.1.2-py3-none-any.whl", hash = "sha256:fc6c24b9aef18d0cd57157c9c47e95833b9b0bdc599652639acf0bdb61dc7d5f"},
+    {file = "notebook-7.1.2.tar.gz", hash = "sha256:efc2c80043909e0faa17fce9e9b37c059c03af0ec99a4d4db84cb21d9d2e936a"},
 ]
 
 [package.dependencies]
