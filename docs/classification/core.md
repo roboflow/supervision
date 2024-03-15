@@ -2,6 +2,6 @@
 comments: true
 ---
 
-## Classifications
+# Classifications
 
 :::supervision.classification.core.Classifications

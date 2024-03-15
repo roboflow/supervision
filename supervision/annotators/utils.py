@@ -1,8 +1,12 @@
 from enum import Enum
+from functools import wraps
 from typing import Optional, Union
 
+import cv2
 import numpy as np
+from PIL import Image
 
+from supervision.annotators.base import ImageType
 from supervision.detection.core import Detections
 from supervision.draw.color import Color, ColorPalette
 from supervision.geometry.core import Position
@@ -119,3 +123,33 @@ class Trace:
 
     def get(self, tracker_id: int) -> np.ndarray:
         return self.xy[self.tracker_id == tracker_id]
+
+
+def pillow_to_cv2(image: Image.Image) -> np.ndarray:
+    scene = np.array(image)
+    scene = cv2.cvtColor(scene, cv2.COLOR_RGB2BGR)
+    return scene
+
+
+def scene_to_annotator_img_type(annotate_func):
+    """
+    Decorates `BaseAnnotator.annotate` implementations, converts scene to
+    an image type used internally by the annotators, converts back when annotation
+    is complete.
+    """
+
+    @wraps(annotate_func)
+    def wrapper(self, scene: ImageType, *args, **kwargs):
+        if isinstance(scene, np.ndarray):
+            return annotate_func(self, scene, *args, **kwargs)
+
+        if isinstance(scene, Image.Image):
+            scene = pillow_to_cv2(scene)
+            annotated = annotate_func(self, scene, *args, **kwargs)
+            annotated = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
+            annotated = Image.fromarray(annotated)
+            return annotated
+
+        raise ValueError(f"Unsupported image type: {type(scene)}")
+
+    return wrapper

@@ -6,13 +6,15 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 
+from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.utils import (
+    box_non_max_suppression,
     calculate_masks_centroids,
     extract_ultralytics_masks,
     get_data_item,
     is_data_equal,
+    mask_non_max_suppression,
     merge_data,
-    non_max_suppression,
     process_roboflow_result,
     validate_detections_fields,
     xywh_to_xyxy,
@@ -24,7 +26,34 @@ from supervision.utils.internal import deprecated
 @dataclass
 class Detections:
     """
-    A dataclass representing detection results.
+    The `sv.Detections` allows you to convert results from a variety of object detection
+    and segmentation models into a single, unified format. The `sv.Detections` class
+    enables easy data manipulation and filtering, and provides a consistent API for
+    Supervision's tools like trackers, annotators, and zones.
+
+    ```python
+    import cv2
+    import supervision as sv
+    from ultralytics import YOLO
+
+    image = cv2.imread(<SOURCE_IMAGE_PATH>)
+    model = YOLO('yolov8s.pt')
+    annotator = sv.BoundingBoxAnnotator()
+
+    result = model(image)[0]
+    detections = sv.Detections.from_ultralytics(result)
+
+    annotated_image = annotator.annotate(image, detections)
+    ```
+
+    !!! tip
+
+        In `sv.Detections`, detection data is categorized into two main field types:
+        fixed and custom. The fixed fields include `xyxy`, `mask`, `confidence`,
+        `class_id`, and `tracker_id`. For any additional data requirements, custom
+        fields come into play, stored in the data field. These custom fields are easily
+        accessible using the `detections[<FIELD_NAME>]` syntax, providing flexibility
+        for diverse data handling needs.
 
     Attributes:
         xyxy (np.ndarray): An array of shape `(n, 4)` containing
@@ -179,24 +208,33 @@ class Detections:
         """  # noqa: E501 // docs
 
         if ultralytics_results.obb is not None:
+            class_id = ultralytics_results.obb.cls.cpu().numpy().astype(int)
+            class_names = np.array([ultralytics_results.names[i] for i in class_id])
+            oriented_box_coordinates = ultralytics_results.obb.xyxyxyxy.cpu().numpy()
             return cls(
                 xyxy=ultralytics_results.obb.xyxy.cpu().numpy(),
-                data={"xyxyxyxy": ultralytics_results.obb.xyxyxyxy.cpu().numpy()},
                 confidence=ultralytics_results.obb.conf.cpu().numpy(),
-                class_id=ultralytics_results.obb.cls.cpu().numpy().astype(int),
+                class_id=class_id,
                 tracker_id=ultralytics_results.obb.id.int().cpu().numpy()
                 if ultralytics_results.obb.id is not None
                 else None,
+                data={
+                    ORIENTED_BOX_COORDINATES: oriented_box_coordinates,
+                    CLASS_NAME_DATA_FIELD: class_names,
+                },
             )
 
+        class_id = ultralytics_results.boxes.cls.cpu().numpy().astype(int)
+        class_names = np.array([ultralytics_results.names[i] for i in class_id])
         return cls(
             xyxy=ultralytics_results.boxes.xyxy.cpu().numpy(),
             confidence=ultralytics_results.boxes.conf.cpu().numpy(),
-            class_id=ultralytics_results.boxes.cls.cpu().numpy().astype(int),
+            class_id=class_id,
             mask=extract_ultralytics_masks(ultralytics_results),
             tracker_id=ultralytics_results.boxes.id.int().cpu().numpy()
             if ultralytics_results.boxes.id is not None
             else None,
+            data={CLASS_NAME_DATA_FIELD: class_names},
         )
 
     @classmethod
@@ -449,7 +487,9 @@ class Detections:
         )
 
         if np.asarray(xyxy).shape[0] == 0:
-            return cls.empty()
+            empty_detection = cls.empty()
+            empty_detection.data = {CLASS_NAME_DATA_FIELD: np.empty(0)}
+            return empty_detection
 
         return cls(
             xyxy=xyxy,
@@ -463,10 +503,15 @@ class Detections:
     @classmethod
     @deprecated(
         "`Detections.from_roboflow` is deprecated and will be removed in "
-        "`supervision-0.21.0`. Use `Detections.from_inference` instead."
+        "`supervision-0.22.0`. Use `Detections.from_inference` instead."
     )
     def from_roboflow(cls, roboflow_result: Union[dict, Any]) -> Detections:
         """
+        !!! failure "Deprecated"
+
+            `Detections.from_roboflow` is deprecated and will be removed in
+            `supervision-0.22.0`. Use `Detections.from_inference` instead.
+
         Create a Detections object from the [Roboflow](https://roboflow.com/)
             API inference result or the [Inference](https://inference.roboflow.com/)
             package results.
@@ -959,7 +1004,8 @@ class Detections:
         self, threshold: float = 0.5, class_agnostic: bool = False
     ) -> Detections:
         """
-        Perform non-maximum suppression on the current set of object detections.
+        Performs non-max suppression on detection set. If the detections result
+        from a segmentation model, the IoU mask is applied. Otherwise, box IoU is used.
 
         Args:
             threshold (float, optional): The intersection-over-union threshold
@@ -986,18 +1032,26 @@ class Detections:
 
         if class_agnostic:
             predictions = np.hstack((self.xyxy, self.confidence.reshape(-1, 1)))
-            indices = non_max_suppression(
+        else:
+            assert self.class_id is not None, (
+                "Detections class_id must be given for NMS to be executed. If you"
+                " intended to perform class agnostic NMS set class_agnostic=True."
+            )
+            predictions = np.hstack(
+                (
+                    self.xyxy,
+                    self.confidence.reshape(-1, 1),
+                    self.class_id.reshape(-1, 1),
+                )
+            )
+
+        if self.mask is not None:
+            indices = mask_non_max_suppression(
+                predictions=predictions, masks=self.mask, iou_threshold=threshold
+            )
+        else:
+            indices = box_non_max_suppression(
                 predictions=predictions, iou_threshold=threshold
             )
-            return self[indices]
 
-        assert self.class_id is not None, (
-            "Detections class_id must be given for NMS to be executed. If you intended"
-            " to perform class agnostic NMS set class_agnostic=True."
-        )
-
-        predictions = np.hstack(
-            (self.xyxy, self.confidence.reshape(-1, 1), self.class_id.reshape(-1, 1))
-        )
-        indices = non_max_suppression(predictions=predictions, iou_threshold=threshold)
         return self[indices]

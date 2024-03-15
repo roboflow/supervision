@@ -3,6 +3,6 @@ comments: true
 status: new
 ---
 
-## Detections
+# Detections
 
 :::supervision.detection.core.Detections

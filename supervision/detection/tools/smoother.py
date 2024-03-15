@@ -22,7 +22,7 @@ class DetectionsSmoother:
     !!! warning
 
         - `DetectionsSmoother` requires the `tracker_id` for each detection. Refer to
-          [Roboflow Trackers](https://supervision.roboflow.com/trackers/) for
+          [Roboflow Trackers](/latest/trackers/) for
           information on integrating tracking into your inference pipeline.
         - This class is not compatible with segmentation models.
 
@@ -72,7 +72,7 @@ class DetectionsSmoother:
         if detections.tracker_id is None:
             print(
                 "Smoothing skipped. DetectionsSmoother requires tracker_id. Refer to "
-                "https://supervision.roboflow.com/trackers for more information."
+                "https://supervision.roboflow.com/latest/trackers for more information."
             )
             return detections
 
@@ -115,4 +115,8 @@ class DetectionsSmoother:
             if track is not None:
                 tracked_detections.append(track)
 
-        return Detections.merge(tracked_detections)
+        detections = Detections.merge(tracked_detections)
+        if len(detections) == 0:
+            detections.tracker_id = np.array([], dtype=int)
+
+        return detections

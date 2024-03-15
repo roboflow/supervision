@@ -4,14 +4,20 @@ from typing import List, Optional, Tuple, Union
 import cv2
 import numpy as np
 
-from supervision.annotators.base import BaseAnnotator
-from supervision.annotators.utils import ColorLookup, Trace, resolve_color
-from supervision.config import CLASS_NAME_DATA_FIELD
+from supervision.annotators.base import BaseAnnotator, ImageType
+from supervision.annotators.utils import (
+    ColorLookup,
+    Trace,
+    resolve_color,
+    scene_to_annotator_img_type,
+)
+from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
 from supervision.detection.utils import clip_boxes, mask_to_polygons
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import draw_polygon
 from supervision.geometry.core import Position
+from supervision.utils.image import crop_image, place_image, resize_image
 
 
 class BoundingBoxAnnotator(BaseAnnotator):
@@ -37,23 +43,26 @@ class BoundingBoxAnnotator(BaseAnnotator):
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
 
+    @scene_to_annotator_img_type
     def annotate(
         self,
-        scene: np.ndarray,
+        scene: ImageType,
         detections: Detections,
         custom_color_lookup: Optional[np.ndarray] = None,
-    ) -> np.ndarray:
+    ) -> ImageType:
         """
         Annotates the given scene with bounding boxes based on the provided detections.
 
         Args:
-            scene (np.ndarray): The image where bounding boxes will be drawn.
+            scene (ImageType): The image where bounding boxes will be drawn. `ImageType`
+            is a flexible type, accepting either `numpy.ndarray` or `PIL.Image.Image`.
             detections (Detections): Object detections to annotate.
             custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
                 Allows to override the default color mapping strategy.
 
         Returns:
-            The annotated image.
+            The annotated image, matching the type of `scene` (`numpy.ndarray`
+                or `PIL.Image.Image`)
 
         Example:
             ```python
@@ -99,7 +108,7 @@ class OrientedBoxAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
         thickness: int = 2,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
@@ -115,23 +124,27 @@ class OrientedBoxAnnotator(BaseAnnotator):
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
 
+    @scene_to_annotator_img_type
     def annotate(
         self,
-        scene: np.ndarray,
+        scene: ImageType,
         detections: Detections,
         custom_color_lookup: Optional[np.ndarray] = None,
-    ) -> np.ndarray:
+    ) -> ImageType:
         """
         Annotates the given scene with oriented bounding boxes based on the provided detections.
 
         Args:
-            scene (np.ndarray): The image where bounding boxes will be drawn.
+            scene (ImageType): The image where bounding boxes will be drawn.
+                `ImageType` is a flexible type, accepting either `numpy.ndarray`
+                or `PIL.Image.Image`.
             detections (Detections): Object detections to annotate.
             custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
                 Allows to override the default color mapping strategy.
 
         Returns:
-            The annotated image.
+            The annotated image, matching the type of `scene` (`numpy.ndarray`
+                or `PIL.Image.Image`)
 
         Example:
             ```python
@@ -153,11 +166,11 @@ class OrientedBoxAnnotator(BaseAnnotator):
             ```
         """  # noqa E501 // docs
 
-        if detections.data is None or "xyxyxyxy" not in detections.data:
+        if detections.data is None or ORIENTED_BOX_COORDINATES not in detections.data:
             return scene
 
         for detection_idx in range(len(detections)):
-            bbox = np.int0(detections.data.get("xyxyxyxy")[detection_idx])
+            bbox = np.int0(detections.data.get(ORIENTED_BOX_COORDINATES)[detection_idx])
             color = resolve_color(
                 color=self.color,
                 detections=detections,
@@ -199,23 +212,27 @@ class MaskAnnotator(BaseAnnotator):
         self.opacity = opacity
         self.color_lookup: ColorLookup = color_lookup
 
+    @scene_to_annotator_img_type
     def annotate(
         self,
-        scene: np.ndarray,
+        scene: ImageType,
         detections: Detections,
         custom_color_lookup: Optional[np.ndarray] = None,
-    ) -> np.ndarray:
+    ) -> ImageType:
         """
         Annotates the given scene with masks based on the provided detections.
 
         Args:
-            scene (np.ndarray): The image where masks will be drawn.
+            scene (ImageType): The image where masks will be drawn.
+                `ImageType` is a flexible type, accepting either `numpy.ndarray`
+                or `PIL.Image.Image`.
             detections (Detections): Object detections to annotate.
             custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
                 Allows to override the default color mapping strategy.
 
         Returns:
-            The annotated image.
+            The annotated image, matching the type of `scene` (`numpy.ndarray`
+                or `PIL.Image.Image`)
 
         Example:
             ```python
@@ -282,23 +299,27 @@ class PolygonAnnotator(BaseAnnotator):
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
 
+    @scene_to_annotator_img_type
     def annotate(
         self,
-        scene: np.ndarray,
+        scene: ImageType,
         detections: Detections,
         custom_color_lookup: Optional[np.ndarray] = None,
-    ) -> np.ndarray:
+    ) -> ImageType:
         """
         Annotates the given scene with polygons based on the provided detections.
 
         Args:
-            scene (np.ndarray): The image where polygons will be drawn.
+            scene (ImageType): The image where polygons will be drawn.
+                `ImageType` is a flexible type, accepting either `numpy.ndarray`
+                or `PIL.Image.Image`.
             detections (Detections): Object detections to annotate.
             custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
                 Allows to override the default color mapping strategy.
 
         Returns:
-            The annotated image.
+            The annotated image, matching the type of `scene` (`numpy.ndarray`
+                or `PIL.Image.Image`)
 
         Example:
             ```python
@@ -364,23 +385,27 @@ class ColorAnnotator(BaseAnnotator):
         self.color_lookup: ColorLookup = color_lookup
         self.opacity = opacity
 
+    @scene_to_annotator_img_type
     def annotate(
         self,
-        scene: np.ndarray,
+        scene: ImageType,
         detections: Detections,
         custom_color_lookup: Optional[np.ndarray] = None,
-    ) -> np.ndarray:
+    ) -> ImageType:
         """
         Annotates the given scene with box masks based on the provided detections.
 
         Args:
-            scene (np.ndarray): The image where bounding boxes will be drawn.
+            scene (ImageType): The image where bounding boxes will be drawn.
+                `ImageType` is a flexible type, accepting either `numpy.ndarray`
+                or `PIL.Image.Image`.
             detections (Detections): Object detections to annotate.
             custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
                 Allows to override the default color mapping strategy.
 
         Returns:
-            The annotated image.
+            The annotated image, matching the type of `scene` (`numpy.ndarray`
+                or `PIL.Image.Image`)
 
         Example:
             ```python
@@ -454,23 +479,27 @@ class HaloAnnotator(BaseAnnotator):
         self.color_lookup: ColorLookup = color_lookup
         self.kernel_size: int = kernel_size
 
+    @scene_to_annotator_img_type
     def annotate(
         self,
-        scene: np.ndarray,
+        scene: ImageType,
         detections: Detections,
         custom_color_lookup: Optional[np.ndarray] = None,
-    ) -> np.ndarray:
+    ) -> ImageType:
         """
         Annotates the given scene with halos based on the provided detections.
 
         Args:
-            scene (np.ndarray): The image where masks will be drawn.
+            scene (ImageType): The image where masks will be drawn.
+                `ImageType` is a flexible type, accepting either `numpy.ndarray`
+                or `PIL.Image.Image`.
             detections (Detections): Object detections to annotate.
             custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
                 Allows to override the default color mapping strategy.
 
         Returns:
-            The annotated image.
+            The annotated image, matching the type of `scene` (`numpy.ndarray`
+                or `PIL.Image.Image`)
 
         Example:
             ```python
@@ -548,23 +577,27 @@ class EllipseAnnotator(BaseAnnotator):
         self.end_angle: int = end_angle
         self.color_lookup: ColorLookup = color_lookup
 
+    @scene_to_annotator_img_type
     def annotate(
         self,
-        scene: np.ndarray,
+        scene: ImageType,
         detections: Detections,
         custom_color_lookup: Optional[np.ndarray] = None,
-    ) -> np.ndarray:
+    ) -> ImageType:
         """
         Annotates the given scene with ellipses based on the provided detections.
 
         Args:
-            scene (np.ndarray): The image where ellipses will be drawn.
+            scene (ImageType): The image where ellipses will be drawn.
+                `ImageType` is a flexible type, accepting either `numpy.ndarray`
+                or `PIL.Image.Image`.
             detections (Detections): Object detections to annotate.
             custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
                 Allows to override the default color mapping strategy.
 
         Returns:
-            The annotated image.
+            The annotated image, matching the type of `scene` (`numpy.ndarray`
+                or `PIL.Image.Image`)
 
         Example:
             ```python
@@ -635,23 +668,27 @@ class BoxCornerAnnotator(BaseAnnotator):
         self.corner_length: int = corner_length
         self.color_lookup: ColorLookup = color_lookup
 
+    @scene_to_annotator_img_type
     def annotate(
         self,
-        scene: np.ndarray,
+        scene: ImageType,
         detections: Detections,
         custom_color_lookup: Optional[np.ndarray] = None,
-    ) -> np.ndarray:
+    ) -> ImageType:
         """
         Annotates the given scene with box corners based on the provided detections.
 
         Args:
-            scene (np.ndarray): The image where box corners will be drawn.
+            scene (ImageType): The image where box corners will be drawn.
+                `ImageType` is a flexible type, accepting either `numpy.ndarray`
+                or `PIL.Image.Image`.
             detections (Detections): Object detections to annotate.
             custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
                 Allows to override the default color mapping strategy.
 
         Returns:
-            The annotated image.
+            The annotated image, matching the type of `scene` (`numpy.ndarray`
+                or `PIL.Image.Image`)
 
         Example:
             ```python
@@ -719,23 +756,27 @@ class CircleAnnotator(BaseAnnotator):
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
 
+    @scene_to_annotator_img_type
     def annotate(
         self,
-        scene: np.ndarray,
+        scene: ImageType,
         detections: Detections,
         custom_color_lookup: Optional[np.ndarray] = None,
-    ) -> np.ndarray:
+    ) -> ImageType:
         """
         Annotates the given scene with circles based on the provided detections.
 
         Args:
-            scene (np.ndarray): The image where box corners will be drawn.
+            scene (ImageType): The image where box corners will be drawn.
+                `ImageType` is a flexible type, accepting either `numpy.ndarray`
+                or `PIL.Image.Image`.
             detections (Detections): Object detections to annotate.
             custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
                 Allows to override the default color mapping strategy.
 
         Returns:
-            The annotated image.
+            The annotated image, matching the type of `scene` (`numpy.ndarray`
+                or `PIL.Image.Image`)
 
         Example:
             ```python
@@ -805,23 +846,27 @@ class DotAnnotator(BaseAnnotator):
         self.position: Position = position
         self.color_lookup: ColorLookup = color_lookup
 
+    @scene_to_annotator_img_type
     def annotate(
         self,
-        scene: np.ndarray,
+        scene: ImageType,
         detections: Detections,
         custom_color_lookup: Optional[np.ndarray] = None,
-    ) -> np.ndarray:
+    ) -> ImageType:
         """
         Annotates the given scene with dots based on the provided detections.
 
         Args:
-            scene (np.ndarray): The image where dots will be drawn.
+            scene (ImageType): The image where dots will be drawn.
+                `ImageType` is a flexible type, accepting either `numpy.ndarray`
+                or `PIL.Image.Image`.
             detections (Detections): Object detections to annotate.
             custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
                 Allows to override the default color mapping strategy.
 
         Returns:
-            The annotated image.
+            The annotated image, matching the type of `scene` (`numpy.ndarray`
+                or `PIL.Image.Image`)
 
         Example:
             ```python
@@ -929,26 +974,44 @@ class LabelAnnotator:
                 center_x + text_w // 2,
                 center_y + text_h,
             )
+        elif position == Position.CENTER_LEFT:
+            return (
+                center_x - text_w,
+                center_y - text_h // 2,
+                center_x,
+                center_y + text_h // 2,
+            )
+        elif position == Position.CENTER_RIGHT:
+            return (
+                center_x,
+                center_y - text_h // 2,
+                center_x + text_w,
+                center_y + text_h // 2,
+            )
 
+    @scene_to_annotator_img_type
     def annotate(
         self,
-        scene: np.ndarray,
+        scene: ImageType,
         detections: Detections,
         labels: List[str] = None,
         custom_color_lookup: Optional[np.ndarray] = None,
-    ) -> np.ndarray:
+    ) -> ImageType:
         """
         Annotates the given scene with labels based on the provided detections.
 
         Args:
-            scene (np.ndarray): The image where labels will be drawn.
+            scene (ImageType): The image where labels will be drawn.
+                `ImageType` is a flexible type, accepting either `numpy.ndarray`
+                or `PIL.Image.Image`.
             detections (Detections): Object detections to annotate.
             labels (List[str]): Optional. Custom labels for each detection.
             custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
                 Allows to override the default color mapping strategy.
 
         Returns:
-            The annotated image.
+            The annotated image, matching the type of `scene` (`numpy.ndarray`
+                or `PIL.Image.Image`)
 
         Example:
             ```python
@@ -1049,20 +1112,24 @@ class BlurAnnotator(BaseAnnotator):
         """
         self.kernel_size: int = kernel_size
 
+    @scene_to_annotator_img_type
     def annotate(
         self,
-        scene: np.ndarray,
+        scene: ImageType,
         detections: Detections,
-    ) -> np.ndarray:
+    ) -> ImageType:
         """
         Annotates the given scene by blurring regions based on the provided detections.
 
         Args:
-            scene (np.ndarray): The image where blurring will be applied.
+            scene (ImageType): The image where blurring will be applied.
+                `ImageType` is a flexible type, accepting either `numpy.ndarray`
+                or `PIL.Image.Image`.
             detections (Detections): Object detections to annotate.
 
         Returns:
-            The annotated image.
+            The annotated image, matching the type of `scene` (`numpy.ndarray`
+                or `PIL.Image.Image`)
 
         Example:
             ```python
@@ -1101,7 +1168,7 @@ class TraceAnnotator:
     !!! warning
 
         This annotator uses the `sv.Detections.tracker_id`. Read
-        [here](https://supervision.roboflow.com/trackers/) to learn how to plug
+        [here](/latest/trackers/) to learn how to plug
         tracking into your inference pipeline.
     """
 
@@ -1130,24 +1197,28 @@ class TraceAnnotator:
         self.thickness = thickness
         self.color_lookup: ColorLookup = color_lookup
 
+    @scene_to_annotator_img_type
     def annotate(
         self,
-        scene: np.ndarray,
+        scene: ImageType,
         detections: Detections,
         custom_color_lookup: Optional[np.ndarray] = None,
-    ) -> np.ndarray:
+    ) -> ImageType:
         """
         Draws trace paths on the frame based on the detection coordinates provided.
 
         Args:
-            scene (np.ndarray): The image on which the traces will be drawn.
+            scene (ImageType): The image on which the traces will be drawn.
+                `ImageType` is a flexible type, accepting either `numpy.ndarray`
+                or `PIL.Image.Image`.
             detections (Detections): The detections which include coordinates for
                 which the traces will be drawn.
             custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
                 Allows to override the default color mapping strategy.
 
         Returns:
-            The annotated image.
+            The annotated image, matching the type of `scene` (`numpy.ndarray`
+                or `PIL.Image.Image`)
 
         Example:
             ```python
@@ -1233,16 +1304,20 @@ class HeatMapAnnotator:
         self.top_hue = top_hue
         self.low_hue = low_hue
 
-    def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
+    @scene_to_annotator_img_type
+    def annotate(self, scene: ImageType, detections: Detections) -> ImageType:
         """
         Annotates the scene with a heatmap based on the provided detections.
 
         Args:
-            scene (np.ndarray): The image where the heatmap will be drawn.
+            scene (ImageType): The image where the heatmap will be drawn.
+                `ImageType` is a flexible type, accepting either `numpy.ndarray`
+                or `PIL.Image.Image`.
             detections (Detections): Object detections to annotate.
 
         Returns:
-            Annotated image.
+            The annotated image, matching the type of `scene` (`numpy.ndarray`
+                or `PIL.Image.Image`)
 
         Example:
             ```python
@@ -1305,21 +1380,25 @@ class PixelateAnnotator(BaseAnnotator):
         """
         self.pixel_size: int = pixel_size
 
+    @scene_to_annotator_img_type
     def annotate(
         self,
-        scene: np.ndarray,
+        scene: ImageType,
         detections: Detections,
-    ) -> np.ndarray:
+    ) -> ImageType:
         """
         Annotates the given scene by pixelating regions based on the provided
             detections.
 
         Args:
-            scene (np.ndarray): The image where pixelating will be applied.
+            scene (ImageType): The image where pixelating will be applied.
+                `ImageType` is a flexible type, accepting either `numpy.ndarray`
+                or `PIL.Image.Image`.
             detections (Detections): Object detections to annotate.
 
         Returns:
-            The annotated image.
+            The annotated image, matching the type of `scene` (`numpy.ndarray`
+                or `PIL.Image.Image`)
 
         Example:
             ```python
@@ -1389,23 +1468,27 @@ class TriangleAnnotator(BaseAnnotator):
         self.position: Position = position
         self.color_lookup: ColorLookup = color_lookup
 
+    @scene_to_annotator_img_type
     def annotate(
         self,
-        scene: np.ndarray,
+        scene: ImageType,
         detections: Detections,
         custom_color_lookup: Optional[np.ndarray] = None,
-    ) -> np.ndarray:
+    ) -> ImageType:
         """
         Annotates the given scene with triangles based on the provided detections.
 
         Args:
-            scene (np.ndarray): The image where triangles will be drawn.
+            scene (ImageType): The image where triangles will be drawn.
+                `ImageType` is a flexible type, accepting either `numpy.ndarray`
+                or `PIL.Image.Image`.
             detections (Detections): Object detections to annotate.
             custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
                 Allows to override the default color mapping strategy.
 
         Returns:
-            np.ndarray: The annotated image.
+            The annotated image, matching the type of `scene` (`numpy.ndarray`
+                or `PIL.Image.Image`)
 
         Example:
             ```python
@@ -1481,24 +1564,28 @@ class RoundBoxAnnotator(BaseAnnotator):
             raise ValueError("roundness attribute must be float between (0, 1.0]")
         self.roundness: float = roundness
 
+    @scene_to_annotator_img_type
     def annotate(
         self,
-        scene: np.ndarray,
+        scene: ImageType,
         detections: Detections,
         custom_color_lookup: Optional[np.ndarray] = None,
-    ) -> np.ndarray:
+    ) -> ImageType:
         """
         Annotates the given scene with bounding boxes with rounded edges
         based on the provided detections.
 
         Args:
-            scene (np.ndarray): The image where rounded bounding boxes will be drawn.
+            scene (ImageType): The image where rounded bounding boxes will be drawn.
+                `ImageType` is a flexible type, accepting either `numpy.ndarray`
+                or `PIL.Image.Image`.
             detections (Detections): Object detections to annotate.
             custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
                 Allows to override the default color mapping strategy.
 
         Returns:
-            The annotated image.
+            The annotated image, matching the type of `scene` (`numpy.ndarray`
+                or `PIL.Image.Image`)
 
         Example:
             ```python
@@ -1614,20 +1701,23 @@ class PercentageBarAnnotator(BaseAnnotator):
         if border_thickness is None:
             self.border_thickness = int(0.15 * self.height)
 
+    @scene_to_annotator_img_type
     def annotate(
         self,
-        scene: np.ndarray,
+        scene: ImageType,
         detections: Detections,
         custom_color_lookup: Optional[np.ndarray] = None,
         custom_values: Optional[np.ndarray] = None,
-    ) -> np.ndarray:
+    ) -> ImageType:
         """
         Annotates the given scene with percentage bars based on the provided
         detections. The percentage bars visually represent the confidence or custom
         values associated with each detection.
 
         Args:
-            scene (np.ndarray): The image where percentage bars will be drawn.
+            scene (ImageType): The image where percentage bars will be drawn.
+                `ImageType` is a flexible type, accepting either `numpy.ndarray`
+                or `PIL.Image.Image`.
             detections (Detections): Object detections to annotate.
             custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
                 Allows to override the default color mapping strategy.
@@ -1638,7 +1728,8 @@ class PercentageBarAnnotator(BaseAnnotator):
                 to be displayed.
 
         Returns:
-            The annotated image.
+            The annotated image, matching the type of `scene` (`numpy.ndarray`
+                or `PIL.Image.Image`)
 
         Example:
             ```python
@@ -1647,7 +1738,7 @@ class PercentageBarAnnotator(BaseAnnotator):
             image = ...
             detections = sv.Detections(...)
 
-            percentage_bar_annotator = sv.BoundingBoxAnnotator()
+            percentage_bar_annotator = sv.PercentageBarAnnotator()
             annotated_frame = percentage_bar_annotator.annotate(
                 scene=image.copy(),
                 detections=detections
@@ -1749,3 +1840,98 @@ class PercentageBarAnnotator(BaseAnnotator):
 
             if not all(0 <= value <= 1 for value in custom_values):
                 raise ValueError("All values in custom_values must be between 0 and 1.")
+
+
+class CropAnnotator(BaseAnnotator):
+    """
+    A class for drawing scaled up crops of detections on the scene.
+    """
+
+    def __init__(self, position: Position = Position.TOP_CENTER, scale_factor: int = 2):
+        """
+        Args:
+            position (Position): The anchor position for placing the cropped and scaled
+                part of the detection in the scene.
+            scale_factor (int): The factor by which to scale the cropped image part. A
+                factor of 2, for example, would double the size of the cropped area,
+                allowing for a closer view of the detection.
+        """
+        self.position: Position = position
+        self.scale_factor: int = scale_factor
+
+    @scene_to_annotator_img_type
+    def annotate(
+        self,
+        scene: np.ndarray,
+        detections: Detections,
+    ) -> np.ndarray:
+        """
+        Annotates the provided scene with scaled and cropped parts of the image based
+        on the provided detections. Each detection is cropped from the original scene
+        and scaled according to the annotator's scale factor before being placed back
+        onto the scene at the specified position.
+
+
+        Args:
+            scene (np.ndarray): The image where cropped detection will be placed.
+            detections (Detections): Object detections to annotate.
+
+        Returns:
+            The annotated image.
+
+        Example:
+            ```python
+            import supervision as sv
+
+            image = ...
+            detections = sv.Detections(...)
+
+            crop_annotator = sv.CropAnnotator()
+            annotated_frame = crop_annotator.annotate(
+                scene=image.copy(),
+                detections=detections
+            )
+            ```
+        """
+        crops = [
+            crop_image(image=scene, xyxy=xyxy) for xyxy in detections.xyxy.astype(int)
+        ]
+        resized_crops = [
+            resize_image(image=crop, scale_factor=self.scale_factor) for crop in crops
+        ]
+        anchors = detections.get_anchors_coordinates(anchor=self.position).astype(int)
+
+        for resized_crop, anchor in zip(resized_crops, anchors):
+            crop_wh = resized_crop.shape[1], resized_crop.shape[0]
+            crop_anchor = self.calculate_crop_coordinates(
+                anchor=anchor, crop_wh=crop_wh, position=self.position
+            )
+            scene = place_image(scene=scene, image=resized_crop, anchor=crop_anchor)
+
+        return scene
+
+    @staticmethod
+    def calculate_crop_coordinates(
+        anchor: Tuple[int, int], crop_wh: Tuple[int, int], position: Position
+    ) -> Tuple[int, int]:
+        anchor_x, anchor_y = anchor
+        width, height = crop_wh
+
+        if position == Position.TOP_LEFT:
+            return anchor_x - width, anchor_y - height
+        elif position == Position.TOP_CENTER:
+            return anchor_x - width // 2, anchor_y - height
+        elif position == Position.TOP_RIGHT:
+            return anchor_x, anchor_y - height
+        elif position == Position.CENTER_LEFT:
+            return anchor_x - width, anchor_y - height // 2
+        elif position == Position.CENTER or position == Position.CENTER_OF_MASS:
+            return anchor_x - width // 2, anchor_y - height // 2
+        elif position == Position.CENTER_RIGHT:
+            return anchor_x, anchor_y - height // 2
+        elif position == Position.BOTTOM_LEFT:
+            return anchor_x - width, anchor_y
+        elif position == Position.BOTTOM_CENTER:
+            return anchor_x - width // 2, anchor_y
+        elif position == Position.BOTTOM_RIGHT:
+            return anchor_x, anchor_y
