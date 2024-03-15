@@ -1,6 +1,88 @@
+### 0.19.0 <small>March 15, 2024</small>
+
+- Added [#818](https://github.com/roboflow/supervision/pull/818): [`sv.CSVSink`](/0.19.0/detection/tools/save_detections/#supervision.detection.tools.csv_sink.CSVSink) allowing for the straightforward saving of image, video, or stream inference results in a `.csv` file.
+
+```python
+import supervision as sv
+from ultralytics import YOLO
+
+model = YOLO(<SOURCE_MODEL_PATH>)
+csv_sink = sv.CSVSink(<RESULT_CSV_FILE_PATH>)
+frames_generator = sv.get_video_frames_generator(<SOURCE_VIDEO_PATH>)
+
+with csv_sink:
+    for frame in frames_generator:
+        result = model(frame)[0]
+        detections = sv.Detections.from_ultralytics(result)
+        csv_sink.append(detections, custom_data={<CUSTOM_LABEL>:<CUSTOM_DATA>})
+```
+
+- Added [#819](https://github.com/roboflow/supervision/pull/819): [`sv.JSONSink`](/0.19.0/detection/tools/save_detections/#supervision.detection.tools.csv_sink.JSONSink) allowing for the straightforward saving of image, video, or stream inference results in a `.json` file.
+
+```python
+
+```python
+import supervision as sv
+from ultralytics import YOLO
+
+model = YOLO(<SOURCE_MODEL_PATH>)
+json_sink = sv.JSONSink(<RESULT_JSON_FILE_PATH>)
+frames_generator = sv.get_video_frames_generator(<SOURCE_VIDEO_PATH>)
+
+with json_sink:
+    for frame in frames_generator:
+        result = model(frame)[0]
+        detections = sv.Detections.from_ultralytics(result)
+        json_sink.append(detections, custom_data={<CUSTOM_LABEL>:<CUSTOM_DATA>})
+```
+
+- Added [#847](https://github.com/roboflow/supervision/pull/847): [`sv.mask_iou_batch`](/0.19.0/detection/utils/#supervision.detection.utils.mask_iou_batch) allowing to compute Intersection over Union (IoU) of two sets of masks.
+
+- Added [#847](https://github.com/roboflow/supervision/pull/847): [`sv.mask_non_max_suppression`](/0.19.0/detection/utils/#supervision.detection.utils.mask_non_max_suppression) allowing to perform Non-Maximum Suppression (NMS) on segmentation predictions.
+
+- Added [#888](https://github.com/roboflow/supervision/pull/888): [`sv.CropAnnotator`](/0.19.0/annotators/#supervision.annotators.core.CropAnnotator) allowing users to annotate the scene with scaled-up crops of detections.
+
+```python
+import cv2
+import supervision as sv
+from inference import get_model
+
+image = cv2.imread(<SOURCE_IMAGE_PATH>)
+model = get_model(model_id="yolov8n-640")
+
+result = model.infer(image)[0]
+detections = sv.Detections.from_inference(result)
+
+crop_annotator = sv.CropAnnotator()
+annotated_frame = crop_annotator.annotate(
+    scene=image.copy(),
+    detections=detections
+)
+```
+
+- Changed [#827](https://github.com/roboflow/supervision/pull/827): [`sv.ByteTrack.reset`](/0.19.0/tracking/#supervision.tracking.ByteTrack.reset) allowing users to clear trackers state, enabling the processing of multiple video files in sequence.
+
+- Changed [#802](https://github.com/roboflow/supervision/pull/802): [`sv.LineZoneAnnotator`](/0.19.0/detection/tools/line_zone/#supervision.detection.line_zone.LineZone) allowing to hide in/out count using `display_in_count` and `display_out_count` properties.
+
+- Changed [#787](https://github.com/roboflow/supervision/pull/787): [`sv.ByteTrack`](/0.19.0/tracking/#supervision.tracking.ByteTrack) input arguments and docstrings updated to improve readability and ease of use.
+
+!!! failure "Deprecated"
+
+    The `track_buffer`, `track_thresh`, and `match_thresh` parameters in `sv.ByterTrack` are deprecated and will be removed in `supervision-0.23.0`. Use `lost_track_buffer,` `track_activation_threshold`, and `minimum_matching_threshold` instead.
+
+- Changed [#910](https://github.com/roboflow/supervision/pull/910): [`sv.PolygonZone`](/0.19.0/detection/tools/polygon_zone/#supervision.detection.tools.polygon_zone.PolygonZone) to now accept a list of specific box anchors that must be in zone for a detection to be counted.
+
+!!! failure "Deprecated"
+
+    The `triggering_position ` parameter in `sv.PolygonZone` is deprecated and will be removed in `supervision-0.23.0`. Use `triggering_anchors` instead.
+
+- Changed [#875](https://github.com/roboflow/supervision/pull/875): annotators adding support for Pillow images. All supervision Annotators can now accept an image as either a numpy array or a Pillow Image. They automatically detect its type, draw annotations, and return the output in the same format as the input.
+
+- Fixed [#944](https://github.com/roboflow/supervision/pull/944): [`sv.DetectionsSmoother`](/0.19.0/detection/tools/smoother/#supervision.detection.tools.smoother.DetectionsSmoother) removing `tracking_id` from `sv.Detections`.
+
 ### 0.18.0 <small>January 25, 2024</small>
 
-- Added [#633](https://github.com/roboflow/supervision/pull/720): [`sv.PercentageBarAnnotator`](/0.18.0/annotators/#percentagebarannotator) allowing to annotate images and videos with percentage values representing confidence or other custom property.
+- Added [#720](https://github.com/roboflow/supervision/pull/720): [`sv.PercentageBarAnnotator`](/0.18.0/annotators/#percentagebarannotator) allowing to annotate images and videos with percentage values representing confidence or other custom property.
 
 ```python
 >>> import supervision as sv

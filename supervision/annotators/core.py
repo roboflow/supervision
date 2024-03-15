@@ -1859,6 +1859,7 @@ class CropAnnotator(BaseAnnotator):
         self.position: Position = position
         self.scale_factor: int = scale_factor
 
+    @scene_to_annotator_img_type
     def annotate(
         self,
         scene: np.ndarray,
