@@ -1853,7 +1853,7 @@ class CropAnnotator(BaseAnnotator):
         scale_factor: int = 2,
         color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
         thickness: int = 2,
-        color_lookup: ColorLookup = ColorLookup.CLASS
+        color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
         """
         Args:
@@ -1948,47 +1948,35 @@ class CropAnnotator(BaseAnnotator):
         width, height = crop_wh
 
         if position == Position.TOP_LEFT:
-            return (
-                (anchor_x - width, anchor_y - height),
-                (anchor_x, anchor_y)
-            )
+            return ((anchor_x - width, anchor_y - height), (anchor_x, anchor_y))
         elif position == Position.TOP_CENTER:
             return (
                 (anchor_x - width // 2, anchor_y - height),
-                (anchor_x + width // 2, anchor_y)
+                (anchor_x + width // 2, anchor_y),
             )
         elif position == Position.TOP_RIGHT:
-            return (
-                (anchor_x, anchor_y - height),
-                (anchor_x + width, anchor_y)
-            )
+            return ((anchor_x, anchor_y - height), (anchor_x + width, anchor_y))
         elif position == Position.CENTER_LEFT:
             return (
                 (anchor_x - width, anchor_y - height // 2),
-                (anchor_x, anchor_y + height // 2)
+                (anchor_x, anchor_y + height // 2),
             )
         elif position == Position.CENTER or position == Position.CENTER_OF_MASS:
             return (
                 (anchor_x - width // 2, anchor_y - height // 2),
-                (anchor_x + width // 2, anchor_y + height // 2)
+                (anchor_x + width // 2, anchor_y + height // 2),
             )
         elif position == Position.CENTER_RIGHT:
             return (
                 (anchor_x, anchor_y - height // 2),
-                (anchor_x + width, anchor_y + height // 2)
+                (anchor_x + width, anchor_y + height // 2),
             )
         elif position == Position.BOTTOM_LEFT:
-            return (
-                (anchor_x - width, anchor_y),
-                (anchor_x, anchor_y + height)
-            )
+            return ((anchor_x - width, anchor_y), (anchor_x, anchor_y + height))
         elif position == Position.BOTTOM_CENTER:
             return (
                 (anchor_x - width // 2, anchor_y),
-                (anchor_x + width // 2, anchor_y + height)
+                (anchor_x + width // 2, anchor_y + height),
             )
         elif position == Position.BOTTOM_RIGHT:
-            return (
-                (anchor_x, anchor_y),
-                (anchor_x + width, anchor_y + height)
-            )
+            return ((anchor_x, anchor_y), (anchor_x + width, anchor_y + height))
