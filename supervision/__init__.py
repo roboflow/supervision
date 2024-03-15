@@ -17,6 +17,7 @@ from supervision.annotators.core import (
     EllipseAnnotator,
     HaloAnnotator,
     HeatMapAnnotator,
+    ImageMaskAnnotator,
     LabelAnnotator,
     MaskAnnotator,
     OrientedBoxAnnotator,

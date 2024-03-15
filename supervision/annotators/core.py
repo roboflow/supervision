@@ -1947,7 +1947,7 @@ class ImageMaskAnnotator(BaseAnnotator):
         """
         Args:
             image (str | ImageType): The image to overlay on specified object types.
-            classes (int | List): The class or list of classes to overlay with the specified image.
+            classes (int | List): The class or list of classes to overlay with the specified image, defaults to the base class 0.
         """
         super().__init__()
         self.image = cv2.imread(image) if type(image)==str else image
@@ -2004,8 +2004,8 @@ class ImageMaskAnnotator(BaseAnnotator):
                     img = cv2.resize(img, (width, height))
 
                     # Create mask of the image
-                    img2gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) 
-                    ret, mask = cv2.threshold(img2gray, 1, 255, cv2.THRESH_BINARY)  
+                    grayscale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) 
+                    ret, mask = cv2.threshold(grayscale, 1, 255, cv2.THRESH_BINARY)  
                     
                     # Region of Image (ROI), where we want to insert logo 
                     roi = scene[y1:y2, x1:x2] 

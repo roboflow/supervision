@@ -395,6 +395,21 @@ status: new
 
     </div>
 
+=== "ImageMask"
+
+    ```python
+    import supervision as sv
+
+    frame = ...
+    detections = sv.Detections(...)
+
+    image_annotator = sv.ImageMaskAnnotator("image.png")
+    annotated_frame = image_annotator.annotate(
+        scene=frame.copy(),
+        detections=detections
+    )
+    ```
+
 <div class="md-typeset">
     <h2><a href="#supervision.annotators.core.BoundingBoxAnnotator">BoundingBoxAnnotator</a></h2>
 </div>
@@ -514,3 +529,9 @@ status: new
 </div>
 
 :::supervision.annotators.utils.ColorLookup
+
+<div class="md-typeset">
+    <h2><a href="#supervision.annotators.core.ImageMaskAnnotator">ImageMaskAnnotator</a></h2>
+</div>
+
+:::supervision.annotators.core.ImageMaskAnnotator
