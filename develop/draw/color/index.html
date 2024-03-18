@@ -2360,31 +2360,31 @@ codes, converting colors to hex strings, RGB tuples, and BGR tuples.</p>
 <a id="__codelineno-0-176" name="__codelineno-0-176"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">g</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">r</span>
 <a id="__codelineno-0-177" name="__codelineno-0-177"></a>
 <a id="__codelineno-0-178" name="__codelineno-0-178"></a>    <span class="nd">@classproperty</span>
-<a id="__codelineno-0-179" name="__codelineno-0-179"></a>    <span class="k">def</span> <span class="nf">WHITE</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+<a id="__codelineno-0-179" name="__codelineno-0-179"></a>    <span class="k">def</span> <span class="nf">WHITE</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Color</span><span class="p">:</span>
 <a id="__codelineno-0-180" name="__codelineno-0-180"></a>        <span class="k">return</span> <span class="n">Color</span><span class="o">.</span><span class="n">from_hex</span><span class="p">(</span><span class="s2">&quot;#FFFFFF&quot;</span><span class="p">)</span>
 <a id="__codelineno-0-181" name="__codelineno-0-181"></a>
 <a id="__codelineno-0-182" name="__codelineno-0-182"></a>    <span class="nd">@classproperty</span>
-<a id="__codelineno-0-183" name="__codelineno-0-183"></a>    <span class="k">def</span> <span class="nf">BLACK</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+<a id="__codelineno-0-183" name="__codelineno-0-183"></a>    <span class="k">def</span> <span class="nf">BLACK</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Color</span><span class="p">:</span>
 <a id="__codelineno-0-184" name="__codelineno-0-184"></a>        <span class="k">return</span> <span class="n">Color</span><span class="o">.</span><span class="n">from_hex</span><span class="p">(</span><span class="s2">&quot;#000000&quot;</span><span class="p">)</span>
 <a id="__codelineno-0-185" name="__codelineno-0-185"></a>
 <a id="__codelineno-0-186" name="__codelineno-0-186"></a>    <span class="nd">@classproperty</span>
-<a id="__codelineno-0-187" name="__codelineno-0-187"></a>    <span class="k">def</span> <span class="nf">RED</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+<a id="__codelineno-0-187" name="__codelineno-0-187"></a>    <span class="k">def</span> <span class="nf">RED</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Color</span><span class="p">:</span>
 <a id="__codelineno-0-188" name="__codelineno-0-188"></a>        <span class="k">return</span> <span class="n">Color</span><span class="o">.</span><span class="n">from_hex</span><span class="p">(</span><span class="s2">&quot;#FF0000&quot;</span><span class="p">)</span>
 <a id="__codelineno-0-189" name="__codelineno-0-189"></a>
 <a id="__codelineno-0-190" name="__codelineno-0-190"></a>    <span class="nd">@classproperty</span>
-<a id="__codelineno-0-191" name="__codelineno-0-191"></a>    <span class="k">def</span> <span class="nf">GREEN</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+<a id="__codelineno-0-191" name="__codelineno-0-191"></a>    <span class="k">def</span> <span class="nf">GREEN</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Color</span><span class="p">:</span>
 <a id="__codelineno-0-192" name="__codelineno-0-192"></a>        <span class="k">return</span> <span class="n">Color</span><span class="o">.</span><span class="n">from_hex</span><span class="p">(</span><span class="s2">&quot;#00FF00&quot;</span><span class="p">)</span>
 <a id="__codelineno-0-193" name="__codelineno-0-193"></a>
 <a id="__codelineno-0-194" name="__codelineno-0-194"></a>    <span class="nd">@classproperty</span>
-<a id="__codelineno-0-195" name="__codelineno-0-195"></a>    <span class="k">def</span> <span class="nf">BLUE</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+<a id="__codelineno-0-195" name="__codelineno-0-195"></a>    <span class="k">def</span> <span class="nf">BLUE</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Color</span><span class="p">:</span>
 <a id="__codelineno-0-196" name="__codelineno-0-196"></a>        <span class="k">return</span> <span class="n">Color</span><span class="o">.</span><span class="n">from_hex</span><span class="p">(</span><span class="s2">&quot;#0000FF&quot;</span><span class="p">)</span>
 <a id="__codelineno-0-197" name="__codelineno-0-197"></a>
 <a id="__codelineno-0-198" name="__codelineno-0-198"></a>    <span class="nd">@classproperty</span>
-<a id="__codelineno-0-199" name="__codelineno-0-199"></a>    <span class="k">def</span> <span class="nf">YELLOW</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+<a id="__codelineno-0-199" name="__codelineno-0-199"></a>    <span class="k">def</span> <span class="nf">YELLOW</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Color</span><span class="p">:</span>
 <a id="__codelineno-0-200" name="__codelineno-0-200"></a>        <span class="k">return</span> <span class="n">Color</span><span class="o">.</span><span class="n">from_hex</span><span class="p">(</span><span class="s2">&quot;#FFFF00&quot;</span><span class="p">)</span>
 <a id="__codelineno-0-201" name="__codelineno-0-201"></a>
 <a id="__codelineno-0-202" name="__codelineno-0-202"></a>    <span class="nd">@classproperty</span>
-<a id="__codelineno-0-203" name="__codelineno-0-203"></a>    <span class="k">def</span> <span class="nf">ROBOFLOW</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+<a id="__codelineno-0-203" name="__codelineno-0-203"></a>    <span class="k">def</span> <span class="nf">ROBOFLOW</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Color</span><span class="p">:</span>
 <a id="__codelineno-0-204" name="__codelineno-0-204"></a>        <span class="k">return</span> <span class="n">Color</span><span class="o">.</span><span class="n">from_hex</span><span class="p">(</span><span class="s2">&quot;#A351FB&quot;</span><span class="p">)</span>
 <a id="__codelineno-0-205" name="__codelineno-0-205"></a>
 <a id="__codelineno-0-206" name="__codelineno-0-206"></a>    <span class="nd">@classmethod</span>
