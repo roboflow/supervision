@@ -3,6 +3,7 @@ from typing import Iterable, Optional, Tuple
 
 import cv2
 import numpy as np
+import numpy.typing as npt
 
 from supervision import Detections
 from supervision.detection.utils import clip_boxes, polygon_to_mask
@@ -39,7 +40,7 @@ class PolygonZone:
     )
     def __init__(
         self,
-        polygon: np.ndarray,
+        polygon: npt.NDArray[np.int64],
         frame_resolution_wh: Tuple[int, int],
         triggering_anchors: Iterable[Position] = (Position.BOTTOM_CENTER,),
     ):
@@ -54,7 +55,7 @@ class PolygonZone:
             polygon=polygon, resolution_wh=(width + 1, height + 1)
         )
 
-    def trigger(self, detections: Detections) -> np.ndarray:
+    def trigger(self, detections: Detections) -> npt.NDArray[np.bool_]:
         """
         Determines if the detections are within the polygon zone.
 
@@ -78,13 +79,13 @@ class PolygonZone:
             ]
         )
 
-        is_in_zone = (
+        is_in_zone: npt.NDArray[np.bool_] = (
             self.mask[all_clipped_anchors[:, :, 1], all_clipped_anchors[:, :, 0]]
             .transpose()
             .astype(bool)
         )
-        is_in_zone = np.all(is_in_zone, axis=1)
 
+        is_in_zone: npt.NDArray[np.bool_] = np.all(is_in_zone, axis=1)
         self.current_count = int(np.sum(is_in_zone))
         return is_in_zone.astype(bool)
 
