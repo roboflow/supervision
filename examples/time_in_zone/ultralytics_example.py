@@ -1,5 +1,6 @@
-import cv2
 import argparse
+
+import cv2
 
 
 def capture_rtsp_stream(rtsp_url: str) -> None:
@@ -17,9 +18,9 @@ def capture_rtsp_stream(rtsp_url: str) -> None:
                 print("Error: Could not read frame.")
                 break
 
-            cv2.imshow('RTSP Stream', frame)
+            cv2.imshow("RTSP Stream", frame)
 
-            if cv2.waitKey(1) & 0xFF == ord('q'):
+            if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
     finally:
         cap.release()
@@ -31,12 +32,9 @@ def main(rtsp_url: str) -> None:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Capture and display RTSP stream."
-    )
+    parser = argparse.ArgumentParser(description="Capture and display RTSP stream.")
     parser.add_argument(
-        "--rtsp_url", type=str, required=True,
-        help="URL of the RTSP video stream."
+        "--rtsp_url", type=str, required=True, help="URL of the RTSP video stream."
     )
     arguments = parser.parse_args()
 

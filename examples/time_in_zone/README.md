@@ -25,7 +25,7 @@ TODO
   ```bash
   pip install -r requirements.txt
   ```
-  
+
 ## 🛠 scripts
 
 - download video from youtube

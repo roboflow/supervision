@@ -23,16 +23,24 @@ if __name__ == "__main__":
         description="Download a specific YouTube video by providing its URL."
     )
     parser.add_argument(
-        "--url", type=str, required=True,
-        help="The full URL of the YouTube video you wish to download."
+        "--url",
+        type=str,
+        required=True,
+        help="The full URL of the YouTube video you wish to download.",
     )
     parser.add_argument(
-        "--output_path", type=str, default="data/source", required=False,
-        help="Optional. Specifies the directory where the video will be saved."
+        "--output_path",
+        type=str,
+        default="data/source",
+        required=False,
+        help="Optional. Specifies the directory where the video will be saved.",
     )
     parser.add_argument(
-        "--file_name", type=str, default="video.mp4", required=False,
-        help="Optional. Sets the name of the saved video file."
+        "--file_name",
+        type=str,
+        default="video.mp4",
+        required=False,
+        help="Optional. Sets the name of the saved video file.",
     )
     args = parser.parse_args()
     main(url=args.url, output_path=args.output_path, file_name=args.file_name)

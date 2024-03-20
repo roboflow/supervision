@@ -7,14 +7,7 @@ from threading import Thread
 
 import yaml
 
-SERVER_CONFIG = {
-    "protocols": ["tcp"],
-    "paths": {
-        "all": {
-            "source": "publisher"
-        }
-    }
-}
+SERVER_CONFIG = {"protocols": ["tcp"], "paths": {"all": {"source": "publisher"}}}
 BASE_STREAM_URL = "rtsp://localhost:8554/live"
 
 
@@ -93,15 +86,19 @@ if __name__ == "__main__":
         description="Script to stream videos using RTSP protocol."
     )
     parser.add_argument(
-        "--video_directory", type=str, required=True,
-        help="Directory containing video files to stream."
+        "--video_directory",
+        type=str,
+        required=True,
+        help="Directory containing video files to stream.",
     )
     parser.add_argument(
-        "--number_of_streams", type=int, default=6,
-        help="Number of video files to stream."
+        "--number_of_streams",
+        type=int,
+        default=6,
+        help="Number of video files to stream.",
     )
     arguments = parser.parse_args()
     main(
         video_directory=arguments.video_directory,
-        number_of_streams=arguments.number_of_streams
+        number_of_streams=arguments.number_of_streams,
     )
