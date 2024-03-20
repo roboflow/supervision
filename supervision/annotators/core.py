@@ -1851,9 +1851,9 @@ class CropAnnotator(BaseAnnotator):
         self,
         position: Position = Position.TOP_CENTER,
         scale_factor: int = 2,
-        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
-        thickness: int = 2,
-        color_lookup: ColorLookup = ColorLookup.CLASS,
+        border_color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
+        border_thickness: int = 2,
+        border_color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
         """
         Args:
@@ -1862,12 +1862,17 @@ class CropAnnotator(BaseAnnotator):
             scale_factor (int): The factor by which to scale the cropped image part. A
                 factor of 2, for example, would double the size of the cropped area,
                 allowing for a closer view of the detection.
+            border_color (Union[Color, ColorPalette]): The color or color palette to
+                use for annotating border around the cropped area.
+            border_thickness (int): The thickness of the border around the cropped area.
+            border_color_lookup (ColorLookup): Strategy for mapping colors to
+                annotations. Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.position: Position = position
         self.scale_factor: int = scale_factor
-        self.color: Union[Color, ColorPalette] = color
-        self.thickness: int = thickness
-        self.color_lookup: ColorLookup = color_lookup
+        self.border_color: Union[Color, ColorPalette] = border_color
+        self.border_thickness: int = border_thickness
+        self.border_color_lookup: ColorLookup = border_color_lookup
 
     @scene_to_annotator_img_type
     def annotate(
@@ -1923,10 +1928,10 @@ class CropAnnotator(BaseAnnotator):
             )
             scene = place_image(scene=scene, image=resized_crop, anchor=(x1, y1))
             color = resolve_color(
-                color=self.color,
+                color=self.border_color,
                 detections=detections,
                 detection_idx=idx,
-                color_lookup=self.color_lookup
+                color_lookup=self.border_color_lookup
                 if custom_color_lookup is None
                 else custom_color_lookup,
             )
@@ -1935,7 +1940,7 @@ class CropAnnotator(BaseAnnotator):
                 pt1=(x1, y1),
                 pt2=(x2, y2),
                 color=color.as_bgr(),
-                thickness=self.thickness,
+                thickness=self.border_thickness,
             )
 
         return scene
@@ -1948,14 +1953,14 @@ class CropAnnotator(BaseAnnotator):
         width, height = crop_wh
 
         if position == Position.TOP_LEFT:
-            return ((anchor_x - width, anchor_y - height), (anchor_x, anchor_y))
+            return (anchor_x - width, anchor_y - height), (anchor_x, anchor_y)
         elif position == Position.TOP_CENTER:
             return (
                 (anchor_x - width // 2, anchor_y - height),
                 (anchor_x + width // 2, anchor_y),
             )
         elif position == Position.TOP_RIGHT:
-            return ((anchor_x, anchor_y - height), (anchor_x + width, anchor_y))
+            return (anchor_x, anchor_y - height), (anchor_x + width, anchor_y)
         elif position == Position.CENTER_LEFT:
             return (
                 (anchor_x - width, anchor_y - height // 2),
@@ -1972,11 +1977,11 @@ class CropAnnotator(BaseAnnotator):
                 (anchor_x + width, anchor_y + height // 2),
             )
         elif position == Position.BOTTOM_LEFT:
-            return ((anchor_x - width, anchor_y), (anchor_x, anchor_y + height))
+            return (anchor_x - width, anchor_y), (anchor_x, anchor_y + height)
         elif position == Position.BOTTOM_CENTER:
             return (
                 (anchor_x - width // 2, anchor_y),
                 (anchor_x + width // 2, anchor_y + height),
             )
         elif position == Position.BOTTOM_RIGHT:
-            return ((anchor_x, anchor_y), (anchor_x + width, anchor_y + height))
+            return (anchor_x, anchor_y), (anchor_x + width, anchor_y + height)
