@@ -1,0 +1,5 @@
+opencv-python
+supervision
+ultralytics
+inference
+pytube
