@@ -2,7 +2,6 @@ from enum import Enum
 from functools import wraps
 from typing import Optional, Union
 
-import cv2
 import numpy as np
 from PIL import Image
 
@@ -10,6 +9,7 @@ from supervision.annotators.base import ImageType
 from supervision.detection.core import Detections
 from supervision.draw.color import Color, ColorPalette
 from supervision.geometry.core import Position
+from supervision.utils.image import cv2_to_pillow, pillow_to_cv2
 
 
 class ColorLookup(Enum):
@@ -125,12 +125,6 @@ class Trace:
         return self.xy[self.tracker_id == tracker_id]
 
 
-def pillow_to_cv2(image: Image.Image) -> np.ndarray:
-    scene = np.array(image)
-    scene = cv2.cvtColor(scene, cv2.COLOR_RGB2BGR)
-    return scene
-
-
 def scene_to_annotator_img_type(annotate_func):
     """
     Decorates `BaseAnnotator.annotate` implementations, converts scene to
@@ -146,9 +140,7 @@ def scene_to_annotator_img_type(annotate_func):
         if isinstance(scene, Image.Image):
             scene = pillow_to_cv2(scene)
             annotated = annotate_func(self, scene, *args, **kwargs)
-            annotated = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
-            annotated = Image.fromarray(annotated)
-            return annotated
+            return cv2_to_pillow(image=annotated)
 
         raise ValueError(f"Unsupported image type: {type(scene)}")
 
