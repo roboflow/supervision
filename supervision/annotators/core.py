@@ -1847,7 +1847,14 @@ class CropAnnotator(BaseAnnotator):
     A class for drawing scaled up crops of detections on the scene.
     """
 
-    def __init__(self, position: Position = Position.TOP_CENTER, scale_factor: int = 2):
+    def __init__(
+        self,
+        position: Position = Position.TOP_CENTER,
+        scale_factor: int = 2,
+        border_color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
+        border_thickness: int = 2,
+        border_color_lookup: ColorLookup = ColorLookup.CLASS,
+    ):
         """
         Args:
             position (Position): The anchor position for placing the cropped and scaled
@@ -1855,16 +1862,25 @@ class CropAnnotator(BaseAnnotator):
             scale_factor (int): The factor by which to scale the cropped image part. A
                 factor of 2, for example, would double the size of the cropped area,
                 allowing for a closer view of the detection.
+            border_color (Union[Color, ColorPalette]): The color or color palette to
+                use for annotating border around the cropped area.
+            border_thickness (int): The thickness of the border around the cropped area.
+            border_color_lookup (ColorLookup): Strategy for mapping colors to
+                annotations. Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.position: Position = position
         self.scale_factor: int = scale_factor
+        self.border_color: Union[Color, ColorPalette] = border_color
+        self.border_thickness: int = border_thickness
+        self.border_color_lookup: ColorLookup = border_color_lookup
 
     @scene_to_annotator_img_type
     def annotate(
         self,
-        scene: np.ndarray,
+        scene: ImageType,
         detections: Detections,
-    ) -> np.ndarray:
+        custom_color_lookup: Optional[np.ndarray] = None,
+    ) -> ImageType:
         """
         Annotates the provided scene with scaled and cropped parts of the image based
         on the provided detections. Each detection is cropped from the original scene
@@ -1873,8 +1889,12 @@ class CropAnnotator(BaseAnnotator):
 
 
         Args:
-            scene (np.ndarray): The image where cropped detection will be placed.
+            scene (ImageType): The image where cropped detection will be placed.
+                `ImageType` is a flexible type, accepting either `numpy.ndarray`
+                or `PIL.Image.Image`.
             detections (Detections): Object detections to annotate.
+            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
+                Allows to override the default color mapping strategy.
 
         Returns:
             The annotated image.
@@ -1901,37 +1921,67 @@ class CropAnnotator(BaseAnnotator):
         ]
         anchors = detections.get_anchors_coordinates(anchor=self.position).astype(int)
 
-        for resized_crop, anchor in zip(resized_crops, anchors):
+        for idx, (resized_crop, anchor) in enumerate(zip(resized_crops, anchors)):
             crop_wh = resized_crop.shape[1], resized_crop.shape[0]
-            crop_anchor = self.calculate_crop_coordinates(
+            (x1, y1), (x2, y2) = self.calculate_crop_coordinates(
                 anchor=anchor, crop_wh=crop_wh, position=self.position
             )
-            scene = place_image(scene=scene, image=resized_crop, anchor=crop_anchor)
+            scene = place_image(scene=scene, image=resized_crop, anchor=(x1, y1))
+            color = resolve_color(
+                color=self.border_color,
+                detections=detections,
+                detection_idx=idx,
+                color_lookup=self.border_color_lookup
+                if custom_color_lookup is None
+                else custom_color_lookup,
+            )
+            cv2.rectangle(
+                img=scene,
+                pt1=(x1, y1),
+                pt2=(x2, y2),
+                color=color.as_bgr(),
+                thickness=self.border_thickness,
+            )
 
         return scene
 
     @staticmethod
     def calculate_crop_coordinates(
         anchor: Tuple[int, int], crop_wh: Tuple[int, int], position: Position
-    ) -> Tuple[int, int]:
+    ) -> Tuple[Tuple[int, int], Tuple[int, int]]:
         anchor_x, anchor_y = anchor
         width, height = crop_wh
 
         if position == Position.TOP_LEFT:
-            return anchor_x - width, anchor_y - height
+            return (anchor_x - width, anchor_y - height), (anchor_x, anchor_y)
         elif position == Position.TOP_CENTER:
-            return anchor_x - width // 2, anchor_y - height
+            return (
+                (anchor_x - width // 2, anchor_y - height),
+                (anchor_x + width // 2, anchor_y),
+            )
         elif position == Position.TOP_RIGHT:
-            return anchor_x, anchor_y - height
+            return (anchor_x, anchor_y - height), (anchor_x + width, anchor_y)
         elif position == Position.CENTER_LEFT:
-            return anchor_x - width, anchor_y - height // 2
+            return (
+                (anchor_x - width, anchor_y - height // 2),
+                (anchor_x, anchor_y + height // 2),
+            )
         elif position == Position.CENTER or position == Position.CENTER_OF_MASS:
-            return anchor_x - width // 2, anchor_y - height // 2
+            return (
+                (anchor_x - width // 2, anchor_y - height // 2),
+                (anchor_x + width // 2, anchor_y + height // 2),
+            )
         elif position == Position.CENTER_RIGHT:
-            return anchor_x, anchor_y - height // 2
+            return (
+                (anchor_x, anchor_y - height // 2),
+                (anchor_x + width, anchor_y + height // 2),
+            )
         elif position == Position.BOTTOM_LEFT:
-            return anchor_x - width, anchor_y
+            return (anchor_x - width, anchor_y), (anchor_x, anchor_y + height)
         elif position == Position.BOTTOM_CENTER:
-            return anchor_x - width // 2, anchor_y
+            return (
+                (anchor_x - width // 2, anchor_y),
+                (anchor_x + width // 2, anchor_y + height),
+            )
         elif position == Position.BOTTOM_RIGHT:
-            return anchor_x, anchor_y
+            return (anchor_x, anchor_y), (anchor_x + width, anchor_y + height)
