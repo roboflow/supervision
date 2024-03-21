@@ -47,7 +47,7 @@ POLYGONS = [
 ]
 
 
-def rtsp_stream_frames_generator(rtsp_url: str) -> Generator[np.ndarray, None, None]:
+def get_stream_frames_generator(rtsp_url: str) -> Generator[np.ndarray, None, None]:
     """
     Generator function to yield frames from an RTSP stream.
 
@@ -77,7 +77,7 @@ def main(rtsp_url: str, weights: str, device: str, confidence_threshold: float) 
     bounding_box_annotator = sv.BoundingBoxAnnotator()
     label_annotator = sv.LabelAnnotator(text_color=sv.Color.from_hex("#000000"))
 
-    for frame in rtsp_stream_frames_generator(rtsp_url=rtsp_url):
+    for frame in get_stream_frames_generator(rtsp_url=rtsp_url):
         results = model(frame, verbose=False, device=device, conf=confidence_threshold)[
             0
         ]
