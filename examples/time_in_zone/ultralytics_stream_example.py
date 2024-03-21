@@ -26,14 +26,31 @@ def load_zones_config(file_path: str) -> List[np.ndarray]:
     a NumPy array of coordinates.
 
     Args:
-    file_path (str): The path to the JSON configuration file.
+        file_path (str): The path to the JSON configuration file.
 
     Returns:
-    List[np.ndarray]: A list of polygons, each represented as a NumPy array.
+        List[np.ndarray]: A list of polygons, each represented as a NumPy array.
     """
     with open(file_path, "r") as file:
         data = json.load(file)
         return [np.array(polygon, np.int32) for polygon in data]
+
+
+def find_in_list(array: np.ndarray, search_list: List[int]) -> np.ndarray:
+    """Determines if elements of a numpy array are present in a list.
+
+    Args:
+        array (np.ndarray): The numpy array of integers to check.
+        search_list (List[int]): The list of integers to search within.
+
+    Returns:
+        np.ndarray: A numpy array of booleans, where each boolean indicates whether
+        the corresponding element in `array` is found in `search_list`.
+    """
+    if not search_list:
+        return np.ones(array.shape, dtype=bool)
+    else:
+        return np.isin(array, search_list)
 
 
 def get_stream_frames_generator(rtsp_url: str) -> Generator[np.ndarray, None, None]:
@@ -61,7 +78,7 @@ def get_stream_frames_generator(rtsp_url: str) -> Generator[np.ndarray, None, No
         cap.release()
 
 
-class ClockTimeBasedTimer:
+class ClockBasedTimer:
     """
     A class for tracking and updating time durations associated with object detections.
 
@@ -103,6 +120,7 @@ def main(
     device: str,
     confidence: float,
     iou: float,
+    classes: List[int]
 ) -> None:
     model = YOLO(weights)
     tracker = sv.ByteTrack(minimum_matching_threshold=0.5)
@@ -121,7 +139,7 @@ def main(
         )
         for polygon in polygons
     ]
-    timers = [ClockTimeBasedTimer() for _ in zones]
+    timers = [ClockBasedTimer() for _ in zones]
 
     for frame in frames_generator:
         fps_monitor.tick()
@@ -129,7 +147,7 @@ def main(
 
         results = model(frame, verbose=False, device=device, conf=confidence)[0]
         detections = sv.Detections.from_ultralytics(results)
-        detections = detections[detections.class_id == 0]
+        detections = detections[find_in_list(detections.class_id, classes)]
         detections = detections.with_nms(threshold=iou)
         detections = tracker.update_with_detections(detections)
 
@@ -213,6 +231,10 @@ if __name__ == "__main__":
         type=float,
         help="IOU threshold for non-max suppression. Default is 0.7.",
     )
+    parser.add_argument(
+        "--classes", nargs='*', type=int, default=[],
+        help="List of class IDs to track. If empty, all classes are tracked.",
+    )
     args = parser.parse_args()
 
     main(
@@ -222,4 +244,5 @@ if __name__ == "__main__":
         device=args.device,
         confidence=args.confidence_threshold,
         iou=args.iou_threshold,
+        classes=args.classes
     )
