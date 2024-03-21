@@ -1,56 +1,55 @@
-from typing import List, Tuple, Iterable, Dict, Optional
+from typing import Dict, Iterable, List, Optional, Tuple
 
 import cv2
 import numpy as np
-import supervision as sv
 from ultralytics import YOLO
 
+import supervision as sv
 
 COLORS = sv.ColorPalette.from_hex(["#E6194B", "#3CB44B", "#FFE119", "#3C76D1"])
 
 POLYGONS = [
-    np.array([
-        [685, 113],
-        [845, 110],
-        [888, 188],
-        [879, 294],
-        [912, 415],
-        [925, 344],
-        [981, 511],
-        [944, 620],
-        [728, 640]
-    ]),
-    np.array([
-        [964, 101],
-        [1124, 332],
-        [1205, 480],
-        [1146, 588],
-        [1280, 558],
-        [1280, 97]
-    ]),
-    np.array([
-        [402, 137],
-        [499, 138],
-        [471, 209],
-        [494, 312],
-        [479, 419],
-        [465, 378],
-        [434, 540],
-        [478, 648],
-        [299, 641],
-        [226, 539],
-        [279, 387]
-    ]),
+    np.array(
+        [
+            [685, 113],
+            [845, 110],
+            [888, 188],
+            [879, 294],
+            [912, 415],
+            [925, 344],
+            [981, 511],
+            [944, 620],
+            [728, 640],
+        ]
+    ),
+    np.array(
+        [[964, 101], [1124, 332], [1205, 480], [1146, 588], [1280, 558], [1280, 97]]
+    ),
+    np.array(
+        [
+            [402, 137],
+            [499, 138],
+            [471, 209],
+            [494, 312],
+            [479, 419],
+            [465, 378],
+            [434, 540],
+            [478, 648],
+            [299, 641],
+            [226, 539],
+            [279, 387],
+        ]
+    ),
 ]
 
 PIXELATE_ANNOTATOR = sv.PixelateAnnotator(pixel_size=10)
 COLOR_ANNOTATOR = sv.ColorAnnotator(color=COLORS)
 LABEL_ANNOTATOR = sv.LabelAnnotator(
-    color=COLORS, text_color=sv.Color.from_hex("#000000"))
+    color=COLORS, text_color=sv.Color.from_hex("#000000")
+)
 
 
 class Timer:
-
     def __init__(self, fps: int = 30) -> None:
         self.fps = fps
         self.frame_id = 0
@@ -98,9 +97,11 @@ def main(source_video_path: str, weights: str, device: str, confidence: float) -
     )
     timers = [Timer(fps=video_info.fps) for _ in zones]
 
-    with sv.VideoSink('data/target/checkout-new-zones-2.mp4', video_info) as sink:
+    with sv.VideoSink("data/target/checkout-new-zones-2.mp4", video_info) as sink:
         for frame in frame_generator:
-            face_results = face_model(frame, verbose=False, device=device, conf=confidence)[0]
+            face_results = face_model(
+                frame, verbose=False, device=device, conf=confidence
+            )[0]
             face_detections = sv.Detections.from_ultralytics(face_results)
 
             results = model(frame, verbose=False, device=device, conf=confidence)[0]
@@ -117,10 +118,14 @@ def main(source_video_path: str, weights: str, device: str, confidence: float) -
 
             for idx, zone in enumerate(zones):
                 annotated_frame = sv.draw_polygon(
-                    scene=annotated_frame, polygon=zone.polygon, color=COLORS.by_idx(idx)
+                    scene=annotated_frame,
+                    polygon=zone.polygon,
+                    color=COLORS.by_idx(idx),
                 )
                 detections_in_zone = detections[zone.trigger(detections)]
-                detections_in_zone.class_id = np.full(detections_in_zone.class_id.shape, idx)
+                detections_in_zone.class_id = np.full(
+                    detections_in_zone.class_id.shape, idx
+                )
                 timers[idx].tick(detections_in_zone)
 
                 annotated_frame = COLOR_ANNOTATOR.annotate(
@@ -128,8 +133,7 @@ def main(source_video_path: str, weights: str, device: str, confidence: float) -
                 )
                 labels = [
                     f"#{tracker_id} {int(timers[idx].get_time(tracker_id) // 60):02d}:{int(timers[idx].get_time(tracker_id) % 60):02d}"
-                    for tracker_id
-                    in detections_in_zone.tracker_id
+                    for tracker_id in detections_in_zone.tracker_id
                 ]
                 annotated_frame = LABEL_ANNOTATOR.annotate(
                     scene=annotated_frame, detections=detections_in_zone, labels=labels
@@ -137,7 +141,7 @@ def main(source_video_path: str, weights: str, device: str, confidence: float) -
 
             sink.write_frame(annotated_frame)
             cv2.imshow("Processed Video", annotated_frame)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
+            if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
         cv2.destroyAllWindows()
 
@@ -149,24 +153,34 @@ if __name__ == "__main__":
         description="Streams video from an RTSP URL and performs object detection."
     )
     parser.add_argument(
-        "--source_video_path", type=str, required=True,
+        "--source_video_path",
+        type=str,
+        required=True,
         help="Path to the source video file",
     )
     parser.add_argument(
-        "--weights", type=str, default="yolov8s.pt",
-        help="Path to the model weights file. Default is 'yolov8s.pt'."
+        "--weights",
+        type=str,
+        default="yolov8s.pt",
+        help="Path to the model weights file. Default is 'yolov8s.pt'.",
     )
     parser.add_argument(
-        "--device", type=str, default="cpu",
-        help="Computation device ('cpu', 'mps' or 'cuda'). Default is 'cpu'."
+        "--device",
+        type=str,
+        default="cpu",
+        help="Computation device ('cpu', 'mps' or 'cuda'). Default is 'cpu'.",
     )
     parser.add_argument(
-        "--confidence", type=float, default=0.3,
-        help="Confidence level for detections (0 to 1). Default is 0.3."
+        "--confidence",
+        type=float,
+        default=0.3,
+        help="Confidence level for detections (0 to 1). Default is 0.3.",
     )
     parser.add_argument(
-        "--iou_threshold", default=0.7, type=float,
-        help="IOU threshold for non-max suppression. Default is 0.7."
+        "--iou_threshold",
+        default=0.7,
+        type=float,
+        help="IOU threshold for non-max suppression. Default is 0.7.",
     )
     args = parser.parse_args()
 
@@ -174,5 +188,5 @@ if __name__ == "__main__":
         source_video_path=args.source_video_path,
         weights=args.weights,
         device=args.device,
-        confidence=args.confidence
+        confidence=args.confidence,
     )
