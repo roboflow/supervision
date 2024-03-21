@@ -1,7 +1,6 @@
 import argparse
 import json
-from datetime import datetime
-from typing import Generator, List, Dict
+from typing import List, Dict
 
 import cv2
 import numpy as np
@@ -37,67 +36,28 @@ def load_zones_config(file_path: str) -> List[np.ndarray]:
         return [np.array(polygon, np.int32) for polygon in data]
 
 
-def get_stream_frames_generator(rtsp_url: str) -> Generator[np.ndarray, None, None]:
-    """
-    Generator function to yield frames from an RTSP stream.
-
-    Args:
-        rtsp_url (str): URL of the RTSP video stream.
-
-    Yields:
-        np.ndarray: The next frame from the video stream.
-    """
-    cap = cv2.VideoCapture(rtsp_url)
-    if not cap.isOpened():
-        raise Exception("Error: Could not open video stream.")
-
-    try:
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                print("End of stream or error reading frame.")
-                break
-            yield frame
-    finally:
-        cap.release()
-
-
-class ClockTimeBasedTimer:
-    """
-    A class for tracking and updating time durations associated with object detections.
-
-    Attributes:
-        tracker_id2start_time (Dict[int, datetime]): A dictionary mapping tracker IDs
-            to the datetime when they were first detected.
-    """
-    def __init__(self) -> None:
-        self.tracker_id2start_time: Dict[int, datetime] = {}
+class FPSBasedTimer:
+    def __init__(self, fps: int = 30) -> None:
+        self.fps = fps
+        self.frame_id = 0
+        self.tacker_id2frame_id: Dict[int, int] = {}
 
     def tick(self, detections: sv.Detections) -> np.ndarray:
-        """
-        Updates detection times based on current detections.
-
-        Args:
-            detections (sv.Detections): The current detections with tracker IDs.
-
-        Returns:
-            np.ndarray: The time duration each object has been detected.
-        """
-        current_time = datetime.now()
+        self.frame_id += 1
         times = []
 
         for tracker_id in detections.tracker_id:
-            self.tracker_id2start_time.setdefault(tracker_id, current_time)
+            self.tacker_id2frame_id.setdefault(tracker_id, self.frame_id)
 
-            start_time = self.tracker_id2start_time[tracker_id]
-            time_duration = (current_time - start_time).total_seconds()
+            start_frame_id = self.tacker_id2frame_id[tracker_id]
+            time_duration = (self.frame_id - start_frame_id) / self.fps
             times.append(time_duration)
 
         return np.array(times)
 
 
 def main(
-    rtsp_url: str,
+    source_video_path: str,
     zone_configuration_path: str,
     weights: str,
     device: str,
@@ -106,8 +66,8 @@ def main(
 ) -> None:
     model = YOLO(weights)
     tracker = sv.ByteTrack(minimum_matching_threshold=0.5)
-    frames_generator = get_stream_frames_generator(rtsp_url=rtsp_url)
-    fps_monitor = sv.FPSMonitor()
+    video_info = sv.VideoInfo.from_video_path(video_path=source_video_path)
+    frames_generator = sv.get_video_frames_generator(source_video_path)
 
     frame = next(frames_generator)
     resolution_wh = frame.shape[1], frame.shape[0]
@@ -121,12 +81,9 @@ def main(
         )
         for polygon in polygons
     ]
-    timers = [ClockTimeBasedTimer() for _ in zones]
+    timers = [FPSBasedTimer(video_info.fps) for _ in zones]
 
     for frame in frames_generator:
-        fps_monitor.tick()
-        fps = fps_monitor.fps
-
         results = model(frame, verbose=False, device=device, conf=confidence)[0]
         detections = sv.Detections.from_ultralytics(results)
         detections = detections[detections.class_id == 0]
@@ -134,13 +91,6 @@ def main(
         detections = tracker.update_with_detections(detections)
 
         annotated_frame = frame.copy()
-        annotated_frame = sv.draw_text(
-            scene=annotated_frame,
-            text=f"{fps:.1f}",
-            text_anchor=sv.Point(40, 30),
-            background_color=sv.Color.from_hex("#A351FB"),
-            text_color=sv.Color.from_hex("#000000")
-        )
 
         for idx, zone in enumerate(zones):
             annotated_frame = sv.draw_polygon(
@@ -178,15 +128,15 @@ def main(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Calculating detections dwell time in zones, using RTSP stream."
+        description="Calculating detections dwell time in zones, using video file."
     )
     parser.add_argument(
         "--zone_configuration_path", type=str, required=True,
         help="Path to the zone configuration JSON file.",
     )
     parser.add_argument(
-        "--rtsp_url", type=str, required=True,
-        help="Complete RTSP URL for the video stream."
+        "--source_video_path", type=str, required=True,
+        help="Path to the source video file.",
     )
     parser.add_argument(
         "--weights", type=str, default="yolov8s.pt",
@@ -207,7 +157,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     main(
-        rtsp_url=args.rtsp_url,
+        source_video_path=args.source_video_path,
         zone_configuration_path=args.zone_configuration_path,
         weights=args.weights,
         device=args.device,
