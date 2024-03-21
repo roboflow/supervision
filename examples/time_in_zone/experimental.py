@@ -86,7 +86,7 @@ def main(source_video_path: str, weights: str, device: str, confidence: float) -
     tracker = sv.ByteTrack()
     smoother = sv.DetectionsSmoother(length=10)
     model = YOLO(weights)
-    face_model = YOLO("data/face.pt")
+    face_model = YOLO("face.pt")
 
     video_info = sv.VideoInfo.from_video_path(video_path=source_video_path)
     frame_generator = sv.get_video_frames_generator(source_path=source_video_path)
@@ -150,7 +150,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Streams video from an RTSP URL and performs object detection."
+        description="Calculating detections dwell time in zones, using RTSP stream."
     )
     parser.add_argument(
         "--source_video_path",
