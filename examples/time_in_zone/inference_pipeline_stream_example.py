@@ -137,8 +137,6 @@ class XD:
         cv2.waitKey(1)
 
 
-
-
 def main(
     rtsp_url: str,
     zone_configuration_path: str,
@@ -147,7 +145,6 @@ def main(
     iou: float,
     classes: List[int],
 ) -> None:
-
     xd = XD(zone_configuration_path=zone_configuration_path, classes=classes)
 
     pipeline = InferencePipeline.init(
@@ -155,7 +152,7 @@ def main(
         video_reference=rtsp_url,
         on_prediction=xd.on_prediction,
         confidence=confidence,
-        iou_threshold=iou
+        iou_threshold=iou,
     )
 
     pipeline.start()
@@ -183,10 +180,7 @@ if __name__ == "__main__":
         help="Complete RTSP URL for the video stream.",
     )
     parser.add_argument(
-        "--model_id",
-        type=str,
-        default="yolov8s-640",
-        help="Roboflow model ID."
+        "--model_id", type=str, default="yolov8s-640", help="Roboflow model ID."
     )
     parser.add_argument(
         "--confidence_threshold",

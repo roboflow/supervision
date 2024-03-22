@@ -7,9 +7,9 @@ import cv2
 import numpy as np
 from inference import InferencePipeline
 from inference.core.interfaces.camera.entities import VideoFrame
+from ultralytics import YOLO
 
 import supervision as sv
-from ultralytics import YOLO
 
 COLORS = sv.ColorPalette.from_hex(["#E6194B", "#3CB44B", "#FFE119", "#3C76D1"])
 
@@ -146,7 +146,6 @@ def main(
     iou: float,
     classes: List[int],
 ) -> None:
-
     model = YOLO(weights)
 
     def inference_callback(frame: VideoFrame) -> sv.Detections:
