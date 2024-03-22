@@ -7,6 +7,7 @@ from supervision.tracker.byte_tracker import matching
 from supervision.tracker.byte_tracker.basetrack import BaseTrack, TrackState
 from supervision.tracker.byte_tracker.kalman_filter import KalmanFilter
 from supervision.utils.internal import deprecated_parameter
+from supervision.detection.utils import box_iou_batch
 
 
 class STrack(BaseTrack):
@@ -269,27 +270,23 @@ class ByteTrack:
             )
             ```
         """
+        # Tensors is in the same order as detections
+        tensors = detections2boxes(detections=detections)
+        
+        tracks = self.update_with_tensors(tensors=tensors)
 
-        tracks = self.update_with_tensors(
-            tensors=detections2boxes(detections=detections)
-        )
-        detections = Detections.empty()
         if len(tracks) > 0:
-            detections.xyxy = np.array(
-                [track.tlbr for track in tracks], dtype=np.float32
-            )
-            detections.class_id = np.array(
-                [int(t.class_ids) for t in tracks], dtype=int
-            )
-            detections.tracker_id = np.array(
-                [int(t.track_id) for t in tracks], dtype=int
-            )
-            detections.confidence = np.array(
-                [t.score for t in tracks], dtype=np.float32
-            )
+            ious = box_iou_batch(tensors, tracks)
+
+            iou_costs = 1-ious
+
+            matches, _, _ = matching.linear_assignment(iou_costs, .25)
+
+            for idet, itrack in matches:
+                detections.tracker_id[idet] = int(tracks[itrack].track_id)
         else:
             detections.tracker_id = np.array([], dtype=int)
-
+        
         return detections
 
     def reset(self):
