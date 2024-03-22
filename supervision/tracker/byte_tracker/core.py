@@ -8,6 +8,7 @@ from supervision.tracker.byte_tracker import matching
 from supervision.tracker.byte_tracker.basetrack import BaseTrack, TrackState
 from supervision.tracker.byte_tracker.kalman_filter import KalmanFilter
 from supervision.utils.internal import deprecated_parameter
+from supervision.detection.utils import box_iou_batch
 
 
 class STrack(BaseTrack):
@@ -286,7 +287,7 @@ class ByteTrack:
                 detections.tracker_id[idet] = int(tracks[itrack].track_id)
         else:
             detections.tracker_id = np.array([], dtype=int)
-
+        
         return detections
 
     def reset(self):
