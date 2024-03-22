@@ -103,7 +103,7 @@ def main(
     device: str,
     confidence: float,
     iou: float,
-    classes: List[int]
+    classes: List[int],
 ) -> None:
     model = YOLO(weights)
     tracker = sv.ByteTrack(minimum_matching_threshold=0.5)
@@ -215,7 +215,10 @@ if __name__ == "__main__":
         help="IOU threshold for non-max suppression. Default is 0.7.",
     )
     parser.add_argument(
-        "--classes", nargs='*', type=int, default=[],
+        "--classes",
+        nargs="*",
+        type=int,
+        default=[],
         help="List of class IDs to track. If empty, all classes are tracked.",
     )
     args = parser.parse_args()
@@ -227,5 +230,5 @@ if __name__ == "__main__":
         device=args.device,
         confidence=args.confidence_threshold,
         iou=args.iou_threshold,
-        classes=args.classes
+        classes=args.classes,
     )
