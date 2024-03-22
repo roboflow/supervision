@@ -235,26 +235,48 @@ def detections2boxes(detections: Detections) -> np.ndarray:
 
 
 class ConfTrack:
+    """
+    Initialize the ByteTrack object.
+
+    Parameters:
+        detection_high_threshold (float, optional): Detection confidence threshold
+            for first matching step. Increasing detection_high_threshold increases
+            track initialization accuracy at the risk of missing low-confidence
+            tracks altogether.
+            Decreasing it increases the number of tracks initialized but risks
+            initializing short, likely in-valid tracks.
+        tentative_track_high_threshold (float, optional): Track confidence threshold
+            for matching tentative tracks. Similar to detection_high_threshold,
+            increasing it increases track initialization accuracy at the risk of
+            missing low-confidence tracks.
+        lost_track_buffer (int, optional): Number of frames to buffer when a track is
+            lost.
+            Increasing lost_track_buffer enhances occlusion handling, significantly
+            reducing the likelihood of track fragmentation or disappearance caused
+            by brief detection gaps.
+        minimum_matching_threshold (float, optional): Threshold for matching tracks
+            with detections.
+            Increasing minimum_matching_threshold improves accuracy but risks
+            fragmentation.
+            Decreasing it improves completeness but risks false positives and drift.
+        frame_rate (int, optional): The frame rate of the video.
+    """
+
     def __init__(
         self,
-        track_high_thresh: float = 0.6,
-        track_low_thresh: float = 0.2,
-        new_track_thresh: float = 0.1,
-        tent_conf_thresh: float = 0.7,
+        detection_high_threshold: float = 0.6,
+        tentative_track_high_threshold: float = 0.7,
         minimum_matching_threshold: float = 0.8,
         lost_track_buffer: int = 30,
-        proximity_thresh: float = 0.6,
         frame_rate: int = 30,
     ):
         BaseTrack.clear_count()
 
         self.frame_id = 0
 
-        self.track_high_thresh = track_high_thresh
-        self.track_low_thresh = track_low_thresh
-        self.new_track_thresh = new_track_thresh
+        self.detection_high_threshold = detection_high_threshold
 
-        self.tent_conf_thresh = tent_conf_thresh
+        self.tentative_track_high_threshold = tentative_track_high_threshold
 
         self.minimum_matching_threshold = minimum_matching_threshold
 
@@ -281,13 +303,13 @@ class ConfTrack:
             >>> from ultralytics import YOLO
 
             >>> model = YOLO(...)
-            >>> byte_tracker = sv.ByteTrack()
+            >>> conf_tracker = sv.ConfTrack()
             >>> annotator = sv.BoxAnnotator()
 
             >>> def callback(frame: np.ndarray, index: int) -> np.ndarray:
             ...     results = model(frame)[0]
             ...     detections = sv.Detections.from_ultralytics(results)
-            ...     detections = byte_tracker.update_with_detections(detections)
+            ...     detections = conf_tracker.update_with_detections(detections)
             ...     labels = [
             ...         f"#{tracker_id} {model.model.names[class_id]} {confidence:0.2f}"
             ...         for _, _, confidence, class_id, tracker_id
@@ -324,7 +346,7 @@ class ConfTrack:
 
     def reset(self):
         """
-        Resets the internal state of the ByteTrack tracker.
+        Resets the internal state of the ConfTrack tracker.
 
         This method clears the tracking data, including tracked, lost,
         and removed tracks, as well as resetting the frame counter. It's
@@ -358,13 +380,13 @@ class ConfTrack:
         bboxes = tensors[:, :4]
 
         # Remove bad detections
-        inds_low = scores > self.track_low_thresh
+        inds_low = scores > 0.2
         bboxes = bboxes[inds_low]
         scores = scores[inds_low]
         class_ids = class_ids[inds_low]
 
         # Find high threshold detections
-        inds_high = scores > self.track_high_thresh
+        inds_high = scores > self.detection_high_threshold
         dets = bboxes[inds_high]
         scores_keep = scores[inds_high]
         class_ids_keep = class_ids[inds_high]
@@ -391,7 +413,7 @@ class ConfTrack:
         for track in self.tracked_tracks:
             if not track.is_activated:
                 # implement LM from ConfTrack paper
-                if track.score < self.tent_conf_thresh:
+                if track.score < self.tentative_track_high_threshold:
                     low_tent.append(track)
                 else:
                     high_tent.append(track)
@@ -428,7 +450,7 @@ class ConfTrack:
                 refind_stracks.append(track)
 
         """ Step 3: Second association, with low score detection boxes"""
-        # association the untrack to the low score detections
+        # association the untracked to the low score detections
         if len(dets_second) > 0:
             """Detections"""
             detections_second = [
@@ -458,12 +480,12 @@ class ConfTrack:
                 refind_stracks.append(track)
 
         # implement LM from ConfTrack paper
-        """Step 4: low-confidence track matching with high-conf dets"""
+        """Step 4: low-confidence track matching with high-confidence detections"""
         # Associate with high score detection boxes
         stracks_conf_remain = [r_tracked_tracks[i] for i in track_conf_remain]
         ious_dists = matching.iou_distance(low_tent, stracks_conf_remain)
         _, low_tent_valid, _ = matching.linear_assignment(
-            ious_dists, thresh=1 - 0.7
+            ious_dists, thresh=(1 - 0.7)
         )  # want to get rid of tracks with low iou costs
         stracks_low_tent_valid = [low_tent[i] for i in low_tent_valid]
         stracks_det_high_remain = [detections[i] for i in det_high_remain]
@@ -473,13 +495,14 @@ class ConfTrack:
 
         matches, track_tent_remain, det_high_remain = matching.linear_assignment(
             C_low_ious, thresh=0.3
-        )  # need to find this val in ConfTrack paper
+        )  # thresh is from ConfTrack paper
 
         for itracked, idet in matches:
             low_tent[itracked].update(stracks_det_high_remain[idet], self.frame_id)
             activated_starcks.append(low_tent[itracked])
 
-        """Deal with unconfirmed tracks, usually tracks with only one beginning frame"""
+        """Deal with left over tentative tracks,
+            usually tracks with only one beginning frame"""
         for it in track_tent_remain:
             track = stracks_low_tent_valid[it]
             track.mark_removed()
@@ -494,7 +517,7 @@ class ConfTrack:
         """ Step 5: Init new stracks"""
         for inew in det_high_remain:
             track = stracks_det_high_remain[inew]
-            if track.score < self.new_track_thresh:
+            if track.score < 0.1:
                 continue
 
             track.activate(self.kalman_filter, self.frame_id)
@@ -502,7 +525,7 @@ class ConfTrack:
 
         for inew in det_low_remain:
             track = detections_second[inew]
-            if track.score < self.new_track_thresh:
+            if track.score < 0.1:
                 continue
 
             track.activate(self.kalman_filter, self.frame_id)
