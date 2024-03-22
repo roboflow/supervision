@@ -545,7 +545,7 @@ class ConfTrack:
         self.tracked_tracks = joint_stracks(self.tracked_tracks, refind_stracks)
         self.lost_tracks = sub_stracks(self.lost_tracks, self.tracked_tracks)
         self.lost_tracks.extend(lost_tracks)
-        self.lost_tracks = sub_stracks(self.lost_tracks, self.removed_stracks)
+        self.lost_tracks = sub_stracks(self.lost_tracks, self.removed_tracks)
         self.removed_tracks.extend(removed_stracks)
         self.tracked_tracks, self.lost_tracks = remove_duplicate_stracks(
             self.tracked_tracks, self.lost_tracks
