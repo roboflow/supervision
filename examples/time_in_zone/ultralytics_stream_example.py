@@ -79,27 +79,10 @@ def get_stream_frames_generator(rtsp_url: str) -> Generator[np.ndarray, None, No
 
 
 class ClockBasedTimer:
-    """
-    A class for tracking and updating time durations associated with object detections.
-
-    Attributes:
-        tracker_id2start_time (Dict[int, datetime]): A dictionary mapping tracker IDs
-            to the datetime when they were first detected.
-    """
-
     def __init__(self) -> None:
         self.tracker_id2start_time: Dict[int, datetime] = {}
 
     def tick(self, detections: sv.Detections) -> np.ndarray:
-        """
-        Updates detection times based on current detections.
-
-        Args:
-            detections (sv.Detections): The current detections with tracker IDs.
-
-        Returns:
-            np.ndarray: The time duration each object has been detected.
-        """
         current_time = datetime.now()
         times = []
 
