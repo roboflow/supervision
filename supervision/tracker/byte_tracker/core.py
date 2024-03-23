@@ -293,13 +293,9 @@ class ByteTrack:
                 print(f"det xyxy: {detections.xyxy[idet]}")
                 print(f"track xyxy: {tracks[itrack].tlbr}")
                 print(" ")
-
-                np.append(final_detections.xyxy, detections.xyxy[idet])
-                np.append(final_detections.mask, detections.mask[idet])
-                np.append(final_detections.confidence, detections.confidence[idet])
-                np.append(final_detections.class_id, detections.class_id[idet])
-                np.append(final_detections.tracker_id, int(tracks[itrack].track_id))
-                np.append(final_detections.data, detections.data[idet])
+                current_detection = detections[idet]
+                current_detection.tracker_id[0] = int(tracks[itrack].track_id)
+                Detections.merge([final_detections, current_detection])
 
         else:
             final_detections.tracker_id = np.array([], dtype=int)
