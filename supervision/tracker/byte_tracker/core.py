@@ -287,19 +287,20 @@ class ByteTrack:
 
             iou_costs = 1 - ious
 
-            matches, _, _ = matching.linear_assignment(iou_costs, .5)
+            matches, _, _ = matching.linear_assignment(iou_costs, 0.5)
 
             for idet, itrack in matches:
                 print(f"det xyxy: {detections.xyxy[idet]}")
                 print(f"track xyxy: {tracks[itrack].tlbr}")
                 print(" ")
-                detections.tracker_id[idet] = int(tracks[itrack].track_id)
 
-                final_detections.xyxy[idet] = detections.xyxy[idet]
-                final_detections.mask[idet] = detections.mask[idet]
-                final_detections.confidence[idet] = detections.confidence[idet]
-                final_detections.class_id[idet] = final_detections.class_id[idet]
-                final_detections.data[idet] = final_detections.data[idet]
+                np.append(final_detections.xyxy, detections.xyxy[idet])
+                np.append(final_detections.mask, detections.mask[idet])
+                np.append(final_detections.confidence, detections.confidence[idet])
+                np.append(final_detections.class_id, detections.class_id[idet])
+                np.append(final_detections.tracker_id, int(tracks[itrack].track_id))
+                np.append(final_detections.data, final_detections.data[idet])
+
         else:
             final_detections.tracker_id = np.array([], dtype=int)
 
