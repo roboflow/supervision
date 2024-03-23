@@ -279,9 +279,7 @@ class ByteTrack:
 
         if len(tracks) > 0:
             det_tlbrs = np.asarray([det[:4] for det in tensors])
-            print(f"  det_tlbrs: {det_tlbrs}")
             track_tlbrs = np.asarray([track.tlbr for track in tracks])
-            print(f"track_tlbrs: {track_tlbrs}")
 
             ious = box_iou_batch(det_tlbrs, track_tlbrs)
 
@@ -294,13 +292,11 @@ class ByteTrack:
                     final_detections = detections[[idet]]
                     final_detections.tracker_id[0] = int(tracks[itrack].track_id)
                 else:
-                    print(f"det xyxy: {detections.xyxy[idet]}")
-                    print(f"track xyxy: {tracks[itrack].tlbr}")
-                    print(" ")
-                    print(f"Shape of detections xyxy: {detections.xyxy.shape}")
                     current_detection = detections[[idet]]
                     current_detection.tracker_id[0] = int(tracks[itrack].track_id)
-                    final_detections = Detections.merge([final_detections, current_detection])
+                    final_detections = Detections.merge(
+                        [final_detections, current_detection]
+                    )
                 i += 1
 
         else:
