@@ -3,6 +3,7 @@ from typing import List, Tuple
 import numpy as np
 
 from supervision.detection.core import Detections
+from supervision.detection.utils import box_iou_batch
 from supervision.tracker.byte_tracker import matching
 from supervision.tracker.byte_tracker.basetrack import BaseTrack, TrackState
 from supervision.tracker.byte_tracker.kalman_filter import KalmanFilter
@@ -270,27 +271,35 @@ class ByteTrack:
             ```
         """
 
-        tracks = self.update_with_tensors(
-            tensors=detections2boxes(detections=detections)
-        )
-        detections = Detections.empty()
-        if len(tracks) > 0:
-            detections.xyxy = np.array(
-                [track.tlbr for track in tracks], dtype=np.float32
-            )
-            detections.class_id = np.array(
-                [int(t.class_ids) for t in tracks], dtype=int
-            )
-            detections.tracker_id = np.array(
-                [int(t.track_id) for t in tracks], dtype=int
-            )
-            detections.confidence = np.array(
-                [t.score for t in tracks], dtype=np.float32
-            )
-        else:
-            detections.tracker_id = np.array([], dtype=int)
+        tensors = detections2boxes(detections=detections)
 
-        return detections
+        tracks = self.update_with_tensors(tensors=tensors)
+
+        final_detections = Detections.empty()
+
+        if len(tracks) > 0:
+            detection_bounding_boxes = np.asarray([det[:4] for det in tensors])
+            track_bounding_boxes = np.asarray([track.tlbr for track in tracks])
+
+            ious = box_iou_batch(detection_bounding_boxes, track_bounding_boxes)
+
+            iou_costs = 1 - ious
+
+            matches, _, _ = matching.linear_assignment(iou_costs, 0.5)
+            for i, idet, itrack in enumerate(matches):
+                if i == 0:
+                    final_detections = detections[[idet]]
+                    final_detections.tracker_id[0] = int(tracks[itrack].track_id)
+                else:
+                    current_detection = detections[[idet]]
+                    current_detection.tracker_id[0] = int(tracks[itrack].track_id)
+                    final_detections = Detections.merge(
+                        [final_detections, current_detection]
+                    )
+        else:
+            final_detections.tracker_id = np.array([], dtype=int)
+
+        return final_detections
 
     def reset(self):
         """
