@@ -297,7 +297,7 @@ class ByteTrack:
                     print(f"Shape of detections xyxy: {detections.xyxy.shape}")
                     current_detection = detections[[idet]]
                     current_detection.tracker_id[0] = int(tracks[itrack].track_id)
-                    Detections.merge([final_detections, current_detection])
+                    final_detections = Detections.merge([final_detections, current_detection])
                 i += 1
 
         else:
