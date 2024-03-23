@@ -277,7 +277,7 @@ class ByteTrack:
 
         if len(tracks) > 0:
             det_tlbrs = np.asarray([det[:4] for det in tensors])
-            print(f"det_tlbrs: {det_tlbrs}")
+            print(f"  det_tlbrs: {det_tlbrs}")
             track_tlbrs = np.asarray([track.tlbr for track in tracks])
             print(f"track_tlbrs: {track_tlbrs}")
 
@@ -290,6 +290,7 @@ class ByteTrack:
             for idet, itrack in matches:
                 print(f"det xyxy: {detections.xyxy[idet]}")
                 print(f"track xyxy: {tracks[itrack].tlbr}")
+                print(" ")
                 detections.tracker_id[idet] = int(tracks[itrack].track_id)
         else:
             detections.tracker_id = np.array([], dtype=int)
