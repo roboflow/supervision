@@ -299,7 +299,7 @@ class ByteTrack:
                 np.append(final_detections.confidence, detections.confidence[idet])
                 np.append(final_detections.class_id, detections.class_id[idet])
                 np.append(final_detections.tracker_id, int(tracks[itrack].track_id))
-                np.append(final_detections.data, final_detections.data[idet])
+                np.append(final_detections.data, detections.data[idet])
 
         else:
             final_detections.tracker_id = np.array([], dtype=int)
