@@ -275,22 +275,32 @@ class ByteTrack:
 
         tracks = self.update_with_tensors(tensors=tensors)
 
+        final_detections = Detections.empty()
+
         if len(tracks) > 0:
             det_tlbrs = np.asarray([det[:4] for det in tensors])
+            print(f"  det_tlbrs: {det_tlbrs}")
             track_tlbrs = np.asarray([track.tlbr for track in tracks])
+            print(f"track_tlbrs: {track_tlbrs}")
 
             ious = box_iou_batch(det_tlbrs, track_tlbrs)
 
             iou_costs = 1 - ious
 
-            matches, _, _ = matching.linear_assignment(iou_costs, 0.25)
+            matches, _, _ = matching.linear_assignment(iou_costs, 0.5)
 
             for idet, itrack in matches:
-                detections.tracker_id[idet] = int(tracks[itrack].track_id)
-        else:
-            detections.tracker_id = np.array([], dtype=int)
+                print(f"det xyxy: {detections.xyxy[idet]}")
+                print(f"track xyxy: {tracks[itrack].tlbr}")
+                print(" ")
+                current_detection = detections[idet]
+                current_detection.tracker_id[0] = int(tracks[itrack].track_id)
+                Detections.merge([final_detections, current_detection])
 
-        return detections
+        else:
+            final_detections.tracker_id = np.array([], dtype=int)
+
+        return final_detections
 
     def reset(self):
         """
