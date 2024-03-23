@@ -8,7 +8,6 @@ from supervision.tracker.byte_tracker import matching
 from supervision.tracker.byte_tracker.basetrack import BaseTrack, TrackState
 from supervision.tracker.byte_tracker.kalman_filter import KalmanFilter
 from supervision.utils.internal import deprecated_parameter
-from supervision.detection.utils import box_iou_batch
 
 
 class STrack(BaseTrack):
@@ -277,7 +276,10 @@ class ByteTrack:
         tracks = self.update_with_tensors(tensors=tensors)
 
         if len(tracks) > 0:
-            ious = box_iou_batch(tensors, tracks)
+            det_tlbrs = np.asarray([det[:4] for det in tensors])
+            track_tlbrs = np.asarray([track.tlbr for track in tracks])
+
+            ious = box_iou_batch(det_tlbrs, track_tlbrs)
 
             iou_costs = 1 - ious
 
@@ -287,7 +289,7 @@ class ByteTrack:
                 detections.tracker_id[idet] = int(tracks[itrack].track_id)
         else:
             detections.tracker_id = np.array([], dtype=int)
-        
+
         return detections
 
     def reset(self):
