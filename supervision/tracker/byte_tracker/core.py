@@ -275,6 +275,8 @@ class ByteTrack:
 
         tracks = self.update_with_tensors(tensors=tensors)
 
+        final_detections = Detections.empty()
+
         if len(tracks) > 0:
             det_tlbrs = np.asarray([det[:4] for det in tensors])
             print(f"  det_tlbrs: {det_tlbrs}")
@@ -290,6 +292,7 @@ class ByteTrack:
             for idet, itrack in matches:
                 if i == 0:
                     final_detections = detections[[idet]]
+                    final_detections.tracker_id[0] = int(tracks[itrack].track_id)
                 else:
                     print(f"det xyxy: {detections.xyxy[idet]}")
                     print(f"track xyxy: {tracks[itrack].tlbr}")
