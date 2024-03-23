@@ -277,13 +277,15 @@ class ByteTrack:
 
         if len(tracks) > 0:
             det_tlbrs = np.asarray([det[:4] for det in tensors])
+            print(det_tlbrs)
             track_tlbrs = np.asarray([track.tlbr for track in tracks])
+            print(track_tlbrs)
 
             ious = box_iou_batch(det_tlbrs, track_tlbrs)
 
             iou_costs = 1 - ious
 
-            matches, _, _ = matching.linear_assignment(iou_costs, 0.25)
+            matches, _, _ = matching.linear_assignment(iou_costs, 1)
 
             for idet, itrack in matches:
                 detections.tracker_id[idet] = int(tracks[itrack].track_id)
