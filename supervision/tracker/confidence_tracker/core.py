@@ -1,5 +1,5 @@
 from collections import deque
-from typing import List
+from typing import List, Tuple
 
 import numpy as np
 
@@ -280,7 +280,6 @@ class ConfTrack:
 
         self.minimum_matching_threshold = minimum_matching_threshold
 
-        # self.buffer_size = int(frame_rate / 30.0 * args.lost_track_buffer)
         self.max_time_lost = int(frame_rate / 30.0 * lost_track_buffer)
         self.kalman_filter = KalmanFilter(0.6, 10)
 
@@ -326,11 +325,7 @@ class ConfTrack:
             ```
         """
         tensors = detections2boxes(detections)
-        # print(f"tensors: {tensors}")
-        tracks = self.update_with_tensors(
-            # maybe extract features here
-            tensors
-        )
+        tracks = self.update_with_tensors(tensors)
         detections = Detections.empty()
         if len(tracks) > 0:
             detections.xyxy = np.array([track.tlbr for track in tracks], dtype=float)
@@ -421,13 +416,13 @@ class ConfTrack:
                 tracked_tracks.append(track)
 
         """ Step 2: First association, with high score detection boxes"""
-        strack_pool = joint_stracks(tracked_tracks, self.lost_tracks)
+        strack_pool = joint_tracks(tracked_tracks, self.lost_tracks)
 
         # Predict the current location with KF
         STrack.multi_predict(strack_pool)
 
         # LM algorithm
-        strack_pool = joint_stracks(strack_pool, high_tent)
+        strack_pool = joint_tracks(strack_pool, high_tent)
 
         # Associate with high score detection boxes
         ious_dists = matching.iou_distance(strack_pool, detections)
@@ -541,13 +536,13 @@ class ConfTrack:
         self.tracked_tracks = [
             t for t in self.tracked_tracks if t.state == TrackState.Tracked
         ]
-        self.tracked_tracks = joint_stracks(self.tracked_tracks, activated_starcks)
-        self.tracked_tracks = joint_stracks(self.tracked_tracks, refind_stracks)
-        self.lost_tracks = sub_stracks(self.lost_tracks, self.tracked_tracks)
+        self.tracked_tracks = joint_tracks(self.tracked_tracks, activated_starcks)
+        self.tracked_tracks = joint_tracks(self.tracked_tracks, refind_stracks)
+        self.lost_tracks = sub_tracks(self.lost_tracks, self.tracked_tracks)
         self.lost_tracks.extend(lost_tracks)
-        self.lost_tracks = sub_stracks(self.lost_tracks, self.removed_tracks)
+        self.lost_tracks = sub_tracks(self.lost_tracks, self.removed_tracks)
         self.removed_tracks.extend(removed_stracks)
-        self.tracked_tracks, self.lost_tracks = remove_duplicate_stracks(
+        self.tracked_tracks, self.lost_tracks = remove_duplicate_tracks(
             self.tracked_tracks, self.lost_tracks
         )
 
@@ -556,42 +551,71 @@ class ConfTrack:
         return output_stracks
 
 
-def joint_stracks(tlista, tlistb):
-    exists = {}
-    res = []
-    for t in tlista:
-        exists[t.track_id] = 1
-        res.append(t)
-    for t in tlistb:
-        tid = t.track_id
-        if not exists.get(tid, 0):
-            exists[tid] = 1
-            res.append(t)
-    return res
+def joint_tracks(
+    track_list_a: List[STrack], track_list_b: List[STrack]
+) -> List[STrack]:
+    """
+    Joins two lists of tracks, ensuring that the resulting list does not
+    contain tracks with duplicate track_id values.
+
+    Parameters:
+        track_list_a: First list of tracks (with track_id attribute).
+        track_list_b: Second list of tracks (with track_id attribute).
+
+    Returns:
+        Combined list of tracks from track_list_a and track_list_b
+            without duplicate track_id values.
+    """
+    seen_track_ids = set()
+    result = []
+
+    for track in track_list_a + track_list_b:
+        if track.track_id not in seen_track_ids:
+            seen_track_ids.add(track.track_id)
+            result.append(track)
+
+    return result
 
 
-def sub_stracks(tlista, tlistb):
-    stracks = {}
-    for t in tlista:
-        stracks[t.track_id] = t
-    for t in tlistb:
-        tid = t.track_id
-        if stracks.get(tid, 0):
-            del stracks[tid]
-    return list(stracks.values())
+def sub_tracks(track_list_a: List, track_list_b: List) -> List[int]:
+    """
+    Returns a list of tracks from track_list_a after removing any tracks
+    that share the same track_id with tracks in track_list_b.
+
+    Parameters:
+        track_list_a: List of tracks (with track_id attribute).
+        track_list_b: List of tracks (with track_id attribute) to
+            be subtracted from track_list_a.
+    Returns:
+        List of remaining tracks from track_list_a after subtraction.
+    """
+    tracks = {track.track_id: track for track in track_list_a}
+    track_ids_b = {track.track_id for track in track_list_b}
+
+    for track_id in track_ids_b:
+        tracks.pop(track_id, None)
+
+    return list(tracks.values())
 
 
-def remove_duplicate_stracks(stracksa, stracksb):
-    pdist = matching.iou_distance(stracksa, stracksb)
-    pairs = np.where(pdist < 0.15)
-    dupa, dupb = list(), list()
-    for p, q in zip(*pairs):
-        timep = stracksa[p].frame_id - stracksa[p].start_frame
-        timeq = stracksb[q].frame_id - stracksb[q].start_frame
-        if timep > timeq:
-            dupb.append(q)
+def remove_duplicate_tracks(tracks_a: List, tracks_b: List) -> Tuple[List, List]:
+    pairwise_distance = matching.iou_distance(tracks_a, tracks_b)
+    matching_pairs = np.where(pairwise_distance < 0.15)
+
+    duplicates_a, duplicates_b = set(), set()
+    for track_index_a, track_index_b in zip(*matching_pairs):
+        time_a = tracks_a[track_index_a].frame_id - tracks_a[track_index_a].start_frame
+        time_b = tracks_b[track_index_b].frame_id - tracks_b[track_index_b].start_frame
+        if time_a > time_b:
+            duplicates_b.add(track_index_b)
         else:
-            dupa.append(p)
-    resa = [t for i, t in enumerate(stracksa) if i not in dupa]
-    resb = [t for i, t in enumerate(stracksb) if i not in dupb]
-    return resa, resb
+            duplicates_a.add(track_index_a)
+
+    result_a = [
+        track for index, track in enumerate(tracks_a) if index not in duplicates_a
+    ]
+    result_b = [
+        track for index, track in enumerate(tracks_b) if index not in duplicates_b
+    ]
+
+    return result_a, result_b

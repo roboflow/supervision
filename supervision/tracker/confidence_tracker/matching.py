@@ -35,26 +35,6 @@ def linear_assignment(
     return indices_to_matches(cost_matrix, indices, thresh)
 
 
-def ious(atlbrs, btlbrs):
-    """
-    Compute cost based on IoU
-    :type atlbrs: list[tlbr] | np.ndarray
-    :type atlbrs: list[tlbr] | np.ndarray
-
-    :rtype ious np.ndarray
-    """
-    ious = np.zeros((len(atlbrs), len(btlbrs)), dtype=float)
-    if ious.size == 0:
-        return ious
-
-    ious = box_iou_batch(
-        np.ascontiguousarray(atlbrs, dtype=float),
-        np.ascontiguousarray(btlbrs, dtype=float),
-    )
-
-    return ious
-
-
 def iou_distance(atracks: List, btracks: List) -> np.ndarray:
     if (len(atracks) > 0 and isinstance(atracks[0], np.ndarray)) or (
         len(btracks) > 0 and isinstance(btracks[0], np.ndarray)
