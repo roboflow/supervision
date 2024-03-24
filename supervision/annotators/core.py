@@ -1084,12 +1084,13 @@ class LabelAnnotator:
             text_x = text_background_xyxy[0] + self.text_padding
             text_y = text_background_xyxy[1] + self.text_padding + text_h
 
-            cv2.rectangle(
+            self.draw_rounded_rectangle(
                 img=scene,
                 pt1=(text_background_xyxy[0], text_background_xyxy[1]),
                 pt2=(text_background_xyxy[2], text_background_xyxy[3]),
                 color=color.as_bgr(),
                 thickness=cv2.FILLED,
+                corner_radius=self.corner_radius
             )
             cv2.putText(
                 img=scene,
