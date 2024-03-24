@@ -907,6 +907,7 @@ class LabelAnnotator:
 
     def __init__(
         self,
+        corner_radius: int = 15,
         color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
         text_color: Color = Color.WHITE,
         text_scale: float = 0.5,
@@ -917,6 +918,8 @@ class LabelAnnotator:
     ):
         """
         Args:
+            corner_radius (int): The radius to apply round edges. If the selected
+                value is higher than the lower dimension, width or height, is clipped.
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating the text background.
             text_color (Color): The color to use for the text.
@@ -928,6 +931,7 @@ class LabelAnnotator:
             color_lookup (str): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
+        self.corner_radius: int = corner_radius
         self.color: Union[Color, ColorPalette] = color
         self.text_color: Color = text_color
         self.text_scale: float = text_scale
