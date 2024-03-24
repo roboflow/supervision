@@ -1,99 +1,19 @@
 import argparse
-import json
-from datetime import datetime
-from typing import Dict, Generator, List
+from typing import List
 
 import cv2
 import numpy as np
 from ultralytics import YOLO
 
 import supervision as sv
+from utils.general import load_zones_config, find_in_list, get_stream_frames_generator
+from utils.timers import ClockBasedTimer
 
 COLORS = sv.ColorPalette.from_hex(["#E6194B", "#3CB44B", "#FFE119", "#3C76D1"])
-
 COLOR_ANNOTATOR = sv.ColorAnnotator(color=COLORS)
 LABEL_ANNOTATOR = sv.LabelAnnotator(
     color=COLORS, text_color=sv.Color.from_hex("#000000")
 )
-
-
-def load_zones_config(file_path: str) -> List[np.ndarray]:
-    """
-    Load polygon zone configurations from a JSON file.
-
-    This function reads a JSON file which contains polygon coordinates, and
-    converts them into a list of NumPy arrays. Each polygon is represented as
-    a NumPy array of coordinates.
-
-    Args:
-        file_path (str): The path to the JSON configuration file.
-
-    Returns:
-        List[np.ndarray]: A list of polygons, each represented as a NumPy array.
-    """
-    with open(file_path, "r") as file:
-        data = json.load(file)
-        return [np.array(polygon, np.int32) for polygon in data]
-
-
-def find_in_list(array: np.ndarray, search_list: List[int]) -> np.ndarray:
-    """Determines if elements of a numpy array are present in a list.
-
-    Args:
-        array (np.ndarray): The numpy array of integers to check.
-        search_list (List[int]): The list of integers to search within.
-
-    Returns:
-        np.ndarray: A numpy array of booleans, where each boolean indicates whether
-        the corresponding element in `array` is found in `search_list`.
-    """
-    if not search_list:
-        return np.ones(array.shape, dtype=bool)
-    else:
-        return np.isin(array, search_list)
-
-
-def get_stream_frames_generator(rtsp_url: str) -> Generator[np.ndarray, None, None]:
-    """
-    Generator function to yield frames from an RTSP stream.
-
-    Args:
-        rtsp_url (str): URL of the RTSP video stream.
-
-    Yields:
-        np.ndarray: The next frame from the video stream.
-    """
-    cap = cv2.VideoCapture(rtsp_url)
-    if not cap.isOpened():
-        raise Exception("Error: Could not open video stream.")
-
-    try:
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                print("End of stream or error reading frame.")
-                break
-            yield frame
-    finally:
-        cap.release()
-
-
-class ClockBasedTimer:
-    def __init__(self) -> None:
-        self.tracker_id2start_time: Dict[int, datetime] = {}
-
-    def tick(self, detections: sv.Detections) -> np.ndarray:
-        current_time = datetime.now()
-        times = []
-
-        for tracker_id in detections.tracker_id:
-            self.tracker_id2start_time.setdefault(tracker_id, current_time)
-
-            start_time = self.tracker_id2start_time[tracker_id]
-            time_duration = (current_time - start_time).total_seconds()
-            times.append(time_duration)
-
-        return np.array(times)
 
 
 def main(

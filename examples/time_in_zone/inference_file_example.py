@@ -1,75 +1,19 @@
 import argparse
-import json
-from typing import Dict, List
+from typing import List
 
 import cv2
 import numpy as np
 from inference import get_model
 
 import supervision as sv
+from utils.general import load_zones_config, find_in_list
+from utils.timers import FPSBasedTimer
 
 COLORS = sv.ColorPalette.from_hex(["#E6194B", "#3CB44B", "#FFE119", "#3C76D1"])
-
 COLOR_ANNOTATOR = sv.ColorAnnotator(color=COLORS)
 LABEL_ANNOTATOR = sv.LabelAnnotator(
     color=COLORS, text_color=sv.Color.from_hex("#000000")
 )
-
-
-def load_zones_config(file_path: str) -> List[np.ndarray]:
-    """
-    Load polygon zone configurations from a JSON file.
-
-    This function reads a JSON file which contains polygon coordinates, and
-    converts them into a list of NumPy arrays. Each polygon is represented as
-    a NumPy array of coordinates.
-
-    Args:
-    file_path (str): The path to the JSON configuration file.
-
-    Returns:
-    List[np.ndarray]: A list of polygons, each represented as a NumPy array.
-    """
-    with open(file_path, "r") as file:
-        data = json.load(file)
-        return [np.array(polygon, np.int32) for polygon in data]
-
-
-def find_in_list(array: np.ndarray, search_list: List[int]) -> np.ndarray:
-    """Determines if elements of a numpy array are present in a list.
-
-    Args:
-        array (np.ndarray): The numpy array of integers to check.
-        search_list (List[int]): The list of integers to search within.
-
-    Returns:
-        np.ndarray: A numpy array of booleans, where each boolean indicates whether
-        the corresponding element in `array` is found in `search_list`.
-    """
-    if not search_list:
-        return np.ones(array.shape, dtype=bool)
-    else:
-        return np.isin(array, search_list)
-
-
-class FPSBasedTimer:
-    def __init__(self, fps: int = 30) -> None:
-        self.fps = fps
-        self.frame_id = 0
-        self.tracker_id2frame_id: Dict[int, int] = {}
-
-    def tick(self, detections: sv.Detections) -> np.ndarray:
-        self.frame_id += 1
-        times = []
-
-        for tracker_id in detections.tracker_id:
-            self.tracker_id2frame_id.setdefault(tracker_id, self.frame_id)
-
-            start_frame_id = self.tracker_id2frame_id[tracker_id]
-            time_duration = (self.frame_id - start_frame_id) / self.fps
-            times.append(time_duration)
-
-        return np.array(times)
 
 
 def main(

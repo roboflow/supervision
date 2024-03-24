@@ -1,7 +1,5 @@
 import argparse
-import json
-from datetime import datetime
-from typing import Dict, List
+from typing import List
 
 import cv2
 import numpy as np
@@ -9,70 +7,17 @@ from inference import InferencePipeline
 from inference.core.interfaces.camera.entities import VideoFrame
 
 import supervision as sv
+from utils.general import load_zones_config, find_in_list
+from utils.timers import ClockBasedTimer
 
 COLORS = sv.ColorPalette.from_hex(["#E6194B", "#3CB44B", "#FFE119", "#3C76D1"])
-
 COLOR_ANNOTATOR = sv.ColorAnnotator(color=COLORS)
 LABEL_ANNOTATOR = sv.LabelAnnotator(
     color=COLORS, text_color=sv.Color.from_hex("#000000")
 )
 
 
-def load_zones_config(file_path: str) -> List[np.ndarray]:
-    """
-    Load polygon zone configurations from a JSON file.
-
-    This function reads a JSON file which contains polygon coordinates, and
-    converts them into a list of NumPy arrays. Each polygon is represented as
-    a NumPy array of coordinates.
-
-    Args:
-        file_path (str): The path to the JSON configuration file.
-
-    Returns:
-        List[np.ndarray]: A list of polygons, each represented as a NumPy array.
-    """
-    with open(file_path, "r") as file:
-        data = json.load(file)
-        return [np.array(polygon, np.int32) for polygon in data]
-
-
-def find_in_list(array: np.ndarray, search_list: List[int]) -> np.ndarray:
-    """Determines if elements of a numpy array are present in a list.
-
-    Args:
-        array (np.ndarray): The numpy array of integers to check.
-        search_list (List[int]): The list of integers to search within.
-
-    Returns:
-        np.ndarray: A numpy array of booleans, where each boolean indicates whether
-        the corresponding element in `array` is found in `search_list`.
-    """
-    if not search_list:
-        return np.ones(array.shape, dtype=bool)
-    else:
-        return np.isin(array, search_list)
-
-
-class ClockBasedTimer:
-    def __init__(self) -> None:
-        self.tracker_id2start_time: Dict[int, datetime] = {}
-
-    def tick(self, detections: sv.Detections) -> np.ndarray:
-        current_time = datetime.now()
-        times = []
-
-        for tracker_id in detections.tracker_id:
-            self.tracker_id2start_time.setdefault(tracker_id, current_time)
-
-            start_time = self.tracker_id2start_time[tracker_id]
-            time_duration = (current_time - start_time).total_seconds()
-            times.append(time_duration)
-
-        return np.array(times)
-
-
-class XD:
+class CustomSink:
     def __init__(self, zone_configuration_path: str, classes: List[int]):
         self.classes = classes
         self.tracker = sv.ByteTrack(minimum_matching_threshold=0.5)
@@ -137,8 +82,6 @@ class XD:
         cv2.waitKey(1)
 
 
-
-
 def main(
     rtsp_url: str,
     zone_configuration_path: str,
@@ -148,12 +91,12 @@ def main(
     classes: List[int],
 ) -> None:
 
-    xd = XD(zone_configuration_path=zone_configuration_path, classes=classes)
+    sink = CustomSink(zone_configuration_path=zone_configuration_path, classes=classes)
 
     pipeline = InferencePipeline.init(
         model_id=model_id,
         video_reference=rtsp_url,
-        on_prediction=xd.on_prediction,
+        on_prediction=sink.on_prediction,
         confidence=confidence,
         iou_threshold=iou
     )
