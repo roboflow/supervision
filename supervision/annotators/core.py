@@ -1103,6 +1103,49 @@ class LabelAnnotator:
             )
         return scene
 
+    @staticmethod
+    def draw_rounded_rectangle(
+        img: ImageType, pt1: Tuple[int, int], pt2: Tuple[int, int],
+        color: Tuple[int, int, int], thickness: int, corner_radius: int
+    ) -> ImageType:
+        x1, y1 = pt1
+        x2, y2 = pt2
+        
+        width = x2 - x1
+        height = y2 - y1
+        
+        max_corner_radius = min(width, height) // 2
+        
+        corner_radius = min(corner_radius, max_corner_radius)
+        
+        rectangle_coords = [
+            ((x1 + corner_radius, y1), (x2 - corner_radius, y2)),
+            ((x1, y1 + corner_radius),(x2, y2 - corner_radius))
+        ]
+        circle_centers = [
+            (x1 + corner_radius, y1 + corner_radius),
+            (x2 - corner_radius, y1 + corner_radius),
+            (x1 + corner_radius, y2 - corner_radius),
+            (x2 - corner_radius, y2 - corner_radius),
+        ]
+
+        for coords in rectangle_coords:
+            cv2.rectangle(
+                img=img,
+                pt1=coords[0],
+                pt2=coords[1],
+                color=color,
+                thickness=thickness 
+            )
+        for center in circle_centers:
+            cv2.circle(
+                img=img,
+                center=center,
+                radius=corner_radius,
+                color=color,
+                thickness=thickness
+            )
+
 
 class BlurAnnotator(BaseAnnotator):
     """
