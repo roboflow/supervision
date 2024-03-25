@@ -388,19 +388,29 @@ class Detections:
         )
 
     @classmethod
-    def from_transformers(cls, transformers_results: dict) -> Detections:
+    def from_transformers(cls, transformers_results: dict, id2label: Dict[int, str]) -> Detections:
         """
-        Creates a Detections instance from object detection
-        [transformer](https://github.com/huggingface/transformers) inference result.
+        Constructs a Detections instance from the inference results of a Transformers object detection model.
+        [transformer](https://github.com/huggingface/transformers)
+
+        Args:
+            transformers_results (dict): A dictionary containing the scores, labels, and boxes for an image
+                as predicted by the Transformers model.
+            id2label (Dict[int, str]): A dictionary mapping class IDs to class names.
 
         Returns:
             Detections: A new Detections object.
         """
 
+        boxes = transformers_results["boxes"].cpu().numpy()
+        scores = transformers_results["scores"].cpu().numpy()
+        class_ids = transformers_results["labels"].cpu().numpy().astype(int)
+        class_names = np.array([id2label[class_id] for class_id in class_ids])
         return cls(
-            xyxy=transformers_results["boxes"].cpu().numpy(),
-            confidence=transformers_results["scores"].cpu().numpy(),
-            class_id=transformers_results["labels"].cpu().numpy().astype(int),
+            xyxy=boxes,
+            confidence=scores,
+            class_id=class_ids,
+            data={CLASS_NAME_DATA_FIELD: class_names},
         )
 
     @classmethod
