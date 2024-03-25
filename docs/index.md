@@ -109,6 +109,14 @@ You can install `supervision` with pip in a
 
     [:octicons-arrow-right-24: Tutorial](how_to/track_objects.md)
 
+-   __Detect Small Objects__
+
+    ---
+
+    Learn how to detect small objects in images 
+
+    [:octicons-arrow-right-24: Tutorial](how_to/detect_small_objects.md)
+
 -   > __Count Objects Crossing Line__
 
     ---
