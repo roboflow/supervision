@@ -1132,7 +1132,7 @@ class LabelAnnotator:
                 pt1=coordinates[0],
                 pt2=coordinates[1],
                 color=color,
-                thickness=-1
+                thickness=-1,
             )
         for center in circle_centers:
             cv2.circle(
