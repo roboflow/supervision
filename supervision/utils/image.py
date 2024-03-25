@@ -11,7 +11,12 @@ from PIL import Image
 
 from supervision.annotators.base import ImageType
 from supervision.draw.color import Color
-from supervision.utils.iterables import create_batches
+from supervision.draw.utils import calculate_optimal_text_scale, draw_text
+from supervision.geometry.core import Point
+from supervision.utils.conversion import cv2_to_pillow, images_to_cv2, pillow_to_cv2
+from supervision.utils.iterables import create_batches, fill
+
+RelativePosition = Literal["top", "bottom"]
 
 MAX_COLUMNS_FOR_SINGLE_ROW_GRID = 3
 
@@ -211,6 +216,15 @@ def create_tiles(
     tile_margin: int = 15,
     tile_margin_color: Union[Tuple[int, int, int], Color] = Color.BLACK,
     return_type: Literal["auto", "cv2", "pillow"] = "auto",
+    titles: Optional[List[Optional[str]]] = None,
+    titles_anchors: Optional[Union[Point, List[Optional[Point]]]] = None,
+    titles_color: Union[Tuple[int, int, int], Color] = Color.BLACK,
+    titles_scale: Optional[float] = None,
+    titles_thickness: int = 1,
+    titles_padding: int = 10,
+    titles_text_font: int = cv2.FONT_HERSHEY_SIMPLEX,
+    titles_background_color: Union[Tuple[int, int, int], Color] = Color.WHITE,
+    default_title_anchor: RelativePosition = "top",
 ) -> ImageType:
     """
     Creates tiles mosaic from input images, automating grid placement and
@@ -277,6 +291,18 @@ def create_tiles(
         raise ValueError(
             f"Could not place {len(images)} in grid with size: {grid_size}."
         )
+    if titles is not None:
+        titles = fill(sequence=titles, desired_size=len(images), padding=None)
+    titles_anchors = (
+        [titles_anchors]
+        if not issubclass(type(titles_anchors), list)
+        else titles_anchors
+    )
+    titles_anchors = fill(
+        sequence=titles_anchors, desired_size=len(images), padding=None
+    )
+    titles_color = _color_to_bgr(color=titles_color)
+    titles_background_color = _color_to_bgr(color=titles_background_color)
     tiles = _generate_tiles(
         images=resized_images,
         grid_size=grid_size,
@@ -284,6 +310,15 @@ def create_tiles(
         tile_padding_color=tile_padding_color,
         tile_margin=tile_margin,
         tile_margin_color=tile_margin_color,
+        titles=titles,
+        titles_anchors=titles_anchors,
+        titles_color=titles_color,
+        titles_scale=titles_scale,
+        titles_thickness=titles_thickness,
+        titles_padding=titles_padding,
+        titles_text_font=titles_text_font,
+        titles_background_color=titles_background_color,
+        default_title_anchor=default_title_anchor,
     )
     if return_type == "pillow":
         tiles = cv2_to_pillow(image=tiles)
@@ -351,7 +386,28 @@ def _generate_tiles(
     tile_padding_color: Tuple[int, int, int],
     tile_margin: int,
     tile_margin_color: Tuple[int, int, int],
+    titles: Optional[List[Optional[str]]],
+    titles_anchors: List[Optional[Point]],
+    titles_color: Tuple[int, int, int],
+    titles_scale: Optional[float],
+    titles_thickness: int,
+    titles_padding: int,
+    titles_text_font: int,
+    titles_background_color: Tuple[int, int, int],
+    default_title_anchor: RelativePosition,
 ) -> np.ndarray:
+    images = _draw_texts(
+        images=images,
+        titles=titles,
+        titles_anchors=titles_anchors,
+        titles_color=titles_color,
+        titles_scale=titles_scale,
+        titles_thickness=titles_thickness,
+        titles_padding=titles_padding,
+        titles_text_font=titles_text_font,
+        titles_background_color=titles_background_color,
+        default_title_anchor=default_title_anchor,
+    )
     rows, columns = grid_size
     tiles_elements = list(create_batches(sequence=images, batch_size=columns))
     while len(tiles_elements[-1]) < columns:
@@ -370,6 +426,69 @@ def _generate_tiles(
         tile_margin=tile_margin,
         tile_margin_color=tile_margin_color,
     )
+
+
+def _draw_texts(
+    images: List[np.ndarray],
+    titles: Optional[List[Optional[str]]],
+    titles_anchors: List[Optional[Point]],
+    titles_color: Tuple[int, int, int],
+    titles_scale: Optional[float],
+    titles_thickness: int,
+    titles_padding: int,
+    titles_text_font: int,
+    titles_background_color: Tuple[int, int, int],
+    default_title_anchor: RelativePosition,
+) -> List[np.ndarray]:
+    if titles is None:
+        return images
+    titles_anchors = _prepare_default_titles_anchors(
+        images=images,
+        titles_anchors=titles_anchors,
+        default_title_anchor=default_title_anchor,
+    )
+    if titles_scale is None:
+        image_height, image_width = images[0].shape[:2]
+        titles_scale = calculate_optimal_text_scale(
+            resolution_wh=(image_width, image_height)
+        )
+    result = []
+    for image, text, anchor in zip(images, titles, titles_anchors):
+        if text is None:
+            result.append(image)
+            continue
+        processed_image = draw_text(
+            scene=image,
+            text=text,
+            text_anchor=anchor,
+            text_color=Color.from_bgr_tuple(titles_color),
+            text_scale=titles_scale,
+            text_thickness=titles_thickness,
+            text_padding=titles_padding,
+            text_font=titles_text_font,
+            background_color=Color.from_bgr_tuple(titles_background_color),
+        )
+        result.append(processed_image)
+    return result
+
+
+def _prepare_default_titles_anchors(
+    images: List[np.ndarray],
+    titles_anchors: List[Optional[Point]],
+    default_title_anchor: RelativePosition,
+) -> List[Point]:
+    result = []
+    for image, anchor in zip(images, titles_anchors):
+        if anchor is not None:
+            result.append(anchor)
+            continue
+        image_height, image_width = image.shape[:2]
+        if default_title_anchor == "top":
+            default_anchor = Point(x=image_width / 2, y=image_height * 0.1)
+        else:
+            default_anchor = Point(x=image_width / 2, y=image_height * 0.9)
+        result.append(default_anchor)
+    return result
 
 
 def _merge_tiles_elements(
@@ -491,23 +610,3 @@ def _color_to_bgr(color: Union[Tuple[int, int, int], Color]) -> Tuple[int, int, 
     if issubclass(type(color), Color):
         return color.as_bgr()
     return color
-
-
-def images_to_cv2(images: List[ImageType]) -> List[np.ndarray]:
-    result = []
-    for image in images:
-        if issubclass(type(image), Image.Image):
-            image = pillow_to_cv2(image=image)
-        result.append(image)
-    return result
-
-
-def pillow_to_cv2(image: Image.Image) -> np.ndarray:
-    scene = np.array(image)
-    scene = cv2.cvtColor(scene, cv2.COLOR_RGB2BGR)
-    return scene
-
-
-def cv2_to_pillow(image: np.ndarray) -> Image.Image:
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    return Image.fromarray(image)

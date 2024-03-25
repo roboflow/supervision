@@ -15,3 +15,14 @@ def create_batches(
         current_batch.append(element)
     if len(current_batch) > 0:
         yield current_batch
+
+
+def fill(
+    sequence: List[SequenceElement],
+    desired_size: int,
+    padding: SequenceElement,
+) -> List[SequenceElement]:
+    missing_size = max(0, desired_size - len(sequence))
+    required_padding = [padding] * missing_size
+    sequence.extend(required_padding)
+    return sequence

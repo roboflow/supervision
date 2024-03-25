@@ -9,7 +9,7 @@ from supervision.annotators.base import ImageType
 from supervision.detection.core import Detections
 from supervision.draw.color import Color, ColorPalette
 from supervision.geometry.core import Position
-from supervision.utils.image import cv2_to_pillow, pillow_to_cv2
+from supervision.utils.conversion import cv2_to_pillow, pillow_to_cv2
 
 
 class ColorLookup(Enum):
