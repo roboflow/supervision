@@ -12,6 +12,8 @@ with the  [Inference](https://github.com/roboflow/inference),
 you'll learn how to import these predictions into Supervision and use them to annotate
 source image.
 
+![basic-annotation](https://media.roboflow.com/supervision_detect_and_annotate_example_1.png)
+
 ## Run Inference
 
 First, you'll need to obtain predictions from your object detection or segmentation
@@ -207,15 +209,44 @@ Finally, we can annotate the image with the predictions. Since we are working wi
         scene=annotated_image, detections=detections)
     ```
 
-![basic-annotation](https://media.roboflow.com/supervision_annotate_example.png)
+![basic-annotation](https://media.roboflow.com/supervision_detect_and_annotate_example_1.png)
 
 ## Display Custom Labels
 
-<TODO>
+By default, [`sv.LabelAnnotator`](annotators/#supervision.annotators.core.LabelAnnotator) 
+will label each detection with its `class_name` (if possible) or `class_id`. You can 
+override this behavior by passing a list of custom `labels` to the `annotate` method.
+
+=== "Inference"
+
+    ```{ .py hl_lines="13-17 22" }
+    import cv2
+    import supervision as sv
+    from inference import get_model
+
+    model = get_model(model_id="yolov8n-640")
+    image = cv2.imread(<PATH TO IMAGE>)
+    results = model.infer(image)[0]
+    detections = sv.Detections.from_inference(results)
+
+    bounding_box_annotator = sv.BoundingBoxAnnotator()
+    label_annotator = sv.LabelAnnotator()
+
+    labels = [
+        f"{class_name} {confidence:.2f}"
+        for class_name, confidence
+        in zip(detections['class_name'], detections.confidence)
+    ]
+
+    annotated_image = bounding_box_annotator.annotate(
+        scene=image, detections=detections)
+    annotated_image = label_annotator.annotate(
+        scene=annotated_image, detections=detections, labels=labels)
+    ```
 
 === "Ultralytics"
 
-    ```python
+    ```{ .py hl_lines="13-17 22" }
     import cv2
     import supervision as sv
     from ultralytics import YOLO
@@ -240,6 +271,54 @@ Finally, we can annotate the image with the predictions. Since we are working wi
         scene=annotated_image, detections=detections, labels=labels)
     ```
 
+=== "Transformers"
+
+    ```{ .py hl_lines="24-28 33" }
+    import torch
+    import supervision as sv
+    from PIL import Image
+    from transformers import DetrImageProcessor, DetrForObjectDetection
+
+    processor = DetrImageProcessor.from_pretrained("facebook/detr-resnet-50")
+    model = DetrForObjectDetection.from_pretrained("facebook/detr-resnet-50")
+
+    image = Image.open(<PATH TO IMAGE>)
+    inputs = processor(images=image, return_tensors="pt")
+    
+    with torch.no_grad():
+        outputs = model(**inputs)
+    
+    width, height = image.size
+    target_size = torch.tensor([[height, width]])
+    results = processor.post_process_object_detection(
+        outputs=outputs, target_sizes=target_size)[0]
+    detections = sv.Detections.from_transformers(results)
+    
+    bounding_box_annotator = sv.BoundingBoxAnnotator()
+    label_annotator = sv.LabelAnnotator()
+
+    labels = [
+        f"{model.config.id2label[class_id]} {confidence:.2f}"
+        for class_id, confidence
+        in zip(detections.class_id, detections.confidence)
+    ]
+
+    annotated_image = bounding_box_annotator.annotate(
+        scene=image, detections=detections)
+    annotated_image = label_annotator.annotate(
+        scene=annotated_image, detections=detections, labels=labels)
+    ```
+
+![custom-label-annotation](https://media.roboflow.com/supervision_detect_and_annotate_example_2.png)
+
+## Annotate Image with Segmentations
+
+If you are running the segmentation model 
+[`sv.MaskAnnotator`](annotators/#supervision.annotators.core.MaskAnnotator) 
+is a drop-in replacement for 
+[`sv.BoundingBoxAnnotator`](annotators/#supervision.annotators.core.BoundingBoxAnnotator) 
+that will allow you to draw masks instead of boxes.
+
 === "Inference"
 
     ```python
@@ -247,28 +326,39 @@ Finally, we can annotate the image with the predictions. Since we are working wi
     import supervision as sv
     from inference import get_model
 
-    model = get_model(model_id="yolov8n-640")
+    model = get_model(model_id="yolov8n-seg-640")
     image = cv2.imread(<PATH TO IMAGE>)
     results = model.infer(image)[0]
     detections = sv.Detections.from_inference(results)
 
-    bounding_box_annotator = sv.BoundingBoxAnnotator()
-    label_annotator = sv.LabelAnnotator()
+    mask_annotator = sv.MaskAnnotator()
+    label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER)
 
-    labels = [
-        f"{class_name} {confidence:.2f}"
-        for class_name, confidence
-        in zip(detections['class_name'], detections.confidence)
-    ]
-
-    annotated_image = bounding_box_annotator.annotate(
+    annotated_image = mask_annotator.annotate(
         scene=image, detections=detections)
     annotated_image = label_annotator.annotate(
         scene=annotated_image, detections=detections)
     ```
 
-![custom-label-annotation](https://media.roboflow.com/supervision-annotator-examples/label-annotator-example-purple.png)
+=== "Ultralytics"
 
-## Annotate Image with Segmentations
+    ```python
+    import cv2
+    import supervision as sv
+    from ultralytics import YOLO
 
-If you are running the segmentation model [`sv.MaskAnnotator`](annotators/#supervision.annotators.core.MaskAnnotator) is a drop-in replacement for [`sv.BoundingBoxAnnotator`](annotators/#supervision.annotators.core.BoundingBoxAnnotator) that will allow you to draw masks instead of boxes.
+    model = YOLO("yolov8n-seg.pt")
+    image = cv2.imread(<PATH TO IMAGE>)
+    results = model(image)[0]
+    detections = sv.Detections.from_ultralytics(results)
+
+    mask_annotator = sv.MaskAnnotator()
+    label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER)
+
+    annotated_image = mask_annotator.annotate(
+        scene=image, detections=detections)
+    annotated_image = label_annotator.annotate(
+        scene=annotated_image, detections=detections)
+    ```
+
+![segmentation-annotation](https://media.roboflow.com/supervision_detect_and_annotate_example_3.png)
