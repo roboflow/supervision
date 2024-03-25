@@ -4,7 +4,7 @@ comments: true
 
 # Assets
 
-Supervision offers an assets download utility that allows you to download video files
+Supervision offers an assets download utility that allows you to download image and video files
 that you can use in your demos.
 
 ## Install extra
@@ -29,3 +29,9 @@ as an extra within the Supervision package.
 </div>
 
 :::supervision.assets.list.VideoAssets
+
+<div class="md-typeset">
+  <h2>ImageAssets</h2>
+</div>
+
+:::supervision.assets.list.ImageAssets
