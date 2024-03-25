@@ -116,6 +116,11 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
+         <loc>https://supervision.roboflow.com/develop/how_to/detect_small_objects/</loc>
+         <lastmod>2024-03-25</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
          <loc>https://supervision.roboflow.com/develop/how_to/filter_detections/</loc>
          <lastmod>2024-03-25</lastmod>
          <changefreq>daily</changefreq>
