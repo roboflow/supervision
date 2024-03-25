@@ -907,7 +907,6 @@ class LabelAnnotator:
 
     def __init__(
         self,
-        corner_radius: int = 15,
         color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
         text_color: Color = Color.WHITE,
         text_scale: float = 0.5,
@@ -915,11 +914,10 @@ class LabelAnnotator:
         text_padding: int = 10,
         text_position: Position = Position.TOP_LEFT,
         color_lookup: ColorLookup = ColorLookup.CLASS,
+        border_radius: int = 0,
     ):
         """
         Args:
-            corner_radius (int): The radius to apply round edges. If the selected
-                value is higher than the lower dimension, width or height, is clipped.
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating the text background.
             text_color (Color): The color to use for the text.
@@ -930,8 +928,10 @@ class LabelAnnotator:
                 Possible values are defined in the `Position` enum.
             color_lookup (str): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
+            border_radius (int): The radius to apply round edges. If the selected
+                value is higher than the lower dimension, width or height, is clipped.
         """
-        self.corner_radius: int = corner_radius
+        self.border_radius: int = border_radius
         self.color: Union[Color, ColorPalette] = color
         self.text_color: Color = text_color
         self.text_scale: float = text_scale
@@ -1085,12 +1085,10 @@ class LabelAnnotator:
             text_y = text_background_xyxy[1] + self.text_padding + text_h
 
             self.draw_rounded_rectangle(
-                img=scene,
-                pt1=(text_background_xyxy[0], text_background_xyxy[1]),
-                pt2=(text_background_xyxy[2], text_background_xyxy[3]),
+                scene=scene,
+                xyxy=text_background_xyxy,
                 color=color.as_bgr(),
-                thickness=cv2.FILLED,
-                corner_radius=self.corner_radius,
+                border_radius=self.border_radius,
             )
             cv2.putText(
                 img=scene,
@@ -1106,46 +1104,45 @@ class LabelAnnotator:
 
     @staticmethod
     def draw_rounded_rectangle(
-        img: ImageType,
-        pt1: Tuple[int, int],
-        pt2: Tuple[int, int],
+        scene: np.ndarray,
+        xyxy: Tuple[int, int, int, int],
         color: Tuple[int, int, int],
-        thickness: int,
-        corner_radius: int,
-    ) -> ImageType:
-        x1, y1 = pt1
-        x2, y2 = pt2
-
+        border_radius: int,
+    ) -> np.ndarray:
+        x1, y1, x2, y2 = xyxy
         width = x2 - x1
         height = y2 - y1
 
-        max_corner_radius = min(width, height) // 2
+        border_radius = min(border_radius, min(width, height) // 2)
 
-        corner_radius = min(corner_radius, max_corner_radius)
-
-        rectangle_coords = [
-            ((x1 + corner_radius, y1), (x2 - corner_radius, y2)),
-            ((x1, y1 + corner_radius), (x2, y2 - corner_radius)),
+        rectangle_coordinates = [
+            ((x1 + border_radius, y1), (x2 - border_radius, y2)),
+            ((x1, y1 + border_radius), (x2, y2 - border_radius)),
         ]
         circle_centers = [
-            (x1 + corner_radius, y1 + corner_radius),
-            (x2 - corner_radius, y1 + corner_radius),
-            (x1 + corner_radius, y2 - corner_radius),
-            (x2 - corner_radius, y2 - corner_radius),
+            (x1 + border_radius, y1 + border_radius),
+            (x2 - border_radius, y1 + border_radius),
+            (x1 + border_radius, y2 - border_radius),
+            (x2 - border_radius, y2 - border_radius),
         ]
 
-        for coords in rectangle_coords:
+        for coordinates in rectangle_coordinates:
             cv2.rectangle(
-                img=img, pt1=coords[0], pt2=coords[1], color=color, thickness=thickness
+                img=scene,
+                pt1=coordinates[0],
+                pt2=coordinates[1],
+                color=color,
+                thickness=-1
             )
         for center in circle_centers:
             cv2.circle(
-                img=img,
+                img=scene,
                 center=center,
-                radius=corner_radius,
+                radius=border_radius,
                 color=color,
-                thickness=thickness,
+                thickness=-1,
             )
+        return scene
 
 
 class BlurAnnotator(BaseAnnotator):
