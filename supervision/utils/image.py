@@ -317,14 +317,14 @@ def create_tiles(
             f"Could not place {len(images)} in grid with size: {grid_size}."
         )
     if titles is not None:
-        titles = fill(sequence=titles, desired_size=len(images), padding=None)
+        titles = fill(sequence=titles, desired_size=len(images), content=None)
     titles_anchors = (
         [titles_anchors]
         if not issubclass(type(titles_anchors), list)
         else titles_anchors
     )
     titles_anchors = fill(
-        sequence=titles_anchors, desired_size=len(images), padding=None
+        sequence=titles_anchors, desired_size=len(images), content=None
     )
     titles_color = _color_to_bgr(color=titles_color)
     titles_background_color = _color_to_bgr(color=titles_background_color)
