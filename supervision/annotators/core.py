@@ -914,6 +914,7 @@ class LabelAnnotator:
         text_padding: int = 10,
         text_position: Position = Position.TOP_LEFT,
         color_lookup: ColorLookup = ColorLookup.CLASS,
+        border_radius: int = 0,
     ):
         """
         Args:
@@ -927,7 +928,10 @@ class LabelAnnotator:
                 Possible values are defined in the `Position` enum.
             color_lookup (str): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
+            border_radius (int): The radius to apply round edges. If the selected
+                value is higher than the lower dimension, width or height, is clipped.
         """
+        self.border_radius: int = border_radius
         self.color: Union[Color, ColorPalette] = color
         self.text_color: Color = text_color
         self.text_scale: float = text_scale
@@ -1087,12 +1091,11 @@ class LabelAnnotator:
             text_x = text_background_xyxy[0] + self.text_padding
             text_y = text_background_xyxy[1] + self.text_padding + text_h
 
-            cv2.rectangle(
-                img=scene,
-                pt1=(text_background_xyxy[0], text_background_xyxy[1]),
-                pt2=(text_background_xyxy[2], text_background_xyxy[3]),
+            self.draw_rounded_rectangle(
+                scene=scene,
+                xyxy=text_background_xyxy,
                 color=color.as_bgr(),
-                thickness=cv2.FILLED,
+                border_radius=self.border_radius,
             )
             cv2.putText(
                 img=scene,
@@ -1103,6 +1106,48 @@ class LabelAnnotator:
                 color=self.text_color.as_rgb(),
                 thickness=self.text_thickness,
                 lineType=cv2.LINE_AA,
+            )
+        return scene
+
+    @staticmethod
+    def draw_rounded_rectangle(
+        scene: np.ndarray,
+        xyxy: Tuple[int, int, int, int],
+        color: Tuple[int, int, int],
+        border_radius: int,
+    ) -> np.ndarray:
+        x1, y1, x2, y2 = xyxy
+        width = x2 - x1
+        height = y2 - y1
+
+        border_radius = min(border_radius, min(width, height) // 2)
+
+        rectangle_coordinates = [
+            ((x1 + border_radius, y1), (x2 - border_radius, y2)),
+            ((x1, y1 + border_radius), (x2, y2 - border_radius)),
+        ]
+        circle_centers = [
+            (x1 + border_radius, y1 + border_radius),
+            (x2 - border_radius, y1 + border_radius),
+            (x1 + border_radius, y2 - border_radius),
+            (x2 - border_radius, y2 - border_radius),
+        ]
+
+        for coordinates in rectangle_coordinates:
+            cv2.rectangle(
+                img=scene,
+                pt1=coordinates[0],
+                pt2=coordinates[1],
+                color=color,
+                thickness=-1,
+            )
+        for center in circle_centers:
+            cv2.circle(
+                img=scene,
+                center=center,
+                radius=border_radius,
+                color=color,
+                thickness=-1,
             )
         return scene
 
