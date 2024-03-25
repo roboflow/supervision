@@ -4,10 +4,10 @@ from typing import List
 import cv2
 import numpy as np
 from ultralytics import YOLO
+from utils.general import find_in_list, load_zones_config
+from utils.timers import FPSBasedTimer
 
 import supervision as sv
-from utils.general import load_zones_config, find_in_list
-from utils.timers import FPSBasedTimer
 
 COLORS = sv.ColorPalette.from_hex(["#E6194B", "#3CB44B", "#FFE119", "#3C76D1"])
 COLOR_ANNOTATOR = sv.ColorAnnotator(color=COLORS)

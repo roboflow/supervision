@@ -5,10 +5,10 @@ import cv2
 import numpy as np
 from inference import InferencePipeline
 from inference.core.interfaces.camera.entities import VideoFrame
+from utils.general import find_in_list, load_zones_config
+from utils.timers import ClockBasedTimer
 
 import supervision as sv
-from utils.general import load_zones_config, find_in_list
-from utils.timers import ClockBasedTimer
 
 COLORS = sv.ColorPalette.from_hex(["#E6194B", "#3CB44B", "#FFE119", "#3C76D1"])
 COLOR_ANNOTATOR = sv.ColorAnnotator(color=COLORS)
@@ -90,7 +90,6 @@ def main(
     iou: float,
     classes: List[int],
 ) -> None:
-
     sink = CustomSink(zone_configuration_path=zone_configuration_path, classes=classes)
 
     pipeline = InferencePipeline.init(
@@ -98,7 +97,7 @@ def main(
         video_reference=rtsp_url,
         on_prediction=sink.on_prediction,
         confidence=confidence,
-        iou_threshold=iou
+        iou_threshold=iou,
     )
 
     pipeline.start()
@@ -126,10 +125,7 @@ if __name__ == "__main__":
         help="Complete RTSP URL for the video stream.",
     )
     parser.add_argument(
-        "--model_id",
-        type=str,
-        default="yolov8s-640",
-        help="Roboflow model ID."
+        "--model_id", type=str, default="yolov8s-640", help="Roboflow model ID."
     )
     parser.add_argument(
         "--confidence_threshold",
