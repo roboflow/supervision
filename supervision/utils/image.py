@@ -212,18 +212,20 @@ def create_tiles(
     grid_size: Optional[Tuple[Optional[int], Optional[int]]] = None,
     single_tile_size: Optional[Tuple[int, int]] = None,
     tile_scaling: Literal["min", "max", "avg"] = "avg",
-    tile_padding_color: Union[Tuple[int, int, int], Color] = Color.WHITE,
-    tile_margin: int = 15,
-    tile_margin_color: Union[Tuple[int, int, int], Color] = Color.BLACK,
+    tile_padding_color: Union[Tuple[int, int, int], Color] = Color.from_hex("#D9D9D9"),
+    tile_margin: int = 10,
+    tile_margin_color: Union[Tuple[int, int, int], Color] = Color.from_hex("#BFBEBD"),
     return_type: Literal["auto", "cv2", "pillow"] = "auto",
     titles: Optional[List[Optional[str]]] = None,
     titles_anchors: Optional[Union[Point, List[Optional[Point]]]] = None,
-    titles_color: Union[Tuple[int, int, int], Color] = Color.BLACK,
+    titles_color: Union[Tuple[int, int, int], Color] = Color.from_hex("#262523"),
     titles_scale: Optional[float] = None,
     titles_thickness: int = 1,
     titles_padding: int = 10,
     titles_text_font: int = cv2.FONT_HERSHEY_SIMPLEX,
-    titles_background_color: Union[Tuple[int, int, int], Color] = Color.WHITE,
+    titles_background_color: Union[Tuple[int, int, int], Color] = Color.from_hex(
+        "#D9D9D9"
+    ),
     default_title_placement: RelativePosition = "top",
 ) -> ImageType:
     """
@@ -390,7 +392,9 @@ def _establish_grid_size(
         return _negotiate_grid_size(images=images)
     if grid_size[0] is None:
         return math.ceil(len(images) / grid_size[1]), grid_size[1]
-    return grid_size[0], math.ceil(len(images) / grid_size[0])
+    if grid_size[1] is None:
+        return grid_size[0], math.ceil(len(images) / grid_size[0])
+    return grid_size
 
 
 def _negotiate_grid_size(images: List[np.ndarray]) -> Tuple[int, int]:
@@ -608,6 +612,13 @@ def resize_image_keeping_aspect_ratio(
     """
     Resize and pad image preserving its aspect ratio.
 
+    For example: input image is (640, 480) and we want to resize into
+    (1024, 1024). If this rectangular image is just resized naively
+    to square-shape output - aspect ratio would be altered. If we do not
+    want this to happen - we may resize bigger dimension (640) to 1024.
+    Ratio of change is 1.6. This ratio is later on used to calculate scaling
+    in the other dimension. As a result we have (1024, 768) image.
+
     Parameters:
     - image (np.ndarray): Input image (type will be adjusted by decorator,
         you can provide PIL.Image)
@@ -620,6 +631,8 @@ def resize_image_keeping_aspect_ratio(
         np.ndarray: resized image (type may be adjusted to PIL.Image by decorator
             if function was called with PIL.Image)
     """
+    if image.shape[:2] == desired_size[::-1]:
+        return image
     img_ratio = image.shape[1] / image.shape[0]
     desired_ratio = desired_size[0] / desired_size[1]
     if img_ratio >= desired_ratio:
