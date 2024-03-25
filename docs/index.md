@@ -113,7 +113,7 @@ You can install `supervision` with pip in a
 
     ---
 
-    Learn how to detect small objects in images 
+    Learn how to detect small objects in images
 
     [:octicons-arrow-right-24: Tutorial](how_to/detect_small_objects.md)
 

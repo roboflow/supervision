@@ -8,7 +8,7 @@ status: new
 This guide shows how to detect small objects
 with the  [Inference](https://github.com/roboflow/inference),
 [Ultralytics](https://github.com/ultralytics/ultralytics) or
-[Transformers](https://github.com/huggingface/transformers) packages using 
+[Transformers](https://github.com/huggingface/transformers) packages using
 [`InferenceSlicer`](detection/tools/inference_slicer/#supervision.detection.tools.inference_slicer.InferenceSlicer).
 
 <video controls>
@@ -104,8 +104,8 @@ size relative to the image resolution.
 
 ## Input Resolution
 
-Modifying the input resolution of images before detection can enhance small object 
-identification at the cost of processing speed and increased memory usage. This method 
+Modifying the input resolution of images before detection can enhance small object
+identification at the cost of processing speed and increased memory usage. This method
 is less effective for ultra-high-resolution images (4K and above).
 
 === "Inference"
@@ -154,8 +154,8 @@ is less effective for ultra-high-resolution images (4K and above).
 
 ## Inference Slicer
 
-[`InferenceSlicer`](detection/tools/inference_slicer/#supervision.detection.tools.inference_slicer.InferenceSlicer) 
-processes high-resolution images by dividing them into smaller segments, detecting 
+[`InferenceSlicer`](detection/tools/inference_slicer/#supervision.detection.tools.inference_slicer.InferenceSlicer)
+processes high-resolution images by dividing them into smaller segments, detecting
 objects within each, and aggregating the results.
 
 === "Inference"
@@ -199,7 +199,7 @@ objects within each, and aggregating the results.
     def callback(image_slice: np.ndarray) -> sv.Detections:
         result = model(image_slice)[0]
         return sv.Detections.from_ultralytics(result)
-    
+
     slicer = sv.InferenceSlicer(callback = callback)
     detections = slicer(image)
 
@@ -240,7 +240,7 @@ objects within each, and aggregating the results.
         results = processor.post_process_object_detection(
             outputs=outputs, target_sizes=target_size)[0]
         return sv.Detections.from_transformers(results)
-    
+
     slicer = sv.InferenceSlicer(callback = callback)
     detections = slicer(image)
 
