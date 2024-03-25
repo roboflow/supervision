@@ -213,8 +213,8 @@ Finally, we can annotate the image with the predictions. Since we are working wi
 
 ## Display Custom Labels
 
-By default, [`sv.LabelAnnotator`](annotators/#supervision.annotators.core.LabelAnnotator) 
-will label each detection with its `class_name` (if possible) or `class_id`. You can 
+By default, [`sv.LabelAnnotator`](annotators/#supervision.annotators.core.LabelAnnotator)
+will label each detection with its `class_name` (if possible) or `class_id`. You can
 override this behavior by passing a list of custom `labels` to the `annotate` method.
 
 === "Inference"
@@ -284,16 +284,16 @@ override this behavior by passing a list of custom `labels` to the `annotate` me
 
     image = Image.open(<PATH TO IMAGE>)
     inputs = processor(images=image, return_tensors="pt")
-    
+
     with torch.no_grad():
         outputs = model(**inputs)
-    
+
     width, height = image.size
     target_size = torch.tensor([[height, width]])
     results = processor.post_process_object_detection(
         outputs=outputs, target_sizes=target_size)[0]
     detections = sv.Detections.from_transformers(results)
-    
+
     bounding_box_annotator = sv.BoundingBoxAnnotator()
     label_annotator = sv.LabelAnnotator()
 
@@ -313,10 +313,10 @@ override this behavior by passing a list of custom `labels` to the `annotate` me
 
 ## Annotate Image with Segmentations
 
-If you are running the segmentation model 
-[`sv.MaskAnnotator`](annotators/#supervision.annotators.core.MaskAnnotator) 
-is a drop-in replacement for 
-[`sv.BoundingBoxAnnotator`](annotators/#supervision.annotators.core.BoundingBoxAnnotator) 
+If you are running the segmentation model
+[`sv.MaskAnnotator`](annotators/#supervision.annotators.core.MaskAnnotator)
+is a drop-in replacement for
+[`sv.BoundingBoxAnnotator`](annotators/#supervision.annotators.core.BoundingBoxAnnotator)
 that will allow you to draw masks instead of boxes.
 
 === "Inference"
