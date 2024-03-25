@@ -158,6 +158,10 @@ is less effective for ultra-high-resolution images (4K and above).
 processes high-resolution images by dividing them into smaller segments, detecting
 objects within each, and aggregating the results.
 
+<video controls>
+    <source src="https://media.roboflow.com/supervision_detect_small_objects_example_2.mp4" type="video/mp4">
+</video>
+
 === "Inference"
 
     ```{ .py hl_lines="9-14" }
