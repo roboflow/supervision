@@ -224,11 +224,13 @@ def create_tiles(
     titles_padding: int = 10,
     titles_text_font: int = cv2.FONT_HERSHEY_SIMPLEX,
     titles_background_color: Union[Tuple[int, int, int], Color] = Color.WHITE,
-    default_title_anchor: RelativePosition = "top",
+    default_title_placement: RelativePosition = "top",
 ) -> ImageType:
     """
     Creates tiles mosaic from input images, automating grid placement and
-    converting images to common resolution maintaining aspect ratio.
+    converting images to common resolution maintaining aspect ratio. It is
+    also possible to render text titles on tiles, using optional set of
+    parameters specifying text drawing (see parameters description).
 
     Automated grid placement will try to maintain square shape of grid
     (with size being the nearest integer square root of #images), up to two exceptions:
@@ -262,6 +264,29 @@ def create_tiles(
             conversion. "auto" mode takes a majority vote between types of elements in
             `images` list - resolving draws in favour of OpenCV format. "auto" can be
             safely used when all input images are of the same type.
+        titles (Optional[List[Optional[str]]]): Optional titles to be added to tiles.
+            Elements of that list may be empty - then specific tile (in order presented
+            in `images` parameter) will not be filled with title. It is possible to
+            provide list of titles shorter than `images` - then remaining titles will
+            be assumed empty.
+        titles_anchors (Optional[Union[Point, List[Optional[Point]]]]): Parameter to
+            specify anchor points for titles. It is possible to specify anchor either
+            globally or for specific tiles (following order of `images`).
+            If not given (either globally, or for specific element of the list),
+            it will be calculated automatically based on `default_title_placement`.
+        titles_color (Union[Tuple[int, int, int], Color]): Color of titles text.
+            If tuple provided - should be BGR.
+        titles_scale (Optional[float]): Scale of titles. If not provided - value will
+            be calculated using `calculate_optimal_text_scale(...)`.
+        titles_thickness (int): Thickness of titles text.
+        titles_padding (int): Size of titles padding.
+        titles_text_font (int): Font to be used to render titles. Must be integer
+            constant representing OpenCV font.
+            (See docs: https://docs.opencv.org/4.x/d6/d6e/group__imgproc__draw.html)
+        titles_background_color (Union[Tuple[int, int, int], Color]): Color of title
+            text padding.
+        default_title_placement (Literal["top", "bottom"]): Parameter specifies title
+            anchor placement in case if explicit anchor is not provided.
 
     Returns:
         ImageType: Image with all input images located in tails grid. The output type is
@@ -318,7 +343,7 @@ def create_tiles(
         titles_padding=titles_padding,
         titles_text_font=titles_text_font,
         titles_background_color=titles_background_color,
-        default_title_anchor=default_title_anchor,
+        default_title_placement=default_title_placement,
     )
     if return_type == "pillow":
         tiles = cv2_to_pillow(image=tiles)
@@ -394,7 +419,7 @@ def _generate_tiles(
     titles_padding: int,
     titles_text_font: int,
     titles_background_color: Tuple[int, int, int],
-    default_title_anchor: RelativePosition,
+    default_title_placement: RelativePosition,
 ) -> np.ndarray:
     images = _draw_texts(
         images=images,
@@ -406,7 +431,7 @@ def _generate_tiles(
         titles_padding=titles_padding,
         titles_text_font=titles_text_font,
         titles_background_color=titles_background_color,
-        default_title_anchor=default_title_anchor,
+        default_title_placement=default_title_placement,
     )
     rows, columns = grid_size
     tiles_elements = list(create_batches(sequence=images, batch_size=columns))
@@ -438,14 +463,14 @@ def _draw_texts(
     titles_padding: int,
     titles_text_font: int,
     titles_background_color: Tuple[int, int, int],
-    default_title_anchor: RelativePosition,
+    default_title_placement: RelativePosition,
 ) -> List[np.ndarray]:
     if titles is None:
         return images
     titles_anchors = _prepare_default_titles_anchors(
         images=images,
         titles_anchors=titles_anchors,
-        default_title_anchor=default_title_anchor,
+        default_title_placement=default_title_placement,
     )
     if titles_scale is None:
         image_height, image_width = images[0].shape[:2]
@@ -475,7 +500,7 @@ def _draw_texts(
 def _prepare_default_titles_anchors(
     images: List[np.ndarray],
     titles_anchors: List[Optional[Point]],
-    default_title_anchor: RelativePosition,
+    default_title_placement: RelativePosition,
 ) -> List[Point]:
     result = []
     for image, anchor in zip(images, titles_anchors):
@@ -483,7 +508,7 @@ def _prepare_default_titles_anchors(
             result.append(anchor)
             continue
         image_height, image_width = image.shape[:2]
-        if default_title_anchor == "top":
+        if default_title_placement == "top":
             default_anchor = Point(x=image_width / 2, y=image_height * 0.1)
         else:
             default_anchor = Point(x=image_width / 2, y=image_height * 0.9)
