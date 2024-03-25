@@ -14,6 +14,7 @@ from supervision.detection.utils import (
     get_data_item,
     is_data_equal,
     mask_non_max_suppression,
+    mask_to_xyxy,
     merge_data,
     process_roboflow_result,
     validate_detections_fields,
@@ -390,18 +391,30 @@ class Detections:
     @classmethod
     def from_transformers(cls, transformers_results: dict) -> Detections:
         """
-        Creates a Detections instance from object detection
+        Creates a Detections instance from object detection or segmentation
         [transformer](https://github.com/huggingface/transformers) inference result.
 
         Returns:
             Detections: A new Detections object.
         """
+        boxes = transformers_results.get("boxes")
 
-        return cls(
-            xyxy=transformers_results["boxes"].cpu().numpy(),
-            confidence=transformers_results["scores"].cpu().numpy(),
-            class_id=transformers_results["labels"].cpu().numpy().astype(int),
-        )
+        # If the boxes key is in the transformers_results then we know it's an 
+        # object detection result. Else, we can assume it's a segmentation model
+        if boxes:
+            return cls(
+                xyxy=transformers_results["boxes"].cpu().numpy(),
+                confidence=transformers_results["scores"].cpu().numpy(),
+                class_id=transformers_results["labels"].cpu().numpy().astype(int),
+            )
+        else:
+            masks = transformers_results["masks"].cpu().numpy().astype(bool)
+            return cls(
+                xyxy=mask_to_xyxy(masks),
+                mask=masks,
+                confidence=transformers_results["scores"].cpu().numpy(),
+                class_id=transformers_results["labels"].cpu().numpy().astype(int),
+            )
 
     @classmethod
     def from_detectron2(cls, detectron2_results) -> Detections:
