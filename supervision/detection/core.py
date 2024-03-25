@@ -388,7 +388,9 @@ class Detections:
         )
 
     @classmethod
-    def from_transformers(cls, transformers_results: dict, id2label: Dict[int, str]) -> Detections:
+    def from_transformers(
+        cls, transformers_results: dict, id2label: Dict[int, str]
+    ) -> Detections:
         """
         Constructs a Detections instance from the inference results of a Transformers object detection model.
         [transformer](https://github.com/huggingface/transformers)
