@@ -153,7 +153,8 @@ class ImageSink:
         Save a given image in the target directory.
 
         Args:
-            image (np.ndarray): The image to be saved.
+            image (np.ndarray): The image to be saved. The image must be in BGR color
+                format.
             image_name (str, optional): The name to use for the saved image.
                 If not provided, a name will be
                 generated using the `image_name_pattern`.
