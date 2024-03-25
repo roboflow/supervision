@@ -1896,7 +1896,8 @@
 <span class="normal"><a href="#__codelineno-0-166">166</a></span>
 <span class="normal"><a href="#__codelineno-0-167">167</a></span>
 <span class="normal"><a href="#__codelineno-0-168">168</a></span>
-<span class="normal"><a href="#__codelineno-0-169">169</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-107" name="__codelineno-0-107"></a><span class="k">class</span> <span class="nc">ImageSink</span><span class="p">:</span>
+<span class="normal"><a href="#__codelineno-0-169">169</a></span>
+<span class="normal"><a href="#__codelineno-0-170">170</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-107" name="__codelineno-0-107"></a><span class="k">class</span> <span class="nc">ImageSink</span><span class="p">:</span>
 <a id="__codelineno-0-108" name="__codelineno-0-108"></a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
 <a id="__codelineno-0-109" name="__codelineno-0-109"></a>        <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-110" name="__codelineno-0-110"></a>        <span class="n">target_dir_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -1945,20 +1946,21 @@
 <a id="__codelineno-0-153" name="__codelineno-0-153"></a><span class="sd">        Save a given image in the target directory.</span>
 <a id="__codelineno-0-154" name="__codelineno-0-154"></a>
 <a id="__codelineno-0-155" name="__codelineno-0-155"></a><span class="sd">        Args:</span>
-<a id="__codelineno-0-156" name="__codelineno-0-156"></a><span class="sd">            image (np.ndarray): The image to be saved.</span>
-<a id="__codelineno-0-157" name="__codelineno-0-157"></a><span class="sd">            image_name (str, optional): The name to use for the saved image.</span>
-<a id="__codelineno-0-158" name="__codelineno-0-158"></a><span class="sd">                If not provided, a name will be</span>
-<a id="__codelineno-0-159" name="__codelineno-0-159"></a><span class="sd">                generated using the `image_name_pattern`.</span>
-<a id="__codelineno-0-160" name="__codelineno-0-160"></a><span class="sd">        &quot;&quot;&quot;</span>
-<a id="__codelineno-0-161" name="__codelineno-0-161"></a>        <span class="k">if</span> <span class="n">image_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-162" name="__codelineno-0-162"></a>            <span class="n">image_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_name_pattern</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image_count</span><span class="p">)</span>
-<a id="__codelineno-0-163" name="__codelineno-0-163"></a>
-<a id="__codelineno-0-164" name="__codelineno-0-164"></a>        <span class="n">image_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_dir_path</span><span class="p">,</span> <span class="n">image_name</span><span class="p">)</span>
-<a id="__codelineno-0-165" name="__codelineno-0-165"></a>        <span class="n">cv2</span><span class="o">.</span><span class="n">imwrite</span><span class="p">(</span><span class="n">image_path</span><span class="p">,</span> <span class="n">image</span><span class="p">)</span>
-<a id="__codelineno-0-166" name="__codelineno-0-166"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">image_count</span> <span class="o">+=</span> <span class="mi">1</span>
-<a id="__codelineno-0-167" name="__codelineno-0-167"></a>
-<a id="__codelineno-0-168" name="__codelineno-0-168"></a>    <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">exc_traceback</span><span class="p">):</span>
-<a id="__codelineno-0-169" name="__codelineno-0-169"></a>        <span class="k">pass</span>
+<a id="__codelineno-0-156" name="__codelineno-0-156"></a><span class="sd">            image (np.ndarray): The image to be saved. The image must be in BGR color</span>
+<a id="__codelineno-0-157" name="__codelineno-0-157"></a><span class="sd">                format.</span>
+<a id="__codelineno-0-158" name="__codelineno-0-158"></a><span class="sd">            image_name (str, optional): The name to use for the saved image.</span>
+<a id="__codelineno-0-159" name="__codelineno-0-159"></a><span class="sd">                If not provided, a name will be</span>
+<a id="__codelineno-0-160" name="__codelineno-0-160"></a><span class="sd">                generated using the `image_name_pattern`.</span>
+<a id="__codelineno-0-161" name="__codelineno-0-161"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-162" name="__codelineno-0-162"></a>        <span class="k">if</span> <span class="n">image_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-163" name="__codelineno-0-163"></a>            <span class="n">image_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_name_pattern</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image_count</span><span class="p">)</span>
+<a id="__codelineno-0-164" name="__codelineno-0-164"></a>
+<a id="__codelineno-0-165" name="__codelineno-0-165"></a>        <span class="n">image_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_dir_path</span><span class="p">,</span> <span class="n">image_name</span><span class="p">)</span>
+<a id="__codelineno-0-166" name="__codelineno-0-166"></a>        <span class="n">cv2</span><span class="o">.</span><span class="n">imwrite</span><span class="p">(</span><span class="n">image_path</span><span class="p">,</span> <span class="n">image</span><span class="p">)</span>
+<a id="__codelineno-0-167" name="__codelineno-0-167"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">image_count</span> <span class="o">+=</span> <span class="mi">1</span>
+<a id="__codelineno-0-168" name="__codelineno-0-168"></a>
+<a id="__codelineno-0-169" name="__codelineno-0-169"></a>    <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">exc_traceback</span><span class="p">):</span>
+<a id="__codelineno-0-170" name="__codelineno-0-170"></a>        <span class="k">pass</span>
 </code></pre></div></td></tr></table></div>
             </details>
 
@@ -2167,7 +2169,8 @@ Defaults to "image_{:05d}.png".</p>
           </td>
           <td>
             <div class="doc-md-description">
-              <p>The image to be saved.</p>
+              <p>The image to be saved. The image must be in BGR color
+format.</p>
             </div>
           </td>
           <td>
@@ -2210,22 +2213,24 @@ generated using the <code>image_name_pattern</code>.</p>
 <span class="normal"><a href="#__codelineno-0-163">163</a></span>
 <span class="normal"><a href="#__codelineno-0-164">164</a></span>
 <span class="normal"><a href="#__codelineno-0-165">165</a></span>
-<span class="normal"><a href="#__codelineno-0-166">166</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-151" name="__codelineno-0-151"></a><span class="k">def</span> <span class="nf">save_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">image_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="normal"><a href="#__codelineno-0-166">166</a></span>
+<span class="normal"><a href="#__codelineno-0-167">167</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-151" name="__codelineno-0-151"></a><span class="k">def</span> <span class="nf">save_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">image_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
 <a id="__codelineno-0-152" name="__codelineno-0-152"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-153" name="__codelineno-0-153"></a><span class="sd">    Save a given image in the target directory.</span>
 <a id="__codelineno-0-154" name="__codelineno-0-154"></a>
 <a id="__codelineno-0-155" name="__codelineno-0-155"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-156" name="__codelineno-0-156"></a><span class="sd">        image (np.ndarray): The image to be saved.</span>
-<a id="__codelineno-0-157" name="__codelineno-0-157"></a><span class="sd">        image_name (str, optional): The name to use for the saved image.</span>
-<a id="__codelineno-0-158" name="__codelineno-0-158"></a><span class="sd">            If not provided, a name will be</span>
-<a id="__codelineno-0-159" name="__codelineno-0-159"></a><span class="sd">            generated using the `image_name_pattern`.</span>
-<a id="__codelineno-0-160" name="__codelineno-0-160"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-161" name="__codelineno-0-161"></a>    <span class="k">if</span> <span class="n">image_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-162" name="__codelineno-0-162"></a>        <span class="n">image_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_name_pattern</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image_count</span><span class="p">)</span>
-<a id="__codelineno-0-163" name="__codelineno-0-163"></a>
-<a id="__codelineno-0-164" name="__codelineno-0-164"></a>    <span class="n">image_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_dir_path</span><span class="p">,</span> <span class="n">image_name</span><span class="p">)</span>
-<a id="__codelineno-0-165" name="__codelineno-0-165"></a>    <span class="n">cv2</span><span class="o">.</span><span class="n">imwrite</span><span class="p">(</span><span class="n">image_path</span><span class="p">,</span> <span class="n">image</span><span class="p">)</span>
-<a id="__codelineno-0-166" name="__codelineno-0-166"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">image_count</span> <span class="o">+=</span> <span class="mi">1</span>
+<a id="__codelineno-0-156" name="__codelineno-0-156"></a><span class="sd">        image (np.ndarray): The image to be saved. The image must be in BGR color</span>
+<a id="__codelineno-0-157" name="__codelineno-0-157"></a><span class="sd">            format.</span>
+<a id="__codelineno-0-158" name="__codelineno-0-158"></a><span class="sd">        image_name (str, optional): The name to use for the saved image.</span>
+<a id="__codelineno-0-159" name="__codelineno-0-159"></a><span class="sd">            If not provided, a name will be</span>
+<a id="__codelineno-0-160" name="__codelineno-0-160"></a><span class="sd">            generated using the `image_name_pattern`.</span>
+<a id="__codelineno-0-161" name="__codelineno-0-161"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-162" name="__codelineno-0-162"></a>    <span class="k">if</span> <span class="n">image_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-163" name="__codelineno-0-163"></a>        <span class="n">image_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_name_pattern</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image_count</span><span class="p">)</span>
+<a id="__codelineno-0-164" name="__codelineno-0-164"></a>
+<a id="__codelineno-0-165" name="__codelineno-0-165"></a>    <span class="n">image_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_dir_path</span><span class="p">,</span> <span class="n">image_name</span><span class="p">)</span>
+<a id="__codelineno-0-166" name="__codelineno-0-166"></a>    <span class="n">cv2</span><span class="o">.</span><span class="n">imwrite</span><span class="p">(</span><span class="n">image_path</span><span class="p">,</span> <span class="n">image</span><span class="p">)</span>
+<a id="__codelineno-0-167" name="__codelineno-0-167"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">image_count</span> <span class="o">+=</span> <span class="mi">1</span>
 </code></pre></div></td></tr></table></div>
           </details>
   </div>
