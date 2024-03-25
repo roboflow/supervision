@@ -1015,15 +1015,22 @@ class LabelAnnotator:
 
         Example:
             ```python
-            import supervision as sv
+             import supervision as sv
 
             image = ...
             detections = sv.Detections(...)
 
+            labels = [
+                f"{class_name} {confidence:.2f}"
+                for class_name, confidence
+                in zip(detections['class_name'], detections.confidence)
+            ]
+
             label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER)
             annotated_frame = label_annotator.annotate(
                 scene=image.copy(),
-                detections=detections
+                detections=detections,
+                labels=labels
             )
             ```
 
