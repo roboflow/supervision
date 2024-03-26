@@ -13,7 +13,7 @@ from supervision.utils.internal import deprecated_parameter
 class STrack(BaseTrack):
     shared_kalman = KalmanFilter()
 
-    def __init__(self, tlwh, score, class_ids):
+    def __init__(self, tlwh, score, class_ids, minimum_consecutive_frames):
         # wait activate
         self._tlwh = np.asarray(tlwh, dtype=np.float32)
         self.kalman_filter = None
@@ -23,6 +23,9 @@ class STrack(BaseTrack):
         self.score = score
         self.class_ids = class_ids
         self.tracklet_len = 0
+        self.track_id = -1
+
+        self.minimum_consecutive_frames = minimum_consecutive_frames
 
     def predict(self):
         mean_state = self.mean.copy()
@@ -53,7 +56,6 @@ class STrack(BaseTrack):
     def activate(self, kalman_filter, frame_id):
         """Start a new tracklet"""
         self.kalman_filter = kalman_filter
-        self.track_id = self.next_id()
         self.mean, self.covariance = self.kalman_filter.initiate(
             self.tlwh_to_xyah(self._tlwh)
         )
@@ -73,7 +75,7 @@ class STrack(BaseTrack):
         self.state = TrackState.Tracked
         self.is_activated = True
         self.frame_id = frame_id
-        if new_id:
+        if new_id and (self.minimum_consecutive_frames == 1):
             self.track_id = self.next_id()
         self.score = new_track.score
 
@@ -96,6 +98,9 @@ class STrack(BaseTrack):
         self.is_activated = True
 
         self.score = new_track.score
+
+        if self.tracklet_len == self.minimum_consecutive_frames:
+            self.track_id = self.next_id()
 
     @property
     def tlwh(self):
@@ -186,6 +191,10 @@ class ByteTrack:
             Increasing minimum_matching_threshold improves accuracy but risks fragmentation.
             Decreasing it improves completeness but risks false positives and drift.
         frame_rate (int, optional): The frame rate of the video.
+        minimum_consecutive_frames (int, optional): Number of consecutive frames that an object must
+            be tracked before it is considered a 'valid' track.
+            Increasing minimum_consecutive_frames prevents the creation of accidental tracks from
+            false detection or double detection, but risks missing shorter tracks.
     """  # noqa: E501 // docs
 
     @deprecated_parameter(
@@ -218,6 +227,7 @@ class ByteTrack:
         lost_track_buffer: int = 30,
         minimum_matching_threshold: float = 0.8,
         frame_rate: int = 30,
+        minimum_consecutive_frames: int = 1,
     ):
         self.track_activation_threshold = track_activation_threshold
         self.minimum_matching_threshold = minimum_matching_threshold
@@ -225,11 +235,15 @@ class ByteTrack:
         self.frame_id = 0
         self.det_thresh = self.track_activation_threshold + 0.1
         self.max_time_lost = int(frame_rate / 30.0 * lost_track_buffer)
+        self.minimum_consecutive_frames = minimum_consecutive_frames
+
         self.kalman_filter = KalmanFilter()
 
         self.tracked_tracks: List[STrack] = []
         self.lost_tracks: List[STrack] = []
         self.removed_tracks: List[STrack] = []
+
+        BaseTrack.reset_counter()
 
     def update_with_detections(self, detections: Detections) -> Detections:
         """
@@ -286,13 +300,23 @@ class ByteTrack:
             iou_costs = 1 - ious
 
             matches, _, _ = matching.linear_assignment(iou_costs, 0.5)
-            for i, idet, itrack in enumerate(matches):
+            for i, (idet, itrack) in enumerate(matches):
                 if i == 0:
                     final_detections = detections[[idet]]
-                    final_detections.tracker_id[0] = int(tracks[itrack].track_id)
+                    if final_detections.tracker_id is None:
+                        final_detections.tracker_id = np.asarray(
+                            [int(tracks[itrack].track_id)]
+                        )
+                    else:
+                        final_detections.tracker_id[0] = int(tracks[itrack].track_id)
                 else:
                     current_detection = detections[[idet]]
-                    current_detection.tracker_id[0] = int(tracks[itrack].track_id)
+                    if current_detection.tracker_id is None:
+                        current_detection.tracker_id = np.asarray(
+                            [int(tracks[itrack].track_id)]
+                        )
+                    else:
+                        current_detection.tracker_id[0] = int(tracks[itrack].track_id)
                     final_detections = Detections.merge(
                         [final_detections, current_detection]
                     )
@@ -352,7 +376,7 @@ class ByteTrack:
         if len(dets) > 0:
             """Detections"""
             detections = [
-                STrack(STrack.tlbr_to_tlwh(tlbr), s, c)
+                STrack(STrack.tlbr_to_tlwh(tlbr), s, c, self.minimum_consecutive_frames)
                 for (tlbr, s, c) in zip(dets, scores_keep, class_ids_keep)
             ]
         else:
@@ -394,7 +418,7 @@ class ByteTrack:
         if len(dets_second) > 0:
             """Detections"""
             detections_second = [
-                STrack(STrack.tlbr_to_tlwh(tlbr), s, c)
+                STrack(STrack.tlbr_to_tlwh(tlbr), s, c, self.minimum_consecutive_frames)
                 for (tlbr, s, c) in zip(dets_second, scores_second, class_ids_second)
             ]
         else:
@@ -465,7 +489,11 @@ class ByteTrack:
         self.tracked_tracks, self.lost_tracks = remove_duplicate_tracks(
             self.tracked_tracks, self.lost_tracks
         )
-        output_stracks = [track for track in self.tracked_tracks if track.is_activated]
+        output_stracks = [
+            track
+            for track in self.tracked_tracks
+            if (track.is_activated and track.track_id >= 0)
+        ]
 
         return output_stracks
 
