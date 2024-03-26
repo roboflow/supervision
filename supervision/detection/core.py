@@ -388,9 +388,7 @@ class Detections:
         )
 
     @classmethod
-    def from_transformers(
-        cls, transformers_results: dict, id2label: Dict[int, str]
-    ) -> Detections:
+    def from_transformers(cls, transformers_results: dict, id2label: Optional[Dict[int, str]] = None) -> Detections:
         """
         Constructs a Detections instance from the inference results of a Transformers object detection model.
         [transformer](https://github.com/huggingface/transformers)
@@ -407,13 +405,17 @@ class Detections:
         boxes = transformers_results["boxes"].cpu().numpy()
         scores = transformers_results["scores"].cpu().numpy()
         class_ids = transformers_results["labels"].cpu().numpy().astype(int)
-        class_names = np.array([id2label[class_id] for class_id in class_ids])
+        data = {}
+        if id2label is not None:
+            class_names = np.array([id2label[class_id] for class_id in class_ids])
+            data[CLASS_NAME_DATA_FIELD] = class_names
         return cls(
             xyxy=boxes,
             confidence=scores,
             class_id=class_ids,
-            data={CLASS_NAME_DATA_FIELD: class_names},
+            data= data,
         )
+
 
     @classmethod
     def from_detectron2(cls, detectron2_results) -> Detections:
