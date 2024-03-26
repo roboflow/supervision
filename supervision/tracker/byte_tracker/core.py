@@ -286,13 +286,23 @@ class ByteTrack:
             iou_costs = 1 - ious
 
             matches, _, _ = matching.linear_assignment(iou_costs, 0.5)
-            for i, idet, itrack in enumerate(matches):
+            for i, (idet, itrack) in enumerate(matches):
                 if i == 0:
                     final_detections = detections[[idet]]
-                    final_detections.tracker_id[0] = int(tracks[itrack].track_id)
+                    if final_detections.tracker_id is None:
+                        final_detections.tracker_id = np.asarray(
+                            [int(tracks[itrack].track_id)]
+                        )
+                    else:
+                        final_detections.tracker_id[0] = int(tracks[itrack].track_id)
                 else:
                     current_detection = detections[[idet]]
-                    current_detection.tracker_id[0] = int(tracks[itrack].track_id)
+                    if current_detection.tracker_id is None:
+                        current_detection.tracker_id = np.asarray(
+                            [int(tracks[itrack].track_id)]
+                        )
+                    else:
+                        current_detection.tracker_id[0] = int(tracks[itrack].track_id)
                     final_detections = Detections.merge(
                         [final_detections, current_detection]
                     )
