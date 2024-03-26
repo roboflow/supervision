@@ -1,7 +1,6 @@
 import argparse
 import os
-from typing import Any
-from typing import Optional
+from typing import Any, Optional
 
 import cv2
 import numpy as np
@@ -11,7 +10,7 @@ import supervision as sv
 KEY_ENTER = 13
 KEY_NEWLINE = 10
 KEY_ESCAPE = 27
-KEY_QUIT = ord('q')
+KEY_QUIT = ord("q")
 
 THICKNESS = 2
 COLORS = sv.ColorPalette.default()
@@ -39,8 +38,11 @@ def click_event(event: int, x: int, y: int, flags: int, param: Any) -> None:
 
         if len(POLYGONS[-1]) >= 2:
             cv2.line(
-                img=param, pt1=POLYGONS[-1][-2], pt2=POLYGONS[-1][-1],
-                color=COLORS.by_idx(0).as_bgr(), thickness=THICKNESS
+                img=param,
+                pt1=POLYGONS[-1][-2],
+                pt2=POLYGONS[-1][-1],
+                color=COLORS.by_idx(0).as_bgr(),
+                thickness=THICKNESS,
             )
         cv2.imshow(WINDOW_NAME, param)
 
@@ -52,7 +54,7 @@ def close_and_finalize_polygon(image: np.ndarray, original_image: np.ndarray) ->
             pt1=POLYGONS[-1][-1],
             pt2=POLYGONS[-1][0],
             color=COLORS.by_idx(0).as_bgr(),
-            thickness=THICKNESS
+            thickness=THICKNESS,
         )
     POLYGONS.append([])
     image[:] = original_image.copy()
@@ -63,20 +65,20 @@ def close_and_finalize_polygon(image: np.ndarray, original_image: np.ndarray) ->
 def redraw_polygons(image: np.ndarray) -> None:
     for polygon in POLYGONS[:-1]:
         if len(polygon) > 1:
-            for i in range(len(polygon)-1):
+            for i in range(len(polygon) - 1):
                 cv2.line(
                     img=image,
                     pt1=polygon[i],
-                    pt2=polygon[i+1],
+                    pt2=polygon[i + 1],
                     color=COLORS.by_idx(0).as_bgr(),
-                    thickness=THICKNESS
+                    thickness=THICKNESS,
                 )
             cv2.line(
                 img=image,
                 pt1=polygon[-1],
                 pt2=polygon[0],
                 color=COLORS.by_idx(0).as_bgr(),
-                thickness=THICKNESS
+                thickness=THICKNESS,
             )
 
 
@@ -106,9 +108,7 @@ def main(source_path: str, target_path: str) -> None:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="..."
-    )
+    parser = argparse.ArgumentParser(description="...")
     parser.add_argument(
         "--source_path",
         type=str,
