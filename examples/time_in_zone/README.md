@@ -25,9 +25,9 @@ TODO
   ```bash
   pip install -r requirements.txt
   ```
-  
+
 ## 🛠 scripts
-  
+
 ### `download_from_youtube`
 
 - `--url`: The full URL of the YouTube video you wish to download.
