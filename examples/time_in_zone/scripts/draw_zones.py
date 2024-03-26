@@ -1,7 +1,6 @@
 import argparse
 import os
-from typing import Any
-from typing import Optional
+from typing import Any, Optional
 
 import cv2
 import numpy as np
@@ -38,7 +37,7 @@ def click_event(event: int, x: int, y: int, flags: int, param: Any) -> None:
                 pt1=POINTS[-2],
                 pt2=POINTS[-1],
                 color=COLORS.by_idx(0).as_bgr(),
-                thickness=THICKNESS
+                thickness=THICKNESS,
             )
         cv2.imshow(WINDOW_NAME, param)
 
@@ -50,7 +49,7 @@ def close_polygon(image: np.ndarray) -> None:
             pt1=POINTS[-1],
             pt2=POINTS[0],
             color=COLORS.by_idx(0).as_bgr(),
-            thickness=THICKNESS
+            thickness=THICKNESS,
         )
         cv2.imshow(WINDOW_NAME, image)
 
@@ -71,9 +70,7 @@ def main(source_path: str, target_path: str) -> None:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="..."
-    )
+    parser = argparse.ArgumentParser(description="...")
     parser.add_argument(
         "--source_path",
         type=str,
