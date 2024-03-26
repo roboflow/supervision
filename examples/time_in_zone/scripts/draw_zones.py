@@ -8,63 +8,98 @@ import numpy as np
 
 import supervision as sv
 
+KEY_ENTER = 13
+KEY_NEWLINE = 10
+KEY_ESCAPE = 27
+KEY_QUIT = ord('q')
+
 THICKNESS = 2
 COLORS = sv.ColorPalette.default()
 WINDOW_NAME = "Draw Zones"
-POINTS = []
+POLYGONS = [[]]
 
 
 def resolve_source(source_path: str) -> Optional[np.ndarray]:
     if not os.path.exists(source_path):
-        return
+        return None
 
     image = cv2.imread(source_path)
     if image is not None:
         return image
-    else:
-        frame_generator = sv.get_video_frames_generator(source_path=source_path)
-        frame = next(frame_generator)
-        return frame
+
+    frame_generator = sv.get_video_frames_generator(source_path=source_path)
+    frame = next(frame_generator)
+    return frame
 
 
 def click_event(event: int, x: int, y: int, flags: int, param: Any) -> None:
     if event == cv2.EVENT_LBUTTONDOWN:
-        POINTS.append((x, y))
+        POLYGONS[-1].append((x, y))
         print(f"Mouse coordinates: (X: {x}, Y: {y})")
 
-        if len(POINTS) >= 2:
+        if len(POLYGONS[-1]) >= 2:
             cv2.line(
-                img=param,
-                pt1=POINTS[-2],
-                pt2=POINTS[-1],
-                color=COLORS.by_idx(0).as_bgr(),
-                thickness=THICKNESS
+                img=param, pt1=POLYGONS[-1][-2], pt2=POLYGONS[-1][-1],
+                color=COLORS.by_idx(0).as_bgr(), thickness=THICKNESS
             )
         cv2.imshow(WINDOW_NAME, param)
 
 
-def close_polygon(image: np.ndarray) -> None:
-    if len(POINTS) >= 2:
+def close_and_finalize_polygon(image: np.ndarray, original_image: np.ndarray) -> None:
+    if len(POLYGONS[-1]) > 2:
         cv2.line(
             img=image,
-            pt1=POINTS[-1],
-            pt2=POINTS[0],
+            pt1=POLYGONS[-1][-1],
+            pt2=POLYGONS[-1][0],
             color=COLORS.by_idx(0).as_bgr(),
             thickness=THICKNESS
         )
-        cv2.imshow(WINDOW_NAME, image)
+    POLYGONS.append([])
+    image[:] = original_image.copy()
+    redraw_polygons(image)
+    cv2.imshow(WINDOW_NAME, image)
+
+
+def redraw_polygons(image: np.ndarray) -> None:
+    for polygon in POLYGONS[:-1]:
+        if len(polygon) > 1:
+            for i in range(len(polygon)-1):
+                cv2.line(
+                    img=image,
+                    pt1=polygon[i],
+                    pt2=polygon[i+1],
+                    color=COLORS.by_idx(0).as_bgr(),
+                    thickness=THICKNESS
+                )
+            cv2.line(
+                img=image,
+                pt1=polygon[-1],
+                pt2=polygon[0],
+                color=COLORS.by_idx(0).as_bgr(),
+                thickness=THICKNESS
+            )
 
 
 def main(source_path: str, target_path: str) -> None:
-    image = resolve_source(source_path=source_path)
+    original_image = resolve_source(source_path=source_path)
+    if original_image is None:
+        print("Failed to load source image.")
+        return
+
+    image = original_image.copy()
     cv2.imshow(WINDOW_NAME, image)
     cv2.setMouseCallback(WINDOW_NAME, click_event, image)
 
     while True:
         key = cv2.waitKey(1) & 0xFF
-        if key == 13 or key == 10:
-            close_polygon(image)
-        elif key == 27:
+        if key == KEY_ENTER or key == KEY_NEWLINE:
+            close_and_finalize_polygon(image, original_image)
+        elif key == KEY_ESCAPE:
+            POLYGONS[-1] = []
+            image[:] = original_image.copy()
+            redraw_polygons(image)
+            cv2.imshow(WINDOW_NAME, image)
+        elif key == KEY_QUIT:
             break
 
     cv2.destroyAllWindows()
