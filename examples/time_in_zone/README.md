@@ -2,9 +2,9 @@
 
 ## 👋 hello
 
-Practical demonstration on leveraging computer vision for analyzing wait times and 
-monitoring the duration that objects or individuals spend in predefined areas of video 
-frames. This example project, perfect for retail analytics or traffic management 
+Practical demonstration on leveraging computer vision for analyzing wait times and
+monitoring the duration that objects or individuals spend in predefined areas of video
+frames. This example project, perfect for retail analytics or traffic management
 applications.
 
 ## 💻 install
@@ -55,8 +55,8 @@ python scripts/download_from_youtube.py \
 
 ### `stream_from_file`
 
-This script allows you to stream video files from a directory. It's an awesome way to 
-mock a live video stream for local testing. Video will be streamed in a loop under 
+This script allows you to stream video files from a directory. It's an awesome way to
+mock a live video stream for local testing. Video will be streamed in a loop under
 `rtsp://localhost:8554/live0.stream` URL. This script requires docker to be installed.
 
 - `--video_directory`: Directory containing video files to stream.
@@ -76,9 +76,9 @@ python scripts/stream_from_file.py \
 
 ### `draw_zones`
 
-If you want to test zone time in zone analysis on your own video, you can use this 
-script to design custom zones and save results as a JSON file. The script will open a 
-window where you can draw polygons on the source image or video file. The polygons will 
+If you want to test zone time in zone analysis on your own video, you can use this
+script to design custom zones and save results as a JSON file. The script will open a
+window where you can draw polygons on the source image or video file. The polygons will
 be saved as a JSON file.
 
 - `--source_path`: Path to the source image or video file for drawing polygons.
