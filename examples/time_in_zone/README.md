@@ -242,7 +242,7 @@ python inference_file_example.py \
 --confidence_threshold 0.3 \
 --iou_threshold 0.7
 ```
-  
+
 </details>
 
 ## © license
