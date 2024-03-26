@@ -1911,14 +1911,14 @@ model.</p>
 </div>
 <p>You can load predictions from other computer vision frameworks and libraries using:</p>
 <ul>
-<li><a href="detection/core/#supervision.detection.core.Detections.from_deepsparse"><code>from_deepsparse</code></a> (<a href="https://github.com/neuralmagic/deepsparse">Deepsparse</a>)</li>
-<li><a href="detection/core/#supervision.detection.core.Detections.from_detectron2"><code>from_detectron2</code></a> (<a href="https://github.com/facebookresearch/detectron2">Detectron2</a>)</li>
-<li><a href="detection/core/#supervision.detection.core.Detections.from_mmdetection"><code>from_mmdetection</code></a> (<a href="https://github.com/open-mmlab/mmdetection">MMDetection</a>)</li>
-<li><a href="detection/core/#supervision.detection.core.Detections.from_sam"><code>from_sam</code></a> (<a href="https://github.com/facebookresearch/segment-anything">Segment Anything Model</a>)</li>
-<li><a href="detection/core/#supervision.detection.core.Detections.from_yolo_nas"><code>from_yolo_nas</code></a> (<a href="https://github.com/Deci-AI/super-gradients/blob/master/YOLONAS.md">YOLO-NAS</a>)</li>
+<li><a href="/latest/detection/core/#supervision.detection.core.Detections.from_deepsparse"><code>from_deepsparse</code></a> (<a href="https://github.com/neuralmagic/deepsparse">Deepsparse</a>)</li>
+<li><a href="/latest/detection/core/#supervision.detection.core.Detections.from_detectron2"><code>from_detectron2</code></a> (<a href="https://github.com/facebookresearch/detectron2">Detectron2</a>)</li>
+<li><a href="/latest/detection/core/#supervision.detection.core.Detections.from_mmdetection"><code>from_mmdetection</code></a> (<a href="https://github.com/open-mmlab/mmdetection">MMDetection</a>)</li>
+<li><a href="/latest/detection/core/#supervision.detection.core.Detections.from_sam"><code>from_sam</code></a> (<a href="https://github.com/facebookresearch/segment-anything">Segment Anything Model</a>)</li>
+<li><a href="/latest/detection/core/#supervision.detection.core.Detections.from_yolo_nas"><code>from_yolo_nas</code></a> (<a href="https://github.com/Deci-AI/super-gradients/blob/master/YOLONAS.md">YOLO-NAS</a>)</li>
 </ul>
 <h2 id="annotate-image-with-detections">Annotate Image with Detections<a class="headerlink" href="#annotate-image-with-detections" title="Permanent link">&para;</a></h2>
-<p>Finally, we can annotate the image with the predictions. Since we are working with an object detection model, we will use the <a href="annotators/#supervision.annotators.core.BoundingBoxAnnotator"><code>sv.BoundingBoxAnnotator</code></a> and <a href="annotators/#supervision.annotators.core.LabelAnnotator"><code>sv.LabelAnnotator</code></a> classes.</p>
+<p>Finally, we can annotate the image with the predictions. Since we are working with an object detection model, we will use the <a href="/latest/annotators/#supervision.annotators.core.BoundingBoxAnnotator"><code>sv.BoundingBoxAnnotator</code></a> and <a href="/latest/annotators/#supervision.annotators.core.LabelAnnotator"><code>sv.LabelAnnotator</code></a> classes.</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="3:3"><input checked="checked" id="__tabbed_3_1" name="__tabbed_3" type="radio" /><input id="__tabbed_3_2" name="__tabbed_3" type="radio" /><input id="__tabbed_3_3" name="__tabbed_3" type="radio" /><div class="tabbed-labels"><label for="__tabbed_3_1">Inference</label><label for="__tabbed_3_2">Ultralytics</label><label for="__tabbed_3_3">Transformers</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
@@ -1993,7 +1993,7 @@ model.</p>
 </div>
 <p><img alt="basic-annotation" src="https://media.roboflow.com/supervision_detect_and_annotate_example_1.png" /></p>
 <h2 id="display-custom-labels">Display Custom Labels<a class="headerlink" href="#display-custom-labels" title="Permanent link">&para;</a></h2>
-<p>By default, <a href="annotators/#supervision.annotators.core.LabelAnnotator"><code>sv.LabelAnnotator</code></a>
+<p>By default, <a href="/latest/annotators/#supervision.annotators.core.LabelAnnotator"><code>sv.LabelAnnotator</code></a>
 will label each detection with its <code>class_name</code> (if possible) or <code>class_id</code>. You can
 override this behavior by passing a list of custom <code>labels</code> to the <code>annotate</code> method.</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="4:3"><input checked="checked" id="__tabbed_4_1" name="__tabbed_4" type="radio" /><input id="__tabbed_4_2" name="__tabbed_4" type="radio" /><input id="__tabbed_4_3" name="__tabbed_4" type="radio" /><div class="tabbed-labels"><label for="__tabbed_4_1">Inference</label><label for="__tabbed_4_2">Ultralytics</label><label for="__tabbed_4_3">Transformers</label></div>
@@ -2089,9 +2089,9 @@ override this behavior by passing a list of custom <code>labels</code> to the <c
 <p><img alt="custom-label-annotation" src="https://media.roboflow.com/supervision_detect_and_annotate_example_2.png" /></p>
 <h2 id="annotate-image-with-segmentations">Annotate Image with Segmentations<a class="headerlink" href="#annotate-image-with-segmentations" title="Permanent link">&para;</a></h2>
 <p>If you are running the segmentation model
-<a href="annotators/#supervision.annotators.core.MaskAnnotator"><code>sv.MaskAnnotator</code></a>
+<a href="/latest/annotators/#supervision.annotators.core.MaskAnnotator"><code>sv.MaskAnnotator</code></a>
 is a drop-in replacement for
-<a href="annotators/#supervision.annotators.core.BoundingBoxAnnotator"><code>sv.BoundingBoxAnnotator</code></a>
+<a href="/latest/annotators/#supervision.annotators.core.BoundingBoxAnnotator"><code>sv.BoundingBoxAnnotator</code></a>
 that will allow you to draw masks instead of boxes.</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="5:2"><input checked="checked" id="__tabbed_5_1" name="__tabbed_5" type="radio" /><input id="__tabbed_5_2" name="__tabbed_5" type="radio" /><div class="tabbed-labels"><label for="__tabbed_5_1">Inference</label><label for="__tabbed_5_2">Ultralytics</label></div>
 <div class="tabbed-content">
@@ -2158,7 +2158,7 @@ that will allow you to draw masks instead of boxes.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1-2.1-2M12.5 7v5.2l4 2.4-1 1L11 13V7h1.5M11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2v1.8Z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">March 25, 2024</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">March 26, 2024</span>
   </span>
 
     
