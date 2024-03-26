@@ -1,8 +1,7 @@
 import argparse
 import json
 import os
-from typing import Any, Tuple
-from typing import Optional
+from typing import Any, Optional, Tuple
 
 import cv2
 import numpy as np
@@ -12,8 +11,8 @@ import supervision as sv
 KEY_ENTER = 13
 KEY_NEWLINE = 10
 KEY_ESCAPE = 27
-KEY_QUIT = ord('q')
-KEY_SAVE = ord('s')
+KEY_QUIT = ord("q")
+KEY_SAVE = ord("s")
 
 THICKNESS = 2
 COLORS = sv.ColorPalette.DEFAULT
@@ -48,24 +47,36 @@ def redraw(image: np.ndarray, original_image: np.ndarray) -> None:
     global POLYGONS, current_mouse_position
     image[:] = original_image.copy()
     for idx, polygon in enumerate(POLYGONS):
-        color = (COLORS.by_idx(idx).as_bgr() if idx < len(POLYGONS) - 1
-                 else sv.Color.WHITE.as_bgr())
+        color = (
+            COLORS.by_idx(idx).as_bgr()
+            if idx < len(POLYGONS) - 1
+            else sv.Color.WHITE.as_bgr()
+        )
 
         if len(polygon) > 1:
             for i in range(1, len(polygon)):
                 cv2.line(
-                    img=image, pt1=polygon[i - 1], pt2=polygon[i],
-                    color=color, thickness=THICKNESS
+                    img=image,
+                    pt1=polygon[i - 1],
+                    pt2=polygon[i],
+                    color=color,
+                    thickness=THICKNESS,
                 )
             if idx < len(POLYGONS) - 1:
                 cv2.line(
-                    img=image, pt1=polygon[-1], pt2=polygon[0],
-                    color=color, thickness=THICKNESS
+                    img=image,
+                    pt1=polygon[-1],
+                    pt2=polygon[0],
+                    color=color,
+                    thickness=THICKNESS,
                 )
         if idx == len(POLYGONS) - 1 and current_mouse_position is not None and polygon:
             cv2.line(
-                img=image, pt1=polygon[-1], pt2=current_mouse_position,
-                color=color, thickness=THICKNESS
+                img=image,
+                pt1=polygon[-1],
+                pt2=current_mouse_position,
+                color=color,
+                thickness=THICKNESS,
             )
     cv2.imshow(WINDOW_NAME, image)
 
@@ -77,7 +88,7 @@ def close_and_finalize_polygon(image: np.ndarray, original_image: np.ndarray) ->
             pt1=POLYGONS[-1][-1],
             pt2=POLYGONS[-1][0],
             color=COLORS.by_idx(0).as_bgr(),
-            thickness=THICKNESS
+            thickness=THICKNESS,
         )
     POLYGONS.append([])
     image[:] = original_image.copy()
@@ -89,26 +100,26 @@ def redraw_polygons(image: np.ndarray) -> None:
     for idx, polygon in enumerate(POLYGONS[:-1]):
         if len(polygon) > 1:
             color = COLORS.by_idx(idx).as_bgr()
-            for i in range(len(polygon)-1):
+            for i in range(len(polygon) - 1):
                 cv2.line(
                     img=image,
                     pt1=polygon[i],
-                    pt2=polygon[i+1],
+                    pt2=polygon[i + 1],
                     color=color,
-                    thickness=THICKNESS
+                    thickness=THICKNESS,
                 )
             cv2.line(
                 img=image,
                 pt1=polygon[-1],
                 pt2=polygon[0],
                 color=color,
-                thickness=THICKNESS
+                thickness=THICKNESS,
             )
 
 
 def save_polygons_to_json(polygons, target_path):
     data_to_save = polygons if polygons[-1] else polygons[:-1]
-    with open(target_path, 'w') as f:
+    with open(target_path, "w") as f:
         json.dump(data_to_save, f)
 
 
@@ -144,7 +155,7 @@ def main(source_path: str, target_path: str) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Interactively draw polygons on images or video frames and save "
-                    "the annotations."
+        "the annotations."
     )
     parser.add_argument(
         "--source_path",
