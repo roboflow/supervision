@@ -399,7 +399,7 @@ class Detections:
         """
         boxes = transformers_results.get("boxes")
 
-        # If the boxes key is in the transformers_results then we know it's an 
+        # If the boxes key is in the transformers_results then we know it's an
         # object detection result. Else, we can assume it's a segmentation model
         if boxes:
             return cls(
