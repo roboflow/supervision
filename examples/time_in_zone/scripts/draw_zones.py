@@ -123,7 +123,7 @@ def save_polygons_to_json(polygons, target_path):
         json.dump(data_to_save, f)
 
 
-def main(source_path: str, target_path: str) -> None:
+def main(source_path: str, zone_configuration_path: str) -> None:
     global current_mouse_position
     original_image = resolve_source(source_path=source_path)
     if original_image is None:
@@ -142,8 +142,8 @@ def main(source_path: str, target_path: str) -> None:
             POLYGONS[-1] = []
             current_mouse_position = None
         elif key == KEY_SAVE:
-            save_polygons_to_json(POLYGONS, target_path)
-            print(f"Polygons saved to {target_path}")
+            save_polygons_to_json(POLYGONS, zone_configuration_path)
+            print(f"Polygons saved to {zone_configuration_path}")
             break
         redraw(image, original_image)
         if key == KEY_QUIT:
@@ -164,7 +164,7 @@ if __name__ == "__main__":
         help="Path to the source image or video file for drawing polygons.",
     )
     parser.add_argument(
-        "--target_path",
+        "--zone_configuration_path",
         type=str,
         required=True,
         help="Path where the polygon annotations will be saved as a JSON file.",
@@ -172,5 +172,5 @@ if __name__ == "__main__":
     arguments = parser.parse_args()
     main(
         source_path=arguments.source_path,
-        target_path=arguments.target_path,
+        zone_configuration_path=arguments.zone_configuration_path,
     )

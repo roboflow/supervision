@@ -2,7 +2,10 @@
 
 ## 👋 hello
 
-TODO
+Practical demonstration on leveraging computer vision for analyzing wait times and 
+monitoring the duration that objects or individuals spend in predefined areas of video 
+frames. This example project, perfect for retail analytics or traffic management 
+applications.
 
 ## 💻 install
 
@@ -30,6 +33,8 @@ TODO
 
 ### `download_from_youtube`
 
+This script allows you to download a video from YouTube.
+
 - `--url`: The full URL of the YouTube video you wish to download.
 - `--output_path` (optional): Specifies the directory where the video will be saved.
 - `--file_name` (optional): Sets the name of the saved video file.
@@ -50,6 +55,10 @@ python scripts/download_from_youtube.py \
 
 ### `stream_from_file`
 
+This script allows you to stream video files from a directory. It's an awesome way to 
+mock a live video stream for local testing. Video will be streamed in a loop under 
+`rtsp://localhost:8554/live0.stream` URL. This script requires docker to be installed.
+
 - `--video_directory`: Directory containing video files to stream.
 - `--number_of_streams`: Number of video files to stream.
 
@@ -65,27 +74,70 @@ python scripts/stream_from_file.py \
 --number_of_streams 1
 ```
 
+### `draw_zones`
+
+If you want to test zone time in zone analysis on your own video, you can use this 
+script to design custom zones and save results as a JSON file. The script will open a 
+window where you can draw polygons on the source image or video file. The polygons will 
+be saved as a JSON file.
+
+- `--source_path`: Path to the source image or video file for drawing polygons.
+- `--zone_configuration_path`: Path where the polygon annotations will be saved as a JSON file.
+
+
+- `enter` - finish drawing the current polygon.
+- `escape` - cancel drawing the current polygon.
+- `q` - quit the drawing window.
+- `s` - save zone configuration to a JSON file.
+
+```bash
+python scripts/draw_zones.py \
+--source_path "data/checkout/video.mp4" \
+--zone_configuration_path "data/checkout/custom_config.json"
+```
+
+```bash
+python scripts/draw_zones.py \
+--source_path "data/traffic/video.mp4" \
+--zone_configuration_path "data/traffic/custom_config.json"
+```
+
 ## 🎬 video & stream processing
 
 ### `inference_file_example`
 
+Script to run object detection on a video file using the Roboflow Inference model.
+
   - `--zone_configuration_path`: Path to the zone configuration JSON file.
   - `--source_video_path`: Path to the source video file.
   - `--model_id`: Roboflow model ID.
   - `--classes`: List of class IDs to track. If empty, all classes are tracked.
   - `--confidence_threshold`: Confidence level for detections (`0` to `1`). Default is `0.3`.
   - `--iou_threshold`: IOU threshold for non-max suppression. Default is `0.7`.
+
+```bash
+python inference_file_example.py \
+--zone_configuration_path "data/checkout/config.json" \
+--source_video_path "data/checkout/video.mp4" \
+--model_id "yolov8x-640" \
+--classes 0 \
+--confidence_threshold 0.3 \
+--iou_threshold 0.7
+```
+
+```bash
+python inference_file_example.py \
+--zone_configuration_path "data/traffic/config.json" \
+--source_video_path "data/traffic/video.mp4" \
+--model_id "yolov8x-640" \
+--classes 2 5 6 7 \
+--confidence_threshold 0.3 \
+--iou_threshold 0.7
+```
 
 ### `inference_stream_example`
 
-  - `--zone_configuration_path`: Path to the zone configuration JSON file.
-  - `--rtsp_url`: Complete RTSP URL for the video stream.
-  - `--model_id`: Roboflow model ID.
-  - `--classes`: List of class IDs to track. If empty, all classes are tracked.
-  - `--confidence_threshold`: Confidence level for detections (`0` to `1`). Default is `0.3`.
-  - `--iou_threshold`: IOU threshold for non-max suppression. Default is `0.7`.
-
-### `inference_pipeline_stream_example`
+Script to run object detection on a video stream using the Roboflow Inference model.
 
   - `--zone_configuration_path`: Path to the zone configuration JSON file.
   - `--rtsp_url`: Complete RTSP URL for the video stream.
@@ -93,8 +145,30 @@ python scripts/stream_from_file.py \
   - `--classes`: List of class IDs to track. If empty, all classes are tracked.
   - `--confidence_threshold`: Confidence level for detections (`0` to `1`). Default is `0.3`.
   - `--iou_threshold`: IOU threshold for non-max suppression. Default is `0.7`.
+
+```bash
+python inference_file_example.py \
+--zone_configuration_path "data/checkout/config.json" \
+--rtsp_url "rtsp://localhost:8554/live0.stream" \
+--model_id "yolov8x-640" \
+--classes 0 \
+--confidence_threshold 0.3 \
+--iou_threshold 0.7
+```
+
+```bash
+python inference_file_example.py \
+--zone_configuration_path "data/traffic/config.json" \
+--rtsp_url "rtsp://localhost:8554/live0.stream" \
+--model_id "yolov8x-640" \
+--classes 2 5 6 7 \
+--confidence_threshold 0.3 \
+--iou_threshold 0.7
+```
 
 ### `ultralytics_file_example`
+
+Script to run object detection on a video file using the Ultralytics YOLOv8 model.
 
   - `--zone_configuration_path`: Path to the zone configuration JSON file.
   - `--source_video_path`: Path to the source video file.
@@ -104,17 +178,31 @@ python scripts/stream_from_file.py \
   - `--confidence_threshold`: Confidence level for detections (`0` to `1`). Default is `0.3`.
   - `--iou_threshold`: IOU threshold for non-max suppression. Default is `0.7`.
 
+```bash
+python inference_file_example.py \
+--zone_configuration_path "data/checkout/config.json" \
+--source_video_path "data/checkout/video.mp4" \
+--weights "yolov8x.pt" \
+--device "cpu" \
+--classes 0 \
+--confidence_threshold 0.3 \
+--iou_threshold 0.7
+```
+
+```bash
+python inference_file_example.py \
+--zone_configuration_path "data/traffic/config.json" \
+--source_video_path "data/traffic/video.mp4" \
+--weights "yolov8x.pt" \
+--device "cpu" \
+--classes 2 5 6 7 \
+--confidence_threshold 0.3 \
+--iou_threshold 0.7
+```
+
 ### `ultralytics_stream_example`
 
-  - `--zone_configuration_path`: Path to the zone configuration JSON file.
-  - `--rtsp_url`: Complete RTSP URL for the video stream.
-  - `--weights`: Path to the model weights file. Default is `'yolov8s.pt'`.
-  - `--device`: Computation device (`'cpu'`, `'mps'` or `'cuda'`). Default is `'cpu'`.
-  - `--classes`: List of class IDs to track. If empty, all classes are tracked.
-  - `--confidence_threshold`: Confidence level for detections (`0` to `1`). Default is `0.3`.
-  - `--iou_threshold`: IOU threshold for non-max suppression. Default is `0.7`.
-
-### `ultralytics_pipeline_stream_example`
+Script to run object detection on a video stream using the Ultralytics YOLOv8 model.
 
   - `--zone_configuration_path`: Path to the zone configuration JSON file.
   - `--rtsp_url`: Complete RTSP URL for the video stream.
@@ -123,6 +211,28 @@ python scripts/stream_from_file.py \
   - `--classes`: List of class IDs to track. If empty, all classes are tracked.
   - `--confidence_threshold`: Confidence level for detections (`0` to `1`). Default is `0.3`.
   - `--iou_threshold`: IOU threshold for non-max suppression. Default is `0.7`.
+
+```bash
+python inference_file_example.py \
+--zone_configuration_path "data/checkout/config.json" \
+--rtsp_url "rtsp://localhost:8554/live0.stream" \
+--weights "yolov8x.pt" \
+--device "cpu" \
+--classes 0 \
+--confidence_threshold 0.3 \
+--iou_threshold 0.7
+```
+
+```bash
+python inference_file_example.py \
+--zone_configuration_path "data/traffic/config.json" \
+--rtsp_url "rtsp://localhost:8554/live0.stream" \
+--weights "yolov8x.pt" \
+--device "cpu" \
+--classes 2 5 6 7 \
+--confidence_threshold 0.3 \
+--iou_threshold 0.7
+```
 
 ## © license
 

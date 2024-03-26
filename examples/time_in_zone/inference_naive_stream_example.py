@@ -3,9 +3,8 @@ from typing import List
 
 import cv2
 import numpy as np
-from inference import InferencePipeline
-from inference.core.interfaces.camera.entities import VideoFrame
-from utils.general import find_in_list, load_zones_config
+from inference import get_model
+from utils.general import find_in_list, get_stream_frames_generator, load_zones_config
 from utils.timers import ClockBasedTimer
 
 import supervision as sv
@@ -17,35 +16,43 @@ LABEL_ANNOTATOR = sv.LabelAnnotator(
 )
 
 
-class CustomSink:
-    def __init__(self, zone_configuration_path: str, classes: List[int]):
-        self.classes = classes
-        self.tracker = sv.ByteTrack(minimum_matching_threshold=0.5)
-        self.fps_monitor = sv.FPSMonitor()
-        self.polygons = load_zones_config(file_path=zone_configuration_path)
-        self.timers = [ClockBasedTimer() for _ in self.polygons]
-        self.zones = None
+def main(
+    rtsp_url: str,
+    zone_configuration_path: str,
+    model_id: str,
+    confidence: float,
+    iou: float,
+    classes: List[int],
+) -> None:
+    model = get_model(model_id=model_id)
+    tracker = sv.ByteTrack(minimum_matching_threshold=0.5)
+    frames_generator = get_stream_frames_generator(rtsp_url=rtsp_url)
+    fps_monitor = sv.FPSMonitor()
 
-    def on_prediction(self, result: dict, frame: VideoFrame) -> None:
-        if self.zones is None:
-            resolution_wh = frame.image.shape[1], frame.image.shape[0]
-            self.zones = [
-                sv.PolygonZone(
-                    polygon=polygon,
-                    frame_resolution_wh=resolution_wh,
-                    triggering_anchors=(sv.Position.CENTER,),
-                )
-                for polygon in self.polygons
-            ]
+    frame = next(frames_generator)
+    resolution_wh = frame.shape[1], frame.shape[0]
 
-        self.fps_monitor.tick()
-        fps = self.fps_monitor.fps
+    polygons = load_zones_config(file_path=zone_configuration_path)
+    zones = [
+        sv.PolygonZone(
+            polygon=polygon,
+            frame_resolution_wh=resolution_wh,
+            triggering_anchors=(sv.Position.CENTER,),
+        )
+        for polygon in polygons
+    ]
+    timers = [ClockBasedTimer() for _ in zones]
 
-        detections = sv.Detections.from_inference(result)
-        detections = detections[find_in_list(detections.class_id, self.classes)]
-        detections = self.tracker.update_with_detections(detections)
+    for frame in frames_generator:
+        fps_monitor.tick()
+        fps = fps_monitor.fps
 
-        annotated_frame = frame.image.copy()
+        results = model.infer(frame, confidence=confidence, iou_threshold=iou)[0]
+        detections = sv.Detections.from_inference(results)
+        detections = detections[find_in_list(detections.class_id, classes)]
+        detections = tracker.update_with_detections(detections)
+
+        annotated_frame = frame.copy()
         annotated_frame = sv.draw_text(
             scene=annotated_frame,
             text=f"{fps:.1f}",
@@ -54,13 +61,13 @@ class CustomSink:
             text_color=sv.Color.from_hex("#000000"),
         )
 
-        for idx, zone in enumerate(self.zones):
+        for idx, zone in enumerate(zones):
             annotated_frame = sv.draw_polygon(
                 scene=annotated_frame, polygon=zone.polygon, color=COLORS.by_idx(idx)
             )
 
             detections_in_zone = detections[zone.trigger(detections)]
-            time_in_zone = self.timers[idx].tick(detections_in_zone)
+            time_in_zone = timers[idx].tick(detections_in_zone)
             custom_color_lookup = np.full(detections_in_zone.class_id.shape, idx)
 
             annotated_frame = COLOR_ANNOTATOR.annotate(
@@ -78,34 +85,11 @@ class CustomSink:
                 labels=labels,
                 custom_color_lookup=custom_color_lookup,
             )
+
         cv2.imshow("Processed Video", annotated_frame)
-        cv2.waitKey(1)
-
-
-def main(
-    rtsp_url: str,
-    zone_configuration_path: str,
-    model_id: str,
-    confidence: float,
-    iou: float,
-    classes: List[int],
-) -> None:
-    sink = CustomSink(zone_configuration_path=zone_configuration_path, classes=classes)
-
-    pipeline = InferencePipeline.init(
-        model_id=model_id,
-        video_reference=rtsp_url,
-        on_prediction=sink.on_prediction,
-        confidence=confidence,
-        iou_threshold=iou,
-    )
-
-    pipeline.start()
-
-    try:
-        pipeline.join()
-    except KeyboardInterrupt:
-        pipeline.terminate()
+        if cv2.waitKey(1) & 0xFF == ord("q"):
+            break
+    cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":
