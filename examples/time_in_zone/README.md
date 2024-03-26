@@ -104,6 +104,8 @@ python scripts/draw_zones.py \
 --zone_configuration_path "data/traffic/custom_config.json"
 ```
 
+https://github.com/roboflow/supervision/assets/26109316/9d514c9e-2a61-418b-ae49-6ac1ad6ae5ac
+
 ## 🎬 video & stream processing
 
 ### `inference_file_example`
