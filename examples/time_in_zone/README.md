@@ -7,6 +7,8 @@ monitoring the duration that objects or individuals spend in predefined areas of
 frames. This example project, perfect for retail analytics or traffic management
 applications.
 
+https://github.com/roboflow/supervision/assets/26109316/d051cc8a-dd15-41d4-aa36-d38b86334c39
+
 ## 💻 install
 
 - clone repository and navigate to example directory
@@ -125,6 +127,8 @@ python inference_file_example.py \
 --iou_threshold 0.7
 ```
 
+https://github.com/roboflow/supervision/assets/26109316/d051cc8a-dd15-41d4-aa36-d38b86334c39
+
 ```bash
 python inference_file_example.py \
 --zone_configuration_path "data/traffic/config.json" \
@@ -134,6 +138,8 @@ python inference_file_example.py \
 --confidence_threshold 0.3 \
 --iou_threshold 0.7
 ```
+
+https://github.com/roboflow/supervision/assets/26109316/5ec896d7-4b39-4426-8979-11e71666878b
 
 ### `inference_stream_example`
 
@@ -165,6 +171,9 @@ python inference_file_example.py \
 --confidence_threshold 0.3 \
 --iou_threshold 0.7
 ```
+
+<details>
+<summary>👉 show ultralytics examples</summary>
 
 ### `ultralytics_file_example`
 
@@ -233,6 +242,8 @@ python inference_file_example.py \
 --confidence_threshold 0.3 \
 --iou_threshold 0.7
 ```
+  
+</details>
 
 ## © license
 
