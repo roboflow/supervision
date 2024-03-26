@@ -52,6 +52,7 @@ from supervision.detection.utils import (
     mask_to_polygons,
     mask_to_xyxy,
     move_boxes,
+    move_masks,
     polygon_to_mask,
     polygon_to_xyxy,
     scale_boxes,

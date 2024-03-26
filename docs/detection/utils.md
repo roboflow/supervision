@@ -66,6 +66,12 @@ status: new
 :::supervision.detection.utils.move_boxes
 
 <div class="md-typeset">
+    <h2>move_masks</h2>
+</div>
+
+:::supervision.detection.utils.move_masks
+
+<div class="md-typeset">
     <h2>scale_boxes</h2>
 </div>
 
