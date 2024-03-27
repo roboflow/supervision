@@ -1274,7 +1274,9 @@ class HeatMapAnnotator:
     """
     A class for drawing heatmaps on an image based on provided detections.
     Heat accumulates over time and is drawn as a semi-transparent overlay
-    of blurred circles.
+    of blurred circles.  If homography mappings are provided the annotations
+    will be drawn on the transformed coordinates, typically used to transform
+    the image angle into a top-down view used in floor plans
     """
 
     def __init__(
@@ -1285,6 +1287,7 @@ class HeatMapAnnotator:
         kernel_size: int = 25,
         top_hue: int = 0,
         low_hue: int = 125,
+        mappings: list = None,
     ):
         """
         Args:
@@ -1295,6 +1298,11 @@ class HeatMapAnnotator:
             kernel_size (int): Kernel size for blurring the heatmap.
             top_hue (int): Hue at the top of the heatmap. Defaults to 0 (red).
             low_hue (int): Hue at the bottom of the heatmap. Defaults to 125 (blue).
+            mappings (list): Contains two lists, one for source and one for destination
+                            xy coordinates. Used to perform homography mappings.
+                            Must be equal number of coordinates in each list and at
+                            least four points are required for successful
+                            transformation
         """
         self.position = position
         self.opacity = opacity
@@ -1303,6 +1311,18 @@ class HeatMapAnnotator:
         self.heat_mask = None
         self.top_hue = top_hue
         self.low_hue = low_hue
+        self.mappings = mappings
+
+        # calculate homography matrix
+        if self.mappings:
+            pts_src = np.array(self.mappings[0])
+            pts_dst = np.array(self.mappings[1])
+            # Check if both pts_src and pts_dst have at least 4 points
+            if len(pts_src) < 4 or len(pts_dst) < 4:
+                raise ValueError(
+                    "Require four or more mapping points for homography mappings."
+                )
+            self.homography_matrix, status = cv2.findHomography(pts_src, pts_dst)
 
     @scene_to_annotator_img_type
     def annotate(self, scene: ImageType, detections: Detections) -> ImageType:
@@ -1318,6 +1338,10 @@ class HeatMapAnnotator:
         Returns:
             The annotated image, matching the type of `scene` (`numpy.ndarray`
                 or `PIL.Image.Image`)
+
+        Raises:
+            Value error if less than four pairs of xy coordinates are provided in
+                the mappings list for both the source and destination scenes
 
         Example:
             ```python
@@ -1349,7 +1373,16 @@ class HeatMapAnnotator:
             self.heat_mask = np.zeros(scene.shape[:2])
         mask = np.zeros(scene.shape[:2])
         for xy in detections.get_anchors_coordinates(self.position):
-            cv2.circle(mask, (int(xy[0]), int(xy[1])), self.radius, 1, -1)
+            # calculate transform based on homography mappings if provided
+            if self.mappings:
+                a = np.array([xy], dtype="float32")
+                a = np.array([a])
+                xy = cv2.perspectiveTransform(a, self.homography_matrix)
+                cv2.circle(
+                    mask, (int(xy[0][0][0]), int(xy[0][0][1])), self.radius, 1, -1
+                )
+            else:
+                cv2.circle(mask, (int(xy[0]), int(xy[1])), self.radius, 1, -1)
         self.heat_mask = mask + self.heat_mask
         temp = self.heat_mask.copy()
         temp = self.low_hue - temp / temp.max() * (self.low_hue - self.top_hue)
