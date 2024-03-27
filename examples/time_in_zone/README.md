@@ -43,14 +43,14 @@ This script allows you to download a video from YouTube.
 
 ```bash
 python scripts/download_from_youtube.py \
---url "https://youtu.be/8zyEwAa50Q" \
+--url "https://www.youtube.com/watch?v=-8zyEwAa50Q" \
 --output_path "data/checkout" \
 --file_name "video.mp4"
 ```
 
 ```bash
 python scripts/download_from_youtube.py \
---url "https://youtu.be/MNn9qKG2UFI" \
+--url "https://www.youtube.com/watch?v=MNn9qKG2UFI" \
 --output_path "data/traffic" \
 --file_name "video.mp4"
 ```
@@ -95,7 +95,7 @@ be saved as a JSON file.
 ```bash
 python scripts/draw_zones.py \
 --source_path "data/checkout/video.mp4" \
---zone_configuration_path "data/checkout/custom_config.json"
+--zone_configuration_path "data/checkout/config.json"
 ```
 
 ```bash
