@@ -1035,12 +1035,7 @@ def test_merge_data(
 @pytest.mark.parametrize(
     "data, index, expected_result, exception",
     [
-        (
-            {},
-            0,
-            {},
-            DoesNotRaise()
-        ),  # empty data dict
+        ({}, 0, {}, DoesNotRaise()),  # empty data dict
         (
             {
                 "test_1": [1, 2, 3],
@@ -1172,39 +1167,21 @@ def test_merge_data(
             DoesNotRaise(),
         ),  # data dict with a single np.array field and mixed bool np.array index
         (
-            {
-                "test_1": np.array([1, 2, 3]),
-                "test_2": ['a', 'b', 'c']
-            },
+            {"test_1": np.array([1, 2, 3]), "test_2": ["a", "b", "c"]},
             0,
-            {
-                "test_1": np.array([1]),
-                "test_2": ['a']
-            },
+            {"test_1": np.array([1]), "test_2": ["a"]},
             DoesNotRaise(),
         ),  # data dict with two fields and integer index
         (
-            {
-                "test_1": np.array([1, 2, 3]),
-                "test_2": ['a', 'b', 'c']
-            },
+            {"test_1": np.array([1, 2, 3]), "test_2": ["a", "b", "c"]},
             -1,
-            {
-                "test_1": np.array([3]),
-                "test_2": ['c']
-            },
+            {"test_1": np.array([3]), "test_2": ["c"]},
             DoesNotRaise(),
         ),  # data dict with two fields and negative integer index
         (
-            {
-                "test_1": np.array([1, 2, 3]),
-                "test_2": ['a', 'b', 'c']
-            },
+            {"test_1": np.array([1, 2, 3]), "test_2": ["a", "b", "c"]},
             np.array([False, True, False]),
-            {
-                "test_1": np.array([2]),
-                "test_2": ['b']
-            },
+            {"test_1": np.array([2]), "test_2": ["b"]},
             DoesNotRaise(),
         ),  # data dict with two fields and mixed bool np.array index
     ],
