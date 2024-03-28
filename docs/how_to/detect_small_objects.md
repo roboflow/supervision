@@ -9,7 +9,7 @@ This guide shows how to detect small objects
 with the  [Inference](https://github.com/roboflow/inference),
 [Ultralytics](https://github.com/ultralytics/ultralytics) or
 [Transformers](https://github.com/huggingface/transformers) packages using
-[`InferenceSlicer`](detection/tools/inference_slicer/#supervision.detection.tools.inference_slicer.InferenceSlicer).
+[`InferenceSlicer`](/latest/detection/tools/inference_slicer/#supervision.detection.tools.inference_slicer.InferenceSlicer).
 
 <video controls>
     <source src="https://media.roboflow.com/supervision_detect_small_objects_example.mp4" type="video/mp4">
@@ -154,7 +154,7 @@ is less effective for ultra-high-resolution images (4K and above).
 
 ## Inference Slicer
 
-[`InferenceSlicer`](detection/tools/inference_slicer/#supervision.detection.tools.inference_slicer.InferenceSlicer)
+[`InferenceSlicer`](/latest/detection/tools/inference_slicer/#supervision.detection.tools.inference_slicer.InferenceSlicer)
 processes high-resolution images by dividing them into smaller segments, detecting
 objects within each, and aggregating the results.
 
