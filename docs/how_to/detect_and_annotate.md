@@ -27,7 +27,7 @@ model.
     from inference import get_model
 
     model = get_model(model_id="yolov8n-640")
-    image = cv2.imread(<PATH TO IMAGE>)
+    image = cv2.imread(<SOURCE_IMAGE_APTH>)
     results = model.infer(image)[0]
     ```
 
@@ -38,7 +38,7 @@ model.
     from ultralytics import YOLO
 
     model = YOLO("yolov8n.pt")
-    image = cv2.imread(<PATH TO IMAGE>)
+    image = cv2.imread(<SOURCE_IMAGE_APTH>)
     results = model(image)[0]
     ```
 
@@ -52,7 +52,7 @@ model.
     processor = DetrImageProcessor.from_pretrained("facebook/detr-resnet-50")
     model = DetrForObjectDetection.from_pretrained("facebook/detr-resnet-50")
 
-    image = Image.open(<PATH TO IMAGE>)
+    image = Image.open(<SOURCE_IMAGE_APTH>)
     inputs = processor(images=image, return_tensors="pt")
 
     with torch.no_grad():
@@ -78,7 +78,7 @@ Now that we have predictions from a model, we can load them into Supervision.
     from inference import get_model
 
     model = get_model(model_id="yolov8n-640")
-    image = cv2.imread(<PATH TO IMAGE>)
+    image = cv2.imread(<SOURCE_IMAGE_APTH>)
     results = model.infer(image)[0]
     detections = sv.Detections.from_inference(results)
     ```
@@ -93,7 +93,7 @@ Now that we have predictions from a model, we can load them into Supervision.
     from ultralytics import YOLO
 
     model = YOLO("yolov8n.pt")
-    image = cv2.imread(<PATH TO IMAGE>)
+    image = cv2.imread(<SOURCE_IMAGE_APTH>)
     results = model(image)[0]
     detections = sv.Detections.from_ultralytics(results)
     ```
@@ -111,7 +111,7 @@ Now that we have predictions from a model, we can load them into Supervision.
     processor = DetrImageProcessor.from_pretrained("facebook/detr-resnet-50")
     model = DetrForObjectDetection.from_pretrained("facebook/detr-resnet-50")
 
-    image = Image.open(<PATH TO IMAGE>)
+    image = Image.open(<SOURCE_IMAGE_APTH>)
     inputs = processor(images=image, return_tensors="pt")
 
     with torch.no_grad():
@@ -126,15 +126,15 @@ Now that we have predictions from a model, we can load them into Supervision.
 
 You can load predictions from other computer vision frameworks and libraries using:
 
-- [`from_deepsparse`](detection/core/#supervision.detection.core.Detections.from_deepsparse) ([Deepsparse](https://github.com/neuralmagic/deepsparse))
-- [`from_detectron2`](detection/core/#supervision.detection.core.Detections.from_detectron2) ([Detectron2](https://github.com/facebookresearch/detectron2))
-- [`from_mmdetection`](detection/core/#supervision.detection.core.Detections.from_mmdetection) ([MMDetection](https://github.com/open-mmlab/mmdetection))
-- [`from_sam`](detection/core/#supervision.detection.core.Detections.from_sam) ([Segment Anything Model](https://github.com/facebookresearch/segment-anything))
-- [`from_yolo_nas`](detection/core/#supervision.detection.core.Detections.from_yolo_nas) ([YOLO-NAS](https://github.com/Deci-AI/super-gradients/blob/master/YOLONAS.md))
+- [`from_deepsparse`](/latest/detection/core/#supervision.detection.core.Detections.from_deepsparse) ([Deepsparse](https://github.com/neuralmagic/deepsparse))
+- [`from_detectron2`](/latest/detection/core/#supervision.detection.core.Detections.from_detectron2) ([Detectron2](https://github.com/facebookresearch/detectron2))
+- [`from_mmdetection`](/latest/detection/core/#supervision.detection.core.Detections.from_mmdetection) ([MMDetection](https://github.com/open-mmlab/mmdetection))
+- [`from_sam`](/latest/detection/core/#supervision.detection.core.Detections.from_sam) ([Segment Anything Model](https://github.com/facebookresearch/segment-anything))
+- [`from_yolo_nas`](/latest/detection/core/#supervision.detection.core.Detections.from_yolo_nas) ([YOLO-NAS](https://github.com/Deci-AI/super-gradients/blob/master/YOLONAS.md))
 
 ## Annotate Image with Detections
 
-Finally, we can annotate the image with the predictions. Since we are working with an object detection model, we will use the [`sv.BoundingBoxAnnotator`](annotators/#supervision.annotators.core.BoundingBoxAnnotator) and [`sv.LabelAnnotator`](annotators/#supervision.annotators.core.LabelAnnotator) classes.
+Finally, we can annotate the image with the predictions. Since we are working with an object detection model, we will use the [`sv.BoundingBoxAnnotator`](/latest/annotators/#supervision.annotators.core.BoundingBoxAnnotator) and [`sv.LabelAnnotator`](/latest/annotators/#supervision.annotators.core.LabelAnnotator) classes.
 
 === "Inference"
 
@@ -144,7 +144,7 @@ Finally, we can annotate the image with the predictions. Since we are working wi
     from inference import get_model
 
     model = get_model(model_id="yolov8n-640")
-    image = cv2.imread(<PATH TO IMAGE>)
+    image = cv2.imread(<SOURCE_IMAGE_APTH>)
     results = model.infer(image)[0]
     detections = sv.Detections.from_inference(results)
 
@@ -165,7 +165,7 @@ Finally, we can annotate the image with the predictions. Since we are working wi
     from ultralytics import YOLO
 
     model = YOLO("yolov8n.pt")
-    image = cv2.imread(<PATH TO IMAGE>)
+    image = cv2.imread(<SOURCE_IMAGE_APTH>)
     results = model(image)[0]
     detections = sv.Detections.from_ultralytics(results)
 
@@ -189,7 +189,7 @@ Finally, we can annotate the image with the predictions. Since we are working wi
     processor = DetrImageProcessor.from_pretrained("facebook/detr-resnet-50")
     model = DetrForObjectDetection.from_pretrained("facebook/detr-resnet-50")
 
-    image = Image.open(<PATH TO IMAGE>)
+    image = Image.open(<SOURCE_IMAGE_APTH>)
     inputs = processor(images=image, return_tensors="pt")
 
     with torch.no_grad():
@@ -214,7 +214,7 @@ Finally, we can annotate the image with the predictions. Since we are working wi
 
 ## Display Custom Labels
 
-By default, [`sv.LabelAnnotator`](annotators/#supervision.annotators.core.LabelAnnotator)
+By default, [`sv.LabelAnnotator`](/latest/annotators/#supervision.annotators.core.LabelAnnotator)
 will label each detection with its `class_name` (if possible) or `class_id`. You can
 override this behavior by passing a list of custom `labels` to the `annotate` method.
 
@@ -315,9 +315,9 @@ override this behavior by passing a list of custom `labels` to the `annotate` me
 ## Annotate Image with Segmentations
 
 If you are running the segmentation model
-[`sv.MaskAnnotator`](annotators/#supervision.annotators.core.MaskAnnotator)
+[`sv.MaskAnnotator`](/latest/annotators/#supervision.annotators.core.MaskAnnotator)
 is a drop-in replacement for
-[`sv.BoundingBoxAnnotator`](annotators/#supervision.annotators.core.BoundingBoxAnnotator)
+[`sv.BoundingBoxAnnotator`](/latest/annotators/#supervision.annotators.core.BoundingBoxAnnotator)
 that will allow you to draw masks instead of boxes.
 
 === "Inference"
@@ -360,6 +360,44 @@ that will allow you to draw masks instead of boxes.
         scene=image, detections=detections)
     annotated_image = label_annotator.annotate(
         scene=annotated_image, detections=detections)
+    ```
+
+=== "Transformers"
+
+    ```python
+    import torch
+    import supervision as sv
+    from PIL import Image
+    from transformers import DetrImageProcessor, DetrForSegmentation
+
+    processor = DetrImageProcessor.from_pretrained("facebook/detr-resnet-50-panoptic")
+    model = DetrForSegmentation.from_pretrained("facebook/detr-resnet-50-panoptic")
+
+    image = Image.open(<SOURCE_IMAGE_PATH>)
+    inputs = processor(images=image, return_tensors="pt")
+
+    with torch.no_grad():
+        outputs = model(**inputs)
+
+    width, height = image.size
+    target_size = torch.tensor([[height, width]])
+    results = processor.post_process_segmentation(
+        outputs=outputs, target_sizes=target_size)[0]
+    detections = sv.Detections.from_transformers(results)
+
+    mask_annotator = sv.MaskAnnotator()
+    label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER)
+
+    labels = [
+        f"{model.config.id2label[class_id]} {confidence:.2f}"
+        for class_id, confidence
+        in zip(detections.class_id, detections.confidence)
+    ]
+
+    annotated_image = mask_annotator.annotate(
+        scene=image, detections=detections)
+    annotated_image = label_annotator.annotate(
+        scene=annotated_image, detections=detections, labels=labels)
     ```
 
 ![segmentation-annotation](https://media.roboflow.com/supervision_detect_and_annotate_example_3.png)

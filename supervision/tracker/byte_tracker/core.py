@@ -286,10 +286,7 @@ class ByteTrack:
         """
 
         tensors = detections2boxes(detections=detections)
-
         tracks = self.update_with_tensors(tensors=tensors)
-
-        final_detections = Detections.empty()
 
         if len(tracks) > 0:
             detection_bounding_boxes = np.asarray([det[:4] for det in tensors])
@@ -300,30 +297,16 @@ class ByteTrack:
             iou_costs = 1 - ious
 
             matches, _, _ = matching.linear_assignment(iou_costs, 0.5)
-            for i, (idet, itrack) in enumerate(matches):
-                if i == 0:
-                    final_detections = detections[[idet]]
-                    if final_detections.tracker_id is None:
-                        final_detections.tracker_id = np.asarray(
-                            [int(tracks[itrack].track_id)]
-                        )
-                    else:
-                        final_detections.tracker_id[0] = int(tracks[itrack].track_id)
-                else:
-                    current_detection = detections[[idet]]
-                    if current_detection.tracker_id is None:
-                        current_detection.tracker_id = np.asarray(
-                            [int(tracks[itrack].track_id)]
-                        )
-                    else:
-                        current_detection.tracker_id[0] = int(tracks[itrack].track_id)
-                    final_detections = Detections.merge(
-                        [final_detections, current_detection]
-                    )
-        else:
-            final_detections.tracker_id = np.array([], dtype=int)
+            detections.tracker_id = np.full(len(detections), -1, dtype=int)
+            for i_detection, i_track in matches:
+                detections.tracker_id[i_detection] = int(tracks[i_track].track_id)
 
-        return final_detections
+            return detections[detections.tracker_id != -1]
+
+        else:
+            detections.tracker_id = np.array([], dtype=int)
+
+            return detections
 
     def reset(self):
         """

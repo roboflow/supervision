@@ -5,25 +5,25 @@ on:
       - '[0-9]+.[0-9]+[0-9]+.[0-9]+a[0-9]'
       - '[0-9]+.[0-9]+[0-9]+.[0-9]+b[0-9]'
       - '[0-9]+.[0-9]+[0-9]+.[0-9]+rc[0-9]'
-    branches:
-      - develop
 
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
 jobs:
   build-n-publish:
     name: Build and publish to PyPI
     runs-on: ubuntu-latest
-
+    strategy:
+      matrix:
+        python-version: ["3.10"]
     steps:
-      - name: Checkout source
+      - name: 🛎️ Checkout
         uses: actions/checkout@v4
-
-      - name: 🐍 Set up Python 3.8 environment for build
+        with:
+          ref: ${{ github.head_ref }}
+      - name: 🐍 Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
-          python-version: "3.8"
+          python-version: ${{ matrix.python-version }}
 
       - name: 🏗️ Build source and wheel distributions
         run: |

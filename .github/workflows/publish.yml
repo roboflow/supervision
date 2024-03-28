@@ -3,10 +3,7 @@ on:
   push:
     tags:
       - '[0-9]+.[0-9]+[0-9]+.[0-9]'
-    branches:
-      - main
 
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
 jobs:
@@ -14,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.8]
+        python-version: ["3.10"]
     steps:
       - name: 🛎️ Checkout
         uses: actions/checkout@v4

@@ -1045,7 +1045,7 @@ def test_merge_data(
                 "test_1": [1],
             },
             DoesNotRaise(),
-        ),  # single data dict with a single field name and list values
+        ),  # data dict with a single list field and integer index
         (
             {
                 "test_1": np.array([1, 2, 3]),
@@ -1055,7 +1055,7 @@ def test_merge_data(
                 "test_1": np.array([1]),
             },
             DoesNotRaise(),
-        ),  # single data dict with a single field name and np.array values as 1D arrays
+        ),  # data dict with a single np.array field and integer index
         (
             {
                 "test_1": [1, 2, 3],
@@ -1065,7 +1065,7 @@ def test_merge_data(
                 "test_1": [1, 2],
             },
             DoesNotRaise(),
-        ),  # single data dict with a single field name and list values
+        ),  # data dict with a single list field and slice index
         (
             {
                 "test_1": np.array([1, 2, 3]),
@@ -1075,7 +1075,7 @@ def test_merge_data(
                 "test_1": np.array([1, 2]),
             },
             DoesNotRaise(),
-        ),  # single data dict with a single field name and np.array values as 1D arrays
+        ),  # data dict with a single np.array field and slice index
         (
             {
                 "test_1": [1, 2, 3],
@@ -1085,7 +1085,7 @@ def test_merge_data(
                 "test_1": [3],
             },
             DoesNotRaise(),
-        ),  # single data dict with a single field name and list values
+        ),  # data dict with a single list field and negative integer index
         (
             {
                 "test_1": np.array([1, 2, 3]),
@@ -1095,7 +1095,7 @@ def test_merge_data(
                 "test_1": np.array([3]),
             },
             DoesNotRaise(),
-        ),  # single data dict with a single field name and np.array values as 1D arrays
+        ),  # data dict with a single np.array field and negative integer index
         (
             {
                 "test_1": [1, 2, 3],
@@ -1105,7 +1105,7 @@ def test_merge_data(
                 "test_1": [1, 3],
             },
             DoesNotRaise(),
-        ),  # single data dict with a single field name and list values
+        ),  # data dict with a single list field and integer list index
         (
             {
                 "test_1": np.array([1, 2, 3]),
@@ -1115,7 +1115,7 @@ def test_merge_data(
                 "test_1": np.array([1, 3]),
             },
             DoesNotRaise(),
-        ),  # single data dict with a single field name and np.array values as 1D arrays
+        ),  # data dict with a single np.array field and integer list index
         (
             {
                 "test_1": [1, 2, 3],
@@ -1125,7 +1125,7 @@ def test_merge_data(
                 "test_1": [1, 3],
             },
             DoesNotRaise(),
-        ),  # single data dict with a single field name and list values
+        ),  # data dict with a single list field and integer np.array index
         (
             {
                 "test_1": np.array([1, 2, 3]),
@@ -1135,7 +1135,55 @@ def test_merge_data(
                 "test_1": np.array([1, 3]),
             },
             DoesNotRaise(),
-        ),
+        ),  # data dict with a single np.array field and integer np.array index
+        (
+            {
+                "test_1": np.array([1, 2, 3]),
+            },
+            np.array([True, True, True]),
+            {
+                "test_1": np.array([1, 2, 3]),
+            },
+            DoesNotRaise(),
+        ),  # data dict with a single np.array field and all-true bool np.array index
+        (
+            {
+                "test_1": np.array([1, 2, 3]),
+            },
+            np.array([False, False, False]),
+            {
+                "test_1": np.array([]),
+            },
+            DoesNotRaise(),
+        ),  # data dict with a single np.array field and all-false bool np.array index
+        (
+            {
+                "test_1": np.array([1, 2, 3]),
+            },
+            np.array([False, True, False]),
+            {
+                "test_1": np.array([2]),
+            },
+            DoesNotRaise(),
+        ),  # data dict with a single np.array field and mixed bool np.array index
+        (
+            {"test_1": np.array([1, 2, 3]), "test_2": ["a", "b", "c"]},
+            0,
+            {"test_1": np.array([1]), "test_2": ["a"]},
+            DoesNotRaise(),
+        ),  # data dict with two fields and integer index
+        (
+            {"test_1": np.array([1, 2, 3]), "test_2": ["a", "b", "c"]},
+            -1,
+            {"test_1": np.array([3]), "test_2": ["c"]},
+            DoesNotRaise(),
+        ),  # data dict with two fields and negative integer index
+        (
+            {"test_1": np.array([1, 2, 3]), "test_2": ["a", "b", "c"]},
+            np.array([False, True, False]),
+            {"test_1": np.array([2]), "test_2": ["b"]},
+            DoesNotRaise(),
+        ),  # data dict with two fields and mixed bool np.array index
     ],
 )
 def test_get_data_item(
