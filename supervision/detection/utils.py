@@ -849,7 +849,9 @@ def get_data_item(
                 subset_data[key] = [value[i] for i in index]
             elif isinstance(index, np.ndarray):
                 if index.dtype == bool:
-                    subset_data[key] = [value[i] for i, index_value in enumerate(index) if index_value]
+                    subset_data[key] = [
+                        value[i] for i, index_value in enumerate(index) if index_value
+                    ]
                 else:
                     subset_data[key] = [value[i] for i in index]
             elif isinstance(index, int):
