@@ -4,7 +4,6 @@ on:
     tags:
       - '[0-9]+.[0-9]+[0-9]+.[0-9]'
 
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
 jobs:
@@ -12,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.10]
+        python-version: ["3.10"]
     steps:
       - name: 🛎️ Checkout
         uses: actions/checkout@v4
