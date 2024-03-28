@@ -30,7 +30,7 @@ We write your reusable computer vision tools. Whether you need to load your data
 
 ## 💻 Install
 
-You can install `supervision` in a 
+You can install `supervision` in a
 [**Python>=3.8**](https://www.python.org/) environment.
 
 !!! example "pip install (recommended)"
