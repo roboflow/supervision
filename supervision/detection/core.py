@@ -428,14 +428,12 @@ class Detections:
             ```
         """  # noqa: E501 // docs
 
+        class_ids = transformers_results["labels"].cpu().detach().numpy().astype(int)
+        data = {}
+        if id2label is not None:
+            class_names = np.array([id2label[class_id] for class_id in class_ids])
+            data[CLASS_NAME_DATA_FIELD] = class_names
         if "boxes" in transformers_results:
-            class_ids = (
-                transformers_results["labels"].cpu().detach().numpy().astype(int)
-            )
-            data = {}
-            if id2label is not None:
-                class_names = np.array([id2label[class_id] for class_id in class_ids])
-                data[CLASS_NAME_DATA_FIELD] = class_names
             return cls(
                 xyxy=transformers_results["boxes"].cpu().detach().numpy(),
                 confidence=transformers_results["scores"].cpu().detach().numpy(),
@@ -447,7 +445,8 @@ class Detections:
             xyxy=mask_to_xyxy(masks),
             mask=masks,
             confidence=transformers_results["scores"].cpu().detach().numpy(),
-            class_id=transformers_results["labels"].cpu().detach().numpy().astype(int),
+            class_id=class_ids,
+            data=data,
         )
 
     @classmethod
