@@ -396,7 +396,30 @@ class Detections:
 
         Returns:
             Detections: A new Detections object.
-        """
+
+        Example:
+            ```python
+            import torch
+            import supervision as sv
+            from PIL import Image
+            from transformers import DetrImageProcessor, DetrForObjectDetection
+        
+            processor = DetrImageProcessor.from_pretrained("facebook/detr-resnet-50")
+            model = DetrForObjectDetection.from_pretrained("facebook/detr-resnet-50")
+        
+            image = Image.open(<SOURCE_IMAGE_PATH>)
+            inputs = processor(images=image, return_tensors="pt")
+        
+            with torch.no_grad():
+                outputs = model(**inputs)
+        
+            width, height = image.size
+            target_size = torch.tensor([[height, width]])
+            results = processor.post_process_object_detection(
+                outputs=outputs, target_sizes=target_size)[0]
+            detections = sv.Detections.from_transformers(results)
+            ```
+        """  # noqa: E501 // docs
         boxes = transformers_results.get("boxes")
 
         # If the boxes key is in the transformers_results then we know it's an
