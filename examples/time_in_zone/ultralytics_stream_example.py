@@ -19,7 +19,8 @@ LABEL_ANNOTATOR = sv.LabelAnnotator(
 
 
 class CustomSink:
-    def __init__(self, zone_configuration_path: str, classes: List[int]):
+    def __init__(self, zone_configuration_path: str, classes: List[int], video_sink: sv.VideoSink):
+        self.video_sink = video_sink
         self.classes = classes
         self.tracker = sv.ByteTrack(minimum_matching_threshold=0.8)
         self.fps_monitor = sv.FPSMonitor()
@@ -78,6 +79,7 @@ class CustomSink:
                 labels=labels,
                 custom_color_lookup=custom_color_lookup,
             )
+        self.video_sink.write_frame(annotated_frame)
         cv2.imshow("Processed Video", annotated_frame)
         cv2.waitKey(1)
 
@@ -97,20 +99,26 @@ def main(
         results = model(frame.image, verbose=False, conf=confidence, device=device)[0]
         return sv.Detections.from_ultralytics(results).with_nms(threshold=iou)
 
-    sink = CustomSink(zone_configuration_path=zone_configuration_path, classes=classes)
-
-    pipeline = InferencePipeline.init_with_custom_logic(
-        video_reference=rtsp_url,
-        on_video_frame=inference_callback,
-        on_prediction=sink.on_prediction,
+    video_info = sv.VideoInfo(
+        fps=15,
+        width=1280,
+        height=720
     )
+    with sv.VideoSink('data/output.mp4', video_info=video_info) as video_sink:
+        sink = CustomSink(zone_configuration_path=zone_configuration_path, classes=classes, video_sink=video_sink)
 
-    pipeline.start()
+        pipeline = InferencePipeline.init_with_custom_logic(
+            video_reference=rtsp_url,
+            on_video_frame=inference_callback,
+            on_prediction=sink.on_prediction,
+        )
 
-    try:
-        pipeline.join()
-    except KeyboardInterrupt:
-        pipeline.terminate()
+        pipeline.start()
+
+        try:
+            pipeline.join()
+        except KeyboardInterrupt:
+            pipeline.terminate()
 
 
 if __name__ == "__main__":
