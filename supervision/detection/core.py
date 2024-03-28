@@ -14,6 +14,7 @@ from supervision.detection.utils import (
     get_data_item,
     is_data_equal,
     mask_non_max_suppression,
+    mask_to_xyxy,
     merge_data,
     process_roboflow_result,
     validate_detections_fields,
@@ -392,30 +393,52 @@ class Detections:
         cls, transformers_results: dict, id2label: Optional[Dict[int, str]] = None
     ) -> Detections:
         """
-        Constructs a Detections instance from the inference results of a Transformers object detection model.
-        [transformer](https://github.com/huggingface/transformers)
-
-        Args:
-            transformers_results (dict): A dictionary containing the scores, labels, and boxes for an image
-                as predicted by the Transformers model.
-            id2label (Dict[int, str]): A dictionary mapping class IDs to class names.
+        Creates a Detections instance from object detection or segmentation
+        [transformer](https://github.com/huggingface/transformers) inference result.
 
         Returns:
             Detections: A new Detections object.
-        """
 
-        boxes = transformers_results["boxes"].cpu().numpy()
-        scores = transformers_results["scores"].cpu().numpy()
-        class_ids = transformers_results["labels"].cpu().numpy().astype(int)
-        data = {}
-        if id2label is not None:
-            class_names = np.array([id2label[class_id] for class_id in class_ids])
-            data[CLASS_NAME_DATA_FIELD] = class_names
+        Example:
+            ```python
+            import torch
+            import supervision as sv
+            from PIL import Image
+            from transformers import DetrImageProcessor, DetrForObjectDetection
+
+            processor = DetrImageProcessor.from_pretrained("facebook/detr-resnet-50")
+            model = DetrForObjectDetection.from_pretrained("facebook/detr-resnet-50")
+
+            image = Image.open(<SOURCE_IMAGE_PATH>)
+            inputs = processor(images=image, return_tensors="pt")
+
+            with torch.no_grad():
+                outputs = model(**inputs)
+
+            width, height = image.size
+            target_size = torch.tensor([[height, width]])
+            results = processor.post_process_object_detection(
+                outputs=outputs, target_sizes=target_size)[0]
+            detections = sv.Detections.from_transformers(results)
+            ```
+        """  # noqa: E501 // docs
+
+        if "boxes" in transformers_results:
+            return cls(
+                xyxy=transformers_results["boxes"].cpu().detach().numpy(),
+                confidence=transformers_results["scores"].cpu().detach().numpy(),
+                class_id=transformers_results["labels"]
+                .cpu()
+                .detach()
+                .numpy()
+                .astype(int),
+            )
+        masks = transformers_results["masks"].cpu().detach().numpy().astype(bool)
         return cls(
-            xyxy=boxes,
-            confidence=scores,
-            class_id=class_ids,
-            data=data,
+            xyxy=mask_to_xyxy(masks),
+            mask=masks,
+            confidence=transformers_results["scores"].cpu().detach().numpy(),
+            class_id=transformers_results["labels"].cpu().detach().numpy().astype(int),
         )
 
     @classmethod
