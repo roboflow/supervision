@@ -273,7 +273,7 @@ class ByteTrack:
 
         tensors = detections2boxes(detections=detections)
         tracks = self.update_with_tensors(tensors=tensors)
-        
+
         if len(tracks) > 0:
             detection_bounding_boxes = np.asarray([det[:4] for det in tensors])
             track_bounding_boxes = np.asarray([track.tlbr for track in tracks])
@@ -286,9 +286,13 @@ class ByteTrack:
             detections.tracker_id = np.full(len(detections), -1, dtype=int)
             for i_detection, i_track in matches:
                 detections.tracker_id[i_detection] = int(tracks[i_track].track_id)
-            
-            invalid_tracks = [i for i in range(len(detections.tracker_id)) if detections.tracker_id[i] != -1]
-            
+
+            invalid_tracks = [
+                i
+                for i in range(len(detections.tracker_id))
+                if detections.tracker_id[i] != -1
+            ]
+
             return detections[invalid_tracks]
 
         else:
