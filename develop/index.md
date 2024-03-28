@@ -30,7 +30,7 @@ We write your reusable computer vision tools. Whether you need to load your data
 
 ## 💻 Install
 
-You can install `supervision` with pip in a
+You can install `supervision` in a
 [**Python>=3.8**](https://www.python.org/) environment.
 
 !!! example "pip install (recommended)"
@@ -47,6 +47,24 @@ You can install `supervision` with pip in a
 
         ```bash
         pip install "supervision[desktop]"
+        ```
+
+!!! example "conda/mamba install"
+
+    === "conda"
+
+        [![conda-recipe](https://img.shields.io/badge/recipe-supervision-green.svg)](https://anaconda.org/conda-forge/supervision) [![conda-downloads](https://img.shields.io/conda/dn/conda-forge/supervision.svg)](https://anaconda.org/conda-forge/supervision) [![conda-version](https://img.shields.io/conda/vn/conda-forge/supervision.svg)](https://anaconda.org/conda-forge/supervision) [![conda-platforms](https://img.shields.io/conda/pn/conda-forge/supervision.svg)](https://anaconda.org/conda-forge/supervision)
+
+        ```bash
+        conda install -c conda-forge supervision
+        ```
+
+    === "mamba"
+
+        [![mamba-recipe](https://img.shields.io/badge/recipe-supervision-green.svg)](https://anaconda.org/conda-forge/supervision) [![mamba-downloads](https://img.shields.io/conda/dn/conda-forge/supervision.svg)](https://anaconda.org/conda-forge/supervision) [![mamba-version](https://img.shields.io/conda/vn/conda-forge/supervision.svg)](https://anaconda.org/conda-forge/supervision) [![mamba-platforms](https://img.shields.io/conda/pn/conda-forge/supervision.svg)](https://anaconda.org/conda-forge/supervision)
+
+        ```bash
+        mamba install -c conda-forge supervision
         ```
 
 !!! example "git clone (for development)"
@@ -87,7 +105,6 @@ You can install `supervision` with pip in a
         # desktop install
         poetry install --extras "desktop"
         ```
-
 
 ## 🚀 Quickstart
 
