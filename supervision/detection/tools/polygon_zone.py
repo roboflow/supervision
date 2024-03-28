@@ -89,14 +89,16 @@ class PolygonZone:
         self.current_count = int(np.sum(is_in_zone))
         return is_in_zone.astype(bool)
 
-    def trigger_overlap(self, detections: Detections, overlap_threshold: float) -> npt.NDArray[np.bool_]:
+    def trigger_overlap(
+        self, detections: Detections, overlap_threshold: float
+    ) -> npt.NDArray[np.bool_]:
         """
         Determines if the detections are within the polygon zone.
 
         Parameters:
             detections (Detections): The detections
                 to be checked against the polygon zone
-            
+
             overlap_threshold (float): threshold of overlap
 
         Returns:
@@ -108,7 +110,9 @@ class PolygonZone:
             xyxy=detections.xyxy, resolution_wh=self.frame_resolution_wh
         )
         clipped_detections = replace(detections, xyxy=clipped_xyxy)
-        overlap_results: npt.NDArray[np.bool_] = np.zeros(len(clipped_detections), dtype=bool)
+        overlap_results: npt.NDArray[np.bool_] = np.zeros(
+            len(clipped_detections), dtype=bool
+        )
 
         masks = []
         for i, (x1, y1, x2, y2) in enumerate(detections.xyxy.astype(np.int32)):
@@ -116,9 +120,12 @@ class PolygonZone:
 
             bbox_mask[y1:y2, x1:x2] = True
             masks.append(bbox_mask)
-            overlap_ratio = np.count_nonzero(np.logical_and(bbox_mask, self.mask)) / detections.area[i]
+            overlap_ratio = (
+                np.count_nonzero(np.logical_and(bbox_mask, self.mask))
+                / detections.area[i]
+            )
             overlap_results[i] = overlap_ratio >= overlap_threshold
-        
+
         return overlap_results
 
 
