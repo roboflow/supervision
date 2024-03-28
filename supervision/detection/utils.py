@@ -845,8 +845,13 @@ def get_data_item(
         elif isinstance(value, list):
             if isinstance(index, slice):
                 subset_data[key] = value[index]
-            elif isinstance(index, (list, np.ndarray)):
+            elif isinstance(index, list):
                 subset_data[key] = [value[i] for i in index]
+            elif isinstance(index, np.ndarray):
+                if index.dtype == bool:
+                    subset_data[key] = [value[i] for i in range(len(index)) if index[i]]
+                else:
+                    subset_data[key] = [value[i] for i in index]
             elif isinstance(index, int):
                 subset_data[key] = [value[index]]
             else:
