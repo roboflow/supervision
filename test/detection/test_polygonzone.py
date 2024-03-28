@@ -33,62 +33,144 @@ FRAME_RESOLUTION = (300, 300)
     "detections, polygon_zone, expected_results, exception",
     [
         (
-            DETECTIONS,
-            sv.PolygonZone(
-                POLYGON,
-                FRAME_RESOLUTION,
-                triggering_anchors=(
-                    sv.Position.TOP_LEFT,
-                    sv.Position.TOP_RIGHT,
-                    sv.Position.BOTTOM_LEFT,
-                    sv.Position.BOTTOM_RIGHT,
+                DETECTIONS,
+                sv.PolygonZone(
+                    POLYGON,
+                    FRAME_RESOLUTION,
+                    triggering_anchors=(
+                            sv.Position.TOP_LEFT,
+                            sv.Position.TOP_RIGHT,
+                            sv.Position.BOTTOM_LEFT,
+                            sv.Position.BOTTOM_RIGHT,
+                    ),
                 ),
-            ),
-            np.array(
-                [False, False, False, True, True, True, False, False, False], dtype=bool
-            ),
-            DoesNotRaise(),
+                np.array(
+                    [False, False, False, True, True, True, False, False, False], dtype=bool
+                ),
+                DoesNotRaise(),
         ),  # Test all four corners
         (
-            DETECTIONS,
-            sv.PolygonZone(
-                POLYGON,
-                FRAME_RESOLUTION,
-            ),
-            np.array(
-                [False, False, True, True, True, True, False, False, False], dtype=bool
-            ),
-            DoesNotRaise(),
+                DETECTIONS,
+                sv.PolygonZone(
+                    POLYGON,
+                    FRAME_RESOLUTION,
+                ),
+                np.array(
+                    [False, False, True, True, True, True, False, False, False], dtype=bool
+                ),
+                DoesNotRaise(),
         ),  # Test default behaviour when no anchors are provided
         (
-            DETECTIONS,
-            sv.PolygonZone(
-                POLYGON,
-                FRAME_RESOLUTION,
-                triggering_anchors=[sv.Position.BOTTOM_CENTER],
-            ),
-            np.array(
-                [False, False, True, True, True, True, False, False, False], dtype=bool
-            ),
-            DoesNotRaise(),
+                DETECTIONS,
+                sv.PolygonZone(
+                    POLYGON,
+                    FRAME_RESOLUTION,
+                    triggering_anchors=[sv.Position.BOTTOM_CENTER],
+                ),
+                np.array(
+                    [False, False, True, True, True, True, False, False, False], dtype=bool
+                ),
+                DoesNotRaise(),
         ),  # Test default behaviour with deprecated api.
         (
-            sv.Detections.empty(),
-            sv.PolygonZone(
-                POLYGON,
-                FRAME_RESOLUTION,
-            ),
-            np.array([], dtype=bool),
-            DoesNotRaise(),
+                sv.Detections.empty(),
+                sv.PolygonZone(
+                    POLYGON,
+                    FRAME_RESOLUTION,
+                ),
+                np.array([], dtype=bool),
+                DoesNotRaise(),
         ),  # Test empty detections
     ],
 )
 def test_polygon_zone_trigger(
-    detections: sv.Detections,
-    polygon_zone: sv.PolygonZone,
-    expected_results: np.ndarray,
-    exception: Exception,
+        detections: sv.Detections,
+        polygon_zone: sv.PolygonZone,
+        expected_results: np.ndarray,
+        exception: Exception,
 ) -> None:
     with exception:
         in_zone = polygon_zone.trigger(detections)
         assert np.all(in_zone == expected_results)
+
+
+@pytest.mark.parametrize(
+    "detections, polygon_zone, overlap_threshold, expected_results, exception",
+    [
+        # Test cases for trigger_overlap function
+        (
+                DETECTIONS,
+                sv.PolygonZone(
+                    POLYGON,
+                    FRAME_RESOLUTION,
+                    triggering_anchors=(
+                            sv.Position.TOP_LEFT,
+                            sv.Position.TOP_RIGHT,
+                            sv.Position.BOTTOM_LEFT,
+                            sv.Position.BOTTOM_RIGHT,
+                    ),
+                ),
+                0.25,  # Overlap threshold
+                np.array(
+                    [False, False, True, True, True, True, True, False, False], dtype=bool
+                ),
+                DoesNotRaise(),
+        ),  # Case with specific overlap threshold
+        (
+                DETECTIONS,
+                sv.PolygonZone(
+                    POLYGON,
+                    FRAME_RESOLUTION,
+                ),
+                0.5,  # Overlap threshold
+                np.array(
+                    [False, False, False, True, True, True, False, False, False], dtype=bool
+                ),
+                DoesNotRaise(),
+        ),  # Another overlap threshold
+        (
+                DETECTIONS,
+                sv.PolygonZone(
+                    POLYGON,
+                    FRAME_RESOLUTION,
+                ),
+                0.1,  # Lower overlap threshold to catch more detections
+                np.array(
+                    [False, False, True, True, True, True, True, False, False], dtype=bool
+                ),
+                DoesNotRaise(),
+        ),  # Lower threshold test
+        (
+                DETECTIONS,
+                sv.PolygonZone(
+                    POLYGON,
+                    FRAME_RESOLUTION,
+                ),
+                0,  # Lower overlap threshold to catch more detections
+                np.array(
+                    [True, True, True, True, True, True, True, True, True], dtype=bool
+                ),
+                DoesNotRaise(),
+        ),  # Lower threshold test
+        (
+                sv.Detections.empty(),
+                sv.PolygonZone(
+                    POLYGON,
+                    FRAME_RESOLUTION,
+                ),
+                0,
+                np.array([], dtype=bool),
+                DoesNotRaise(),
+        ),  # Test empty detections
+    ],
+)
+def test_polygon_zone_overlap(
+        detections: sv.Detections,
+        polygon_zone: sv.PolygonZone,
+        overlap_threshold: float,
+        expected_results: np.ndarray,
+        exception: Exception,
+) -> None:
+    with exception:
+        overlaps = polygon_zone.trigger_overlap(detections, overlap_threshold)
+        assert np.all(overlaps == expected_results)
