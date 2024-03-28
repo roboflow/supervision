@@ -117,7 +117,7 @@ class PolygonZone:
             bbox_mask[y1:y2, x1:x2] = True
             masks.append(bbox_mask)
             overlap_ratio = np.count_nonzero(np.logical_and(bbox_mask, self.mask)) / detections.area[i]
-            overlap_results[i] = overlap_ratio > overlap_threshold
+            overlap_results[i] = overlap_ratio >= overlap_threshold
         
         return overlap_results
 
