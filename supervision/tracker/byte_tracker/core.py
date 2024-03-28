@@ -287,13 +287,7 @@ class ByteTrack:
             for i_detection, i_track in matches:
                 detections.tracker_id[i_detection] = int(tracks[i_track].track_id)
 
-            invalid_tracks = [
-                i
-                for i in range(len(detections.tracker_id))
-                if detections.tracker_id[i] != -1
-            ]
-
-            return detections[invalid_tracks]
+            return detections[detections.tracker_id != -1]
 
         else:
             detections.tracker_id = np.array([], dtype=int)
