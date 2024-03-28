@@ -389,10 +389,17 @@ class Detections:
         )
 
     @classmethod
-    def from_transformers(cls, transformers_results: dict) -> Detections:
+    def from_transformers(
+        cls, transformers_results: dict, id2label: Optional[Dict[int, str]] = None
+    ) -> Detections:
         """
         Creates a Detections instance from object detection or segmentation
         [transformer](https://github.com/huggingface/transformers) inference result.
+
+        Args:
+            transformers_results (dict): A dictionary containing the scores, labels, and boxes for an image
+                as predicted by the Transformers model.
+            id2label (Dict[int, str]): A dictionary mapping class IDs to class names.
 
         Returns:
             Detections: A new Detections object.
@@ -421,22 +428,25 @@ class Detections:
             ```
         """  # noqa: E501 // docs
 
+        class_ids = transformers_results["labels"].cpu().detach().numpy().astype(int)
+        data = {}
+        if id2label is not None:
+            class_names = np.array([id2label[class_id] for class_id in class_ids])
+            data[CLASS_NAME_DATA_FIELD] = class_names
         if "boxes" in transformers_results:
             return cls(
                 xyxy=transformers_results["boxes"].cpu().detach().numpy(),
                 confidence=transformers_results["scores"].cpu().detach().numpy(),
-                class_id=transformers_results["labels"]
-                .cpu()
-                .detach()
-                .numpy()
-                .astype(int),
+                class_id=class_ids,
+                data=data,
             )
         masks = transformers_results["masks"].cpu().detach().numpy().astype(bool)
         return cls(
             xyxy=mask_to_xyxy(masks),
             mask=masks,
             confidence=transformers_results["scores"].cpu().detach().numpy(),
-            class_id=transformers_results["labels"].cpu().detach().numpy().astype(int),
+            class_id=class_ids,
+            data=data,
         )
 
     @classmethod
