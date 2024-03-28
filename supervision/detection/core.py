@@ -396,6 +396,11 @@ class Detections:
         Creates a Detections instance from object detection or segmentation
         [transformer](https://github.com/huggingface/transformers) inference result.
 
+        Args:
+            transformers_results (dict): A dictionary containing the scores, labels, and boxes for an image
+                as predicted by the Transformers model.
+            id2label (Dict[int, str]): A dictionary mapping class IDs to class names.
+
         Returns:
             Detections: A new Detections object.
 
