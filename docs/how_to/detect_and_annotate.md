@@ -362,4 +362,42 @@ that will allow you to draw masks instead of boxes.
         scene=annotated_image, detections=detections)
     ```
 
+=== "Transformers"
+
+    ```python
+    import torch
+    import supervision as sv
+    from PIL import Image
+    from transformers import DetrImageProcessor, DetrForSegmentation
+
+    processor = DetrImageProcessor.from_pretrained("facebook/detr-resnet-50")
+    model = DetrForSegmentation.from_pretrained("facebook/detr-resnet-50")
+
+    image = Image.open(<SOURCE_IMAGE_PATH>)
+    inputs = processor(images=image, return_tensors="pt")
+
+    with torch.no_grad():
+        outputs = model(**inputs)
+
+    width, height = image.size
+    target_size = torch.tensor([[height, width]])
+    results = processor.post_process_object_detection(
+        outputs=outputs, target_sizes=target_size)[0]
+    detections = sv.Detections.from_transformers(results)
+
+    mask_annotator = sv.MaskAnnotator()
+    label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER)
+
+    labels = [
+        f"{model.config.id2label[class_id]} {confidence:.2f}"
+        for class_id, confidence
+        in zip(detections.class_id, detections.confidence)
+    ]
+
+    annotated_image = mask_annotator.annotate(
+        scene=image, detections=detections)
+    annotated_image = label_annotator.annotate(
+        scene=annotated_image, detections=detections)
+    ```
+
 ![segmentation-annotation](https://media.roboflow.com/supervision_detect_and_annotate_example_3.png)

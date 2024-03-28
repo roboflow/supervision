@@ -396,25 +396,44 @@ class Detections:
 
         Returns:
             Detections: A new Detections object.
-        """
-        boxes = transformers_results.get("boxes")
 
-        # If the boxes key is in the transformers_results then we know it's an
-        # object detection result. Else, we can assume it's a segmentation model
-        if boxes:
+        Example:
+            ```python
+            import torch
+            import supervision as sv
+            from PIL import Image
+            from transformers import DetrImageProcessor, DetrForObjectDetection
+        
+            processor = DetrImageProcessor.from_pretrained("facebook/detr-resnet-50")
+            model = DetrForObjectDetection.from_pretrained("facebook/detr-resnet-50")
+        
+            image = Image.open(<SOURCE_IMAGE_PATH>)
+            inputs = processor(images=image, return_tensors="pt")
+        
+            with torch.no_grad():
+                outputs = model(**inputs)
+        
+            width, height = image.size
+            target_size = torch.tensor([[height, width]])
+            results = processor.post_process_object_detection(
+                outputs=outputs, target_sizes=target_size)[0]
+            detections = sv.Detections.from_transformers(results)
+            ```
+        """  # noqa: E501 // docs
+
+        if "boxes" in transformers_results:
             return cls(
-                xyxy=transformers_results["boxes"].cpu().numpy(),
-                confidence=transformers_results["scores"].cpu().numpy(),
-                class_id=transformers_results["labels"].cpu().numpy().astype(int),
+                xyxy=transformers_results["boxes"].cpu().detach().numpy(),
+                confidence=transformers_results["scores"].cpu().detach().numpy(),
+                class_id=transformers_results["labels"].cpu().detach().numpy().astype(int),
             )
-        else:
-            masks = transformers_results["masks"].cpu().numpy().astype(bool)
-            return cls(
-                xyxy=mask_to_xyxy(masks),
-                mask=masks,
-                confidence=transformers_results["scores"].cpu().numpy(),
-                class_id=transformers_results["labels"].cpu().numpy().astype(int),
-            )
+        masks = transformers_results["masks"].cpu().detach().numpy().astype(bool)
+        return cls(
+            xyxy=mask_to_xyxy(masks),
+            mask=masks,
+            confidence=transformers_results["scores"].cpu().detach().numpy(),
+            class_id=transformers_results["labels"].cpu().detach().numpy().astype(int),
+        )
 
     @classmethod
     def from_detectron2(cls, detectron2_results) -> Detections:
