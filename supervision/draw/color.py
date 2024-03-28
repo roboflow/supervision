@@ -124,6 +124,16 @@ class Color:
         r, g, b = (int(color_hex[i : i + 2], 16) for i in range(0, 6, 2))
         return cls(r, g, b)
 
+    @classmethod
+    def from_rgb_tuple(cls, color_tuple: Tuple[int, int, int]) -> Color:
+        r, g, b = color_tuple
+        return cls(r=r, g=g, b=b)
+
+    @classmethod
+    def from_bgr_tuple(cls, color_tuple: Tuple[int, int, int]) -> Color:
+        b, g, r = color_tuple
+        return cls(r=r, g=g, b=b)
+
     def as_hex(self) -> str:
         """
         Converts the Color instance to a hex string.
