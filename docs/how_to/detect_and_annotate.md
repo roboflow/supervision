@@ -27,7 +27,7 @@ model.
     from inference import get_model
 
     model = get_model(model_id="yolov8n-640")
-    image = cv2.imread(<PATH TO IMAGE>)
+    image = cv2.imread(<SOURCE_IMAGE_APTH>)
     results = model.infer(image)[0]
     ```
 
@@ -38,7 +38,7 @@ model.
     from ultralytics import YOLO
 
     model = YOLO("yolov8n.pt")
-    image = cv2.imread(<PATH TO IMAGE>)
+    image = cv2.imread(<SOURCE_IMAGE_APTH>)
     results = model(image)[0]
     ```
 
@@ -52,7 +52,7 @@ model.
     processor = DetrImageProcessor.from_pretrained("facebook/detr-resnet-50")
     model = DetrForObjectDetection.from_pretrained("facebook/detr-resnet-50")
 
-    image = Image.open(<PATH TO IMAGE>)
+    image = Image.open(<SOURCE_IMAGE_APTH>)
     inputs = processor(images=image, return_tensors="pt")
 
     with torch.no_grad():
@@ -78,7 +78,7 @@ Now that we have predictions from a model, we can load them into Supervision.
     from inference import get_model
 
     model = get_model(model_id="yolov8n-640")
-    image = cv2.imread(<PATH TO IMAGE>)
+    image = cv2.imread(<SOURCE_IMAGE_APTH>)
     results = model.infer(image)[0]
     detections = sv.Detections.from_inference(results)
     ```
@@ -93,7 +93,7 @@ Now that we have predictions from a model, we can load them into Supervision.
     from ultralytics import YOLO
 
     model = YOLO("yolov8n.pt")
-    image = cv2.imread(<PATH TO IMAGE>)
+    image = cv2.imread(<SOURCE_IMAGE_APTH>)
     results = model(image)[0]
     detections = sv.Detections.from_ultralytics(results)
     ```
@@ -111,7 +111,7 @@ Now that we have predictions from a model, we can load them into Supervision.
     processor = DetrImageProcessor.from_pretrained("facebook/detr-resnet-50")
     model = DetrForObjectDetection.from_pretrained("facebook/detr-resnet-50")
 
-    image = Image.open(<PATH TO IMAGE>)
+    image = Image.open(<SOURCE_IMAGE_APTH>)
     inputs = processor(images=image, return_tensors="pt")
 
     with torch.no_grad():
@@ -144,7 +144,7 @@ Finally, we can annotate the image with the predictions. Since we are working wi
     from inference import get_model
 
     model = get_model(model_id="yolov8n-640")
-    image = cv2.imread(<PATH TO IMAGE>)
+    image = cv2.imread(<SOURCE_IMAGE_APTH>)
     results = model.infer(image)[0]
     detections = sv.Detections.from_inference(results)
 
@@ -165,7 +165,7 @@ Finally, we can annotate the image with the predictions. Since we are working wi
     from ultralytics import YOLO
 
     model = YOLO("yolov8n.pt")
-    image = cv2.imread(<PATH TO IMAGE>)
+    image = cv2.imread(<SOURCE_IMAGE_APTH>)
     results = model(image)[0]
     detections = sv.Detections.from_ultralytics(results)
 
@@ -189,7 +189,7 @@ Finally, we can annotate the image with the predictions. Since we are working wi
     processor = DetrImageProcessor.from_pretrained("facebook/detr-resnet-50")
     model = DetrForObjectDetection.from_pretrained("facebook/detr-resnet-50")
 
-    image = Image.open(<PATH TO IMAGE>)
+    image = Image.open(<SOURCE_IMAGE_APTH>)
     inputs = processor(images=image, return_tensors="pt")
 
     with torch.no_grad():
@@ -370,8 +370,8 @@ that will allow you to draw masks instead of boxes.
     from PIL import Image
     from transformers import DetrImageProcessor, DetrForSegmentation
 
-    processor = DetrImageProcessor.from_pretrained("facebook/detr-resnet-50")
-    model = DetrForSegmentation.from_pretrained("facebook/detr-resnet-50")
+    processor = DetrImageProcessor.from_pretrained("facebook/detr-resnet-50-panoptic")
+    model = DetrForSegmentation.from_pretrained("facebook/detr-resnet-50-panoptic")
 
     image = Image.open(<SOURCE_IMAGE_PATH>)
     inputs = processor(images=image, return_tensors="pt")
@@ -381,7 +381,7 @@ that will allow you to draw masks instead of boxes.
 
     width, height = image.size
     target_size = torch.tensor([[height, width]])
-    results = processor.post_process_object_detection(
+    results = processor.post_process_segmentation(
         outputs=outputs, target_sizes=target_size)[0]
     detections = sv.Detections.from_transformers(results)
 
@@ -397,7 +397,7 @@ that will allow you to draw masks instead of boxes.
     annotated_image = mask_annotator.annotate(
         scene=image, detections=detections)
     annotated_image = label_annotator.annotate(
-        scene=annotated_image, detections=detections)
+        scene=annotated_image, detections=detections, labels=labels)
     ```
 
 ![segmentation-annotation](https://media.roboflow.com/supervision_detect_and_annotate_example_3.png)
