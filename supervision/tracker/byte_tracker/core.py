@@ -13,7 +13,7 @@ from supervision.utils.internal import deprecated_parameter
 class STrack(BaseTrack):
     shared_kalman = KalmanFilter()
 
-    def __init__(self, tlwh, score, class_ids):
+    def __init__(self, tlwh, score, class_ids, minimum_consecutive_frames):
         # wait activate
         self._tlwh = np.asarray(tlwh, dtype=np.float32)
         self.kalman_filter = None
@@ -23,6 +23,8 @@ class STrack(BaseTrack):
         self.score = score
         self.class_ids = class_ids
         self.tracklet_len = 0
+
+        self.minimum_consecutive_frames = minimum_consecutive_frames
 
     def predict(self):
         mean_state = self.mean.copy()
@@ -60,7 +62,7 @@ class STrack(BaseTrack):
 
         self.tracklet_len = 0
         self.state = TrackState.Tracked
-        if frame_id == 1:
+        if frame_id == 1 and self.minimum_consecutive_frames == 1:
             self.is_activated = True
         self.frame_id = frame_id
         self.start_frame = frame_id
@@ -71,7 +73,7 @@ class STrack(BaseTrack):
         )
         self.tracklet_len = 0
         self.state = TrackState.Tracked
-        self.is_activated = True
+
         self.frame_id = frame_id
         if new_id:
             self.track_id = self.next_id()
@@ -93,7 +95,8 @@ class STrack(BaseTrack):
             self.mean, self.covariance, self.tlwh_to_xyah(new_tlwh)
         )
         self.state = TrackState.Tracked
-        self.is_activated = True
+        if self.tracklet_len >= self.minimum_consecutive_frames:
+            self.is_activated = True
 
         self.score = new_track.score
 
@@ -186,6 +189,10 @@ class ByteTrack:
             Increasing minimum_matching_threshold improves accuracy but risks fragmentation.
             Decreasing it improves completeness but risks false positives and drift.
         frame_rate (int, optional): The frame rate of the video.
+        minimum_consecutive_frames (int, optional): Number of consecutive frames that an object must
+            be tracked before it is considered a 'valid' track.
+            Increasing minimum_consecutive_frames prevents the creation of accidental tracks from
+            false detection or double detection, but risks missing shorter tracks.
     """  # noqa: E501 // docs
 
     @deprecated_parameter(
@@ -218,6 +225,7 @@ class ByteTrack:
         lost_track_buffer: int = 30,
         minimum_matching_threshold: float = 0.8,
         frame_rate: int = 30,
+        minimum_consecutive_frames: int = 1,
     ):
         self.track_activation_threshold = track_activation_threshold
         self.minimum_matching_threshold = minimum_matching_threshold
@@ -225,6 +233,7 @@ class ByteTrack:
         self.frame_id = 0
         self.det_thresh = self.track_activation_threshold + 0.1
         self.max_time_lost = int(frame_rate / 30.0 * lost_track_buffer)
+        self.minimum_consecutive_frames = minimum_consecutive_frames
         self.kalman_filter = KalmanFilter()
 
         self.tracked_tracks: List[STrack] = []
@@ -290,6 +299,7 @@ class ByteTrack:
             return detections[detections.tracker_id != -1]
 
         else:
+            detections = Detections.empty()
             detections.tracker_id = np.array([], dtype=int)
 
             return detections
@@ -345,7 +355,7 @@ class ByteTrack:
         if len(dets) > 0:
             """Detections"""
             detections = [
-                STrack(STrack.tlbr_to_tlwh(tlbr), s, c)
+                STrack(STrack.tlbr_to_tlwh(tlbr), s, c, self.minimum_consecutive_frames)
                 for (tlbr, s, c) in zip(dets, scores_keep, class_ids_keep)
             ]
         else:
@@ -387,7 +397,7 @@ class ByteTrack:
         if len(dets_second) > 0:
             """Detections"""
             detections_second = [
-                STrack(STrack.tlbr_to_tlwh(tlbr), s, c)
+                STrack(STrack.tlbr_to_tlwh(tlbr), s, c, self.minimum_consecutive_frames)
                 for (tlbr, s, c) in zip(dets_second, scores_second, class_ids_second)
             ]
         else:
