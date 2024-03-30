@@ -261,6 +261,7 @@ def test_update_with_tensors(
 
         assert_strack_lists_equal(stracks, target_stracks)
 
+
 TARGET_STRACKS = [
     STrack(
         tlwh=[det[0], det[1], det[2] - det[0], det[3] - det[1]],
@@ -276,9 +277,9 @@ for i, track in enumerate(TARGET_STRACKS):
     track.frame_id = 1
     track.track_id = i + 1
 
+
 @pytest.mark.parametrize(
-    "tensors, target_stracks,"
-    " exception",
+    "tensors, target_stracks," " exception",
     [
         (
             PREDICTIONS,
@@ -288,10 +289,8 @@ for i, track in enumerate(TARGET_STRACKS):
     ],
 )
 def test_tracker_reset(
-    tensors: np.ndarray,
-    target_stracks: List[STrack],
-    exception: Exception
-    ):
+    tensors: np.ndarray, target_stracks: List[STrack], exception: Exception
+):
     byte_tracker = ByteTrack()
     with exception:
         for i in range(3):
