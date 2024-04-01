@@ -1,6 +1,7 @@
 from typing import Dict
 
 import numpy as np
+
 from supervision.detection.core import Detections
 
 
@@ -49,9 +50,9 @@ class MaxInstanceLimiter:
         self.distance_threshold = distance_threshold
 
         # Store the positions of all tracker IDs in all frames
-        self.tracker_id_positions: Dict[int: np.ndarray] = {}
+        self.tracker_id_positions: Dict[int : np.ndarray] = {}
         # Store the replacement mapping for abnormal tracker IDs
-        self.tracker_id_replacement: Dict[int: int] = {}
+        self.tracker_id_replacement: Dict[int:int] = {}
 
     def get_replacement_map(self) -> Dict[int, int]:
         """
@@ -85,7 +86,7 @@ class MaxInstanceLimiter:
             )
             return detections
 
-        current_tracker_id_positions: Dict[int: np.ndarray] = {}
+        current_tracker_id_positions: Dict[int : np.ndarray] = {}
 
         # set current tracker_id positions
         existing_tracker_ids = set()
@@ -99,7 +100,9 @@ class MaxInstanceLimiter:
             else:
                 existing_tracker_ids.add(tracker_id)
 
-        missing_tracker_ids = set(range(1, self.max_instance_count)) - existing_tracker_ids
+        missing_tracker_ids = (
+            set(range(1, self.max_instance_count)) - existing_tracker_ids
+        )
 
         for tracker_id in self.tracker_id_replacement.keys():
             if tracker_id in abnormal_tracker_ids:
@@ -111,24 +114,34 @@ class MaxInstanceLimiter:
         # Replace abnormal tracker IDs with the closest missing tracker IDs
         for abnormal_tracker_id in abnormal_tracker_ids:
             closest_missing_tracker_id = None
-            closest_distance = float('inf')
+            closest_distance = float("inf")
             for missing_tracker_id in missing_tracker_ids:
                 if missing_tracker_id in self.tracker_id_positions.keys():
                     distance = self.line_segment_distance(
-                        current_tracker_id_positions[abnormal_tracker_id], self.tracker_id_positions[
-                            missing_tracker_id])
-                    print(f'\t\t\t{abnormal_tracker_id} <---> {missing_tracker_id}: {distance}')
+                        current_tracker_id_positions[abnormal_tracker_id],
+                        self.tracker_id_positions[missing_tracker_id],
+                    )
+                    print(
+                        f"\t\t\t{abnormal_tracker_id} <---> {missing_tracker_id}: {distance}"
+                    )
                     if distance < closest_distance:
                         closest_distance = distance
                         closest_missing_tracker_id = missing_tracker_id
-            if closest_missing_tracker_id is not None and closest_distance < self.distance_threshold:
-                self.tracker_id_replacement[abnormal_tracker_id] = closest_missing_tracker_id
+            if (
+                closest_missing_tracker_id is not None
+                and closest_distance < self.distance_threshold
+            ):
+                self.tracker_id_replacement[abnormal_tracker_id] = (
+                    closest_missing_tracker_id
+                )
                 missing_tracker_ids.remove(closest_missing_tracker_id)
 
         # Update tracker ID positions
         for tracker_id in current_tracker_id_positions.keys():
             if tracker_id <= self.max_instance_count:
-                self.tracker_id_positions[tracker_id] = current_tracker_id_positions[tracker_id]
+                self.tracker_id_positions[tracker_id] = current_tracker_id_positions[
+                    tracker_id
+                ]
 
         # Update or remove abnormal tracker IDs in detections
         for detection_idx in range(len(detections)):
@@ -137,7 +150,9 @@ class MaxInstanceLimiter:
                 continue
 
             if tracker_id in self.tracker_id_replacement.keys():
-                detections.tracker_id[detection_idx] = self.tracker_id_replacement[tracker_id]
+                detections.tracker_id[detection_idx] = self.tracker_id_replacement[
+                    tracker_id
+                ]
             elif tracker_id > self.max_instance_count:
                 detections.tracker_id[detection_idx] = -1
 
