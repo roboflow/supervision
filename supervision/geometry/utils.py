@@ -9,7 +9,7 @@ def get_polygon_center(polygon: np.ndarray) -> Point:
 
     This function takes in a polygon as a 2-dimensional numpy ndarray and
     returns the center of the polygon as a Point object.
-    
+
     The center is calculated as center of frame.
     polygon -> polygon, where p[i] = p[i + 1] + p[i] / 2,
      with mass = length of vector p[i + 1] - p[i]
