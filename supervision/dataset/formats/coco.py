@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 
 import cv2
 import numpy as np
@@ -97,6 +97,34 @@ def coco_annotations_to_detections(
     return Detections(xyxy=xyxy, class_id=np.asarray(class_ids, dtype=int))
 
 
+def object_to_coco(
+        xyxy: np.ndarray,
+        class_id: int,
+        annotation_id: int,
+        image_id: int,
+        polygon: Optional[np.ndarray] = None,
+) -> dict:
+    
+    coco_annotation = {
+        "id": annotation_id,
+        "image_id": image_id,
+        "category_id": int(class_id),
+        "iscrowd": 0,
+    }
+    
+    if polygon is None:
+        box_width, box_height = xyxy[2] - xyxy[0], xyxy[3] - xyxy[1]
+        coco_annotation.update({
+            "bbox": [xyxy[0], xyxy[1], box_width, box_height],
+            "area": box_width * box_height,
+        })
+    else:
+        polygon = polygon.reshape(-1)
+        coco_annotation["segmentation"] = [polygon]
+    
+    return coco_annotation
+
+
 def detections_to_coco_annotations(
     detections: Detections,
     image_id: int,
@@ -105,31 +133,32 @@ def detections_to_coco_annotations(
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.75,
 ) -> Tuple[List[Dict], int]:
-    coco_annotations = []
+    annotation = []
     for xyxy, mask, _, class_id, _, _ in detections:
-        box_width, box_height = xyxy[2] - xyxy[0], xyxy[3] - xyxy[1]
-        polygon = []
         if mask is not None:
-            polygon = list(
-                approximate_mask_with_polygons(
+            polygons = approximate_mask_with_polygons(
                     mask=mask,
                     min_image_area_percentage=min_image_area_percentage,
                     max_image_area_percentage=max_image_area_percentage,
                     approximation_percentage=approximation_percentage,
-                )[0].flatten()
-            )
-        coco_annotation = {
-            "id": annotation_id,
-            "image_id": image_id,
-            "category_id": int(class_id),
-            "bbox": [xyxy[0], xyxy[1], box_width, box_height],
-            "area": box_width * box_height,
-            "segmentation": [polygon] if polygon else [],
-            "iscrowd": 0,
-        }
-        coco_annotations.append(coco_annotation)
-        annotation_id += 1
-    return coco_annotations, annotation_id
+                )
+            for polygon in polygons:
+                if polygon.any(): # polygon not empty
+                    next_object = object_to_coco(
+                        xyxy=xyxy,
+                        class_id=class_id,
+                        annotation_id=annotation_id, 
+                        image_id=image_id,
+                        polygon=polygon,
+                    )
+                    annotation.append(next_object)
+                    annotation_id += 1
+        else:
+            next_object = object_to_coco(
+                xyxy=xyxy, class_id=class_id, annotation_id=annotation_id, image_id=image_id)
+            annotation.append(next_object)
+            annotation_id += 1
+    return annotation, annotation_id
 
 
 def load_coco_annotations(
