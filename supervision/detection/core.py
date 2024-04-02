@@ -399,7 +399,7 @@ class Detections:
         Args:
             transformers_results (dict): A dictionary containing the scores, labels, and boxes for an image
                 as predicted by the Transformers model.
-            id2label (Dict[int, str]): A dictionary mapping class IDs to class names.
+            id2label (Optional[Dict[int, str]]): A dictionary mapping class IDs to class names. If None, class names will not be included.
 
         Returns:
             Detections: A new Detections object.
