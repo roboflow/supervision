@@ -440,14 +440,19 @@ class Detections:
                 class_id=class_ids,
                 data=data,
             )
-        masks = transformers_results["masks"].cpu().detach().numpy().astype(bool)
-        return cls(
-            xyxy=mask_to_xyxy(masks),
-            mask=masks,
-            confidence=transformers_results["scores"].cpu().detach().numpy(),
-            class_id=class_ids,
-            data=data,
-        )
+        elif "masks" in transformers_results:
+            masks = transformers_results["masks"].cpu().detach().numpy().astype(bool)
+            return cls(
+                xyxy=mask_to_xyxy(masks),
+                mask=masks,
+                confidence=transformers_results["scores"].cpu().detach().numpy(),
+                class_id=class_ids,
+                data=data,
+            )
+        else:
+            raise NotImplementedError(
+                "Only object detection and semantic segmentation results are supported."
+            )
 
     @classmethod
     def from_detectron2(cls, detectron2_results) -> Detections:
