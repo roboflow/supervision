@@ -107,3 +107,8 @@ code.doc-symbol-module {
 code.doc-symbol-module::after {
   content: "mod";
 }
+
+.doc-signature .autorefs {
+  color: inherit;
+  border-bottom: 1px dotted currentcolor;
+}
