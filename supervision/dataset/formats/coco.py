@@ -117,6 +117,7 @@ def object_to_coco(
             {
                 "bbox": [xyxy[0], xyxy[1], box_width, box_height],
                 "area": box_width * box_height,
+                "segmentation": [],
             }
         )
     else:
