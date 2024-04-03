@@ -36,7 +36,7 @@ def get_polygon_center(polygon: np.ndarray) -> Point:
     shifted_polygon = np.roll(polygon, 1, axis=0)
     points = (shifted_polygon + polygon) / 2
     vectors = shifted_polygon - polygon
-    mass = np.sum(vectors ** 2, axis=1) ** 0.5
+    mass = np.sum(vectors**2, axis=1) ** 0.5
     center = ((mass @ points) / np.sum(mass)).round()
-    
+
     return Point(x=center[0], y=center[1])
