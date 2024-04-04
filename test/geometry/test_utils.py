@@ -37,14 +37,14 @@ def generate_test_polygon(n: int) -> np.ndarray:
 @pytest.mark.parametrize(
     "polygon, expected_result",
     [
-        (generate_test_polygon(10), Point(x=4, y=12)),
-        (generate_test_polygon(50), Point(x=24, y=60)),
-        (generate_test_polygon(100), Point(x=49, y=121)),
-        (generate_test_polygon(1000), Point(x=500, y=1212)),
-        (generate_test_polygon(3000), Point(x=1499, y=3636)),
-        (generate_test_polygon(10000), Point(x=5000, y=12122)),
-        (generate_test_polygon(20000), Point(x=10000, y=24244)),
-        (generate_test_polygon(50000), Point(x=24999, y=60610)),
+        (generate_test_polygon(10), Point(x=5.0, y=12.0)),
+        (generate_test_polygon(50), Point(x=25.0, y=61.0)),
+        (generate_test_polygon(100), Point(x=50.0, y=121.0)),
+        (generate_test_polygon(1000), Point(x=500.0, y=1212.0)),
+        (generate_test_polygon(3000), Point(x=1500.0, y=3637.0)),
+        (generate_test_polygon(10000), Point(x=5000.0, y=12122.0)),
+        (generate_test_polygon(20000), Point(x=10000.0, y=24244.0)),
+        (generate_test_polygon(50000), Point(x=25000.0, y=60610.0)),
     ],
 )
 def test_get_polygon_center(polygon: np.ndarray, expected_result: Point) -> None:
