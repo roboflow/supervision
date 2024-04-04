@@ -28,7 +28,7 @@ def generate_test_polygon(n: int) -> np.ndarray:
     """
     r: int = n // 2
     x_axis = np.linspace(0, 2 * r, n)
-    y_axis = (r ** 2 - (x_axis - r) ** 2) ** 0.5 + 2 * r
+    y_axis = (r**2 - (x_axis - r) ** 2) ** 0.5 + 2 * r
     polygon = np.array([x_axis, y_axis]).T
 
     return polygon

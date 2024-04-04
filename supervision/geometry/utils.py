@@ -38,5 +38,5 @@ def get_polygon_center(polygon: np.ndarray) -> Point:
         return Point(x=center[0], y=center[1])
     centroids = (polygon + shift_polygon) / 3.0
     center = np.average(centroids, axis=0, weights=signed_areas).round()
-    
+
     return Point(x=center[0], y=center[1])
