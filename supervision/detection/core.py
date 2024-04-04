@@ -208,22 +208,25 @@ class Detections:
             ```
         """  # noqa: E501 // docs
 
-        if ultralytics_results.obb is not None:
-            class_id = ultralytics_results.obb.cls.cpu().numpy().astype(int)
-            class_names = np.array([ultralytics_results.names[i] for i in class_id])
-            oriented_box_coordinates = ultralytics_results.obb.xyxyxyxy.cpu().numpy()
-            return cls(
-                xyxy=ultralytics_results.obb.xyxy.cpu().numpy(),
-                confidence=ultralytics_results.obb.conf.cpu().numpy(),
-                class_id=class_id,
-                tracker_id=ultralytics_results.obb.id.int().cpu().numpy()
-                if ultralytics_results.obb.id is not None
-                else None,
-                data={
-                    ORIENTED_BOX_COORDINATES: oriented_box_coordinates,
-                    CLASS_NAME_DATA_FIELD: class_names,
-                },
-            )
+        if "obb" in ultralytics_results:
+            if ultralytics_results.obb is not None:
+                class_id = ultralytics_results.obb.cls.cpu().numpy().astype(int)
+                class_names = np.array([ultralytics_results.names[i] for i in class_id])
+                oriented_box_coordinates = (
+                    ultralytics_results.obb.xyxyxyxy.cpu().numpy()
+                )
+                return cls(
+                    xyxy=ultralytics_results.obb.xyxy.cpu().numpy(),
+                    confidence=ultralytics_results.obb.conf.cpu().numpy(),
+                    class_id=class_id,
+                    tracker_id=ultralytics_results.obb.id.int().cpu().numpy()
+                    if ultralytics_results.obb.id is not None
+                    else None,
+                    data={
+                        ORIENTED_BOX_COORDINATES: oriented_box_coordinates,
+                        CLASS_NAME_DATA_FIELD: class_names,
+                    },
+                )
 
         class_id = ultralytics_results.boxes.cls.cpu().numpy().astype(int)
         class_names = np.array([ultralytics_results.names[i] for i in class_id])
