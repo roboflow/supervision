@@ -5,26 +5,46 @@ from supervision.geometry.core import Point
 from supervision.geometry.utils import get_polygon_center
 
 
+def generate_test_polygon(n: int) -> np.ndarray:
+    """
+    Generate a semicircle with a given number of points.
+    
+    Parameters:
+        n (int): amount of points in polygon
+
+    Returns:
+        Polygon: test polygon in the form of a semicircle.
+        
+   Examples:
+        ```python
+        from supervision.geometry.utils import get_polygon_center
+        import numpy as np
+    
+        test_polygon = generate_test_data(1000)
+        
+        get_polygon_center(test_polygon)
+        Point(x=500, y=1212)
+        ```
+    """
+    r: int = n // 2
+    x_axis = np.linspace(0, 2 * r, n)
+    y_axis = (r ** 2 - (x_axis - r) ** 2) ** 0.5 + 2 * r
+    polygon = np.array([x_axis, y_axis]).T
+    
+    return polygon
+    
+
 @pytest.mark.parametrize(
     "polygon, expected_result",
     [
-        (np.array([[0, 0], [0, 2], [2, 2], [2, 0]]), Point(x=1, y=1)),
-        (np.array([[0, 0], [3, 4], [6, 0]]), Point(x=3, y=1)),
-        (np.array([[0, 0], [0, 1], [0, 2], [0, 3], [0, 4], [5, 2]]), Point(x=2, y=2)),
-        (
-            np.array([[0, 0], [0, 1], [0, 2], [0, 3], [0, 4], [4, 4], [4, 0]]),
-            Point(x=2, y=2),
-        ),
-        (np.array([[0, 2], [2, 4], [4, 2], [2, 0]]), Point(x=2, y=2)),
-        (
-            np.array([[0, 0], [0, 1], [0, 2], [0, 3], [0, 4], [0, 1000]]),
-            Point(x=0, y=500),
-        ),
-        (np.array([[0, 0], [13, 200], [0, 150]]), Point(x=4, y=100)),
-        (
-            np.array([[0, 0], [0, 1], [1, 1], [1, 2], [2, 2], [2, 3], [3, 3], [3, 0]]),
-            Point(x=2, y=1),
-        ),
+        (generate_test_polygon(10), Point(x=5, y=13)),
+        (generate_test_polygon(50), Point(x=25, y=69)),
+        (generate_test_polygon(100), Point(x=50, y=138)),
+        (generate_test_polygon(1000), Point(x=500, y=1212)),
+        (generate_test_polygon(3000), Point(x=1499, y=3636)),
+        (generate_test_polygon(10000), Point(x=5000, y=12122)),
+        (generate_test_polygon(20000), Point(x=9999, y=23889)),
+        (generate_test_polygon(50000), Point(x=25000, y=59724)),
     ],
 )
 def test_get_polygon_center(polygon: np.ndarray, expected_result: Point) -> None:
