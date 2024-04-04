@@ -7,32 +7,32 @@ from supervision.geometry.utils import get_polygon_center
 
 def generate_test_polygon(n: int) -> np.ndarray:
     """
-    Generate a semicircle with a given number of points.
-    
-    Parameters:
-        n (int): amount of points in polygon
+     Generate a semicircle with a given number of points.
 
-    Returns:
-        Polygon: test polygon in the form of a semicircle.
-        
-   Examples:
-        ```python
-        from supervision.geometry.utils import get_polygon_center
-        import numpy as np
-    
-        test_polygon = generate_test_data(1000)
-        
-        get_polygon_center(test_polygon)
-        Point(x=500, y=1212)
-        ```
+     Parameters:
+         n (int): amount of points in polygon
+
+     Returns:
+         Polygon: test polygon in the form of a semicircle.
+
+    Examples:
+         ```python
+         from supervision.geometry.utils import get_polygon_center
+         import numpy as np
+
+         test_polygon = generate_test_data(1000)
+
+         get_polygon_center(test_polygon)
+         Point(x=500, y=1212)
+         ```
     """
     r: int = n // 2
     x_axis = np.linspace(0, 2 * r, n)
-    y_axis = (r ** 2 - (x_axis - r) ** 2) ** 0.5 + 2 * r
+    y_axis = (r**2 - (x_axis - r) ** 2) ** 0.5 + 2 * r
     polygon = np.array([x_axis, y_axis]).T
-    
+
     return polygon
-    
+
 
 @pytest.mark.parametrize(
     "polygon, expected_result",
