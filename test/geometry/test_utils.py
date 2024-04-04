@@ -28,7 +28,7 @@ def generate_test_polygon(n: int) -> np.ndarray:
     """
     r: int = n // 2
     x_axis = np.linspace(0, 2 * r, n)
-    y_axis = (r**2 - (x_axis - r) ** 2) ** 0.5 + 2 * r
+    y_axis = (r ** 2 - (x_axis - r) ** 2) ** 0.5 + 2 * r
     polygon = np.array([x_axis, y_axis]).T
 
     return polygon
@@ -37,14 +37,14 @@ def generate_test_polygon(n: int) -> np.ndarray:
 @pytest.mark.parametrize(
     "polygon, expected_result",
     [
-        (generate_test_polygon(10), Point(x=5, y=13)),
-        (generate_test_polygon(50), Point(x=25, y=69)),
-        (generate_test_polygon(100), Point(x=50, y=138)),
+        (generate_test_polygon(10), Point(x=4, y=12)),
+        (generate_test_polygon(50), Point(x=24, y=60)),
+        (generate_test_polygon(100), Point(x=49, y=121)),
         (generate_test_polygon(1000), Point(x=500, y=1212)),
         (generate_test_polygon(3000), Point(x=1499, y=3636)),
         (generate_test_polygon(10000), Point(x=5000, y=12122)),
-        (generate_test_polygon(20000), Point(x=9999, y=23889)),
-        (generate_test_polygon(50000), Point(x=25000, y=59724)),
+        (generate_test_polygon(20000), Point(x=10000, y=24244)),
+        (generate_test_polygon(50000), Point(x=24999, y=60610)),
     ],
 )
 def test_get_polygon_center(polygon: np.ndarray, expected_result: Point) -> None:
