@@ -31,6 +31,10 @@ def get_polygon_center(polygon: np.ndarray) -> Point:
         Point(x=1, y=1)
         ```
     """
+    
+    # This is one of the 3 candidate algorithms considered for centroid calculation.
+    # For a more detailed discussion, see PR #1084 and commit eb33176
+    
     shift_polygon = np.roll(polygon, -1, axis=0)
     signed_areas = np.cross(polygon, shift_polygon) / 2
     if signed_areas.sum() == 0:
