@@ -3,9 +3,9 @@ from typing import List, Optional, Union
 import cv2
 
 from supervision.annotators.base import ImageType
-from supervision.annotators.utils import scene_to_annotator_img_type
 from supervision.detection.core import Detections
 from supervision.draw.color import Color, ColorPalette
+from supervision.utils.conversion import convert_for_annotation_method
 from supervision.utils.internal import deprecated
 
 
@@ -46,7 +46,7 @@ class BoxAnnotator:
         self.text_thickness: int = text_thickness
         self.text_padding: int = text_padding
 
-    @scene_to_annotator_img_type
+    @convert_for_annotation_method
     def annotate(
         self,
         scene: ImageType,
