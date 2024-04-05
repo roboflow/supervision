@@ -18,6 +18,12 @@ status: new
 :::supervision.utils.image.crop_image
 
 <div class="md-typeset">
+  <h2>letterbox_image</h2>
+</div>
+
+:::supervision.utils.image.letterbox_image
+
+<div class="md-typeset">
   <h2>resize_image</h2>
 </div>
 

@@ -186,6 +186,11 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
+         <loc>https://supervision.roboflow.com/develop/utils/iterables/</loc>
+         <lastmod>2024-04-05</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
          <loc>https://supervision.roboflow.com/develop/utils/notebook/</loc>
          <lastmod>2024-04-05</lastmod>
          <changefreq>daily</changefreq>
