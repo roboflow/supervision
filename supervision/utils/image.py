@@ -79,8 +79,8 @@ def resize_image(image: np.ndarray, scale_factor: float) -> np.ndarray:
 
     Args:
         image (np.ndarray): The input image to be resized.
-        scale_factor (float): The factor by which the image will be scaled. Scale factor
-            > 1.0 zooms in, < 1.0 zooms out.
+        scale_factor (float): The factor by which the image will be scaled. Scale
+            factor > 1.0 zooms in, < 1.0 zooms out.
 
     Returns:
         np.ndarray: The resized image.
@@ -571,13 +571,13 @@ def letterbox_image(
     Resize and pad image to fit the desired size, preserving its aspect
     ratio, adding padding of given color if needed to maintain aspect ratio.
 
-    Parameters:
-    - image (np.ndarray): Input image (type will be adjusted by decorator,
-        you can provide PIL.Image)
-    - desired_size (Tuple[int, int]): image size (width, height) representing
-        the target dimensions.
-    - color (Union[Tuple[int, int, int], Color]): the color to pad with - If
-        tuple provided - should be BGR.
+    Args:
+        image (np.ndarray): Input image (type will be adjusted by decorator,
+            you can provide PIL.Image)
+        desired_size (Tuple[int, int]): image size (width, height) representing
+            the target dimensions.
+        color (Union[Tuple[int, int, int], Color]): the color to pad with - If
+            tuple provided - should be BGR.
 
     Returns:
         np.ndarray: letterboxed image (type may be adjusted to PIL.Image by
