@@ -1,127 +1,50 @@
+import pytest
 from supervision.utils.iterables import create_batches, fill
 
 
-def test_create_batches_when_empty_sequence_given() -> None:
-    # when
-    result = list(create_batches(sequence=[], batch_size=4))
+@pytest.mark.parametrize(
+    "sequence, batch_size, expected",
+    [
+        # Empty sequence, non-zero batch size. Expect empty list.
+        ([], 4, []),
 
-    # then
-    assert result == [], "Expected empty generator"
+        # Non-zero size sequence, batch size of 0. Each item is its own batch.
+        ([1, 2, 3], 0, [[1], [2], [3]]),
 
+        # Batch size larger than sequence. All items in a single batch.
+        ([1, 2], 4, [[1, 2]]),
 
-def test_create_batches_when_not_allowed_batch_size_given() -> None:
-    # when
-    result = list(create_batches(sequence=[1, 2, 3], batch_size=0))
+        # Batch size evenly divides the sequence. Equal size batches.
+        ([1, 2, 3, 4], 2, [[1, 2], [3, 4]]),
 
-    # then
-    assert result == [[1], [2], [3]], (
-        "Expected min_batch_size to be established and each element of input "
-        "list provided in separate batch"
-    )
-
-
-def test_create_batches_when_batch_size_larger_than_sequence() -> None:
-    # when
-    result = list(create_batches(sequence=[1, 2], batch_size=4))
-
-    # then
-    assert result == [[1, 2]], (
-        "Expected whole content to be returned in single batch as input sequence "
-        "is smaller than batch size"
-    )
+        # Batch size doesn't evenly divide sequence. Last batch smaller.
+        ([1, 2, 3, 4], 3, [[1, 2, 3], [4]]),
+    ],
+)
+def test_create_batches(sequence, batch_size, expected) -> None:
+    result = list(create_batches(sequence=sequence, batch_size=batch_size))
+    assert result == expected
 
 
-def test_create_batches_when_batch_size_multiplier_fits_sequence_length() -> None:
-    # when
-    result = list(create_batches(sequence=[1, 2, 3, 4], batch_size=2))
+@pytest.mark.parametrize(
+    "sequence, desired_size, content, expected",
+    [
+        # Empty sequence, desired size 0. Expect empty list.
+        ([], 0, 1, []),
 
-    # then
-    assert result == [[1, 2], [3, 4]], (
-        "Expected input sequence to be returned in two chunks as batch size "
-        "is half of sequence length"
-    )
+        # Empty sequence, non-zero desired size. Filled with padding.
+        ([], 3, 1, [1, 1, 1]),
 
+        # Sequence at desired size. No changes.
+        ([2, 2, 2], 3, 1, [2, 2, 2]),
 
-def test_create_batches_when_batch_size_multiplier_does_not_fir_sequence_length() -> (
-    None
-):
-    # when
-    result = list(create_batches(sequence=[1, 2, 3, 4], batch_size=3))
+        # Sequence exceeds desired size. No changes.
+        ([2, 2, 2, 2], 3, 1, [2, 2, 2, 2]),
 
-    # then
-    assert result == [[1, 2, 3], [4]], (
-        "Expected first batch to be of size 3 and last one to be not "
-        "full, with only one element"
-    )
-
-
-def test_fill_when_empty_sequence_given_and_padding_not_needed() -> None:
-    # given
-    sequence = []
-
-    # when
-    result = fill(sequence=sequence, desired_size=0, content=1)
-
-    # then
-    assert result == [], "Expected no elements to be added into sequence"
-
-
-def test_fill_when_empty_sequence_given_and_padding_needed() -> None:
-    # given
-    sequence = []
-
-    # when
-    result = fill(sequence=sequence, desired_size=3, content=1)
-
-    # then
-    assert result == [1, 1, 1], "Expected three padding element to be added"
-
-
-def test_fill_when_non_empty_sequence_given_and_sequence_equal_to_desired_size() -> (
-    None
-):
-    # given
-    sequence = [2, 2, 2]
-
-    # when
-    result = fill(sequence=sequence, desired_size=3, content=1)
-
-    # then
-    assert result == [
-        2,
-        2,
-        2,
-    ], "Expected nothing to be added to sequence, as it is already " "in desired size"
-
-
-def test_fill_when_non_empty_sequence_given_and_sequence_longer_then_desired_size() -> (
-    None
-):
-    # given
-    sequence = [2, 2, 2, 2]
-
-    # when
-    result = fill(sequence=sequence, desired_size=3, content=1)
-
-    # then
-    assert result == [
-        2,
-        2,
-        2,
-        2,
-    ], "Expected nothing to be added to sequence, as it already " "exceeds desired size"
-
-
-def test_fill_when_non_empty_sequence_given_and_padding_needed() -> None:
-    # given
-    sequence = [2]
-
-    # when
-    result = fill(sequence=sequence, desired_size=3, content=1)
-
-    # then
-    assert result == [
-        2,
-        1,
-        1,
-    ], "Expected 2 padding elements to be added to fit desired size"
+        # Non-empty sequence, shorter than desired. Padding added.
+        ([2], 3, 1, [2, 1, 1]),
+    ],
+)
+def test_fill(sequence, desired_size, content, expected) -> None:
+    result = fill(sequence=sequence, desired_size=desired_size, content=content)
+    assert result == expected
