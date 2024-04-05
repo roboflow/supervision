@@ -395,16 +395,16 @@ class Detections:
         """
         Creates a Detections instance from object detection or segmentation
         [Transformer](https://github.com/huggingface/transformers) inference result.
-        
+
         !!! note
 
             Class names can be accessed using the key `class_name` in the returned
             object's data attribute.
 
         Args:
-            transformers_results (dict): The output of Transformers model inference. A 
+            transformers_results (dict): The output of Transformers model inference. A
                 dictionary containing the `scores`, `labels`, `boxes` and `masks` keys.
-            id2label (Optional[Dict[int, str]]): A dictionary mapping class IDs to 
+            id2label (Optional[Dict[int, str]]): A dictionary mapping class IDs to
                 class names. If provided, the resulting Detections object will contain
                 `class_name` data field with the class names.
 
@@ -431,9 +431,9 @@ class Detections:
             target_size = torch.tensor([[height, width]])
             results = processor.post_process_object_detection(
                 outputs=outputs, target_sizes=target_size)[0]
-                
+
             detections = sv.Detections.from_transformers(
-                transformers_results=results, 
+                transformers_results=results,
                 id2label=model.config.id2label
             )
             ```

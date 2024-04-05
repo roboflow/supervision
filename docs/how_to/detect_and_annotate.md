@@ -122,7 +122,7 @@ Now that we have predictions from a model, we can load them into Supervision.
     results = processor.post_process_object_detection(
         outputs=outputs, target_sizes=target_size)[0]
     detections = sv.Detections.from_transformers(
-        transformers_results=results, 
+        transformers_results=results,
         id2label=model.config.id2label)
     ```
 
@@ -202,7 +202,7 @@ Finally, we can annotate the image with the predictions. Since we are working wi
     results = processor.post_process_object_detection(
         outputs=outputs, target_sizes=target_size)[0]
     detections = sv.Detections.from_transformers(
-        transformers_results=results, 
+        transformers_results=results,
         id2label=model.config.id2label)
 
     bounding_box_annotator = sv.BoundingBoxAnnotator()
@@ -298,7 +298,7 @@ override this behavior by passing a list of custom `labels` to the `annotate` me
     results = processor.post_process_object_detection(
         outputs=outputs, target_sizes=target_size)[0]
     detections = sv.Detections.from_transformers(
-        transformers_results=results, 
+        transformers_results=results,
         id2label=model.config.id2label)
 
     bounding_box_annotator = sv.BoundingBoxAnnotator()
@@ -390,7 +390,7 @@ that will allow you to draw masks instead of boxes.
     results = processor.post_process_segmentation(
         outputs=outputs, target_sizes=target_size)[0]
     detections = sv.Detections.from_transformers(
-        transformers_results=results, 
+        transformers_results=results,
         id2label=model.config.id2label)
 
     mask_annotator = sv.MaskAnnotator()
