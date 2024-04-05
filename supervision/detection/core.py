@@ -208,7 +208,7 @@ class Detections:
             ```
         """  # noqa: E501 // docs
 
-        if ultralytics_results.obb is not None:
+        if "obb" in ultralytics_results and ultralytics_results.obb is not None:
             class_id = ultralytics_results.obb.cls.cpu().numpy().astype(int)
             class_names = np.array([ultralytics_results.names[i] for i in class_id])
             oriented_box_coordinates = ultralytics_results.obb.xyxyxyxy.cpu().numpy()
