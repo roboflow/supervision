@@ -4,7 +4,7 @@ V = TypeVar("V")
 
 
 def create_batches(
-        sequence: Iterable[V], batch_size: int
+    sequence: Iterable[V], batch_size: int
 ) -> Generator[List[V], None, None]:
     """
     Provides a generator that yields chunks of the input sequence
