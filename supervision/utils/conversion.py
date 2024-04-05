@@ -1,3 +1,4 @@
+from functools import wraps
 from typing import List
 
 import cv2
@@ -5,6 +6,49 @@ import numpy as np
 from PIL import Image
 
 from supervision.annotators.base import ImageType
+
+
+def convert_for_annotation_method(annotate_func):
+    """
+    Decorates `BaseAnnotator.annotate` implementations, converts scene to
+    an image type used internally by the annotators, converts back when annotation
+    is complete.
+    """
+
+    @wraps(annotate_func)
+    def wrapper(self, scene: ImageType, *args, **kwargs):
+        if isinstance(scene, np.ndarray):
+            return annotate_func(self, scene, *args, **kwargs)
+
+        if isinstance(scene, Image.Image):
+            scene = pillow_to_cv2(scene)
+            annotated = annotate_func(self, scene, *args, **kwargs)
+            return cv2_to_pillow(image=annotated)
+
+        raise ValueError(f"Unsupported image type: {type(scene)}")
+
+    return wrapper
+
+
+def convert_for_image_processing(image_processing_fun):
+    """
+    Decorates image processing functions that accept np.ndarray, converting `image` to
+    np.ndarray, converts back when processing is complete.
+    """
+
+    @wraps(image_processing_fun)
+    def wrapper(image: ImageType, *args, **kwargs):
+        if isinstance(image, np.ndarray):
+            return image_processing_fun(image, *args, **kwargs)
+
+        if isinstance(image, Image.Image):
+            scene = pillow_to_cv2(image)
+            annotated = image_processing_fun(scene, *args, **kwargs)
+            return cv2_to_pillow(image=annotated)
+
+        raise ValueError(f"Unsupported image type: {type(image)}")
+
+    return wrapper
 
 
 def images_to_cv2(images: List[ImageType]) -> List[np.ndarray]:

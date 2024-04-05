@@ -1,7 +1,88 @@
 import numpy as np
 from PIL import Image, ImageChops
 
-from supervision.utils.conversion import cv2_to_pillow, images_to_cv2, pillow_to_cv2
+from supervision.utils.conversion import (
+    convert_for_image_processing,
+    cv2_to_pillow,
+    images_to_cv2,
+    pillow_to_cv2,
+)
+
+
+def test_convert_for_image_processing_when_pillow_image_submitted(
+    empty_opencv_image: np.ndarray, empty_pillow_image: Image.Image
+) -> None:
+    # given
+    param_a_value = 3
+    param_b_value = "some"
+
+    @convert_for_image_processing
+    def my_custom_processing_function(
+        image: np.ndarray,
+        param_a: int,
+        param_b: str,
+    ) -> np.ndarray:
+        assert np.allclose(
+            image, empty_opencv_image
+        ), "Expected conversion to OpenCV image to happen"
+        assert (
+            param_a == param_a_value
+        ), f"Parameter a expected to be {param_a_value} in target function"
+        assert (
+            param_b == param_b_value
+        ), f"Parameter b expected to be {param_b_value} in target function"
+        return image
+
+    # when
+    result = my_custom_processing_function(
+        empty_pillow_image,
+        param_a_value,
+        param_b=param_b_value,
+    )
+
+    # then
+    difference = ImageChops.difference(result, empty_pillow_image)
+    assert difference.getbbox() is None, (
+        "Wrapper is expected to convert-back the OpenCV image "
+        "into Pillow format without changes to content"
+    )
+
+
+def test_convert_for_image_processing_when_opencv_image_submitted(
+    empty_opencv_image: np.ndarray,
+) -> None:
+    # given
+    param_a_value = 3
+    param_b_value = "some"
+
+    @convert_for_image_processing
+    def my_custom_processing_function(
+        image: np.ndarray,
+        param_a: int,
+        param_b: str,
+    ) -> np.ndarray:
+        assert np.allclose(
+            image, empty_opencv_image
+        ), "Expected conversion to OpenCV image to happen"
+        assert (
+            param_a == param_a_value
+        ), f"Parameter a expected to be {param_a_value} in target function"
+        assert (
+            param_b == param_b_value
+        ), f"Parameter b expected to be {param_b_value} in target function"
+        return image
+
+    # when
+    result = my_custom_processing_function(
+        empty_opencv_image,
+        param_a_value,
+        param_b=param_b_value,
+    )
+
+    # then
+    assert (
+        result is empty_opencv_image
+    ), "Expected to return OpenCV image without changes"
 
 
 def test_cv2_to_pillow(

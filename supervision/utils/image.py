@@ -2,18 +2,21 @@ import itertools
 import math
 import os
 import shutil
-from functools import partial, wraps
+from functools import partial
 from typing import Callable, List, Literal, Optional, Tuple, Union
 
 import cv2
 import numpy as np
-from PIL import Image
 
 from supervision.annotators.base import ImageType
 from supervision.draw.color import Color
 from supervision.draw.utils import calculate_optimal_text_scale, draw_text
 from supervision.geometry.core import Point
-from supervision.utils.conversion import cv2_to_pillow, images_to_cv2, pillow_to_cv2
+from supervision.utils.conversion import (
+    convert_for_image_processing,
+    cv2_to_pillow,
+    images_to_cv2,
+)
 from supervision.utils.iterables import create_batches, fill
 
 RelativePosition = Literal["top", "bottom"]
@@ -21,28 +24,7 @@ RelativePosition = Literal["top", "bottom"]
 MAX_COLUMNS_FOR_SINGLE_ROW_GRID = 3
 
 
-def adjust_image_to_cv2_processing(image_processing_fun):
-    """
-    Decorates image processing functions that accept np.ndarray, converting `image` to
-    np.ndarray, converts back when processing is complete.
-    """
-
-    @wraps(image_processing_fun)
-    def wrapper(image: ImageType, *args, **kwargs):
-        if isinstance(image, np.ndarray):
-            return image_processing_fun(image, *args, **kwargs)
-
-        if isinstance(image, Image.Image):
-            scene = pillow_to_cv2(image)
-            annotated = image_processing_fun(scene, *args, **kwargs)
-            return cv2_to_pillow(image=annotated)
-
-        raise ValueError(f"Unsupported image type: {type(image)}")
-
-    return wrapper
-
-
-@adjust_image_to_cv2_processing
+@convert_for_image_processing
 def crop_image(image: np.ndarray, xyxy: np.ndarray) -> np.ndarray:
     """
     Crops the given image based on the given bounding box.
@@ -72,7 +54,7 @@ def crop_image(image: np.ndarray, xyxy: np.ndarray) -> np.ndarray:
     return image[y1:y2, x1:x2]
 
 
-@adjust_image_to_cv2_processing
+@convert_for_image_processing
 def resize_image(image: np.ndarray, scale_factor: float) -> np.ndarray:
     """
     Resizes an image by a given scale factor using cv2.INTER_LINEAR interpolation.
@@ -561,7 +543,7 @@ def _generate_color_image(
     return np.ones(shape[::-1] + (3,), dtype=np.uint8) * color
 
 
-@adjust_image_to_cv2_processing
+@convert_for_image_processing
 def letterbox_image(
     image: np.ndarray,
     desired_size: Tuple[int, int],
@@ -604,7 +586,7 @@ def letterbox_image(
     )
 
 
-@adjust_image_to_cv2_processing
+@convert_for_image_processing
 def resize_image_keeping_aspect_ratio(
     image: np.ndarray,
     desired_size: Tuple[int, int],

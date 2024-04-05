@@ -5,18 +5,14 @@ import cv2
 import numpy as np
 
 from supervision.annotators.base import BaseAnnotator, ImageType
-from supervision.annotators.utils import (
-    ColorLookup,
-    Trace,
-    resolve_color,
-    scene_to_annotator_img_type,
-)
+from supervision.annotators.utils import ColorLookup, Trace, resolve_color
 from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
 from supervision.detection.utils import clip_boxes, mask_to_polygons
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import draw_polygon
 from supervision.geometry.core import Position
+from supervision.utils.conversion import convert_for_annotation_method
 from supervision.utils.image import crop_image, place_image, resize_image
 
 
@@ -43,7 +39,7 @@ class BoundingBoxAnnotator(BaseAnnotator):
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
 
-    @scene_to_annotator_img_type
+    @convert_for_annotation_method
     def annotate(
         self,
         scene: ImageType,
@@ -124,7 +120,7 @@ class OrientedBoxAnnotator(BaseAnnotator):
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
 
-    @scene_to_annotator_img_type
+    @convert_for_annotation_method
     def annotate(
         self,
         scene: ImageType,
@@ -212,7 +208,7 @@ class MaskAnnotator(BaseAnnotator):
         self.opacity = opacity
         self.color_lookup: ColorLookup = color_lookup
 
-    @scene_to_annotator_img_type
+    @convert_for_annotation_method
     def annotate(
         self,
         scene: ImageType,
@@ -299,7 +295,7 @@ class PolygonAnnotator(BaseAnnotator):
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
 
-    @scene_to_annotator_img_type
+    @convert_for_annotation_method
     def annotate(
         self,
         scene: ImageType,
@@ -385,7 +381,7 @@ class ColorAnnotator(BaseAnnotator):
         self.color_lookup: ColorLookup = color_lookup
         self.opacity = opacity
 
-    @scene_to_annotator_img_type
+    @convert_for_annotation_method
     def annotate(
         self,
         scene: ImageType,
@@ -479,7 +475,7 @@ class HaloAnnotator(BaseAnnotator):
         self.color_lookup: ColorLookup = color_lookup
         self.kernel_size: int = kernel_size
 
-    @scene_to_annotator_img_type
+    @convert_for_annotation_method
     def annotate(
         self,
         scene: ImageType,
@@ -577,7 +573,7 @@ class EllipseAnnotator(BaseAnnotator):
         self.end_angle: int = end_angle
         self.color_lookup: ColorLookup = color_lookup
 
-    @scene_to_annotator_img_type
+    @convert_for_annotation_method
     def annotate(
         self,
         scene: ImageType,
@@ -668,7 +664,7 @@ class BoxCornerAnnotator(BaseAnnotator):
         self.corner_length: int = corner_length
         self.color_lookup: ColorLookup = color_lookup
 
-    @scene_to_annotator_img_type
+    @convert_for_annotation_method
     def annotate(
         self,
         scene: ImageType,
@@ -756,7 +752,7 @@ class CircleAnnotator(BaseAnnotator):
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
 
-    @scene_to_annotator_img_type
+    @convert_for_annotation_method
     def annotate(
         self,
         scene: ImageType,
@@ -846,7 +842,7 @@ class DotAnnotator(BaseAnnotator):
         self.position: Position = position
         self.color_lookup: ColorLookup = color_lookup
 
-    @scene_to_annotator_img_type
+    @convert_for_annotation_method
     def annotate(
         self,
         scene: ImageType,
@@ -989,7 +985,7 @@ class LabelAnnotator:
                 center_y + text_h // 2,
             )
 
-    @scene_to_annotator_img_type
+    @convert_for_annotation_method
     def annotate(
         self,
         scene: ImageType,
@@ -1112,7 +1108,7 @@ class BlurAnnotator(BaseAnnotator):
         """
         self.kernel_size: int = kernel_size
 
-    @scene_to_annotator_img_type
+    @convert_for_annotation_method
     def annotate(
         self,
         scene: ImageType,
@@ -1197,7 +1193,7 @@ class TraceAnnotator:
         self.thickness = thickness
         self.color_lookup: ColorLookup = color_lookup
 
-    @scene_to_annotator_img_type
+    @convert_for_annotation_method
     def annotate(
         self,
         scene: ImageType,
@@ -1304,7 +1300,7 @@ class HeatMapAnnotator:
         self.top_hue = top_hue
         self.low_hue = low_hue
 
-    @scene_to_annotator_img_type
+    @convert_for_annotation_method
     def annotate(self, scene: ImageType, detections: Detections) -> ImageType:
         """
         Annotates the scene with a heatmap based on the provided detections.
@@ -1380,7 +1376,7 @@ class PixelateAnnotator(BaseAnnotator):
         """
         self.pixel_size: int = pixel_size
 
-    @scene_to_annotator_img_type
+    @convert_for_annotation_method
     def annotate(
         self,
         scene: ImageType,
@@ -1468,7 +1464,7 @@ class TriangleAnnotator(BaseAnnotator):
         self.position: Position = position
         self.color_lookup: ColorLookup = color_lookup
 
-    @scene_to_annotator_img_type
+    @convert_for_annotation_method
     def annotate(
         self,
         scene: ImageType,
@@ -1564,7 +1560,7 @@ class RoundBoxAnnotator(BaseAnnotator):
             raise ValueError("roundness attribute must be float between (0, 1.0]")
         self.roundness: float = roundness
 
-    @scene_to_annotator_img_type
+    @convert_for_annotation_method
     def annotate(
         self,
         scene: ImageType,
@@ -1701,7 +1697,7 @@ class PercentageBarAnnotator(BaseAnnotator):
         if border_thickness is None:
             self.border_thickness = int(0.15 * self.height)
 
-    @scene_to_annotator_img_type
+    @convert_for_annotation_method
     def annotate(
         self,
         scene: ImageType,
@@ -1874,7 +1870,7 @@ class CropAnnotator(BaseAnnotator):
         self.border_thickness: int = border_thickness
         self.border_color_lookup: ColorLookup = border_color_lookup
 
-    @scene_to_annotator_img_type
+    @convert_for_annotation_method
     def annotate(
         self,
         scene: ImageType,
