@@ -2,7 +2,7 @@
 comments: true
 ---
 
-# File
+# File Utils
 
 <div class="md-typeset">
   <h2>list_files_with_extensions</h2>

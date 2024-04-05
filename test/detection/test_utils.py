@@ -6,13 +6,14 @@ import pytest
 
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.utils import (
+    box_non_max_suppression,
     calculate_masks_centroids,
     clip_boxes,
     filter_polygons_by_area,
     get_data_item,
+    mask_non_max_suppression,
     merge_data,
     move_boxes,
-    non_max_suppression,
     process_roboflow_result,
     scale_boxes,
 )
@@ -113,15 +114,221 @@ TEST_MASK[:, 300:351, 200:251] = True
         ),  # three boxes with different category
     ],
 )
-def test_non_max_suppression(
+def test_box_non_max_suppression(
     predictions: np.ndarray,
     iou_threshold: float,
     expected_result: Optional[np.ndarray],
     exception: Exception,
 ) -> None:
     with exception:
-        result = non_max_suppression(
+        result = box_non_max_suppression(
             predictions=predictions, iou_threshold=iou_threshold
+        )
+        assert np.array_equal(result, expected_result)
+
+
+@pytest.mark.parametrize(
+    "predictions, masks, iou_threshold, expected_result, exception",
+    [
+        (
+            np.empty((0, 6)),
+            np.empty((0, 5, 5)),
+            0.5,
+            np.array([]),
+            DoesNotRaise(),
+        ),  # empty predictions and masks
+        (
+            np.array([[0, 0, 0, 0, 0.8]]),
+            np.array(
+                [
+                    [
+                        [False, False, False, False, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, False, False, False, False],
+                    ]
+                ]
+            ),
+            0.5,
+            np.array([True]),
+            DoesNotRaise(),
+        ),  # single mask with no category
+        (
+            np.array([[0, 0, 0, 0, 0.8, 0]]),
+            np.array(
+                [
+                    [
+                        [False, False, False, False, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, False, False, False, False],
+                    ]
+                ]
+            ),
+            0.5,
+            np.array([True]),
+            DoesNotRaise(),
+        ),  # single mask with category
+        (
+            np.array([[0, 0, 0, 0, 0.8], [0, 0, 0, 0, 0.9]]),
+            np.array(
+                [
+                    [
+                        [False, False, False, False, False],
+                        [False, True, True, False, False],
+                        [False, True, True, False, False],
+                        [False, False, False, False, False],
+                        [False, False, False, False, False],
+                    ],
+                    [
+                        [False, False, False, False, False],
+                        [False, False, False, False, False],
+                        [False, False, False, True, True],
+                        [False, False, False, True, True],
+                        [False, False, False, False, False],
+                    ],
+                ]
+            ),
+            0.5,
+            np.array([True, True]),
+            DoesNotRaise(),
+        ),  # two masks non-overlapping with no category
+        (
+            np.array([[0, 0, 0, 0, 0.8], [0, 0, 0, 0, 0.9]]),
+            np.array(
+                [
+                    [
+                        [False, False, False, False, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, False, False, False, False],
+                    ],
+                    [
+                        [False, False, False, False, False],
+                        [False, False, True, True, True],
+                        [False, False, True, True, True],
+                        [False, False, True, True, True],
+                        [False, False, False, False, False],
+                    ],
+                ]
+            ),
+            0.4,
+            np.array([False, True]),
+            DoesNotRaise(),
+        ),  # two masks partially overlapping with no category
+        (
+            np.array([[0, 0, 0, 0, 0.8, 0], [0, 0, 0, 0, 0.9, 1]]),
+            np.array(
+                [
+                    [
+                        [False, False, False, False, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, False, False, False, False],
+                    ],
+                    [
+                        [False, False, False, False, False],
+                        [False, False, True, True, True],
+                        [False, False, True, True, True],
+                        [False, False, True, True, True],
+                        [False, False, False, False, False],
+                    ],
+                ]
+            ),
+            0.5,
+            np.array([True, True]),
+            DoesNotRaise(),
+        ),  # two masks partially overlapping with different category
+        (
+            np.array(
+                [
+                    [0, 0, 0, 0, 0.8],
+                    [0, 0, 0, 0, 0.85],
+                    [0, 0, 0, 0, 0.9],
+                ]
+            ),
+            np.array(
+                [
+                    [
+                        [False, False, False, False, False],
+                        [False, True, True, False, False],
+                        [False, True, True, False, False],
+                        [False, False, False, False, False],
+                        [False, False, False, False, False],
+                    ],
+                    [
+                        [False, False, False, False, False],
+                        [False, True, True, False, False],
+                        [False, True, True, False, False],
+                        [False, False, False, False, False],
+                        [False, False, False, False, False],
+                    ],
+                    [
+                        [False, False, False, False, False],
+                        [False, False, False, True, True],
+                        [False, False, False, True, True],
+                        [False, False, False, False, False],
+                        [False, False, False, False, False],
+                    ],
+                ]
+            ),
+            0.5,
+            np.array([False, True, True]),
+            DoesNotRaise(),
+        ),  # three masks with no category
+        (
+            np.array(
+                [
+                    [0, 0, 0, 0, 0.8, 0],
+                    [0, 0, 0, 0, 0.85, 1],
+                    [0, 0, 0, 0, 0.9, 2],
+                ]
+            ),
+            np.array(
+                [
+                    [
+                        [False, False, False, False, False],
+                        [False, True, True, False, False],
+                        [False, True, True, False, False],
+                        [False, False, False, False, False],
+                        [False, False, False, False, False],
+                    ],
+                    [
+                        [False, False, False, False, False],
+                        [False, True, True, False, False],
+                        [False, True, True, False, False],
+                        [False, True, True, False, False],
+                        [False, False, False, False, False],
+                    ],
+                    [
+                        [False, False, False, False, False],
+                        [False, True, True, False, False],
+                        [False, True, True, False, False],
+                        [False, False, False, False, False],
+                        [False, False, False, False, False],
+                    ],
+                ]
+            ),
+            0.5,
+            np.array([True, True, True]),
+            DoesNotRaise(),
+        ),  # three masks with different category
+    ],
+)
+def test_mask_non_max_suppression(
+    predictions: np.ndarray,
+    masks: np.ndarray,
+    iou_threshold: float,
+    expected_result: Optional[np.ndarray],
+    exception: Exception,
+) -> None:
+    with exception:
+        result = mask_non_max_suppression(
+            predictions=predictions, masks=masks, iou_threshold=iou_threshold
         )
         assert np.array_equal(result, expected_result)
 
@@ -838,7 +1045,7 @@ def test_merge_data(
                 "test_1": [1],
             },
             DoesNotRaise(),
-        ),  # single data dict with a single field name and list values
+        ),  # data dict with a single list field and integer index
         (
             {
                 "test_1": np.array([1, 2, 3]),
@@ -848,7 +1055,7 @@ def test_merge_data(
                 "test_1": np.array([1]),
             },
             DoesNotRaise(),
-        ),  # single data dict with a single field name and np.array values as 1D arrays
+        ),  # data dict with a single np.array field and integer index
         (
             {
                 "test_1": [1, 2, 3],
@@ -858,7 +1065,7 @@ def test_merge_data(
                 "test_1": [1, 2],
             },
             DoesNotRaise(),
-        ),  # single data dict with a single field name and list values
+        ),  # data dict with a single list field and slice index
         (
             {
                 "test_1": np.array([1, 2, 3]),
@@ -868,7 +1075,7 @@ def test_merge_data(
                 "test_1": np.array([1, 2]),
             },
             DoesNotRaise(),
-        ),  # single data dict with a single field name and np.array values as 1D arrays
+        ),  # data dict with a single np.array field and slice index
         (
             {
                 "test_1": [1, 2, 3],
@@ -878,7 +1085,7 @@ def test_merge_data(
                 "test_1": [3],
             },
             DoesNotRaise(),
-        ),  # single data dict with a single field name and list values
+        ),  # data dict with a single list field and negative integer index
         (
             {
                 "test_1": np.array([1, 2, 3]),
@@ -888,7 +1095,7 @@ def test_merge_data(
                 "test_1": np.array([3]),
             },
             DoesNotRaise(),
-        ),  # single data dict with a single field name and np.array values as 1D arrays
+        ),  # data dict with a single np.array field and negative integer index
         (
             {
                 "test_1": [1, 2, 3],
@@ -898,7 +1105,7 @@ def test_merge_data(
                 "test_1": [1, 3],
             },
             DoesNotRaise(),
-        ),  # single data dict with a single field name and list values
+        ),  # data dict with a single list field and integer list index
         (
             {
                 "test_1": np.array([1, 2, 3]),
@@ -908,7 +1115,7 @@ def test_merge_data(
                 "test_1": np.array([1, 3]),
             },
             DoesNotRaise(),
-        ),  # single data dict with a single field name and np.array values as 1D arrays
+        ),  # data dict with a single np.array field and integer list index
         (
             {
                 "test_1": [1, 2, 3],
@@ -918,7 +1125,7 @@ def test_merge_data(
                 "test_1": [1, 3],
             },
             DoesNotRaise(),
-        ),  # single data dict with a single field name and list values
+        ),  # data dict with a single list field and integer np.array index
         (
             {
                 "test_1": np.array([1, 2, 3]),
@@ -928,7 +1135,55 @@ def test_merge_data(
                 "test_1": np.array([1, 3]),
             },
             DoesNotRaise(),
-        ),
+        ),  # data dict with a single np.array field and integer np.array index
+        (
+            {
+                "test_1": np.array([1, 2, 3]),
+            },
+            np.array([True, True, True]),
+            {
+                "test_1": np.array([1, 2, 3]),
+            },
+            DoesNotRaise(),
+        ),  # data dict with a single np.array field and all-true bool np.array index
+        (
+            {
+                "test_1": np.array([1, 2, 3]),
+            },
+            np.array([False, False, False]),
+            {
+                "test_1": np.array([]),
+            },
+            DoesNotRaise(),
+        ),  # data dict with a single np.array field and all-false bool np.array index
+        (
+            {
+                "test_1": np.array([1, 2, 3]),
+            },
+            np.array([False, True, False]),
+            {
+                "test_1": np.array([2]),
+            },
+            DoesNotRaise(),
+        ),  # data dict with a single np.array field and mixed bool np.array index
+        (
+            {"test_1": np.array([1, 2, 3]), "test_2": ["a", "b", "c"]},
+            0,
+            {"test_1": np.array([1]), "test_2": ["a"]},
+            DoesNotRaise(),
+        ),  # data dict with two fields and integer index
+        (
+            {"test_1": np.array([1, 2, 3]), "test_2": ["a", "b", "c"]},
+            -1,
+            {"test_1": np.array([3]), "test_2": ["c"]},
+            DoesNotRaise(),
+        ),  # data dict with two fields and negative integer index
+        (
+            {"test_1": np.array([1, 2, 3]), "test_2": ["a", "b", "c"]},
+            np.array([False, True, False]),
+            {"test_1": np.array([2]), "test_2": ["b"]},
+            DoesNotRaise(),
+        ),  # data dict with two fields and mixed bool np.array index
     ],
 )
 def test_get_data_item(

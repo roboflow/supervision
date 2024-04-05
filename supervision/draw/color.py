@@ -176,31 +176,31 @@ class Color:
         return self.b, self.g, self.r
 
     @classproperty
-    def WHITE(cls):
+    def WHITE(cls) -> Color:
         return Color.from_hex("#FFFFFF")
 
     @classproperty
-    def BLACK(cls):
+    def BLACK(cls) -> Color:
         return Color.from_hex("#000000")
 
     @classproperty
-    def RED(cls):
+    def RED(cls) -> Color:
         return Color.from_hex("#FF0000")
 
     @classproperty
-    def GREEN(cls):
+    def GREEN(cls) -> Color:
         return Color.from_hex("#00FF00")
 
     @classproperty
-    def BLUE(cls):
+    def BLUE(cls) -> Color:
         return Color.from_hex("#0000FF")
 
     @classproperty
-    def YELLOW(cls):
+    def YELLOW(cls) -> Color:
         return Color.from_hex("#FFFF00")
 
     @classproperty
-    def ROBOFLOW(cls):
+    def ROBOFLOW(cls) -> Color:
         return Color.from_hex("#A351FB")
 
     @classmethod

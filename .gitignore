@@ -133,9 +133,6 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# Notebooks
-notebooks/
-
 # OSX folder attributes
 .DS_Store
 .AppleDouble

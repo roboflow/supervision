@@ -15,6 +15,12 @@ class LineZone:
     This class is responsible for counting the number of objects that cross a
     predefined line.
 
+    <video controls>
+        <source
+            src="https://media.roboflow.com/supervision/cookbooks/count-objects-crossing-the-line-result-1280x720.mp4"
+            type="video/mp4">
+    </video>
+
     !!! warning
 
         LineZone uses the `tracker_id`. Read
@@ -26,7 +32,28 @@ class LineZone:
             to inside.
         out_count (int): The number of objects that have crossed the line from inside
             to outside.
-    """
+
+    Example:
+        ```python
+        import supervision as sv
+        from ultralytics import YOLO
+
+        model = YOLO(<SOURCE_MODEL_PATH>)
+        tracker = sv.ByteTrack()
+        frames_generator = sv.get_video_frames_generator(<SOURCE_VIDEO_PATH>)
+        start, end = sv.Point(x=0, y=1080), sv.Point(x=3840, y=1080)
+        line_zone = sv.LineZone(start=start, end=end)
+
+        for frame in frames_generator:
+            result = model(frame)[0]
+            detections = sv.Detections.from_ultralytics(result)
+            detections = tracker.update_with_detections(detections)
+            crossed_in, crossed_out = line_zone.trigger(detections)
+
+        line_zone.in_count, line_zone.out_count
+        # 7, 2
+        ```
+    """  # noqa: E501 // docs
 
     def __init__(
         self,

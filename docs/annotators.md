@@ -260,15 +260,22 @@ status: new
 === "Label"
 
     ```python
-     import supervision as sv
+    import supervision as sv
 
     image = ...
     detections = sv.Detections(...)
 
+    labels = [
+        f"{class_name} {confidence:.2f}"
+        for class_name, confidence
+        in zip(detections['class_name'], detections.confidence)
+    ]
+
     label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER)
     annotated_frame = label_annotator.annotate(
         scene=image.copy(),
-        detections=detections
+        detections=detections,
+        labels=labels
     )
     ```
 
@@ -277,6 +284,21 @@ status: new
     ![label-annotator-example](https://media.roboflow.com/supervision-annotator-examples/label-annotator-example-purple.png){ align=center width="800" }
 
     </div>
+
+=== "Crop"
+
+    ```python
+    import supervision as sv
+
+    image = ...
+    detections = sv.Detections(...)
+
+    crop_annotator = sv.CropAnnotator()
+    annotated_frame = crop_annotator.annotate(
+        scene=image.copy(),
+        detections=detections
+    )
+    ```
 
 === "Blur"
 
@@ -487,6 +509,12 @@ status: new
 </div>
 
 :::supervision.annotators.core.TraceAnnotator
+
+<div class="md-typeset">
+    <h2><a href="#supervision.annotators.core.CropAnnotator">CropAnnotator</a></h2>
+</div>
+
+:::supervision.annotators.core.CropAnnotator
 
 <div class="md-typeset">
     <h2><a href="#supervision.annotators.core.ColorLookup">ColorLookup</a></h2>

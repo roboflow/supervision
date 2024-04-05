@@ -41,13 +41,13 @@ comments: true
 :::supervision.draw.utils.draw_image
 
 <div class="md-typeset">
-  <h2>calculate_dynamic_font_scale</h2>
+  <h2>calculate_optimal_font_scale</h2>
 </div>
 
-:::supervision.draw.utils.calculate_dynamic_text_scale
+:::supervision.draw.utils.calculate_optimal_text_scale
 
 <div class="md-typeset">
-  <h2>calculate_dynamic_line_thickness</h2>
+  <h2>calculate_optimal_line_thickness</h2>
 </div>
 
-:::supervision.draw.utils.calculate_dynamic_line_thickness
+:::supervision.draw.utils.calculate_optimal_line_thickness
