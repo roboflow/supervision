@@ -339,7 +339,7 @@ that will allow you to draw masks instead of boxes.
     detections = sv.Detections.from_inference(results)
 
     mask_annotator = sv.MaskAnnotator()
-    label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER)
+    label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER_OF_MASS)
 
     annotated_image = mask_annotator.annotate(
         scene=image, detections=detections)
@@ -360,7 +360,7 @@ that will allow you to draw masks instead of boxes.
     detections = sv.Detections.from_ultralytics(results)
 
     mask_annotator = sv.MaskAnnotator()
-    label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER)
+    label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER_OF_MASS)
 
     annotated_image = mask_annotator.annotate(
         scene=image, detections=detections)
@@ -394,7 +394,7 @@ that will allow you to draw masks instead of boxes.
         id2label=model.config.id2label)
 
     mask_annotator = sv.MaskAnnotator()
-    label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER)
+    label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER_OF_MASS)
 
     labels = [
         f"{class_name} {confidence:.2f}"
