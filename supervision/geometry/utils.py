@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Union, Optional, Tuple
+from typing import Union, Optional
 
 from supervision.geometry.core import Point
 
@@ -47,7 +47,7 @@ def get_polygon_center(polygon: np.ndarray) -> Point:
     return Point(x=center[0], y=center[1])
     
     
-def _get_rotation_matrix(angle: Union[float, Tuple[float, float, float]]) -> np.ndarray:
+def _get_rotation_matrix(angle: Union[float, tuple[float, float, float]]) -> np.ndarray:
     """
     Calculate rotation_matrix for 2D rotation and 3D.
     """
@@ -92,8 +92,7 @@ def rotate_polygon_2d(polygon: np.ndarray, angle: float, rotation_center: Option
             
         angle (float): Angle in radiance, angle to be rotated.
         
-        rotation_center (None or Point): Point around which to rotate.
-         Calculate center of polygon if None.
+        rotation_center (None or Point): Point around which to rotate. Calculate center of polygon if None.
 
     Returns:
         Polygon: Polygon rotated on angle in its plane around rotation_center point.
@@ -126,7 +125,7 @@ def rotate_polygon_2d(polygon: np.ndarray, angle: float, rotation_center: Option
     return polygon
 
 
-def rotate_polygon_3d(polygon: np.ndarray, angles: Tuple[float, float, float],
+def rotate_polygon_3d(polygon: np.ndarray, angles: tuple[float, float, float],
                       rotation_center: Optional[np.array] = None) -> np.ndarray:
     """
     Rotate a polygon of three angles in different planes.
@@ -142,12 +141,10 @@ def rotate_polygon_3d(polygon: np.ndarray, angles: Tuple[float, float, float],
         angles (tuple(float, float, float)): Angles in radiance. angle_x, angle_y and angle_z,
          that is, the first angle specifies the fracturing of the polygon along the axis X and so on.
          
-        rotation_center (None or np.ndarray): Point around which to rotate.
-         Calculate center of polygon if None.
+        rotation_center (None or np.ndarray): Point around which to rotate. Calculate center of polygon if None.
 
     Returns:
-        Polygon: Polygon rotated on angle_x, angle_y, angle_z
-        in its plane around rotation_center point.
+        Polygon: Polygon rotated on angle_x, angle_y, angle_z in its plane around rotation_center point.
         
     Examples:
         ```python
