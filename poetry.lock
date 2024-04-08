@@ -2226,13 +2226,13 @@ files = [
 
 [[package]]
 name = "mkdocstrings"
-version = "0.24.2"
+version = "0.24.3"
 description = "Automatic documentation from sources, for MkDocs."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "mkdocstrings-0.24.2-py3-none-any.whl", hash = "sha256:61440b77542170238099a7d87882c3417897771950e3aafe6e22abff3d1c51fb"},
-    {file = "mkdocstrings-0.24.2.tar.gz", hash = "sha256:b91b9cdd9490ef2e8957000bff1d34a4b308b9cd57b10f26169f085def4c6a92"},
+    {file = "mkdocstrings-0.24.3-py3-none-any.whl", hash = "sha256:5c9cf2a32958cd161d5428699b79c8b0988856b0d4a8c5baf8395fc1bf4087c3"},
+    {file = "mkdocstrings-0.24.3.tar.gz", hash = "sha256:f327b234eb8d2551a306735436e157d0a22d45f79963c60a8b585d5f7a94c1d2"},
 ]
 
 [package.dependencies]
