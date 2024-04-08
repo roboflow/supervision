@@ -38,9 +38,12 @@ nav:
   - Home: index.md
   - How to:
       - Detect and Annotate: how_to/detect_and_annotate.md
+      - Filter Detections: how_to/filter_detections.md
+      - Save Detections: how_to/save_detections.md
       - Detect Small Objects: how_to/detect_small_objects.md
       - Track Objects: how_to/track_objects.md
-      - Filter Detections: how_to/filter_detections.md
+      - Use Polygon Zones: how_to/use_polygon_zone.md
+      - Work with Datasets: how_to/work_with_datasets.md
   - API:
     - Annotators: annotators.md
     - Classifications:
