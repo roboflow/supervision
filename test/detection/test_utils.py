@@ -14,6 +14,7 @@ from supervision.detection.utils import (
     mask_non_max_suppression,
     merge_data,
     move_boxes,
+    move_masks,
     process_roboflow_result,
     scale_boxes,
 )
@@ -746,6 +747,107 @@ def test_move_boxes(
 ) -> None:
     with exception:
         result = move_boxes(xyxy=xyxy, offset=offset)
+        assert np.array_equal(result, expected_result)
+
+
+@pytest.mark.parametrize(
+    "masks, offset, image_shape, expected_result, exception",
+    [
+        (
+            np.zeros((0, 10, 10), dtype=bool),
+            np.array([0, 0]),
+            (100, 100),
+            np.zeros((0, 100, 100), dtype=bool),
+            DoesNotRaise(),
+        ),  # Empty masks array
+        (
+            np.array([[[False, True], [True, True]]]),
+            np.array([2, 2]),
+            (4, 4),
+            np.array(
+                [
+                    [
+                        [False, False, False, False],
+                        [False, False, False, False],
+                        [False, False, False, True],
+                        [False, False, True, True],
+                    ]
+                ]
+            ),
+            DoesNotRaise(),
+        ),  # Single mask, offset to the edge of the image
+        (
+            np.array([[[False, False], [True, True]]]),
+            np.array([1, 2]),
+            (4, 4),
+            np.array(
+                [
+                    [
+                        [False, False, False, False],
+                        [False, False, False, False],
+                        [False, False, False, False],
+                        [False, True, True, False],
+                    ]
+                ]
+            ),
+            DoesNotRaise(),
+        ),  # Single mask, positive offset
+        (
+            np.array([[[True, True, True], [True, True, True], [True, True, True]]]),
+            np.array([0, 0]),
+            (2, 2),
+            np.array([[[True, True], [True, True]]]),
+            DoesNotRaise(),
+        ),  # Mask larger than the image shape
+        (
+            np.array([[[False, True], [True, False]]]),
+            np.array([5, 5]),
+            (4, 4),
+            np.array(
+                [
+                    [
+                        [False, False, False, False],
+                        [False, False, False, False],
+                        [False, False, False, False],
+                        [False, False, False, False],
+                    ]
+                ]
+            ),
+            DoesNotRaise(),
+        ),  # Offset moves mask completely outside the image
+        (
+            np.array([[[False, True], [True, False]], [[True, True], [False, False]]]),
+            np.array([1, 1]),
+            (4, 4),
+            np.array(
+                [
+                    [
+                        [False, False, False, False],
+                        [False, False, True, False],
+                        [False, True, False, False],
+                        [False, False, False, False],
+                    ],
+                    [
+                        [False, False, False, False],
+                        [False, True, True, False],
+                        [False, False, False, False],
+                        [False, False, False, False],
+                    ],
+                ]
+            ),
+            DoesNotRaise(),
+        ),  # Multiple masks, mixed offsets
+    ],
+)
+def test_move_masks(
+    masks: np.ndarray,
+    offset: np.ndarray,
+    image_shape: Tuple[int, int],
+    expected_result: np.ndarray,
+    exception: Exception,
+) -> None:
+    with exception:
+        result = move_masks(masks, offset, image_shape)
         assert np.array_equal(result, expected_result)
 
 

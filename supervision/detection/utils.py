@@ -592,6 +592,51 @@ def move_boxes(xyxy: np.ndarray, offset: np.ndarray) -> np.ndarray:
     return xyxy + np.hstack([offset, offset])
 
 
+def move_masks(
+    masks: np.ndarray, offset: np.ndarray, image_shape: Tuple[int, int]
+) -> np.ndarray:
+    """
+    Move masks to align with the original image's coordinate system based on the offset.
+
+    Parameters:
+        masks (np.ndarray): A 3D array of binary masks corresponding to the predictions.
+            Shape: `(N, H, W)`, where N is the number of predictions, and H, W are the
+            dimensions of each mask.
+        offset (np.array): An array of shape `(2,)` containing offset values in the
+            format `[dx, dy]`.
+        image_shape (Tuple[int, int]): The height and width of the original image.
+
+    Returns:
+        np.ndarray: Repositioned masks.
+
+    Example:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        masks = np.random.randint(0, 2, (2, 100, 100))
+        offset = np.array([50, 30])
+        image_shape = (200, 200)
+        moved_mask = sv.move_masks(masks, offset, image_shape)
+        ```
+    """
+    num_masks, mask_height, mask_width = masks.shape
+    padded_masks = np.zeros((num_masks, *image_shape), dtype=bool)
+
+    dy, dx = offset
+
+    if (dy := offset[1]) < (new_y_max := min(dy + mask_height, image_shape[0])) and (
+        dx := offset[0]
+    ) < (new_x_max := min(dx + mask_width, image_shape[1])):
+        padded_masks[:, max(dy, 0) : new_y_max, max(dx, 0) : new_x_max] = masks[
+            :,
+            max(-dy, 0) : max(-dy, 0) + new_y_max - max(dy, 0),
+            max(-dx, 0) : max(-dx, 0) + new_x_max - max(dx, 0),
+        ]
+
+    return padded_masks
+
+
 def scale_boxes(xyxy: np.ndarray, factor: float) -> np.ndarray:
     """
     Scale the dimensions of bounding boxes.
