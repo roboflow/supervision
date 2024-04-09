@@ -62,12 +62,12 @@ TODO
     ```python
     import supervision as sv
     from inference import get_model
-    
+
     model = get_model(model_id="yolov8n-640")
-    
+
     with sv.CSVSink(<TARGET_CSV_PATH>) as sink:
         for frame in sv.get_video_frames_generator(<SOURCE_VIDEO_PATH>):
-    
+
             results = model.infer(image)[0]
             detections = sv.Detections.from_inference(results)
             sink.append(detections, {})
@@ -78,12 +78,12 @@ TODO
     ```python
     import supervision as sv
     from ultralytics import YOLO
-    
+
     model = YOLO("yolov8n.pt")
-    
+
     with sv.CSVSink(<TARGET_CSV_PATH>) as sink:
         for frame in sv.get_video_frames_generator(<SOURCE_VIDEO_PATH>):
-    
+
             results = model(frame)[0]
             detections = sv.Detections.from_ultralytics(results)
             sink.append(detections, {})
