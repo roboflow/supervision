@@ -9,7 +9,7 @@ import cv2
 import numpy as np
 
 from supervision.annotators.base import ImageType
-from supervision.draw.color import Color
+from supervision.draw.color import Color, unify_to_bgr
 from supervision.draw.utils import calculate_optimal_text_scale, draw_text
 from supervision.geometry.core import Point
 from supervision.utils.conversion import (
@@ -25,17 +25,18 @@ MAX_COLUMNS_FOR_SINGLE_ROW_GRID = 3
 
 
 @convert_for_image_processing
-def crop_image(image: np.ndarray, xyxy: np.ndarray) -> np.ndarray:
+def crop_image(image: ImageType, xyxy: np.ndarray) -> np.ndarray:
     """
     Crops the given image based on the given bounding box.
 
     Args:
-        image (np.ndarray): The image to be cropped, represented as a numpy array.
+        image (ImageType): The image to be cropped. `ImageType` is a flexible type,
+            accepting either `numpy.ndarray` or `PIL.Image.Image`.
         xyxy (np.ndarray): A numpy array containing the bounding box coordinates
             in the format (x1, y1, x2, y2).
 
     Returns:
-        (np.ndarray): The cropped image as a numpy array.
+        (ImageType): The cropped image.
 
     Examples:
         ```python
@@ -74,10 +75,10 @@ def resize_image(image: np.ndarray, scale_factor: float) -> np.ndarray:
         raise ValueError("Scale factor must be positive.")
 
     old_width, old_height = image.shape[1], image.shape[0]
-    nwe_width = int(old_width * scale_factor)
+    new_width = int(old_width * scale_factor)
     new_height = int(old_height * scale_factor)
 
-    return cv2.resize(image, (nwe_width, new_height), interpolation=cv2.INTER_LINEAR)
+    return cv2.resize(image, (new_width, new_height), interpolation=cv2.INTER_LINEAR)
 
 
 def place_image(
@@ -285,14 +286,14 @@ def create_tiles(
         raise ValueError("Could not create image tiles from empty list of images.")
     if return_type == "auto":
         return_type = _negotiate_tiles_format(images=images)
-    tile_padding_color = _color_to_bgr(color=tile_padding_color)
-    tile_margin_color = _color_to_bgr(color=tile_margin_color)
+    tile_padding_color = unify_to_bgr(color=tile_padding_color)
+    tile_margin_color = unify_to_bgr(color=tile_margin_color)
     images = images_to_cv2(images=images)
     if single_tile_size is None:
         single_tile_size = _aggregate_images_shape(images=images, mode=tile_scaling)
     resized_images = [
         letterbox_image(
-            image=i, desired_size=single_tile_size, color=tile_padding_color
+            image=i, target_resolution_wh=single_tile_size, color=tile_padding_color
         )
         for i in images
     ]
@@ -311,8 +312,8 @@ def create_tiles(
     titles_anchors = fill(
         sequence=titles_anchors, desired_size=len(images), content=None
     )
-    titles_color = _color_to_bgr(color=titles_color)
-    titles_background_color = _color_to_bgr(color=titles_background_color)
+    titles_color = unify_to_bgr(color=titles_color)
+    titles_background_color = unify_to_bgr(color=titles_background_color)
     tiles = _generate_tiles(
         images=resized_images,
         grid_size=grid_size,
@@ -546,8 +547,8 @@ def _generate_color_image(
 
 @convert_for_image_processing
 def letterbox_image(
-    image: np.ndarray,
-    desired_size: Tuple[int, int],
+    image: ImageType,
+    target_resolution_wh: Tuple[int, int],
     color: Union[Tuple[int, int, int], Color] = (0, 0, 0),
 ) -> np.ndarray:
     """
@@ -555,27 +556,27 @@ def letterbox_image(
     ratio, adding padding of given color if needed to maintain aspect ratio.
 
     Args:
-        image (np.ndarray): Input image (type will be adjusted by decorator,
+        image (ImageType): Input image (type will be adjusted by decorator,
             you can provide PIL.Image)
-        desired_size (Tuple[int, int]): image size (width, height) representing
+        target_resolution_wh (Tuple[int, int]): image size (width, height) representing
             the target dimensions.
         color (Union[Tuple[int, int, int], Color]): the color to pad with - If
             tuple provided - should be BGR.
 
     Returns:
-        np.ndarray: letterboxed image (type may be adjusted to PIL.Image by
+        ImageType: letterboxed image (type may be adjusted to PIL.Image by
             decorator if function was called with PIL.Image)
     """
-    color = _color_to_bgr(color=color)
+    color = unify_to_bgr(color=color)
     resized_img = resize_image_keeping_aspect_ratio(
         image=image,
-        desired_size=desired_size,
+        desired_size=target_resolution_wh,
     )
     new_height, new_width = resized_img.shape[:2]
-    top_padding = (desired_size[1] - new_height) // 2
-    bottom_padding = desired_size[1] - new_height - top_padding
-    left_padding = (desired_size[0] - new_width) // 2
-    right_padding = desired_size[0] - new_width - left_padding
+    top_padding = (target_resolution_wh[1] - new_height) // 2
+    bottom_padding = target_resolution_wh[1] - new_height - top_padding
+    left_padding = (target_resolution_wh[0] - new_width) // 2
+    right_padding = target_resolution_wh[0] - new_width - left_padding
     return cv2.copyMakeBorder(
         resized_img,
         top_padding,
@@ -625,9 +626,3 @@ def resize_image_keeping_aspect_ratio(
         new_height = desired_size[1]
         new_width = int(desired_size[1] * img_ratio)
     return cv2.resize(image, (new_width, new_height))
-
-
-def _color_to_bgr(color: Union[Tuple[int, int, int], Color]) -> Tuple[int, int, int]:
-    if issubclass(type(color), Color):
-        return color.as_bgr()
-    return color
