@@ -30,7 +30,7 @@ status: new
 :::supervision.utils.image.letterbox_image
 
 <div class="md-typeset">
-  <h2>place_image</h2>
+  <h2>overlay_image</h2>
 </div>
 
 :::supervision.utils.image.overlay_image

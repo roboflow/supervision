@@ -44,8 +44,6 @@ def crop_image(
         (ImageType): The cropped image. The type is determined by the input type and
             may be either a `numpy.ndarray` or `PIL.Image.Image`.
 
-    Examples:
-
     === "OpenCV"
 
         ```python
@@ -106,8 +104,6 @@ def scale_image(image: ImageType, scale_factor: float) -> ImageType:
     Raises:
         ValueError: If the scale factor is non-positive.
 
-    Examples:
-
     === "OpenCV"
 
         ```python
@@ -166,10 +162,8 @@ def resize_image(
             aspect ratio. Defaults to `False`.
 
     Returns:
-        ImageType: The resized image. The type is determined by the input type and
+        (ImageType): The resized image. The type is determined by the input type and
             may be either a `numpy.ndarray` or `PIL.Image.Image`.
-
-    Examples:
 
     === "OpenCV"
 
@@ -226,7 +220,7 @@ def resize_image(
 def letterbox_image(
     image: ImageType,
     resolution_wh: Tuple[int, int],
-    color: Union[Tuple[int, int, int], Color] = (0, 0, 0),
+    color: Union[Tuple[int, int, int], Color] = Color.BLACK,
 ) -> ImageType:
     """
     Resizes and pads an image to a specified resolution with a given color, maintaining
@@ -241,10 +235,8 @@ def letterbox_image(
             provided it should be in BGR format.
 
     Returns:
-        ImageType: The resized image. The type is determined by the input type and
+        (ImageType): The resized image. The type is determined by the input type and
             may be either a `numpy.ndarray` or `PIL.Image.Image`.
-
-    ## Examples:
 
     === "OpenCV"
 
@@ -314,7 +306,7 @@ def overlay_image(
             top-left corner of the image will be placed.
 
     Returns:
-        np.ndarray: The result image with overlay.
+        (np.ndarray): The result image with overlay.
 
     Examples:
         ```python
@@ -323,10 +315,11 @@ def overlay_image(
         import supervision as sv
 
         image = cv2.imread(<SOURCE_IMAGE_PATH>)
-        overlay = np.zeros((200, 200, 3), dtype=np.uint8)
-        result_image = sv.letterbox_image(
-            image=image, overlay=overlay, anchor=(200, 400))
+        overlay = np.zeros((400, 400, 3), dtype=np.uint8)
+        result_image = sv.overlay_image(image=image, overlay=overlay, anchor=(200, 400))
         ```
+
+    ![overlay_image](https://media.roboflow.com/supervision-docs/overlay-image.png){ align=center width="800" }
     """
     scene_height, scene_width = image.shape[:2]
     image_height, image_width = overlay.shape[:2]
@@ -374,11 +367,11 @@ class ImageSink:
         Examples:
             ```python
             import supervision as sv
+            
+            frames_generator = sv.get_video_frames_generator(<SOURCE_VIDEO_PATH>, stride=2)
 
-            with sv.ImageSink(target_dir_path='target/directory/path',
-                              overwrite=True) as sink:
-                for image in sv.get_video_frames_generator(
-                    source_path='source_video.mp4', stride=2):
+            with sv.ImageSink(target_dir_path=<TARGET_CROPS_DIRECTORY>) as sink:
+                for image in frames_generator:
                     sink.save_image(image=image)
             ```
         """  # noqa E501 // docs
