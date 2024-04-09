@@ -368,7 +368,7 @@ class ImageSink:
         Examples:
             ```python
             import supervision as sv
-            
+
             frames_generator = sv.get_video_frames_generator(<SOURCE_VIDEO_PATH>, stride=2)
 
             with sv.ImageSink(target_dir_path=<TARGET_CROPS_DIRECTORY>) as sink:
