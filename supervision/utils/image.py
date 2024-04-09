@@ -25,15 +25,19 @@ MAX_COLUMNS_FOR_SINGLE_ROW_GRID = 3
 
 
 @convert_for_image_processing
-def crop_image(image: ImageType, xyxy: np.ndarray) -> np.ndarray:
+def crop_image(
+    image: ImageType,
+    xyxy: Union[np.ndarray, List[int], Tuple[int, int, int, int]]
+) -> ImageType:
     """
     Crops the given image based on the given bounding box.
 
     Args:
         image (ImageType): The image to be cropped. `ImageType` is a flexible type,
             accepting either `numpy.ndarray` or `PIL.Image.Image`.
-        xyxy (np.ndarray): A numpy array containing the bounding box coordinates
-            in the format (x1, y1, x2, y2).
+        xyxy (Union[np.ndarray, List[int], Tuple[int, int, int, int]]): A bounding box
+            coordinates in the format (x_min, y_min, x_max, y_max), accepted as either
+            a numpy array, a list, or a tuple.
 
     Returns:
         (ImageType): The cropped image.
@@ -50,9 +54,11 @@ def crop_image(image: ImageType, xyxy: np.ndarray) -> np.ndarray:
         ```
     """
 
+    if isinstance(xyxy, (list, tuple)):
+        xyxy = np.array(xyxy)
     xyxy = np.round(xyxy).astype(int)
-    x1, y1, x2, y2 = xyxy
-    return image[y1:y2, x1:x2]
+    x_min, y_min, x_max, y_max = xyxy.flatten()
+    return image[y_min:y_max, x_min:x_max]
 
 
 @convert_for_image_processing
