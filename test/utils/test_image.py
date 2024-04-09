@@ -5,11 +5,7 @@ import pytest
 from PIL import Image, ImageChops
 
 from supervision import Color, Point
-from supervision.utils.image import (
-    create_tiles,
-    letterbox_image,
-    resize_image,
-)
+from supervision.utils.image import create_tiles, letterbox_image, resize_image
 
 
 def test_resize_image_for_opencv_image() -> None:

@@ -204,7 +204,7 @@ def resize_image(
         resized_image.size
         # (1000, 562)
         ```
-        
+
     ![resize_image](https://media.roboflow.com/supervision-docs/resize-image.png){ align=center width="800" }
     """  # noqa E501 // docs
     if keep_aspect_ratio:
