@@ -3,7 +3,7 @@ from typing import List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
-from PIL import ImageFont
+from PIL import ImageFont, ImageDraw
 
 from supervision.annotators.base import BaseAnnotator, ImageType
 from supervision.annotators.utils import ColorLookup, Trace, resolve_color
@@ -1221,6 +1221,76 @@ class RichLabelAnnotator:
                 center_x + text_w,
                 center_y + text_h // 2,
             )
+        
+    
+    def annotate(
+        self,
+        scene: ImageType,
+        detections: Detections,
+        labels: List[str] = None,
+        custom_color_lookup: Optional[np.ndarray] = None,
+    ) -> ImageType:
+        draw = ImageDraw.Draw(scene)
+        anchors_coordinates = detections.get_anchors_coordinates(
+            anchor=self.text_anchor
+        ).astype(int)
+        if labels is not None and len(labels) != len(detections):
+            raise ValueError(
+                f"The number of labels provided ({len(labels)}) does not match the "
+                f"number of detections ({len(detections)}). Each detection should have "
+                f"a corresponding label. This discrepancy can occur if the labels and "
+                f"detections are not aligned or if an incorrect number of labels has "
+                f"been provided. Please ensure that the labels array has the same "
+                f"length as the Detections object."
+            )
+        for detection_idx, center_coordinates in enumerate(anchors_coordinates):
+            color = resolve_color(
+                color=self.color,
+                detections=detections,
+                detection_idx=detection_idx,
+                color_lookup=(
+                    self.color_lookup
+                    if custom_color_lookup is None
+                    else custom_color_lookup
+                ),
+            )
+            if labels is not None:
+                text = labels[detection_idx]
+            elif detections[CLASS_NAME_DATA_FIELD] is not None:
+                text = detections[CLASS_NAME_DATA_FIELD][detection_idx]
+            elif detections.class_id is not None:
+                text = str(detections.class_id[detection_idx])
+            else:
+                text = str(detection_idx)
+
+            left, top, right, bottom = draw.textbbox((0, 0), text, font=self.font)
+            text_width = right - left
+            text_height = bottom - top
+            text_w_padded = text_width + 2 * self.text_padding
+            text_h_padded = text_height + 2 * self.text_padding
+            text_background_xyxy = self.resolve_text_background_xyxy(
+                center_coordinates=tuple(center_coordinates),
+                text_wh=(text_w_padded, text_h_padded),
+                position=self.text_anchor,
+            )
+
+            text_x = text_background_xyxy[0] + self.text_padding - left
+            text_y = text_background_xyxy[1] + self.text_padding - top
+
+            draw.rounded_rectangle(
+                text_background_xyxy,
+                radius=self.border_radius,
+                fill=color.as_rgb(),
+                outline=None,
+            )
+            draw.text(
+                xy=(text_x, text_y),
+                text=text,
+                font=self.font,
+                fill=self.text_color.as_rgb(),
+            )
+
+        return scene
 
 
 class BlurAnnotator(BaseAnnotator):
