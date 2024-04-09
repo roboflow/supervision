@@ -9,8 +9,8 @@ TODO
 
 ## Run Detection
 
-First, you'll need to obtain predictions from your object detection or segmentation 
-model. You can learn more on this topic in our 
+First, you'll need to obtain predictions from your object detection or segmentation
+model. You can learn more on this topic in our
 [How to Detect and Annotate](/latest/how_to/detect_and_annotate.md) guide.
 
 === "Inference"
