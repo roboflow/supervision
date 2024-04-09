@@ -275,7 +275,7 @@ def letterbox_image(
         letterboxed_image.size
         # (1000, 1000)
         ```
-        
+
     ![letterbox_image](https://media.roboflow.com/supervision-docs/letterbox-image.png){ align=center width="800" }
     """  # noqa E501 // docs
     color = unify_to_bgr(color=color)
@@ -301,7 +301,7 @@ def letterbox_image(
 def overlay_image(
     image: npt.NDArray[np.uint8],
     overlay: npt.NDArray[np.uint8],
-    anchor: Tuple[int, int]
+    anchor: Tuple[int, int],
 ) -> npt.NDArray[np.uint8]:
     """
     Places an image onto a scene at a given anchor point, handling cases where
@@ -348,8 +348,9 @@ def overlay_image(
     crop_x_max = image_width - max((anchor_x + image_width) - scene_width, 0)
     crop_y_max = image_height - max((anchor_y + image_height) - scene_height, 0)
 
-    image[y_min:y_max, x_min:x_max] = \
-        overlay[crop_y_min:crop_y_max, crop_x_min:crop_x_max]
+    image[y_min:y_max, x_min:x_max] = overlay[
+        crop_y_min:crop_y_max, crop_x_min:crop_x_max
+    ]
 
     return image
 
