@@ -3,6 +3,7 @@ from typing import List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
+from PIL import ImageFont
 
 from supervision.annotators.base import BaseAnnotator, ImageType
 from supervision.annotators.utils import ColorLookup, Trace, resolve_color
@@ -1146,6 +1147,27 @@ class LabelAnnotator:
                 thickness=-1,
             )
         return scene
+
+class RichLabelAnnotator:
+
+    def __init__(
+        self,
+        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
+        text_color: Color = Color.WHITE,
+        font_path: str = "/content/Arial Unicode Font.ttf",
+        font_size: int = 14,
+        text_padding: int = 10,
+        text_position: Position = Position.TOP_LEFT,
+        color_lookup: ColorLookup = ColorLookup.CLASS,
+        border_radius: int = 0,
+    ):
+        self.color = color
+        self.text_color = text_color
+        self.font = ImageFont.truetype(font_path, font_size)
+        self.text_padding = text_padding
+        self.text_anchor = text_position
+        self.color_lookup = color_lookup
+        self.border_radius = border_radius
 
 
 class BlurAnnotator(BaseAnnotator):
