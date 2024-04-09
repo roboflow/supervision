@@ -8,19 +8,20 @@ from supervision import Color, Point
 from supervision.utils.image import (
     create_tiles,
     letterbox_image,
-    resize_image_keeping_aspect_ratio,
+    resize_image,
 )
 
 
-def test_resize_image_keeping_aspect_ratio_for_opencv_image() -> None:
+def test_resize_image_for_opencv_image() -> None:
     # given
     image = np.zeros((480, 640, 3), dtype=np.uint8)
     expected_result = np.zeros((768, 1024, 3), dtype=np.uint8)
 
     # when
-    result = resize_image_keeping_aspect_ratio(
+    result = resize_image(
         image=image,
-        desired_size=(1024, 1024),
+        resolution_wh=(1024, 1024),
+        keep_aspect_ratio=True,
     )
 
     # then
@@ -29,15 +30,16 @@ def test_resize_image_keeping_aspect_ratio_for_opencv_image() -> None:
     ), "Expected output shape to be (w, h): (1024, 768)"
 
 
-def test_resize_image_keeping_aspect_ratio_for_pillow_image() -> None:
+def test_resize_image_for_pillow_image() -> None:
     # given
     image = Image.new(mode="RGB", size=(640, 480), color=(0, 0, 0))
     expected_result = Image.new(mode="RGB", size=(1024, 768), color=(0, 0, 0))
 
     # when
-    result = resize_image_keeping_aspect_ratio(
+    result = resize_image(
         image=image,
-        desired_size=(1024, 1024),
+        resolution_wh=(1024, 1024),
+        keep_aspect_ratio=True,
     )
 
     # then

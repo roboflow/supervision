@@ -135,7 +135,7 @@ def scale_image(image: ImageType, scale_factor: float) -> ImageType:
 
         scaled_image = sv.scale_image(image=image, scale_factor=0.5)
         scaled_image.size
-        # (540, 960)
+        # (960, 540)
         ```
     """
     if scale_factor <= 0:
@@ -144,6 +144,81 @@ def scale_image(image: ImageType, scale_factor: float) -> ImageType:
     width_old, height_old = image.shape[1], image.shape[0]
     width_new = int(width_old * scale_factor)
     height_new = int(height_old * scale_factor)
+    return cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)
+
+
+@convert_for_image_processing
+def resize_image(
+    image: ImageType,
+    resolution_wh: Tuple[int, int],
+    keep_aspect_ratio: bool = False,
+) -> ImageType:
+    """
+    Resizes the given image to a specified resolution. Can maintain the original aspect
+    ratio or resize directly to the desired dimensions.
+
+    Args:
+        image (ImageType): The image to be resized. `ImageType` is a flexible type,
+            accepting either `numpy.ndarray` or `PIL.Image.Image`.
+        resolution_wh (Tuple[int, int]): The target resolution as
+            `(width, height)`.
+        keep_aspect_ratio (bool, optional): Flag to maintain the image's original
+            aspect ratio. Defaults to `False`.
+
+    Returns:
+        ImageType: The resized image. The type is determined by the input type and
+            may be either a `numpy.ndarray` or `PIL.Image.Image`.
+
+    Examples:
+
+    === "OpenCV"
+
+        ```python
+        import cv2
+        import supervision as sv
+
+        image = cv2.imread(<SOURCE_IMAGE_PATH>)
+        image.shape
+        # (1080, 1920, 3)
+
+        resized_image = sv.resize_image(
+            image=image, resolution_wh=(1000, 1000), keep_aspect_ratio=True
+        )
+        resized_image.shape
+        # (562, 1000, 3)
+        ```
+
+    === "Pillow"
+
+        ```python
+        from PIL import Image
+        import supervision as sv
+
+        image = Image.open(<SOURCE_IMAGE_PATH>)
+        image.size
+        # (1920, 1080)
+
+        resized_image = sv.resize_image(
+            image=image, resolution_wh=(1000, 1000), keep_aspect_ratio=True
+        )
+        resized_image.size
+        # (1000, 562)
+        ```
+        
+    ![resize_image](https://media.roboflow.com/supervision-docs/resize-image.png){ align=center width="800" }
+    """  # noqa E501 // docs
+    if keep_aspect_ratio:
+        image_ratio = image.shape[1] / image.shape[0]
+        target_ratio = resolution_wh[0] / resolution_wh[1]
+        if image_ratio >= target_ratio:
+            width_new = resolution_wh[0]
+            height_new = int(resolution_wh[0] / image_ratio)
+        else:
+            height_new = resolution_wh[1]
+            width_new = int(resolution_wh[1] * image_ratio)
+    else:
+        width_new, height_new = resolution_wh
+
     return cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)
 
 
@@ -635,7 +710,7 @@ def letterbox_image(
     """
     color = unify_to_bgr(color=color)
     resized_img = resize_image(
-        image=image, target_resolution_wh=target_resolution_wh, keep_aspect_ratio=True
+        image=image, resolution_wh=target_resolution_wh, keep_aspect_ratio=True
     )
     new_height, new_width = resized_img.shape[:2]
     top_padding = (target_resolution_wh[1] - new_height) // 2
@@ -651,40 +726,3 @@ def letterbox_image(
         cv2.BORDER_CONSTANT,
         value=color,
     )
-
-
-@convert_for_image_processing
-def resize_image(
-    image: ImageType,
-    target_resolution_wh: Tuple[int, int],
-    keep_aspect_ratio: bool = False,
-) -> ImageType:
-    """
-    Resizes the given image to a specified resolution. Can maintain the original aspect
-    ratio or resize directly to the desired dimensions.
-
-    Args:
-        image (ImageType): The image to be resized. `ImageType` is a flexible type,
-            accepting either `numpy.ndarray` or `PIL.Image.Image`.
-        target_resolution_wh (Tuple[int, int]): The target resolution as
-            `(width, height)`.
-        keep_aspect_ratio (bool, optional): Flag to maintain the image's original
-            aspect ratio. Defaults to `False`.
-
-    Returns:
-        ImageType: The resized image. The type is determined by the input type and
-            may be either a `numpy.ndarray` or `PIL.Image.Image`.
-    """
-    if keep_aspect_ratio:
-        image_ratio = image.shape[1] / image.shape[0]
-        target_ratio = target_resolution_wh[0] / target_resolution_wh[1]
-        if image_ratio >= target_ratio:
-            width_new = target_resolution_wh[0]
-            height_new = int(target_resolution_wh[0] / image_ratio)
-        else:
-            height_new = target_resolution_wh[1]
-            width_new = int(target_resolution_wh[1] * image_ratio)
-    else:
-        width_new, height_new = target_resolution_wh
-
-    return cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)
