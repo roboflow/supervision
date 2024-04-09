@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 import matplotlib.pyplot as plt
 
@@ -448,3 +448,19 @@ class ColorPalette:
             raise ValueError("idx argument should not be negative")
         idx = idx % len(self.colors)
         return self.colors[idx]
+
+
+def unify_to_bgr(color: Union[Tuple[int, int, int], Color]) -> Tuple[int, int, int]:
+    """
+    Converts a color input in multiple formats to a standardized BGR format.
+
+    Args:
+        color (Union[Tuple[int, int, int], Color]): The color input to be converted,
+            which can be either a tuple of RGB values or an instance of a Color class.
+
+    Returns:
+        Tuple[int, int, int]: The color in BGR format as a tuple of three integers.
+    """
+    if issubclass(type(color), Color):
+        return color.as_bgr()
+    return color

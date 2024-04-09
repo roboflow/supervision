@@ -7,9 +7,10 @@ from typing import Callable, List, Literal, Optional, Tuple, Union
 
 import cv2
 import numpy as np
+import numpy.typing as npt
 
 from supervision.annotators.base import ImageType
-from supervision.draw.color import Color
+from supervision.draw.color import Color, unify_to_bgr
 from supervision.draw.utils import calculate_optimal_text_scale, draw_text
 from supervision.geometry.core import Point
 from supervision.utils.conversion import (
@@ -25,103 +26,326 @@ MAX_COLUMNS_FOR_SINGLE_ROW_GRID = 3
 
 
 @convert_for_image_processing
-def crop_image(image: np.ndarray, xyxy: np.ndarray) -> np.ndarray:
+def crop_image(
+    image: ImageType,
+    xyxy: Union[npt.NDArray[int], List[int], Tuple[int, int, int, int]],
+) -> ImageType:
     """
     Crops the given image based on the given bounding box.
 
     Args:
-        image (np.ndarray): The image to be cropped, represented as a numpy array.
-        xyxy (np.ndarray): A numpy array containing the bounding box coordinates
-            in the format (x1, y1, x2, y2).
+        image (ImageType): The image to be cropped. `ImageType` is a flexible type,
+            accepting either `numpy.ndarray` or `PIL.Image.Image`.
+        xyxy (Union[np.ndarray, List[int], Tuple[int, int, int, int]]): A bounding box
+            coordinates in the format `(x_min, y_min, x_max, y_max)`, accepted as either
+            a `numpy.ndarray`, a `list`, or a `tuple`.
 
     Returns:
-        (np.ndarray): The cropped image as a numpy array.
+        (ImageType): The cropped image. The type is determined by the input type and
+            may be either a `numpy.ndarray` or `PIL.Image.Image`.
 
-    Examples:
+    === "OpenCV"
+
         ```python
+        import cv2
         import supervision as sv
 
-        detection = sv.Detections(...)
-        with sv.ImageSink(target_dir_path='target/directory/path') as sink:
-            for xyxy in detection.xyxy:
-                cropped_image = sv.crop_image(image=image, xyxy=xyxy)
-                sink.save_image(image=cropped_image)
-        ```
-    """
+        image = cv2.imread(<SOURCE_IMAGE_PATH>)
+        image.shape
+        # (1080, 1920, 3)
 
+        xyxy = [200, 400, 600, 800]
+        cropped_image = sv.crop_image(image=image, xyxy=xyxy)
+        cropped_image.shape
+        # (400, 400, 3)
+        ```
+
+    === "Pillow"
+
+        ```python
+        from PIL import Image
+        import supervision as sv
+
+        image = Image.open(<SOURCE_IMAGE_PATH>)
+        image.size
+        # (1920, 1080)
+
+        xyxy = [200, 400, 600, 800]
+        cropped_image = sv.crop_image(image=image, xyxy=xyxy)
+        cropped_image.size
+        # (400, 400)
+        ```
+
+    ![crop_image](https://media.roboflow.com/supervision-docs/crop-image.png){ align=center width="800" }
+    """  # noqa E501 // docs
+
+    if isinstance(xyxy, (list, tuple)):
+        xyxy = np.array(xyxy)
     xyxy = np.round(xyxy).astype(int)
-    x1, y1, x2, y2 = xyxy
-    return image[y1:y2, x1:x2]
+    x_min, y_min, x_max, y_max = xyxy.flatten()
+    return image[y_min:y_max, x_min:x_max]
 
 
 @convert_for_image_processing
-def resize_image(image: np.ndarray, scale_factor: float) -> np.ndarray:
+def scale_image(image: ImageType, scale_factor: float) -> ImageType:
     """
-    Resizes an image by a given scale factor using cv2.INTER_LINEAR interpolation.
+    Scales the given image based on the given scale factor.
 
     Args:
-        image (np.ndarray): The input image to be resized.
+        image (ImageType): The image to be scaled. `ImageType` is a flexible type,
+            accepting either `numpy.ndarray` or `PIL.Image.Image`.
         scale_factor (float): The factor by which the image will be scaled. Scale
-            factor > 1.0 zooms in, < 1.0 zooms out.
+            factor > `1.0` zooms in, < `1.0` zooms out.
 
     Returns:
-        np.ndarray: The resized image.
+        (ImageType): The scaled image. The type is determined by the input type and
+            may be either a `numpy.ndarray` or `PIL.Image.Image`.
 
     Raises:
         ValueError: If the scale factor is non-positive.
+
+    === "OpenCV"
+
+        ```python
+        import cv2
+        import supervision as sv
+
+        image = cv2.imread(<SOURCE_IMAGE_PATH>)
+        image.shape
+        # (1080, 1920, 3)
+
+        scaled_image = sv.scale_image(image=image, scale_factor=0.5)
+        scaled_image.shape
+        # (540, 960, 3)
+        ```
+
+    === "Pillow"
+
+        ```python
+        from PIL import Image
+        import supervision as sv
+
+        image = Image.open(<SOURCE_IMAGE_PATH>)
+        image.size
+        # (1920, 1080)
+
+        scaled_image = sv.scale_image(image=image, scale_factor=0.5)
+        scaled_image.size
+        # (960, 540)
+        ```
     """
     if scale_factor <= 0:
         raise ValueError("Scale factor must be positive.")
 
-    old_width, old_height = image.shape[1], image.shape[0]
-    nwe_width = int(old_width * scale_factor)
-    new_height = int(old_height * scale_factor)
+    width_old, height_old = image.shape[1], image.shape[0]
+    width_new = int(width_old * scale_factor)
+    height_new = int(height_old * scale_factor)
+    return cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)
 
-    return cv2.resize(image, (nwe_width, new_height), interpolation=cv2.INTER_LINEAR)
+
+@convert_for_image_processing
+def resize_image(
+    image: ImageType,
+    resolution_wh: Tuple[int, int],
+    keep_aspect_ratio: bool = False,
+) -> ImageType:
+    """
+    Resizes the given image to a specified resolution. Can maintain the original aspect
+    ratio or resize directly to the desired dimensions.
+
+    Args:
+        image (ImageType): The image to be resized. `ImageType` is a flexible type,
+            accepting either `numpy.ndarray` or `PIL.Image.Image`.
+        resolution_wh (Tuple[int, int]): The target resolution as
+            `(width, height)`.
+        keep_aspect_ratio (bool, optional): Flag to maintain the image's original
+            aspect ratio. Defaults to `False`.
+
+    Returns:
+        (ImageType): The resized image. The type is determined by the input type and
+            may be either a `numpy.ndarray` or `PIL.Image.Image`.
+
+    === "OpenCV"
+
+        ```python
+        import cv2
+        import supervision as sv
+
+        image = cv2.imread(<SOURCE_IMAGE_PATH>)
+        image.shape
+        # (1080, 1920, 3)
+
+        resized_image = sv.resize_image(
+            image=image, resolution_wh=(1000, 1000), keep_aspect_ratio=True
+        )
+        resized_image.shape
+        # (562, 1000, 3)
+        ```
+
+    === "Pillow"
+
+        ```python
+        from PIL import Image
+        import supervision as sv
+
+        image = Image.open(<SOURCE_IMAGE_PATH>)
+        image.size
+        # (1920, 1080)
+
+        resized_image = sv.resize_image(
+            image=image, resolution_wh=(1000, 1000), keep_aspect_ratio=True
+        )
+        resized_image.size
+        # (1000, 562)
+        ```
+
+    ![resize_image](https://media.roboflow.com/supervision-docs/resize-image.png){ align=center width="800" }
+    """  # noqa E501 // docs
+    if keep_aspect_ratio:
+        image_ratio = image.shape[1] / image.shape[0]
+        target_ratio = resolution_wh[0] / resolution_wh[1]
+        if image_ratio >= target_ratio:
+            width_new = resolution_wh[0]
+            height_new = int(resolution_wh[0] / image_ratio)
+        else:
+            height_new = resolution_wh[1]
+            width_new = int(resolution_wh[1] * image_ratio)
+    else:
+        width_new, height_new = resolution_wh
+
+    return cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)
 
 
-def place_image(
-    scene: np.ndarray, image: np.ndarray, anchor: Tuple[int, int]
-) -> np.ndarray:
+@convert_for_image_processing
+def letterbox_image(
+    image: ImageType,
+    resolution_wh: Tuple[int, int],
+    color: Union[Tuple[int, int, int], Color] = Color.BLACK,
+) -> ImageType:
+    """
+    Resizes and pads an image to a specified resolution with a given color, maintaining
+    the original aspect ratio.
+
+    Args:
+        image (ImageType): The image to be resized. `ImageType` is a flexible type,
+            accepting either `numpy.ndarray` or `PIL.Image.Image`.
+        resolution_wh (Tuple[int, int]): The target resolution as
+            `(width, height)`.
+        color (Union[Tuple[int, int, int], Color]): The color to pad with. If tuple
+            provided it should be in BGR format.
+
+    Returns:
+        (ImageType): The resized image. The type is determined by the input type and
+            may be either a `numpy.ndarray` or `PIL.Image.Image`.
+
+    === "OpenCV"
+
+        ```python
+        import cv2
+        import supervision as sv
+
+        image = cv2.imread(<SOURCE_IMAGE_PATH>)
+        image.shape
+        # (1080, 1920, 3)
+
+        letterboxed_image = sv.letterbox_image(image=image, resolution_wh=(1000, 1000))
+        letterboxed_image.shape
+        # (1000, 1000, 3)
+        ```
+
+    === "Pillow"
+
+        ```python
+        from PIL import Image
+        import supervision as sv
+
+        image = Image.open(<SOURCE_IMAGE_PATH>)
+        image.size
+        # (1920, 1080)
+
+        letterboxed_image = sv.letterbox_image(image=image, resolution_wh=(1000, 1000))
+        letterboxed_image.size
+        # (1000, 1000)
+        ```
+
+    ![letterbox_image](https://media.roboflow.com/supervision-docs/letterbox-image.png){ align=center width="800" }
+    """  # noqa E501 // docs
+    color = unify_to_bgr(color=color)
+    resized_image = resize_image(
+        image=image, resolution_wh=resolution_wh, keep_aspect_ratio=True
+    )
+    height_new, width_new = resized_image.shape[:2]
+    padding_top = (resolution_wh[1] - height_new) // 2
+    padding_bottom = resolution_wh[1] - height_new - padding_top
+    padding_left = (resolution_wh[0] - width_new) // 2
+    padding_right = resolution_wh[0] - width_new - padding_left
+    return cv2.copyMakeBorder(
+        resized_image,
+        padding_top,
+        padding_bottom,
+        padding_left,
+        padding_right,
+        cv2.BORDER_CONSTANT,
+        value=color,
+    )
+
+
+def overlay_image(
+    image: npt.NDArray[np.uint8],
+    overlay: npt.NDArray[np.uint8],
+    anchor: Tuple[int, int],
+) -> npt.NDArray[np.uint8]:
     """
     Places an image onto a scene at a given anchor point, handling cases where
     the image's position is partially or completely outside the scene's bounds.
 
     Args:
-        scene (np.ndarray): The background scene onto which the image is placed.
-        image (np.ndarray): The image to be placed onto the scene.
-        anchor (Tuple[int, int]): The (x, y) coordinates in the scene where the
+        image (np.ndarray): The background scene onto which the image is placed.
+        overlay (np.ndarray): The image to be placed onto the scene.
+        anchor (Tuple[int, int]): The `(x, y)` coordinates in the scene where the
             top-left corner of the image will be placed.
 
     Returns:
-        np.ndarray: The modified scene with the image placed at the anchor point,
-            or unchanged if the image placement is completely outside the scene.
-    """
-    scene_height, scene_width = scene.shape[:2]
-    image_height, image_width = image.shape[:2]
+        (np.ndarray): The result image with overlay.
+
+    Examples:
+        ```python
+        import cv2
+        import numpy as np
+        import supervision as sv
+
+        image = cv2.imread(<SOURCE_IMAGE_PATH>)
+        overlay = np.zeros((400, 400, 3), dtype=np.uint8)
+        result_image = sv.overlay_image(image=image, overlay=overlay, anchor=(200, 400))
+        ```
+
+    ![overlay_image](https://media.roboflow.com/supervision-docs/overlay-image.png){ align=center width="800" }
+    """  # noqa E501 // docs
+    scene_height, scene_width = image.shape[:2]
+    image_height, image_width = overlay.shape[:2]
     anchor_x, anchor_y = anchor
 
     is_out_horizontally = anchor_x + image_width <= 0 or anchor_x >= scene_width
     is_out_vertically = anchor_y + image_height <= 0 or anchor_y >= scene_height
 
     if is_out_horizontally or is_out_vertically:
-        return scene
+        return image
 
-    start_y = max(anchor_y, 0)
-    start_x = max(anchor_x, 0)
-    end_y = min(scene_height, anchor_y + image_height)
-    end_x = min(scene_width, anchor_x + image_width)
+    x_min = max(anchor_x, 0)
+    y_min = max(anchor_y, 0)
+    x_max = min(scene_width, anchor_x + image_width)
+    y_max = min(scene_height, anchor_y + image_height)
 
-    crop_start_y = max(-anchor_y, 0)
-    crop_start_x = max(-anchor_x, 0)
-    crop_end_y = image_height - max((anchor_y + image_height) - scene_height, 0)
-    crop_end_x = image_width - max((anchor_x + image_width) - scene_width, 0)
+    crop_x_min = max(-anchor_x, 0)
+    crop_y_min = max(-anchor_y, 0)
+    crop_x_max = image_width - max((anchor_x + image_width) - scene_width, 0)
+    crop_y_max = image_height - max((anchor_y + image_height) - scene_height, 0)
 
-    scene[start_y:end_y, start_x:end_x] = image[
-        crop_start_y:crop_end_y, crop_start_x:crop_end_x
+    image[y_min:y_max, x_min:x_max] = overlay[
+        crop_y_min:crop_y_max, crop_x_min:crop_x_max
     ]
 
-    return scene
+    return image
 
 
 class ImageSink:
@@ -145,13 +369,13 @@ class ImageSink:
             ```python
             import supervision as sv
 
-            with sv.ImageSink(target_dir_path='target/directory/path',
-                              overwrite=True) as sink:
-                for image in sv.get_video_frames_generator(
-                    source_path='source_video.mp4', stride=2):
+            frames_generator = sv.get_video_frames_generator(<SOURCE_VIDEO_PATH>, stride=2)
+
+            with sv.ImageSink(target_dir_path=<TARGET_CROPS_DIRECTORY>) as sink:
+                for image in frames_generator:
                     sink.save_image(image=image)
             ```
-        """
+        """  # noqa E501 // docs
 
         self.target_dir_path = target_dir_path
         self.overwrite = overwrite
@@ -285,14 +509,14 @@ def create_tiles(
         raise ValueError("Could not create image tiles from empty list of images.")
     if return_type == "auto":
         return_type = _negotiate_tiles_format(images=images)
-    tile_padding_color = _color_to_bgr(color=tile_padding_color)
-    tile_margin_color = _color_to_bgr(color=tile_margin_color)
+    tile_padding_color = unify_to_bgr(color=tile_padding_color)
+    tile_margin_color = unify_to_bgr(color=tile_margin_color)
     images = images_to_cv2(images=images)
     if single_tile_size is None:
         single_tile_size = _aggregate_images_shape(images=images, mode=tile_scaling)
     resized_images = [
         letterbox_image(
-            image=i, desired_size=single_tile_size, color=tile_padding_color
+            image=i, resolution_wh=single_tile_size, color=tile_padding_color
         )
         for i in images
     ]
@@ -311,8 +535,8 @@ def create_tiles(
     titles_anchors = fill(
         sequence=titles_anchors, desired_size=len(images), content=None
     )
-    titles_color = _color_to_bgr(color=titles_color)
-    titles_background_color = _color_to_bgr(color=titles_background_color)
+    titles_color = unify_to_bgr(color=titles_color)
+    titles_background_color = unify_to_bgr(color=titles_background_color)
     tiles = _generate_tiles(
         images=resized_images,
         grid_size=grid_size,
@@ -542,92 +766,3 @@ def _generate_color_image(
     shape: Tuple[int, int], color: Tuple[int, int, int]
 ) -> np.ndarray:
     return np.ones(shape[::-1] + (3,), dtype=np.uint8) * color
-
-
-@convert_for_image_processing
-def letterbox_image(
-    image: np.ndarray,
-    desired_size: Tuple[int, int],
-    color: Union[Tuple[int, int, int], Color] = (0, 0, 0),
-) -> np.ndarray:
-    """
-    Resize and pad image to fit the desired size, preserving its aspect
-    ratio, adding padding of given color if needed to maintain aspect ratio.
-
-    Args:
-        image (np.ndarray): Input image (type will be adjusted by decorator,
-            you can provide PIL.Image)
-        desired_size (Tuple[int, int]): image size (width, height) representing
-            the target dimensions.
-        color (Union[Tuple[int, int, int], Color]): the color to pad with - If
-            tuple provided - should be BGR.
-
-    Returns:
-        np.ndarray: letterboxed image (type may be adjusted to PIL.Image by
-            decorator if function was called with PIL.Image)
-    """
-    color = _color_to_bgr(color=color)
-    resized_img = resize_image_keeping_aspect_ratio(
-        image=image,
-        desired_size=desired_size,
-    )
-    new_height, new_width = resized_img.shape[:2]
-    top_padding = (desired_size[1] - new_height) // 2
-    bottom_padding = desired_size[1] - new_height - top_padding
-    left_padding = (desired_size[0] - new_width) // 2
-    right_padding = desired_size[0] - new_width - left_padding
-    return cv2.copyMakeBorder(
-        resized_img,
-        top_padding,
-        bottom_padding,
-        left_padding,
-        right_padding,
-        cv2.BORDER_CONSTANT,
-        value=color,
-    )
-
-
-@convert_for_image_processing
-def resize_image_keeping_aspect_ratio(
-    image: np.ndarray,
-    desired_size: Tuple[int, int],
-) -> np.ndarray:
-    """
-    Resize and pad image preserving its aspect ratio.
-
-    For example: input image is (640, 480) and we want to resize into
-    (1024, 1024). If this rectangular image is just resized naively
-    to square-shape output - aspect ratio would be altered. If we do not
-    want this to happen - we may resize bigger dimension (640) to 1024.
-    Ratio of change is 1.6. This ratio is later on used to calculate scaling
-    in the other dimension. As a result we have (1024, 768) image.
-
-    Parameters:
-    - image (np.ndarray): Input image (type will be adjusted by decorator,
-        you can provide PIL.Image)
-    - desired_size (Tuple[int, int]): image size (width, height) representing the
-        target dimensions. Parameter will be used to dictate maximum size of
-        output image. Output size may be smaller - to preserve aspect ratio of original
-        image.
-
-    Returns:
-        np.ndarray: resized image (type may be adjusted to PIL.Image by decorator
-            if function was called with PIL.Image)
-    """
-    if image.shape[:2] == desired_size[::-1]:
-        return image
-    img_ratio = image.shape[1] / image.shape[0]
-    desired_ratio = desired_size[0] / desired_size[1]
-    if img_ratio >= desired_ratio:
-        new_width = desired_size[0]
-        new_height = int(desired_size[0] / img_ratio)
-    else:
-        new_height = desired_size[1]
-        new_width = int(desired_size[1] * img_ratio)
-    return cv2.resize(image, (new_width, new_height))
-
-
-def _color_to_bgr(color: Union[Tuple[int, int, int], Color]) -> Tuple[int, int, int]:
-    if issubclass(type(color), Color):
-        return color.as_bgr()
-    return color
