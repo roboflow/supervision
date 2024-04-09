@@ -15,7 +15,7 @@
         <link rel="canonical" href="https://supervision.roboflow.com/develop/annotators/">
       
       
-        <link rel="prev" href="../how_to/filter_detections/">
+        <link rel="prev" href="../how_to/track_objects/">
       
       
         <link rel="next" href="../classification/core/">
@@ -481,6 +481,55 @@
   
   
     <li class="md-nav__item">
+      <a href="../how_to/save_detections/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Save Detections
+  </span>
+  
+    
+  
+  
+    <span class="md-status md-status--new"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how_to/filter_detections/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Filter Detections
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../how_to/detect_small_objects/" class="md-nav__link">
         
   
@@ -514,27 +563,6 @@
   
   <span class="md-ellipsis">
     Track Objects
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../how_to/filter_detections/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Filter Detections
   </span>
   
 
@@ -15354,7 +15382,9 @@ supervision-annotator-examples/trace-annotator-example-purple.png" /></p>
 <span class="normal"><a href="#__codelineno-0-2032">2032</a></span>
 <span class="normal"><a href="#__codelineno-0-2033">2033</a></span>
 <span class="normal"><a href="#__codelineno-0-2034">2034</a></span>
-<span class="normal"><a href="#__codelineno-0-2035">2035</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-1893" name="__codelineno-0-1893"></a><span class="k">class</span> <span class="nc">CropAnnotator</span><span class="p">(</span><span class="n">BaseAnnotator</span><span class="p">):</span>
+<span class="normal"><a href="#__codelineno-0-2035">2035</a></span>
+<span class="normal"><a href="#__codelineno-0-2036">2036</a></span>
+<span class="normal"><a href="#__codelineno-0-2037">2037</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-1893" name="__codelineno-0-1893"></a><span class="k">class</span> <span class="nc">CropAnnotator</span><span class="p">(</span><span class="n">BaseAnnotator</span><span class="p">):</span>
 <a id="__codelineno-0-1894" name="__codelineno-0-1894"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-1895" name="__codelineno-0-1895"></a><span class="sd">    A class for drawing scaled up crops of detections on the scene.</span>
 <a id="__codelineno-0-1896" name="__codelineno-0-1896"></a><span class="sd">    &quot;&quot;&quot;</span>
@@ -15429,7 +15459,7 @@ supervision-annotator-examples/trace-annotator-example-purple.png" /></p>
 <a id="__codelineno-0-1965" name="__codelineno-0-1965"></a>            <span class="n">crop_image</span><span class="p">(</span><span class="n">image</span><span class="o">=</span><span class="n">scene</span><span class="p">,</span> <span class="n">xyxy</span><span class="o">=</span><span class="n">xyxy</span><span class="p">)</span> <span class="k">for</span> <span class="n">xyxy</span> <span class="ow">in</span> <span class="n">detections</span><span class="o">.</span><span class="n">xyxy</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
 <a id="__codelineno-0-1966" name="__codelineno-0-1966"></a>        <span class="p">]</span>
 <a id="__codelineno-0-1967" name="__codelineno-0-1967"></a>        <span class="n">resized_crops</span> <span class="o">=</span> <span class="p">[</span>
-<a id="__codelineno-0-1968" name="__codelineno-0-1968"></a>            <span class="n">resize_image</span><span class="p">(</span><span class="n">image</span><span class="o">=</span><span class="n">crop</span><span class="p">,</span> <span class="n">scale_factor</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">scale_factor</span><span class="p">)</span> <span class="k">for</span> <span class="n">crop</span> <span class="ow">in</span> <span class="n">crops</span>
+<a id="__codelineno-0-1968" name="__codelineno-0-1968"></a>            <span class="n">scale_image</span><span class="p">(</span><span class="n">image</span><span class="o">=</span><span class="n">crop</span><span class="p">,</span> <span class="n">scale_factor</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">scale_factor</span><span class="p">)</span> <span class="k">for</span> <span class="n">crop</span> <span class="ow">in</span> <span class="n">crops</span>
 <a id="__codelineno-0-1969" name="__codelineno-0-1969"></a>        <span class="p">]</span>
 <a id="__codelineno-0-1970" name="__codelineno-0-1970"></a>        <span class="n">anchors</span> <span class="o">=</span> <span class="n">detections</span><span class="o">.</span><span class="n">get_anchors_coordinates</span><span class="p">(</span><span class="n">anchor</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">position</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
 <a id="__codelineno-0-1971" name="__codelineno-0-1971"></a>
@@ -15438,65 +15468,67 @@ supervision-annotator-examples/trace-annotator-example-purple.png" /></p>
 <a id="__codelineno-0-1974" name="__codelineno-0-1974"></a>            <span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">),</span> <span class="p">(</span><span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_crop_coordinates</span><span class="p">(</span>
 <a id="__codelineno-0-1975" name="__codelineno-0-1975"></a>                <span class="n">anchor</span><span class="o">=</span><span class="n">anchor</span><span class="p">,</span> <span class="n">crop_wh</span><span class="o">=</span><span class="n">crop_wh</span><span class="p">,</span> <span class="n">position</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">position</span>
 <a id="__codelineno-0-1976" name="__codelineno-0-1976"></a>            <span class="p">)</span>
-<a id="__codelineno-0-1977" name="__codelineno-0-1977"></a>            <span class="n">scene</span> <span class="o">=</span> <span class="n">place_image</span><span class="p">(</span><span class="n">scene</span><span class="o">=</span><span class="n">scene</span><span class="p">,</span> <span class="n">image</span><span class="o">=</span><span class="n">resized_crop</span><span class="p">,</span> <span class="n">anchor</span><span class="o">=</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">))</span>
-<a id="__codelineno-0-1978" name="__codelineno-0-1978"></a>            <span class="n">color</span> <span class="o">=</span> <span class="n">resolve_color</span><span class="p">(</span>
-<a id="__codelineno-0-1979" name="__codelineno-0-1979"></a>                <span class="n">color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">border_color</span><span class="p">,</span>
-<a id="__codelineno-0-1980" name="__codelineno-0-1980"></a>                <span class="n">detections</span><span class="o">=</span><span class="n">detections</span><span class="p">,</span>
-<a id="__codelineno-0-1981" name="__codelineno-0-1981"></a>                <span class="n">detection_idx</span><span class="o">=</span><span class="n">idx</span><span class="p">,</span>
-<a id="__codelineno-0-1982" name="__codelineno-0-1982"></a>                <span class="n">color_lookup</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">border_color_lookup</span>
-<a id="__codelineno-0-1983" name="__codelineno-0-1983"></a>                <span class="k">if</span> <span class="n">custom_color_lookup</span> <span class="ow">is</span> <span class="kc">None</span>
-<a id="__codelineno-0-1984" name="__codelineno-0-1984"></a>                <span class="k">else</span> <span class="n">custom_color_lookup</span><span class="p">,</span>
-<a id="__codelineno-0-1985" name="__codelineno-0-1985"></a>            <span class="p">)</span>
-<a id="__codelineno-0-1986" name="__codelineno-0-1986"></a>            <span class="n">cv2</span><span class="o">.</span><span class="n">rectangle</span><span class="p">(</span>
-<a id="__codelineno-0-1987" name="__codelineno-0-1987"></a>                <span class="n">img</span><span class="o">=</span><span class="n">scene</span><span class="p">,</span>
-<a id="__codelineno-0-1988" name="__codelineno-0-1988"></a>                <span class="n">pt1</span><span class="o">=</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">),</span>
-<a id="__codelineno-0-1989" name="__codelineno-0-1989"></a>                <span class="n">pt2</span><span class="o">=</span><span class="p">(</span><span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">),</span>
-<a id="__codelineno-0-1990" name="__codelineno-0-1990"></a>                <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="o">.</span><span class="n">as_bgr</span><span class="p">(),</span>
-<a id="__codelineno-0-1991" name="__codelineno-0-1991"></a>                <span class="n">thickness</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">border_thickness</span><span class="p">,</span>
-<a id="__codelineno-0-1992" name="__codelineno-0-1992"></a>            <span class="p">)</span>
-<a id="__codelineno-0-1993" name="__codelineno-0-1993"></a>
-<a id="__codelineno-0-1994" name="__codelineno-0-1994"></a>        <span class="k">return</span> <span class="n">scene</span>
+<a id="__codelineno-0-1977" name="__codelineno-0-1977"></a>            <span class="n">scene</span> <span class="o">=</span> <span class="n">overlay_image</span><span class="p">(</span>
+<a id="__codelineno-0-1978" name="__codelineno-0-1978"></a>                <span class="n">scene</span><span class="o">=</span><span class="n">scene</span><span class="p">,</span> <span class="n">inserted_image</span><span class="o">=</span><span class="n">resized_crop</span><span class="p">,</span> <span class="n">anchor</span><span class="o">=</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">)</span>
+<a id="__codelineno-0-1979" name="__codelineno-0-1979"></a>            <span class="p">)</span>
+<a id="__codelineno-0-1980" name="__codelineno-0-1980"></a>            <span class="n">color</span> <span class="o">=</span> <span class="n">resolve_color</span><span class="p">(</span>
+<a id="__codelineno-0-1981" name="__codelineno-0-1981"></a>                <span class="n">color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">border_color</span><span class="p">,</span>
+<a id="__codelineno-0-1982" name="__codelineno-0-1982"></a>                <span class="n">detections</span><span class="o">=</span><span class="n">detections</span><span class="p">,</span>
+<a id="__codelineno-0-1983" name="__codelineno-0-1983"></a>                <span class="n">detection_idx</span><span class="o">=</span><span class="n">idx</span><span class="p">,</span>
+<a id="__codelineno-0-1984" name="__codelineno-0-1984"></a>                <span class="n">color_lookup</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">border_color_lookup</span>
+<a id="__codelineno-0-1985" name="__codelineno-0-1985"></a>                <span class="k">if</span> <span class="n">custom_color_lookup</span> <span class="ow">is</span> <span class="kc">None</span>
+<a id="__codelineno-0-1986" name="__codelineno-0-1986"></a>                <span class="k">else</span> <span class="n">custom_color_lookup</span><span class="p">,</span>
+<a id="__codelineno-0-1987" name="__codelineno-0-1987"></a>            <span class="p">)</span>
+<a id="__codelineno-0-1988" name="__codelineno-0-1988"></a>            <span class="n">cv2</span><span class="o">.</span><span class="n">rectangle</span><span class="p">(</span>
+<a id="__codelineno-0-1989" name="__codelineno-0-1989"></a>                <span class="n">img</span><span class="o">=</span><span class="n">scene</span><span class="p">,</span>
+<a id="__codelineno-0-1990" name="__codelineno-0-1990"></a>                <span class="n">pt1</span><span class="o">=</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">),</span>
+<a id="__codelineno-0-1991" name="__codelineno-0-1991"></a>                <span class="n">pt2</span><span class="o">=</span><span class="p">(</span><span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">),</span>
+<a id="__codelineno-0-1992" name="__codelineno-0-1992"></a>                <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="o">.</span><span class="n">as_bgr</span><span class="p">(),</span>
+<a id="__codelineno-0-1993" name="__codelineno-0-1993"></a>                <span class="n">thickness</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">border_thickness</span><span class="p">,</span>
+<a id="__codelineno-0-1994" name="__codelineno-0-1994"></a>            <span class="p">)</span>
 <a id="__codelineno-0-1995" name="__codelineno-0-1995"></a>
-<a id="__codelineno-0-1996" name="__codelineno-0-1996"></a>    <span class="nd">@staticmethod</span>
-<a id="__codelineno-0-1997" name="__codelineno-0-1997"></a>    <span class="k">def</span> <span class="nf">calculate_crop_coordinates</span><span class="p">(</span>
-<a id="__codelineno-0-1998" name="__codelineno-0-1998"></a>        <span class="n">anchor</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="n">crop_wh</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="n">position</span><span class="p">:</span> <span class="n">Position</span>
-<a id="__codelineno-0-1999" name="__codelineno-0-1999"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
-<a id="__codelineno-0-2000" name="__codelineno-0-2000"></a>        <span class="n">anchor_x</span><span class="p">,</span> <span class="n">anchor_y</span> <span class="o">=</span> <span class="n">anchor</span>
-<a id="__codelineno-0-2001" name="__codelineno-0-2001"></a>        <span class="n">width</span><span class="p">,</span> <span class="n">height</span> <span class="o">=</span> <span class="n">crop_wh</span>
-<a id="__codelineno-0-2002" name="__codelineno-0-2002"></a>
-<a id="__codelineno-0-2003" name="__codelineno-0-2003"></a>        <span class="k">if</span> <span class="n">position</span> <span class="o">==</span> <span class="n">Position</span><span class="o">.</span><span class="n">TOP_LEFT</span><span class="p">:</span>
-<a id="__codelineno-0-2004" name="__codelineno-0-2004"></a>            <span class="k">return</span> <span class="p">(</span><span class="n">anchor_x</span> <span class="o">-</span> <span class="n">width</span><span class="p">,</span> <span class="n">anchor_y</span> <span class="o">-</span> <span class="n">height</span><span class="p">),</span> <span class="p">(</span><span class="n">anchor_x</span><span class="p">,</span> <span class="n">anchor_y</span><span class="p">)</span>
-<a id="__codelineno-0-2005" name="__codelineno-0-2005"></a>        <span class="k">elif</span> <span class="n">position</span> <span class="o">==</span> <span class="n">Position</span><span class="o">.</span><span class="n">TOP_CENTER</span><span class="p">:</span>
-<a id="__codelineno-0-2006" name="__codelineno-0-2006"></a>            <span class="k">return</span> <span class="p">(</span>
-<a id="__codelineno-0-2007" name="__codelineno-0-2007"></a>                <span class="p">(</span><span class="n">anchor_x</span> <span class="o">-</span> <span class="n">width</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">anchor_y</span> <span class="o">-</span> <span class="n">height</span><span class="p">),</span>
-<a id="__codelineno-0-2008" name="__codelineno-0-2008"></a>                <span class="p">(</span><span class="n">anchor_x</span> <span class="o">+</span> <span class="n">width</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">anchor_y</span><span class="p">),</span>
-<a id="__codelineno-0-2009" name="__codelineno-0-2009"></a>            <span class="p">)</span>
-<a id="__codelineno-0-2010" name="__codelineno-0-2010"></a>        <span class="k">elif</span> <span class="n">position</span> <span class="o">==</span> <span class="n">Position</span><span class="o">.</span><span class="n">TOP_RIGHT</span><span class="p">:</span>
-<a id="__codelineno-0-2011" name="__codelineno-0-2011"></a>            <span class="k">return</span> <span class="p">(</span><span class="n">anchor_x</span><span class="p">,</span> <span class="n">anchor_y</span> <span class="o">-</span> <span class="n">height</span><span class="p">),</span> <span class="p">(</span><span class="n">anchor_x</span> <span class="o">+</span> <span class="n">width</span><span class="p">,</span> <span class="n">anchor_y</span><span class="p">)</span>
-<a id="__codelineno-0-2012" name="__codelineno-0-2012"></a>        <span class="k">elif</span> <span class="n">position</span> <span class="o">==</span> <span class="n">Position</span><span class="o">.</span><span class="n">CENTER_LEFT</span><span class="p">:</span>
-<a id="__codelineno-0-2013" name="__codelineno-0-2013"></a>            <span class="k">return</span> <span class="p">(</span>
-<a id="__codelineno-0-2014" name="__codelineno-0-2014"></a>                <span class="p">(</span><span class="n">anchor_x</span> <span class="o">-</span> <span class="n">width</span><span class="p">,</span> <span class="n">anchor_y</span> <span class="o">-</span> <span class="n">height</span> <span class="o">//</span> <span class="mi">2</span><span class="p">),</span>
-<a id="__codelineno-0-2015" name="__codelineno-0-2015"></a>                <span class="p">(</span><span class="n">anchor_x</span><span class="p">,</span> <span class="n">anchor_y</span> <span class="o">+</span> <span class="n">height</span> <span class="o">//</span> <span class="mi">2</span><span class="p">),</span>
-<a id="__codelineno-0-2016" name="__codelineno-0-2016"></a>            <span class="p">)</span>
-<a id="__codelineno-0-2017" name="__codelineno-0-2017"></a>        <span class="k">elif</span> <span class="n">position</span> <span class="o">==</span> <span class="n">Position</span><span class="o">.</span><span class="n">CENTER</span> <span class="ow">or</span> <span class="n">position</span> <span class="o">==</span> <span class="n">Position</span><span class="o">.</span><span class="n">CENTER_OF_MASS</span><span class="p">:</span>
-<a id="__codelineno-0-2018" name="__codelineno-0-2018"></a>            <span class="k">return</span> <span class="p">(</span>
-<a id="__codelineno-0-2019" name="__codelineno-0-2019"></a>                <span class="p">(</span><span class="n">anchor_x</span> <span class="o">-</span> <span class="n">width</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">anchor_y</span> <span class="o">-</span> <span class="n">height</span> <span class="o">//</span> <span class="mi">2</span><span class="p">),</span>
-<a id="__codelineno-0-2020" name="__codelineno-0-2020"></a>                <span class="p">(</span><span class="n">anchor_x</span> <span class="o">+</span> <span class="n">width</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">anchor_y</span> <span class="o">+</span> <span class="n">height</span> <span class="o">//</span> <span class="mi">2</span><span class="p">),</span>
-<a id="__codelineno-0-2021" name="__codelineno-0-2021"></a>            <span class="p">)</span>
-<a id="__codelineno-0-2022" name="__codelineno-0-2022"></a>        <span class="k">elif</span> <span class="n">position</span> <span class="o">==</span> <span class="n">Position</span><span class="o">.</span><span class="n">CENTER_RIGHT</span><span class="p">:</span>
-<a id="__codelineno-0-2023" name="__codelineno-0-2023"></a>            <span class="k">return</span> <span class="p">(</span>
-<a id="__codelineno-0-2024" name="__codelineno-0-2024"></a>                <span class="p">(</span><span class="n">anchor_x</span><span class="p">,</span> <span class="n">anchor_y</span> <span class="o">-</span> <span class="n">height</span> <span class="o">//</span> <span class="mi">2</span><span class="p">),</span>
-<a id="__codelineno-0-2025" name="__codelineno-0-2025"></a>                <span class="p">(</span><span class="n">anchor_x</span> <span class="o">+</span> <span class="n">width</span><span class="p">,</span> <span class="n">anchor_y</span> <span class="o">+</span> <span class="n">height</span> <span class="o">//</span> <span class="mi">2</span><span class="p">),</span>
-<a id="__codelineno-0-2026" name="__codelineno-0-2026"></a>            <span class="p">)</span>
-<a id="__codelineno-0-2027" name="__codelineno-0-2027"></a>        <span class="k">elif</span> <span class="n">position</span> <span class="o">==</span> <span class="n">Position</span><span class="o">.</span><span class="n">BOTTOM_LEFT</span><span class="p">:</span>
-<a id="__codelineno-0-2028" name="__codelineno-0-2028"></a>            <span class="k">return</span> <span class="p">(</span><span class="n">anchor_x</span> <span class="o">-</span> <span class="n">width</span><span class="p">,</span> <span class="n">anchor_y</span><span class="p">),</span> <span class="p">(</span><span class="n">anchor_x</span><span class="p">,</span> <span class="n">anchor_y</span> <span class="o">+</span> <span class="n">height</span><span class="p">)</span>
-<a id="__codelineno-0-2029" name="__codelineno-0-2029"></a>        <span class="k">elif</span> <span class="n">position</span> <span class="o">==</span> <span class="n">Position</span><span class="o">.</span><span class="n">BOTTOM_CENTER</span><span class="p">:</span>
-<a id="__codelineno-0-2030" name="__codelineno-0-2030"></a>            <span class="k">return</span> <span class="p">(</span>
-<a id="__codelineno-0-2031" name="__codelineno-0-2031"></a>                <span class="p">(</span><span class="n">anchor_x</span> <span class="o">-</span> <span class="n">width</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">anchor_y</span><span class="p">),</span>
-<a id="__codelineno-0-2032" name="__codelineno-0-2032"></a>                <span class="p">(</span><span class="n">anchor_x</span> <span class="o">+</span> <span class="n">width</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">anchor_y</span> <span class="o">+</span> <span class="n">height</span><span class="p">),</span>
-<a id="__codelineno-0-2033" name="__codelineno-0-2033"></a>            <span class="p">)</span>
-<a id="__codelineno-0-2034" name="__codelineno-0-2034"></a>        <span class="k">elif</span> <span class="n">position</span> <span class="o">==</span> <span class="n">Position</span><span class="o">.</span><span class="n">BOTTOM_RIGHT</span><span class="p">:</span>
-<a id="__codelineno-0-2035" name="__codelineno-0-2035"></a>            <span class="k">return</span> <span class="p">(</span><span class="n">anchor_x</span><span class="p">,</span> <span class="n">anchor_y</span><span class="p">),</span> <span class="p">(</span><span class="n">anchor_x</span> <span class="o">+</span> <span class="n">width</span><span class="p">,</span> <span class="n">anchor_y</span> <span class="o">+</span> <span class="n">height</span><span class="p">)</span>
+<a id="__codelineno-0-1996" name="__codelineno-0-1996"></a>        <span class="k">return</span> <span class="n">scene</span>
+<a id="__codelineno-0-1997" name="__codelineno-0-1997"></a>
+<a id="__codelineno-0-1998" name="__codelineno-0-1998"></a>    <span class="nd">@staticmethod</span>
+<a id="__codelineno-0-1999" name="__codelineno-0-1999"></a>    <span class="k">def</span> <span class="nf">calculate_crop_coordinates</span><span class="p">(</span>
+<a id="__codelineno-0-2000" name="__codelineno-0-2000"></a>        <span class="n">anchor</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="n">crop_wh</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="n">position</span><span class="p">:</span> <span class="n">Position</span>
+<a id="__codelineno-0-2001" name="__codelineno-0-2001"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
+<a id="__codelineno-0-2002" name="__codelineno-0-2002"></a>        <span class="n">anchor_x</span><span class="p">,</span> <span class="n">anchor_y</span> <span class="o">=</span> <span class="n">anchor</span>
+<a id="__codelineno-0-2003" name="__codelineno-0-2003"></a>        <span class="n">width</span><span class="p">,</span> <span class="n">height</span> <span class="o">=</span> <span class="n">crop_wh</span>
+<a id="__codelineno-0-2004" name="__codelineno-0-2004"></a>
+<a id="__codelineno-0-2005" name="__codelineno-0-2005"></a>        <span class="k">if</span> <span class="n">position</span> <span class="o">==</span> <span class="n">Position</span><span class="o">.</span><span class="n">TOP_LEFT</span><span class="p">:</span>
+<a id="__codelineno-0-2006" name="__codelineno-0-2006"></a>            <span class="k">return</span> <span class="p">(</span><span class="n">anchor_x</span> <span class="o">-</span> <span class="n">width</span><span class="p">,</span> <span class="n">anchor_y</span> <span class="o">-</span> <span class="n">height</span><span class="p">),</span> <span class="p">(</span><span class="n">anchor_x</span><span class="p">,</span> <span class="n">anchor_y</span><span class="p">)</span>
+<a id="__codelineno-0-2007" name="__codelineno-0-2007"></a>        <span class="k">elif</span> <span class="n">position</span> <span class="o">==</span> <span class="n">Position</span><span class="o">.</span><span class="n">TOP_CENTER</span><span class="p">:</span>
+<a id="__codelineno-0-2008" name="__codelineno-0-2008"></a>            <span class="k">return</span> <span class="p">(</span>
+<a id="__codelineno-0-2009" name="__codelineno-0-2009"></a>                <span class="p">(</span><span class="n">anchor_x</span> <span class="o">-</span> <span class="n">width</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">anchor_y</span> <span class="o">-</span> <span class="n">height</span><span class="p">),</span>
+<a id="__codelineno-0-2010" name="__codelineno-0-2010"></a>                <span class="p">(</span><span class="n">anchor_x</span> <span class="o">+</span> <span class="n">width</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">anchor_y</span><span class="p">),</span>
+<a id="__codelineno-0-2011" name="__codelineno-0-2011"></a>            <span class="p">)</span>
+<a id="__codelineno-0-2012" name="__codelineno-0-2012"></a>        <span class="k">elif</span> <span class="n">position</span> <span class="o">==</span> <span class="n">Position</span><span class="o">.</span><span class="n">TOP_RIGHT</span><span class="p">:</span>
+<a id="__codelineno-0-2013" name="__codelineno-0-2013"></a>            <span class="k">return</span> <span class="p">(</span><span class="n">anchor_x</span><span class="p">,</span> <span class="n">anchor_y</span> <span class="o">-</span> <span class="n">height</span><span class="p">),</span> <span class="p">(</span><span class="n">anchor_x</span> <span class="o">+</span> <span class="n">width</span><span class="p">,</span> <span class="n">anchor_y</span><span class="p">)</span>
+<a id="__codelineno-0-2014" name="__codelineno-0-2014"></a>        <span class="k">elif</span> <span class="n">position</span> <span class="o">==</span> <span class="n">Position</span><span class="o">.</span><span class="n">CENTER_LEFT</span><span class="p">:</span>
+<a id="__codelineno-0-2015" name="__codelineno-0-2015"></a>            <span class="k">return</span> <span class="p">(</span>
+<a id="__codelineno-0-2016" name="__codelineno-0-2016"></a>                <span class="p">(</span><span class="n">anchor_x</span> <span class="o">-</span> <span class="n">width</span><span class="p">,</span> <span class="n">anchor_y</span> <span class="o">-</span> <span class="n">height</span> <span class="o">//</span> <span class="mi">2</span><span class="p">),</span>
+<a id="__codelineno-0-2017" name="__codelineno-0-2017"></a>                <span class="p">(</span><span class="n">anchor_x</span><span class="p">,</span> <span class="n">anchor_y</span> <span class="o">+</span> <span class="n">height</span> <span class="o">//</span> <span class="mi">2</span><span class="p">),</span>
+<a id="__codelineno-0-2018" name="__codelineno-0-2018"></a>            <span class="p">)</span>
+<a id="__codelineno-0-2019" name="__codelineno-0-2019"></a>        <span class="k">elif</span> <span class="n">position</span> <span class="o">==</span> <span class="n">Position</span><span class="o">.</span><span class="n">CENTER</span> <span class="ow">or</span> <span class="n">position</span> <span class="o">==</span> <span class="n">Position</span><span class="o">.</span><span class="n">CENTER_OF_MASS</span><span class="p">:</span>
+<a id="__codelineno-0-2020" name="__codelineno-0-2020"></a>            <span class="k">return</span> <span class="p">(</span>
+<a id="__codelineno-0-2021" name="__codelineno-0-2021"></a>                <span class="p">(</span><span class="n">anchor_x</span> <span class="o">-</span> <span class="n">width</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">anchor_y</span> <span class="o">-</span> <span class="n">height</span> <span class="o">//</span> <span class="mi">2</span><span class="p">),</span>
+<a id="__codelineno-0-2022" name="__codelineno-0-2022"></a>                <span class="p">(</span><span class="n">anchor_x</span> <span class="o">+</span> <span class="n">width</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">anchor_y</span> <span class="o">+</span> <span class="n">height</span> <span class="o">//</span> <span class="mi">2</span><span class="p">),</span>
+<a id="__codelineno-0-2023" name="__codelineno-0-2023"></a>            <span class="p">)</span>
+<a id="__codelineno-0-2024" name="__codelineno-0-2024"></a>        <span class="k">elif</span> <span class="n">position</span> <span class="o">==</span> <span class="n">Position</span><span class="o">.</span><span class="n">CENTER_RIGHT</span><span class="p">:</span>
+<a id="__codelineno-0-2025" name="__codelineno-0-2025"></a>            <span class="k">return</span> <span class="p">(</span>
+<a id="__codelineno-0-2026" name="__codelineno-0-2026"></a>                <span class="p">(</span><span class="n">anchor_x</span><span class="p">,</span> <span class="n">anchor_y</span> <span class="o">-</span> <span class="n">height</span> <span class="o">//</span> <span class="mi">2</span><span class="p">),</span>
+<a id="__codelineno-0-2027" name="__codelineno-0-2027"></a>                <span class="p">(</span><span class="n">anchor_x</span> <span class="o">+</span> <span class="n">width</span><span class="p">,</span> <span class="n">anchor_y</span> <span class="o">+</span> <span class="n">height</span> <span class="o">//</span> <span class="mi">2</span><span class="p">),</span>
+<a id="__codelineno-0-2028" name="__codelineno-0-2028"></a>            <span class="p">)</span>
+<a id="__codelineno-0-2029" name="__codelineno-0-2029"></a>        <span class="k">elif</span> <span class="n">position</span> <span class="o">==</span> <span class="n">Position</span><span class="o">.</span><span class="n">BOTTOM_LEFT</span><span class="p">:</span>
+<a id="__codelineno-0-2030" name="__codelineno-0-2030"></a>            <span class="k">return</span> <span class="p">(</span><span class="n">anchor_x</span> <span class="o">-</span> <span class="n">width</span><span class="p">,</span> <span class="n">anchor_y</span><span class="p">),</span> <span class="p">(</span><span class="n">anchor_x</span><span class="p">,</span> <span class="n">anchor_y</span> <span class="o">+</span> <span class="n">height</span><span class="p">)</span>
+<a id="__codelineno-0-2031" name="__codelineno-0-2031"></a>        <span class="k">elif</span> <span class="n">position</span> <span class="o">==</span> <span class="n">Position</span><span class="o">.</span><span class="n">BOTTOM_CENTER</span><span class="p">:</span>
+<a id="__codelineno-0-2032" name="__codelineno-0-2032"></a>            <span class="k">return</span> <span class="p">(</span>
+<a id="__codelineno-0-2033" name="__codelineno-0-2033"></a>                <span class="p">(</span><span class="n">anchor_x</span> <span class="o">-</span> <span class="n">width</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">anchor_y</span><span class="p">),</span>
+<a id="__codelineno-0-2034" name="__codelineno-0-2034"></a>                <span class="p">(</span><span class="n">anchor_x</span> <span class="o">+</span> <span class="n">width</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">anchor_y</span> <span class="o">+</span> <span class="n">height</span><span class="p">),</span>
+<a id="__codelineno-0-2035" name="__codelineno-0-2035"></a>            <span class="p">)</span>
+<a id="__codelineno-0-2036" name="__codelineno-0-2036"></a>        <span class="k">elif</span> <span class="n">position</span> <span class="o">==</span> <span class="n">Position</span><span class="o">.</span><span class="n">BOTTOM_RIGHT</span><span class="p">:</span>
+<a id="__codelineno-0-2037" name="__codelineno-0-2037"></a>            <span class="k">return</span> <span class="p">(</span><span class="n">anchor_x</span><span class="p">,</span> <span class="n">anchor_y</span><span class="p">),</span> <span class="p">(</span><span class="n">anchor_x</span> <span class="o">+</span> <span class="n">width</span><span class="p">,</span> <span class="n">anchor_y</span> <span class="o">+</span> <span class="n">height</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
 
@@ -15864,7 +15896,9 @@ Allows to override the default color mapping strategy.</p>
 <span class="normal"><a href="#__codelineno-0-1991">1991</a></span>
 <span class="normal"><a href="#__codelineno-0-1992">1992</a></span>
 <span class="normal"><a href="#__codelineno-0-1993">1993</a></span>
-<span class="normal"><a href="#__codelineno-0-1994">1994</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-1925" name="__codelineno-0-1925"></a><span class="nd">@convert_for_annotation_method</span>
+<span class="normal"><a href="#__codelineno-0-1994">1994</a></span>
+<span class="normal"><a href="#__codelineno-0-1995">1995</a></span>
+<span class="normal"><a href="#__codelineno-0-1996">1996</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-1925" name="__codelineno-0-1925"></a><span class="nd">@convert_for_annotation_method</span>
 <a id="__codelineno-0-1926" name="__codelineno-0-1926"></a><span class="k">def</span> <span class="nf">annotate</span><span class="p">(</span>
 <a id="__codelineno-0-1927" name="__codelineno-0-1927"></a>    <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-1928" name="__codelineno-0-1928"></a>    <span class="n">scene</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span>
@@ -15907,7 +15941,7 @@ Allows to override the default color mapping strategy.</p>
 <a id="__codelineno-0-1965" name="__codelineno-0-1965"></a>        <span class="n">crop_image</span><span class="p">(</span><span class="n">image</span><span class="o">=</span><span class="n">scene</span><span class="p">,</span> <span class="n">xyxy</span><span class="o">=</span><span class="n">xyxy</span><span class="p">)</span> <span class="k">for</span> <span class="n">xyxy</span> <span class="ow">in</span> <span class="n">detections</span><span class="o">.</span><span class="n">xyxy</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
 <a id="__codelineno-0-1966" name="__codelineno-0-1966"></a>    <span class="p">]</span>
 <a id="__codelineno-0-1967" name="__codelineno-0-1967"></a>    <span class="n">resized_crops</span> <span class="o">=</span> <span class="p">[</span>
-<a id="__codelineno-0-1968" name="__codelineno-0-1968"></a>        <span class="n">resize_image</span><span class="p">(</span><span class="n">image</span><span class="o">=</span><span class="n">crop</span><span class="p">,</span> <span class="n">scale_factor</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">scale_factor</span><span class="p">)</span> <span class="k">for</span> <span class="n">crop</span> <span class="ow">in</span> <span class="n">crops</span>
+<a id="__codelineno-0-1968" name="__codelineno-0-1968"></a>        <span class="n">scale_image</span><span class="p">(</span><span class="n">image</span><span class="o">=</span><span class="n">crop</span><span class="p">,</span> <span class="n">scale_factor</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">scale_factor</span><span class="p">)</span> <span class="k">for</span> <span class="n">crop</span> <span class="ow">in</span> <span class="n">crops</span>
 <a id="__codelineno-0-1969" name="__codelineno-0-1969"></a>    <span class="p">]</span>
 <a id="__codelineno-0-1970" name="__codelineno-0-1970"></a>    <span class="n">anchors</span> <span class="o">=</span> <span class="n">detections</span><span class="o">.</span><span class="n">get_anchors_coordinates</span><span class="p">(</span><span class="n">anchor</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">position</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
 <a id="__codelineno-0-1971" name="__codelineno-0-1971"></a>
@@ -15916,24 +15950,26 @@ Allows to override the default color mapping strategy.</p>
 <a id="__codelineno-0-1974" name="__codelineno-0-1974"></a>        <span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">),</span> <span class="p">(</span><span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_crop_coordinates</span><span class="p">(</span>
 <a id="__codelineno-0-1975" name="__codelineno-0-1975"></a>            <span class="n">anchor</span><span class="o">=</span><span class="n">anchor</span><span class="p">,</span> <span class="n">crop_wh</span><span class="o">=</span><span class="n">crop_wh</span><span class="p">,</span> <span class="n">position</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">position</span>
 <a id="__codelineno-0-1976" name="__codelineno-0-1976"></a>        <span class="p">)</span>
-<a id="__codelineno-0-1977" name="__codelineno-0-1977"></a>        <span class="n">scene</span> <span class="o">=</span> <span class="n">place_image</span><span class="p">(</span><span class="n">scene</span><span class="o">=</span><span class="n">scene</span><span class="p">,</span> <span class="n">image</span><span class="o">=</span><span class="n">resized_crop</span><span class="p">,</span> <span class="n">anchor</span><span class="o">=</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">))</span>
-<a id="__codelineno-0-1978" name="__codelineno-0-1978"></a>        <span class="n">color</span> <span class="o">=</span> <span class="n">resolve_color</span><span class="p">(</span>
-<a id="__codelineno-0-1979" name="__codelineno-0-1979"></a>            <span class="n">color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">border_color</span><span class="p">,</span>
-<a id="__codelineno-0-1980" name="__codelineno-0-1980"></a>            <span class="n">detections</span><span class="o">=</span><span class="n">detections</span><span class="p">,</span>
-<a id="__codelineno-0-1981" name="__codelineno-0-1981"></a>            <span class="n">detection_idx</span><span class="o">=</span><span class="n">idx</span><span class="p">,</span>
-<a id="__codelineno-0-1982" name="__codelineno-0-1982"></a>            <span class="n">color_lookup</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">border_color_lookup</span>
-<a id="__codelineno-0-1983" name="__codelineno-0-1983"></a>            <span class="k">if</span> <span class="n">custom_color_lookup</span> <span class="ow">is</span> <span class="kc">None</span>
-<a id="__codelineno-0-1984" name="__codelineno-0-1984"></a>            <span class="k">else</span> <span class="n">custom_color_lookup</span><span class="p">,</span>
-<a id="__codelineno-0-1985" name="__codelineno-0-1985"></a>        <span class="p">)</span>
-<a id="__codelineno-0-1986" name="__codelineno-0-1986"></a>        <span class="n">cv2</span><span class="o">.</span><span class="n">rectangle</span><span class="p">(</span>
-<a id="__codelineno-0-1987" name="__codelineno-0-1987"></a>            <span class="n">img</span><span class="o">=</span><span class="n">scene</span><span class="p">,</span>
-<a id="__codelineno-0-1988" name="__codelineno-0-1988"></a>            <span class="n">pt1</span><span class="o">=</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">),</span>
-<a id="__codelineno-0-1989" name="__codelineno-0-1989"></a>            <span class="n">pt2</span><span class="o">=</span><span class="p">(</span><span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">),</span>
-<a id="__codelineno-0-1990" name="__codelineno-0-1990"></a>            <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="o">.</span><span class="n">as_bgr</span><span class="p">(),</span>
-<a id="__codelineno-0-1991" name="__codelineno-0-1991"></a>            <span class="n">thickness</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">border_thickness</span><span class="p">,</span>
-<a id="__codelineno-0-1992" name="__codelineno-0-1992"></a>        <span class="p">)</span>
-<a id="__codelineno-0-1993" name="__codelineno-0-1993"></a>
-<a id="__codelineno-0-1994" name="__codelineno-0-1994"></a>    <span class="k">return</span> <span class="n">scene</span>
+<a id="__codelineno-0-1977" name="__codelineno-0-1977"></a>        <span class="n">scene</span> <span class="o">=</span> <span class="n">overlay_image</span><span class="p">(</span>
+<a id="__codelineno-0-1978" name="__codelineno-0-1978"></a>            <span class="n">scene</span><span class="o">=</span><span class="n">scene</span><span class="p">,</span> <span class="n">inserted_image</span><span class="o">=</span><span class="n">resized_crop</span><span class="p">,</span> <span class="n">anchor</span><span class="o">=</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">)</span>
+<a id="__codelineno-0-1979" name="__codelineno-0-1979"></a>        <span class="p">)</span>
+<a id="__codelineno-0-1980" name="__codelineno-0-1980"></a>        <span class="n">color</span> <span class="o">=</span> <span class="n">resolve_color</span><span class="p">(</span>
+<a id="__codelineno-0-1981" name="__codelineno-0-1981"></a>            <span class="n">color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">border_color</span><span class="p">,</span>
+<a id="__codelineno-0-1982" name="__codelineno-0-1982"></a>            <span class="n">detections</span><span class="o">=</span><span class="n">detections</span><span class="p">,</span>
+<a id="__codelineno-0-1983" name="__codelineno-0-1983"></a>            <span class="n">detection_idx</span><span class="o">=</span><span class="n">idx</span><span class="p">,</span>
+<a id="__codelineno-0-1984" name="__codelineno-0-1984"></a>            <span class="n">color_lookup</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">border_color_lookup</span>
+<a id="__codelineno-0-1985" name="__codelineno-0-1985"></a>            <span class="k">if</span> <span class="n">custom_color_lookup</span> <span class="ow">is</span> <span class="kc">None</span>
+<a id="__codelineno-0-1986" name="__codelineno-0-1986"></a>            <span class="k">else</span> <span class="n">custom_color_lookup</span><span class="p">,</span>
+<a id="__codelineno-0-1987" name="__codelineno-0-1987"></a>        <span class="p">)</span>
+<a id="__codelineno-0-1988" name="__codelineno-0-1988"></a>        <span class="n">cv2</span><span class="o">.</span><span class="n">rectangle</span><span class="p">(</span>
+<a id="__codelineno-0-1989" name="__codelineno-0-1989"></a>            <span class="n">img</span><span class="o">=</span><span class="n">scene</span><span class="p">,</span>
+<a id="__codelineno-0-1990" name="__codelineno-0-1990"></a>            <span class="n">pt1</span><span class="o">=</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">),</span>
+<a id="__codelineno-0-1991" name="__codelineno-0-1991"></a>            <span class="n">pt2</span><span class="o">=</span><span class="p">(</span><span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">),</span>
+<a id="__codelineno-0-1992" name="__codelineno-0-1992"></a>            <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="o">.</span><span class="n">as_bgr</span><span class="p">(),</span>
+<a id="__codelineno-0-1993" name="__codelineno-0-1993"></a>            <span class="n">thickness</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">border_thickness</span><span class="p">,</span>
+<a id="__codelineno-0-1994" name="__codelineno-0-1994"></a>        <span class="p">)</span>
+<a id="__codelineno-0-1995" name="__codelineno-0-1995"></a>
+<a id="__codelineno-0-1996" name="__codelineno-0-1996"></a>    <span class="k">return</span> <span class="n">scene</span>
 </code></pre></div></td></tr></table></div>
           </details>
   </div>

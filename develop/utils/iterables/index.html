@@ -481,6 +481,55 @@
   
   
     <li class="md-nav__item">
+      <a href="../../how_to/save_detections/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Save Detections
+  </span>
+  
+    
+  
+  
+    <span class="md-status md-status--new"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how_to/filter_detections/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Filter Detections
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../how_to/detect_small_objects/" class="md-nav__link">
         
   
@@ -514,27 +563,6 @@
   
   <span class="md-ellipsis">
     Track Objects
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../how_to/filter_detections/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Filter Detections
   </span>
   
 
@@ -1859,7 +1887,7 @@ chunk may be a smaller batch.</p>
           </td>
           <td>
             <div class="doc-md-description">
-              <p>Generator[List[V], None, None]: A generator that yields chunks
+              <p>A generator that yields chunks
 of <code>sequence</code> of size <code>batch_size</code>, up to the length of
 the input <code>sequence</code>.</p>
             </div>
@@ -1927,7 +1955,7 @@ the input <code>sequence</code>.</p>
 <a id="__codelineno-0-16" name="__codelineno-0-16"></a><span class="sd">        batch_size (int): The expected size of a batch.</span>
 <a id="__codelineno-0-17" name="__codelineno-0-17"></a>
 <a id="__codelineno-0-18" name="__codelineno-0-18"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-19" name="__codelineno-0-19"></a><span class="sd">        Generator[List[V], None, None]: A generator that yields chunks</span>
+<a id="__codelineno-0-19" name="__codelineno-0-19"></a><span class="sd">        (Generator[List[V], None, None]): A generator that yields chunks</span>
 <a id="__codelineno-0-20" name="__codelineno-0-20"></a><span class="sd">            of `sequence` of size `batch_size`, up to the length of</span>
 <a id="__codelineno-0-21" name="__codelineno-0-21"></a><span class="sd">            the input `sequence`.</span>
 <a id="__codelineno-0-22" name="__codelineno-0-22"></a>
@@ -2049,7 +2077,7 @@ difference between this value and the actual length of <code>sequence</code>
           </td>
           <td>
             <div class="doc-md-description">
-              <p>List[V]: A padded version of the input <code>sequence</code> (if needed).</p>
+              <p>A padded version of the input <code>sequence</code> (if needed).</p>
             </div>
           </td>
         </tr>
@@ -2109,7 +2137,7 @@ difference between this value and the actual length of <code>sequence</code>
 <a id="__codelineno-0-54" name="__codelineno-0-54"></a><span class="sd">            `sequence` as padding.</span>
 <a id="__codelineno-0-55" name="__codelineno-0-55"></a>
 <a id="__codelineno-0-56" name="__codelineno-0-56"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-57" name="__codelineno-0-57"></a><span class="sd">        List[V]: A padded version of the input `sequence` (if needed).</span>
+<a id="__codelineno-0-57" name="__codelineno-0-57"></a><span class="sd">        (List[V]): A padded version of the input `sequence` (if needed).</span>
 <a id="__codelineno-0-58" name="__codelineno-0-58"></a>
 <a id="__codelineno-0-59" name="__codelineno-0-59"></a><span class="sd">    Examples:</span>
 <a id="__codelineno-0-60" name="__codelineno-0-60"></a><span class="sd">        ```python</span>
