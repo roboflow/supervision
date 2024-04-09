@@ -320,7 +320,7 @@ def overlay_image(
         ```
 
     ![overlay_image](https://media.roboflow.com/supervision-docs/overlay-image.png){ align=center width="800" }
-    """
+    """  # noqa E501 // docs
     scene_height, scene_width = image.shape[:2]
     image_height, image_width = overlay.shape[:2]
     anchor_x, anchor_y = anchor
