@@ -3,7 +3,7 @@ from typing import Callable, Optional, Tuple
 
 import numpy as np
 
-from supervision.detection.core import Detections, validate_inference_callback
+from supervision.detection.core import Detections
 from supervision.detection.utils import move_boxes
 from supervision.utils.image import crop_image
 
@@ -70,7 +70,6 @@ class InferenceSlicer:
         self.perform_standard_pred = perform_standard_pred
         self.callback = callback
         self.thread_workers = thread_workers
-        validate_inference_callback(callback=callback)
 
     def __call__(self, image: np.ndarray) -> Detections:
         """
@@ -88,20 +87,20 @@ class InferenceSlicer:
 
         Example:
             ```python
-            >>> import cv2
-            >>> import supervision as sv
-            >>> from ultralytics import YOLO
+            import cv2
+            import supervision as sv
+            from ultralytics import YOLO
 
-            >>> image = cv2.imread(SOURCE_IMAGE_PATH)
-            >>> model = YOLO(...)
+            image = cv2.imread(SOURCE_IMAGE_PATH)
+            model = YOLO(...)
 
-            >>> def callback(image_slice: np.ndarray) -> sv.Detections:
-            ...     result = model(image_slice)[0]
-            ...     return sv.Detections.from_ultralytics(result)
+            def callback(image_slice: np.ndarray) -> sv.Detections:
+                result = model(image_slice)[0]
+                return sv.Detections.from_ultralytics(result)
 
-            >>> slicer = sv.InferenceSlicer(callback = callback)
+            slicer = sv.InferenceSlicer(callback = callback)
 
-            >>> detections = slicer(image)
+            detections = slicer(image)
             ```
         """
         detections_list = []

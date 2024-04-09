@@ -1,3 +1,4 @@
-supervision
+inference
+supervision==0.19.0
 tqdm
 ultralytics

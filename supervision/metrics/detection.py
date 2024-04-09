@@ -116,31 +116,31 @@ class ConfusionMatrix:
 
         Example:
             ```python
-            >>> import supervision as sv
+            import supervision as sv
 
-            >>> targets = [
-            ...     sv.Detections(...),
-            ...     sv.Detections(...)
-            ... ]
+            targets = [
+                sv.Detections(...),
+                sv.Detections(...)
+            ]
 
-            >>> predictions = [
-            ...     sv.Detections(...),
-            ...     sv.Detections(...)
-            ... ]
+            predictions = [
+                sv.Detections(...),
+                sv.Detections(...)
+            ]
 
-            >>> confusion_matrix = sv.ConfusionMatrix.from_detections(
-            ...     predictions=predictions,
-            ...     targets=target,
-            ...     classes=['person', ...]
-            ... )
+            confusion_matrix = sv.ConfusionMatrix.from_detections(
+                predictions=predictions,
+                targets=target,
+                classes=['person', ...]
+            )
 
-            >>> confusion_matrix.matrix
-            array([
-                [0., 0., 0., 0.],
-                [0., 1., 0., 1.],
-                [0., 1., 1., 0.],
-                [1., 1., 0., 0.]
-            ])
+            print(confusion_matrix.matrix)
+            # np.array([
+            #    [0., 0., 0., 0.],
+            #    [0., 1., 0., 1.],
+            #    [0., 1., 1., 0.],
+            #    [1., 1., 0., 0.]
+            # ])
             ```
         """
 
@@ -191,46 +191,47 @@ class ConfusionMatrix:
 
         Example:
             ```python
-            >>> import supervision as sv
+            import supervision as sv
+            import numpy as np
 
-            >>> targets = (
-            ...     [
-            ...         array(
-            ...             [
-            ...                 [0.0, 0.0, 3.0, 3.0, 1],
-            ...                 [2.0, 2.0, 5.0, 5.0, 1],
-            ...                 [6.0, 1.0, 8.0, 3.0, 2],
-            ...             ]
-            ...         ),
-            ...         array([1.0, 1.0, 2.0, 2.0, 2]),
-            ...     ]
-            ... )
+            targets = (
+                [
+                    np.array(
+                        [
+                            [0.0, 0.0, 3.0, 3.0, 1],
+                            [2.0, 2.0, 5.0, 5.0, 1],
+                            [6.0, 1.0, 8.0, 3.0, 2],
+                        ]
+                    ),
+                    np.array([1.0, 1.0, 2.0, 2.0, 2]),
+                ]
+            )
 
-            >>> predictions = [
-            ...     array(
-            ...         [
-            ...             [0.0, 0.0, 3.0, 3.0, 1, 0.9],
-            ...             [0.1, 0.1, 3.0, 3.0, 0, 0.9],
-            ...             [6.0, 1.0, 8.0, 3.0, 1, 0.8],
-            ...             [1.0, 6.0, 2.0, 7.0, 1, 0.8],
-            ...         ]
-            ...     ),
-            ...     array([[1.0, 1.0, 2.0, 2.0, 2, 0.8]])
-            ... ]
+            predictions = [
+                np.array(
+                    [
+                        [0.0, 0.0, 3.0, 3.0, 1, 0.9],
+                        [0.1, 0.1, 3.0, 3.0, 0, 0.9],
+                        [6.0, 1.0, 8.0, 3.0, 1, 0.8],
+                        [1.0, 6.0, 2.0, 7.0, 1, 0.8],
+                    ]
+                ),
+                np.array([[1.0, 1.0, 2.0, 2.0, 2, 0.8]])
+            ]
 
-            >>> confusion_matrix = sv.ConfusionMatrix.from_tensors(
-            ...     predictions=predictions,
-            ...     targets=targets,
-            ...     classes=['person', ...]
-            ... )
+            confusion_matrix = sv.ConfusionMatrix.from_tensors(
+                predictions=predictions,
+                targets=targets,
+                classes=['person', ...]
+            )
 
-            >>> confusion_matrix.matrix
-            array([
-                [0., 0., 0., 0.],
-                [0., 1., 0., 1.],
-                [0., 1., 1., 0.],
-                [1., 1., 0., 0.]
-            ])
+            print(confusion_matrix.matrix)
+            # np.array([
+            #     [0., 0., 0., 0.],
+            #     [0., 1., 0., 1.],
+            #     [0., 1., 1., 0.],
+            #     [1., 1., 0., 0.]
+            # ])
             ```
         """
         validate_input_tensors(predictions, targets)
@@ -365,28 +366,28 @@ class ConfusionMatrix:
 
         Example:
             ```python
-            >>> import supervision as sv
-            >>> from ultralytics import YOLO
+            import supervision as sv
+            from ultralytics import YOLO
 
-            >>> dataset = sv.DetectionDataset.from_yolo(...)
+            dataset = sv.DetectionDataset.from_yolo(...)
 
-            >>> model = YOLO(...)
-            >>> def callback(image: np.ndarray) -> sv.Detections:
-            ...     result = model(image)[0]
-            ...     return sv.Detections.from_ultralytics(result)
+            model = YOLO(...)
+            def callback(image: np.ndarray) -> sv.Detections:
+                result = model(image)[0]
+                return sv.Detections.from_ultralytics(result)
 
-            >>> confusion_matrix = sv.ConfusionMatrix.benchmark(
-            ...     dataset = dataset,
-            ...     callback = callback
-            ... )
+            confusion_matrix = sv.ConfusionMatrix.benchmark(
+                dataset = dataset,
+                callback = callback
+            )
 
-            >>> confusion_matrix.matrix
-            array([
-                [0., 0., 0., 0.],
-                [0., 1., 0., 1.],
-                [0., 1., 1., 0.],
-                [1., 1., 0., 0.]
-            ])
+            print(confusion_matrix.matrix)
+            # np.array([
+            #     [0., 0., 0., 0.],
+            #     [0., 1., 0., 1.],
+            #     [0., 1., 1., 0.],
+            #     [1., 1., 0., 0.]
+            # ])
             ```
         """
         predictions, targets = [], []
@@ -532,25 +533,25 @@ class MeanAveragePrecision:
 
         Example:
             ```python
-            >>> import supervision as sv
+            import supervision as sv
 
-            >>> targets = [
-            ...     sv.Detections(...),
-            ...     sv.Detections(...)
-            ... ]
+            targets = [
+                sv.Detections(...),
+                sv.Detections(...)
+            ]
 
-            >>> predictions = [
-            ...     sv.Detections(...),
-            ...     sv.Detections(...)
-            ... ]
+            predictions = [
+                sv.Detections(...),
+                sv.Detections(...)
+            ]
 
-            >>> mean_average_precision = sv.MeanAveragePrecision.from_detections(
-            ...     predictions=predictions,
-            ...     targets=target,
-            ... )
+            mean_average_precision = sv.MeanAveragePrecision.from_detections(
+                predictions=predictions,
+                targets=target,
+            )
 
-            >>> mean_average_precison.map50_95
-            0.2899
+            print(mean_average_precison.map50_95)
+            # 0.2899
             ```
         """
         prediction_tensors = []
@@ -583,23 +584,23 @@ class MeanAveragePrecision:
 
         Example:
             ```python
-            >>> import supervision as sv
-            >>> from ultralytics import YOLO
+            import supervision as sv
+            from ultralytics import YOLO
 
-            >>> dataset = sv.DetectionDataset.from_yolo(...)
+            dataset = sv.DetectionDataset.from_yolo(...)
 
-            >>> model = YOLO(...)
-            >>> def callback(image: np.ndarray) -> sv.Detections:
-            ...     result = model(image)[0]
-            ...     return sv.Detections.from_ultralytics(result)
+            model = YOLO(...)
+            def callback(image: np.ndarray) -> sv.Detections:
+                result = model(image)[0]
+                return sv.Detections.from_ultralytics(result)
 
-            >>> mean_average_precision = sv.MeanAveragePrecision.benchmark(
-            ...     dataset = dataset,
-            ...     callback = callback
-            ... )
+            mean_average_precision = sv.MeanAveragePrecision.benchmark(
+                dataset = dataset,
+                callback = callback
+            )
 
-            >>> mean_average_precision.map50_95
-            0.433
+            print(mean_average_precision.map50_95)
+            # 0.433
             ```
         """
         predictions, targets = [], []
@@ -637,40 +638,41 @@ class MeanAveragePrecision:
 
         Example:
             ```python
-            >>> import supervision as sv
+            import supervision as sv
+            import numpy as np
 
-            >>> targets = (
-            ...     [
-            ...         array(
-            ...             [
-            ...                 [0.0, 0.0, 3.0, 3.0, 1],
-            ...                 [2.0, 2.0, 5.0, 5.0, 1],
-            ...                 [6.0, 1.0, 8.0, 3.0, 2],
-            ...             ]
-            ...         ),
-            ...         array([1.0, 1.0, 2.0, 2.0, 2]),
-            ...     ]
-            ... )
+            targets = (
+                [
+                    np.array(
+                        [
+                            [0.0, 0.0, 3.0, 3.0, 1],
+                            [2.0, 2.0, 5.0, 5.0, 1],
+                            [6.0, 1.0, 8.0, 3.0, 2],
+                        ]
+                    ),
+                    np.array([[1.0, 1.0, 2.0, 2.0, 2]]),
+                ]
+            )
 
-            >>> predictions = [
-            ...     array(
-            ...         [
-            ...             [0.0, 0.0, 3.0, 3.0, 1, 0.9],
-            ...             [0.1, 0.1, 3.0, 3.0, 0, 0.9],
-            ...             [6.0, 1.0, 8.0, 3.0, 1, 0.8],
-            ...             [1.0, 6.0, 2.0, 7.0, 1, 0.8],
-            ...         ]
-            ...     ),
-            ...     array([[1.0, 1.0, 2.0, 2.0, 2, 0.8]])
-            ... ]
+            predictions = [
+                np.array(
+                    [
+                        [0.0, 0.0, 3.0, 3.0, 1, 0.9],
+                        [0.1, 0.1, 3.0, 3.0, 0, 0.9],
+                        [6.0, 1.0, 8.0, 3.0, 1, 0.8],
+                        [1.0, 6.0, 2.0, 7.0, 1, 0.8],
+                    ]
+                ),
+                np.array([[1.0, 1.0, 2.0, 2.0, 2, 0.8]])
+            ]
 
-            >>> mean_average_precison = sv.MeanAveragePrecision.from_tensors(
-            ...     predictions=predictions,
-            ...     targets=targets,
-            ... )
+            mean_average_precison = sv.MeanAveragePrecision.from_tensors(
+                predictions=predictions,
+                targets=targets,
+            )
 
-            >>> mean_average_precison.map50_95
-            0.2899
+            print(mean_average_precison.map50_95)
+            # 0.6649
             ```
         """
         validate_input_tensors(predictions, targets)
@@ -834,10 +836,10 @@ class MeanAveragePrecision:
             precision = true_positives / (true_positives + false_positives)
 
             for iou_level_idx in range(matches.shape[1]):
-                average_precisions[
-                    class_idx, iou_level_idx
-                ] = MeanAveragePrecision.compute_average_precision(
-                    recall[:, iou_level_idx], precision[:, iou_level_idx]
+                average_precisions[class_idx, iou_level_idx] = (
+                    MeanAveragePrecision.compute_average_precision(
+                        recall[:, iou_level_idx], precision[:, iou_level_idx]
+                    )
                 )
 
         return average_precisions

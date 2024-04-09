@@ -1,11 +1,11 @@
 import os
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
-from xml.dom.minidom import parseString
-from xml.etree.ElementTree import Element, SubElement, parse, tostring
+from xml.etree.ElementTree import Element, SubElement
 
 import cv2
 import numpy as np
+from defusedxml.ElementTree import fromstring, parse, tostring
 
 from supervision.dataset.utils import approximate_mask_with_polygons
 from supervision.detection.core import Detections
@@ -109,7 +109,7 @@ def detections_to_pascal_voc(
     segmented.text = "0"
 
     # Add object elements
-    for xyxy, mask, _, class_id, _ in detections:
+    for xyxy, mask, _, class_id, _, _ in detections:
         name = classes[class_id]
         if mask is not None:
             polygons = approximate_mask_with_polygons(
@@ -129,7 +129,7 @@ def detections_to_pascal_voc(
             annotation.append(next_object)
 
     # Generate XML string
-    xml_string = parseString(tostring(annotation)).toprettyxml(indent="  ")
+    xml_string = fromstring(tostring(annotation)).toprettyxml(indent="  ")
 
     return xml_string
 
@@ -268,12 +268,12 @@ def detections_from_xml_obj(
         [extended_classes.index(class_name) for class_name in class_names]
     )
 
-    if with_masks:
-        annotation = Detections(
-            xyxy=xyxy, mask=np.array(masks).astype(bool), class_id=class_id
-        )
-    else:
-        annotation = Detections(xyxy=xyxy, class_id=class_id)
+    annotation = Detections(
+        xyxy=xyxy.astype(np.float32),
+        mask=np.array(masks).astype(bool) if with_masks else None,
+        class_id=class_id,
+    )
+
     return annotation, extended_classes
 
 

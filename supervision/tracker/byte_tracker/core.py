@@ -1,17 +1,19 @@
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 
 import numpy as np
 
 from supervision.detection.core import Detections
+from supervision.detection.utils import box_iou_batch
 from supervision.tracker.byte_tracker import matching
 from supervision.tracker.byte_tracker.basetrack import BaseTrack, TrackState
 from supervision.tracker.byte_tracker.kalman_filter import KalmanFilter
+from supervision.utils.internal import deprecated_parameter
 
 
 class STrack(BaseTrack):
     shared_kalman = KalmanFilter()
 
-    def __init__(self, tlwh, score, class_ids, mask: Optional[np.array] = None):
+    def __init__(self, tlwh, score, class_ids):
         # wait activate
         self._tlwh = np.asarray(tlwh, dtype=np.float32)
         self.kalman_filter = None
@@ -21,7 +23,6 @@ class STrack(BaseTrack):
         self.score = score
         self.class_ids = class_ids
         self.tracklet_len = 0
-        self.mask = mask
 
     def predict(self):
         mean_state = self.mean.copy()
@@ -75,7 +76,6 @@ class STrack(BaseTrack):
         if new_id:
             self.track_id = self.next_id()
         self.score = new_track.score
-        self.mask = new_track.mask
 
     def update(self, new_track, frame_id):
         """
@@ -96,8 +96,6 @@ class STrack(BaseTrack):
         self.is_activated = True
 
         self.score = new_track.score
-
-        self.mask = new_track.mask
 
     @property
     def tlwh(self):
@@ -171,27 +169,62 @@ class ByteTrack:
     """
     Initialize the ByteTrack object.
 
-    Parameters:
-        track_thresh (float, optional): Detection confidence threshold
-            for track activation.
-        track_buffer (int, optional): Number of frames to buffer when a track is lost.
-        match_thresh (float, optional): Threshold for matching tracks with detections.
-        frame_rate (int, optional): The frame rate of the video.
-    """
+    <video controls>
+        <source src="https://media.roboflow.com/supervision/video-examples/how-to/track-objects/annotate-video-with-traces.mp4" type="video/mp4">
+    </video>
 
+    Parameters:
+        track_activation_threshold (float, optional): Detection confidence threshold
+            for track activation. Increasing track_activation_threshold improves accuracy
+            and stability but might miss true detections. Decreasing it increases
+            completeness but risks introducing noise and instability.
+        lost_track_buffer (int, optional): Number of frames to buffer when a track is lost.
+            Increasing lost_track_buffer enhances occlusion handling, significantly
+            reducing the likelihood of track fragmentation or disappearance caused
+            by brief detection gaps.
+        minimum_matching_threshold (float, optional): Threshold for matching tracks with detections.
+            Increasing minimum_matching_threshold improves accuracy but risks fragmentation.
+            Decreasing it improves completeness but risks false positives and drift.
+        frame_rate (int, optional): The frame rate of the video.
+    """  # noqa: E501 // docs
+
+    @deprecated_parameter(
+        old_parameter="track_buffer",
+        new_parameter="lost_track_buffer",
+        map_function=lambda x: x,
+        warning_message="`{old_parameter}` in `{function_name}` is deprecated and will "
+        "be remove in `supervision-0.23.0`. Use '{new_parameter}' "
+        "instead.",
+    )
+    @deprecated_parameter(
+        old_parameter="track_thresh",
+        new_parameter="track_activation_threshold",
+        map_function=lambda x: x,
+        warning_message="`{old_parameter}` in `{function_name}` is deprecated and will "
+        "be remove in `supervision-0.23.0`. Use '{new_parameter}' "
+        "instead.",
+    )
+    @deprecated_parameter(
+        old_parameter="match_thresh",
+        new_parameter="minimum_matching_threshold",
+        map_function=lambda x: x,
+        warning_message="`{old_parameter}` in `{function_name}` is deprecated and will "
+        "be remove in `supervision-0.23.0`. Use '{new_parameter}' "
+        "instead.",
+    )
     def __init__(
         self,
-        track_thresh: float = 0.25,
-        track_buffer: int = 30,
-        match_thresh: float = 0.8,
+        track_activation_threshold: float = 0.25,
+        lost_track_buffer: int = 30,
+        minimum_matching_threshold: float = 0.8,
         frame_rate: int = 30,
     ):
-        self.track_thresh = track_thresh
-        self.match_thresh = match_thresh
+        self.track_activation_threshold = track_activation_threshold
+        self.minimum_matching_threshold = minimum_matching_threshold
 
         self.frame_id = 0
-        self.det_thresh = self.track_thresh + 0.1
-        self.max_time_lost = int(frame_rate / 30.0 * track_buffer)
+        self.det_thresh = self.track_activation_threshold + 0.1
+        self.max_time_lost = int(frame_rate / 30.0 * lost_track_buffer)
         self.kalman_filter = KalmanFilter()
 
         self.tracked_tracks: List[STrack] = []
@@ -200,74 +233,88 @@ class ByteTrack:
 
     def update_with_detections(self, detections: Detections) -> Detections:
         """
-        Updates the tracker with the provided detections and
-            returns the updated detection results.
+        Updates the tracker with the provided detections and returns the updated
+        detection results.
 
-        Parameters:
-            detections: The new detections to update with.
-        Returns:
-            Detection: The updated detection results that now include tracking IDs.
+        Args:
+            detections (Detections): The detections to pass through the tracker.
+
         Example:
             ```python
-            >>> import supervision as sv
-            >>> from ultralytics import YOLO
+            import supervision as sv
+            from ultralytics import YOLO
 
-            >>> model = YOLO(...)
-            >>> byte_tracker = sv.ByteTrack()
-            >>> annotator = sv.BoxAnnotator()
+            model = YOLO(<MODEL_PATH>)
+            tracker = sv.ByteTrack()
 
-            >>> def callback(frame: np.ndarray, index: int) -> np.ndarray:
-            ...     results = model(frame)[0]
-            ...     detections = sv.Detections.from_ultralytics(results)
-            ...     detections = byte_tracker.update_with_detections(detections)
-            ...     labels = [
-            ...         f"#{tracker_id} {model.model.names[class_id]} {confidence:0.2f}"
-            ...         for _, _, confidence, class_id, tracker_id
-            ...         in detections
-            ...     ]
-            ...     return annotator.annotate(scene=frame.copy(),
-            ...                               detections=detections, labels=labels)
+            bounding_box_annotator = sv.BoundingBoxAnnotator()
+            label_annotator = sv.LabelAnnotator()
 
-            >>> sv.process_video(
-            ...     source_path='...',
-            ...     target_path='...',
-            ...     callback=callback
-            ... )
+            def callback(frame: np.ndarray, index: int) -> np.ndarray:
+                results = model(frame)[0]
+                detections = sv.Detections.from_ultralytics(results)
+                detections = tracker.update_with_detections(detections)
+
+                labels = [f"#{tracker_id}" for tracker_id in detections.tracker_id]
+
+                annotated_frame = bounding_box_annotator.annotate(
+                    scene=frame.copy(), detections=detections)
+                annotated_frame = label_annotator.annotate(
+                    scene=annotated_frame, detections=detections, labels=labels)
+                return annotated_frame
+
+            sv.process_video(
+                source_path=<SOURCE_VIDEO_PATH>,
+                target_path=<TARGET_VIDEO_PATH>,
+                callback=callback
+            )
             ```
         """
-        tracks = self.update_with_tensors(
-            tensors=detections2boxes(detections=detections), masks=detections.mask
-        )
-        detections = Detections.empty()
+
+        tensors = detections2boxes(detections=detections)
+        tracks = self.update_with_tensors(tensors=tensors)
+
         if len(tracks) > 0:
-            detections.xyxy = np.array(
-                [track.tlbr for track in tracks], dtype=np.float32
-            )
-            detections.class_id = np.array(
-                [int(t.class_ids) for t in tracks], dtype=int
-            )
-            detections.tracker_id = np.array(
-                [int(t.track_id) for t in tracks], dtype=int
-            )
-            detections.confidence = np.array(
-                [t.score for t in tracks], dtype=np.float32
-            )
-            detections.mask = np.array([t.mask for t in tracks], dtype=bool)
+            detection_bounding_boxes = np.asarray([det[:4] for det in tensors])
+            track_bounding_boxes = np.asarray([track.tlbr for track in tracks])
+
+            ious = box_iou_batch(detection_bounding_boxes, track_bounding_boxes)
+
+            iou_costs = 1 - ious
+
+            matches, _, _ = matching.linear_assignment(iou_costs, 0.5)
+            detections.tracker_id = np.full(len(detections), -1, dtype=int)
+            for i_detection, i_track in matches:
+                detections.tracker_id[i_detection] = int(tracks[i_track].track_id)
+
+            return detections[detections.tracker_id != -1]
 
         else:
             detections.tracker_id = np.array([], dtype=int)
 
-        return detections
+            return detections
 
-    def update_with_tensors(
-        self, tensors: np.ndarray, masks: Optional[np.array] = None
-    ) -> List[STrack]:
+    def reset(self):
+        """
+        Resets the internal state of the ByteTrack tracker.
+
+        This method clears the tracking data, including tracked, lost,
+        and removed tracks, as well as resetting the frame counter. It's
+        particularly useful when processing multiple videos sequentially,
+        ensuring the tracker starts with a clean state for each new video.
+        """
+        self.frame_id = 0
+        self.tracked_tracks: List[STrack] = []
+        self.lost_tracks: List[STrack] = []
+        self.removed_tracks: List[STrack] = []
+        BaseTrack.reset_counter()
+
+    def update_with_tensors(self, tensors: np.ndarray) -> List[STrack]:
         """
         Updates the tracker with the provided tensors and returns the updated tracks.
 
         Parameters:
             tensors: The new tensors to update with.
-            masks: The new masks associated to new tensors
 
         Returns:
             List[STrack]: Updated tracks.
@@ -282,19 +329,13 @@ class ByteTrack:
         scores = tensors[:, 4]
         bboxes = tensors[:, :4]
 
-        remain_inds = scores > self.track_thresh
+        remain_inds = scores > self.track_activation_threshold
         inds_low = scores > 0.1
-        inds_high = scores < self.track_thresh
+        inds_high = scores < self.track_activation_threshold
 
         inds_second = np.logical_and(inds_low, inds_high)
         dets_second = bboxes[inds_second]
         dets = bboxes[remain_inds]
-        if masks is not None:
-            masks_keep = masks[remain_inds]
-            masks_second = masks[inds_second]
-        else:
-            masks_keep = np.array([None] * len(remain_inds))
-            masks_second = np.array([None] * len(inds_second))
         scores_keep = scores[remain_inds]
         scores_second = scores[inds_second]
 
@@ -304,10 +345,8 @@ class ByteTrack:
         if len(dets) > 0:
             """Detections"""
             detections = [
-                STrack(STrack.tlbr_to_tlwh(tlbr), s, c, m)
-                for (tlbr, s, c, m) in zip(
-                    dets, scores_keep, class_ids_keep, masks_keep
-                )
+                STrack(STrack.tlbr_to_tlwh(tlbr), s, c)
+                for (tlbr, s, c) in zip(dets, scores_keep, class_ids_keep)
             ]
         else:
             detections = []
@@ -315,6 +354,7 @@ class ByteTrack:
         """ Add newly detected tracklets to tracked_stracks"""
         unconfirmed = []
         tracked_stracks = []  # type: list[STrack]
+
         for track in self.tracked_tracks:
             if not track.is_activated:
                 unconfirmed.append(track)
@@ -329,7 +369,7 @@ class ByteTrack:
 
         dists = matching.fuse_score(dists, detections)
         matches, u_track, u_detection = matching.linear_assignment(
-            dists, thresh=self.match_thresh
+            dists, thresh=self.minimum_matching_threshold
         )
 
         for itracked, idet in matches:
@@ -347,10 +387,8 @@ class ByteTrack:
         if len(dets_second) > 0:
             """Detections"""
             detections_second = [
-                STrack(STrack.tlbr_to_tlwh(tlbr), s, c, m)
-                for (tlbr, s, c, m) in zip(
-                    dets_second, scores_second, class_ids_second, masks_second
-                )
+                STrack(STrack.tlbr_to_tlwh(tlbr), s, c)
+                for (tlbr, s, c) in zip(dets_second, scores_second, class_ids_second)
             ]
         else:
             detections_second = []
