@@ -26,8 +26,7 @@ MAX_COLUMNS_FOR_SINGLE_ROW_GRID = 3
 
 @convert_for_image_processing
 def crop_image(
-    image: ImageType,
-    xyxy: Union[np.ndarray, List[int], Tuple[int, int, int, int]]
+    image: ImageType, xyxy: Union[np.ndarray, List[int], Tuple[int, int, int, int]]
 ) -> ImageType:
     """
     Crops the given image based on the given bounding box.
