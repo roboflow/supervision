@@ -243,7 +243,41 @@ def letterbox_image(
     Returns:
         ImageType: The resized image. The type is determined by the input type and
             may be either a `numpy.ndarray` or `PIL.Image.Image`.
-    """
+
+    ## Examples:
+
+    === "OpenCV"
+
+        ```python
+        import cv2
+        import supervision as sv
+
+        image = cv2.imread(<SOURCE_IMAGE_PATH>)
+        image.shape
+        # (1080, 1920, 3)
+
+        letterboxed_image = sv.letterbox_image(image=image, resolution_wh=(1000, 1000))
+        letterboxed_image.shape
+        # (1000, 1000, 3)
+        ```
+
+    === "Pillow"
+
+        ```python
+        from PIL import Image
+        import supervision as sv
+
+        image = Image.open(<SOURCE_IMAGE_PATH>)
+        image.size
+        # (1920, 1080)
+
+        letterboxed_image = sv.letterbox_image(image=image, resolution_wh=(1000, 1000))
+        letterboxed_image.size
+        # (1000, 1000)
+        ```
+        
+    ![letterbox_image](https://media.roboflow.com/supervision-docs/letterbox-image.png){ align=center width="800" }
+    """  # noqa E501 // docs
     color = unify_to_bgr(color=color)
     resized_image = resize_image(
         image=image, resolution_wh=resolution_wh, keep_aspect_ratio=True
@@ -264,48 +298,60 @@ def letterbox_image(
     )
 
 
-def place_image(
-    scene: np.ndarray, image: np.ndarray, anchor: Tuple[int, int]
-) -> np.ndarray:
+def overlay_image(
+    image: npt.NDArray[np.uint8],
+    overlay: npt.NDArray[np.uint8],
+    anchor: Tuple[int, int]
+) -> npt.NDArray[np.uint8]:
     """
     Places an image onto a scene at a given anchor point, handling cases where
     the image's position is partially or completely outside the scene's bounds.
 
     Args:
-        scene (np.ndarray): The background scene onto which the image is placed.
-        image (np.ndarray): The image to be placed onto the scene.
-        anchor (Tuple[int, int]): The (x, y) coordinates in the scene where the
+        image (np.ndarray): The background scene onto which the image is placed.
+        overlay (np.ndarray): The image to be placed onto the scene.
+        anchor (Tuple[int, int]): The `(x, y)` coordinates in the scene where the
             top-left corner of the image will be placed.
 
     Returns:
-        np.ndarray: The modified scene with the image placed at the anchor point,
-            or unchanged if the image placement is completely outside the scene.
+        np.ndarray: The result image with overlay.
+
+    Examples:
+        ```python
+        import cv2
+        import numpy as np
+        import supervision as sv
+
+        image = cv2.imread(<SOURCE_IMAGE_PATH>)
+        overlay = np.zeros((200, 200, 3), dtype=np.uint8)
+        result_image = sv.letterbox_image(
+            image=image, overlay=overlay, anchor=(200, 400))
+        ```
     """
-    scene_height, scene_width = scene.shape[:2]
-    image_height, image_width = image.shape[:2]
+    scene_height, scene_width = image.shape[:2]
+    image_height, image_width = overlay.shape[:2]
     anchor_x, anchor_y = anchor
 
     is_out_horizontally = anchor_x + image_width <= 0 or anchor_x >= scene_width
     is_out_vertically = anchor_y + image_height <= 0 or anchor_y >= scene_height
 
     if is_out_horizontally or is_out_vertically:
-        return scene
+        return image
 
-    start_y = max(anchor_y, 0)
-    start_x = max(anchor_x, 0)
-    end_y = min(scene_height, anchor_y + image_height)
-    end_x = min(scene_width, anchor_x + image_width)
+    x_min = max(anchor_x, 0)
+    y_min = max(anchor_y, 0)
+    x_max = min(scene_width, anchor_x + image_width)
+    y_max = min(scene_height, anchor_y + image_height)
 
-    crop_start_y = max(-anchor_y, 0)
-    crop_start_x = max(-anchor_x, 0)
-    crop_end_y = image_height - max((anchor_y + image_height) - scene_height, 0)
-    crop_end_x = image_width - max((anchor_x + image_width) - scene_width, 0)
+    crop_x_min = max(-anchor_x, 0)
+    crop_y_min = max(-anchor_y, 0)
+    crop_x_max = image_width - max((anchor_x + image_width) - scene_width, 0)
+    crop_y_max = image_height - max((anchor_y + image_height) - scene_height, 0)
 
-    scene[start_y:end_y, start_x:end_x] = image[
-        crop_start_y:crop_end_y, crop_start_x:crop_end_x
-    ]
+    image[y_min:y_max, x_min:x_max] = \
+        overlay[crop_y_min:crop_y_max, crop_x_min:crop_x_max]
 
-    return scene
+    return image
 
 
 class ImageSink:
@@ -335,7 +381,7 @@ class ImageSink:
                     source_path='source_video.mp4', stride=2):
                     sink.save_image(image=image)
             ```
-        """
+        """  # noqa E501 // docs
 
         self.target_dir_path = target_dir_path
         self.overwrite = overwrite

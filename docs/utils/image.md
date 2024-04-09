@@ -6,12 +6,6 @@ status: new
 # Image Utils
 
 <div class="md-typeset">
-  <h2>ImageSink</h2>
-</div>
-
-:::supervision.utils.image.ImageSink
-
-<div class="md-typeset">
   <h2>crop_image</h2>
 </div>
 
@@ -39,4 +33,10 @@ status: new
   <h2>place_image</h2>
 </div>
 
-:::supervision.utils.image.place_image
+:::supervision.utils.image.overlay_image
+
+<div class="md-typeset">
+  <h2>ImageSink</h2>
+</div>
+
+:::supervision.utils.image.ImageSink

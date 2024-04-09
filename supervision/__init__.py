@@ -77,7 +77,7 @@ from supervision.utils.image import (
     create_tiles,
     crop_image,
     letterbox_image,
-    place_image,
+    overlay_image,
     resize_image,
     scale_image,
 )
