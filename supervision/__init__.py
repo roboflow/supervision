@@ -78,8 +78,8 @@ from supervision.utils.image import (
     crop_image,
     letterbox_image,
     place_image,
+    resize_image,
     scale_image,
-    resize_image
 )
 from supervision.utils.notebook import plot_image, plot_images_grid
 from supervision.utils.video import (

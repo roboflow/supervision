@@ -28,7 +28,7 @@ MAX_COLUMNS_FOR_SINGLE_ROW_GRID = 3
 @convert_for_image_processing
 def crop_image(
     image: ImageType,
-    xyxy: Union[npt.NDArray[int], List[int], Tuple[int, int, int, int]]
+    xyxy: Union[npt.NDArray[int], List[int], Tuple[int, int, int, int]],
 ) -> ImageType:
     """
     Crops the given image based on the given bounding box.
@@ -635,9 +635,7 @@ def letterbox_image(
     """
     color = unify_to_bgr(color=color)
     resized_img = resize_image(
-        image=image,
-        target_resolution_wh=target_resolution_wh,
-        keep_aspect_ratio=True
+        image=image, target_resolution_wh=target_resolution_wh, keep_aspect_ratio=True
     )
     new_height, new_width = resized_img.shape[:2]
     top_padding = (target_resolution_wh[1] - new_height) // 2
@@ -659,7 +657,7 @@ def letterbox_image(
 def resize_image(
     image: ImageType,
     target_resolution_wh: Tuple[int, int],
-    keep_aspect_ratio: bool = False
+    keep_aspect_ratio: bool = False,
 ) -> ImageType:
     """
     Resizes the given image to a specified resolution. Can maintain the original aspect
