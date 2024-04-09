@@ -222,6 +222,48 @@ def resize_image(
     return cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)
 
 
+@convert_for_image_processing
+def letterbox_image(
+    image: ImageType,
+    resolution_wh: Tuple[int, int],
+    color: Union[Tuple[int, int, int], Color] = (0, 0, 0),
+) -> ImageType:
+    """
+    Resizes and pads an image to a specified resolution with a given color, maintaining
+    the original aspect ratio.
+
+    Args:
+        image (ImageType): The image to be resized. `ImageType` is a flexible type,
+            accepting either `numpy.ndarray` or `PIL.Image.Image`.
+        resolution_wh (Tuple[int, int]): The target resolution as
+            `(width, height)`.
+        color (Union[Tuple[int, int, int], Color]): The color to pad with. If tuple
+            provided it should be in BGR format.
+
+    Returns:
+        ImageType: The resized image. The type is determined by the input type and
+            may be either a `numpy.ndarray` or `PIL.Image.Image`.
+    """
+    color = unify_to_bgr(color=color)
+    resized_image = resize_image(
+        image=image, resolution_wh=resolution_wh, keep_aspect_ratio=True
+    )
+    height_new, width_new = resized_image.shape[:2]
+    padding_top = (resolution_wh[1] - height_new) // 2
+    padding_bottom = resolution_wh[1] - height_new - padding_top
+    padding_left = (resolution_wh[0] - width_new) // 2
+    padding_right = resolution_wh[0] - width_new - padding_left
+    return cv2.copyMakeBorder(
+        resized_image,
+        padding_top,
+        padding_bottom,
+        padding_left,
+        padding_right,
+        cv2.BORDER_CONSTANT,
+        value=color,
+    )
+
+
 def place_image(
     scene: np.ndarray, image: np.ndarray, anchor: Tuple[int, int]
 ) -> np.ndarray:
@@ -434,7 +476,7 @@ def create_tiles(
         single_tile_size = _aggregate_images_shape(images=images, mode=tile_scaling)
     resized_images = [
         letterbox_image(
-            image=i, target_resolution_wh=single_tile_size, color=tile_padding_color
+            image=i, resolution_wh=single_tile_size, color=tile_padding_color
         )
         for i in images
     ]
@@ -684,45 +726,3 @@ def _generate_color_image(
     shape: Tuple[int, int], color: Tuple[int, int, int]
 ) -> np.ndarray:
     return np.ones(shape[::-1] + (3,), dtype=np.uint8) * color
-
-
-@convert_for_image_processing
-def letterbox_image(
-    image: ImageType,
-    target_resolution_wh: Tuple[int, int],
-    color: Union[Tuple[int, int, int], Color] = (0, 0, 0),
-) -> np.ndarray:
-    """
-    Resize and pad image to fit the desired size, preserving its aspect
-    ratio, adding padding of given color if needed to maintain aspect ratio.
-
-    Args:
-        image (ImageType): Input image (type will be adjusted by decorator,
-            you can provide PIL.Image)
-        target_resolution_wh (Tuple[int, int]): image size (width, height) representing
-            the target dimensions.
-        color (Union[Tuple[int, int, int], Color]): the color to pad with - If
-            tuple provided - should be BGR.
-
-    Returns:
-        ImageType: letterboxed image (type may be adjusted to PIL.Image by
-            decorator if function was called with PIL.Image)
-    """
-    color = unify_to_bgr(color=color)
-    resized_img = resize_image(
-        image=image, resolution_wh=target_resolution_wh, keep_aspect_ratio=True
-    )
-    new_height, new_width = resized_img.shape[:2]
-    top_padding = (target_resolution_wh[1] - new_height) // 2
-    bottom_padding = target_resolution_wh[1] - new_height - top_padding
-    left_padding = (target_resolution_wh[0] - new_width) // 2
-    right_padding = target_resolution_wh[0] - new_width - left_padding
-    return cv2.copyMakeBorder(
-        resized_img,
-        top_padding,
-        bottom_padding,
-        left_padding,
-        right_padding,
-        cv2.BORDER_CONSTANT,
-        value=color,
-    )

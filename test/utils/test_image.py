@@ -60,7 +60,7 @@ def test_letterbox_image_for_opencv_image() -> None:
 
     # when
     result = letterbox_image(
-        image=image, target_resolution_wh=(1024, 1024), color=(255, 255, 255)
+        image=image, resolution_wh=(1024, 1024), color=(255, 255, 255)
     )
 
     # then
@@ -86,7 +86,7 @@ def test_letterbox_image_for_pillow_image() -> None:
 
     # when
     result = letterbox_image(
-        image=image, target_resolution_wh=(1024, 1024), color=(255, 255, 255)
+        image=image, resolution_wh=(1024, 1024), color=(255, 255, 255)
     )
 
     # then
