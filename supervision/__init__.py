@@ -34,7 +34,6 @@ from supervision.dataset.core import (
     ClassificationDataset,
     DetectionDataset,
 )
-from supervision.utils.conversion import pillow_to_cv2, cv2_to_pillow
 from supervision.detection.annotate import BoxAnnotator
 from supervision.detection.core import Detections
 from supervision.detection.line_zone import LineZone, LineZoneAnnotator
@@ -72,6 +71,7 @@ from supervision.geometry.core import Point, Position, Rect
 from supervision.geometry.utils import get_polygon_center
 from supervision.metrics.detection import ConfusionMatrix, MeanAveragePrecision
 from supervision.tracker.byte_tracker.core import ByteTrack
+from supervision.utils.conversion import cv2_to_pillow, pillow_to_cv2
 from supervision.utils.file import list_files_with_extensions
 from supervision.utils.image import (
     ImageSink,
