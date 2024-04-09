@@ -7,6 +7,7 @@ from typing import Callable, List, Literal, Optional, Tuple, Union
 
 import cv2
 import numpy as np
+import numpy.typing as npt
 
 from supervision.annotators.base import ImageType
 from supervision.draw.color import Color, unify_to_bgr
@@ -26,7 +27,8 @@ MAX_COLUMNS_FOR_SINGLE_ROW_GRID = 3
 
 @convert_for_image_processing
 def crop_image(
-    image: ImageType, xyxy: Union[np.ndarray, List[int], Tuple[int, int, int, int]]
+    image: ImageType,
+    xyxy: Union[npt.NDArray[int], List[int], Tuple[int, int, int, int]]
 ) -> ImageType:
     """
     Crops the given image based on the given bounding box.
@@ -35,23 +37,49 @@ def crop_image(
         image (ImageType): The image to be cropped. `ImageType` is a flexible type,
             accepting either `numpy.ndarray` or `PIL.Image.Image`.
         xyxy (Union[np.ndarray, List[int], Tuple[int, int, int, int]]): A bounding box
-            coordinates in the format (x_min, y_min, x_max, y_max), accepted as either
-            a numpy array, a list, or a tuple.
+            coordinates in the format `(x_min, y_min, x_max, y_max)`, accepted as either
+            a `numpy.ndarray`, a `list`, or a `tuple`.
 
     Returns:
-        (ImageType): The cropped image.
+        (ImageType): The cropped image. The type is determined by the input type and
+            may be either a `numpy.ndarray` or `PIL.Image.Image`.
 
     Examples:
+
+    === "OpenCV"
+
         ```python
+        import cv2
         import supervision as sv
 
-        detection = sv.Detections(...)
-        with sv.ImageSink(target_dir_path='target/directory/path') as sink:
-            for xyxy in detection.xyxy:
-                cropped_image = sv.crop_image(image=image, xyxy=xyxy)
-                sink.save_image(image=cropped_image)
+        image = cv2.imread(<SOURCE_IMAGE_PATH>)
+        image.shape
+        # (1080, 1920, 3)
+
+        xyxy = [200, 400, 600, 800]
+        cropped_image = sv.crop_image(image=image, xyxy=xyxy)
+        cropped_image.shape
+        # (400, 400, 3)
         ```
-    """
+
+    === "Pillow"
+
+        ```python
+        from PIL import Image
+        import supervision as sv
+
+        image = Image.open(<SOURCE_IMAGE_PATH>)
+        image.size
+        # (1920, 1080)
+
+        xyxy = [200, 400, 600, 800]
+        cropped_image = sv.crop_image(image=image, xyxy=xyxy)
+        cropped_image.size
+        # (400, 400)
+        ```
+
+    ![crop_image](https://media.roboflow.com/supervision-docs/crop-image.png){ align=center width="800" }
+    """  # noqa E501 // docs
 
     if isinstance(xyxy, (list, tuple)):
         xyxy = np.array(xyxy)
@@ -61,29 +89,62 @@ def crop_image(
 
 
 @convert_for_image_processing
-def resize_image(image: np.ndarray, scale_factor: float) -> np.ndarray:
+def scale_image(image: ImageType, scale_factor: float) -> ImageType:
     """
-    Resizes an image by a given scale factor using cv2.INTER_LINEAR interpolation.
+    Scales the given image based on the given scale factor.
 
     Args:
-        image (np.ndarray): The input image to be resized.
+        image (ImageType): The image to be scaled. `ImageType` is a flexible type,
+            accepting either `numpy.ndarray` or `PIL.Image.Image`.
         scale_factor (float): The factor by which the image will be scaled. Scale
-            factor > 1.0 zooms in, < 1.0 zooms out.
+            factor > `1.0` zooms in, < `1.0` zooms out.
 
     Returns:
-        np.ndarray: The resized image.
+        (ImageType): The scaled image. The type is determined by the input type and
+            may be either a `numpy.ndarray` or `PIL.Image.Image`.
 
     Raises:
         ValueError: If the scale factor is non-positive.
+
+    Examples:
+
+    === "OpenCV"
+
+        ```python
+        import cv2
+        import supervision as sv
+
+        image = cv2.imread(<SOURCE_IMAGE_PATH>)
+        image.shape
+        # (1080, 1920, 3)
+
+        scaled_image = sv.scale_image(image=image, scale_factor=0.5)
+        scaled_image.shape
+        # (540, 960, 3)
+        ```
+
+    === "Pillow"
+
+        ```python
+        from PIL import Image
+        import supervision as sv
+
+        image = Image.open(<SOURCE_IMAGE_PATH>)
+        image.size
+        # (1920, 1080)
+
+        scaled_image = sv.scale_image(image=image, scale_factor=0.5)
+        scaled_image.size
+        # (540, 960)
+        ```
     """
     if scale_factor <= 0:
         raise ValueError("Scale factor must be positive.")
 
-    old_width, old_height = image.shape[1], image.shape[0]
-    new_width = int(old_width * scale_factor)
-    new_height = int(old_height * scale_factor)
-
-    return cv2.resize(image, (new_width, new_height), interpolation=cv2.INTER_LINEAR)
+    width_old, height_old = image.shape[1], image.shape[0]
+    width_new = int(width_old * scale_factor)
+    height_new = int(height_old * scale_factor)
+    return cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)
 
 
 def place_image(
@@ -573,9 +634,10 @@ def letterbox_image(
             decorator if function was called with PIL.Image)
     """
     color = unify_to_bgr(color=color)
-    resized_img = resize_image_keeping_aspect_ratio(
+    resized_img = resize_image(
         image=image,
-        desired_size=target_resolution_wh,
+        target_resolution_wh=target_resolution_wh,
+        keep_aspect_ratio=True
     )
     new_height, new_width = resized_img.shape[:2]
     top_padding = (target_resolution_wh[1] - new_height) // 2
@@ -594,40 +656,37 @@ def letterbox_image(
 
 
 @convert_for_image_processing
-def resize_image_keeping_aspect_ratio(
-    image: np.ndarray,
-    desired_size: Tuple[int, int],
-) -> np.ndarray:
+def resize_image(
+    image: ImageType,
+    target_resolution_wh: Tuple[int, int],
+    keep_aspect_ratio: bool = False
+) -> ImageType:
     """
-    Resize and pad image preserving its aspect ratio.
+    Resizes the given image to a specified resolution. Can maintain the original aspect
+    ratio or resize directly to the desired dimensions.
 
-    For example: input image is (640, 480) and we want to resize into
-    (1024, 1024). If this rectangular image is just resized naively
-    to square-shape output - aspect ratio would be altered. If we do not
-    want this to happen - we may resize bigger dimension (640) to 1024.
-    Ratio of change is 1.6. This ratio is later on used to calculate scaling
-    in the other dimension. As a result we have (1024, 768) image.
-
-    Parameters:
-    - image (np.ndarray): Input image (type will be adjusted by decorator,
-        you can provide PIL.Image)
-    - desired_size (Tuple[int, int]): image size (width, height) representing the
-        target dimensions. Parameter will be used to dictate maximum size of
-        output image. Output size may be smaller - to preserve aspect ratio of original
-        image.
+    Args:
+        image (ImageType): The image to be resized. `ImageType` is a flexible type,
+            accepting either `numpy.ndarray` or `PIL.Image.Image`.
+        target_resolution_wh (Tuple[int, int]): The target resolution as
+            `(width, height)`.
+        keep_aspect_ratio (bool, optional): Flag to maintain the image's original
+            aspect ratio. Defaults to `False`.
 
     Returns:
-        np.ndarray: resized image (type may be adjusted to PIL.Image by decorator
-            if function was called with PIL.Image)
+        ImageType: The resized image. The type is determined by the input type and
+            may be either a `numpy.ndarray` or `PIL.Image.Image`.
     """
-    if image.shape[:2] == desired_size[::-1]:
-        return image
-    img_ratio = image.shape[1] / image.shape[0]
-    desired_ratio = desired_size[0] / desired_size[1]
-    if img_ratio >= desired_ratio:
-        new_width = desired_size[0]
-        new_height = int(desired_size[0] / img_ratio)
+    if keep_aspect_ratio:
+        image_ratio = image.shape[1] / image.shape[0]
+        target_ratio = target_resolution_wh[0] / target_resolution_wh[1]
+        if image_ratio >= target_ratio:
+            width_new = target_resolution_wh[0]
+            height_new = int(target_resolution_wh[0] / image_ratio)
+        else:
+            height_new = target_resolution_wh[1]
+            width_new = int(target_resolution_wh[1] * image_ratio)
     else:
-        new_height = desired_size[1]
-        new_width = int(desired_size[1] * img_ratio)
-    return cv2.resize(image, (new_width, new_height))
+        width_new, height_new = target_resolution_wh
+
+    return cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)
