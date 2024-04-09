@@ -13,7 +13,7 @@ from supervision.validators import validate_keypoints_fields
 class KeyPoints:
     """
     The `sv.KeyPoints` allows you to convert results from a variety of keypoint
-    detections models into a single, unified format.
+    keypoints models into a single, unified format.
 
     ```python
     import cv2
@@ -32,16 +32,16 @@ class KeyPoints:
         fixed and custom. The fixed fields include `xy`, `confidence`,
         `class_id`. For any additional data requirements, custom
         fields come into play, stored in the data field. These custom fields are easily
-        accessible using the `detections[<FIELD_NAME>]` syntax, providing flexibility
+        accessible using the `keypoints[<FIELD_NAME>]` syntax, providing flexibility
         for diverse data handling needs.
 
     Attributes:
         xy (np.ndarray): An array of shape `(n, 2)` containing
             the bounding boxes coordinates in format `[x1, y1]`
         confidence (Optional[np.ndarray]): An array of shape
-            `(n,)` containing the confidence scores of the keypoint detections.
+            `(n,)` containing the confidence scores of the keypoint keypoints.
         class_id (Optional[np.ndarray]): An array of shape
-            `(n,)` containing the class ids of the keypoint detections.
+            `(n,)` containing the class ids of the keypoint keypoints.
         data (Dict[str, Union[np.ndarray, List]]): A dictionary containing additional
             data where each key is a string representing the data type, and the value
             is either a NumPy array or a list of corresponding data.
@@ -142,6 +142,86 @@ class KeyPoints:
         class_id = ultralytics_results.boxes.cls.cpu().numpy().astype(int)
         data = {CLASS_NAME_DATA_FIELD: class_names}
         return cls(xy, class_id, confidence, data)
+
+    def __getitem__(
+        self, index: Union[int, slice, List[int], np.ndarray, str]
+    ) -> Union["KeyPoints", List, np.ndarray, None]:
+        """
+        Get a subset of the KeyPoints object or access an item from its data field.
+
+        When provided with an integer, slice, list of integers, or a numpy array, this
+        method returns a new KeyPoints object that represents a subset of the original
+        keypoints. When provided with a string, it accesses the corresponding item in
+        the data dictionary.
+
+        Args:
+            index (Union[int, slice, List[int], np.ndarray, str]): The index, indices,
+                or key to access a subset of the KeyPoints or an item from the data.
+
+        Returns:
+            Union[KeyPoints, Any]: A subset of the KeyPoints object or an item from
+                the data field.
+
+        Example:
+            ```python
+            import supervision as sv
+
+            keypoints = sv.KeyPoints()
+
+            first_detection = keypoints[0]
+            first_10_keypoints = keypoints[0:10]
+            some_keypoints = keypoints[[0, 2, 4]]
+            class_0_keypoints = keypoints[keypoints.class_id == 0]
+            high_confidence_keypoints = keypoints[keypoints.confidence > 0.5]
+
+            feature_vector = keypoints['feature_vector']
+            ```
+        """
+        if isinstance(index, str):
+            return self.data.get(index)
+        if isinstance(index, int):
+            index = [index]
+        return KeyPoints(
+            xy=self.xy[index],
+            confidence=self.confidence[index] if self.confidence is not None else None,
+            class_id=self.class_id[index] if self.class_id is not None else None,
+            data=get_data_item(self.data, index),
+        )
+
+    def __setitem__(self, key: str, value: Union[np.ndarray, List]):
+        """
+        Set a value in the data dictionary of the KeyPoints object.
+
+        Args:
+            key (str): The key in the data dictionary to set.
+            value (Union[np.ndarray, List]): The value to set for the key.
+
+        Example:
+            ```python
+            import cv2
+            import supervision as sv
+            from ultralytics import YOLO
+
+            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            model = YOLO('yolov8s.pt')
+
+            result = model(image)[0]
+            keypoints = sv.KeyPoints.from_ultralytics(result)
+
+            keypoints['names'] = [
+                 model.model.names[class_id]
+                 for class_id
+                 in keypoints.class_id
+             ]
+            ```
+        """
+        if not isinstance(value, (np.ndarray, list)):
+            raise TypeError("Value must be a np.ndarray or a list")
+
+        if isinstance(value, list):
+            value = np.array(value)
+
+        self.data[key] = value
 
     @classmethod
     def empty(cls) -> "KeyPoints":
