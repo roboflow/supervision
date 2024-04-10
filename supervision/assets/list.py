@@ -18,6 +18,7 @@ class VideoAssets(Enum):
     | `SUBWAY`               | `subway.mp4`               | [Link](https://media.roboflow.com/supervision/video-examples/subway.mp4)              |
     | `MARKET_SQUARE`        | `market-square.mp4`        | [Link](https://media.roboflow.com/supervision/video-examples/market-square.mp4)       |
     | `PEOPLE_WALKING`       | `people-walking.mp4`       | [Link](https://media.roboflow.com/supervision/video-examples/people-walking.mp4)      |
+    | `BEACH`                | `beach-1.mp4`              | [Link](https://media.roboflow.com/supervision/video-examples/beach-1.mp4)             |
     """  # noqa: E501 // docs
 
     VEHICLES = "vehicles.mp4"
@@ -27,6 +28,7 @@ class VideoAssets(Enum):
     SUBWAY = "subway.mp4"
     MARKET_SQUARE = "market-square.mp4"
     PEOPLE_WALKING = "people-walking.mp4"
+    BEACH = "beach-1.mp4"
 
     @classmethod
     def list(cls):
@@ -61,5 +63,9 @@ VIDEO_ASSETS: Dict[str, Tuple[str, str]] = {
     VideoAssets.PEOPLE_WALKING.value: (
         f"{BASE_VIDEO_URL}{VideoAssets.PEOPLE_WALKING.value}",
         "0574c053c8686c3f1dc0aa3743e45cb9",
+    ),
+    VideoAssets.BEACH.value: (
+        f"{BASE_VIDEO_URL}{VideoAssets.BEACH.value}",
+        "4175d42fec4d450ed081523fd39e0cf8",
     ),
 }
