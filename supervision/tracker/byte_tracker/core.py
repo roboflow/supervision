@@ -137,7 +137,7 @@ class STrack(BaseTrack):
 
     def to_xyah(self):
         return self.tlwh_to_xyah(self.tlwh)
-    
+
     @staticmethod
     def next_external_id():
         STrack._external_count += 1
@@ -160,7 +160,9 @@ class STrack(BaseTrack):
         return ret
 
     def __repr__(self):
-        return "OT_{}_({}-{})".format(self.internal_track_id, self.start_frame, self.end_frame)
+        return "OT_{}_({}-{})".format(
+            self.internal_track_id, self.start_frame, self.end_frame
+        )
 
 
 def detections2boxes(detections: Detections) -> np.ndarray:
@@ -307,7 +309,9 @@ class ByteTrack:
             matches, _, _ = matching.linear_assignment(iou_costs, 0.5)
             detections.tracker_id = np.full(len(detections), -1, dtype=int)
             for i_detection, i_track in matches:
-                detections.tracker_id[i_detection] = int(tracks[i_track].external_track_id)
+                detections.tracker_id[i_detection] = int(
+                    tracks[i_track].external_track_id
+                )
 
             return detections[detections.tracker_id != -1]
 
