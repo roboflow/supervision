@@ -142,7 +142,7 @@ class STrack(BaseTrack):
     def next_external_id():
         STrack._external_count += 1
         return STrack._external_count
-    
+
     @staticmethod
     def reset_external_counter():
         STrack._external_count = 0
