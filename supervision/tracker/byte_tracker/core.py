@@ -12,6 +12,7 @@ from supervision.utils.internal import deprecated_parameter
 
 class STrack(BaseTrack):
     shared_kalman = KalmanFilter()
+    _external_count = 0
 
     def __init__(self, tlwh, score, class_ids, minimum_consecutive_frames):
         # wait activate
@@ -23,6 +24,8 @@ class STrack(BaseTrack):
         self.score = score
         self.class_ids = class_ids
         self.tracklet_len = 0
+
+        self.external_track_id = -1
 
         self.minimum_consecutive_frames = minimum_consecutive_frames
 
@@ -55,7 +58,7 @@ class STrack(BaseTrack):
     def activate(self, kalman_filter, frame_id):
         """Start a new tracklet"""
         self.kalman_filter = kalman_filter
-        self.track_id = self.next_id()
+        self.internal_track_id = self.next_id()
         self.mean, self.covariance = self.kalman_filter.initiate(
             self.tlwh_to_xyah(self._tlwh)
         )
@@ -76,7 +79,7 @@ class STrack(BaseTrack):
 
         self.frame_id = frame_id
         if new_id:
-            self.track_id = self.next_id()
+            self.internal_track_id = self.next_id()
         self.score = new_track.score
 
     def update(self, new_track, frame_id):
@@ -95,8 +98,9 @@ class STrack(BaseTrack):
             self.mean, self.covariance, self.tlwh_to_xyah(new_tlwh)
         )
         self.state = TrackState.Tracked
-        if self.tracklet_len >= self.minimum_consecutive_frames:
+        if self.tracklet_len == self.minimum_consecutive_frames:
             self.is_activated = True
+            self.external_track_id = self.next_external_id()
 
         self.score = new_track.score
 
@@ -133,6 +137,15 @@ class STrack(BaseTrack):
 
     def to_xyah(self):
         return self.tlwh_to_xyah(self.tlwh)
+    
+    @staticmethod
+    def next_external_id():
+        STrack._external_count += 1
+        return STrack._external_count
+    
+    @staticmethod
+    def reset_external_counter():
+        STrack._external_count = 0
 
     @staticmethod
     def tlbr_to_tlwh(tlbr):
@@ -147,7 +160,7 @@ class STrack(BaseTrack):
         return ret
 
     def __repr__(self):
-        return "OT_{}_({}-{})".format(self.track_id, self.start_frame, self.end_frame)
+        return "OT_{}_({}-{})".format(self.internal_track_id, self.start_frame, self.end_frame)
 
 
 def detections2boxes(detections: Detections) -> np.ndarray:
@@ -294,7 +307,7 @@ class ByteTrack:
             matches, _, _ = matching.linear_assignment(iou_costs, 0.5)
             detections.tracker_id = np.full(len(detections), -1, dtype=int)
             for i_detection, i_track in matches:
-                detections.tracker_id[i_detection] = int(tracks[i_track].track_id)
+                detections.tracker_id[i_detection] = int(tracks[i_track].external_track_id)
 
             return detections[detections.tracker_id != -1]
 
@@ -318,6 +331,7 @@ class ByteTrack:
         self.lost_tracks: List[STrack] = []
         self.removed_tracks: List[STrack] = []
         BaseTrack.reset_counter()
+        STrack.reset_external_counter()
 
     def update_with_tensors(self, tensors: np.ndarray) -> List[STrack]:
         """
@@ -478,22 +492,22 @@ def joint_tracks(
 ) -> List[STrack]:
     """
     Joins two lists of tracks, ensuring that the resulting list does not
-    contain tracks with duplicate track_id values.
+    contain tracks with duplicate internal_track_id values.
 
     Parameters:
-        track_list_a: First list of tracks (with track_id attribute).
-        track_list_b: Second list of tracks (with track_id attribute).
+        track_list_a: First list of tracks (with internal_track_id attribute).
+        track_list_b: Second list of tracks (with internal_track_id attribute).
 
     Returns:
         Combined list of tracks from track_list_a and track_list_b
-            without duplicate track_id values.
+            without duplicate internal_track_id values.
     """
     seen_track_ids = set()
     result = []
 
     for track in track_list_a + track_list_b:
-        if track.track_id not in seen_track_ids:
-            seen_track_ids.add(track.track_id)
+        if track.internal_track_id not in seen_track_ids:
+            seen_track_ids.add(track.internal_track_id)
             result.append(track)
 
     return result
@@ -502,17 +516,17 @@ def joint_tracks(
 def sub_tracks(track_list_a: List, track_list_b: List) -> List[int]:
     """
     Returns a list of tracks from track_list_a after removing any tracks
-    that share the same track_id with tracks in track_list_b.
+    that share the same internal_track_id with tracks in track_list_b.
 
     Parameters:
-        track_list_a: List of tracks (with track_id attribute).
-        track_list_b: List of tracks (with track_id attribute) to
+        track_list_a: List of tracks (with internal_track_id attribute).
+        track_list_b: List of tracks (with internal_track_id attribute) to
             be subtracted from track_list_a.
     Returns:
         List of remaining tracks from track_list_a after subtraction.
     """
-    tracks = {track.track_id: track for track in track_list_a}
-    track_ids_b = {track.track_id for track in track_list_b}
+    tracks = {track.internal_track_id: track for track in track_list_a}
+    track_ids_b = {track.internal_track_id for track in track_list_b}
 
     for track_id in track_ids_b:
         tracks.pop(track_id, None)
