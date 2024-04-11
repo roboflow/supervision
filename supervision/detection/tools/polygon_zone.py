@@ -2,6 +2,7 @@ from dataclasses import replace
 from typing import Iterable, Optional, Tuple
 
 import cv2
+import warnings
 import numpy as np
 import numpy.typing as npt
 
@@ -11,7 +12,7 @@ from supervision.draw.color import Color
 from supervision.draw.utils import draw_polygon, draw_text
 from supervision.geometry.core import Position
 from supervision.geometry.utils import get_polygon_center
-from supervision.utils.internal import deprecated_parameter
+from supervision.utils.internal import deprecated_parameter, SupervisionWarnings
 
 
 class PolygonZone:
@@ -41,18 +42,24 @@ class PolygonZone:
     def __init__(
         self,
         polygon: npt.NDArray[np.int64],
-        frame_resolution_wh: Tuple[int, int],
         triggering_anchors: Iterable[Position] = (Position.BOTTOM_CENTER,),
+        frame_resolution_wh: Optional[Tuple[int, int]] = None,
     ):
+        if frame_resolution_wh is not None:
+            warnings.warn(
+                  "The `frame_resolution_wh` parameter is no longer required and will be dropped in version supervision-0.24.0. The mask resolution is now calculated automatically based on the polygon coordinates.",
+                  category=SupervisionWarnings,
+              )
+
         self.polygon = polygon.astype(int)
-        self.frame_resolution_wh = frame_resolution_wh
         self.triggering_anchors = triggering_anchors
 
         self.current_count = 0
 
-        width, height = frame_resolution_wh
+        x_max, y_max = np.max(polygon, axis=0)
+        self.frame_resolution_wh = (x_max , y_max)
         self.mask = polygon_to_mask(
-            polygon=polygon, resolution_wh=(width + 1, height + 1)
+            polygon=polygon, resolution_wh=(x_max + 1, y_max + 1)
         )
 
     def trigger(self, detections: Detections) -> npt.NDArray[np.bool_]:
