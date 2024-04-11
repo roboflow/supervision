@@ -274,7 +274,9 @@ def box_non_max_suppression(
     return keep[sort_index.argsort()]
 
 
-def greedy_nmm(predictions: np.ndarray, threshold: float = 0.5) -> Dict[int, List[int]]:
+def non_max_merge(
+    predictions: np.ndarray, threshold: float = 0.5
+) -> Dict[int, List[int]]:
     """
     Apply greedy version of non-maximum merging to avoid detecting too many
     overlapping bounding boxes for a given object.
@@ -351,7 +353,7 @@ def greedy_nmm(predictions: np.ndarray, threshold: float = 0.5) -> Dict[int, Lis
     return keep_to_merge_list
 
 
-def batched_greedy_nmm(
+def batch_non_max_merge(
     predictions: np.ndarray, threshold: float = 0.5
 ) -> Dict[int, List[int]]:
     """
@@ -373,7 +375,7 @@ def batched_greedy_nmm(
     keep_to_merge_list = {}
     for category_id in np.unique(category_ids):
         curr_indices = np.where(category_ids == category_id)[0]
-        curr_keep_to_merge_list = greedy_nmm(predictions[curr_indices], threshold)
+        curr_keep_to_merge_list = non_max_merge(predictions[curr_indices], threshold)
         curr_indices_list = curr_indices.tolist()
         for curr_keep, curr_merge_list in curr_keep_to_merge_list.items():
             keep = curr_indices_list[curr_keep]
@@ -401,67 +403,6 @@ def get_merged_bbox(bbox1: np.ndarray, bbox2: np.ndarray) -> np.ndarray:
     left_top = np.minimum(bbox1[0][:2], bbox2[0][:2])
     right_bottom = np.maximum(bbox1[0][2:], bbox2[0][2:])
     return np.array([np.concatenate([left_top, right_bottom])])
-
-
-def get_merged_class_id(id1: np.ndarray, id2: np.ndarray) -> np.ndarray:
-    """
-    Merges two class ids into one.
-
-    Args:
-        id1 (np.ndarray): The first class id.
-        id2 (np.ndarray): The second class id.
-
-    Returns:
-        np.ndarray: The merged class id.
-    """
-    return np.array([max(id1.item(), id2.item())])
-
-
-def get_merged_confidence(
-    confidence1: np.ndarray, confidence2: np.ndarray
-) -> np.ndarray:
-    """
-    Merges two confidences into one.
-
-    Args:
-        confidence1 (np.ndarray): The first confidence.
-        confidence2 (np.ndarray): The second confidence.
-
-    Returns:
-        np.ndarray: The merged confidence.
-    """
-    return np.array([max(confidence1.item(), confidence2.item())])
-
-
-def get_merged_mask(mask1: np.ndarray, mask2: np.ndarray) -> np.ndarray:
-    """
-    Merges two masks into one.
-
-    Args:
-        mask1 (np.ndarray): A numpy array of shape `(H, W)` where `H` and `W`
-            are the height and width of the mask, respectively.
-        mask2 (np.ndarray): A numpy array of shape `(H, W)` where `H` and `W`
-            are the height and width of the mask, respectively.
-
-    Returns:
-        np.ndarray: A numpy array of shape `(H, W)` where the new mask is the
-            merged mask of `mask1` and `mask2`.
-    """
-    return np.logical_or(mask1, mask2)
-
-
-def get_merged_tracker_id(tracker_id1: int, tracker_id2: int) -> int:
-    """
-    Merges two tracker ids into one.
-
-    Args:
-        tracker_id1 (int): The first tracker id.
-        tracker_id2 (int): The second tracker id.
-
-    Returns:
-        int: The merged tracker id.
-    """
-    return max(tracker_id1, tracker_id2)
 
 
 def clip_boxes(xyxy: np.ndarray, resolution_wh: Tuple[int, int]) -> np.ndarray:
