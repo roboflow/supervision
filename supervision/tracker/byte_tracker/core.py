@@ -100,7 +100,7 @@ class STrack(BaseTrack):
         self.state = TrackState.Tracked
         if (
             self.tracklet_len == self.minimum_consecutive_frames
-            and not self.is_activated
+            and self.external_track_id == -1
         ):
             self.is_activated = True
             self.external_track_id = self.next_external_id()
