@@ -50,9 +50,10 @@ class PolygonZone:
     ):
         if frame_resolution_wh is not None:
             warnings.warn(
-                  "The `frame_resolution_wh` parameter is no longer required and will be dropped in version supervision-0.24.0. The mask resolution is now calculated automatically based on the polygon coordinates.",
-                  category=SupervisionWarnings,
-              )
+                "The `frame_resolution_wh` parameter is no longer required and will be dropped in version "
+                "supervision-0.24.0. The mask resolution is now calculated automatically based on the polygon coordinates.",
+                category=SupervisionWarnings,
+            )
 
         self.polygon = polygon.astype(int)
         self.triggering_anchors = triggering_anchors
@@ -60,7 +61,7 @@ class PolygonZone:
         self.current_count = 0
 
         x_max, y_max = np.max(polygon, axis=0)
-        self.frame_resolution_wh = (x_max , y_max)
+        self.frame_resolution_wh = (x_max, y_max)
         self.mask = polygon_to_mask(
             polygon=polygon, resolution_wh=(x_max + 1, y_max + 1)
         )
@@ -98,6 +99,7 @@ class PolygonZone:
         is_in_zone: npt.NDArray[np.bool_] = np.all(is_in_zone, axis=1)
         self.current_count = int(np.sum(is_in_zone))
         return is_in_zone.astype(bool)
+
 
 
 class PolygonZoneAnnotator:
