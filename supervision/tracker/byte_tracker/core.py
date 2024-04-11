@@ -102,12 +102,10 @@ class STrack(BaseTrack):
             self.mean, self.covariance, self.tlwh_to_xyah(new_tlwh)
         )
         self.state = TrackState.Tracked
-        if (
-            self.tracklet_len == self.minimum_consecutive_frames
-            and self.external_track_id == -1
-        ):
+        if (self.tracklet_len == self.minimum_consecutive_frames):
             self.is_activated = True
-            self.external_track_id = self.next_external_id()
+            if (self.external_track_id == -1):
+                self.external_track_id = self.next_external_id()
 
         self.score = new_track.score
 
