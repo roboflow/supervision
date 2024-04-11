@@ -1,8 +1,8 @@
+import warnings
 from dataclasses import replace
 from typing import Iterable, Optional, Tuple
 
 import cv2
-import warnings
 import numpy as np
 import numpy.typing as npt
 
@@ -12,7 +12,7 @@ from supervision.draw.color import Color
 from supervision.draw.utils import draw_polygon, draw_text
 from supervision.geometry.core import Position
 from supervision.geometry.utils import get_polygon_center
-from supervision.utils.internal import deprecated_parameter, SupervisionWarnings
+from supervision.utils.internal import SupervisionWarnings, deprecated_parameter
 
 
 class PolygonZone:
@@ -99,7 +99,6 @@ class PolygonZone:
         is_in_zone: npt.NDArray[np.bool_] = np.all(is_in_zone, axis=1)
         self.current_count = int(np.sum(is_in_zone))
         return is_in_zone.astype(bool)
-
 
 
 class PolygonZoneAnnotator:
