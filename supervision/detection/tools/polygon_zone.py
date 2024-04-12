@@ -28,10 +28,6 @@ class PolygonZone:
             (default: (sv.Position.BOTTOM_CENTER,)).
         current_count (int): The current count of detected objects within the zone
         mask (np.ndarray): The 2D bool mask for the polygon zone
-        frame_resolution_wh (Optional[Tuple[int, int]], optional): DEPRECATED. The frame resolution
-                (width, height). This parameter is no longer required and will be dropped in version
-                supervision-0.24.0. The mask resolution is now calculated automatically based on the
-                polygon coordinates. Defaults to None.
     """
 
     @deprecated_parameter(
