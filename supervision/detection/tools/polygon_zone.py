@@ -46,8 +46,9 @@ class PolygonZone:
     ):
         if frame_resolution_wh is not None:
             warnings.warn(
-                "The `frame_resolution_wh` parameter is no longer required and will be dropped in version "
-                "supervision-0.24.0. The mask resolution is now calculated automatically based on the polygon coordinates.",
+                "The `frame_resolution_wh` parameter is no longer required and will be "
+                "dropped in version supervision-0.24.0. The mask resolution is now "
+                "calculated automatically based on the polygon coordinates.",
                 category=SupervisionWarnings,
             )
 
