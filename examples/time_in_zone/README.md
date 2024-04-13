@@ -1,5 +1,7 @@
 # time in zone
 
+[![YouTube](https://badges.aleen42.com/src/youtube.svg)](https://www.youtube.com/watch?v=hAWpsIuem10)
+
 ## 👋 hello
 
 Practical demonstration on leveraging computer vision for analyzing wait times and

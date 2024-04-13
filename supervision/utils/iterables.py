@@ -16,7 +16,7 @@ def create_batches(
         batch_size (int): The expected size of a batch.
 
     Returns:
-        Generator[List[V], None, None]: A generator that yields chunks
+        (Generator[List[V], None, None]): A generator that yields chunks
             of `sequence` of size `batch_size`, up to the length of
             the input `sequence`.
 
@@ -54,7 +54,7 @@ def fill(sequence: List[V], desired_size: int, content: V) -> List[V]:
             `sequence` as padding.
 
     Returns:
-        List[V]: A padded version of the input `sequence` (if needed).
+        (List[V]): A padded version of the input `sequence` (if needed).
 
     Examples:
         ```python
