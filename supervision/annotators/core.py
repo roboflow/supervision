@@ -6,7 +6,12 @@ import numpy as np
 from PIL import ImageFont, ImageDraw, Image
 
 from supervision.annotators.base import BaseAnnotator, ImageType
-from supervision.annotators.utils import ColorLookup, Trace, resolve_color, resolve_text_background_xyxy
+from supervision.annotators.utils import (
+    ColorLookup,
+    Trace,
+    resolve_color,
+    resolve_text_background_xyxy,
+)
 from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
 from supervision.detection.utils import clip_boxes, mask_to_polygons
@@ -1004,9 +1009,11 @@ class LabelAnnotator:
                 color=self.color,
                 detections=detections,
                 detection_idx=detection_idx,
-                color_lookup=self.color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
+                color_lookup=(
+                    self.color_lookup
+                    if custom_color_lookup is None
+                    else custom_color_lookup
+                ),
             )
 
             if labels is not None:
@@ -1095,6 +1102,7 @@ class LabelAnnotator:
             )
         return scene
 
+
 class RichLabelAnnotator:
 
     def __init__(
@@ -1102,7 +1110,7 @@ class RichLabelAnnotator:
         color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
         text_color: Color = Color.WHITE,
         font_path: str = None,
-        font_size: int = 14,
+        font_size: int = 10,
         text_padding: int = 10,
         text_position: Position = Position.TOP_LEFT,
         color_lookup: ColorLookup = ColorLookup.CLASS,
@@ -1118,7 +1126,7 @@ class RichLabelAnnotator:
             try:
                 self.font = ImageFont.truetype(font_path, font_size)
             except OSError:
-                print(f"Font path '{font_path}' not found. Using a system font.")
+                print(f"Font path '{font_path}' not found. Using PIL's default font.")
                 self.font = ImageFont.load_default(size=font_size)
         else:
             self.font = ImageFont.load_default(size=font_size)
