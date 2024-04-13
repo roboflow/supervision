@@ -30,14 +30,10 @@ def main(
     video_info = sv.VideoInfo.from_video_path(video_path=source_video_path)
     frames_generator = sv.get_video_frames_generator(source_video_path)
 
-    frame = next(frames_generator)
-    resolution_wh = frame.shape[1], frame.shape[0]
-
     polygons = load_zones_config(file_path=zone_configuration_path)
     zones = [
         sv.PolygonZone(
             polygon=polygon,
-            frame_resolution_wh=resolution_wh,
             triggering_anchors=(sv.Position.CENTER,),
         )
         for polygon in polygons

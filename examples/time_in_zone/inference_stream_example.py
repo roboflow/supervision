@@ -28,11 +28,9 @@ class CustomSink:
 
     def on_prediction(self, result: dict, frame: VideoFrame) -> None:
         if self.zones is None:
-            resolution_wh = frame.image.shape[1], frame.image.shape[0]
             self.zones = [
                 sv.PolygonZone(
                     polygon=polygon,
-                    frame_resolution_wh=resolution_wh,
                     triggering_anchors=(sv.Position.CENTER,),
                 )
                 for polygon in self.polygons
