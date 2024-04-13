@@ -6,7 +6,7 @@ import numpy as np
 from PIL import ImageFont, ImageDraw, Image
 
 from supervision.annotators.base import BaseAnnotator, ImageType
-from supervision.annotators.utils import ColorLookup, Trace, resolve_color
+from supervision.annotators.utils import ColorLookup, Trace, resolve_color, resolve_text_background_xyxy
 from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
 from supervision.detection.utils import clip_boxes, mask_to_polygons
@@ -937,59 +937,6 @@ class LabelAnnotator:
         self.text_anchor: Position = text_position
         self.color_lookup: ColorLookup = color_lookup
 
-    @staticmethod
-    def resolve_text_background_xyxy(
-        center_coordinates: Tuple[int, int],
-        text_wh: Tuple[int, int],
-        position: Position,
-    ) -> Tuple[int, int, int, int]:
-        center_x, center_y = center_coordinates
-        text_w, text_h = text_wh
-
-        if position == Position.TOP_LEFT:
-            return center_x, center_y - text_h, center_x + text_w, center_y
-        elif position == Position.TOP_RIGHT:
-            return center_x - text_w, center_y - text_h, center_x, center_y
-        elif position == Position.TOP_CENTER:
-            return (
-                center_x - text_w // 2,
-                center_y - text_h,
-                center_x + text_w // 2,
-                center_y,
-            )
-        elif position == Position.CENTER or position == Position.CENTER_OF_MASS:
-            return (
-                center_x - text_w // 2,
-                center_y - text_h // 2,
-                center_x + text_w // 2,
-                center_y + text_h // 2,
-            )
-        elif position == Position.BOTTOM_LEFT:
-            return center_x, center_y, center_x + text_w, center_y + text_h
-        elif position == Position.BOTTOM_RIGHT:
-            return center_x - text_w, center_y, center_x, center_y + text_h
-        elif position == Position.BOTTOM_CENTER:
-            return (
-                center_x - text_w // 2,
-                center_y,
-                center_x + text_w // 2,
-                center_y + text_h,
-            )
-        elif position == Position.CENTER_LEFT:
-            return (
-                center_x - text_w,
-                center_y - text_h // 2,
-                center_x,
-                center_y + text_h // 2,
-            )
-        elif position == Position.CENTER_RIGHT:
-            return (
-                center_x,
-                center_y - text_h // 2,
-                center_x + text_w,
-                center_y + text_h // 2,
-            )
-
     @convert_for_annotation_method
     def annotate(
         self,
@@ -1079,7 +1026,7 @@ class LabelAnnotator:
             )[0]
             text_w_padded = text_w + 2 * self.text_padding
             text_h_padded = text_h + 2 * self.text_padding
-            text_background_xyxy = self.resolve_text_background_xyxy(
+            text_background_xyxy = resolve_text_background_xyxy(
                 center_coordinates=tuple(center_coordinates),
                 text_wh=(text_w_padded, text_h_padded),
                 position=self.text_anchor,
@@ -1176,59 +1123,6 @@ class RichLabelAnnotator:
         else:
             self.font = ImageFont.load_default(size=font_size)
 
-    @staticmethod
-    def resolve_text_background_xyxy(
-        center_coordinates: Tuple[int, int],
-        text_wh: Tuple[int, int],
-        position: Position,
-    ) -> Tuple[int, int, int, int]:
-        center_x, center_y = center_coordinates
-        text_w, text_h = text_wh
-
-        if position == Position.TOP_LEFT:
-            return center_x, center_y - text_h, center_x + text_w, center_y
-        elif position == Position.TOP_RIGHT:
-            return center_x - text_w, center_y - text_h, center_x, center_y
-        elif position == Position.TOP_CENTER:
-            return (
-                center_x - text_w // 2,
-                center_y - text_h,
-                center_x + text_w // 2,
-                center_y,
-            )
-        elif position == Position.CENTER or position == Position.CENTER_OF_MASS:
-            return (
-                center_x - text_w // 2,
-                center_y - text_h // 2,
-                center_x + text_w // 2,
-                center_y + text_h // 2,
-            )
-        elif position == Position.BOTTOM_LEFT:
-            return center_x, center_y, center_x + text_w, center_y + text_h
-        elif position == Position.BOTTOM_RIGHT:
-            return center_x - text_w, center_y, center_x, center_y + text_h
-        elif position == Position.BOTTOM_CENTER:
-            return (
-                center_x - text_w // 2,
-                center_y,
-                center_x + text_w // 2,
-                center_y + text_h,
-            )
-        elif position == Position.CENTER_LEFT:
-            return (
-                center_x - text_w,
-                center_y - text_h // 2,
-                center_x,
-                center_y + text_h // 2,
-            )
-        elif position == Position.CENTER_RIGHT:
-            return (
-                center_x,
-                center_y - text_h // 2,
-                center_x + text_w,
-                center_y + text_h // 2,
-            )
-
     def annotate(
         self,
         scene: ImageType,
@@ -1276,7 +1170,7 @@ class RichLabelAnnotator:
             text_height = bottom - top
             text_w_padded = text_width + 2 * self.text_padding
             text_h_padded = text_height + 2 * self.text_padding
-            text_background_xyxy = self.resolve_text_background_xyxy(
+            text_background_xyxy = resolve_text_background_xyxy(
                 center_coordinates=tuple(center_coordinates),
                 text_wh=(text_w_padded, text_h_padded),
                 position=self.text_anchor,
