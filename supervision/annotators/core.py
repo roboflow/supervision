@@ -1104,6 +1104,11 @@ class LabelAnnotator:
 
 
 class RichLabelAnnotator:
+    """
+    A class for annotating labels on an image using provided detections,
+    with support for Unicode characters by using a custom font.
+    """
+
     def __init__(
         self,
         color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
@@ -1115,6 +1120,22 @@ class RichLabelAnnotator:
         color_lookup: ColorLookup = ColorLookup.CLASS,
         border_radius: int = 0,
     ):
+        """
+        Args:
+            color (Union[Color, ColorPalette]): The color or color palette to use for
+                annotating the text background.
+            text_color (Color): The color to use for the text.
+            font_path (str): Path to the font file (e.g., ".ttf" or ".otf") to use for rendering text.
+                If `None`, the default PIL font will be used.
+            font_size (int): Font size for the text.
+            text_padding (int): Padding around the text within its background box.
+            text_position (Position): Position of the text relative to the detection.
+                Possible values are defined in the `Position` enum.
+            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
+                Options are `INDEX`, `CLASS`, `TRACK`.
+            border_radius (int): The radius to apply round edges. If the selected
+                value is higher than the lower dimension, width or height, is clipped.
+        """
         self.color = color
         self.text_color = text_color
         self.text_padding = text_padding
@@ -1137,6 +1158,45 @@ class RichLabelAnnotator:
         labels: List[str] = None,
         custom_color_lookup: Optional[np.ndarray] = None,
     ) -> ImageType:
+        """
+        Annotates the given scene with labels based on the provided
+        detections, with support for Unicode characters.
+
+        Args:
+            scene (ImageType): The image where labels will be drawn.
+                `ImageType` is a flexible type, accepting either `numpy.ndarray`
+                or `PIL.Image.Image`.
+            detections (Detections): Object detections to annotate.
+            labels (List[str]): Optional. Custom labels for each detection.
+            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
+                Allows to override the default color mapping strategy.
+
+        Returns:
+            The annotated image, matching the type of `scene` (`numpy.ndarray`
+                or `PIL.Image.Image`)
+
+        Example:
+            ```python
+             import supervision as sv
+
+            image = ...
+            detections = sv.Detections(...)
+
+            labels = [
+                f"{class_name} {confidence:.2f}"
+                for class_name, confidence
+                in zip(detections['class_name'], detections.confidence)
+            ]
+
+            label_annotator = sv.RichLabelAnnotator(font_path="path/to/font.ttf")
+            annotated_frame = label_annotator.annotate(
+                scene=image.copy(),
+                detections=detections,
+                labels=labels
+            )
+            ```
+
+        """
         if isinstance(scene, np.ndarray):
             scene = Image.fromarray(cv2.cvtColor(scene, cv2.COLOR_BGR2RGB))
         draw = ImageDraw.Draw(scene)
