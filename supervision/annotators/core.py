@@ -3,7 +3,7 @@ from typing import List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
-from PIL import ImageFont, ImageDraw
+from PIL import ImageFont, ImageDraw, Image
 
 from supervision.annotators.base import BaseAnnotator, ImageType
 from supervision.annotators.utils import ColorLookup, Trace, resolve_color
@@ -1154,7 +1154,7 @@ class RichLabelAnnotator:
         self,
         color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
         text_color: Color = Color.WHITE,
-        font_path: str = "/content/Arial Unicode Font.ttf",
+        font_path: str = None,
         font_size: int = 14,
         text_padding: int = 10,
         text_position: Position = Position.TOP_LEFT,
@@ -1163,12 +1163,19 @@ class RichLabelAnnotator:
     ):
         self.color = color
         self.text_color = text_color
-        self.font = ImageFont.truetype(font_path, font_size)
         self.text_padding = text_padding
         self.text_anchor = text_position
         self.color_lookup = color_lookup
         self.border_radius = border_radius
-    
+        if font_path is not None:
+            try:
+                self.font = ImageFont.truetype(font_path, font_size)
+            except OSError:
+                print(f"Font path '{font_path}' not found. Using a system font.")
+                self.font = ImageFont.load_default(size=font_size)
+        else:
+            self.font = ImageFont.load_default(size=font_size)
+
     @staticmethod
     def resolve_text_background_xyxy(
         center_coordinates: Tuple[int, int],
@@ -1221,8 +1228,7 @@ class RichLabelAnnotator:
                 center_x + text_w,
                 center_y + text_h // 2,
             )
-        
-    
+
     def annotate(
         self,
         scene: ImageType,
@@ -1230,6 +1236,8 @@ class RichLabelAnnotator:
         labels: List[str] = None,
         custom_color_lookup: Optional[np.ndarray] = None,
     ) -> ImageType:
+        if isinstance(scene, np.ndarray):
+            scene = Image.fromarray(cv2.cvtColor(scene, cv2.COLOR_BGR2RGB))
         draw = ImageDraw.Draw(scene)
         anchors_coordinates = detections.get_anchors_coordinates(
             anchor=self.text_anchor
@@ -1291,7 +1299,6 @@ class RichLabelAnnotator:
             )
 
         return scene
-
 
 class BlurAnnotator(BaseAnnotator):
     """
