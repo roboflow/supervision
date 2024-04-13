@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Optional, Union, Tuple
+from typing import Optional, Tuple, Union
 
 import numpy as np
 
@@ -61,6 +61,7 @@ def resolve_color_idx(
                 "Detections do not have tracker_id"
             )
         return detections.tracker_id[detection_idx]
+
 
 def resolve_text_background_xyxy(
     center_coordinates: Tuple[int, int],

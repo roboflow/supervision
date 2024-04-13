@@ -3,7 +3,7 @@ from typing import List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
-from PIL import ImageFont, ImageDraw, Image
+from PIL import Image, ImageDraw, ImageFont
 
 from supervision.annotators.base import BaseAnnotator, ImageType
 from supervision.annotators.utils import (
@@ -1104,7 +1104,6 @@ class LabelAnnotator:
 
 
 class RichLabelAnnotator:
-
     def __init__(
         self,
         color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
@@ -1201,6 +1200,7 @@ class RichLabelAnnotator:
             )
 
         return scene
+
 
 class BlurAnnotator(BaseAnnotator):
     """
