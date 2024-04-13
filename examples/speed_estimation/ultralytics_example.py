@@ -94,9 +94,7 @@ if __name__ == "__main__":
 
     frame_generator = sv.get_video_frames_generator(source_path=args.source_video_path)
 
-    polygon_zone = sv.PolygonZone(
-        polygon=SOURCE, frame_resolution_wh=video_info.resolution_wh
-    )
+    polygon_zone = sv.PolygonZone(polygon=SOURCE)
     view_transformer = ViewTransformer(source=SOURCE, target=TARGET)
 
     coordinates = defaultdict(lambda: deque(maxlen=video_info.fps))
