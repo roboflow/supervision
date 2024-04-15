@@ -104,25 +104,17 @@ def object_to_coco(
     image_id: int,
     polygon: Optional[np.ndarray] = None,
 ) -> dict:
+    box_width, box_height = xyxy[2] - xyxy[0], xyxy[3] - xyxy[1]
+
     coco_annotation = {
         "id": annotation_id,
         "image_id": image_id,
         "category_id": int(class_id),
         "iscrowd": 0,
+        "bbox": [xyxy[0], xyxy[1], box_width, box_height],
+        "area": box_width * box_height,
+        "segmentation": [] if polygon is None else [polygon.reshape(-1)]
     }
-
-    if polygon is None:
-        box_width, box_height = xyxy[2] - xyxy[0], xyxy[3] - xyxy[1]
-        coco_annotation.update(
-            {
-                "bbox": [xyxy[0], xyxy[1], box_width, box_height],
-                "area": box_width * box_height,
-                "segmentation": [],
-            }
-        )
-    else:
-        polygon = polygon.reshape(-1)
-        coco_annotation["segmentation"] = [polygon]
 
     return coco_annotation
 
