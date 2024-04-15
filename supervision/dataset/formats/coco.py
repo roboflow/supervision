@@ -113,7 +113,7 @@ def object_to_coco(
         "iscrowd": 0,
         "bbox": [xyxy[0], xyxy[1], box_width, box_height],
         "area": box_width * box_height,
-        "segmentation": [] if polygon is None else [polygon.reshape(-1)]
+        "segmentation": [] if polygon is None else [polygon.reshape(-1)],
     }
 
     return coco_annotation
