@@ -136,7 +136,9 @@ def detections_to_coco_annotations(
                 max_image_area_percentage=max_image_area_percentage,
                 approximation_percentage=approximation_percentage,
             )
-            reshaped_polygons = [polygon.reshape(-1) for polygon in polygons if polygon.any()]
+            reshaped_polygons = [
+                polygon.reshape(-1) for polygon in polygons if polygon.any()
+            ]
             if reshaped_polygons:
                 next_object = object_to_coco(
                     xyxy=xyxy,
