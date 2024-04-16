@@ -113,7 +113,7 @@ def object_to_coco(
         "iscrowd": 0,
         "bbox": [xyxy[0], xyxy[1], box_width, box_height],
         "area": box_width * box_height,
-        "segmentation": [] if polygon is None else [polygon.reshape(-1)],
+        "segmentation": [] if polygon is None else polygon,
     }
 
     return coco_annotation
@@ -136,17 +136,17 @@ def detections_to_coco_annotations(
                 max_image_area_percentage=max_image_area_percentage,
                 approximation_percentage=approximation_percentage,
             )
-            for polygon in polygons:
-                if polygon.any():  # polygon not empty
-                    next_object = object_to_coco(
-                        xyxy=xyxy,
-                        class_id=class_id,
-                        annotation_id=annotation_id,
-                        image_id=image_id,
-                        polygon=polygon,
-                    )
-                    annotation.append(next_object)
-                    annotation_id += 1
+            reshaped_polygons = [polygon.reshape(-1) for polygon in polygons if polygon.any()]
+            if reshaped_polygons:
+                next_object = object_to_coco(
+                    xyxy=xyxy,
+                    class_id=class_id,
+                    annotation_id=annotation_id,
+                    image_id=image_id,
+                    polygon=reshaped_polygons,
+                )
+                annotation.append(next_object)
+                annotation_id += 1
         else:
             next_object = object_to_coco(
                 xyxy=xyxy,
