@@ -85,11 +85,14 @@ def coco_annotations_to_detections(
     if with_masks:
         polygons = [
             np.reshape(
-                np.asarray(image_annotation["segmentation"], dtype=np.int32), (-1, 2)
-            )
+                np.asarray(segmentation, dtype=np.int32), (-1, 2)
+            ) 
             for image_annotation in image_annotations
+            for segmentation in image_annotation["segmentation"]
         ]
-        mask = _polygons_to_masks(polygons=polygons, resolution_wh=resolution_wh)
+        separate_masks = _polygons_to_masks(polygons=polygons, resolution_wh=resolution_wh)
+        mask = np.sum(separate_masks, axis=0, keepdims=True) # merge mask parts representing a disjoint mask
+
         return Detections(
             class_id=np.asarray(class_ids, dtype=int), xyxy=xyxy, mask=mask
         )
