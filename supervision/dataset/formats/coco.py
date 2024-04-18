@@ -95,7 +95,7 @@ def coco_annotations_to_detections(
             np.sum(
                 separate_masks, axis=0, keepdims=True
             )  # merge mask parts representing a disjoint mask
-            > 0 # ensure that the result is a binary mask
+            > 0  # ensure that the result is a binary mask
         )
 
         return Detections(
