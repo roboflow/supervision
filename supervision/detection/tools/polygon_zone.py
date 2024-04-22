@@ -1,3 +1,4 @@
+import warnings
 from dataclasses import replace
 from typing import Iterable, Optional, Tuple
 
@@ -11,7 +12,7 @@ from supervision.draw.color import Color
 from supervision.draw.utils import draw_polygon, draw_text
 from supervision.geometry.core import Position
 from supervision.geometry.utils import get_polygon_center
-from supervision.utils.internal import deprecated_parameter
+from supervision.utils.internal import SupervisionWarnings, deprecated_parameter
 
 
 class PolygonZone:
@@ -21,7 +22,6 @@ class PolygonZone:
     Attributes:
         polygon (np.ndarray): A polygon represented by a numpy array of shape
             `(N, 2)`, containing the `x`, `y` coordinates of the points.
-        frame_resolution_wh (Tuple[int, int]): The frame resolution (width, height)
         triggering_anchors (Iterable[sv.Position]): A list of positions specifying
             which anchors of the detections bounding box to consider when deciding on
             whether the detection fits within the PolygonZone
@@ -41,18 +41,26 @@ class PolygonZone:
     def __init__(
         self,
         polygon: npt.NDArray[np.int64],
-        frame_resolution_wh: Tuple[int, int],
+        frame_resolution_wh: Optional[Tuple[int, int]] = None,
         triggering_anchors: Iterable[Position] = (Position.BOTTOM_CENTER,),
     ):
+        if frame_resolution_wh is not None:
+            warnings.warn(
+                "The `frame_resolution_wh` parameter is no longer required and will be "
+                "dropped in version supervision-0.24.0. The mask resolution is now "
+                "calculated automatically based on the polygon coordinates.",
+                category=SupervisionWarnings,
+            )
+
         self.polygon = polygon.astype(int)
-        self.frame_resolution_wh = frame_resolution_wh
         self.triggering_anchors = triggering_anchors
 
         self.current_count = 0
 
-        width, height = frame_resolution_wh
+        x_max, y_max = np.max(polygon, axis=0)
+        self.frame_resolution_wh = (x_max + 1, y_max + 1)
         self.mask = polygon_to_mask(
-            polygon=polygon, resolution_wh=(width + 1, height + 1)
+            polygon=polygon, resolution_wh=(x_max + 2, y_max + 2)
         )
 
     def trigger(self, detections: Detections) -> npt.NDArray[np.bool_]:

@@ -38,9 +38,11 @@ nav:
   - Home: index.md
   - How to:
       - Detect and Annotate: how_to/detect_and_annotate.md
+      - Save Detections: how_to/save_detections.md
+      - Filter Detections: how_to/filter_detections.md
       - Detect Small Objects: how_to/detect_small_objects.md
       - Track Objects: how_to/track_objects.md
-      - Filter Detections: how_to/filter_detections.md
+
   - API:
     - Annotators: annotators.md
     - Classifications:
@@ -66,6 +68,7 @@ nav:
     - Utils:
         - Video: utils/video.md
         - Image: utils/image.md
+        - Iterables: utils/iterables.md
         - Notebook: utils/notebook.md
         - File: utils/file.md
     - Assets: assets.md

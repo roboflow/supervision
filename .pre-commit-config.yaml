@@ -7,7 +7,7 @@ ci:
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v4.6.0
     hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
@@ -25,7 +25,6 @@ repos:
         args: ['--autofix', '--no-sort-keys', '--indent=4']
       - id: end-of-file-fixer
       - id: mixed-line-ending
-
 
 
   -   repo: https://github.com/PyCQA/bandit
@@ -46,7 +45,7 @@ repos:
 
 
   -   repo: https://github.com/astral-sh/ruff-pre-commit
-      rev: v0.3.4
+      rev: v0.3.7
       hooks:
       -   id: ruff
           args: [--fix, --exit-non-zero-on-fix]

@@ -15,7 +15,7 @@ source image.
 
 ![basic-annotation](https://media.roboflow.com/supervision_detect_and_annotate_example_1.png)
 
-## Run Inference
+## Run Detection
 
 First, you'll need to obtain predictions from your object detection or segmentation
 model.
