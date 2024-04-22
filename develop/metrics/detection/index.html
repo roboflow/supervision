@@ -2045,7 +2045,7 @@
 
 
 
-  <p><strong>Attributes:</strong></p>
+  <p><span class="doc-section-title">Attributes:</span></p>
   <table>
     <thead>
       <tr>
@@ -2055,7 +2055,7 @@
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code><span title="supervision.metrics.detection.ConfusionMatrix.matrix">matrix</span></code></td>
           <td>
                 <code><span title="numpy.ndarray">ndarray</span></code>
@@ -2068,7 +2068,7 @@ containing the number of <code>TP</code>, <code>FP</code>, <code>FN</code> and <
             </div>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code><span title="supervision.metrics.detection.ConfusionMatrix.classes">classes</span></code></td>
           <td>
                 <code><span title="typing.List">List</span>[str]</code>
@@ -2079,7 +2079,7 @@ containing the number of <code>TP</code>, <code>FP</code>, <code>FN</code> and <
             </div>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code><span title="supervision.metrics.detection.ConfusionMatrix.conf_threshold">conf_threshold</span></code></td>
           <td>
                 <code>float</code>
@@ -2091,7 +2091,7 @@ Detections with lower confidence will be excluded from the matrix.</p>
             </div>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code><span title="supervision.metrics.detection.ConfusionMatrix.iou_threshold">iou_threshold</span></code></td>
           <td>
                 <code>float</code>
@@ -2989,7 +2989,7 @@ Detections with lower IoU will be classified as <code>FP</code>.</p>
 
 
 
-  <p><strong>Parameters:</strong></p>
+  <p><span class="doc-section-title">Parameters:</span></p>
   <table>
     <thead>
       <tr>
@@ -3000,7 +3000,7 @@ Detections with lower IoU will be classified as <code>FP</code>.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>dataset</code></td>
           <td>
                 <code><a class="autorefs autorefs-internal" title="supervision.dataset.core.DetectionDataset" href="../../datasets/#supervision.dataset.core.DetectionDataset">DetectionDataset</a></code>
@@ -3014,7 +3014,7 @@ Detections with lower IoU will be classified as <code>FP</code>.</p>
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>callback</code></td>
           <td>
                 <code><span title="typing.Callable">Callable</span>[[<span title="numpy.ndarray">ndarray</span>], <a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../../detection/core/#supervision.detection.core.Detections">Detections</a>]</code>
@@ -3029,7 +3029,7 @@ as input and returns Detections object.</p>
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>conf_threshold</code></td>
           <td>
                 <code>float</code>
@@ -3044,7 +3044,7 @@ Detections with lower confidence will be excluded.</p>
                 <code>0.3</code>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>iou_threshold</code></td>
           <td>
                 <code>float</code>
@@ -3064,7 +3064,7 @@ Detections with lower IoU will be classified as <code>FP</code>.</p>
 
 
 
-  <p><strong>Returns:</strong></p>
+  <p><span class="doc-section-title">Returns:</span></p>
   <table>
     <thead>
       <tr>
@@ -3073,7 +3073,7 @@ Detections with lower IoU will be classified as <code>FP</code>.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
 <td><code>ConfusionMatrix</code></td>          <td>
                 <code><a class="autorefs autorefs-internal" title="supervision.metrics.detection.ConfusionMatrix" href="#supervision.metrics.detection.ConfusionMatrix">ConfusionMatrix</a></code>
           </td>
@@ -3264,7 +3264,7 @@ Detections with lower IoU will be classified as <code>FP</code>.</p>
 
 
 
-  <p><strong>Parameters:</strong></p>
+  <p><span class="doc-section-title">Parameters:</span></p>
   <table>
     <thead>
       <tr>
@@ -3275,7 +3275,7 @@ Detections with lower IoU will be classified as <code>FP</code>.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>predictions</code></td>
           <td>
                 <code><span title="numpy.ndarray">ndarray</span></code>
@@ -3292,7 +3292,7 @@ Each row is expected to be in
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>targets</code></td>
           <td>
                 <code><span title="numpy.ndarray">ndarray</span></code>
@@ -3309,7 +3309,7 @@ Each row is expected to be in
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>num_classes</code></td>
           <td>
                 <code>int</code>
@@ -3323,7 +3323,7 @@ Each row is expected to be in
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>conf_threshold</code></td>
           <td>
                 <code>float</code>
@@ -3338,7 +3338,7 @@ Detections with lower confidence will be excluded.</p>
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>iou_threshold</code></td>
           <td>
                 <code>float</code>
@@ -3358,7 +3358,7 @@ Detections with lower iou will be classified as <code>FP</code>.</p>
 
 
 
-  <p><strong>Returns:</strong></p>
+  <p><span class="doc-section-title">Returns:</span></p>
   <table>
     <thead>
       <tr>
@@ -3367,7 +3367,7 @@ Detections with lower iou will be classified as <code>FP</code>.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td>
                 <code><span title="numpy.ndarray">ndarray</span></code>
           </td>
@@ -3556,7 +3556,7 @@ Detections with lower iou will be classified as <code>FP</code>.</p>
 
 
 
-  <p><strong>Parameters:</strong></p>
+  <p><span class="doc-section-title">Parameters:</span></p>
   <table>
     <thead>
       <tr>
@@ -3567,7 +3567,7 @@ Detections with lower iou will be classified as <code>FP</code>.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>targets</code></td>
           <td>
                 <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../../detection/core/#supervision.detection.core.Detections">Detections</a>]</code>
@@ -3581,7 +3581,7 @@ Detections with lower iou will be classified as <code>FP</code>.</p>
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>predictions</code></td>
           <td>
                 <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../../detection/core/#supervision.detection.core.Detections">Detections</a>]</code>
@@ -3595,7 +3595,7 @@ Detections with lower iou will be classified as <code>FP</code>.</p>
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>classes</code></td>
           <td>
                 <code><span title="typing.List">List</span>[str]</code>
@@ -3609,7 +3609,7 @@ Detections with lower iou will be classified as <code>FP</code>.</p>
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>conf_threshold</code></td>
           <td>
                 <code>float</code>
@@ -3624,7 +3624,7 @@ Detections with lower confidence will be excluded.</p>
                 <code>0.3</code>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>iou_threshold</code></td>
           <td>
                 <code>float</code>
@@ -3644,7 +3644,7 @@ Detections with lower IoU will be classified as <code>FP</code>.</p>
 
 
 
-  <p><strong>Returns:</strong></p>
+  <p><span class="doc-section-title">Returns:</span></p>
   <table>
     <thead>
       <tr>
@@ -3653,7 +3653,7 @@ Detections with lower IoU will be classified as <code>FP</code>.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
 <td><code>ConfusionMatrix</code></td>          <td>
                 <code><a class="autorefs autorefs-internal" title="supervision.metrics.detection.ConfusionMatrix" href="#supervision.metrics.detection.ConfusionMatrix">ConfusionMatrix</a></code>
           </td>
@@ -3859,7 +3859,7 @@ Detections with lower IoU will be classified as <code>FP</code>.</p>
 
 
 
-  <p><strong>Parameters:</strong></p>
+  <p><span class="doc-section-title">Parameters:</span></p>
   <table>
     <thead>
       <tr>
@@ -3870,7 +3870,7 @@ Detections with lower IoU will be classified as <code>FP</code>.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>predictions</code></td>
           <td>
                 <code><span title="typing.List">List</span>[<span title="numpy.ndarray">ndarray</span>]</code>
@@ -3887,7 +3887,7 @@ objects. Each row is expected to be in
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>targets</code></td>
           <td>
                 <code><span title="typing.List">List</span>[<span title="numpy.ndarray">ndarray</span>]</code>
@@ -3904,7 +3904,7 @@ ground-truth objects. Each row is expected to be in
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>classes</code></td>
           <td>
                 <code><span title="typing.List">List</span>[str]</code>
@@ -3918,7 +3918,7 @@ ground-truth objects. Each row is expected to be in
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>conf_threshold</code></td>
           <td>
                 <code>float</code>
@@ -3933,7 +3933,7 @@ Detections with lower confidence will be excluded.</p>
                 <code>0.3</code>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>iou_threshold</code></td>
           <td>
                 <code>float</code>
@@ -3953,7 +3953,7 @@ Detections with lower iou will be classified as <code>FP</code>.</p>
 
 
 
-  <p><strong>Returns:</strong></p>
+  <p><span class="doc-section-title">Returns:</span></p>
   <table>
     <thead>
       <tr>
@@ -3962,7 +3962,7 @@ Detections with lower iou will be classified as <code>FP</code>.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
 <td><code>ConfusionMatrix</code></td>          <td>
                 <code><a class="autorefs autorefs-internal" title="supervision.metrics.detection.ConfusionMatrix" href="#supervision.metrics.detection.ConfusionMatrix">ConfusionMatrix</a></code>
           </td>
@@ -4230,7 +4230,7 @@ Detections with lower iou will be classified as <code>FP</code>.</p>
 
 
 
-  <p><strong>Parameters:</strong></p>
+  <p><span class="doc-section-title">Parameters:</span></p>
   <table>
     <thead>
       <tr>
@@ -4241,7 +4241,7 @@ Detections with lower iou will be classified as <code>FP</code>.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>save_path</code></td>
           <td>
                 <code><span title="typing.Optional">Optional</span>[str]</code>
@@ -4256,7 +4256,7 @@ plot will be displayed.</p>
                 <code>None</code>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>title</code></td>
           <td>
                 <code><span title="typing.Optional">Optional</span>[str]</code>
@@ -4270,7 +4270,7 @@ plot will be displayed.</p>
                 <code>None</code>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>classes</code></td>
           <td>
                 <code><span title="typing.Optional">Optional</span>[<span title="typing.List">List</span>[str]]</code>
@@ -4285,7 +4285,7 @@ If not provided, all classes will be displayed.</p>
                 <code>None</code>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>normalize</code></td>
           <td>
                 <code>bool</code>
@@ -4299,7 +4299,7 @@ If not provided, all classes will be displayed.</p>
                 <code>False</code>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>fig_size</code></td>
           <td>
                 <code><span title="typing.Tuple">Tuple</span>[int, int]</code>
@@ -4318,7 +4318,7 @@ If not provided, all classes will be displayed.</p>
 
 
 
-  <p><strong>Returns:</strong></p>
+  <p><span class="doc-section-title">Returns:</span></p>
   <table>
     <thead>
       <tr>
@@ -4327,7 +4327,7 @@ If not provided, all classes will be displayed.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td>
                 <code><span title="matplotlib.figure.Figure">Figure</span></code>
           </td>
@@ -4548,7 +4548,7 @@ If not provided, all classes will be displayed.</p>
 
 
 
-  <p><strong>Attributes:</strong></p>
+  <p><span class="doc-section-title">Attributes:</span></p>
   <table>
     <thead>
       <tr>
@@ -4558,7 +4558,7 @@ If not provided, all classes will be displayed.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code><span title="supervision.metrics.detection.MeanAveragePrecision.map50_95">map50_95</span></code></td>
           <td>
                 <code>float</code>
@@ -4570,7 +4570,7 @@ ranging from <code>0.50</code> to <code>0.95</code> with a step size of <code>0.
             </div>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code><span title="supervision.metrics.detection.MeanAveragePrecision.map50">map50</span></code></td>
           <td>
                 <code>float</code>
@@ -4582,7 +4582,7 @@ an IoU threshold of <code>0.50</code>.</p>
             </div>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code><span title="supervision.metrics.detection.MeanAveragePrecision.map75">map75</span></code></td>
           <td>
                 <code>float</code>
@@ -4594,7 +4594,7 @@ an IoU threshold of <code>0.75</code>.</p>
             </div>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code><span title="supervision.metrics.detection.MeanAveragePrecision.per_class_ap50_95">per_class_ap50_95</span></code></td>
           <td>
                 <code><span title="numpy.ndarray">ndarray</span></code>
@@ -5345,7 +5345,7 @@ provided for each individual class.</p>
 
 
 
-  <p><strong>Parameters:</strong></p>
+  <p><span class="doc-section-title">Parameters:</span></p>
   <table>
     <thead>
       <tr>
@@ -5356,7 +5356,7 @@ provided for each individual class.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>dataset</code></td>
           <td>
                 <code><a class="autorefs autorefs-internal" title="supervision.dataset.core.DetectionDataset" href="../../datasets/#supervision.dataset.core.DetectionDataset">DetectionDataset</a></code>
@@ -5370,7 +5370,7 @@ provided for each individual class.</p>
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>callback</code></td>
           <td>
                 <code><span title="typing.Callable">Callable</span>[[<span title="numpy.ndarray">ndarray</span>], <a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../../detection/core/#supervision.detection.core.Detections">Detections</a>]</code>
@@ -5534,7 +5534,7 @@ an image as input and returns Detections object.</p>
 
 
 
-  <p><strong>Parameters:</strong></p>
+  <p><span class="doc-section-title">Parameters:</span></p>
   <table>
     <thead>
       <tr>
@@ -5545,7 +5545,7 @@ an image as input and returns Detections object.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>recall</code></td>
           <td>
                 <code><span title="numpy.ndarray">ndarray</span></code>
@@ -5559,7 +5559,7 @@ an image as input and returns Detections object.</p>
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>precision</code></td>
           <td>
                 <code><span title="numpy.ndarray">ndarray</span></code>
@@ -5578,7 +5578,7 @@ an image as input and returns Detections object.</p>
 
 
 
-  <p><strong>Returns:</strong></p>
+  <p><span class="doc-section-title">Returns:</span></p>
   <table>
     <thead>
       <tr>
@@ -5587,7 +5587,7 @@ an image as input and returns Detections object.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
 <td><code>float</code></td>          <td>
                 <code>float</code>
           </td>
@@ -5676,7 +5676,7 @@ an image as input and returns Detections object.</p>
 
 
 
-  <p><strong>Parameters:</strong></p>
+  <p><span class="doc-section-title">Parameters:</span></p>
   <table>
     <thead>
       <tr>
@@ -5687,7 +5687,7 @@ an image as input and returns Detections object.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>targets</code></td>
           <td>
                 <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../../detection/core/#supervision.detection.core.Detections">Detections</a>]</code>
@@ -5701,7 +5701,7 @@ an image as input and returns Detections object.</p>
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>predictions</code></td>
           <td>
                 <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../../detection/core/#supervision.detection.core.Detections">Detections</a>]</code>
@@ -5870,7 +5870,7 @@ an image as input and returns Detections object.</p>
 
 
 
-  <p><strong>Parameters:</strong></p>
+  <p><span class="doc-section-title">Parameters:</span></p>
   <table>
     <thead>
       <tr>
@@ -5881,7 +5881,7 @@ an image as input and returns Detections object.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>predictions</code></td>
           <td>
                 <code><span title="typing.List">List</span>[<span title="numpy.ndarray">ndarray</span>]</code>
@@ -5898,7 +5898,7 @@ in <code>(x_min, y_min, x_max, y_max, class, conf)</code> format.</p>
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>targets</code></td>
           <td>
                 <code><span title="typing.List">List</span>[<span title="numpy.ndarray">ndarray</span>]</code>
