@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, List, Tuple
 
 import cv2
 import numpy as np
@@ -7,7 +7,7 @@ import numpy as np
 from supervision.annotators.base import ImageType
 from supervision.draw.color import Color
 from supervision.keypoint.core import KeyPoints
-from supervision.keypoint.skeletons import KnownSkeletons, Skeleton
+from supervision.keypoint.skeletons import resolve_skeleton_by_vertex_count
 from supervision.utils.conversion import convert_for_annotation_method
 
 
@@ -57,7 +57,7 @@ class SkeletonAnnotator(BaseKeyPointAnnotator):
         self,
         color: Color = Color.ROBOFLOW,
         thickness: int = 2,
-        skeleton: Optional[Skeleton] = None,
+        skeleton: Optional[List[Tuple[int, int]]] = None,
     ) -> None:
         """
         Draw the lines between points of the image.
@@ -83,9 +83,9 @@ class SkeletonAnnotator(BaseKeyPointAnnotator):
         for xy in xy_all:
             skeleton = self.skeleton
             if not skeleton:
-                skeleton = KnownSkeletons().get_skeleton(len(xy))
+                skeleton = resolve_skeleton_by_vertex_count(len(xy))
 
-            for class_a, class_b in skeleton.limbs:
+            for class_a, class_b in skeleton:
                 xy_a = xy[class_a - 1]
                 xy_b = xy[class_b - 1]
                 missing_a = np.allclose(xy_a, 0)
