@@ -58,8 +58,7 @@ class KeyPoints:
     xy: npt.NDArray[np.float32]
     class_id: Optional[npt.NDArray[np.int_]] = None
     confidence: Optional[npt.NDArray[np.float32]] = None
-    data: Dict[str, Union[npt.NDArray[Any], List]
-               ] = field(default_factory=dict)
+    data: Dict[str, Union[npt.NDArray[Any], List]] = field(default_factory=dict)
 
     def __post_init__(self):
         validate_keypoints_fields(
@@ -139,8 +138,7 @@ class KeyPoints:
 
         xy = ultralytics_results.keypoints.xy.cpu().numpy()
         class_id = ultralytics_results.boxes.cls.cpu().numpy().astype(int)
-        class_names = np.array([ultralytics_results.names[i]
-                               for i in class_id])
+        class_names = np.array([ultralytics_results.names[i] for i in class_id])
 
         confidence = ultralytics_results.keypoints.conf.cpu().numpy()
         data = {CLASS_NAME_DATA_FIELD: class_names}

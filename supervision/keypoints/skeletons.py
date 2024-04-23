@@ -1,5 +1,3 @@
-
-
 from typing import List, Tuple
 
 
@@ -70,6 +68,7 @@ class KnownSkeletons:
         # Suppose you have a model returning 15 keypoints.
         skeleton = KnownSkeletons().get_skeleton(15)
     """
+
     _instance = None
     _skeletons: dict[int, Skeleton] = {}
 
@@ -81,14 +80,14 @@ class KnownSkeletons:
     def add_skeleton(self, skeleton: Skeleton) -> None:
         len_limbs = len(skeleton.limbs)
         if len_limbs in self._skeletons:
-            raise ValueError(
-                f"A skeleton with {len_limbs} limbs already exists")
+            raise ValueError(f"A skeleton with {len_limbs} limbs already exists")
         self._skeletons[len_limbs] = skeleton
 
     def get_skeleton(self, limb_count: int) -> Skeleton:
         if limb_count not in self._skeletons:
             print(
-                f"Warning: No skeleton found with {limb_count} limbs. Will create one now.")
+                f"Warning: No skeleton found with {limb_count} limbs. Will create one now."
+            )
             self.add_skeleton(_make_sequential_skeleton(limb_count))
         return self._skeletons[limb_count]
 

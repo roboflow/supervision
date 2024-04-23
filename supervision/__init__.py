@@ -56,9 +56,6 @@ from supervision.detection.utils import (
     polygon_to_xyxy,
     scale_boxes,
 )
-from supervision.keypoints.core import KeyPoints
-from supervision.keypoints.skeletons import KnownSkeletons, Skeleton
-from supervision.keypoints.annotate import KeyPointAnnotator, SkeletonAnnotator
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import (
     calculate_optimal_line_thickness,
@@ -72,7 +69,9 @@ from supervision.draw.utils import (
 )
 from supervision.geometry.core import Point, Position, Rect
 from supervision.geometry.utils import get_polygon_center
+from supervision.keypoints.annotate import KeyPointAnnotator, SkeletonAnnotator
 from supervision.keypoints.core import KeyPoints
+from supervision.keypoints.skeletons import KnownSkeletons, Skeleton
 from supervision.metrics.detection import ConfusionMatrix, MeanAveragePrecision
 from supervision.tracker.byte_tracker.core import ByteTrack
 from supervision.utils.file import list_files_with_extensions

@@ -8,7 +8,7 @@ from supervision.annotators.base import ImageType
 from supervision.annotators.utils import scene_to_annotator_img_type
 from supervision.draw.color import Color
 from supervision.keypoints.core import KeyPoints
-from supervision.keypoints.skeletons import Skeleton, KnownSkeletons
+from supervision.keypoints.skeletons import KnownSkeletons, Skeleton
 
 
 class BaseKeyPointAnnotator(ABC):
@@ -75,14 +75,11 @@ class SkeletonAnnotator(BaseKeyPointAnnotator):
         self.skeleton = skeleton
 
     @scene_to_annotator_img_type
-    def annotate(
-        self, scene: ImageType, keypoints: KeyPoints
-    ) -> ImageType:
+    def annotate(self, scene: ImageType, keypoints: KeyPoints) -> ImageType:
         if len(keypoints) == 0:
             return scene
         if keypoints.class_id is None:
-            raise ValueError(
-                "KeyPoints must have class_id to annotate a skeleton")
+            raise ValueError("KeyPoints must have class_id to annotate a skeleton")
 
         xy_all = keypoints.xy
         for xy in xy_all:
