@@ -50,15 +50,11 @@ class PointAnnotator(BaseKeyPointAnnotator):
 class SkeletonAnnotator(BaseKeyPointAnnotator):
     def __init__(
         self,
-        point_color: Color = Color.GREEN,
-        point_radius: int = 4,
-        limb_color: Color = Color.GREEN,
-        limb_thickness: int = 2,
+        color: Color = Color.GREEN,
+        thickness: int = 2,
     ) -> None:
-        self.point_color = point_color
-        self.point_radius = point_radius
-        self.limb_color = limb_color
-        self.limb_thickness = limb_thickness
+        self.color = color
+        self.thickness = thickness
 
     @scene_to_annotator_img_type
     def annotate(
@@ -67,21 +63,10 @@ class SkeletonAnnotator(BaseKeyPointAnnotator):
         if len(keypoints) == 0:
             return scene
         if keypoints.class_id is None:
-            raise ValueError("KeyPoints must have class_id to annotate a skeleton")
-
-        # print(keypoints)
+            raise ValueError(
+                "KeyPoints must have class_id to annotate a skeleton")
 
         xy = keypoints.xy[0]
-        class_id = keypoints.class_id[0]
-
-        for i, (x, y) in enumerate(xy):
-            cv2.circle(
-                img=scene,
-                center=(int(x), int(y)),
-                radius=self.point_radius,
-                color=self.point_color.as_bgr(),
-                thickness=-1,
-            )
 
         for class_a, class_b in skeleton.limbs:
             xy_a = xy[class_a - 1]
@@ -95,8 +80,8 @@ class SkeletonAnnotator(BaseKeyPointAnnotator):
                 img=scene,
                 pt1=(int(xy_a[0]), int(xy_a[1])),
                 pt2=(int(xy_b[0]), int(xy_b[1])),
-                color=self.limb_color.as_bgr(),
-                thickness=self.limb_thickness,
+                color=self.color.as_bgr(),
+                thickness=self.thickness,
             )
 
         return scene
