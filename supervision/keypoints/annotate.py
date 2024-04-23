@@ -40,15 +40,16 @@ class KeyPointAnnotator(BaseKeyPointAnnotator):
         if len(keypoints) == 0:
             return scene
 
-        xy = keypoints.xy[0]
-        for i, (x, y) in enumerate(xy):
-            cv2.circle(
-                img=scene,
-                center=(int(x), int(y)),
-                radius=self.radius,
-                color=self.color.as_bgr(),
-                thickness=-1,
-            )
+        xy_all = keypoints.xy
+        for xy in xy_all:
+            for x, y in xy:
+                cv2.circle(
+                    img=scene,
+                    center=(int(x), int(y)),
+                    radius=self.radius,
+                    color=self.color.as_bgr(),
+                    thickness=-1,
+                )
 
         return scene
 
@@ -83,25 +84,26 @@ class SkeletonAnnotator(BaseKeyPointAnnotator):
             raise ValueError(
                 "KeyPoints must have class_id to annotate a skeleton")
 
-        xy = keypoints.xy[0]
-        skeleton = self.skeleton
-        if not skeleton:
-            skeleton = KnownSkeletons().get_skeleton(len(xy))
+        xy_all = keypoints.xy
+        for xy in xy_all:
+            skeleton = self.skeleton
+            if not skeleton:
+                skeleton = KnownSkeletons().get_skeleton(len(xy))
 
-        for class_a, class_b in skeleton.limbs:
-            xy_a = xy[class_a - 1]
-            xy_b = xy[class_b - 1]
-            missing_a = np.allclose(xy_a, 0)
-            missing_b = np.allclose(xy_b, 0)
-            if missing_a or missing_b:
-                continue
+            for class_a, class_b in skeleton.limbs:
+                xy_a = xy[class_a - 1]
+                xy_b = xy[class_b - 1]
+                missing_a = np.allclose(xy_a, 0)
+                missing_b = np.allclose(xy_b, 0)
+                if missing_a or missing_b:
+                    continue
 
-            cv2.line(
-                img=scene,
-                pt1=(int(xy_a[0]), int(xy_a[1])),
-                pt2=(int(xy_b[0]), int(xy_b[1])),
-                color=self.color.as_bgr(),
-                thickness=self.thickness,
-            )
+                cv2.line(
+                    img=scene,
+                    pt1=(int(xy_a[0]), int(xy_a[1])),
+                    pt2=(int(xy_b[0]), int(xy_b[1])),
+                    color=self.color.as_bgr(),
+                    thickness=self.thickness,
+                )
 
         return scene
