@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 
 from supervision.detection.core import Detections
-from supervision.keypoints.core import KeyPoints
+from supervision.keypoint.core import KeyPoints
 
 
 def mock_detections(
