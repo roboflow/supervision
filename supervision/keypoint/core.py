@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
@@ -98,7 +100,7 @@ class KeyPoints:
                 get_data_item(self.data, i),
             )
 
-    def __eq__(self, other: "KeyPoints") -> bool:
+    def __eq__(self, other: KeyPoints) -> bool:
         return all(
             [
                 np.array_equal(self.xy, other.xy),
@@ -109,7 +111,7 @@ class KeyPoints:
         )
 
     @classmethod
-    def from_ultralytics(cls, ultralytics_results) -> "KeyPoints":
+    def from_ultralytics(cls, ultralytics_results) -> KeyPoints:
         """
         Creates a Keypoints instance from a
             [YOLOv8](https://github.com/ultralytics/ultralytics) inference result.
@@ -225,7 +227,7 @@ class KeyPoints:
         self.data[key] = value
 
     @classmethod
-    def empty(cls) -> "KeyPoints":
+    def empty(cls) -> KeyPoints:
         """
         Create an empty Keypoints object with no keypoints.
 

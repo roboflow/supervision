@@ -50,6 +50,9 @@ nav:
     - Detections:
         - Core: detection/core.md
         - Utils: detection/utils.md
+    - KeyPoints:
+        - Core: keypoint/core.md
+        - Annotators: keypoint/annotate.md
     - Tools:
         - Line Zone: detection/tools/line_zone.md
         - Polygon Zone: detection/tools/polygon_zone.md

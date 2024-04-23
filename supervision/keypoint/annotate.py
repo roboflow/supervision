@@ -6,8 +6,8 @@ import numpy as np
 
 from supervision.annotators.base import ImageType
 from supervision.draw.color import Color
-from supervision.keypoints.core import KeyPoints
-from supervision.keypoints.skeletons import KnownSkeletons, Skeleton
+from supervision.keypoint.core import KeyPoints
+from supervision.keypoint.skeletons import KnownSkeletons, Skeleton
 from supervision.utils.conversion import convert_for_annotation_method
 
 
@@ -17,7 +17,7 @@ class BaseKeyPointAnnotator(ABC):
         pass
 
 
-class KeyPointAnnotator(BaseKeyPointAnnotator):
+class VertexAnnotator(BaseKeyPointAnnotator):
     def __init__(
         self,
         color: Color = Color.ROBOFLOW,
@@ -35,8 +35,6 @@ class KeyPointAnnotator(BaseKeyPointAnnotator):
 
     @convert_for_annotation_method
     def annotate(self, scene: ImageType, keypoints: KeyPoints) -> ImageType:
-        # TODO: I'm getting shape [1, N, 2] here - not [N, 2].
-        #       Seems like it accounts for more than 1 person in an image.
         if len(keypoints) == 0:
             return scene
 
