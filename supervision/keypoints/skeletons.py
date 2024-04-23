@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
 
 class Skeleton:
@@ -70,7 +70,7 @@ class KnownSkeletons:
     """
 
     _instance = None
-    _skeletons: dict[int, Skeleton] = {}
+    _skeletons: Dict[int, Skeleton] = {}
 
     def __new__(cls):
         if cls._instance is None:
@@ -86,7 +86,8 @@ class KnownSkeletons:
     def get_skeleton(self, limb_count: int) -> Skeleton:
         if limb_count not in self._skeletons:
             print(
-                f"Warning: No skeleton found with {limb_count} limbs. Will create one now."
+                f"Warning: No skeleton found with {limb_count} limbs. "
+                f"Will create one now."
             )
             self.add_skeleton(_make_sequential_skeleton(limb_count))
         return self._skeletons[limb_count]
