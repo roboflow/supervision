@@ -5,10 +5,10 @@ import cv2
 import numpy as np
 
 from supervision.annotators.base import ImageType
-from supervision.annotators.utils import scene_to_annotator_img_type
 from supervision.draw.color import Color
 from supervision.keypoints.core import KeyPoints
 from supervision.keypoints.skeletons import KnownSkeletons, Skeleton
+from supervision.utils.conversion import convert_for_annotation_method
 
 
 class BaseKeyPointAnnotator(ABC):
@@ -33,7 +33,7 @@ class KeyPointAnnotator(BaseKeyPointAnnotator):
         self.color = color
         self.radius = radius
 
-    @scene_to_annotator_img_type
+    @convert_for_annotation_method
     def annotate(self, scene: ImageType, keypoints: KeyPoints) -> ImageType:
         # TODO: I'm getting shape [1, N, 2] here - not [N, 2].
         #       Seems like it accounts for more than 1 person in an image.
@@ -74,7 +74,7 @@ class SkeletonAnnotator(BaseKeyPointAnnotator):
         self.thickness = thickness
         self.skeleton = skeleton
 
-    @scene_to_annotator_img_type
+    @convert_for_annotation_method
     def annotate(self, scene: ImageType, keypoints: KeyPoints) -> ImageType:
         if len(keypoints) == 0:
             return scene
