@@ -58,7 +58,8 @@ class KeyPoints:
     xy: npt.NDArray[np.float32]
     class_id: Optional[npt.NDArray[np.int_]] = None
     confidence: Optional[npt.NDArray[np.float32]] = None
-    data: Dict[str, Union[npt.NDArray[Any], List]] = field(default_factory=dict)
+    data: Dict[str, Union[npt.NDArray[Any], List]
+               ] = field(default_factory=dict)
 
     def __post_init__(self):
         validate_keypoints_fields(
@@ -138,7 +139,8 @@ class KeyPoints:
 
         xy = ultralytics_results.keypoints.xy.cpu().numpy()
         class_id = ultralytics_results.boxes.cls.cpu().numpy().astype(int)
-        class_names = np.array([ultralytics_results.names[i] for i in class_id])
+        class_names = np.array([ultralytics_results.names[i]
+                               for i in class_id])
 
         confidence = ultralytics_results.keypoints.conf.cpu().numpy()
         data = {CLASS_NAME_DATA_FIELD: class_names}
@@ -239,39 +241,3 @@ class KeyPoints:
             ```
         """
         return cls(xy=np.empty((0, 0, 2), dtype=np.float32))
-
-
-class Skeleton:
-    """
-    The `Skeleton` class connects keypoints to form a skeleton.
-
-    It provides utility methods to compute angles within itself, compare to skeletons, etc.
-    """
-
-    limbs: List[Tuple[int, int]]
-
-    def __init__(self, limbs: List[Tuple[int, int]]):
-        self.limbs = limbs
-
-
-YOLO_V8_SKELETON = Skeleton(
-    [
-        (1, 2),
-        (1, 3),
-        (2, 3),
-        (2, 4),
-        (3, 5),
-        (6, 12),
-        (6, 7),
-        (6, 8),
-        (7, 13),
-        (7, 9),
-        (8, 10),
-        (9, 11),
-        (12, 13),
-        (14, 12),
-        (15, 13),
-        (16, 14),
-        (17, 15),
-    ]
-)

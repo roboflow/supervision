@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Optional
 
 import cv2
 import numpy as np
@@ -6,7 +7,8 @@ import numpy as np
 from supervision.annotators.base import ImageType
 from supervision.annotators.utils import scene_to_annotator_img_type
 from supervision.draw.color import Color
-from supervision.keypoints.core import KeyPoints, Skeleton
+from supervision.keypoints.core import KeyPoints
+from supervision.keypoints.skeletons import Skeleton, KnownSkeletons
 
 
 class BaseKeyPointAnnotator(ABC):
@@ -15,14 +17,18 @@ class BaseKeyPointAnnotator(ABC):
         pass
 
 
-class PointAnnotator(BaseKeyPointAnnotator):
+class KeyPointAnnotator(BaseKeyPointAnnotator):
     def __init__(
         self,
-        color: Color = Color.GREEN,
+        color: Color = Color.ROBOFLOW,
         radius: int = 4,
     ) -> None:
         """
         Most basic keypoint annotator.
+
+        Args:
+            color (Color, optional): The color of the keypoint.
+            radius (int, optional): The radius of the keypoint.
         """
         self.color = color
         self.radius = radius
@@ -50,15 +56,26 @@ class PointAnnotator(BaseKeyPointAnnotator):
 class SkeletonAnnotator(BaseKeyPointAnnotator):
     def __init__(
         self,
-        color: Color = Color.GREEN,
+        color: Color = Color.ROBOFLOW,
         thickness: int = 2,
+        skeleton: Optional[Skeleton] = None,
     ) -> None:
+        """
+        Draw the lines between points of the image.
+
+        Args:
+            color (Color, optional): The color of the lines.
+            thickness (int, optional): The thickness of the lines.
+            skeleton (Skeleton, optional): The skeleton to draw.
+                If set to `None`, will attempt to select automatically.
+        """
         self.color = color
         self.thickness = thickness
+        self.skeleton = skeleton
 
     @scene_to_annotator_img_type
     def annotate(
-        self, scene: ImageType, keypoints: KeyPoints, skeleton: Skeleton
+        self, scene: ImageType, keypoints: KeyPoints
     ) -> ImageType:
         if len(keypoints) == 0:
             return scene
@@ -67,6 +84,9 @@ class SkeletonAnnotator(BaseKeyPointAnnotator):
                 "KeyPoints must have class_id to annotate a skeleton")
 
         xy = keypoints.xy[0]
+        skeleton = self.skeleton
+        if not skeleton:
+            skeleton = KnownSkeletons().get_skeleton(len(xy))
 
         for class_a, class_b in skeleton.limbs:
             xy_a = xy[class_a - 1]
