@@ -15,7 +15,7 @@ source image.
 
 ![basic-annotation](https://media.roboflow.com/supervision_detect_and_annotate_example_1.png)
 
-## Run Inference
+## Run Detection
 
 First, you'll need to obtain predictions from your object detection or segmentation
 model.
@@ -102,7 +102,7 @@ Now that we have predictions from a model, we can load them into Supervision.
 
     We can do so using the [`sv.Detections.from_transformers`](detection/core/#supervision.detection.core.Detections.from_transformers) method, which accepts model results from both detection and segmentation models.
 
-    ```{ .py hl_lines="2 19" }
+    ```{ .py hl_lines="2 19-21" }
     import torch
     import supervision as sv
     from PIL import Image
@@ -121,7 +121,9 @@ Now that we have predictions from a model, we can load them into Supervision.
     target_size = torch.tensor([[height, width]])
     results = processor.post_process_object_detection(
         outputs=outputs, target_sizes=target_size)[0]
-    detections = sv.Detections.from_transformers(results)
+    detections = sv.Detections.from_transformers(
+        transformers_results=results,
+        id2label=model.config.id2label)
     ```
 
 You can load predictions from other computer vision frameworks and libraries using:
@@ -180,7 +182,7 @@ Finally, we can annotate the image with the predictions. Since we are working wi
 
 === "Transformers"
 
-    ```{ .py hl_lines="21-27" }
+    ```{ .py hl_lines="23-30" }
     import torch
     import supervision as sv
     from PIL import Image
@@ -199,7 +201,9 @@ Finally, we can annotate the image with the predictions. Since we are working wi
     target_size = torch.tensor([[height, width]])
     results = processor.post_process_object_detection(
         outputs=outputs, target_sizes=target_size)[0]
-    detections = sv.Detections.from_transformers(results)
+    detections = sv.Detections.from_transformers(
+        transformers_results=results,
+        id2label=model.config.id2label)
 
     bounding_box_annotator = sv.BoundingBoxAnnotator()
     label_annotator = sv.LabelAnnotator()
@@ -274,7 +278,7 @@ override this behavior by passing a list of custom `labels` to the `annotate` me
 
 === "Transformers"
 
-    ```{ .py hl_lines="24-28 33" }
+    ```{ .py hl_lines="26-30 35" }
     import torch
     import supervision as sv
     from PIL import Image
@@ -293,15 +297,17 @@ override this behavior by passing a list of custom `labels` to the `annotate` me
     target_size = torch.tensor([[height, width]])
     results = processor.post_process_object_detection(
         outputs=outputs, target_sizes=target_size)[0]
-    detections = sv.Detections.from_transformers(results)
+    detections = sv.Detections.from_transformers(
+        transformers_results=results,
+        id2label=model.config.id2label)
 
     bounding_box_annotator = sv.BoundingBoxAnnotator()
     label_annotator = sv.LabelAnnotator()
 
     labels = [
-        f"{model.config.id2label[class_id]} {confidence:.2f}"
-        for class_id, confidence
-        in zip(detections.class_id, detections.confidence)
+        f"{class_name} {confidence:.2f}"
+        for class_name, confidence
+        in zip(detections['class_name'], detections.confidence)
     ]
 
     annotated_image = bounding_box_annotator.annotate(
@@ -333,7 +339,7 @@ that will allow you to draw masks instead of boxes.
     detections = sv.Detections.from_inference(results)
 
     mask_annotator = sv.MaskAnnotator()
-    label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER)
+    label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER_OF_MASS)
 
     annotated_image = mask_annotator.annotate(
         scene=image, detections=detections)
@@ -354,7 +360,7 @@ that will allow you to draw masks instead of boxes.
     detections = sv.Detections.from_ultralytics(results)
 
     mask_annotator = sv.MaskAnnotator()
-    label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER)
+    label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER_OF_MASS)
 
     annotated_image = mask_annotator.annotate(
         scene=image, detections=detections)
@@ -383,15 +389,17 @@ that will allow you to draw masks instead of boxes.
     target_size = torch.tensor([[height, width]])
     results = processor.post_process_segmentation(
         outputs=outputs, target_sizes=target_size)[0]
-    detections = sv.Detections.from_transformers(results)
+    detections = sv.Detections.from_transformers(
+        transformers_results=results,
+        id2label=model.config.id2label)
 
     mask_annotator = sv.MaskAnnotator()
-    label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER)
+    label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER_OF_MASS)
 
     labels = [
-        f"{model.config.id2label[class_id]} {confidence:.2f}"
-        for class_id, confidence
-        in zip(detections.class_id, detections.confidence)
+        f"{class_name} {confidence:.2f}"
+        for class_name, confidence
+        in zip(detections['class_name'], detections.confidence)
     ]
 
     annotated_image = mask_annotator.annotate(

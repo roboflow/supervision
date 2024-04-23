@@ -74,8 +74,17 @@ from supervision.keypoints.core import KeyPoints
 from supervision.keypoints.skeletons import KnownSkeletons, Skeleton
 from supervision.metrics.detection import ConfusionMatrix, MeanAveragePrecision
 from supervision.tracker.byte_tracker.core import ByteTrack
+from supervision.utils.conversion import cv2_to_pillow, pillow_to_cv2
 from supervision.utils.file import list_files_with_extensions
-from supervision.utils.image import ImageSink, crop_image, place_image, resize_image
+from supervision.utils.image import (
+    ImageSink,
+    create_tiles,
+    crop_image,
+    letterbox_image,
+    overlay_image,
+    resize_image,
+    scale_image,
+)
 from supervision.utils.notebook import plot_image, plot_images_grid
 from supervision.utils.video import (
     FPSMonitor,

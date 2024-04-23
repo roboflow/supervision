@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 import matplotlib.pyplot as plt
 
@@ -104,16 +104,22 @@ class Color:
         Create a Color instance from a hex string.
 
         Args:
-            color_hex (str): Hex string of the color.
+            color_hex (str): The hex string representing the color. This string can
+                start with '#' followed by either 3 or 6 hexadecimal characters. In
+                case of 3 characters, each character is repeated to form the full
+                6-character hex code.
 
         Returns:
-            Color: Instance representing the color.
+            Color: An instance representing the color.
 
         Example:
             ```python
             import supervision as sv
 
             sv.Color.from_hex('#ff00ff')
+            # Color(r=255, g=0, b=255)
+
+            sv.Color.from_hex('#f0f')
             # Color(r=255, g=0, b=255)
             ```
         """
@@ -123,6 +129,52 @@ class Color:
             color_hex = "".join(c * 2 for c in color_hex)
         r, g, b = (int(color_hex[i : i + 2], 16) for i in range(0, 6, 2))
         return cls(r, g, b)
+
+    @classmethod
+    def from_rgb_tuple(cls, color_tuple: Tuple[int, int, int]) -> Color:
+        """
+        Create a Color instance from an RGB tuple.
+
+        Args:
+            color_tuple (Tuple[int, int, int]): A tuple representing the color in RGB
+                format, where each element is an integer in the range 0-255.
+
+        Returns:
+            Color: An instance representing the color.
+
+        Example:
+            ```python
+            import supervision as sv
+
+            sv.Color.from_rgb_tuple((255, 255, 0))
+            # Color(r=255, g=255, b=0)
+            ```
+        """
+        r, g, b = color_tuple
+        return cls(r=r, g=g, b=b)
+
+    @classmethod
+    def from_bgr_tuple(cls, color_tuple: Tuple[int, int, int]) -> Color:
+        """
+        Create a Color instance from a BGR tuple.
+
+        Args:
+            color_tuple (Tuple[int, int, int]): A tuple representing the color in BGR
+                format, where each element is an integer in the range 0-255.
+
+        Returns:
+            Color: An instance representing the color.
+
+        Example:
+            ```python
+            import supervision as sv
+
+            sv.Color.from_bgr_tuple((0, 255, 255))
+            # Color(r=255, g=255, b=0)
+            ```
+        """
+        b, g, r = color_tuple
+        return cls(r=r, g=g, b=b)
 
     def as_hex(self) -> str:
         """
@@ -396,3 +448,19 @@ class ColorPalette:
             raise ValueError("idx argument should not be negative")
         idx = idx % len(self.colors)
         return self.colors[idx]
+
+
+def unify_to_bgr(color: Union[Tuple[int, int, int], Color]) -> Tuple[int, int, int]:
+    """
+    Converts a color input in multiple formats to a standardized BGR format.
+
+    Args:
+        color (Union[Tuple[int, int, int], Color]): The color input to be converted,
+            which can be either a tuple of RGB values or an instance of a Color class.
+
+    Returns:
+        Tuple[int, int, int]: The color in BGR format as a tuple of three integers.
+    """
+    if issubclass(type(color), Color):
+        return color.as_bgr()
+    return color

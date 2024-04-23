@@ -189,7 +189,7 @@ class Detections:
 
         Args:
             ultralytics_results (ultralytics.yolo.engine.results.Results):
-                The output Results instance from YOLOv8
+                The output Results instance from Ultralytics
 
         Returns:
             Detections: A new Detections object.
@@ -208,7 +208,7 @@ class Detections:
             ```
         """  # noqa: E501 // docs
 
-        if ultralytics_results.obb is not None:
+        if "obb" in ultralytics_results and ultralytics_results.obb is not None:
             class_id = ultralytics_results.obb.cls.cpu().numpy().astype(int)
             class_names = np.array([ultralytics_results.names[i] for i in class_id])
             oriented_box_coordinates = ultralytics_results.obb.xyxyxyxy.cpu().numpy()
@@ -389,10 +389,24 @@ class Detections:
         )
 
     @classmethod
-    def from_transformers(cls, transformers_results: dict) -> Detections:
+    def from_transformers(
+        cls, transformers_results: dict, id2label: Optional[Dict[int, str]] = None
+    ) -> Detections:
         """
         Creates a Detections instance from object detection or segmentation
-        [transformer](https://github.com/huggingface/transformers) inference result.
+        [Transformer](https://github.com/huggingface/transformers) inference result.
+
+        !!! note
+
+            Class names can be accessed using the key `class_name` in the returned
+            object's data attribute.
+
+        Args:
+            transformers_results (dict): The output of Transformers model inference. A
+                dictionary containing the `scores`, `labels`, `boxes` and `masks` keys.
+            id2label (Optional[Dict[int, str]]): A dictionary mapping class IDs to
+                class names. If provided, the resulting Detections object will contain
+                `class_name` data field with the class names.
 
         Returns:
             Detections: A new Detections object.
@@ -417,27 +431,39 @@ class Detections:
             target_size = torch.tensor([[height, width]])
             results = processor.post_process_object_detection(
                 outputs=outputs, target_sizes=target_size)[0]
-            detections = sv.Detections.from_transformers(results)
+
+            detections = sv.Detections.from_transformers(
+                transformers_results=results,
+                id2label=model.config.id2label
+            )
             ```
         """  # noqa: E501 // docs
 
+        class_ids = transformers_results["labels"].cpu().detach().numpy().astype(int)
+        data = {}
+        if id2label is not None:
+            class_names = np.array([id2label[class_id] for class_id in class_ids])
+            data[CLASS_NAME_DATA_FIELD] = class_names
         if "boxes" in transformers_results:
             return cls(
                 xyxy=transformers_results["boxes"].cpu().detach().numpy(),
                 confidence=transformers_results["scores"].cpu().detach().numpy(),
-                class_id=transformers_results["labels"]
-                .cpu()
-                .detach()
-                .numpy()
-                .astype(int),
+                class_id=class_ids,
+                data=data,
             )
-        masks = transformers_results["masks"].cpu().detach().numpy().astype(bool)
-        return cls(
-            xyxy=mask_to_xyxy(masks),
-            mask=masks,
-            confidence=transformers_results["scores"].cpu().detach().numpy(),
-            class_id=transformers_results["labels"].cpu().detach().numpy().astype(int),
-        )
+        elif "masks" in transformers_results:
+            masks = transformers_results["masks"].cpu().detach().numpy().astype(bool)
+            return cls(
+                xyxy=mask_to_xyxy(masks),
+                mask=masks,
+                confidence=transformers_results["scores"].cpu().detach().numpy(),
+                class_id=class_ids,
+                data=data,
+            )
+        else:
+            raise NotImplementedError(
+                "Only object detection and semantic segmentation results are supported."
+            )
 
     @classmethod
     def from_detectron2(cls, detectron2_results) -> Detections:
@@ -492,7 +518,7 @@ class Detections:
 
         !!! note
 
-            Class names can be accessed using the key 'class_name' in the returned
+            Class names can be accessed using the key `class_name` in the returned
             object's data attribute.
 
         Args:
