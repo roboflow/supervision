@@ -132,14 +132,15 @@ class KeyPoints:
             result = model(image)[0]
             keypoints = sv.KeyPoints.from_ultralytics(result)
             ```
-        """  #
+        """
+        if len(ultralytics_results.keypoints.xy) == 0:
+            return cls.empty()
 
+        xy = ultralytics_results.keypoints.xy.cpu().numpy()
         class_id = ultralytics_results.boxes.cls.cpu().numpy().astype(int)
         class_names = np.array([ultralytics_results.names[i] for i in class_id])
 
-        xy = ultralytics_results.keypoints.xy.cpu().numpy()
         confidence = ultralytics_results.keypoints.conf.cpu().numpy()
-        class_id = ultralytics_results.boxes.cls.cpu().numpy().astype(int)
         data = {CLASS_NAME_DATA_FIELD: class_names}
         return cls(xy, class_id, confidence, data)
 
@@ -238,3 +239,39 @@ class KeyPoints:
             ```
         """
         return cls(xy=np.empty((0, 0, 2), dtype=np.float32))
+
+
+class Skeleton:
+    """
+    The `Skeleton` class connects keypoints to form a skeleton.
+
+    It provides utility methods to compute angles within itself, compare to skeletons, etc.
+    """
+
+    limbs: List[Tuple[int, int]]
+
+    def __init__(self, limbs: List[Tuple[int, int]]):
+        self.limbs = limbs
+
+
+YOLO_V8_SKELETON = Skeleton(
+    [
+        (1, 2),
+        (1, 3),
+        (2, 3),
+        (2, 4),
+        (3, 5),
+        (6, 12),
+        (6, 7),
+        (6, 8),
+        (7, 13),
+        (7, 9),
+        (8, 10),
+        (9, 11),
+        (12, 13),
+        (14, 12),
+        (15, 13),
+        (16, 14),
+        (17, 15),
+    ]
+)
