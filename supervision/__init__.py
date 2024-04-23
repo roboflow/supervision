@@ -56,6 +56,8 @@ from supervision.detection.utils import (
     polygon_to_xyxy,
     scale_boxes,
 )
+from supervision.keypoints.core import KeyPoints, YOLO_V8_SKELETON
+from supervision.keypoints.annotate import PointAnnotator, SkeletonAnnotator
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import (
     calculate_optimal_line_thickness,
