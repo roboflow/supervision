@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Optional, Tuple, List
+from typing import List, Optional, Tuple
 
 
 class Skeleton(Enum):
