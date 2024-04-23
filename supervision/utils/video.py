@@ -177,6 +177,7 @@ def process_video(
     source_path: str,
     target_path: str,
     callback: Callable[[np.ndarray, int], np.ndarray],
+    codec: str = "mp4v",
 ) -> None:
     """
     Process a video file by applying a callback function on each frame
@@ -189,6 +190,8 @@ def process_video(
             a numpy ndarray representation of a video frame and an
             int index of the frame and returns a processed numpy ndarray
             representation of the frame.
+        codec (str): FOURCC code for video format. Default is `mp4v`.
+            Other common codecs are `H264`, `XVID`, `MJPG`, etc.
 
     Examples:
         ```python
@@ -205,7 +208,11 @@ def process_video(
         ```
     """
     source_video_info = VideoInfo.from_video_path(video_path=source_path)
-    with VideoSink(target_path=target_path, video_info=source_video_info) as sink:
+    with VideoSink(
+        target_path=target_path,
+        video_info=source_video_info,
+        codec=codec,
+    ) as sink:
         for index, frame in enumerate(
             get_video_frames_generator(source_path=source_path)
         ):
