@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional, Tuple
+from logging import warn
 
 import cv2
 import numpy as np
@@ -51,12 +52,12 @@ class VertexAnnotator(BaseKeyPointAnnotator):
         return scene
 
 
-class SkeletonAnnotator(BaseKeyPointAnnotator):
+class EdgeAnnotator(BaseKeyPointAnnotator):
     def __init__(
         self,
         color: Color = Color.ROBOFLOW,
         thickness: int = 2,
-        skeleton: Optional[List[Tuple[int, int]]] = None,
+        edges: Optional[List[Tuple[int, int]]] = None,
     ) -> None:
         """
         Draw the lines between points of the image.
@@ -64,26 +65,27 @@ class SkeletonAnnotator(BaseKeyPointAnnotator):
         Args:
             color (Color, optional): The color of the lines.
             thickness (int, optional): The thickness of the lines.
-            skeleton (Skeleton, optional): The skeleton to draw.
+            edge (Optional[List[Tuple[int, int]]]): The edges to draw.
                 If set to `None`, will attempt to select automatically.
         """
         self.color = color
         self.thickness = thickness
-        self.skeleton = skeleton
+        self.edges = edges
 
     @convert_for_annotation_method
     def annotate(self, scene: ImageType, keypoints: KeyPoints) -> ImageType:
         if len(keypoints) == 0:
             return scene
-        if keypoints.class_id is None:
-            raise ValueError("KeyPoints must have class_id to annotate a skeleton")
 
         for xy in keypoints.xy:
-            skeleton = self.skeleton
-            if not skeleton:
-                skeleton = resolve_skeleton_by_vertex_count(len(xy))
+            edges = self.edges
+            if not edges:
+                edges = resolve_skeleton_by_vertex_count(len(xy))
+            if not edges:
+                warn(f"No skeleton found with {len(xy)} vertices")
+                return scene
 
-            for class_a, class_b in skeleton:
+            for class_a, class_b in edges:
                 xy_a = xy[class_a - 1]
                 xy_b = xy[class_b - 1]
                 missing_a = np.allclose(xy_a, 0)
