@@ -76,8 +76,7 @@ class SkeletonAnnotator(BaseKeyPointAnnotator):
         if len(keypoints) == 0:
             return scene
         if keypoints.class_id is None:
-            raise ValueError(
-                "KeyPoints must have class_id to annotate a skeleton")
+            raise ValueError("KeyPoints must have class_id to annotate a skeleton")
 
         for xy in keypoints.xy:
             skeleton = self.skeleton
