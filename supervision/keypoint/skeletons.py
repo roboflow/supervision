@@ -32,6 +32,5 @@ skeletons_by_vertex_count: Dict[int, Edges] = {}
 for skeleton in Skeleton:
     skeletons_by_edge_count[len(skeleton.value)] = skeleton.value
 
-    unique_vertices = set(
-        vertex for edge in skeleton.value for vertex in edge)
+    unique_vertices = set(vertex for edge in skeleton.value for vertex in edge)
     skeletons_by_vertex_count[len(unique_vertices)] = skeleton.value
