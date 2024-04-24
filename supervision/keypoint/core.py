@@ -21,7 +21,7 @@ class KeyPoints:
 
     === "Ultralytics"
 
-        Use [`sv.KeyPoints.from_ultralytics`](/keypoint/core/#supervision.keypoint.core.KeyPoints.from_ultralytics) 
+        Use [`sv.KeyPoints.from_ultralytics`](/keypoint/core/#supervision.keypoint.core.KeyPoints.from_ultralytics)
         method, which accepts model results.
 
         ```python
