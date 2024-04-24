@@ -34,7 +34,7 @@ class Detections:
 
     === "Inference"
 
-        Use [`sv.Detections.from_inference`](/detection/core/#supervision.detection.core.Detections.from_inference) 
+        Use [`sv.Detections.from_inference`](/detection/core/#supervision.detection.core.Detections.from_inference)
         method, which accepts model results from both detection and segmentation models.
 
         ```python
@@ -50,7 +50,7 @@ class Detections:
 
     === "Ultralytics"
 
-        Use [`sv.Detections.from_ultralytics`](/detection/core/#supervision.detection.core.Detections.from_ultralytics) 
+        Use [`sv.Detections.from_ultralytics`](/detection/core/#supervision.detection.core.Detections.from_ultralytics)
         method, which accepts model results from both detection and segmentation models.
 
         ```python
@@ -66,7 +66,7 @@ class Detections:
 
     === "Transformers"
 
-        Use [`sv.Detections.from_transformers`](/detection/core/#supervision.detection.core.Detections.from_transformers) 
+        Use [`sv.Detections.from_transformers`](/detection/core/#supervision.detection.core.Detections.from_transformers)
         method, which accepts model results from both detection and segmentation models.
 
         ```python
