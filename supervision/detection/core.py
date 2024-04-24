@@ -234,7 +234,7 @@ class Detections:
             results = model(image)[0]
             detections = sv.Detections.from_ultralytics(results)
             ```
-            
+
         !!! tip
 
             Class names values can be accessed using `detections["class_name"]`.
@@ -464,7 +464,7 @@ class Detections:
                 id2label=model.config.id2label
             )
             ```
-        
+
         !!! tip
 
             Class names values can be accessed using `detections["class_name"]`.
