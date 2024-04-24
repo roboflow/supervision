@@ -1,6 +1,6 @@
 import argparse
 import os
-from typing import Dict, Iterable, List, Set, Tuple
+from typing import Dict, Iterable, List, Set
 
 import cv2
 import numpy as np
@@ -60,13 +60,11 @@ class DetectionsManager:
 
 def initiate_polygon_zones(
     polygons: List[np.ndarray],
-    frame_resolution_wh: Tuple[int, int],
     triggering_anchors: Iterable[sv.Position] = [sv.Position.CENTER],
 ) -> List[sv.PolygonZone]:
     return [
         sv.PolygonZone(
             polygon=polygon,
-            frame_resolution_wh=frame_resolution_wh,
             triggering_anchors=triggering_anchors,
         )
         for polygon in polygons
@@ -92,12 +90,8 @@ class VideoProcessor:
         self.tracker = sv.ByteTrack()
 
         self.video_info = sv.VideoInfo.from_video_path(source_video_path)
-        self.zones_in = initiate_polygon_zones(
-            ZONE_IN_POLYGONS, self.video_info.resolution_wh, [sv.Position.CENTER]
-        )
-        self.zones_out = initiate_polygon_zones(
-            ZONE_OUT_POLYGONS, self.video_info.resolution_wh, [sv.Position.CENTER]
-        )
+        self.zones_in = initiate_polygon_zones(ZONE_IN_POLYGONS, [sv.Position.CENTER])
+        self.zones_out = initiate_polygon_zones(ZONE_OUT_POLYGONS, [sv.Position.CENTER])
 
         self.bounding_box_annotator = sv.BoundingBoxAnnotator(color=COLORS)
         self.label_annotator = sv.LabelAnnotator(

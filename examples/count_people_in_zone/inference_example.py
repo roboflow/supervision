@@ -46,7 +46,7 @@ def initiate_annotators(
     box_annotators = []
 
     for index, polygon in enumerate(polygons):
-        zone = sv.PolygonZone(polygon=polygon, frame_resolution_wh=resolution_wh)
+        zone = sv.PolygonZone(polygon=polygon)
         zone_annotator = sv.PolygonZoneAnnotator(
             zone=zone,
             color=COLORS.by_idx(index),
