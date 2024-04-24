@@ -14,46 +14,84 @@ from supervision.detection.utils import (
     get_data_item,
     is_data_equal,
     mask_non_max_suppression,
+    mask_to_xyxy,
     merge_data,
     process_roboflow_result,
-    validate_detections_fields,
     xywh_to_xyxy,
 )
 from supervision.geometry.core import Position
 from supervision.utils.internal import deprecated
+from supervision.validators import validate_detections_fields
 
 
 @dataclass
 class Detections:
     """
-    The `sv.Detections` allows you to convert results from a variety of object detection
-    and segmentation models into a single, unified format. The `sv.Detections` class
-    enables easy data manipulation and filtering, and provides a consistent API for
-    Supervision's tools like trackers, annotators, and zones.
+    The `sv.Detections` class in the Supervision library standardizes results from
+    various object detection and segmentation models into a consistent format. This
+    class simplifies data manipulation and filtering, providing a uniform API for
+    integration with Supervision [trackers](/trackers/), [annotators](/detection/annotators/), and [tools](/detection/tools/line_zone/).
 
-    ```python
-    import cv2
-    import supervision as sv
-    from ultralytics import YOLO
+    === "Inference"
 
-    image = cv2.imread(<SOURCE_IMAGE_PATH>)
-    model = YOLO('yolov8s.pt')
-    annotator = sv.BoundingBoxAnnotator()
+        Use [`sv.Detections.from_inference`](/detection/core/#supervision.detection.core.Detections.from_inference)
+        method, which accepts model results from both detection and segmentation models.
 
-    result = model(image)[0]
-    detections = sv.Detections.from_ultralytics(result)
+        ```python
+        import cv2
+        import supervision as sv
+        from inference import get_model
 
-    annotated_image = annotator.annotate(image, detections)
-    ```
+        model = get_model(model_id="yolov8n-640")
+        image = cv2.imread(<SOURCE_IMAGE_PATH>)
+        results = model.infer(image)[0]
+        detections = sv.Detections.from_inference(results)
+        ```
 
-    !!! tip
+    === "Ultralytics"
 
-        In `sv.Detections`, detection data is categorized into two main field types:
-        fixed and custom. The fixed fields include `xyxy`, `mask`, `confidence`,
-        `class_id`, and `tracker_id`. For any additional data requirements, custom
-        fields come into play, stored in the data field. These custom fields are easily
-        accessible using the `detections[<FIELD_NAME>]` syntax, providing flexibility
-        for diverse data handling needs.
+        Use [`sv.Detections.from_ultralytics`](/detection/core/#supervision.detection.core.Detections.from_ultralytics)
+        method, which accepts model results from both detection and segmentation models.
+
+        ```python
+        import cv2
+        import supervision as sv
+        from ultralytics import YOLO
+
+        model = YOLO("yolov8n.pt")
+        image = cv2.imread(<SOURCE_IMAGE_PATH>)
+        results = model(image)[0]
+        detections = sv.Detections.from_ultralytics(results)
+        ```
+
+    === "Transformers"
+
+        Use [`sv.Detections.from_transformers`](/detection/core/#supervision.detection.core.Detections.from_transformers)
+        method, which accepts model results from both detection and segmentation models.
+
+        ```python
+        import torch
+        import supervision as sv
+        from PIL import Image
+        from transformers import DetrImageProcessor, DetrForObjectDetection
+
+        processor = DetrImageProcessor.from_pretrained("facebook/detr-resnet-50")
+        model = DetrForObjectDetection.from_pretrained("facebook/detr-resnet-50")
+
+        image = Image.open(<SOURCE_IMAGE_PATH>)
+        inputs = processor(images=image, return_tensors="pt")
+
+        with torch.no_grad():
+            outputs = model(**inputs)
+
+        width, height = image.size
+        target_size = torch.tensor([[height, width]])
+        results = processor.post_process_object_detection(
+            outputs=outputs, target_sizes=target_size)[0]
+        detections = sv.Detections.from_transformers(
+            transformers_results=results,
+            id2label=model.config.id2label)
+        ```
 
     Attributes:
         xyxy (np.ndarray): An array of shape `(n, 4)` containing
@@ -69,15 +107,7 @@ class Detections:
         data (Dict[str, Union[np.ndarray, List]]): A dictionary containing additional
             data where each key is a string representing the data type, and the value
             is either a NumPy array or a list of corresponding data.
-
-    !!! warning
-
-        The `data` field in the `sv.Detections` class is currently in an experimental
-        phase. Please be aware that its API and functionality are subject to change in
-        future updates as we continue to refine and improve its capabilities.
-        We encourage users to experiment with this feature and provide feedback, but
-        also to be prepared for potential modifications in upcoming releases.
-    """
+    """  # noqa: E501 // docs
 
     xyxy: np.ndarray
     mask: Optional[np.ndarray] = None
@@ -176,8 +206,8 @@ class Detections:
     @classmethod
     def from_ultralytics(cls, ultralytics_results) -> Detections:
         """
-        Creates a Detections instance from a
-            [YOLOv8](https://github.com/ultralytics/ultralytics) inference result.
+        Creates a `sv.Detections` instance from a
+        [YOLOv8](https://github.com/ultralytics/ultralytics) inference result.
 
         !!! Note
 
@@ -188,7 +218,7 @@ class Detections:
 
         Args:
             ultralytics_results (ultralytics.yolo.engine.results.Results):
-                The output Results instance from YOLOv8
+                The output Results instance from Ultralytics
 
         Returns:
             Detections: A new Detections object.
@@ -201,13 +231,16 @@ class Detections:
 
             image = cv2.imread(<SOURCE_IMAGE_PATH>)
             model = YOLO('yolov8s.pt')
-
-            result = model(image)[0]
-            detections = sv.Detections.from_ultralytics(result)
+            results = model(image)[0]
+            detections = sv.Detections.from_ultralytics(results)
             ```
+
+        !!! tip
+
+            Class names values can be accessed using `detections["class_name"]`.
         """  # noqa: E501 // docs
 
-        if ultralytics_results.obb is not None:
+        if "obb" in ultralytics_results and ultralytics_results.obb is not None:
             class_id = ultralytics_results.obb.cls.cpu().numpy().astype(int)
             class_names = np.array([ultralytics_results.names[i] for i in class_id])
             oriented_box_coordinates = ultralytics_results.obb.xyxyxyxy.cpu().numpy()
@@ -388,20 +421,80 @@ class Detections:
         )
 
     @classmethod
-    def from_transformers(cls, transformers_results: dict) -> Detections:
+    def from_transformers(
+        cls, transformers_results: dict, id2label: Optional[Dict[int, str]] = None
+    ) -> Detections:
         """
-        Creates a Detections instance from object detection
-        [transformer](https://github.com/huggingface/transformers) inference result.
+        Creates a Detections instance from object detection or segmentation
+        [Transformer](https://github.com/huggingface/transformers) inference result.
+
+        Args:
+            transformers_results (dict): The output of Transformers model inference. A
+                dictionary containing the `scores`, `labels`, `boxes` and `masks` keys.
+            id2label (Optional[Dict[int, str]]): A dictionary mapping class IDs to
+                class names. If provided, the resulting Detections object will contain
+                `class_name` data field with the class names.
 
         Returns:
             Detections: A new Detections object.
-        """
 
-        return cls(
-            xyxy=transformers_results["boxes"].cpu().numpy(),
-            confidence=transformers_results["scores"].cpu().numpy(),
-            class_id=transformers_results["labels"].cpu().numpy().astype(int),
-        )
+        Example:
+            ```python
+            import torch
+            import supervision as sv
+            from PIL import Image
+            from transformers import DetrImageProcessor, DetrForObjectDetection
+
+            processor = DetrImageProcessor.from_pretrained("facebook/detr-resnet-50")
+            model = DetrForObjectDetection.from_pretrained("facebook/detr-resnet-50")
+
+            image = Image.open(<SOURCE_IMAGE_PATH>)
+            inputs = processor(images=image, return_tensors="pt")
+
+            with torch.no_grad():
+                outputs = model(**inputs)
+
+            width, height = image.size
+            target_size = torch.tensor([[height, width]])
+            results = processor.post_process_object_detection(
+                outputs=outputs, target_sizes=target_size)[0]
+
+            detections = sv.Detections.from_transformers(
+                transformers_results=results,
+                id2label=model.config.id2label
+            )
+            ```
+
+        !!! tip
+
+            Class names values can be accessed using `detections["class_name"]`.
+        """  # noqa: E501 // docs
+
+        class_ids = transformers_results["labels"].cpu().detach().numpy().astype(int)
+        data = {}
+        if id2label is not None:
+            class_names = np.array([id2label[class_id] for class_id in class_ids])
+            data[CLASS_NAME_DATA_FIELD] = class_names
+        if "boxes" in transformers_results:
+            return cls(
+                xyxy=transformers_results["boxes"].cpu().detach().numpy(),
+                confidence=transformers_results["scores"].cpu().detach().numpy(),
+                class_id=class_ids,
+                data=data,
+            )
+        elif "masks" in transformers_results:
+            masks = transformers_results["masks"].cpu().detach().numpy().astype(bool)
+            return cls(
+                xyxy=mask_to_xyxy(masks),
+                mask=masks,
+                confidence=transformers_results["scores"].cpu().detach().numpy(),
+                class_id=class_ids,
+                data=data,
+            )
+        else:
+            raise NotImplementedError(
+                "Only object detection and semantic segmentation results are supported."
+            )
 
     @classmethod
     def from_detectron2(cls, detectron2_results) -> Detections:
@@ -448,16 +541,11 @@ class Detections:
     @classmethod
     def from_inference(cls, roboflow_result: Union[dict, Any]) -> Detections:
         """
-        Create a Detections object from the [Roboflow](https://roboflow.com/)
+        Create a `sv.Detections` object from the [Roboflow](https://roboflow.com/)
         API inference result or the [Inference](https://inference.roboflow.com/)
         package results. This method extracts bounding boxes, class IDs,
         confidences, and class names from the Roboflow API result and encapsulates
         them into a Detections object.
-
-        !!! note
-
-            Class names can be accessed using the key 'class_name' in the returned
-            object's data attribute.
 
         Args:
             roboflow_result (dict, any): The result from the
@@ -471,14 +559,18 @@ class Detections:
             ```python
             import cv2
             import supervision as sv
-            from inference.models.utils import get_roboflow_model
+            from inference import get_model
 
             image = cv2.imread(<SOURCE_IMAGE_PATH>)
-            model = get_roboflow_model(model_id="yolov8s-640")
+            model = get_model(model_id="yolov8s-640")
 
             result = model.infer(image)[0]
             detections = sv.Detections.from_inference(result)
             ```
+
+        !!! tip
+
+            Class names values can be accessed using `detections["class_name"]`.
         """
         with suppress(AttributeError):
             roboflow_result = roboflow_result.dict(exclude_none=True, by_alias=True)
@@ -528,10 +620,10 @@ class Detections:
             ```python
             import cv2
             import supervision as sv
-            from inference.models.utils import get_roboflow_model
+            from inference import get_model
 
             image = cv2.imread(<SOURCE_IMAGE_PATH>)
-            model = get_roboflow_model(model_id="yolov8s-640")
+            model = get_model(model_id="yolov8s-640")
 
             result = model.infer(image)[0]
             detections = sv.Detections.from_roboflow(result)

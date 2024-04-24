@@ -3,6 +3,7 @@ from typing import List, Tuple
 import numpy as np
 
 from supervision.detection.core import Detections
+from supervision.detection.utils import box_iou_batch
 from supervision.tracker.byte_tracker import matching
 from supervision.tracker.byte_tracker.basetrack import BaseTrack, TrackState
 from supervision.tracker.byte_tracker.kalman_filter import KalmanFilter
@@ -270,27 +271,28 @@ class ByteTrack:
             ```
         """
 
-        tracks = self.update_with_tensors(
-            tensors=detections2boxes(detections=detections)
-        )
-        detections = Detections.empty()
+        tensors = detections2boxes(detections=detections)
+        tracks = self.update_with_tensors(tensors=tensors)
+
         if len(tracks) > 0:
-            detections.xyxy = np.array(
-                [track.tlbr for track in tracks], dtype=np.float32
-            )
-            detections.class_id = np.array(
-                [int(t.class_ids) for t in tracks], dtype=int
-            )
-            detections.tracker_id = np.array(
-                [int(t.track_id) for t in tracks], dtype=int
-            )
-            detections.confidence = np.array(
-                [t.score for t in tracks], dtype=np.float32
-            )
+            detection_bounding_boxes = np.asarray([det[:4] for det in tensors])
+            track_bounding_boxes = np.asarray([track.tlbr for track in tracks])
+
+            ious = box_iou_batch(detection_bounding_boxes, track_bounding_boxes)
+
+            iou_costs = 1 - ious
+
+            matches, _, _ = matching.linear_assignment(iou_costs, 0.5)
+            detections.tracker_id = np.full(len(detections), -1, dtype=int)
+            for i_detection, i_track in matches:
+                detections.tracker_id[i_detection] = int(tracks[i_track].track_id)
+
+            return detections[detections.tracker_id != -1]
+
         else:
             detections.tracker_id = np.array([], dtype=int)
 
-        return detections
+            return detections
 
     def reset(self):
         """

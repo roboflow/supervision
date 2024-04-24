@@ -105,6 +105,13 @@ class VideoSink:
         return self
 
     def write_frame(self, frame: np.ndarray):
+        """
+        Writes a single video frame to the target video file.
+
+        Args:
+            frame (np.ndarray): The video frame to be written to the file. The frame
+                must be in BGR color format.
+        """
         self.__writer.write(frame)
 
     def __exit__(self, exc_type, exc_value, exc_traceback):

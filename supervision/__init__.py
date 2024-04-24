@@ -58,8 +58,8 @@ from supervision.detection.utils import (
 )
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import (
-    calculate_dynamic_line_thickness,
-    calculate_dynamic_text_scale,
+    calculate_optimal_line_thickness,
+    calculate_optimal_text_scale,
     draw_filled_rectangle,
     draw_image,
     draw_line,
@@ -69,10 +69,21 @@ from supervision.draw.utils import (
 )
 from supervision.geometry.core import Point, Position, Rect
 from supervision.geometry.utils import get_polygon_center
+from supervision.keypoint.annotators import EdgeAnnotator, VertexAnnotator
+from supervision.keypoint.core import KeyPoints
 from supervision.metrics.detection import ConfusionMatrix, MeanAveragePrecision
 from supervision.tracker.byte_tracker.core import ByteTrack
+from supervision.utils.conversion import cv2_to_pillow, pillow_to_cv2
 from supervision.utils.file import list_files_with_extensions
-from supervision.utils.image import ImageSink, crop_image, place_image, resize_image
+from supervision.utils.image import (
+    ImageSink,
+    create_tiles,
+    crop_image,
+    letterbox_image,
+    overlay_image,
+    resize_image,
+    scale_image,
+)
 from supervision.utils.notebook import plot_image, plot_images_grid
 from supervision.utils.video import (
     FPSMonitor,

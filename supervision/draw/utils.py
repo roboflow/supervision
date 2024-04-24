@@ -238,13 +238,13 @@ def draw_image(
     return scene
 
 
-def calculate_dynamic_text_scale(resolution_wh: Tuple[int, int]) -> float:
+def calculate_optimal_text_scale(resolution_wh: Tuple[int, int]) -> float:
     """
-    Calculate a dynamic font scale based on the resolution of an image.
+    Calculate font scale based on the resolution of an image.
 
     Parameters:
          resolution_wh (Tuple[int, int]): A tuple representing the width and height
-                 of the image.
+             of the image.
 
     Returns:
          float: The calculated font scale factor.
@@ -252,25 +252,17 @@ def calculate_dynamic_text_scale(resolution_wh: Tuple[int, int]) -> float:
     return min(resolution_wh) * 1e-3
 
 
-def calculate_dynamic_line_thickness(resolution_wh: Tuple[int, int]) -> int:
+def calculate_optimal_line_thickness(resolution_wh: Tuple[int, int]) -> int:
     """
-    Calculate a dynamic line thickness based on the resolution of an image.
+    Calculate line thickness based on the resolution of an image.
 
     Parameters:
         resolution_wh (Tuple[int, int]): A tuple representing the width and height
-                of the image.
+            of the image.
 
     Returns:
         int: The calculated line thickness in pixels.
     """
-    min_dimension = min(resolution_wh)
-    if min_dimension < 480:
+    if min(resolution_wh) < 1080:
         return 2
-    if min_dimension < 720:
-        return 2
-    if min_dimension < 1080:
-        return 2
-    if min_dimension < 2160:
-        return 4
-    else:
-        return 4
+    return 4
