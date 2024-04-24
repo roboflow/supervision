@@ -29,6 +29,7 @@ class VideoAssets(Enum):
     MARKET_SQUARE = "market-square.mp4"
     PEOPLE_WALKING = "people-walking.mp4"
     BEACH = "beach-1.mp4"
+    BASKETBALL = "basketball-1.mp4"
 
     @classmethod
     def list(cls):
@@ -67,5 +68,9 @@ VIDEO_ASSETS: Dict[str, Tuple[str, str]] = {
     VideoAssets.BEACH.value: (
         f"{BASE_VIDEO_URL}{VideoAssets.BEACH.value}",
         "4175d42fec4d450ed081523fd39e0cf8",
+    ),
+    VideoAssets.BASKETBALL.value: (
+        f"{BASE_VIDEO_URL}{VideoAssets.BASKETBALL.value}",
+        "60d94a3c7c47d16f09d342b088012ecc",
     ),
 }

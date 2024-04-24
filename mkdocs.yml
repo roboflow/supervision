@@ -44,15 +44,16 @@ nav:
       - Track Objects: how_to/track_objects.md
 
   - API:
-    - Annotators: annotators.md
-    - Classifications:
-        - Core: classification/core.md
-    - Detections:
+    - Detection and Segmentation:
         - Core: detection/core.md
+        - Annotators: detection/annotators.md
+        - Metrics: detection/metrics.md
         - Utils: detection/utils.md
-    - KeyPoints:
+    - Keypoint Detection:
         - Core: keypoint/core.md
-        - Annotators: keypoint/annotate.md
+        - Annotators: keypoint/annotators.md
+    - Classification:
+        - Core: classification/core.md
     - Tools:
         - Line Zone: detection/tools/line_zone.md
         - Polygon Zone: detection/tools/polygon_zone.md
@@ -61,19 +62,14 @@ nav:
         - Save Detections: detection/tools/save_detections.md
     - Trackers: trackers.md
     - Datasets: datasets.md
-    - Metrics:
-      - Object Detection: metrics/detection.md
-    - Draw:
-        - Color: draw/color.md
-        - Utils: draw/utils.md
-    - Geometry:
-        - Position: geometry/core.md
     - Utils:
         - Video: utils/video.md
         - Image: utils/image.md
         - Iterables: utils/iterables.md
         - Notebook: utils/notebook.md
         - File: utils/file.md
+        - Draw: utils/draw.md
+        - Geometry: utils/geometry.md
     - Assets: assets.md
   - Cookbooks: cookbooks.md
   - Contribute:
