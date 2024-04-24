@@ -14,28 +14,26 @@ from supervision.validators import validate_keypoints_fields
 @dataclass
 class KeyPoints:
     """
-    The `sv.KeyPoints` allows you to convert results from a variety of keypoint
-    keypoints models into a single, unified format.
+    The `sv.KeyPoints` class in the Supervision library standardizes results from
+    various keypoint detection and pose estimation models into a consistent format. This
+    class simplifies data manipulation and filtering, providing a uniform API for
+    integration with Supervision annotators.
 
-    ```python
-    import cv2
-    import supervision as sv
-    from ultralytics import YOLO
+    === "Ultralytics"
 
-    image = cv2.imread(<SOURCE_IMAGE_PATH>)
-    model = YOLO('yolov8s-pose.pt')
-    result = model(image)[0]
-    keypoints = sv.KeyPoints.from_ultralytics(result)
-    ```
+        Use [`sv.KeyPoints.from_ultralytics`](/keypoint/core/#supervision.keypoint.core.KeyPoints.from_ultralytics)
+        method, which accepts model results.
 
-    !!! tip
+        ```python
+        import cv2
+        import supervision as sv
+        from ultralytics import YOLO
 
-        In `sv.KeyPoints`, detection data is categorized into two main field types:
-        fixed and custom. The fixed fields include `xy`, `confidence`,
-        `class_id`. For any additional data requirements, custom
-        fields come into play, stored in the data field. These custom fields are easily
-        accessible using the `keypoints[<FIELD_NAME>]` syntax, providing flexibility
-        for diverse data handling needs.
+        image = cv2.imread(<SOURCE_IMAGE_PATH>)
+        model = YOLO('yolov8s-pose.pt')
+        result = model(image)[0]
+        key_points = sv.KeyPoints.from_ultralytics(result)
+        ```
 
     Attributes:
         xy (np.ndarray): An array of shape `(n, 2)` containing
@@ -47,15 +45,7 @@ class KeyPoints:
         data (Dict[str, Union[np.ndarray, List]]): A dictionary containing additional
             data where each key is a string representing the data type, and the value
             is either a NumPy array or a list of corresponding data.
-
-    !!! warning
-
-        The `data` field in the `sv.KeyPoints` class is currently in an experimental
-        phase. Please be aware that its API and functionality are subject to change in
-        future updates as we continue to refine and improve its capabilities.
-        We encourage users to experiment with this feature and provide feedback, but
-        also to be prepared for potential modifications in upcoming releases.
-    """
+    """  # noqa: E501 // docs
 
     xy: npt.NDArray[np.float32]
     class_id: Optional[npt.NDArray[np.int_]] = None
@@ -232,7 +222,7 @@ class KeyPoints:
         Create an empty Keypoints object with no keypoints.
 
         Returns:
-            (Keypoints): An empty Keypoints object.
+            (KeyPoints): An empty Keypoints object.
 
         Example:
             ```python
