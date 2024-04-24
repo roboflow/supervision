@@ -135,7 +135,7 @@ class KeyPoints:
             keypoints = sv.KeyPoints.from_ultralytics(result)
             ```
         """
-        if len(ultralytics_results.keypoints.xy) == 0:
+        if ultralytics_results.keypoints.xy.numel() == 0:
             return cls.empty()
 
         xy = ultralytics_results.keypoints.xy.cpu().numpy()
