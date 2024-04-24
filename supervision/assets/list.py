@@ -19,6 +19,7 @@ class VideoAssets(Enum):
     | `MARKET_SQUARE`        | `market-square.mp4`        | [Link](https://media.roboflow.com/supervision/video-examples/market-square.mp4)       |
     | `PEOPLE_WALKING`       | `people-walking.mp4`       | [Link](https://media.roboflow.com/supervision/video-examples/people-walking.mp4)      |
     | `BEACH`                | `beach-1.mp4`              | [Link](https://media.roboflow.com/supervision/video-examples/beach-1.mp4)             |
+    | `BASKETBALL`           | `basketball-1.mp4`         | [Link](https://media.roboflow.com/supervision/video-examples/basketball-1.mp4)        |
     """  # noqa: E501 // docs
 
     VEHICLES = "vehicles.mp4"

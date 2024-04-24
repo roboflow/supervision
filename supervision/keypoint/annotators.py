@@ -63,12 +63,15 @@ class VertexAnnotator(BaseKeyPointAnnotator):
             image = ...
             key_points = sv.KeyPoints(...)
 
-            vertex_annotator = sv.VertexAnnotator()
+            vertex_annotator = sv.VertexAnnotator(color=sv.Color.GREEN, radius=10)
             annotated_frame = vertex_annotator.annotate(
                 scene=image.copy(),
                 key_points=key_points
             )
             ```
+
+        ![vertex-annotator-example](https://media.roboflow.com/
+        supervision-annotator-examples/vertex-annotator-example.png)
         """
         if len(key_points) == 0:
             return scene
@@ -133,12 +136,15 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
             image = ...
             key_points = sv.KeyPoints(...)
 
-            edge_annotator = sv.EdgeAnnotator()
+            edge_annotator = sv.EdgeAnnotator(color=sv.Color.GREEN, thickness=5)
             annotated_frame = edge_annotator.annotate(
                 scene=image.copy(),
                 key_points=key_points
             )
             ```
+
+        ![edge-annotator-example](https://media.roboflow.com/
+        supervision-annotator-examples/edge-annotator-example.png)
         """
         if len(key_points) == 0:
             return scene
