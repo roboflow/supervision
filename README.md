@@ -71,16 +71,15 @@ len(detections)
     ```python
     import cv2
     import supervision as sv
-    from inference.models.utils import get_roboflow_model
+    from inference import get_model
 
     image = cv2.imread(...)
-    model = get_roboflow_model(model_id="yolov8s-640", api_key=<ROBOFLOW API KEY>)
+    model = get_model(model_id="yolov8s-640", api_key=<ROBOFLOW API KEY>)
     result = model.infer(image)[0]
     detections = sv.Detections.from_inference(result)
 
     len(detections)
-    # 5
-
+    # 5
     ```
 
 </details>
