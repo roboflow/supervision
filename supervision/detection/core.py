@@ -17,11 +17,11 @@ from supervision.detection.utils import (
     mask_to_xyxy,
     merge_data,
     process_roboflow_result,
-    validate_detections_fields,
     xywh_to_xyxy,
 )
 from supervision.geometry.core import Position
 from supervision.utils.internal import deprecated
+from supervision.validators import validate_detections_fields
 
 
 @dataclass
