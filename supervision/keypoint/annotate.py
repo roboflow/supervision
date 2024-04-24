@@ -38,8 +38,7 @@ class VertexAnnotator(BaseKeyPointAnnotator):
         if len(keypoints) == 0:
             return scene
 
-        xy_all = keypoints.xy
-        for xy in xy_all:
+        for xy in keypoints.xy:
             for x, y in xy:
                 cv2.circle(
                     img=scene,
@@ -77,10 +76,10 @@ class SkeletonAnnotator(BaseKeyPointAnnotator):
         if len(keypoints) == 0:
             return scene
         if keypoints.class_id is None:
-            raise ValueError("KeyPoints must have class_id to annotate a skeleton")
+            raise ValueError(
+                "KeyPoints must have class_id to annotate a skeleton")
 
-        xy_all = keypoints.xy
-        for xy in xy_all:
+        for xy in keypoints.xy:
             skeleton = self.skeleton
             if not skeleton:
                 skeleton = resolve_skeleton_by_vertex_count(len(xy))
