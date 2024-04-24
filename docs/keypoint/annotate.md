@@ -7,4 +7,4 @@ status: new
 
 :::supervision.keypoint.annotate.VertexAnnotator
 
-:::supervision.keypoint.annotate.SkeletonAnnotator
+:::supervision.keypoint.annotate.EdgeAnnotator

@@ -26,11 +26,11 @@ class Skeleton(Enum):
     ]
 
 
-skeletons_by_edge_count: Dict[int, Edges] = {}
-skeletons_by_vertex_count: Dict[int, Edges] = {}
+SKELETONS_BY_EDGE_COUNT: Dict[int, Edges] = {}
+SKELETONS_BY_VERTEX_COUNT: Dict[int, Edges] = {}
 
 for skeleton in Skeleton:
-    skeletons_by_edge_count[len(skeleton.value)] = skeleton.value
+    SKELETONS_BY_EDGE_COUNT[len(skeleton.value)] = skeleton.value
 
     unique_vertices = set(vertex for edge in skeleton.value for vertex in edge)
-    skeletons_by_vertex_count[len(unique_vertices)] = skeleton.value
+    SKELETONS_BY_VERTEX_COUNT[len(unique_vertices)] = skeleton.value

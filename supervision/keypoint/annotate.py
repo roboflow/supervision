@@ -8,7 +8,7 @@ import numpy as np
 from supervision.annotators.base import ImageType
 from supervision.draw.color import Color
 from supervision.keypoint.core import KeyPoints
-from supervision.keypoint.skeletons import skeletons_by_vertex_count
+from supervision.keypoint.skeletons import SKELETONS_BY_VERTEX_COUNT
 from supervision.utils.conversion import convert_for_annotation_method
 
 
@@ -80,7 +80,7 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
         for xy in keypoints.xy:
             edges = self.edges
             if not edges:
-                edges = skeletons_by_vertex_count.get(len(xy))
+                edges = SKELETONS_BY_VERTEX_COUNT.get(len(xy))
             if not edges:
                 warn(f"No skeleton found with {len(xy)} vertices")
                 return scene
