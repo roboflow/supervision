@@ -91,9 +91,10 @@ class VertexAnnotator(BaseKeyPointAnnotator):
 
 class EdgeAnnotator(BaseKeyPointAnnotator):
     """
-     A class that specializes in drawing skeleton edges on images using specified key
-     points. It connects key points with lines to form the skeleton structure.
+    A class that specializes in drawing skeleton edges on images using specified key
+    points. It connects key points with lines to form the skeleton structure.
     """
+
     def __init__(
         self,
         color: Color = Color.ROBOFLOW,
