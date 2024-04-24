@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional, Tuple
 from logging import warn
+from typing import List, Optional, Tuple
 
 import cv2
 import numpy as np

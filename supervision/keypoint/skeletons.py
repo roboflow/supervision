@@ -26,8 +26,7 @@ class Skeleton(Enum):
 
 def resolve_skeleton_by_vertex_count(count: int) -> Optional[List[Tuple[int, int]]]:
     for skeleton in Skeleton:
-        unique_vertices = set(
-            vertex for edge in skeleton.value for vertex in edge)
+        unique_vertices = set(vertex for edge in skeleton.value for vertex in edge)
         if len(unique_vertices) == count:
             return skeleton.value
     return None
