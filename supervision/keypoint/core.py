@@ -111,6 +111,37 @@ class KeyPoints:
         )
 
     @classmethod
+    def from_inference(cls, inference_result: dict) -> KeyPoints:
+        if not inference_result.get("predictions"):
+            return cls.empty()
+
+        xy = []
+        confidence = []
+        class_id = []
+        class_names = []
+
+        for prediction in inference_result["predictions"]:
+            prediction_xy = []
+            prediction_confidence = []
+            for keypoint in prediction["keypoints"]:
+                prediction_xy.append([keypoint["x"], keypoint["y"]])
+                prediction_confidence.append(keypoint["confidence"])
+            xy.append(prediction_xy)
+            confidence.append(prediction_confidence)
+
+            class_id.append(prediction["class_id"])
+            class_names.append(prediction["class"])
+
+        data = {CLASS_NAME_DATA_FIELD: np.array(class_names)}
+
+        return cls(
+            xy=np.array(xy, dtype=np.float32),
+            confidence=np.array(confidence, dtype=np.float32),
+            class_id=np.array(class_id, dtype=int),
+            data=data,
+        )
+
+    @classmethod
     def from_ultralytics(cls, ultralytics_results) -> KeyPoints:
         """
         Creates a Keypoints instance from a
