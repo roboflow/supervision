@@ -21,7 +21,8 @@ class KeyPoints:
 
     === "Ultralytics"
 
-        Use [`sv.KeyPoints.from_ultralytics`](/keypoint/core/#supervision.keypoint.core.KeyPoints.from_ultralytics) method, which accepts model results.
+        Use [`sv.KeyPoints.from_ultralytics`](/keypoint/core/#supervision.keypoint.core.KeyPoints.from_ultralytics) 
+        method, which accepts model results.
 
         ```python
         import cv2
@@ -44,7 +45,7 @@ class KeyPoints:
         data (Dict[str, Union[np.ndarray, List]]): A dictionary containing additional
             data where each key is a string representing the data type, and the value
             is either a NumPy array or a list of corresponding data.
-    """
+    """  # noqa: E501 // docs
 
     xy: npt.NDArray[np.float32]
     class_id: Optional[npt.NDArray[np.int_]] = None
