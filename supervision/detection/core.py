@@ -34,7 +34,8 @@ class Detections:
 
     === "Inference"
 
-        Use [`sv.Detections.from_inference`](/detection/core/#supervision.detection.core.Detections.from_inference) method, which accepts model results from both detection and segmentation models.
+        Use [`sv.Detections.from_inference`](/detection/core/#supervision.detection.core.Detections.from_inference) 
+        method, which accepts model results from both detection and segmentation models.
 
         ```python
         import cv2
@@ -49,7 +50,8 @@ class Detections:
 
     === "Ultralytics"
 
-        Use [`sv.Detections.from_ultralytics`](/detection/core/#supervision.detection.core.Detections.from_ultralytics) method, which accepts model results from both detection and segmentation models.
+        Use [`sv.Detections.from_ultralytics`](/detection/core/#supervision.detection.core.Detections.from_ultralytics) 
+        method, which accepts model results from both detection and segmentation models.
 
         ```python
         import cv2
@@ -64,7 +66,8 @@ class Detections:
 
     === "Transformers"
 
-        Use [`sv.Detections.from_transformers`](/detection/core/#supervision.detection.core.Detections.from_transformers) method, which accepts model results from both detection and segmentation models.
+        Use [`sv.Detections.from_transformers`](/detection/core/#supervision.detection.core.Detections.from_transformers) 
+        method, which accepts model results from both detection and segmentation models.
 
         ```python
         import torch
@@ -104,7 +107,7 @@ class Detections:
         data (Dict[str, Union[np.ndarray, List]]): A dictionary containing additional
             data where each key is a string representing the data type, and the value
             is either a NumPy array or a list of corresponding data.
-    """
+    """  # noqa: E501 // docs
 
     xyxy: np.ndarray
     mask: Optional[np.ndarray] = None
