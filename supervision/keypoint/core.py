@@ -166,8 +166,6 @@ class KeyPoints:
         if len(yolo_nas_results.prediction.poses) == 0:
             return cls.empty()
 
-        # TODO: multi-image input
-
         xy = yolo_nas_results.prediction.poses[:, :, :2]
         confidence = yolo_nas_results.prediction.poses[:, :, 2]
         class_id = [0] * len(xy)
