@@ -50,7 +50,8 @@ class KeyPoints:
     xy: npt.NDArray[np.float32]
     class_id: Optional[npt.NDArray[np.int_]] = None
     confidence: Optional[npt.NDArray[np.float32]] = None
-    data: Dict[str, Union[npt.NDArray[Any], List]] = field(default_factory=dict)
+    data: Dict[str, Union[npt.NDArray[Any], List]
+               ] = field(default_factory=dict)
 
     def __post_init__(self):
         validate_keypoints_fields(
@@ -103,7 +104,7 @@ class KeyPoints:
     @classmethod
     def from_ultralytics(cls, ultralytics_results) -> KeyPoints:
         """
-        Creates a Keypoints instance from a
+        Creates a KeyPoints instance from a
             [YOLOv8](https://github.com/ultralytics/ultralytics) inference result.
 
         Args:
@@ -111,7 +112,7 @@ class KeyPoints:
                 The output Results instance from YOLOv8
 
         Returns:
-            KeyPoints: A new Keypoints object.
+            KeyPoints: A new KeyPoints object.
 
         Example:
             ```python
@@ -130,11 +131,55 @@ class KeyPoints:
 
         xy = ultralytics_results.keypoints.xy.cpu().numpy()
         class_id = ultralytics_results.boxes.cls.cpu().numpy().astype(int)
-        class_names = np.array([ultralytics_results.names[i] for i in class_id])
+        class_names = np.array([ultralytics_results.names[i]
+                               for i in class_id])
 
         confidence = ultralytics_results.keypoints.conf.cpu().numpy()
         data = {CLASS_NAME_DATA_FIELD: class_names}
         return cls(xy, class_id, confidence, data)
+
+    @classmethod
+    def from_yolo_nas(cls, yolo_nas_results) -> KeyPoints:
+        """
+        Create a KeyPoints instance from a YOLO NAS results.
+
+        Args:
+            yolo_nas_results (ImagePoseEstimationPrediction): The output object from YOLO NAS.
+
+        Returns:
+            KeyPoints: A new KeyPoints object.
+
+        Example:
+            ```python
+            import cv2
+            import supervision as sv
+            import super_gradients
+
+            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+
+            yolo_nas = super_gradients.training.models.get(
+                "yolo_nas_pose_s", pretrained_weights="coco_pose").to("cuda")
+
+            results = yolo_nas.predict(image, conf=0.1)
+            keypoints = sv.KeyPoints.from_yolo_nas(results)
+            ```
+        """
+        if len(yolo_nas_results.prediction.poses) == 0:
+            return cls.empty()
+
+        # TODO: multi-image input
+
+        xy = yolo_nas_results.prediction.poses[:, :, :2]
+        confidence = yolo_nas_results.prediction.poses[:, :, 2]
+        class_id = [0] * len(xy)
+        data = {CLASS_NAME_DATA_FIELD: [f"person" for _ in xy]}
+
+        return cls(
+            xy=xy,
+            confidence=confidence,
+            class_id=np.array(class_id),
+            data=data,
+        )
 
     def __getitem__(
         self, index: Union[int, slice, List[int], np.ndarray, str]
@@ -216,7 +261,7 @@ class KeyPoints:
 
         self.data[key] = value
 
-    @classmethod
+    @ classmethod
     def empty(cls) -> KeyPoints:
         """
         Create an empty Keypoints object with no keypoints.
