@@ -120,7 +120,7 @@ class KeyPoints:
             confidence.append(prediction_confidence)
 
             class_id.append(prediction["class_id"])
-            class_names.append(prediction["class"])
+            class_names.append(prediction["class_name"])
 
         data = {CLASS_NAME_DATA_FIELD: np.array(class_names)}
 
