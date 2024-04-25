@@ -50,7 +50,8 @@ class KeyPoints:
     xy: npt.NDArray[np.float32]
     class_id: Optional[npt.NDArray[np.int_]] = None
     confidence: Optional[npt.NDArray[np.float32]] = None
-    data: Dict[str, Union[npt.NDArray[Any], List]] = field(default_factory=dict)
+    data: Dict[str, Union[npt.NDArray[Any], List]
+               ] = field(default_factory=dict)
 
     def __post_init__(self):
         validate_keypoints_fields(
@@ -130,7 +131,8 @@ class KeyPoints:
 
         xy = ultralytics_results.keypoints.xy.cpu().numpy()
         class_id = ultralytics_results.boxes.cls.cpu().numpy().astype(int)
-        class_names = np.array([ultralytics_results.names[i] for i in class_id])
+        class_names = np.array([ultralytics_results.names[i]
+                               for i in class_id])
 
         confidence = ultralytics_results.keypoints.conf.cpu().numpy()
         data = {CLASS_NAME_DATA_FIELD: class_names}
@@ -151,13 +153,15 @@ class KeyPoints:
         Example:
             ```python
             import cv2
+            import torch
             import supervision as sv
             import super_gradients
 
             image = cv2.imread(<SOURCE_IMAGE_PATH>)
 
+            device = "cuda" if torch.cuda.is_available() else "cpu"
             yolo_nas = super_gradients.training.models.get(
-                "yolo_nas_pose_s", pretrained_weights="coco_pose").to("cuda")
+                "yolo_nas_pose_s", pretrained_weights="coco_pose").to(device)
 
             results = yolo_nas.predict(image, conf=0.1)
             keypoints = sv.KeyPoints.from_yolo_nas(results)
@@ -180,7 +184,7 @@ class KeyPoints:
 
     def __getitem__(
         self, index: Union[int, slice, List[int], np.ndarray, str]
-    ) -> Union["KeyPoints", List, np.ndarray, None]:
+    ) -> Union[KeyPoints, List, np.ndarray, None]:
         """
         Get a subset of the KeyPoints object or access an item from its data field.
 
