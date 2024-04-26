@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import suppress
 from dataclasses import dataclass, field
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
@@ -101,7 +102,44 @@ class KeyPoints:
         )
 
     @classmethod
-    def from_inference(cls, inference_result: dict) -> KeyPoints:
+    def from_inference(cls, inference_result: Union[dict, Any]) -> KeyPoints:
+        """
+        Create a `sv.KeyPoints` object from the [Roboflow](https://roboflow.com/)
+        API inference result or the [Inference](https://inference.roboflow.com/)
+        package results. When a keypoint detection model is used, this method
+        extracts the keypoint coordinates, class IDs, confidences, and class names.
+
+        Args:
+            inference_result (dict, any): The result from the
+                Roboflow API or Inference package containing predictions with keypoints.
+
+        Returns:
+            (KeyPoints): A KeyPoints object containing the keypoint coordinates,
+                class IDs, and confidences of each keypoint.
+
+        Example:
+            ```python
+            import cv2
+            import supervision as sv
+            from inference import get_model
+
+            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            model = get_model(model_id="yolov8s-640")
+
+            result = model.infer(image)[0]
+            keypoints = sv.KeyPoints.from_inference(result)
+            ```
+        
+        """
+        if isinstance(inference_result, list):
+            raise ValueError("from_inference() operates on a single result at a time."
+                             "You can retrieve it like so:  inference_result = model.infer(image)[0]")
+        
+        # Unpack the result if received from inference.get_model,
+        # rather than inference_sdk.InferenceHTTPClient
+        with suppress(AttributeError):
+            inference_result = inference_result.dict(exclude_none=True, by_alias=True)
+
         if not inference_result.get("predictions"):
             return cls.empty()
 
@@ -120,7 +158,13 @@ class KeyPoints:
             confidence.append(prediction_confidence)
 
             class_id.append(prediction["class_id"])
-            class_names.append(prediction["class"])
+
+            if "class" in prediction:
+                class_names.append(prediction["class"])
+            elif "class_name" in prediction:
+                class_names.append(prediction["class_name"])
+            else:
+                raise KeyError("Neither 'class' nor 'class_name' found in prediction.")
 
         data = {CLASS_NAME_DATA_FIELD: np.array(class_names)}
 
