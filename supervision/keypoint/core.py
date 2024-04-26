@@ -129,12 +129,14 @@ class KeyPoints:
             result = model.infer(image)[0]
             keypoints = sv.KeyPoints.from_inference(result)
             ```
-        
+
         """
         if isinstance(inference_result, list):
-            raise ValueError("from_inference() operates on a single result at a time."
-                             "You can retrieve it like so:  inference_result = model.infer(image)[0]")
-        
+            raise ValueError(
+                "from_inference() operates on a single result at a time."
+                "You can retrieve it like so:  inference_result = model.infer(image)[0]"
+            )
+
         # Unpack the result if received from inference.get_model,
         # rather than inference_sdk.InferenceHTTPClient
         with suppress(AttributeError):
