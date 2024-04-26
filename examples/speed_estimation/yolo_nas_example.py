@@ -77,10 +77,10 @@ if __name__ == "__main__":
         frame_rate=video_info.fps, track_thresh=args.confidence_threshold
     )
 
-    thickness = sv.calculate_dynamic_line_thickness(
+    thickness = sv.calculate_optimal_line_thickness(
         resolution_wh=video_info.resolution_wh
     )
-    text_scale = sv.calculate_dynamic_text_scale(resolution_wh=video_info.resolution_wh)
+    text_scale = sv.calculate_optimal_text_scale(resolution_wh=video_info.resolution_wh)
     bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=thickness)
     label_annotator = sv.LabelAnnotator(
         text_scale=text_scale,

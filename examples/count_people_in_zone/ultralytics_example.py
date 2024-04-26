@@ -36,8 +36,8 @@ def initiate_annotators(
 ) -> Tuple[
     List[sv.PolygonZone], List[sv.PolygonZoneAnnotator], List[sv.BoundingBoxAnnotator]
 ]:
-    line_thickness = sv.calculate_dynamic_line_thickness(resolution_wh=resolution_wh)
-    text_scale = sv.calculate_dynamic_text_scale(resolution_wh=resolution_wh)
+    line_thickness = sv.calculate_optimal_line_thickness(resolution_wh=resolution_wh)
+    text_scale = sv.calculate_optimal_text_scale(resolution_wh=resolution_wh)
 
     zones = []
     zone_annotators = []
