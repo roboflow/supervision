@@ -160,13 +160,7 @@ class KeyPoints:
             confidence.append(prediction_confidence)
 
             class_id.append(prediction["class_id"])
-
-            if "class" in prediction:
-                class_names.append(prediction["class"])
-            elif "class_name" in prediction:
-                class_names.append(prediction["class_name"])
-            else:
-                raise KeyError("Neither 'class' nor 'class_name' found in prediction.")
+            class_names.append(prediction["class"])
 
         data = {CLASS_NAME_DATA_FIELD: np.array(class_names)}
 
