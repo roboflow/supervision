@@ -51,7 +51,8 @@ class KeyPoints:
     xy: npt.NDArray[np.float32]
     class_id: Optional[npt.NDArray[np.int_]] = None
     confidence: Optional[npt.NDArray[np.float32]] = None
-    data: Dict[str, Union[npt.NDArray[Any], List]] = field(default_factory=dict)
+    data: Dict[str, Union[npt.NDArray[Any], List]
+               ] = field(default_factory=dict)
 
     def __post_init__(self):
         validate_keypoints_fields(
@@ -124,7 +125,7 @@ class KeyPoints:
             from inference import get_model
 
             image = cv2.imread(<SOURCE_IMAGE_PATH>)
-            model = get_model(model_id="yolov8s-640")
+            model = get_model(model_id="<POSE_MODEL_ID>")
 
             result = model.infer(image)[0]
             keypoints = sv.KeyPoints.from_inference(result)
@@ -140,7 +141,8 @@ class KeyPoints:
         # Unpack the result if received from inference.get_model,
         # rather than inference_sdk.InferenceHTTPClient
         with suppress(AttributeError):
-            inference_result = inference_result.dict(exclude_none=True, by_alias=True)
+            inference_result = inference_result.dict(
+                exclude_none=True, by_alias=True)
 
         if not inference_result.get("predictions"):
             return cls.empty()
@@ -166,7 +168,8 @@ class KeyPoints:
             elif "class_name" in prediction:
                 class_names.append(prediction["class_name"])
             else:
-                raise KeyError("Neither 'class' nor 'class_name' found in prediction.")
+                raise KeyError(
+                    "Neither 'class' nor 'class_name' found in prediction.")
 
         data = {CLASS_NAME_DATA_FIELD: np.array(class_names)}
 
@@ -207,7 +210,8 @@ class KeyPoints:
 
         xy = ultralytics_results.keypoints.xy.cpu().numpy()
         class_id = ultralytics_results.boxes.cls.cpu().numpy().astype(int)
-        class_names = np.array([ultralytics_results.names[i] for i in class_id])
+        class_names = np.array([ultralytics_results.names[i]
+                               for i in class_id])
 
         confidence = ultralytics_results.keypoints.conf.cpu().numpy()
         data = {CLASS_NAME_DATA_FIELD: class_names}
