@@ -124,7 +124,7 @@ class KeyPoints:
             from inference import get_model
 
             image = cv2.imread(<SOURCE_IMAGE_PATH>)
-            model = get_model(model_id=<POSE_MODEL_ID>)
+            model = get_model(model_id=<POSE_MODEL_ID>, api_key=<ROBOFLOW_API_KEY>)
 
             result = model.infer(image)[0]
             key_points = sv.KeyPoints.from_inference(result)
