@@ -124,12 +124,26 @@ class KeyPoints:
             from inference import get_model
 
             image = cv2.imread(<SOURCE_IMAGE_PATH>)
-            model = get_model(model_id="<POSE_MODEL_ID>")
+            model = get_model(model_id=<POSE_MODEL_ID>)
 
             result = model.infer(image)[0]
-            keypoints = sv.KeyPoints.from_inference(result)
+            key_points = sv.KeyPoints.from_inference(result)
             ```
 
+            ```python
+            import cv2
+            import supervision as sv
+            from inference_sdk import InferenceHTTPClient
+
+            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            client = InferenceHTTPClient(
+                api_url="https://detect.roboflow.com",
+                api_key=<ROBOFLOW_API_KEY>
+            )
+
+            result = client.infer(image, model_id=<POSE_MODEL_ID>)
+            key_points = sv.KeyPoints.from_inference(result)
+            ```
         """
         if isinstance(inference_result, list):
             raise ValueError(
