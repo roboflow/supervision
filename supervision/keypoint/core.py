@@ -50,7 +50,8 @@ class KeyPoints:
     xy: npt.NDArray[np.float32]
     class_id: Optional[npt.NDArray[np.int_]] = None
     confidence: Optional[npt.NDArray[np.float32]] = None
-    data: Dict[str, Union[npt.NDArray[Any], List]] = field(default_factory=dict)
+    data: Dict[str, Union[npt.NDArray[Any], List]
+               ] = field(default_factory=dict)
 
     def __post_init__(self):
         validate_keypoints_fields(
@@ -130,7 +131,8 @@ class KeyPoints:
 
         xy = ultralytics_results.keypoints.xy.cpu().numpy()
         class_id = ultralytics_results.boxes.cls.cpu().numpy().astype(int)
-        class_names = np.array([ultralytics_results.names[i] for i in class_id])
+        class_names = np.array([ultralytics_results.names[i]
+                               for i in class_id])
 
         confidence = ultralytics_results.keypoints.conf.cpu().numpy()
         data = {CLASS_NAME_DATA_FIELD: class_names}
@@ -170,13 +172,27 @@ class KeyPoints:
 
         xy = yolo_nas_results.prediction.poses[:, :, :2]
         confidence = yolo_nas_results.prediction.poses[:, :, 2]
-        class_id = [0] * len(xy)
-        data = {CLASS_NAME_DATA_FIELD: ["person" for _ in xy]}
+
+        # yolo_nas_results treats params differently.
+        # prediction.labels may not exist, whereas class_names might be None
+        if hasattr(yolo_nas_results.prediction, "labels"):
+            class_id = yolo_nas_results.prediction.labels  # np.array[int]
+        else:
+            class_id = np.array([-1] * len(xy))
+
+        class_names = [""] * len(class_id)
+        if yolo_nas_results.class_names:
+            for i, c_id in enumerate(class_id):
+                if c_id != -1:
+                    name = yolo_nas_results.class_names[c_id]  # tuple[str]
+                    class_names[i] = name
+
+        data = {CLASS_NAME_DATA_FIELD: class_names}
 
         return cls(
             xy=xy,
             confidence=confidence,
-            class_id=np.array(class_id),
+            class_id=class_id,
             data=data,
         )
 
