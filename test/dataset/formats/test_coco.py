@@ -1,5 +1,5 @@
 from contextlib import ExitStack as DoesNotRaise
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union
 
 import numpy as np
 import pytest
@@ -20,6 +20,8 @@ def mock_cock_coco_annotation(
     category_id: int = 0,
     bbox: Tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0),
     area: float = 0.0,
+    segmentation: List[list] = None,
+    iscrowd: bool = False,
 ) -> dict:
     return {
         "id": annotation_id,
@@ -27,7 +29,8 @@ def mock_cock_coco_annotation(
         "category_id": category_id,
         "bbox": list(bbox),
         "area": area,
-        "iscrowd": 0,
+        "segmentation": segmentation,
+        "iscrowd": int(iscrowd),
     }
 
 
@@ -226,6 +229,21 @@ def test_group_coco_annotations_by_image_id(
             ),
             DoesNotRaise(),
         ),  # two image annotations
+                (
+            [
+                mock_cock_coco_annotation(
+                    category_id=0, bbox=(0, 0, 10, 10), area=10 * 10, segmentation = [[0,0, 0,9, 9,9, 9,0]], 
+                )
+            ],
+            (20, 20),
+            True,
+            Detections(
+                xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                class_id=np.array([0], dtype=int),
+                mask = np.array([np.fromfunction(lambda i, j:np.bitwise_and(i<10, j<10), (20, 20), dtype=int)])
+            ),
+            DoesNotRaise(),
+        ),  # single image annotations with mask, segmentation mask outlines 10x10 square
     ],
 )
 def test_coco_annotations_to_detections(
