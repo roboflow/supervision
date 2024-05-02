@@ -252,7 +252,7 @@ def test_group_coco_annotations_by_image_id(
             [
                 mock_cock_coco_annotation(
                     category_id=0, bbox=(0, 0, 10, 10), area=10 * 10, 
-                    segmentation = {'size':[20,20], 'counts':[0, 5, 20, 5, 40, 5, 60, 5, 80, 5, 100, 10, 120, 10, 140, 10, 160, 10, 180, 10]}, iscrowd = True 
+                    segmentation = {'size':[20,20], 'counts':[0, 10, 10, 10, 10, 10, 10, 10, 10, 10, 15, 5, 15, 5, 15, 5, 15, 5, 15, 5, 210]}, iscrowd = True 
                 )
             ],
             (20, 20),
