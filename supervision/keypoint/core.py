@@ -176,16 +176,15 @@ class KeyPoints:
         if hasattr(yolo_nas_results.prediction, "labels"):
             class_id = yolo_nas_results.prediction.labels  # np.array[int]
         else:
-            class_id = np.array([-1] * len(xy))
+            class_id = None
 
-        class_names = [""] * len(class_id)
-        if yolo_nas_results.class_names:
-            for i, c_id in enumerate(class_id):
-                if c_id != -1:
-                    name = yolo_nas_results.class_names[c_id]  # tuple[str]
-                    class_names[i] = name
-
-        data = {CLASS_NAME_DATA_FIELD: class_names}
+        data = {}
+        if class_id is not None and yolo_nas_results.class_names is not None:
+            class_names = []
+            for c_id in class_id:
+                name = yolo_nas_results.class_names[c_id]  # tuple[str]
+                class_names.append(name)
+            data[CLASS_NAME_DATA_FIELD] = class_names
 
         return cls(
             xy=xy,
