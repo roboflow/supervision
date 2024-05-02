@@ -229,10 +229,10 @@ def test_group_coco_annotations_by_image_id(
             ),
             DoesNotRaise(),
         ),  # two image annotations
-                (
+        (
             [
                 mock_cock_coco_annotation(
-                    category_id=0, bbox=(0, 0, 10, 10), area=10 * 10, segmentation = [[0,0, 0,9, 9,9, 9,0]], 
+                    category_id=0, bbox=(0, 0, 10, 10), area=10 * 10, segmentation = [[0,0, 4,0, 4,5, 9,5,  9,9, 0,9]], 
                 )
             ],
             (20, 20),
@@ -240,10 +240,35 @@ def test_group_coco_annotations_by_image_id(
             Detections(
                 xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
                 class_id=np.array([0], dtype=int),
-                mask = np.array([np.fromfunction(lambda i, j:np.bitwise_and(i<10, j<10), (20, 20), dtype=int)])
+                mask = np.array([0 if i>=10 or j>=10 or (i<5 and j >=5)  else 1 for i in range(0,20) for j in range(0,20)]).reshape((1,20,20))
             ),
             DoesNotRaise(),
-        ),  # single image annotations with mask, segmentation mask outlines 10x10 square
+        ),  # single image annotations with mask, segmentation mask in L-like shape, like below:
+            #                                     1 0 0 0
+            #                                     1 1 0 0 
+            #                                     0 0 0 0 
+            #                                     0 0 0 0 
+        (
+            [
+                mock_cock_coco_annotation(
+                    category_id=0, bbox=(0, 0, 10, 10), area=10 * 10, 
+                    segmentation = {'size':[20,20], 'counts':[0, 5, 20, 5, 40, 5, 60, 5, 80, 5, 100, 10, 120, 10, 140, 10, 160, 10, 180, 10]}, iscrowd = True 
+                )
+            ],
+            (20, 20),
+            True,
+            Detections(
+                xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                class_id=np.array([0], dtype=int),
+                mask = np.array([0 if i>=10 or j>=10 or (i<5 and j >=5)  else 1 for i in range(0,20) for j in range(0,20)]).reshape((1,20,20))
+            ),
+            DoesNotRaise(),
+        ),  # single image annotations with mask, RLE encoded segmentation mask in L-like shape, like below:
+            #                                     1 0 0 0
+            #                                     1 1 0 0 
+            #                                     0 0 0 0 
+            #                                     0 0 0 0 
+
     ],
 )
 def test_coco_annotations_to_detections(
