@@ -30,14 +30,10 @@ def main(
     frames_generator = get_stream_frames_generator(rtsp_url=rtsp_url)
     fps_monitor = sv.FPSMonitor()
 
-    frame = next(frames_generator)
-    resolution_wh = frame.shape[1], frame.shape[0]
-
     polygons = load_zones_config(file_path=zone_configuration_path)
     zones = [
         sv.PolygonZone(
             polygon=polygon,
-            frame_resolution_wh=resolution_wh,
             triggering_anchors=(sv.Position.CENTER,),
         )
         for polygon in polygons

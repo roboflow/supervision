@@ -25,20 +25,15 @@ class CustomSink:
         self.fps_monitor = sv.FPSMonitor()
         self.polygons = load_zones_config(file_path=zone_configuration_path)
         self.timers = [ClockBasedTimer() for _ in self.polygons]
-        self.zones = None
+        self.zones = [
+            sv.PolygonZone(
+                polygon=polygon,
+                triggering_anchors=(sv.Position.CENTER,),
+            )
+            for polygon in self.polygons
+        ]
 
     def on_prediction(self, detections: sv.Detections, frame: VideoFrame) -> None:
-        if self.zones is None:
-            resolution_wh = frame.image.shape[1], frame.image.shape[0]
-            self.zones = [
-                sv.PolygonZone(
-                    polygon=polygon,
-                    frame_resolution_wh=resolution_wh,
-                    triggering_anchors=(sv.Position.CENTER,),
-                )
-                for polygon in self.polygons
-            ]
-
         self.fps_monitor.tick()
         fps = self.fps_monitor.fps
 

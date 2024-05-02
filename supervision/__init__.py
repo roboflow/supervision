@@ -69,6 +69,8 @@ from supervision.draw.utils import (
 )
 from supervision.geometry.core import Point, Position, Rect
 from supervision.geometry.utils import get_polygon_center
+from supervision.keypoint.annotators import EdgeAnnotator, VertexAnnotator
+from supervision.keypoint.core import KeyPoints
 from supervision.metrics.detection import ConfusionMatrix, MeanAveragePrecision
 from supervision.tracker.byte_tracker.core import ByteTrack
 from supervision.utils.conversion import cv2_to_pillow, pillow_to_cv2
