@@ -36,6 +36,10 @@ class InferenceSlicer:
             slices in the format `(width_ratio, height_ratio)`.
         iou_threshold (Optional[float]): Intersection over Union (IoU) threshold
             used for non-max suppression.
+        merge_detections (Optional[bool]): Whether to merge the detection from all
+            slices or simply concatenate them. If `True`, Non-Maximum Merging (NMM),
+            otherwise Non-Maximum Suppression (NMS),
+            is applied to the final detections.
         callback (Callable): A function that performs inference on a given image
             slice and returns detections.
         thread_workers (int): Number of threads for parallel execution.
@@ -53,11 +57,13 @@ class InferenceSlicer:
         slice_wh: Tuple[int, int] = (320, 320),
         overlap_ratio_wh: Tuple[float, float] = (0.2, 0.2),
         iou_threshold: Optional[float] = 0.5,
+        merge_detections: Optional[bool] = False,
         thread_workers: int = 1,
     ):
         self.slice_wh = slice_wh
         self.overlap_ratio_wh = overlap_ratio_wh
         self.iou_threshold = iou_threshold
+        self.merge_detections = merge_detections
         self.callback = callback
         self.thread_workers = thread_workers
 
@@ -108,9 +114,14 @@ class InferenceSlicer:
             for future in as_completed(futures):
                 detections_list.append(future.result())
 
-        return Detections.merge(detections_list=detections_list).with_nms(
-            threshold=self.iou_threshold
-        )
+        if self.merge_detections:
+            return Detections.merge(detections_list=detections_list).with_nmm(
+                threshold=self.iou_threshold
+            )
+        else:
+            return Detections.merge(detections_list=detections_list).with_nms(
+                threshold=self.iou_threshold
+            )
 
     def _run_callback(self, image, offset) -> Detections:
         """

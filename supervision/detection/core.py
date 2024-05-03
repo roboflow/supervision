@@ -13,9 +13,14 @@ from supervision.detection.utils import (
     extract_ultralytics_masks,
     get_data_item,
     is_data_equal,
-    mask_non_max_suppression,
-    mask_to_xyxy,
-    merge_data,
+    batched_greedy_nmm,
+    box_iou_batch,
+    get_merged_bbox,
+    get_merged_class_id,
+    get_merged_confidence,
+    get_merged_mask,
+    get_merged_tracker_id,
+    greedy_nmm,
     process_roboflow_result,
     xywh_to_xyxy,
 )
@@ -1091,6 +1096,105 @@ class Detections:
                 where n is the number of detections.
         """
         return (self.xyxy[:, 3] - self.xyxy[:, 1]) * (self.xyxy[:, 2] - self.xyxy[:, 0])
+
+    def with_nmm(
+        self, threshold: float = 0.5, class_agnostic: bool = False
+    ) -> Detections:
+        """
+        Perform non-maximum merging on the current set of object detections.
+
+        Args:
+            threshold (float, optional): The intersection-over-union threshold
+                to use for non-maximum merging. Defaults to 0.5.
+            class_agnostic (bool, optional): Whether to perform class-agnostic
+                non-maximum merging. If True, the class_id of each detection
+                will be ignored. Defaults to False.
+
+        Returns:
+            Detections: A new Detections object containing the subset of detections
+                after non-maximum merging.
+
+        Raises:
+            AssertionError: If `confidence` is None and class_agnostic is False.
+                If `class_id` is None and class_agnostic is False.
+        """
+        if len(self) == 0:
+            return self
+
+        assert (
+            self.confidence is not None
+        ), "Detections confidence must be given for NMM to be executed."
+
+        if class_agnostic:
+            predictions = np.hstack((self.xyxy, self.confidence.reshape(-1, 1)))
+            keep_to_merge_list = greedy_nmm(predictions, threshold)
+        else:
+            predictions = np.hstack(
+                (
+                    self.xyxy,
+                    self.confidence.reshape(-1, 1),
+                    self.class_id.reshape(-1, 1),
+                )
+            )
+            keep_to_merge_list = batched_greedy_nmm(predictions, threshold)
+
+        result = []
+
+        for keep_ind, merge_ind_list in keep_to_merge_list.items():
+            for merge_ind in merge_ind_list:
+                if (
+                    box_iou_batch(self[keep_ind].xyxy, self[merge_ind].xyxy).item()
+                    > threshold
+                ):
+                    self[keep_ind].xyxy = np.vstack(
+                        (
+                            self[keep_ind].xyxy,
+                            get_merged_bbox(self.xyxy[keep_ind], self.xyxy[merge_ind]),
+                        )
+                    )
+                    self[keep_ind].class_id = np.hstack(
+                        (
+                            self[keep_ind].class_id,
+                            get_merged_class_id(
+                                self.class_id[keep_ind].item(),
+                                self.class_id[merge_ind].item(),
+                            ),
+                        )
+                    )
+                    self[keep_ind].confidence = np.hstack(
+                        (
+                            self[keep_ind].confidence,
+                            get_merged_confidence(
+                                self.confidence[keep_ind].item(),
+                                self.confidence[merge_ind].item(),
+                            ),
+                        )
+                    )
+                    if self.mask is not None:
+                        merged_mask = get_merged_mask(
+                            self.mask[keep_ind], self.mask[merge_ind]
+                        )
+                        if self[keep_ind].mask is None:
+                            self[keep_ind].mask = np.array([merged_mask])
+                        else:
+                            self[keep_ind].mask = np.vstack(
+                                (self[keep_ind].mask, merged_mask[np.newaxis])
+                            )
+                    if self.tracker_id is not None:
+                        merged_tracker_id = get_merged_tracker_id(
+                            self.tracker_id[keep_ind].item(),
+                            self.tracker_id[merge_ind].item(),
+                        )
+                        if self[keep_ind].tracker_id is None:
+                            self[keep_ind].tracker_id = np.array(
+                                [merged_tracker_id], dtype=int
+                            )
+                        else:
+                            self[keep_ind].tracker_id = np.hstack(
+                                (self[keep_ind].tracker_id, merged_tracker_id)
+                            )
+            result.append(self[keep_ind])
+        return Detections.merge(result)
 
     def with_nms(
         self, threshold: float = 0.5, class_agnostic: bool = False
