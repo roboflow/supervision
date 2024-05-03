@@ -9,9 +9,11 @@ import numpy as np
 from supervision.dataset.utils import (
     approximate_mask_with_polygons,
     map_detections_class_id,
+    rle_to_mask,
+    mask_to_rle,
 )
 from supervision.detection.core import Detections
-from supervision.detection.utils import polygon_to_mask, rle_to_mask
+from supervision.detection.utils import polygon_to_mask
 from supervision.utils.file import read_json_file, save_json_file
 
 
@@ -133,9 +135,9 @@ def detections_to_coco_annotations(
     coco_annotations = []
     for xyxy, mask, _, class_id, _, _ in detections:
         box_width, box_height = xyxy[2] - xyxy[0], xyxy[3] - xyxy[1]
-        polygon = []
+        segmentation = []
         if mask is not None:
-            polygon = list(
+            segmentation = list(
                 approximate_mask_with_polygons(
                     mask=mask,
                     min_image_area_percentage=min_image_area_percentage,
@@ -143,14 +145,16 @@ def detections_to_coco_annotations(
                     approximation_percentage=approximation_percentage,
                 )[0].flatten()
             )
+            # todo: flag for when to use RLE?
+            # segmentation = {"counts": mask_to_rle(binary_mask=mask), "size": list(mask.shape[:2])}
         coco_annotation = {
             "id": annotation_id,
             "image_id": image_id,
             "category_id": int(class_id),
             "bbox": [xyxy[0], xyxy[1], box_width, box_height],
             "area": box_width * box_height,
-            "segmentation": [polygon] if polygon else [],
-            "iscrowd": 0,
+            "segmentation": [segmentation] if segmentation else [],
+            "iscrowd": 0,  ## todo: iscrowd depends on flag 1 if RLE 0 if polygon
         }
         coco_annotations.append(coco_annotation)
         annotation_id += 1

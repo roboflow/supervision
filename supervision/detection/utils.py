@@ -1,4 +1,4 @@
-from itertools import chain, groupby
+from itertools import chain
 from typing import Dict, List, Optional, Tuple, Union
 
 import cv2
@@ -766,22 +766,3 @@ def get_data_item(
             raise TypeError(f"Unsupported data type for key '{key}': {type(value)}")
 
     return subset_data
-
-
-def rle_to_mask(rle: np.ndarray, resolution_wh: Tuple[int, int]) -> np.ndarray:
-    width, height = resolution_wh
-    
-    zero_one_values = np.zeros_like(rle)
-    zero_one_values[1::2]=1
-
-    decoded_rle = np.repeat(zero_one_values, rle)
-    return decoded_rle.reshape((height,width), order='F')
-
-def mask_to_rle(binary_mask: np.ndarray) -> list:
-    rle = []
-    for _, group in groupby(binary_mask.ravel(order='F')):
-        rle.append(len(list(group)))
-
-    if binary_mask[0][0] == 1:
-        rle = [0]+rle
-    return rle
