@@ -43,7 +43,7 @@ defusedxml = "^0.7.1"
 opencv-python = { version = ">=4.5.5.64", optional = true }
 opencv-python-headless = ">=4.5.5.64"
 requests = { version = ">=2.26.0,<=2.31.0", optional = true }
-tqdm = { version = ">=4.62.3,<=4.66.2", optional = true }
+tqdm = { version = ">=4.62.3,<=4.66.4", optional = true }
 pillow = ">=9.4"
 
 [tool.poetry.extras]
