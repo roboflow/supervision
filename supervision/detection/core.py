@@ -8,19 +8,17 @@ import numpy as np
 
 from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.utils import (
+    batch_non_max_merge,
+    box_iou_batch,
     box_non_max_suppression,
     calculate_masks_centroids,
     extract_ultralytics_masks,
     get_data_item,
     is_data_equal,
-    batched_greedy_nmm,
-    box_iou_batch,
-    get_merged_bbox,
-    get_merged_class_id,
-    get_merged_confidence,
-    get_merged_mask,
-    get_merged_tracker_id,
-    greedy_nmm,
+    mask_non_max_suppression,
+    mask_to_xyxy,
+    merge_data,
+    non_max_merge,
     process_roboflow_result,
     xywh_to_xyxy,
 )
@@ -29,17 +27,57 @@ from supervision.utils.internal import deprecated
 from supervision.validators import validate_detections_fields
 
 
-def _merge_object_detection_pair(pred1: Detections, pred2: Detections) -> Detections:
-    merged_bbox = get_merged_bbox(pred1.xyxy, pred2.xyxy)
-    merged_conf = get_merged_confidence(pred1.confidence, pred2.confidence)
-    merged_class_id = get_merged_class_id(pred1.class_id, pred2.class_id)
+def _merge_object_detection_pair(det1: Detections, det2: Detections) -> Detections:
+    """
+    Merges two Detections object into a single Detections object.
+
+    A `winning` detection is determined based on the confidence score of the two
+    input detections. This winning detection is then used to specify which `class_id`,
+    `tracker_id`, and `data` to include in the merged Detections object.
+    The resulting `confidence` of the merged object is calculated by the weighted
+    contribution of each detection to the merged object.
+    The bounding boxes and masks of the two input detections are merged into a single
+    bounding box and mask, respectively.
+
+    Args:
+        det1 (Detections):
+            The first Detections object
+        det2 (Detections):
+            The second Detections object
+
+    Returns:
+        Detections: A new Detections object, with merged attributes.
+    """
+    assert (
+        len(det1) == len(det2) == 1
+    ), "Both Detections should have exactly 1 detected object."
+    winning_det = det1 if det1.confidence.item() > det2.confidence.item() else det2
+
+    area_det1 = (det1.xyxy[0][2] - det1.xyxy[0][0]) * (
+        det1.xyxy[0][3] - det1.xyxy[0][1]
+    )
+    area_det2 = (det2.xyxy[0][2] - det2.xyxy[0][0]) * (
+        det2.xyxy[0][3] - det2.xyxy[0][1]
+    )
+    merged_x1, merged_y1 = np.minimum(det1.xyxy[0][:2], det2.xyxy[0][:2])
+    merged_x2, merged_y2 = np.maximum(det1.xyxy[0][2:], det2.xyxy[0][2:])
+    merged_area = (merged_x2 - merged_x1) * (merged_y2 - merged_y1)
+
+    merged_conf = (
+        area_det1 * det1.confidence.item() + area_det2 * det2.confidence.item()
+    ) / merged_area
+    merged_bbox = [np.concatenate([merged_x1, merged_y1, merged_x2, merged_y2])]
+    merged_class_id = winning_det.class_id.item()
     merged_tracker_id = None
     merged_mask = None
+    merged_data = None
 
-    if pred1.mask and pred2.mask:
-        merged_mask = get_merged_mask(pred1.mask, pred2.mask)
-    if pred1.tracker_id and pred2.tracker_id:
-        merged_tracker_id = get_merged_tracker_id(pred1.tracker_id, pred2.tracker_id)
+    if det1.mask and det2.mask:
+        merged_mask = np.logical_or(det1.mask, det2.mask)
+    if det1.tracker_id and det2.tracker_id:
+        merged_tracker_id = winning_det.tracker_id.item()
+    if det1.data and det2.data:
+        merged_data = winning_det.data
 
     return Detections(
         xyxy=merged_bbox,
@@ -47,6 +85,7 @@ def _merge_object_detection_pair(pred1: Detections, pred2: Detections) -> Detect
         confidence=merged_conf,
         class_id=merged_class_id,
         tracker_id=merged_tracker_id,
+        data=merged_data,
     )
 
 
@@ -1007,38 +1046,6 @@ class Detections:
 
         raise ValueError(f"{anchor} is not supported.")
 
-    def __setitem__(
-        self, index: Union[int, slice, List[int], np.ndarray], value: Detections
-    ) -> None:
-        """
-        Set a subset of the Detections object.
-
-        Args:
-            index (Union[int, slice, List[int], np.ndarray]):
-                The index or indices of the subset of the Detections
-            value (Detections): The new value of the subset of the Detections
-
-        Example:
-            ```python
-            >>> import supervision as sv
-
-            >>> detections = sv.Detections(...)
-
-            >>> detections[0] = sv.Detections(...)
-            ```
-        """
-        if isinstance(index, int):
-            index = [index]
-        self.xyxy[index] = value.xyxy
-        if self.mask is not None:
-            self.mask[index] = value.mask
-        if self.confidence is not None:
-            self.confidence[index] = value.confidence
-        if self.class_id is not None:
-            self.class_id[index] = value.class_id
-        if self.tracker_id is not None:
-            self.tracker_id[index] = value.tracker_id
-
     def __getitem__(
         self, index: Union[int, slice, List[int], np.ndarray, str]
     ) -> Union[Detections, List, np.ndarray, None]:
@@ -1150,64 +1157,6 @@ class Detections:
         """
         return (self.xyxy[:, 3] - self.xyxy[:, 1]) * (self.xyxy[:, 2] - self.xyxy[:, 0])
 
-    def with_nmm(
-        self, threshold: float = 0.5, class_agnostic: bool = False
-    ) -> Detections:
-        """
-        Perform non-maximum merging on the current set of object detections.
-
-        Args:
-            threshold (float, optional): The intersection-over-union threshold
-                to use for non-maximum merging. Defaults to 0.5.
-            class_agnostic (bool, optional): Whether to perform class-agnostic
-                non-maximum merging. If True, the class_id of each detection
-                will be ignored. Defaults to False.
-
-        Returns:
-            Detections: A new Detections object containing the subset of detections
-                after non-maximum merging.
-
-        Raises:
-            AssertionError: If `confidence` is None and class_agnostic is False.
-                If `class_id` is None and class_agnostic is False.
-        """
-        if len(self) == 0:
-            return self
-
-        assert 0.0 <= threshold <= 1.0, "Threshold must be between 0 and 1."
-
-        assert (
-            self.confidence is not None
-        ), "Detections confidence must be given for NMM to be executed."
-
-        if class_agnostic:
-            predictions = np.hstack((self.xyxy, self.confidence.reshape(-1, 1)))
-            keep_to_merge_list = greedy_nmm(predictions, threshold)
-        else:
-            predictions = np.hstack(
-                (
-                    self.xyxy,
-                    self.confidence.reshape(-1, 1),
-                    self.class_id.reshape(-1, 1),
-                )
-            )
-            keep_to_merge_list = batched_greedy_nmm(predictions, threshold)
-
-        result = []
-
-        for keep_ind, merge_ind_list in keep_to_merge_list.items():
-            for merge_ind in merge_ind_list:
-                if (
-                    box_iou_batch(self[keep_ind].xyxy, self[merge_ind].xyxy).item()
-                    > threshold
-                ):
-                    self[keep_ind] = _merge_object_detection_pair(
-                        self[keep_ind], self[merge_ind]
-                    )
-            result.append(self[keep_ind])
-
-        return Detections.merge(result)
-
     def with_nms(
         self, threshold: float = 0.5, class_agnostic: bool = False
     ) -> Detections:
@@ -1263,3 +1212,61 @@ class Detections:
             )
 
         return self[indices]
+
+    def with_nmm(
+        self, threshold: float = 0.5, class_agnostic: bool = False
+    ) -> Detections:
+        """
+        Perform non-maximum merging on the current set of object detections.
+
+        Args:
+            threshold (float, optional): The intersection-over-union threshold
+                to use for non-maximum merging. Defaults to 0.5.
+            class_agnostic (bool, optional): Whether to perform class-agnostic
+                non-maximum merging. If True, the class_id of each detection
+                will be ignored. Defaults to False.
+
+        Returns:
+            Detections: A new Detections object containing the subset of detections
+                after non-maximum merging.
+
+        Raises:
+            AssertionError: If `confidence` is None and class_agnostic is False.
+                If `class_id` is None and class_agnostic is False.
+        """
+        if len(self) == 0:
+            return self
+
+        assert 0.0 <= threshold <= 1.0, "Threshold must be between 0 and 1."
+
+        assert (
+            self.confidence is not None
+        ), "Detections confidence must be given for NMM to be executed."
+
+        if class_agnostic:
+            predictions = np.hstack((self.xyxy, self.confidence.reshape(-1, 1)))
+            keep_to_merge_list = non_max_merge(predictions, threshold)
+        else:
+            predictions = np.hstack(
+                (
+                    self.xyxy,
+                    self.confidence.reshape(-1, 1),
+                    self.class_id.reshape(-1, 1),
+                )
+            )
+            keep_to_merge_list = batch_non_max_merge(predictions, threshold)
+
+        result = []
+
+        for keep_ind, merge_ind_list in keep_to_merge_list.items():
+            for merge_ind in merge_ind_list:
+                if (
+                    box_iou_batch(self[keep_ind].xyxy, self[merge_ind].xyxy).item()
+                    > threshold
+                ):
+                    self[keep_ind] = _merge_object_detection_pair(
+                        self[keep_ind], self[merge_ind]
+                    )
+            result.append(self[keep_ind])
+
+        return Detections.merge(result)
