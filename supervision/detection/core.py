@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from contextlib import suppress
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
@@ -25,68 +26,6 @@ from supervision.detection.utils import (
 from supervision.geometry.core import Position
 from supervision.utils.internal import deprecated
 from supervision.validators import validate_detections_fields
-
-
-def _merge_object_detection_pair(det1: Detections, det2: Detections) -> Detections:
-    """
-    Merges two Detections object into a single Detections object.
-
-    A `winning` detection is determined based on the confidence score of the two
-    input detections. This winning detection is then used to specify which `class_id`,
-    `tracker_id`, and `data` to include in the merged Detections object.
-    The resulting `confidence` of the merged object is calculated by the weighted
-    contribution of each detection to the merged object.
-    The bounding boxes and masks of the two input detections are merged into a single
-    bounding box and mask, respectively.
-
-    Args:
-        det1 (Detections):
-            The first Detections object
-        det2 (Detections):
-            The second Detections object
-
-    Returns:
-        Detections: A new Detections object, with merged attributes.
-    """
-    assert (
-        len(det1) == len(det2) == 1
-    ), "Both Detections should have exactly 1 detected object."
-    winning_det = det1 if det1.confidence.item() > det2.confidence.item() else det2
-
-    area_det1 = (det1.xyxy[0][2] - det1.xyxy[0][0]) * (
-        det1.xyxy[0][3] - det1.xyxy[0][1]
-    )
-    area_det2 = (det2.xyxy[0][2] - det2.xyxy[0][0]) * (
-        det2.xyxy[0][3] - det2.xyxy[0][1]
-    )
-    merged_x1, merged_y1 = np.minimum(det1.xyxy[0][:2], det2.xyxy[0][:2])
-    merged_x2, merged_y2 = np.maximum(det1.xyxy[0][2:], det2.xyxy[0][2:])
-    merged_area = (merged_x2 - merged_x1) * (merged_y2 - merged_y1)
-
-    merged_conf = (
-        area_det1 * det1.confidence.item() + area_det2 * det2.confidence.item()
-    ) / merged_area
-    merged_bbox = [np.concatenate([merged_x1, merged_y1, merged_x2, merged_y2])]
-    merged_class_id = winning_det.class_id.item()
-    merged_tracker_id = None
-    merged_mask = None
-    merged_data = None
-
-    if det1.mask and det2.mask:
-        merged_mask = np.logical_or(det1.mask, det2.mask)
-    if det1.tracker_id and det2.tracker_id:
-        merged_tracker_id = winning_det.tracker_id.item()
-    if det1.data and det2.data:
-        merged_data = winning_det.data
-
-    return Detections(
-        xyxy=merged_bbox,
-        mask=merged_mask,
-        confidence=merged_conf,
-        class_id=merged_class_id,
-        tracker_id=merged_tracker_id,
-        data=merged_data,
-    )
 
 
 @dataclass
@@ -1128,6 +1067,33 @@ class Detections:
 
         self.data[key] = value
 
+    def _set_at_index(self, index: int, other: Detections):
+        """
+        Set detection values (xyxy, confidence, ...) at a specified index
+        to those of another Detections object, at index 0.
+
+        Args:
+            index (int): The index in current detection, where values
+                will be set.
+            other (Detections): Detections object with exactly one element
+                to set the values from.
+
+        Raises:
+            ValueError: If `other` is not made of exactly one element.
+        """
+        if len(other) != 1:
+            raise ValueError("Detection to set from must have exactly one element.")
+
+        self.xyxy[index] = other.xyxy[0]
+        if self.mask is not None and other.mask is not None:
+            self.mask[index] = other.mask[0]
+        if self.confidence is not None and other.confidence is not None:
+            self.confidence[index] = other.confidence[0]
+        if self.class_id is not None and other.class_id is not None:
+            self.class_id[index] = other.class_id[0]
+        if self.tracker_id is not None and other.tracker_id is not None:
+            self.tracker_id[index] = other.tracker_id[0]
+
     @property
     def area(self) -> np.ndarray:
         """
@@ -1247,6 +1213,10 @@ class Detections:
             predictions = np.hstack((self.xyxy, self.confidence.reshape(-1, 1)))
             keep_to_merge_list = non_max_merge(predictions, threshold)
         else:
+            assert self.class_id is not None, (
+                "Detections class_id must be given for NMS to be executed. If you"
+                " intended to perform class agnostic NMM set class_agnostic=True."
+            )
             predictions = np.hstack(
                 (
                     self.xyxy,
@@ -1257,16 +1227,127 @@ class Detections:
             keep_to_merge_list = batch_non_max_merge(predictions, threshold)
 
         result = []
-
         for keep_ind, merge_ind_list in keep_to_merge_list.items():
             for merge_ind in merge_ind_list:
-                if (
-                    box_iou_batch(self[keep_ind].xyxy, self[merge_ind].xyxy).item()
-                    > threshold
-                ):
-                    self[keep_ind] = _merge_object_detection_pair(
+                box_iou = box_iou_batch(self[keep_ind].xyxy, self[merge_ind].xyxy)[0]
+                if box_iou > threshold:
+                    merged_detection = self._merge_object_detection_pair(
                         self[keep_ind], self[merge_ind]
                     )
+                    self._set_at_index(keep_ind, merged_detection)
             result.append(self[keep_ind])
 
         return Detections.merge(result)
+
+    @staticmethod
+    def _merge_object_detection_pair(det1: Detections, det2: Detections) -> Detections:
+        """
+        Merges two Detections object into a single Detections object.
+        Assumes each Detections detected exactly one object.
+
+        A `winning` detection is determined based on the confidence score of the two
+        input detections. This winning detection is then used to specify which
+        `class_id`, `tracker_id`, and `data` to include in the merged Detections object.
+
+        The resulting `confidence` of the merged object is calculated by the weighted
+        contribution of each detection to the merged object.
+        The bounding boxes and masks of the two input detections are merged into a
+        single bounding box and mask, respectively.
+
+        Args:
+            det1 (Detections):
+                The first Detections object
+            det2 (Detections):
+                The second Detections object
+
+        Returns:
+            Detections: A new Detections object, with merged attributes.
+
+        Raises:
+            ValueError: If the input Detections objects do not have exactly 1 detected
+                object.
+
+        Example:
+            ```python
+            import cv2
+            import supervision as sv
+            from inference import get_model
+
+            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            model = get_model(model_id="yolov8s-640")
+
+            result = model.infer(image)[0]
+            detections = sv.Detections.from_inference(result)
+
+            merged_detections = merge_object_detection_pair(
+                detections[0], detections[1])
+            ```
+        """
+        if len(det1) != 1 or len(det2) != 1:
+            raise ValueError("Both Detections should have exactly 1 detected object.")
+
+        if det2.confidence is None:
+            winning_det = det1
+        elif det1.confidence is None:
+            winning_det = det2
+        elif det1.confidence[0] >= det2.confidence[0]:
+            winning_det = det1
+        else:
+            winning_det = det2
+
+        area_det1 = (det1.xyxy[0][2] - det1.xyxy[0][0]) * (
+            det1.xyxy[0][3] - det1.xyxy[0][1]
+        )
+        area_det2 = (det2.xyxy[0][2] - det2.xyxy[0][0]) * (
+            det2.xyxy[0][3] - det2.xyxy[0][1]
+        )
+
+        merged_x1, merged_y1 = np.minimum(det1.xyxy[0][:2], det2.xyxy[0][:2])
+        merged_x2, merged_y2 = np.maximum(det1.xyxy[0][2:], det2.xyxy[0][2:])
+
+        merged_xy = np.array([[merged_x1, merged_y1, merged_x2, merged_y2]])
+
+        winning_class_id = winning_det.class_id
+
+        if det1.confidence is None or det2.confidence is None:
+            merged_confidence = None
+        else:
+            merged_confidence = (
+                area_det1 * det1.confidence[0] + area_det2 * det2.confidence[0]
+            ) / (area_det1 + area_det2)
+            merged_confidence = np.array([merged_confidence])
+
+        merged_mask = None
+        if det1.mask is not None and det2.mask is not None:
+            merged_mask = np.logical_or(det1.mask, det2.mask)
+
+        winning_tracker_id = winning_det.tracker_id
+
+        winning_data = None
+        if det1.data and det2.data:
+            winning_data = winning_det.data
+
+        return Detections(
+            xyxy=merged_xy,
+            mask=merged_mask,
+            confidence=merged_confidence,
+            class_id=winning_class_id,
+            tracker_id=winning_tracker_id,
+            data=winning_data,
+        )
+
+
+class OverlapFiltering(Enum):
+    """
+    Enum class to specify the strategy for filtering overlapping detections.
+
+    Attributes:
+        NONE: Do not filter detections based on overlap.
+        NON_MAX_SUPPRESSION: Filter detections using non-max suppression.
+        NON_MAX_MERGE: Merge detections with non-max-merging instead of
+            discarding them.
+    """
+
+    NONE = "none"
+    NON_MAX_SUPPRESSION = "non_max_suppression"
+    NON_MAX_MERGE = "non_max_merge"
