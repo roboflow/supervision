@@ -1,5 +1,5 @@
 from contextlib import ExitStack as DoesNotRaise
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Tuple
 
 import numpy as np
 import pytest
@@ -232,7 +232,10 @@ def test_group_coco_annotations_by_image_id(
         (
             [
                 mock_cock_coco_annotation(
-                    category_id=0, bbox=(0, 0, 10, 10), area=10 * 10, segmentation = [[0,0, 4,0, 4,5, 9,5,  9,9, 0,9]], 
+                    category_id=0,
+                    bbox=(0, 0, 10, 10),
+                    area=10 * 10,
+                    segmentation=[[0, 0, 4, 0, 4, 5, 9, 5, 9, 9, 0, 9]],
                 )
             ],
             (20, 20),
@@ -240,19 +243,53 @@ def test_group_coco_annotations_by_image_id(
             Detections(
                 xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
                 class_id=np.array([0], dtype=int),
-                mask = np.array([0 if i>=10 or j>=10 or (i<5 and j >=5)  else 1 for i in range(0,20) for j in range(0,20)]).reshape((1,20,20))
+                mask=np.array(
+                    [
+                        0 if i >= 10 or j >= 10 or (i < 5 and j >= 5) else 1
+                        for i in range(0, 20)
+                        for j in range(0, 20)
+                    ]
+                ).reshape((1, 20, 20)),
             ),
             DoesNotRaise(),
         ),  # single image annotations with mask, segmentation mask in L-like shape, like below:
-            #                                     1 0 0 0
-            #                                     1 1 0 0 
-            #                                     0 0 0 0 
-            #                                     0 0 0 0 
+        #                                     1 0 0 0
+        #                                     1 1 0 0
+        #                                     0 0 0 0
+        #                                     0 0 0 0
         (
             [
                 mock_cock_coco_annotation(
-                    category_id=0, bbox=(0, 0, 10, 10), area=10 * 10, 
-                    segmentation = {'size':[20,20], 'counts':[0, 10, 10, 10, 10, 10, 10, 10, 10, 10, 15, 5, 15, 5, 15, 5, 15, 5, 15, 5, 210]}, iscrowd = True 
+                    category_id=0,
+                    bbox=(0, 0, 10, 10),
+                    area=10 * 10,
+                    segmentation={
+                        "size": [20, 20],
+                        "counts": [
+                            0,
+                            10,
+                            10,
+                            10,
+                            10,
+                            10,
+                            10,
+                            10,
+                            10,
+                            10,
+                            15,
+                            5,
+                            15,
+                            5,
+                            15,
+                            5,
+                            15,
+                            5,
+                            15,
+                            5,
+                            210,
+                        ],
+                    },
+                    iscrowd=True,
                 )
             ],
             (20, 20),
@@ -260,44 +297,69 @@ def test_group_coco_annotations_by_image_id(
             Detections(
                 xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
                 class_id=np.array([0], dtype=int),
-                mask = np.array([0 if i>=10 or j>=10 or (i<5 and j >=5)  else 1 for i in range(0,20) for j in range(0,20)]).reshape((1,20,20))
+                mask=np.array(
+                    [
+                        0 if i >= 10 or j >= 10 or (i < 5 and j >= 5) else 1
+                        for i in range(0, 20)
+                        for j in range(0, 20)
+                    ]
+                ).reshape((1, 20, 20)),
             ),
             DoesNotRaise(),
         ),  # single image annotations with mask, RLE segmentation mask in L-like shape, like below:
-            #                                     1 0 0 0
-            #                                     1 1 0 0 
-            #                                     0 0 0 0 
-            #                                     0 0 0 0 
-
+        #                                     1 0 0 0
+        #                                     1 1 0 0
+        #                                     0 0 0 0
+        #                                     0 0 0 0
         (
             [
                 mock_cock_coco_annotation(
-                    category_id=0, bbox=(0, 0, 10, 10), area=10 * 10, segmentation = [[0,0, 4,0, 4,5, 9,5,  9,9, 0,9]]
+                    category_id=0,
+                    bbox=(0, 0, 10, 10),
+                    area=10 * 10,
+                    segmentation=[[0, 0, 4, 0, 4, 5, 9, 5, 9, 9, 0, 9]],
                 ),
                 mock_cock_coco_annotation(
-                    category_id=0, bbox=(5, 0, 5, 5), area=5 * 5, 
-                    segmentation = {'size':[20,20], 'counts':[100, 5, 15, 5, 15, 5, 15, 5, 15, 5, 215]}, iscrowd = True 
+                    category_id=0,
+                    bbox=(5, 0, 5, 5),
+                    area=5 * 5,
+                    segmentation={
+                        "size": [20, 20],
+                        "counts": [100, 5, 15, 5, 15, 5, 15, 5, 15, 5, 215],
+                    },
+                    iscrowd=True,
                 ),
             ],
             (20, 20),
             True,
             Detections(
-                xyxy=np.array(
-                    [[0, 0, 10, 10], [5, 0, 10, 5]], dtype=np.float32
-                ),
+                xyxy=np.array([[0, 0, 10, 10], [5, 0, 10, 5]], dtype=np.float32),
                 class_id=np.array([0, 0], dtype=int),
-                mask = np.array([
-                    np.array([0 if i>=10 or j>=10 or (i<5 and j >=5)  else 1 for i in range(0,20) for j in range(0,20)]).reshape((20,20)),
-                    np.array([1 if j>4 and j<10 and i<5  else 0 for i in range(0,20) for j in range(0,20)]).reshape((20,20))
-                    ])
+                mask=np.array(
+                    [
+                        np.array(
+                            [
+                                0 if i >= 10 or j >= 10 or (i < 5 and j >= 5) else 1
+                                for i in range(0, 20)
+                                for j in range(0, 20)
+                            ]
+                        ).reshape((20, 20)),
+                        np.array(
+                            [
+                                1 if j > 4 and j < 10 and i < 5 else 0
+                                for i in range(0, 20)
+                                for j in range(0, 20)
+                            ]
+                        ).reshape((20, 20)),
+                    ]
+                ),
             ),
             DoesNotRaise(),
         ),  # two image annotations with mask, one mask as polygon in in L-like shape, second as RLE in shape of square, like below (P = polygon, R = RLE):
-            #                                     P R 0 0
-            #                                     P P 0 0 
-            #                                     0 0 0 0 
-            #                                     0 0 0 0 
-
+        #                                     P R 0 0
+        #                                     P P 0 0
+        #                                     0 0 0 0
+        #                                     0 0 0 0
     ],
 )
 def test_coco_annotations_to_detections(

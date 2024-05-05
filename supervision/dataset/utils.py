@@ -1,10 +1,9 @@
 import copy
 import os
 import random
+from itertools import groupby
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, TypeVar
-from itertools import groupby
-
 
 import cv2
 import numpy as np
@@ -132,20 +131,22 @@ def train_test_split(
     split_index = int(len(data) * train_ratio)
     return data[:split_index], data[split_index:]
 
+
 def rle_to_mask(rle: np.ndarray, resolution_wh: Tuple[int, int]) -> np.ndarray:
     width, height = resolution_wh
-    
+
     zero_one_values = np.zeros_like(rle)
-    zero_one_values[1::2]=1
+    zero_one_values[1::2] = 1
 
     decoded_rle = np.repeat(zero_one_values, rle)
-    return decoded_rle.reshape((height,width), order='F')
+    return decoded_rle.reshape((height, width), order="F")
+
 
 def mask_to_rle(binary_mask: np.ndarray) -> list:
     rle = []
-    for _, group in groupby(binary_mask.ravel(order='F')):
+    for _, group in groupby(binary_mask.ravel(order="F")):
         rle.append(len(list(group)))
 
     if binary_mask[0][0] == 1:
-        rle = [0]+rle
+        rle = [0] + rle
     return rle

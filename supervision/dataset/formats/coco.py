@@ -10,7 +10,6 @@ from supervision.dataset.utils import (
     approximate_mask_with_polygons,
     map_detections_class_id,
     rle_to_mask,
-    mask_to_rle,
 )
 from supervision.detection.core import Detections
 from supervision.detection.utils import polygon_to_mask
@@ -70,16 +69,15 @@ def _polygons_to_masks(
         dtype=bool,
     )
 
+
 def _rles_to_masks(
-        rles: List[np.ndarray], resolution_wh: Tuple[int, int]
+    rles: List[np.ndarray], resolution_wh: Tuple[int, int]
 ) -> np.ndarray:
     return np.array(
-        [
-            rle_to_mask(rle=rle, resolution_wh=resolution_wh)
-            for rle in rles
-        ],
+        [rle_to_mask(rle=rle, resolution_wh=resolution_wh) for rle in rles],
         dtype=bool,
     )
+
 
 def _concatenate_annotation_masks(mask_polygon, mask_rle):
     if mask_polygon.ndim == 3 and mask_rle.ndim == 3:
@@ -90,6 +88,7 @@ def _concatenate_annotation_masks(mask_polygon, mask_rle):
         return mask_rle
     else:
         None
+
 
 def coco_annotations_to_detections(
     image_annotations: List[dict], resolution_wh: Tuple[int, int], with_masks: bool
@@ -109,16 +108,26 @@ def coco_annotations_to_detections(
             np.reshape(
                 np.asarray(image_annotation["segmentation"], dtype=np.int32), (-1, 2)
             )
-            for image_annotation in image_annotations if not image_annotation["iscrowd"]
+            for image_annotation in image_annotations
+            if not image_annotation["iscrowd"]
         ]
-        mask_polygon = _polygons_to_masks(polygons=polygons, resolution_wh=resolution_wh)
+        mask_polygon = _polygons_to_masks(
+            polygons=polygons, resolution_wh=resolution_wh
+        )
 
-        rles = [np.array(image_annotation["segmentation"]["counts"])
-            for image_annotation in image_annotations if  image_annotation["iscrowd"]]
-        mask_rle = _rles_to_masks(rles = rles, resolution_wh = resolution_wh)
+        rles = [
+            np.array(image_annotation["segmentation"]["counts"])
+            for image_annotation in image_annotations
+            if image_annotation["iscrowd"]
+        ]
+        mask_rle = _rles_to_masks(rles=rles, resolution_wh=resolution_wh)
 
         return Detections(
-            class_id=np.asarray(class_ids, dtype=int), xyxy=xyxy, mask=_concatenate_annotation_masks(mask_polygon=mask_polygon, mask_rle=mask_rle)
+            class_id=np.asarray(class_ids, dtype=int),
+            xyxy=xyxy,
+            mask=_concatenate_annotation_masks(
+                mask_polygon=mask_polygon, mask_rle=mask_rle
+            ),
         )
 
     return Detections(xyxy=xyxy, class_id=np.asarray(class_ids, dtype=int))
