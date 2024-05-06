@@ -71,8 +71,7 @@ def _merge_object_detection_pair(det1: Detections, det2: Detections) -> Detectio
         ```
     """
     if len(det1) != 1 or len(det2) != 1:
-        raise ValueError(
-            "Both Detections should have exactly 1 detected object.")
+        raise ValueError("Both Detections should have exactly 1 detected object.")
 
     if det2.confidence is None:
         winning_det = det1
@@ -296,8 +295,7 @@ class Detections:
             detections = sv.Detections.from_yolov5(result)
             ```
         """
-        yolov5_detections_predictions = yolov5_results.pred[0].cpu(
-        ).cpu().numpy()
+        yolov5_detections_predictions = yolov5_results.pred[0].cpu().cpu().numpy()
 
         return cls(
             xyxy=yolov5_detections_predictions[:, :4],
@@ -344,8 +342,7 @@ class Detections:
 
         if "obb" in ultralytics_results and ultralytics_results.obb is not None:
             class_id = ultralytics_results.obb.cls.cpu().numpy().astype(int)
-            class_names = np.array(
-                [ultralytics_results.names[i] for i in class_id])
+            class_names = np.array([ultralytics_results.names[i] for i in class_id])
             oriented_box_coordinates = ultralytics_results.obb.xyxyxyxy.cpu().numpy()
             return cls(
                 xyxy=ultralytics_results.obb.xyxy.cpu().numpy(),
@@ -361,8 +358,7 @@ class Detections:
             )
 
         class_id = ultralytics_results.boxes.cls.cpu().numpy().astype(int)
-        class_names = np.array([ultralytics_results.names[i]
-                               for i in class_id])
+        class_names = np.array([ultralytics_results.names[i] for i in class_id])
         return cls(
             xyxy=ultralytics_results.boxes.xyxy.cpu().numpy(),
             confidence=ultralytics_results.boxes.conf.cpu().numpy(),
@@ -450,8 +446,7 @@ class Detections:
         return cls(
             xyxy=boxes,
             confidence=tensorflow_results["detection_scores"][0].numpy(),
-            class_id=tensorflow_results["detection_classes"][0].numpy().astype(
-                int),
+            class_id=tensorflow_results["detection_classes"][0].numpy().astype(int),
         )
 
     @classmethod
@@ -488,8 +483,7 @@ class Detections:
         return cls(
             xyxy=np.array(deepsparse_results.boxes[0]),
             confidence=np.array(deepsparse_results.scores[0]),
-            class_id=np.array(deepsparse_results.labels[0]).astype(
-                float).astype(int),
+            class_id=np.array(deepsparse_results.labels[0]).astype(float).astype(int),
         )
 
     @classmethod
@@ -576,29 +570,24 @@ class Detections:
             Class names values can be accessed using `detections["class_name"]`.
         """  # noqa: E501 // docs
 
-        class_ids = transformers_results["labels"].cpu(
-        ).detach().numpy().astype(int)
+        class_ids = transformers_results["labels"].cpu().detach().numpy().astype(int)
         data = {}
         if id2label is not None:
-            class_names = np.array([id2label[class_id]
-                                   for class_id in class_ids])
+            class_names = np.array([id2label[class_id] for class_id in class_ids])
             data[CLASS_NAME_DATA_FIELD] = class_names
         if "boxes" in transformers_results:
             return cls(
                 xyxy=transformers_results["boxes"].cpu().detach().numpy(),
-                confidence=transformers_results["scores"].cpu(
-                ).detach().numpy(),
+                confidence=transformers_results["scores"].cpu().detach().numpy(),
                 class_id=class_ids,
                 data=data,
             )
         elif "masks" in transformers_results:
-            masks = transformers_results["masks"].cpu(
-            ).detach().numpy().astype(bool)
+            masks = transformers_results["masks"].cpu().detach().numpy().astype(bool)
             return cls(
                 xyxy=mask_to_xyxy(masks),
                 mask=masks,
-                confidence=transformers_results["scores"].cpu(
-                ).detach().numpy(),
+                confidence=transformers_results["scores"].cpu().detach().numpy(),
                 class_id=class_ids,
                 data=data,
             )
@@ -641,8 +630,7 @@ class Detections:
         """
 
         return cls(
-            xyxy=detectron2_results["instances"].pred_boxes.tensor.cpu(
-            ).numpy(),
+            xyxy=detectron2_results["instances"].pred_boxes.tensor.cpu().numpy(),
             confidence=detectron2_results["instances"].scores.cpu().numpy(),
             class_id=detectron2_results["instances"]
             .pred_classes.cpu()
@@ -685,8 +673,7 @@ class Detections:
             Class names values can be accessed using `detections["class_name"]`.
         """
         with suppress(AttributeError):
-            roboflow_result = roboflow_result.dict(
-                exclude_none=True, by_alias=True)
+            roboflow_result = roboflow_result.dict(exclude_none=True, by_alias=True)
         xyxy, confidence, class_id, masks, trackers, data = process_roboflow_result(
             roboflow_result=roboflow_result
         )
@@ -778,8 +765,7 @@ class Detections:
         )
 
         xywh = np.array([mask["bbox"] for mask in sorted_generated_masks])
-        mask = np.array([mask["segmentation"]
-                        for mask in sorted_generated_masks])
+        mask = np.array([mask["segmentation"] for mask in sorted_generated_masks])
 
         if np.asarray(xywh).shape[0] == 0:
             return cls.empty()
@@ -1006,8 +992,7 @@ class Detections:
             if all(d.__getattribute__(name) is None for d in detections_list):
                 return None
             if any(d.__getattribute__(name) is None for d in detections_list):
-                raise ValueError(
-                    f"All or none of the '{name}' fields must be None")
+                raise ValueError(f"All or none of the '{name}' fields must be None")
             return (
                 np.vstack([d.__getattribute__(name) for d in detections_list])
                 if name == "mask"
@@ -1193,8 +1178,7 @@ class Detections:
             ValueError: If `other` is not made of exactly one element.
         """
         if len(other) != 1:
-            raise ValueError(
-                "Detection to set from must have exactly one element.")
+            raise ValueError("Detection to set from must have exactly one element.")
 
         self.xyxy[index] = other.xyxy[0]
         if self.mask is not None and other.mask is not None:
@@ -1266,8 +1250,7 @@ class Detections:
         ), "Detections confidence must be given for NMS to be executed."
 
         if class_agnostic:
-            predictions = np.hstack(
-                (self.xyxy, self.confidence.reshape(-1, 1)))
+            predictions = np.hstack((self.xyxy, self.confidence.reshape(-1, 1)))
         else:
             assert self.class_id is not None, (
                 "Detections class_id must be given for NMS to be executed. If you"
@@ -1323,8 +1306,7 @@ class Detections:
         ), "Detections confidence must be given for NMM to be executed."
 
         if class_agnostic:
-            predictions = np.hstack(
-                (self.xyxy, self.confidence.reshape(-1, 1)))
+            predictions = np.hstack((self.xyxy, self.confidence.reshape(-1, 1)))
             keep_to_merge_list = non_max_merge(predictions, threshold)
         else:
             assert self.class_id is not None, (
@@ -1343,8 +1325,7 @@ class Detections:
         result = []
         for keep_ind, merge_ind_list in keep_to_merge_list.items():
             for merge_ind in merge_ind_list:
-                box_iou = box_iou_batch(
-                    self[keep_ind].xyxy, self[merge_ind].xyxy)[0]
+                box_iou = box_iou_batch(self[keep_ind].xyxy, self[merge_ind].xyxy)[0]
                 if box_iou > threshold:
                     merged_detection = _merge_object_detection_pair(
                         self[keep_ind], self[merge_ind]
