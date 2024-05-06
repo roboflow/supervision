@@ -55,6 +55,8 @@ from supervision.detection.utils import (
     polygon_to_mask,
     polygon_to_xyxy,
     scale_boxes,
+    clip_boxes,
+    pad_boxes
 )
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import (
@@ -69,7 +71,11 @@ from supervision.draw.utils import (
 )
 from supervision.geometry.core import Point, Position, Rect
 from supervision.geometry.utils import get_polygon_center
-from supervision.keypoint.annotators import EdgeAnnotator, VertexAnnotator
+from supervision.keypoint.annotators import (
+    EdgeAnnotator,
+    VertexAnnotator,
+    VertexLabelAnnotator
+)
 from supervision.keypoint.core import KeyPoints
 from supervision.metrics.detection import ConfusionMatrix, MeanAveragePrecision
 from supervision.tracker.byte_tracker.core import ByteTrack
