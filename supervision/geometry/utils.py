@@ -5,12 +5,7 @@ from supervision.geometry.core import Point
 
 def get_polygon_center(polygon: np.ndarray) -> Point:
     """
-    Calculate the center of a polygon.
-
-    This function takes in a polygon as a 2-dimensional numpy ndarray and
-    returns the center of the polygon as a Point object.
-
-    The center is calculated as the center
+    Calculate the center of a polygon. The center is calculated as the center
     of the solid figure formed by the points of the polygon
 
     Parameters:
@@ -23,12 +18,12 @@ def get_polygon_center(polygon: np.ndarray) -> Point:
 
     Examples:
         ```python
-        from supervision.geometry.utils import get_polygon_center
         import numpy as np
+        import supervision as sv
 
-        vertices = np.array([[0, 0], [0, 2], [2, 2], [2, 0]])
-        get_polygon_center(vertices)
-        Point(x=1, y=1)
+        polygon = np.array([[0, 0], [0, 2], [2, 2], [2, 0]])
+        sv.get_polygon_center(polygon=polygon)
+        # Point(x=1, y=1)
         ```
     """
 

@@ -1,5 +1,8 @@
 # count people in zone
 
+[![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/roboflow-ai/notebooks/blob/main/notebooks/how-to-detect-and-count-objects-in-polygon-zone.ipynb)
+[![YouTube](https://badges.aleen42.com/src/youtube.svg)](https://www.youtube.com/watch?v=l_kf9CfZ_8M)
+
 ## 👋 hello
 
 This demo is a video analysis tool that counts and highlights objects in specific zones

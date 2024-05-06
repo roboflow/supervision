@@ -81,7 +81,7 @@ def pillow_to_cv2(image: Image.Image) -> np.ndarray:
         image (Image.Image): Pillow image (in RGB format).
 
     Returns:
-        np.ndarray: Input image converted to OpenCV format.
+        (np.ndarray): Input image converted to OpenCV format.
     """
     scene = np.array(image)
     scene = cv2.cvtColor(scene, cv2.COLOR_RGB2BGR)
@@ -97,7 +97,7 @@ def cv2_to_pillow(image: np.ndarray) -> Image.Image:
         image (np.ndarray): OpenCV image (in BGR format).
 
     Returns:
-        Image.Image: Input image converted to Pillow format.
+        (Image.Image): Input image converted to Pillow format.
     """
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     return Image.fromarray(image)

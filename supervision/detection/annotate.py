@@ -9,10 +9,6 @@ from supervision.utils.conversion import convert_for_annotation_method
 from supervision.utils.internal import deprecated
 
 
-@deprecated(
-    "`BoxAnnotator` is deprecated and will be removed in "
-    "`supervision-0.22.0`. Use `BoundingBoxAnnotator` and `LabelAnnotator` instead"
-)
 class BoxAnnotator:
     """
     A class for drawing bounding boxes on an image using detections provided.
@@ -46,6 +42,10 @@ class BoxAnnotator:
         self.text_thickness: int = text_thickness
         self.text_padding: int = text_padding
 
+    @deprecated(
+        "`BoxAnnotator` is deprecated and will be removed in "
+        "`supervision-0.22.0`. Use `BoundingBoxAnnotator` and `LabelAnnotator` instead"
+    )
     @convert_for_annotation_method
     def annotate(
         self,

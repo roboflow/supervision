@@ -28,7 +28,7 @@ size relative to the image resolution.
     from inference import get_model
 
     model = get_model(model_id="yolov8x-640")
-    image = cv2.imread(<PATH TO IMAGE>)
+    image = cv2.imread(<SOURCE_IMAGE_PATH>)
     results = model.infer(image)[0]
     detections = sv.Detections.from_inference(results)
 
@@ -49,7 +49,7 @@ size relative to the image resolution.
     from ultralytics import YOLO
 
     model = YOLO("yolov8x.pt")
-    image = cv2.imread(<PATH TO IMAGE>)
+    image = cv2.imread(<SOURCE_IMAGE_PATH>)
     results = model(image)[0]
     detections = sv.Detections.from_ultralytics(results)
 
@@ -73,7 +73,7 @@ size relative to the image resolution.
     processor = DetrImageProcessor.from_pretrained("facebook/detr-resnet-50")
     model = DetrForObjectDetection.from_pretrained("facebook/detr-resnet-50")
 
-    image = Image.open(<PATH TO IMAGE>)
+    image = Image.open(<SOURCE_IMAGE_PATH>)
     inputs = processor(images=image, return_tensors="pt")
 
     with torch.no_grad():
@@ -116,7 +116,7 @@ is less effective for ultra-high-resolution images (4K and above).
     from inference import get_model
 
     model = get_model(model_id="yolov8x-1280")
-    image = cv2.imread(<PATH TO IMAGE>)
+    image = cv2.imread(<SOURCE_IMAGE_PATH>)
     results = model.infer(image)[0]
     detections = sv.Detections.from_inference(results)
 
@@ -137,7 +137,7 @@ is less effective for ultra-high-resolution images (4K and above).
     from ultralytics import YOLO
 
     model = YOLO("yolov8x.pt")
-    image = cv2.imread(<PATH TO IMAGE>)
+    image = cv2.imread(<SOURCE_IMAGE_PATH>)
     results = model(image, imgsz=1280)[0]
     detections = sv.Detections.from_ultralytics(results)
 
@@ -171,7 +171,7 @@ objects within each, and aggregating the results.
     from inference import get_model
 
     model = get_model(model_id="yolov8x-640")
-    image = cv2.imread(<PATH TO IMAGE>)
+    image = cv2.imread(<SOURCE_IMAGE_PATH>)
 
     def callback(image_slice: np.ndarray) -> sv.Detections:
         results = model.infer(image_slice)[0]
@@ -198,7 +198,7 @@ objects within each, and aggregating the results.
     from ultralytics import YOLO
 
     model = YOLO("yolov8x.pt")
-    image = cv2.imread(<PATH TO IMAGE>)
+    image = cv2.imread(<SOURCE_IMAGE_PATH>)
 
     def callback(image_slice: np.ndarray) -> sv.Detections:
         result = model(image_slice)[0]
@@ -229,7 +229,7 @@ objects within each, and aggregating the results.
     processor = DetrImageProcessor.from_pretrained("facebook/detr-resnet-50")
     model = DetrForObjectDetection.from_pretrained("facebook/detr-resnet-50")
 
-    image = cv2.imread(<PATH TO IMAGE>)
+    image = cv2.imread(<SOURCE_IMAGE_PATH>)
 
     def callback(image_slice: np.ndarray) -> sv.Detections:
         image_slice = cv2.cvtColor(image_slice, cv2.COLOR_BGR2RGB)
