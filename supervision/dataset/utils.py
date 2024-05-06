@@ -134,13 +134,13 @@ def train_test_split(
 
 
 def rle_to_mask(
-    rle: np.ndarray, resolution_wh: Tuple[int, int]
+    rle: npt.NDArray[np.int_], resolution_wh: Tuple[int, int]
 ) -> npt.NDArray[np.bool_]:
     """
     Converts run-length encoding (RLE) to a binary mask.
 
     Args:
-        rle (np.ndarray): The 1D RLE array, the format used in the COCO dataset (column-wise encoding,
+        rle (npt.NDArray[np.int_]): The 1D RLE array, the format used in the COCO dataset (column-wise encoding,
             values of an array with even indices represent the number of pixels assigned as background,
             values of an array with odd indices represent the number of pixels assigned as foreground object).
         resolution_wh (Tuple[int, int]): The width (w) and height (h) of the desired binary mask resolution.
