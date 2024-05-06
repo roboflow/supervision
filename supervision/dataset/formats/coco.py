@@ -10,7 +10,6 @@ from supervision.dataset.utils import (
     approximate_mask_with_polygons,
     map_detections_class_id,
     rle_to_mask,
-    mask_to_rle,
 )
 from supervision.detection.core import Detections
 from supervision.detection.utils import polygon_to_mask
