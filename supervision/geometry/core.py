@@ -124,5 +124,5 @@ class Rect:
             int(self.x),
             int(self.y),
             int(self.x + self.width),
-            int(self.y + self.height)
+            int(self.y + self.height),
         )
