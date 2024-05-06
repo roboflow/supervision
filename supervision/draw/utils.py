@@ -103,26 +103,22 @@ def draw_rounded_rectangle(
     width, height = x2 - x1, y2 - y1
     border_radius = min(border_radius, min(width, height) // 2)
 
-    rectangle_coordinates = [
-        ((x1 + border_radius, y1), (x2 - border_radius, y2)),
-        ((x1, y1 + border_radius), (x2, y2 - border_radius)),
-    ]
-    circle_centers = [
-        (x1 + border_radius, y1 + border_radius),
-        (x2 - border_radius, y1 + border_radius),
-        (x1 + border_radius, y2 - border_radius),
-        (x2 - border_radius, y2 - border_radius),
+    corners = [
+        (x1 + border_radius, y1),
+        (x2 - border_radius, y1),
+        (x2, y1 + border_radius),
+        (x2, y2 - border_radius),
+        (x2 - border_radius, y2),
+        (x1 + border_radius, y2),
+        (x1, y2 - border_radius),
+        (x1, y1 + border_radius),
     ]
 
-    for coordinates in rectangle_coordinates:
-        cv2.rectangle(
-            img=scene,
-            pt1=coordinates[0],
-            pt2=coordinates[1],
-            color=color.as_bgr(),
-            thickness=-1,
-        )
-    for center in circle_centers:
+    pts = np.array(corners, np.int32)
+    pts = pts.reshape((-1, 1, 2))
+    cv2.fillPoly(scene, [pts], color.as_bgr())
+
+    for center in corners:
         cv2.circle(
             img=scene,
             center=center,
@@ -130,6 +126,7 @@ def draw_rounded_rectangle(
             color=color.as_bgr(),
             thickness=-1,
         )
+
     return scene
 
 
