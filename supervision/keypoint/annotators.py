@@ -28,9 +28,9 @@ class VertexAnnotator(BaseKeyPointAnnotator):
     """
 
     def __init__(
-            self,
-            color: Color = Color.ROBOFLOW,
-            radius: int = 4,
+        self,
+        color: Color = Color.ROBOFLOW,
+        radius: int = 4,
     ) -> None:
         """
         Args:
@@ -98,10 +98,10 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
     """
 
     def __init__(
-            self,
-            color: Color = Color.ROBOFLOW,
-            thickness: int = 2,
-            edges: Optional[List[Tuple[int, int]]] = None,
+        self,
+        color: Color = Color.ROBOFLOW,
+        thickness: int = 2,
+        edges: Optional[List[Tuple[int, int]]] = None,
     ) -> None:
         """
         Args:
@@ -185,13 +185,13 @@ class VertexLabelAnnotator:
     """
 
     def __init__(
-            self,
-            color: Union[Color, List[Color]] = Color.ROBOFLOW,
-            text_color: Color = Color.WHITE,
-            text_scale: float = 0.5,
-            text_thickness: int = 1,
-            text_padding: int = 10,
-            border_radius: int = 0,
+        self,
+        color: Union[Color, List[Color]] = Color.ROBOFLOW,
+        text_color: Color = Color.WHITE,
+        text_scale: float = 0.5,
+        text_thickness: int = 1,
+        text_padding: int = 10,
+        border_radius: int = 0,
     ):
         self.border_radius: int = border_radius
         self.color: Union[Color, List[Color]] = color
@@ -202,11 +202,11 @@ class VertexLabelAnnotator:
 
     @staticmethod
     def get_text_bounding_box(
-            text: str,
-            font: int,
-            text_scale: float,
-            text_thickness: int,
-            center_coordinates: Tuple[int, int]
+        text: str,
+        font: int,
+        text_scale: float,
+        text_thickness: int,
+        center_coordinates: Tuple[int, int],
     ) -> Tuple[int, int, int, int]:
         text_w, text_h = cv2.getTextSize(
             text=text,
@@ -223,10 +223,7 @@ class VertexLabelAnnotator:
         )
 
     def annotate(
-        self,
-        scene: ImageType,
-        key_points: KeyPoints,
-        labels: List[str] = None
+        self, scene: ImageType, key_points: KeyPoints, labels: List[str] = None
     ) -> ImageType:
         font = cv2.FONT_HERSHEY_SIMPLEX
 
@@ -236,8 +233,11 @@ class VertexLabelAnnotator:
             return scene
 
         anchors = key_points.xy.reshape(K * N, 2).astype(int)
-        colors = np.array(self.color * N) if isinstance(self.color, list) else np.array(
-            [self.color] * K * N)
+        colors = (
+            np.array(self.color * N)
+            if isinstance(self.color, list)
+            else np.array([self.color] * K * N)
+        )
         labels = np.array(labels * N)
 
         mask = np.all(anchors != 0, axis=1)
@@ -249,17 +249,18 @@ class VertexLabelAnnotator:
         colors = colors[mask]
         labels = labels[mask]
 
-        xyxy = np.array([
-            self.get_text_bounding_box(
-                text=label,
-                font=font,
-                text_scale=self.text_scale,
-                text_thickness=self.text_thickness,
-                center_coordinates=tuple(anchor)
-            )
-            for anchor, label
-            in zip(anchors, labels)
-        ])
+        xyxy = np.array(
+            [
+                self.get_text_bounding_box(
+                    text=label,
+                    font=font,
+                    text_scale=self.text_scale,
+                    text_thickness=self.text_thickness,
+                    center_coordinates=tuple(anchor),
+                )
+                for anchor, label in zip(anchors, labels)
+            ]
+        )
 
         xyxy_padded = pad_boxes(xyxy=xyxy, px=self.text_padding)
 
