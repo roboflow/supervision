@@ -8,6 +8,7 @@ from itertools import groupby
 
 import cv2
 import numpy as np
+import numpy.typing as npt
 
 from supervision.detection.core import Detections
 from supervision.detection.utils import (
@@ -132,7 +133,24 @@ def train_test_split(
     split_index = int(len(data) * train_ratio)
     return data[:split_index], data[split_index:]
 
-def rle_to_mask(rle: np.ndarray, resolution_wh: Tuple[int, int]) -> np.ndarray:
+def rle_to_mask(rle: np.ndarray, resolution_wh: Tuple[int, int]) -> npt.NDArray[np.bool_]:
+    """
+    Converts run-length encoding (RLE) to a binary mask.
+
+    Args:
+        rle (np.ndarray): The 1D RLE array, the format used in the COCO dataset (column-wise encoding, 
+            values of an array with even indices represent the number of pixels assigned as background,
+            values of an array with odd indices represent the number of pixels assigned as foreground object).
+        resolution_wh (Tuple[int, int]): The width (w) and height (h) of the desired binary mask resolution.
+
+    Returns:
+        npt.NDArray[np.bool_]: The generated 2D Boolean mask of shape (h,w), where the foreground object 
+            is marked with `True`'s and the rest is filled with `False`'s.    
+
+    Examples:
+        rle = [2, 2, 2], resolution_wh = [3, 2] -> mask = [[False, True, False], 
+                                                           [False, True, False]]
+    """
     width, height = resolution_wh
     
     zero_one_values = np.zeros_like(rle)
@@ -141,11 +159,31 @@ def rle_to_mask(rle: np.ndarray, resolution_wh: Tuple[int, int]) -> np.ndarray:
     decoded_rle = np.repeat(zero_one_values, rle)
     return decoded_rle.reshape((height,width), order='F')
 
-def mask_to_rle(binary_mask: np.ndarray) -> list:
+def mask_to_rle(mask: npt.NDArray[np.bool_]) -> List[int]:
+    """
+    Converts a binary mask into a run-length encoding (RLE).
+
+    Args:
+        mask (npt.NDArray[np.bool_]): 2D binary mask where `True` indicates foreground object 
+            and `False` indicates background.
+
+    Returns:
+        List[int]: the run-length encoded mask. Values of a list with even indices represent the number of pixels assigned as background (`False`),
+            values of a list with odd indices represent the number of pixels assigned as foreground object (`True`).
+
+     Examples:
+        mask = [[False, True, True],  -> rle = [2, 4]
+                [False, True, True]]  
+
+        mask = [[True, True, True],   -> rle = [0, 6]
+                [True, True, True]]   
+    """
     rle = []
-    for _, group in groupby(binary_mask.ravel(order='F')):
+
+    if mask[0][0] == 1:
+        rle = [0]
+    
+    for _, group in groupby(mask.ravel(order='F')):
         rle.append(len(list(group)))
 
-    if binary_mask[0][0] == 1:
-        rle = [0]+rle
     return rle
