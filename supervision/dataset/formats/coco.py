@@ -61,12 +61,18 @@ def group_coco_annotations_by_image_id(
 def _annotations_to_mask(image_annotations: List[dict], resolution_wh: Tuple[int, int]):
     return np.array(
         [
-            rle_to_mask(rle=np.array(image_annotation["segmentation"]["counts"]), 
-                        resolution_wh=resolution_wh)
-            if  image_annotation["iscrowd"]
-            else
-            polygon_to_mask(polygon= np.reshape(np.asarray(image_annotation["segmentation"], dtype=np.int32), (-1, 2)),
-                             resolution_wh=resolution_wh)
+            rle_to_mask(
+                rle=np.array(image_annotation["segmentation"]["counts"]),
+                resolution_wh=resolution_wh,
+            )
+            if image_annotation["iscrowd"]
+            else polygon_to_mask(
+                polygon=np.reshape(
+                    np.asarray(image_annotation["segmentation"], dtype=np.int32),
+                    (-1, 2),
+                ),
+                resolution_wh=resolution_wh,
+            )
             for image_annotation in image_annotations
         ],
         dtype=bool,

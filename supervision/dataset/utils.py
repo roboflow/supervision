@@ -133,22 +133,24 @@ def train_test_split(
     return data[:split_index], data[split_index:]
 
 
-def rle_to_mask(rle: np.ndarray, resolution_wh: Tuple[int, int]) -> npt.NDArray[np.bool_]:
+def rle_to_mask(
+    rle: np.ndarray, resolution_wh: Tuple[int, int]
+) -> npt.NDArray[np.bool_]:
     """
     Converts run-length encoding (RLE) to a binary mask.
 
     Args:
-        rle (np.ndarray): The 1D RLE array, the format used in the COCO dataset (column-wise encoding, 
+        rle (np.ndarray): The 1D RLE array, the format used in the COCO dataset (column-wise encoding,
             values of an array with even indices represent the number of pixels assigned as background,
             values of an array with odd indices represent the number of pixels assigned as foreground object).
         resolution_wh (Tuple[int, int]): The width (w) and height (h) of the desired binary mask resolution.
 
     Returns:
-        npt.NDArray[np.bool_]: The generated 2D Boolean mask of shape (h,w), where the foreground object 
-            is marked with `True`'s and the rest is filled with `False`'s.    
+        npt.NDArray[np.bool_]: The generated 2D Boolean mask of shape (h,w), where the foreground object
+            is marked with `True`'s and the rest is filled with `False`'s.
 
     Examples:
-        rle = [2, 2, 2], resolution_wh = [3, 2] -> mask = [[False, True, False], 
+        rle = [2, 2, 2], resolution_wh = [3, 2] -> mask = [[False, True, False],
                                                            [False, True, False]]
     """
     width, height = resolution_wh
@@ -157,7 +159,7 @@ def rle_to_mask(rle: np.ndarray, resolution_wh: Tuple[int, int]) -> npt.NDArray[
     zero_one_values[1::2] = 1
 
     decoded_rle = np.repeat(zero_one_values, rle)
-    return decoded_rle.reshape((height,width), order="F")
+    return decoded_rle.reshape((height, width), order="F")
 
 
 def mask_to_rle(mask: npt.NDArray[np.bool_]) -> List[int]:
@@ -165,7 +167,7 @@ def mask_to_rle(mask: npt.NDArray[np.bool_]) -> List[int]:
     Converts a binary mask into a run-length encoding (RLE).
 
     Args:
-        mask (npt.NDArray[np.bool_]): 2D binary mask where `True` indicates foreground object 
+        mask (npt.NDArray[np.bool_]): 2D binary mask where `True` indicates foreground object
             and `False` indicates background.
 
     Returns:
@@ -174,10 +176,10 @@ def mask_to_rle(mask: npt.NDArray[np.bool_]) -> List[int]:
 
      Examples:
         mask = [[False, True, True],  -> rle = [2, 4]
-                [False, True, True]]  
+                [False, True, True]]
 
         mask = [[True, True, True],   -> rle = [0, 6]
-                [True, True, True]]   
+                [True, True, True]]
     """
     rle = []
     if mask[0][0] == 1:
