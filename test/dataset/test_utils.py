@@ -272,7 +272,7 @@ def test_map_detections_class_id(
         ),  # mask where foreground consists of 3 separate components
     ],
 )
-def test_mask_to_rle_convertion(
+def test_mask_to_rle_conversion(
     mask: npt.NDArray[np.bool_], expected_rle: List[int], exception: Exception
 ) -> None:
     with exception:
@@ -319,9 +319,15 @@ def test_mask_to_rle_convertion(
             ).astype(bool),
             DoesNotRaise(),
         ),  # mask where foreground consists of 3 separate components
+        (
+            [0, 5, 5, 5, 5, 5],
+            [5, 5],
+            None,
+            pytest.raises(AssertionError),
+        ),  # mask where foreground consists of 3 separate components
     ],
 )
-def test_rle_to_mask_convertion(
+def test_rle_to_mask_conversion(
     rle: npt.NDArray[np.int_], resolution_wh: Tuple[int, int],expected_mask: npt.NDArray[np.bool_], exception: Exception
 ) -> None:
     with exception:
