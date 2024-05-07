@@ -21,11 +21,14 @@ def mock_detections(
         xyxy=np.array(xyxy, dtype=np.float32),
         mask=(mask if mask is None else np.array(mask, dtype=bool)),
         confidence=(
-            confidence if confidence is None else np.array(confidence, dtype=np.float32)
+            confidence if confidence is None else np.array(
+                confidence, dtype=np.float32)
         ),
-        class_id=(class_id if class_id is None else np.array(class_id, dtype=int)),
+        class_id=(class_id if class_id is None else np.array(
+            class_id, dtype=int)),
         tracker_id=(
-            tracker_id if tracker_id is None else np.array(tracker_id, dtype=int)
+            tracker_id if tracker_id is None else np.array(
+                tracker_id, dtype=int)
         ),
         data=convert_data(data) if data else {},
     )
@@ -43,12 +46,15 @@ def mock_keypoints(
     return KeyPoints(
         xy=np.array(xy, dtype=np.float32),
         confidence=(
-            confidence if confidence is None else np.array(confidence, dtype=np.float32)
+            confidence if confidence is None else np.array(
+                confidence, dtype=np.float32)
         ),
-        class_id=(class_id if class_id is None else np.array(class_id, dtype=int)),
+        class_id=(class_id if class_id is None else np.array(
+            class_id, dtype=int)),
         data=convert_data(data) if data else {},
     )
 
 
 def assert_almost_equal(actual, expected, tolerance=1e-5):
-    assert abs(actual - expected) < tolerance, f"Expected {expected}, but got {actual}."
+    assert abs(
+        actual - expected) < tolerance, f"Expected {expected}, but got {actual}."

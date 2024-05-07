@@ -30,7 +30,81 @@ DETECTIONS = Detections(
 )
 
 
-@pytest.mark.parametrize(
+# Merge test
+TEST_MASK = np.zeros((1000, 1000), dtype=bool)
+TEST_MASK[300:351, 200:251] = True
+TEST_DET_1 = mock_detections(
+    xyxy=[[10, 10, 20, 20], [30, 30, 40, 40], [50, 50, 60, 60]],
+    mask=[TEST_MASK, TEST_MASK, TEST_MASK],
+    confidence=[0.1, 0.2, 0.3],
+    class_id=[1, 2, 3],
+    tracker_id=[1, 2, 3],
+    data={
+        "some_key": [1, 2, 3],
+        "other_key": [["1", "2"], ["3", "4"], ["5", "6"]],
+    }
+)
+TEST_DET_2 = mock_detections(
+    xyxy=[[70, 70, 80, 80], [90, 90, 100, 100]],
+    mask=[TEST_MASK, TEST_MASK],
+    confidence=[0.4, 0.5],
+    class_id=[4, 5],
+    tracker_id=[4, 5],
+    data={
+        "some_key": [4, 5],
+        "other_key": [["7", "8"], ["9", "10"]],
+    }
+)
+TEST_DET_1_2 = mock_detections(
+    xyxy=[[10, 10, 20, 20], [30, 30, 40, 40], [
+        50, 50, 60, 60], [70, 70, 80, 80], [90, 90, 100, 100]],
+    mask=[TEST_MASK, TEST_MASK, TEST_MASK, TEST_MASK, TEST_MASK],
+    confidence=[0.1, 0.2, 0.3, 0.4, 0.5],
+    class_id=[1, 2, 3, 4, 5],
+    tracker_id=[1, 2, 3, 4, 5],
+    data={
+        "some_key": [1, 2, 3, 4, 5],
+        "other_key": [["1", "2"], ["3", "4"], ["5", "6"], ["7", "8"], ["9", "10"]],
+    }
+)
+TEST_DET_ZERO_LENGTH = mock_detections(
+    xyxy=np.empty((0, 4), dtype=np.float32),
+    mask=np.empty((0, *TEST_MASK.shape), dtype=bool),
+    confidence=[],
+    class_id=[],
+    tracker_id=[],
+    data={
+        "some_key": [],
+        "other_key": [],
+    }
+)
+TEST_DET_NONE = mock_detections(
+    xyxy=np.empty((0, 4), dtype=np.float32),
+)
+TEST_DET_DIFFERENT_FIELDS = mock_detections(
+    xyxy=[[88, 88, 99, 99]],
+    mask=[np.logical_not(TEST_MASK)],
+    confidence=None,
+    class_id=None,
+    tracker_id=[9],
+    data={
+        "some_key": [9],
+        "other_key": [["11", "12"]]
+    }
+)
+TEST_DET_DIFFERENT_DATA = mock_detections(
+    xyxy=[[88, 88, 99, 99]],
+    mask=[np.logical_not(TEST_MASK)],
+    confidence=[0.9],
+    class_id=[9],
+    tracker_id=[9],
+    data={
+        "never_seen_key": [9],
+    }
+)
+
+
+@ pytest.mark.parametrize(
     "detections, index, expected_result, exception",
     [
         (
@@ -115,7 +189,8 @@ DETECTIONS = Detections(
             DoesNotRaise(),
         ),  # take only first detection by index slice (1, 3)
         (DETECTIONS, 10, None, pytest.raises(IndexError)),  # index out of range
-        (DETECTIONS, [0, 2, 10], None, pytest.raises(IndexError)),  # index out of range
+        (DETECTIONS, [0, 2, 10], None, pytest.raises(
+            IndexError)),  # index out of range
         (DETECTIONS, np.array([0, 2, 10]), None, pytest.raises(IndexError)),
         (
             DETECTIONS,
@@ -138,63 +213,79 @@ def test_getitem(
         assert result == expected_result
 
 
-@pytest.mark.parametrize(
+@ pytest.mark.parametrize(
     "detections_list, expected_result, exception",
     [
+        # Nothing
         ([], Detections.empty(), DoesNotRaise()),  # empty detections list
+
+        # Single
         (
             [Detections.empty()],
             Detections.empty(),
             DoesNotRaise(),
         ),  # single empty detections
         (
-            [mock_detections(xyxy=[[10, 10, 20, 20]])],
-            mock_detections(xyxy=[[10, 10, 20, 20]]),
+            [TEST_DET_1],
+            TEST_DET_1,
             DoesNotRaise(),
-        ),  # single detection with xyxy field
+        ),  # single detection with fields
+        (
+            [TEST_DET_NONE],
+            TEST_DET_NONE,
+            DoesNotRaise(),
+        ),  # Single weakly-defined detection
+
+        # Similar
+        (
+            [Detections.empty(), Detections.empty()],
+            Detections.empty(),
+            DoesNotRaise(),
+        ),  # Two empty
+        (
+            [TEST_DET_1, TEST_DET_2],
+            TEST_DET_1_2,
+            DoesNotRaise(),
+        ),  # Fields with same keys
+
+        # Fields and empty
         (
             [
-                mock_detections(xyxy=[[10, 10, 20, 20]]),
-                mock_detections(xyxy=np.empty((0, 4), dtype=np.float32)),
+                TEST_DET_1,
+                Detections.empty()
             ],
-            mock_detections(xyxy=[[10, 10, 20, 20]]),
+            TEST_DET_1,
             DoesNotRaise(),
-        ),  # single detection with xyxy field + empty detection
+        ),  # single detection with fields
         (
             [
-                mock_detections(xyxy=[[10, 10, 20, 20]]),
-                mock_detections(xyxy=[[20, 20, 30, 30]]),
+                TEST_DET_1,
+                TEST_DET_ZERO_LENGTH,
             ],
-            mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
+            TEST_DET_1,
             DoesNotRaise(),
-        ),  # two detections with xyxy field
+        ),  # Single detection and empty-array fields
         (
             [
-                mock_detections(xyxy=[[10, 10, 20, 20]], class_id=[0]),
-                mock_detections(xyxy=[[20, 20, 30, 30]]),
+                TEST_DET_1,
+                TEST_DET_NONE,
             ],
-            mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
+            TEST_DET_1,
+            DoesNotRaise(),
+        ),  # Single detection and None fields (+ missing Dict keys)
+
+        # Errors: Non-zero-length differently defined keys & data
+        (
+            [TEST_DET_1, TEST_DET_DIFFERENT_FIELDS],
+            None,
+            pytest.raises(ValueError)
+        ),  # Non-empty detections with different fields
+        (
+            [TEST_DET_1, TEST_DET_DIFFERENT_DATA],
+            None,
             pytest.raises(ValueError),
-        ),  # detection with xyxy, class_id fields + detection with xyxy field
-        (
-            [
-                mock_detections(xyxy=[[10, 10, 20, 20]], class_id=[0]),
-                mock_detections(xyxy=[[20, 20, 30, 30]], class_id=[1]),
-            ],
-            mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]], class_id=[0, 1]),
-            DoesNotRaise(),
-        ),  # two detections with xyxy, class_id fields
-        (
-            [
-                mock_detections(xyxy=[[10, 10, 20, 20]], data={"test": [1]}),
-                mock_detections(xyxy=[[20, 20, 30, 30]], data={"test": [2]}),
-            ],
-            mock_detections(
-                xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]], data={"test": [1, 2]}
-            ),
-            DoesNotRaise(),
-        ),  # two detections with xyxy, data fields
-    ],
+        ),  # Non-empty detections with different data keys
+    ]
 )
 def test_merge(
     detections_list: List[Detections],
@@ -206,7 +297,7 @@ def test_merge(
         assert result == expected_result
 
 
-@pytest.mark.parametrize(
+@ pytest.mark.parametrize(
     "detections, anchor, expected_result, exception",
     [
         (
@@ -288,7 +379,7 @@ def test_get_anchor_coordinates(
         assert np.array_equal(result, expected_result)
 
 
-@pytest.mark.parametrize(
+@ pytest.mark.parametrize(
     "detections_a, detections_b, expected_result",
     [
         (
