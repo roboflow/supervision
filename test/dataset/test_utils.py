@@ -274,6 +274,20 @@ def test_map_detections_class_id(
             [0, 5, 5, 5, 5, 5],
             DoesNotRaise(),
         ),  # mask where foreground consists of 3 separate components
+        (
+            np.array(
+                [[[]]]
+            ).astype(bool),
+            None,
+            pytest.raises(AssertionError),
+        ),  # raises AssertionError because mask dimentionality is not 2D 
+        (
+            np.array(
+                [[]]
+            ).astype(bool),
+            None,
+            pytest.raises(AssertionError),
+        ),  # raises AssertionError because mask is empty 
     ],
 )
 def test_mask_to_rle_conversion(
@@ -329,10 +343,11 @@ def test_mask_to_rle_conversion(
         ),  # mask where foreground consists of 3 separate components
         (
             [0, 5, 5, 5, 5, 5],
-            [5, 5],
+            [2, 2],
             None,
             pytest.raises(AssertionError),
-        ),  # mask where foreground consists of 3 separate components
+        ),  # raises AssertionError because number of pixels in RLE does not match 
+            # number of pixels in expected mask (width x height).
     ],
 )
 def test_rle_to_mask_convertion(

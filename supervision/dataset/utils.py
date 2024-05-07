@@ -182,6 +182,9 @@ def mask_to_rle(mask: npt.NDArray[np.bool_]) -> List[int]:
         List[int]: the run-length encoded mask. Values of a list with even indices represent the number of pixels assigned as background (`False`),
             values of a list with odd indices represent the number of pixels assigned as foreground object (`True`).
 
+    Raises:
+        AssertionError: If imput mask is not 2D or is empty.
+
      Examples:
         mask = [[False, True, True],  -> rle = [2, 4]
                 [False, True, True]]
@@ -189,6 +192,9 @@ def mask_to_rle(mask: npt.NDArray[np.bool_]) -> List[int]:
         mask = [[True, True, True],   -> rle = [0, 6]
                 [True, True, True]]
     """
+    assert mask.ndim == 2, "Input mask must be 2D"
+    assert mask.size != 0, "Input mask cannot be empty"
+
     rle = []
     if mask[0][0] == 1:
         rle = [0]
