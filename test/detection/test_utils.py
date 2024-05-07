@@ -1012,6 +1012,29 @@ def test_calculate_masks_centroids(
             None,
             pytest.raises(ValueError),
         ),  # two data dicts with the same field name and different length arrays values
+        (
+            [{}, {"test_1": [1, 2, 3]}],
+            {"test_1": [1, 2, 3]},
+            DoesNotRaise(),
+        ),  # No keys in one dict
+        (
+            [{"test_1": [], "test_2": []}, {"test_1": [1, 2, 3], "test_2": [1, 2, 3]}],
+            {"test_1": [1, 2, 3], "test_2": [1, 2, 3]},
+            DoesNotRaise(),
+        ),  # Empty values dicts
+        (
+            [{"test_1": []}, {"test_1": [1, 2, 3], "test_2": [1, 2, 3]}],
+            {"test_1": [1, 2, 3], "test_2": [1, 2, 3]},
+            DoesNotRaise(),
+        ),  # Mix of missing key and empty values
+        (
+            [
+                {"test_1": [1, 2, 3]},
+                {"test_1": [1, 2, 3], "test_2": [1, 2, 3]},
+            ],
+            None,
+            pytest.raises(ValueError),
+        ),  # some keys missing in one dict
     ],
 )
 def test_merge_data(

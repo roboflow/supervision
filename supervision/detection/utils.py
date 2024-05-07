@@ -1,5 +1,5 @@
 from itertools import chain
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Set, Tuple, Union
 
 import cv2
 import numpy as np
@@ -691,23 +691,51 @@ def merge_data(
     if not data_list:
         return {}
 
-    all_keys_sets = [set(data.keys()) for data in data_list]
-    if not all(keys_set == all_keys_sets[0] for keys_set in all_keys_sets):
-        raise ValueError("All data dictionaries must have the same keys to merge.")
-
     for data in data_list:
-        lengths = [len(value) for value in data.values()]
-        if len(set(lengths)) > 1:
+        lengths_set = [len(value) for value in data.values()]
+        if len(set(lengths_set)) > 1:
             raise ValueError(
                 "All data values within a single object must have equal length."
             )
 
-    merged_data = {key: [] for key in all_keys_sets[0]}
-
+    all_keys: Set[str] = set()
     for data in data_list:
-        for key in merged_data:
-            merged_data[key].append(data[key])
+        all_keys.update(data.keys())
 
+    # Naively merging entries and then validating length comes with a problem:
+    # N values may come from data[0]["key_1"] and N values from data[1]["key_2"].
+    # These should not be joined together.
+    # Here, as soon as we find data of len > 0, we lock the key set and raise
+    # a ValueError if later we find a value of len > 0 with an unknown key.
+    key_set = None
+    merged_data = {key: [] for key in all_keys}
+    for data in data_list:
+        data_key_set = set()
+        for key in data:
+            if len(data[key]) > 0:
+                if key_set is None:
+                    data_key_set.add(key)
+                elif key not in key_set:
+                    raise ValueError(f"Unknown key '{key}' found in data payload.")
+                merged_data[key].append(data[key])
+
+        if key_set is None and data_key_set:
+            key_set = data_key_set
+
+    merged_data = {key: val for key, val in merged_data.items() if len(val) > 0}
+
+    sum_lengths = {}  # Validation. More useful than set for error message
+    for key, value in merged_data.items():
+        sum_length = sum(len(item) for item in value)
+        sum_lengths[key] = sum_length
+    lengths_set = set(sum_lengths.values())
+    if len(lengths_set) > 1:
+        raise ValueError(
+            f"All data fields should have the same lengths after merge."
+            f"Resulting lengths: {sum_lengths}"
+        )
+
+    key_set = set()
     for key in merged_data:
         if all(isinstance(item, list) for item in merged_data[key]):
             merged_data[key] = list(chain.from_iterable(merged_data[key]))
