@@ -157,7 +157,7 @@ Script to run object detection on a video stream using the Roboflow Inference mo
   - `--iou_threshold`: IOU threshold for non-max suppression. Default is `0.7`.
 
 ```bash
-python inference_file_example.py \
+python inference_stream_example.py \
 --zone_configuration_path "data/checkout/config.json" \
 --rtsp_url "rtsp://localhost:8554/live0.stream" \
 --model_id "yolov8x-640" \
@@ -167,7 +167,7 @@ python inference_file_example.py \
 ```
 
 ```bash
-python inference_file_example.py \
+python inference_stream_example.py \
 --zone_configuration_path "data/traffic/config.json" \
 --rtsp_url "rtsp://localhost:8554/live0.stream" \
 --model_id "yolov8x-640" \
