@@ -10,10 +10,10 @@ from supervision import Detections
 from supervision.dataset.utils import (
     build_class_index_mapping,
     map_detections_class_id,
-    merge_class_lists,
-    train_test_split,
     mask_to_rle,
+    merge_class_lists,
     rle_to_mask,
+    train_test_split,
 )
 
 T = TypeVar("T")
@@ -239,33 +239,37 @@ def test_map_detections_class_id(
     "mask, expected_rle, exception",
     [
         (
-            np.zeros((3,3)).astype(bool),
+            np.zeros((3, 3)).astype(bool),
             [9],
             DoesNotRaise(),
         ),  # mask with background only (mask with only False values)
         (
-            np.ones((3,3)).astype(bool),
+            np.ones((3, 3)).astype(bool),
             [0, 9],
             DoesNotRaise(),
         ),  # mask with foreground only (mask with only True values)
         (
             np.array(
-                [[0, 0, 0, 0, 0],
-                 [0, 1, 1, 1, 0],
-                 [0, 1, 0, 1, 0],
-                 [0, 1, 1, 1, 0],
-                 [0, 0, 0, 0, 0]]
+                [
+                    [0, 0, 0, 0, 0],
+                    [0, 1, 1, 1, 0],
+                    [0, 1, 0, 1, 0],
+                    [0, 1, 1, 1, 0],
+                    [0, 0, 0, 0, 0],
+                ]
             ).astype(bool),
             [6, 3, 2, 1, 1, 1, 2, 3, 6],
             DoesNotRaise(),
         ),  # mask where foreground object has hole
         (
             np.array(
-                [[1, 0, 1, 0, 1],
-                 [1, 0, 1, 0, 1],
-                 [1, 0, 1, 0, 1],
-                 [1, 0, 1, 0, 1],
-                 [1, 0, 1, 0, 1]]
+                [
+                    [1, 0, 1, 0, 1],
+                    [1, 0, 1, 0, 1],
+                    [1, 0, 1, 0, 1],
+                    [1, 0, 1, 0, 1],
+                    [1, 0, 1, 0, 1],
+                ]
             ).astype(bool),
             [0, 5, 5, 5, 5, 5],
             DoesNotRaise(),
@@ -286,24 +290,26 @@ def test_mask_to_rle_conversion(
         (
             [9],
             [3, 3],
-            np.zeros((3,3)).astype(bool),
+            np.zeros((3, 3)).astype(bool),
             DoesNotRaise(),
         ),  # mask with background only (mask with only False values)
         (
             [0, 9],
             [3, 3],
-            np.ones((3,3)).astype(bool),
+            np.ones((3, 3)).astype(bool),
             DoesNotRaise(),
         ),  # mask with foreground only (mask with only True values)
         (
             [6, 3, 2, 1, 1, 1, 2, 3, 6],
             [5, 5],
             np.array(
-                [[0, 0, 0, 0, 0],
-                 [0, 1, 1, 1, 0],
-                 [0, 1, 0, 1, 0],
-                 [0, 1, 1, 1, 0],
-                 [0, 0, 0, 0, 0]]
+                [
+                    [0, 0, 0, 0, 0],
+                    [0, 1, 1, 1, 0],
+                    [0, 1, 0, 1, 0],
+                    [0, 1, 1, 1, 0],
+                    [0, 0, 0, 0, 0],
+                ]
             ).astype(bool),
             DoesNotRaise(),
         ),  # mask where foreground object has hole
@@ -311,11 +317,13 @@ def test_mask_to_rle_conversion(
             [0, 5, 5, 5, 5, 5],
             [5, 5],
             np.array(
-                [[1, 0, 1, 0, 1],
-                 [1, 0, 1, 0, 1],
-                 [1, 0, 1, 0, 1],
-                 [1, 0, 1, 0, 1],
-                 [1, 0, 1, 0, 1]]
+                [
+                    [1, 0, 1, 0, 1],
+                    [1, 0, 1, 0, 1],
+                    [1, 0, 1, 0, 1],
+                    [1, 0, 1, 0, 1],
+                    [1, 0, 1, 0, 1],
+                ]
             ).astype(bool),
             DoesNotRaise(),
         ),  # mask where foreground consists of 3 separate components
@@ -327,8 +335,11 @@ def test_mask_to_rle_conversion(
         ),  # mask where foreground consists of 3 separate components
     ],
 )
-def test_rle_to_mask_conversion(
-    rle: npt.NDArray[np.int_], resolution_wh: Tuple[int, int],expected_mask: npt.NDArray[np.bool_], exception: Exception
+def test_rle_to_mask_convertion(
+    rle: npt.NDArray[np.int_],
+    resolution_wh: Tuple[int, int],
+    expected_mask: npt.NDArray[np.bool_],
+    exception: Exception,
 ) -> None:
     with exception:
         result = rle_to_mask(rle=rle, resolution_wh=resolution_wh)
