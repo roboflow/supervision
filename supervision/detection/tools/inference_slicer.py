@@ -4,20 +4,29 @@ from typing import Callable, Optional, Tuple
 import numpy as np
 
 from supervision.detection.core import Detections
-from supervision.detection.utils import move_boxes
+from supervision.detection.utils import move_boxes, move_masks
 from supervision.utils.image import crop_image
 
 
-def move_detections(detections: Detections, offset: np.array) -> Detections:
+def move_detections(
+    detections: Detections, offset: np.ndarray, image_shape: np.ndarray
+) -> Detections:
     """
     Args:
         detections (sv.Detections): Detections object to be moved.
-        offset (np.array): An array of shape `(2,)` containing offset values in format
+        offset (np.ndarray): An array of shape `(2,)` containing offset values in format
             is `[dx, dy]`.
+        image_size (np.ndarray): An array of shape `(2,)` or `(3,)`, size of the image
+            in format is `[width, height]`.
     Returns:
         (sv.Detections) repositioned Detections object.
     """
     detections.xyxy = move_boxes(xyxy=detections.xyxy, offset=offset)
+    if detections.mask is not None:
+        shape_xy = image_shape[:2][::-1]
+        detections.mask = move_masks(
+            masks=detections.mask, offset=offset, desired_shape=shape_xy
+        )
     return detections
 
 
@@ -126,7 +135,9 @@ class InferenceSlicer:
         """
         image_slice = crop_image(image=image, xyxy=offset)
         detections = self.callback(image_slice)
-        detections = move_detections(detections=detections, offset=offset[:2])
+        detections = move_detections(
+            detections=detections, offset=offset[:2], image_shape=image.shape
+        )
 
         return detections
 
