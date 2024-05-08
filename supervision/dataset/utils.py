@@ -140,14 +140,18 @@ def rle_to_mask(
     Converts run-length encoding (RLE) to a binary mask.
 
     Args:
-        rle (npt.NDArray[np.int_]): The 1D RLE array, the format used in the COCO dataset (column-wise encoding,
-            values of an array with even indices represent the number of pixels assigned as background,
-            values of an array with odd indices represent the number of pixels assigned as foreground object).
-        resolution_wh (Tuple[int, int]): The width (w) and height (h) of the desired binary mask resolution.
+        rle (npt.NDArray[np.int_]): The 1D RLE array, the format used in the COCO 
+            dataset (column-wise encoding, values of an array with even indices 
+            represent the number of pixels assigned as background,
+            values of an array with odd indices represent the number of pixels 
+            assigned as foreground object).
+        resolution_wh (Tuple[int, int]): The width (w) and height (h) 
+            of the desired binary mask resolution.
 
     Returns:
-        npt.NDArray[np.bool_]: The generated 2D Boolean mask of shape (h,w), where the foreground object
-            is marked with `True`'s and the rest is filled with `False`'s.
+        npt.NDArray[np.bool_]: The generated 2D Boolean mask of shape (h,w), 
+            where the foreground object is marked with `True`'s and the rest 
+            is filled with `False`'s.
 
     Raises:
         AssertionError: If the sum of pixels encoded in RLE differs from the
@@ -161,7 +165,8 @@ def rle_to_mask(
 
     assert (
         width * height == np.sum(rle)
-    ), "the sum of the number of pixels in the RLE must be the same as the number of pixels in the expected mask"
+    ), ("the sum of the number of pixels in the RLE must be the same "
+        "as the number of pixels in the expected mask")
 
     zero_one_values = np.zeros_like(rle)
     zero_one_values[1::2] = 1
@@ -175,12 +180,14 @@ def mask_to_rle(mask: npt.NDArray[np.bool_]) -> List[int]:
     Converts a binary mask into a run-length encoding (RLE).
 
     Args:
-        mask (npt.NDArray[np.bool_]): 2D binary mask where `True` indicates foreground object
-            and `False` indicates background.
+        mask (npt.NDArray[np.bool_]): 2D binary mask where `True` indicates foreground 
+            object and `False` indicates background.
 
     Returns:
-        List[int]: the run-length encoded mask. Values of a list with even indices represent the number of pixels assigned as background (`False`),
-            values of a list with odd indices represent the number of pixels assigned as foreground object (`True`).
+        List[int]: the run-length encoded mask. Values of a list with even indices 
+            represent the number of pixels assigned as background (`False`), values 
+            of a list with odd indices represent the number of pixels assigned 
+            as foreground object (`True`).
 
     Raises:
         AssertionError: If imput mask is not 2D or is empty.

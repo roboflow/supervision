@@ -252,7 +252,8 @@ def test_group_coco_annotations_by_image_id(
                 ).reshape((1, 20, 20)),
             ),
             DoesNotRaise(),
-        ),  # single image annotations with mask, segmentation mask in L-like shape, like below:
+        ),  # single image annotations with mask, segmentation mask in L-like shape, 
+        #     like below:
         #                                     1 0 0 0
         #                                     1 1 0 0
         #                                     0 0 0 0
@@ -306,7 +307,8 @@ def test_group_coco_annotations_by_image_id(
                 ).reshape((1, 20, 20)),
             ),
             DoesNotRaise(),
-        ),  # single image annotations with mask, RLE segmentation mask in L-like shape, like below:
+        ),  # single image annotations with mask, RLE segmentation mask in L-like shape, 
+        #     like below:
         #                                     1 0 0 0
         #                                     1 1 0 0
         #                                     0 0 0 0
@@ -355,7 +357,8 @@ def test_group_coco_annotations_by_image_id(
                 ),
             ),
             DoesNotRaise(),
-        ),  # two image annotations with mask, one mask as polygon in in L-like shape, second as RLE in shape of square, like below (P = polygon, R = RLE):
+        ),  # two image annotations with mask, one mask as polygon in in L-like shape, 
+        #     second as RLE in shape of square, like below (P = polygon, R = RLE):
         #                                     P R 0 0
         #                                     P P 0 0
         #                                     0 0 0 0
@@ -404,7 +407,8 @@ def test_group_coco_annotations_by_image_id(
                 ),
             ),
             DoesNotRaise(),
-        ),  # two image annotations with mask, first mask as RLE in shape of square, second as polygon in in L-like shape, like below (P = polygon, R = RLE):
+        ),  # two image annotations with mask, first mask as RLE in shape of square, 
+        #     second as polygon in in L-like shape, like below (P = polygon, R = RLE):
         #                                     P R 0 0
         #                                     P P 0 0
         #                                     0 0 0 0

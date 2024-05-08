@@ -123,7 +123,8 @@ def detections_to_coco_annotations(
                 )[0].flatten()
             )
             # todo: flag for when to use RLE?
-            # segmentation = {"counts": mask_to_rle(binary_mask=mask), "size": list(mask.shape[:2])}
+            # segmentation = {"counts": mask_to_rle(binary_mask=mask), 
+            #                 "size": list(mask.shape[:2])}
         coco_annotation = {
             "id": annotation_id,
             "image_id": image_id,
