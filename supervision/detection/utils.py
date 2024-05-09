@@ -702,29 +702,26 @@ def merge_data(
     for data in data_list:
         all_keys.update(data.keys())
 
-    # Naively merging entries and then validating length comes with a problem:
-    # N values may come from data[0]["key_1"] and N values from data[1]["key_2"].
-    # These should not be joined together.
-    # Here, as soon as we find data of len > 0, we lock the key set and raise
-    # a ValueError if later we find a value of len > 0 with an unknown key.
     key_set = None
     merged_data = {key: [] for key in all_keys}
     for data in data_list:
         data_key_set = set()
         for key in data:
-            if len(data[key]) > 0:
-                if key_set is None:
-                    data_key_set.add(key)
-                elif key not in key_set:
-                    raise ValueError(f"Unknown key '{key}' found in data payload.")
-                merged_data[key].append(data[key])
+            if len(data[key]) == 0:
+                continue
+
+            if key_set is None:
+                data_key_set.add(key)
+            elif key not in key_set:
+                raise ValueError(f"Unknown key '{key}' found in data payload.")
+            merged_data[key].append(data[key])
 
         if key_set is None and data_key_set:
             key_set = data_key_set
 
     merged_data = {key: val for key, val in merged_data.items() if len(val) > 0}
 
-    sum_lengths = {}  # Validation. More useful than set for error message
+    sum_lengths = {}
     for key, value in merged_data.items():
         sum_length = sum(len(item) for item in value)
         sum_lengths[key] = sum_length
@@ -735,7 +732,6 @@ def merge_data(
             f"Resulting lengths: {sum_lengths}"
         )
 
-    key_set = set()
     for key in merged_data:
         if all(isinstance(item, list) for item in merged_data[key]):
             merged_data[key] = list(chain.from_iterable(merged_data[key]))
