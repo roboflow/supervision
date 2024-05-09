@@ -33,73 +33,75 @@ DETECTIONS = Detections(
 # Merge test
 TEST_MASK = np.zeros((1000, 1000), dtype=bool)
 TEST_MASK[300:351, 200:251] = True
-TEST_DET_1 = mock_detections(
-    xyxy=[[10, 10, 20, 20], [30, 30, 40, 40], [50, 50, 60, 60]],
-    mask=[TEST_MASK, TEST_MASK, TEST_MASK],
-    confidence=[0.1, 0.2, 0.3],
-    class_id=[1, 2, 3],
-    tracker_id=[1, 2, 3],
+TEST_DET_1 = Detections(
+    xyxy=np.array([[10, 10, 20, 20], [30, 30, 40, 40], [50, 50, 60, 60]]),
+    mask=np.array([TEST_MASK, TEST_MASK, TEST_MASK]),
+    confidence=np.array([0.1, 0.2, 0.3]),
+    class_id=np.array([1, 2, 3]),
+    tracker_id=np.array([1, 2, 3]),
     data={
         "some_key": [1, 2, 3],
         "other_key": [["1", "2"], ["3", "4"], ["5", "6"]],
     },
 )
-TEST_DET_2 = mock_detections(
-    xyxy=[[70, 70, 80, 80], [90, 90, 100, 100]],
-    mask=[TEST_MASK, TEST_MASK],
-    confidence=[0.4, 0.5],
-    class_id=[4, 5],
-    tracker_id=[4, 5],
+TEST_DET_2 = Detections(
+    xyxy=np.array([[70, 70, 80, 80], [90, 90, 100, 100]]),
+    mask=np.array([TEST_MASK, TEST_MASK]),
+    confidence=np.array([0.4, 0.5]),
+    class_id=np.array([4, 5]),
+    tracker_id=np.array([4, 5]),
     data={
         "some_key": [4, 5],
         "other_key": [["7", "8"], ["9", "10"]],
     },
 )
-TEST_DET_1_2 = mock_detections(
-    xyxy=[
-        [10, 10, 20, 20],
-        [30, 30, 40, 40],
-        [50, 50, 60, 60],
-        [70, 70, 80, 80],
-        [90, 90, 100, 100],
-    ],
-    mask=[TEST_MASK, TEST_MASK, TEST_MASK, TEST_MASK, TEST_MASK],
-    confidence=[0.1, 0.2, 0.3, 0.4, 0.5],
-    class_id=[1, 2, 3, 4, 5],
-    tracker_id=[1, 2, 3, 4, 5],
+TEST_DET_1_2 = Detections(
+    xyxy=np.array(
+        [
+            [10, 10, 20, 20],
+            [30, 30, 40, 40],
+            [50, 50, 60, 60],
+            [70, 70, 80, 80],
+            [90, 90, 100, 100],
+        ]
+    ),
+    mask=np.array([TEST_MASK, TEST_MASK, TEST_MASK, TEST_MASK, TEST_MASK]),
+    confidence=np.array([0.1, 0.2, 0.3, 0.4, 0.5]),
+    class_id=np.array([1, 2, 3, 4, 5]),
+    tracker_id=np.array([1, 2, 3, 4, 5]),
     data={
         "some_key": [1, 2, 3, 4, 5],
         "other_key": [["1", "2"], ["3", "4"], ["5", "6"], ["7", "8"], ["9", "10"]],
     },
 )
-TEST_DET_ZERO_LENGTH = mock_detections(
+TEST_DET_ZERO_LENGTH = Detections(
     xyxy=np.empty((0, 4), dtype=np.float32),
     mask=np.empty((0, *TEST_MASK.shape), dtype=bool),
-    confidence=[],
-    class_id=[],
-    tracker_id=[],
+    confidence=np.empty((0,)),
+    class_id=np.empty((0,)),
+    tracker_id=np.empty((0,)),
     data={
         "some_key": [],
         "other_key": [],
     },
 )
-TEST_DET_NONE = mock_detections(
+TEST_DET_NONE = Detections(
     xyxy=np.empty((0, 4), dtype=np.float32),
 )
-TEST_DET_DIFFERENT_FIELDS = mock_detections(
-    xyxy=[[88, 88, 99, 99]],
-    mask=[np.logical_not(TEST_MASK)],
+TEST_DET_DIFFERENT_FIELDS = Detections(
+    xyxy=np.array([[88, 88, 99, 99]]),
+    mask=np.array([np.logical_not(TEST_MASK)]),
     confidence=None,
     class_id=None,
-    tracker_id=[9],
+    tracker_id=np.array([9]),
     data={"some_key": [9], "other_key": [["11", "12"]]},
 )
-TEST_DET_DIFFERENT_DATA = mock_detections(
-    xyxy=[[88, 88, 99, 99]],
-    mask=[np.logical_not(TEST_MASK)],
-    confidence=[0.9],
-    class_id=[9],
-    tracker_id=[9],
+TEST_DET_DIFFERENT_DATA = Detections(
+    xyxy=np.array([[88, 88, 99, 99]]),
+    mask=np.array([np.logical_not(TEST_MASK)]),
+    confidence=np.array([0.9]),
+    class_id=np.array([9]),
+    tracker_id=np.array([9]),
     data={
         "never_seen_key": [9],
     },

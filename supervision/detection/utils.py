@@ -713,27 +713,10 @@ def merge_data(
     merged_data = {key: [] for key in all_keys}
     for data in data_list:
         for key in data:
-            if len(data[key]) == 0:
-                continue
             merged_data[key].append(data[key])
 
     for key in merged_data:
-        if len(merged_data[key]) == 0:
-            for data in data_list:
-                if key not in data:
-                    continue
-                data_type = type(data[key])
-                break
-            if data_type == np.ndarray:
-                merged_data[key] = np.array(merged_data[key])
-            elif data_type == list:
-                merged_data[key] = list(merged_data[key])
-            else:
-                raise ValueError(
-                    f"Inconsistent data types for key '{key}'. Only np.ndarray and list "
-                    f"types are allowed."
-                )
-        elif all(isinstance(item, list) for item in merged_data[key]):
+        if all(isinstance(item, list) for item in merged_data[key]):
             merged_data[key] = list(chain.from_iterable(merged_data[key]))
         elif all(isinstance(item, np.ndarray) for item in merged_data[key]):
             ndim = merged_data[key][0].ndim
