@@ -70,10 +70,10 @@ model.
     import cv2
     from mmengine import Config
     from mmdet.apis import init_detector, inference_detector
-    
+
     CONFIG_FILE = "mmdetection/checkpoint/rtmdet_s_8xb32-300e_coco.py"
     CHECKPOINT_FILE = "mmdetection/checkpoint/rtmdet_s_8xb32-300e_coco_20220905_161602-387a891e.pth"
-    
+
     cfg = Config.fromfile(CONFIG_FILE)
     model = init_detector(cfg, CHECKPOINT_FILE)
 
@@ -145,17 +145,17 @@ Now that we have predictions from a model, we can load them into Supervision.
 
 === "MMDetections"
 
-    We can do so using the [`sv.Detections.from_mmdetections`](detection/core/#supervision.detection.core.Detections.from_mmdetection) method, which accepts model results from both detection and segmentation models. 
+    We can do so using the [`sv.Detections.from_mmdetections`](detection/core/#supervision.detection.core.Detections.from_mmdetection) method, which accepts model results from both detection and segmentation models.
 
     ```{ .py hl_lines="2 14-15" }
     import cv2
     import supervision as sv
     from mmengine import Config
     from mmdet.apis import init_detector, inference_detector
-    
+
     CONFIG_FILE = "mmdetection/checkpoint/rtmdet_s_8xb32-300e_coco.py"
     CHECKPOINT_FILE = "mmdetection/checkpoint/rtmdet_s_8xb32-300e_coco_20220905_161602-387a891e.pth"
-    
+
     cfg = Config.fromfile(CONFIG_FILE)
     model = init_detector(cfg, CHECKPOINT_FILE)
 
@@ -259,10 +259,10 @@ Finally, we can annotate the image with the predictions. Since we are working wi
     import supervision as sv
     from mmengine import Config
     from mmdet.apis import init_detector, inference_detector
-    
+
     CONFIG_FILE = "mmdetection/checkpoint/rtmdet_s_8xb32-300e_coco.py"
     CHECKPOINT_FILE = "mmdetection/checkpoint/rtmdet_s_8xb32-300e_coco_20220905_161602-387a891e.pth"
-    
+
     cfg = Config.fromfile(CONFIG_FILE)
     model = init_detector(cfg, CHECKPOINT_FILE)
 
@@ -389,10 +389,10 @@ override this behavior by passing a list of custom `labels` to the `annotate` me
     import supervision as sv
     from mmengine import Config
     from mmdet.apis import init_detector, inference_detector
-    
+
     CONFIG_FILE = "mmdetection/checkpoint/rtmdet_s_8xb32-300e_coco.py"
     CHECKPOINT_FILE = "mmdetection/checkpoint/rtmdet_s_8xb32-300e_coco_20220905_161602-387a891e.pth"
-    
+
     cfg = Config.fromfile(CONFIG_FILE)
     model = init_detector(cfg, CHECKPOINT_FILE)
 
@@ -515,10 +515,10 @@ that will allow you to draw masks instead of boxes.
     import supervision as sv
     from mmengine import Config
     from mmdet.apis import init_detector, inference_detector
-    
+
     CONFIG_FILE = "mmdetection/checkpoint/rtmdet-ins_s_8xb32-300e_coco.py"
     CHECKPOINT_FILE = "mmdetection/checkpoint/rtmdet-ins_s_8xb32-300e_coco_20221121_212604-fdc5d7ec.pth"
-    
+
     cfg = Config.fromfile(CONFIG_FILE)
     model = init_detector(cfg, CHECKPOINT_FILE)
 
@@ -526,16 +526,16 @@ that will allow you to draw masks instead of boxes.
     result = inference_detector(model, image)
     detections = sv.Detections.from_mmdetection(result).with_nms(threshold=0.3)
     detections = detections[detections.confidence > 0.3]
-    
+
     labels = [
         f"{class_id} {confidence:.2f}"
         for class_id, confidence
         in zip(detections.class_id, detections.confidence)
     ]
-    
+
     mask_annotator = sv.MaskAnnotator()
     label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER_OF_MASS)
-    
+
     annotated_image = mask_annotator.annotate(
         scene=image, detections=detections)
     annotated_image = label_annotator.annotate(
