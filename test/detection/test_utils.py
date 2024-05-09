@@ -1016,17 +1016,29 @@ def test_calculate_masks_centroids(
             [{}, {"test_1": [1, 2, 3]}],
             {"test_1": [1, 2, 3]},
             DoesNotRaise(),
-        ),  # No keys in one dict
+        ),  # Empty, no keys
         (
             [{"test_1": [], "test_2": []}, {"test_1": [1, 2, 3], "test_2": [1, 2, 3]}],
             {"test_1": [1, 2, 3], "test_2": [1, 2, 3]},
             DoesNotRaise(),
-        ),  # Empty values dicts
+        ),  # Empty, same keys
         (
-            [{"test_1": []}, {"test_1": [1, 2, 3], "test_2": [1, 2, 3]}],
-            {"test_1": [1, 2, 3], "test_2": [1, 2, 3]},
-            DoesNotRaise(),
-        ),  # Mix of missing key and empty values
+            [{"test_1": []}, {"test_1": [1, 2, 3], "test_2": [4, 5, 6]}],
+            None,
+            pytest.raises(ValueError),
+        ),  # Empty, missing key
+        (
+            [
+                {
+                    "test_1": [1, 2, 3],
+                    "test_2": [4, 5, 6],
+                    "test_3": [7, 8, 9],
+                },
+                {"test_1": [1, 2, 3], "test_2": [4, 5, 6]},
+            ],
+            None,
+            pytest.raises(ValueError),
+        ),  # Empty, too many keys
         (
             [
                 {"test_1": [1, 2, 3]},
@@ -1044,6 +1056,9 @@ def test_merge_data(
 ):
     with exception:
         result = merge_data(data_list=data_list)
+        if expected_result is None:
+            assert False, f"Expected an error, but got result {result}"
+
         for key in result:
             if isinstance(result[key], np.ndarray):
                 assert np.array_equal(

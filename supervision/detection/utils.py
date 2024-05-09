@@ -1,5 +1,5 @@
 from itertools import chain
-from typing import Dict, List, Optional, Set, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
@@ -692,48 +692,46 @@ def merge_data(
         return {}
 
     for data in data_list:
-        lengths_set = [len(value) for value in data.values()]
-        if len(set(lengths_set)) > 1:
+        lengths = [len(value) for value in data.values()]
+        if len(set(lengths)) > 1:
             raise ValueError(
                 "All data values within a single object must have equal length."
             )
 
-    all_keys: Set[str] = set()
-    for data in data_list:
-        all_keys.update(data.keys())
+    data_keys = [set(data.keys()) for data in data_list]
+    data_keys = [key_set for key_set in data_keys if len(key_set) > 0]
+    if not data_keys:
+        return {}
 
-    key_set = None
+    common_keys = set.intersection(*data_keys)
+    all_keys = set.union(*data_keys)
+    if common_keys != all_keys:
+        raise ValueError(
+            f"All data dictionaries must have the same keys to merge. Found {data_keys}"
+        )
+
+    data_types = {}
+    for key in all_keys:
+        for data in data_list:
+            if key not in data:
+                continue
+            data_types[key] = type(data[key])
+            break
+
     merged_data = {key: [] for key in all_keys}
     for data in data_list:
-        data_key_set = set()
         for key in data:
             if len(data[key]) == 0:
                 continue
-
-            if key_set is None:
-                data_key_set.add(key)
-            elif key not in key_set:
-                raise ValueError(f"Unknown key '{key}' found in data payload.")
             merged_data[key].append(data[key])
 
-        if key_set is None and data_key_set:
-            key_set = data_key_set
-
-    merged_data = {key: val for key, val in merged_data.items() if len(val) > 0}
-
-    sum_lengths = {}
-    for key, value in merged_data.items():
-        sum_length = sum(len(item) for item in value)
-        sum_lengths[key] = sum_length
-    lengths_set = set(sum_lengths.values())
-    if len(lengths_set) > 1:
-        raise ValueError(
-            f"All data fields should have the same lengths after merge."
-            f"Resulting lengths: {sum_lengths}"
-        )
-
     for key in merged_data:
-        if all(isinstance(item, list) for item in merged_data[key]):
+        if len(merged_data[key]) == 0:
+            if data_types[key] == np.ndarray:
+                merged_data[key] = np.array(merged_data[key])
+            else:
+                merged_data[key] = list(merged_data[key])
+        elif all(isinstance(item, list) for item in merged_data[key]):
             merged_data[key] = list(chain.from_iterable(merged_data[key]))
         elif all(isinstance(item, np.ndarray) for item in merged_data[key]):
             ndim = merged_data[key][0].ndim
