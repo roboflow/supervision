@@ -834,9 +834,10 @@ class Detections:
 
         This method takes a list of Detections objects and combines their
         respective fields (`xyxy`, `mask`, `confidence`, `class_id`, and `tracker_id`)
-        into a single Detections object. If all elements in a field are not
-        `None`, the corresponding field will be stacked.
-        Otherwise, the field will be set to `None`.
+        into a single Detections object.
+
+        For example, if merging Detections with 3 and 4 detected objects, this method
+        will return a Detections with 7 objects (7 entries in `xyxy`, `mask`, etc).
 
         Args:
             detections_list (List[Detections]): A list of Detections objects to merge.
@@ -894,13 +895,12 @@ class Detections:
         def stack_or_none(name: str):
             if all(d.__getattribute__(name) is None for d in detections_list):
                 return None
-            if any(d.__getattribute__(name) is None for d in detections_list):
-                raise ValueError(f"All or none of the '{name}' fields must be None")
-            return (
-                np.vstack([d.__getattribute__(name) for d in detections_list])
-                if name == "mask"
-                else np.hstack([d.__getattribute__(name) for d in detections_list])
-            )
+            stack_list = [
+                d.__getattribute__(name)
+                for d in detections_list
+                if d.__getattribute__(name) is not None
+            ]
+            return np.vstack(stack_list) if name == "mask" else np.hstack(stack_list)
 
         mask = stack_or_none("mask")
         confidence = stack_or_none("confidence")
