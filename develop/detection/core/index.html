@@ -4313,73 +4313,73 @@ is either a NumPy array or a list of corresponding data.</p>
 <a id="__codelineno-0-834" name="__codelineno-0-834"></a>
 <a id="__codelineno-0-835" name="__codelineno-0-835"></a><span class="sd">        This method takes a list of Detections objects and combines their</span>
 <a id="__codelineno-0-836" name="__codelineno-0-836"></a><span class="sd">        respective fields (`xyxy`, `mask`, `confidence`, `class_id`, and `tracker_id`)</span>
-<a id="__codelineno-0-837" name="__codelineno-0-837"></a><span class="sd">        into a single Detections object. If all elements in a field are not</span>
-<a id="__codelineno-0-838" name="__codelineno-0-838"></a><span class="sd">        `None`, the corresponding field will be stacked.</span>
-<a id="__codelineno-0-839" name="__codelineno-0-839"></a><span class="sd">        Otherwise, the field will be set to `None`.</span>
-<a id="__codelineno-0-840" name="__codelineno-0-840"></a>
-<a id="__codelineno-0-841" name="__codelineno-0-841"></a><span class="sd">        Args:</span>
-<a id="__codelineno-0-842" name="__codelineno-0-842"></a><span class="sd">            detections_list (List[Detections]): A list of Detections objects to merge.</span>
-<a id="__codelineno-0-843" name="__codelineno-0-843"></a>
-<a id="__codelineno-0-844" name="__codelineno-0-844"></a><span class="sd">        Returns:</span>
-<a id="__codelineno-0-845" name="__codelineno-0-845"></a><span class="sd">            (Detections): A single Detections object containing</span>
-<a id="__codelineno-0-846" name="__codelineno-0-846"></a><span class="sd">                the merged data from the input list.</span>
-<a id="__codelineno-0-847" name="__codelineno-0-847"></a>
-<a id="__codelineno-0-848" name="__codelineno-0-848"></a><span class="sd">        Example:</span>
-<a id="__codelineno-0-849" name="__codelineno-0-849"></a><span class="sd">            ```python</span>
-<a id="__codelineno-0-850" name="__codelineno-0-850"></a><span class="sd">            import numpy as np</span>
-<a id="__codelineno-0-851" name="__codelineno-0-851"></a><span class="sd">            import supervision as sv</span>
-<a id="__codelineno-0-852" name="__codelineno-0-852"></a>
-<a id="__codelineno-0-853" name="__codelineno-0-853"></a><span class="sd">            detections_1 = sv.Detections(</span>
-<a id="__codelineno-0-854" name="__codelineno-0-854"></a><span class="sd">                xyxy=np.array([[15, 15, 100, 100], [200, 200, 300, 300]]),</span>
-<a id="__codelineno-0-855" name="__codelineno-0-855"></a><span class="sd">                class_id=np.array([1, 2]),</span>
-<a id="__codelineno-0-856" name="__codelineno-0-856"></a><span class="sd">                data={&#39;feature_vector&#39;: np.array([0.1, 0.2)])}</span>
-<a id="__codelineno-0-857" name="__codelineno-0-857"></a><span class="sd">             )</span>
-<a id="__codelineno-0-858" name="__codelineno-0-858"></a>
-<a id="__codelineno-0-859" name="__codelineno-0-859"></a><span class="sd">            detections_2 = sv.Detections(</span>
-<a id="__codelineno-0-860" name="__codelineno-0-860"></a><span class="sd">                xyxy=np.array([[30, 30, 120, 120]]),</span>
-<a id="__codelineno-0-861" name="__codelineno-0-861"></a><span class="sd">                class_id=np.array([1]),</span>
-<a id="__codelineno-0-862" name="__codelineno-0-862"></a><span class="sd">                data={&#39;feature_vector&#39;: [np.array([0.3])]}</span>
-<a id="__codelineno-0-863" name="__codelineno-0-863"></a><span class="sd">             )</span>
-<a id="__codelineno-0-864" name="__codelineno-0-864"></a>
-<a id="__codelineno-0-865" name="__codelineno-0-865"></a><span class="sd">            merged_detections = Detections.merge([detections_1, detections_2])</span>
-<a id="__codelineno-0-866" name="__codelineno-0-866"></a>
-<a id="__codelineno-0-867" name="__codelineno-0-867"></a><span class="sd">            merged_detections.xyxy</span>
-<a id="__codelineno-0-868" name="__codelineno-0-868"></a><span class="sd">            array([[ 15,  15, 100, 100],</span>
-<a id="__codelineno-0-869" name="__codelineno-0-869"></a><span class="sd">                   [200, 200, 300, 300],</span>
-<a id="__codelineno-0-870" name="__codelineno-0-870"></a><span class="sd">                   [ 30,  30, 120, 120]])</span>
-<a id="__codelineno-0-871" name="__codelineno-0-871"></a>
-<a id="__codelineno-0-872" name="__codelineno-0-872"></a><span class="sd">            merged_detections.class_id</span>
-<a id="__codelineno-0-873" name="__codelineno-0-873"></a><span class="sd">            array([1, 2, 1])</span>
-<a id="__codelineno-0-874" name="__codelineno-0-874"></a>
-<a id="__codelineno-0-875" name="__codelineno-0-875"></a><span class="sd">            merged_detections.data[&#39;feature_vector&#39;]</span>
-<a id="__codelineno-0-876" name="__codelineno-0-876"></a><span class="sd">            array([0.1, 0.2, 0.3])</span>
-<a id="__codelineno-0-877" name="__codelineno-0-877"></a><span class="sd">            ```</span>
-<a id="__codelineno-0-878" name="__codelineno-0-878"></a><span class="sd">        &quot;&quot;&quot;</span>
-<a id="__codelineno-0-879" name="__codelineno-0-879"></a>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">detections_list</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-<a id="__codelineno-0-880" name="__codelineno-0-880"></a>            <span class="k">return</span> <span class="n">Detections</span><span class="o">.</span><span class="n">empty</span><span class="p">()</span>
-<a id="__codelineno-0-881" name="__codelineno-0-881"></a>
-<a id="__codelineno-0-882" name="__codelineno-0-882"></a>        <span class="k">for</span> <span class="n">detections</span> <span class="ow">in</span> <span class="n">detections_list</span><span class="p">:</span>
-<a id="__codelineno-0-883" name="__codelineno-0-883"></a>            <span class="n">validate_detections_fields</span><span class="p">(</span>
-<a id="__codelineno-0-884" name="__codelineno-0-884"></a>                <span class="n">xyxy</span><span class="o">=</span><span class="n">detections</span><span class="o">.</span><span class="n">xyxy</span><span class="p">,</span>
-<a id="__codelineno-0-885" name="__codelineno-0-885"></a>                <span class="n">mask</span><span class="o">=</span><span class="n">detections</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span>
-<a id="__codelineno-0-886" name="__codelineno-0-886"></a>                <span class="n">confidence</span><span class="o">=</span><span class="n">detections</span><span class="o">.</span><span class="n">confidence</span><span class="p">,</span>
-<a id="__codelineno-0-887" name="__codelineno-0-887"></a>                <span class="n">class_id</span><span class="o">=</span><span class="n">detections</span><span class="o">.</span><span class="n">class_id</span><span class="p">,</span>
-<a id="__codelineno-0-888" name="__codelineno-0-888"></a>                <span class="n">tracker_id</span><span class="o">=</span><span class="n">detections</span><span class="o">.</span><span class="n">tracker_id</span><span class="p">,</span>
-<a id="__codelineno-0-889" name="__codelineno-0-889"></a>                <span class="n">data</span><span class="o">=</span><span class="n">detections</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
-<a id="__codelineno-0-890" name="__codelineno-0-890"></a>            <span class="p">)</span>
-<a id="__codelineno-0-891" name="__codelineno-0-891"></a>
-<a id="__codelineno-0-892" name="__codelineno-0-892"></a>        <span class="n">xyxy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">d</span><span class="o">.</span><span class="n">xyxy</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">detections_list</span><span class="p">])</span>
-<a id="__codelineno-0-893" name="__codelineno-0-893"></a>
-<a id="__codelineno-0-894" name="__codelineno-0-894"></a>        <span class="k">def</span> <span class="nf">stack_or_none</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
-<a id="__codelineno-0-895" name="__codelineno-0-895"></a>            <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">detections_list</span><span class="p">):</span>
-<a id="__codelineno-0-896" name="__codelineno-0-896"></a>                <span class="k">return</span> <span class="kc">None</span>
-<a id="__codelineno-0-897" name="__codelineno-0-897"></a>            <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">detections_list</span><span class="p">):</span>
-<a id="__codelineno-0-898" name="__codelineno-0-898"></a>                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;All or none of the &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; fields must be None&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-899" name="__codelineno-0-899"></a>            <span class="k">return</span> <span class="p">(</span>
-<a id="__codelineno-0-900" name="__codelineno-0-900"></a>                <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">d</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">detections_list</span><span class="p">])</span>
-<a id="__codelineno-0-901" name="__codelineno-0-901"></a>                <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;mask&quot;</span>
-<a id="__codelineno-0-902" name="__codelineno-0-902"></a>                <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span><span class="n">d</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">detections_list</span><span class="p">])</span>
-<a id="__codelineno-0-903" name="__codelineno-0-903"></a>            <span class="p">)</span>
+<a id="__codelineno-0-837" name="__codelineno-0-837"></a><span class="sd">        into a single Detections object.</span>
+<a id="__codelineno-0-838" name="__codelineno-0-838"></a>
+<a id="__codelineno-0-839" name="__codelineno-0-839"></a><span class="sd">        For example, if merging Detections with 3 and 4 detected objects, this method</span>
+<a id="__codelineno-0-840" name="__codelineno-0-840"></a><span class="sd">        will return a Detections with 7 objects (7 entries in `xyxy`, `mask`, etc).</span>
+<a id="__codelineno-0-841" name="__codelineno-0-841"></a>
+<a id="__codelineno-0-842" name="__codelineno-0-842"></a><span class="sd">        Args:</span>
+<a id="__codelineno-0-843" name="__codelineno-0-843"></a><span class="sd">            detections_list (List[Detections]): A list of Detections objects to merge.</span>
+<a id="__codelineno-0-844" name="__codelineno-0-844"></a>
+<a id="__codelineno-0-845" name="__codelineno-0-845"></a><span class="sd">        Returns:</span>
+<a id="__codelineno-0-846" name="__codelineno-0-846"></a><span class="sd">            (Detections): A single Detections object containing</span>
+<a id="__codelineno-0-847" name="__codelineno-0-847"></a><span class="sd">                the merged data from the input list.</span>
+<a id="__codelineno-0-848" name="__codelineno-0-848"></a>
+<a id="__codelineno-0-849" name="__codelineno-0-849"></a><span class="sd">        Example:</span>
+<a id="__codelineno-0-850" name="__codelineno-0-850"></a><span class="sd">            ```python</span>
+<a id="__codelineno-0-851" name="__codelineno-0-851"></a><span class="sd">            import numpy as np</span>
+<a id="__codelineno-0-852" name="__codelineno-0-852"></a><span class="sd">            import supervision as sv</span>
+<a id="__codelineno-0-853" name="__codelineno-0-853"></a>
+<a id="__codelineno-0-854" name="__codelineno-0-854"></a><span class="sd">            detections_1 = sv.Detections(</span>
+<a id="__codelineno-0-855" name="__codelineno-0-855"></a><span class="sd">                xyxy=np.array([[15, 15, 100, 100], [200, 200, 300, 300]]),</span>
+<a id="__codelineno-0-856" name="__codelineno-0-856"></a><span class="sd">                class_id=np.array([1, 2]),</span>
+<a id="__codelineno-0-857" name="__codelineno-0-857"></a><span class="sd">                data={&#39;feature_vector&#39;: np.array([0.1, 0.2)])}</span>
+<a id="__codelineno-0-858" name="__codelineno-0-858"></a><span class="sd">             )</span>
+<a id="__codelineno-0-859" name="__codelineno-0-859"></a>
+<a id="__codelineno-0-860" name="__codelineno-0-860"></a><span class="sd">            detections_2 = sv.Detections(</span>
+<a id="__codelineno-0-861" name="__codelineno-0-861"></a><span class="sd">                xyxy=np.array([[30, 30, 120, 120]]),</span>
+<a id="__codelineno-0-862" name="__codelineno-0-862"></a><span class="sd">                class_id=np.array([1]),</span>
+<a id="__codelineno-0-863" name="__codelineno-0-863"></a><span class="sd">                data={&#39;feature_vector&#39;: [np.array([0.3])]}</span>
+<a id="__codelineno-0-864" name="__codelineno-0-864"></a><span class="sd">             )</span>
+<a id="__codelineno-0-865" name="__codelineno-0-865"></a>
+<a id="__codelineno-0-866" name="__codelineno-0-866"></a><span class="sd">            merged_detections = Detections.merge([detections_1, detections_2])</span>
+<a id="__codelineno-0-867" name="__codelineno-0-867"></a>
+<a id="__codelineno-0-868" name="__codelineno-0-868"></a><span class="sd">            merged_detections.xyxy</span>
+<a id="__codelineno-0-869" name="__codelineno-0-869"></a><span class="sd">            array([[ 15,  15, 100, 100],</span>
+<a id="__codelineno-0-870" name="__codelineno-0-870"></a><span class="sd">                   [200, 200, 300, 300],</span>
+<a id="__codelineno-0-871" name="__codelineno-0-871"></a><span class="sd">                   [ 30,  30, 120, 120]])</span>
+<a id="__codelineno-0-872" name="__codelineno-0-872"></a>
+<a id="__codelineno-0-873" name="__codelineno-0-873"></a><span class="sd">            merged_detections.class_id</span>
+<a id="__codelineno-0-874" name="__codelineno-0-874"></a><span class="sd">            array([1, 2, 1])</span>
+<a id="__codelineno-0-875" name="__codelineno-0-875"></a>
+<a id="__codelineno-0-876" name="__codelineno-0-876"></a><span class="sd">            merged_detections.data[&#39;feature_vector&#39;]</span>
+<a id="__codelineno-0-877" name="__codelineno-0-877"></a><span class="sd">            array([0.1, 0.2, 0.3])</span>
+<a id="__codelineno-0-878" name="__codelineno-0-878"></a><span class="sd">            ```</span>
+<a id="__codelineno-0-879" name="__codelineno-0-879"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-880" name="__codelineno-0-880"></a>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">detections_list</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+<a id="__codelineno-0-881" name="__codelineno-0-881"></a>            <span class="k">return</span> <span class="n">Detections</span><span class="o">.</span><span class="n">empty</span><span class="p">()</span>
+<a id="__codelineno-0-882" name="__codelineno-0-882"></a>
+<a id="__codelineno-0-883" name="__codelineno-0-883"></a>        <span class="k">for</span> <span class="n">detections</span> <span class="ow">in</span> <span class="n">detections_list</span><span class="p">:</span>
+<a id="__codelineno-0-884" name="__codelineno-0-884"></a>            <span class="n">validate_detections_fields</span><span class="p">(</span>
+<a id="__codelineno-0-885" name="__codelineno-0-885"></a>                <span class="n">xyxy</span><span class="o">=</span><span class="n">detections</span><span class="o">.</span><span class="n">xyxy</span><span class="p">,</span>
+<a id="__codelineno-0-886" name="__codelineno-0-886"></a>                <span class="n">mask</span><span class="o">=</span><span class="n">detections</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span>
+<a id="__codelineno-0-887" name="__codelineno-0-887"></a>                <span class="n">confidence</span><span class="o">=</span><span class="n">detections</span><span class="o">.</span><span class="n">confidence</span><span class="p">,</span>
+<a id="__codelineno-0-888" name="__codelineno-0-888"></a>                <span class="n">class_id</span><span class="o">=</span><span class="n">detections</span><span class="o">.</span><span class="n">class_id</span><span class="p">,</span>
+<a id="__codelineno-0-889" name="__codelineno-0-889"></a>                <span class="n">tracker_id</span><span class="o">=</span><span class="n">detections</span><span class="o">.</span><span class="n">tracker_id</span><span class="p">,</span>
+<a id="__codelineno-0-890" name="__codelineno-0-890"></a>                <span class="n">data</span><span class="o">=</span><span class="n">detections</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+<a id="__codelineno-0-891" name="__codelineno-0-891"></a>            <span class="p">)</span>
+<a id="__codelineno-0-892" name="__codelineno-0-892"></a>
+<a id="__codelineno-0-893" name="__codelineno-0-893"></a>        <span class="n">xyxy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">d</span><span class="o">.</span><span class="n">xyxy</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">detections_list</span><span class="p">])</span>
+<a id="__codelineno-0-894" name="__codelineno-0-894"></a>
+<a id="__codelineno-0-895" name="__codelineno-0-895"></a>        <span class="k">def</span> <span class="nf">stack_or_none</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<a id="__codelineno-0-896" name="__codelineno-0-896"></a>            <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">detections_list</span><span class="p">):</span>
+<a id="__codelineno-0-897" name="__codelineno-0-897"></a>                <span class="k">return</span> <span class="kc">None</span>
+<a id="__codelineno-0-898" name="__codelineno-0-898"></a>            <span class="n">stack_list</span> <span class="o">=</span> <span class="p">[</span>
+<a id="__codelineno-0-899" name="__codelineno-0-899"></a>                <span class="n">d</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+<a id="__codelineno-0-900" name="__codelineno-0-900"></a>                <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">detections_list</span>
+<a id="__codelineno-0-901" name="__codelineno-0-901"></a>                <span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+<a id="__codelineno-0-902" name="__codelineno-0-902"></a>            <span class="p">]</span>
+<a id="__codelineno-0-903" name="__codelineno-0-903"></a>            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">stack_list</span><span class="p">)</span> <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;mask&quot;</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span><span class="n">stack_list</span><span class="p">)</span>
 <a id="__codelineno-0-904" name="__codelineno-0-904"></a>
 <a id="__codelineno-0-905" name="__codelineno-0-905"></a>        <span class="n">mask</span> <span class="o">=</span> <span class="n">stack_or_none</span><span class="p">(</span><span class="s2">&quot;mask&quot;</span><span class="p">)</span>
 <a id="__codelineno-0-906" name="__codelineno-0-906"></a>        <span class="n">confidence</span> <span class="o">=</span> <span class="n">stack_or_none</span><span class="p">(</span><span class="s2">&quot;confidence&quot;</span><span class="p">)</span>
@@ -8120,9 +8120,9 @@ anchor point for the corresponding bounding box.</p>
       <p>Merge a list of Detections objects into a single Detections object.</p>
 <p>This method takes a list of Detections objects and combines their
 respective fields (<code>xyxy</code>, <code>mask</code>, <code>confidence</code>, <code>class_id</code>, and <code>tracker_id</code>)
-into a single Detections object. If all elements in a field are not
-<code>None</code>, the corresponding field will be stacked.
-Otherwise, the field will be set to <code>None</code>.</p>
+into a single Detections object.</p>
+<p>For example, if merging Detections with 3 and 4 detected objects, this method
+will return a Detections with 7 objects (7 entries in <code>xyxy</code>, <code>mask</code>, etc).</p>
 
 
 
@@ -8308,73 +8308,73 @@ the merged data from the input list.</p>
 <a id="__codelineno-0-834" name="__codelineno-0-834"></a>
 <a id="__codelineno-0-835" name="__codelineno-0-835"></a><span class="sd">    This method takes a list of Detections objects and combines their</span>
 <a id="__codelineno-0-836" name="__codelineno-0-836"></a><span class="sd">    respective fields (`xyxy`, `mask`, `confidence`, `class_id`, and `tracker_id`)</span>
-<a id="__codelineno-0-837" name="__codelineno-0-837"></a><span class="sd">    into a single Detections object. If all elements in a field are not</span>
-<a id="__codelineno-0-838" name="__codelineno-0-838"></a><span class="sd">    `None`, the corresponding field will be stacked.</span>
-<a id="__codelineno-0-839" name="__codelineno-0-839"></a><span class="sd">    Otherwise, the field will be set to `None`.</span>
-<a id="__codelineno-0-840" name="__codelineno-0-840"></a>
-<a id="__codelineno-0-841" name="__codelineno-0-841"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-842" name="__codelineno-0-842"></a><span class="sd">        detections_list (List[Detections]): A list of Detections objects to merge.</span>
-<a id="__codelineno-0-843" name="__codelineno-0-843"></a>
-<a id="__codelineno-0-844" name="__codelineno-0-844"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-845" name="__codelineno-0-845"></a><span class="sd">        (Detections): A single Detections object containing</span>
-<a id="__codelineno-0-846" name="__codelineno-0-846"></a><span class="sd">            the merged data from the input list.</span>
-<a id="__codelineno-0-847" name="__codelineno-0-847"></a>
-<a id="__codelineno-0-848" name="__codelineno-0-848"></a><span class="sd">    Example:</span>
-<a id="__codelineno-0-849" name="__codelineno-0-849"></a><span class="sd">        ```python</span>
-<a id="__codelineno-0-850" name="__codelineno-0-850"></a><span class="sd">        import numpy as np</span>
-<a id="__codelineno-0-851" name="__codelineno-0-851"></a><span class="sd">        import supervision as sv</span>
-<a id="__codelineno-0-852" name="__codelineno-0-852"></a>
-<a id="__codelineno-0-853" name="__codelineno-0-853"></a><span class="sd">        detections_1 = sv.Detections(</span>
-<a id="__codelineno-0-854" name="__codelineno-0-854"></a><span class="sd">            xyxy=np.array([[15, 15, 100, 100], [200, 200, 300, 300]]),</span>
-<a id="__codelineno-0-855" name="__codelineno-0-855"></a><span class="sd">            class_id=np.array([1, 2]),</span>
-<a id="__codelineno-0-856" name="__codelineno-0-856"></a><span class="sd">            data={&#39;feature_vector&#39;: np.array([0.1, 0.2)])}</span>
-<a id="__codelineno-0-857" name="__codelineno-0-857"></a><span class="sd">         )</span>
-<a id="__codelineno-0-858" name="__codelineno-0-858"></a>
-<a id="__codelineno-0-859" name="__codelineno-0-859"></a><span class="sd">        detections_2 = sv.Detections(</span>
-<a id="__codelineno-0-860" name="__codelineno-0-860"></a><span class="sd">            xyxy=np.array([[30, 30, 120, 120]]),</span>
-<a id="__codelineno-0-861" name="__codelineno-0-861"></a><span class="sd">            class_id=np.array([1]),</span>
-<a id="__codelineno-0-862" name="__codelineno-0-862"></a><span class="sd">            data={&#39;feature_vector&#39;: [np.array([0.3])]}</span>
-<a id="__codelineno-0-863" name="__codelineno-0-863"></a><span class="sd">         )</span>
-<a id="__codelineno-0-864" name="__codelineno-0-864"></a>
-<a id="__codelineno-0-865" name="__codelineno-0-865"></a><span class="sd">        merged_detections = Detections.merge([detections_1, detections_2])</span>
-<a id="__codelineno-0-866" name="__codelineno-0-866"></a>
-<a id="__codelineno-0-867" name="__codelineno-0-867"></a><span class="sd">        merged_detections.xyxy</span>
-<a id="__codelineno-0-868" name="__codelineno-0-868"></a><span class="sd">        array([[ 15,  15, 100, 100],</span>
-<a id="__codelineno-0-869" name="__codelineno-0-869"></a><span class="sd">               [200, 200, 300, 300],</span>
-<a id="__codelineno-0-870" name="__codelineno-0-870"></a><span class="sd">               [ 30,  30, 120, 120]])</span>
-<a id="__codelineno-0-871" name="__codelineno-0-871"></a>
-<a id="__codelineno-0-872" name="__codelineno-0-872"></a><span class="sd">        merged_detections.class_id</span>
-<a id="__codelineno-0-873" name="__codelineno-0-873"></a><span class="sd">        array([1, 2, 1])</span>
-<a id="__codelineno-0-874" name="__codelineno-0-874"></a>
-<a id="__codelineno-0-875" name="__codelineno-0-875"></a><span class="sd">        merged_detections.data[&#39;feature_vector&#39;]</span>
-<a id="__codelineno-0-876" name="__codelineno-0-876"></a><span class="sd">        array([0.1, 0.2, 0.3])</span>
-<a id="__codelineno-0-877" name="__codelineno-0-877"></a><span class="sd">        ```</span>
-<a id="__codelineno-0-878" name="__codelineno-0-878"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-879" name="__codelineno-0-879"></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">detections_list</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-<a id="__codelineno-0-880" name="__codelineno-0-880"></a>        <span class="k">return</span> <span class="n">Detections</span><span class="o">.</span><span class="n">empty</span><span class="p">()</span>
-<a id="__codelineno-0-881" name="__codelineno-0-881"></a>
-<a id="__codelineno-0-882" name="__codelineno-0-882"></a>    <span class="k">for</span> <span class="n">detections</span> <span class="ow">in</span> <span class="n">detections_list</span><span class="p">:</span>
-<a id="__codelineno-0-883" name="__codelineno-0-883"></a>        <span class="n">validate_detections_fields</span><span class="p">(</span>
-<a id="__codelineno-0-884" name="__codelineno-0-884"></a>            <span class="n">xyxy</span><span class="o">=</span><span class="n">detections</span><span class="o">.</span><span class="n">xyxy</span><span class="p">,</span>
-<a id="__codelineno-0-885" name="__codelineno-0-885"></a>            <span class="n">mask</span><span class="o">=</span><span class="n">detections</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span>
-<a id="__codelineno-0-886" name="__codelineno-0-886"></a>            <span class="n">confidence</span><span class="o">=</span><span class="n">detections</span><span class="o">.</span><span class="n">confidence</span><span class="p">,</span>
-<a id="__codelineno-0-887" name="__codelineno-0-887"></a>            <span class="n">class_id</span><span class="o">=</span><span class="n">detections</span><span class="o">.</span><span class="n">class_id</span><span class="p">,</span>
-<a id="__codelineno-0-888" name="__codelineno-0-888"></a>            <span class="n">tracker_id</span><span class="o">=</span><span class="n">detections</span><span class="o">.</span><span class="n">tracker_id</span><span class="p">,</span>
-<a id="__codelineno-0-889" name="__codelineno-0-889"></a>            <span class="n">data</span><span class="o">=</span><span class="n">detections</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
-<a id="__codelineno-0-890" name="__codelineno-0-890"></a>        <span class="p">)</span>
-<a id="__codelineno-0-891" name="__codelineno-0-891"></a>
-<a id="__codelineno-0-892" name="__codelineno-0-892"></a>    <span class="n">xyxy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">d</span><span class="o">.</span><span class="n">xyxy</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">detections_list</span><span class="p">])</span>
-<a id="__codelineno-0-893" name="__codelineno-0-893"></a>
-<a id="__codelineno-0-894" name="__codelineno-0-894"></a>    <span class="k">def</span> <span class="nf">stack_or_none</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
-<a id="__codelineno-0-895" name="__codelineno-0-895"></a>        <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">detections_list</span><span class="p">):</span>
-<a id="__codelineno-0-896" name="__codelineno-0-896"></a>            <span class="k">return</span> <span class="kc">None</span>
-<a id="__codelineno-0-897" name="__codelineno-0-897"></a>        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">detections_list</span><span class="p">):</span>
-<a id="__codelineno-0-898" name="__codelineno-0-898"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;All or none of the &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; fields must be None&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-899" name="__codelineno-0-899"></a>        <span class="k">return</span> <span class="p">(</span>
-<a id="__codelineno-0-900" name="__codelineno-0-900"></a>            <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">d</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">detections_list</span><span class="p">])</span>
-<a id="__codelineno-0-901" name="__codelineno-0-901"></a>            <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;mask&quot;</span>
-<a id="__codelineno-0-902" name="__codelineno-0-902"></a>            <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span><span class="n">d</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">detections_list</span><span class="p">])</span>
-<a id="__codelineno-0-903" name="__codelineno-0-903"></a>        <span class="p">)</span>
+<a id="__codelineno-0-837" name="__codelineno-0-837"></a><span class="sd">    into a single Detections object.</span>
+<a id="__codelineno-0-838" name="__codelineno-0-838"></a>
+<a id="__codelineno-0-839" name="__codelineno-0-839"></a><span class="sd">    For example, if merging Detections with 3 and 4 detected objects, this method</span>
+<a id="__codelineno-0-840" name="__codelineno-0-840"></a><span class="sd">    will return a Detections with 7 objects (7 entries in `xyxy`, `mask`, etc).</span>
+<a id="__codelineno-0-841" name="__codelineno-0-841"></a>
+<a id="__codelineno-0-842" name="__codelineno-0-842"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-843" name="__codelineno-0-843"></a><span class="sd">        detections_list (List[Detections]): A list of Detections objects to merge.</span>
+<a id="__codelineno-0-844" name="__codelineno-0-844"></a>
+<a id="__codelineno-0-845" name="__codelineno-0-845"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-846" name="__codelineno-0-846"></a><span class="sd">        (Detections): A single Detections object containing</span>
+<a id="__codelineno-0-847" name="__codelineno-0-847"></a><span class="sd">            the merged data from the input list.</span>
+<a id="__codelineno-0-848" name="__codelineno-0-848"></a>
+<a id="__codelineno-0-849" name="__codelineno-0-849"></a><span class="sd">    Example:</span>
+<a id="__codelineno-0-850" name="__codelineno-0-850"></a><span class="sd">        ```python</span>
+<a id="__codelineno-0-851" name="__codelineno-0-851"></a><span class="sd">        import numpy as np</span>
+<a id="__codelineno-0-852" name="__codelineno-0-852"></a><span class="sd">        import supervision as sv</span>
+<a id="__codelineno-0-853" name="__codelineno-0-853"></a>
+<a id="__codelineno-0-854" name="__codelineno-0-854"></a><span class="sd">        detections_1 = sv.Detections(</span>
+<a id="__codelineno-0-855" name="__codelineno-0-855"></a><span class="sd">            xyxy=np.array([[15, 15, 100, 100], [200, 200, 300, 300]]),</span>
+<a id="__codelineno-0-856" name="__codelineno-0-856"></a><span class="sd">            class_id=np.array([1, 2]),</span>
+<a id="__codelineno-0-857" name="__codelineno-0-857"></a><span class="sd">            data={&#39;feature_vector&#39;: np.array([0.1, 0.2)])}</span>
+<a id="__codelineno-0-858" name="__codelineno-0-858"></a><span class="sd">         )</span>
+<a id="__codelineno-0-859" name="__codelineno-0-859"></a>
+<a id="__codelineno-0-860" name="__codelineno-0-860"></a><span class="sd">        detections_2 = sv.Detections(</span>
+<a id="__codelineno-0-861" name="__codelineno-0-861"></a><span class="sd">            xyxy=np.array([[30, 30, 120, 120]]),</span>
+<a id="__codelineno-0-862" name="__codelineno-0-862"></a><span class="sd">            class_id=np.array([1]),</span>
+<a id="__codelineno-0-863" name="__codelineno-0-863"></a><span class="sd">            data={&#39;feature_vector&#39;: [np.array([0.3])]}</span>
+<a id="__codelineno-0-864" name="__codelineno-0-864"></a><span class="sd">         )</span>
+<a id="__codelineno-0-865" name="__codelineno-0-865"></a>
+<a id="__codelineno-0-866" name="__codelineno-0-866"></a><span class="sd">        merged_detections = Detections.merge([detections_1, detections_2])</span>
+<a id="__codelineno-0-867" name="__codelineno-0-867"></a>
+<a id="__codelineno-0-868" name="__codelineno-0-868"></a><span class="sd">        merged_detections.xyxy</span>
+<a id="__codelineno-0-869" name="__codelineno-0-869"></a><span class="sd">        array([[ 15,  15, 100, 100],</span>
+<a id="__codelineno-0-870" name="__codelineno-0-870"></a><span class="sd">               [200, 200, 300, 300],</span>
+<a id="__codelineno-0-871" name="__codelineno-0-871"></a><span class="sd">               [ 30,  30, 120, 120]])</span>
+<a id="__codelineno-0-872" name="__codelineno-0-872"></a>
+<a id="__codelineno-0-873" name="__codelineno-0-873"></a><span class="sd">        merged_detections.class_id</span>
+<a id="__codelineno-0-874" name="__codelineno-0-874"></a><span class="sd">        array([1, 2, 1])</span>
+<a id="__codelineno-0-875" name="__codelineno-0-875"></a>
+<a id="__codelineno-0-876" name="__codelineno-0-876"></a><span class="sd">        merged_detections.data[&#39;feature_vector&#39;]</span>
+<a id="__codelineno-0-877" name="__codelineno-0-877"></a><span class="sd">        array([0.1, 0.2, 0.3])</span>
+<a id="__codelineno-0-878" name="__codelineno-0-878"></a><span class="sd">        ```</span>
+<a id="__codelineno-0-879" name="__codelineno-0-879"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-880" name="__codelineno-0-880"></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">detections_list</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+<a id="__codelineno-0-881" name="__codelineno-0-881"></a>        <span class="k">return</span> <span class="n">Detections</span><span class="o">.</span><span class="n">empty</span><span class="p">()</span>
+<a id="__codelineno-0-882" name="__codelineno-0-882"></a>
+<a id="__codelineno-0-883" name="__codelineno-0-883"></a>    <span class="k">for</span> <span class="n">detections</span> <span class="ow">in</span> <span class="n">detections_list</span><span class="p">:</span>
+<a id="__codelineno-0-884" name="__codelineno-0-884"></a>        <span class="n">validate_detections_fields</span><span class="p">(</span>
+<a id="__codelineno-0-885" name="__codelineno-0-885"></a>            <span class="n">xyxy</span><span class="o">=</span><span class="n">detections</span><span class="o">.</span><span class="n">xyxy</span><span class="p">,</span>
+<a id="__codelineno-0-886" name="__codelineno-0-886"></a>            <span class="n">mask</span><span class="o">=</span><span class="n">detections</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span>
+<a id="__codelineno-0-887" name="__codelineno-0-887"></a>            <span class="n">confidence</span><span class="o">=</span><span class="n">detections</span><span class="o">.</span><span class="n">confidence</span><span class="p">,</span>
+<a id="__codelineno-0-888" name="__codelineno-0-888"></a>            <span class="n">class_id</span><span class="o">=</span><span class="n">detections</span><span class="o">.</span><span class="n">class_id</span><span class="p">,</span>
+<a id="__codelineno-0-889" name="__codelineno-0-889"></a>            <span class="n">tracker_id</span><span class="o">=</span><span class="n">detections</span><span class="o">.</span><span class="n">tracker_id</span><span class="p">,</span>
+<a id="__codelineno-0-890" name="__codelineno-0-890"></a>            <span class="n">data</span><span class="o">=</span><span class="n">detections</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+<a id="__codelineno-0-891" name="__codelineno-0-891"></a>        <span class="p">)</span>
+<a id="__codelineno-0-892" name="__codelineno-0-892"></a>
+<a id="__codelineno-0-893" name="__codelineno-0-893"></a>    <span class="n">xyxy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">d</span><span class="o">.</span><span class="n">xyxy</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">detections_list</span><span class="p">])</span>
+<a id="__codelineno-0-894" name="__codelineno-0-894"></a>
+<a id="__codelineno-0-895" name="__codelineno-0-895"></a>    <span class="k">def</span> <span class="nf">stack_or_none</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<a id="__codelineno-0-896" name="__codelineno-0-896"></a>        <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">detections_list</span><span class="p">):</span>
+<a id="__codelineno-0-897" name="__codelineno-0-897"></a>            <span class="k">return</span> <span class="kc">None</span>
+<a id="__codelineno-0-898" name="__codelineno-0-898"></a>        <span class="n">stack_list</span> <span class="o">=</span> <span class="p">[</span>
+<a id="__codelineno-0-899" name="__codelineno-0-899"></a>            <span class="n">d</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+<a id="__codelineno-0-900" name="__codelineno-0-900"></a>            <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">detections_list</span>
+<a id="__codelineno-0-901" name="__codelineno-0-901"></a>            <span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+<a id="__codelineno-0-902" name="__codelineno-0-902"></a>        <span class="p">]</span>
+<a id="__codelineno-0-903" name="__codelineno-0-903"></a>        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">stack_list</span><span class="p">)</span> <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;mask&quot;</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span><span class="n">stack_list</span><span class="p">)</span>
 <a id="__codelineno-0-904" name="__codelineno-0-904"></a>
 <a id="__codelineno-0-905" name="__codelineno-0-905"></a>    <span class="n">mask</span> <span class="o">=</span> <span class="n">stack_or_none</span><span class="p">(</span><span class="s2">&quot;mask&quot;</span><span class="p">)</span>
 <a id="__codelineno-0-906" name="__codelineno-0-906"></a>    <span class="n">confidence</span> <span class="o">=</span> <span class="n">stack_or_none</span><span class="p">(</span><span class="s2">&quot;confidence&quot;</span><span class="p">)</span>
