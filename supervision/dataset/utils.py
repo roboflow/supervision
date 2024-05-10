@@ -202,11 +202,18 @@ def mask_to_rle(mask: npt.NDArray[np.bool_]) -> List[int]:
     assert mask.ndim == 2, "Input mask must be 2D"
     assert mask.size != 0, "Input mask cannot be empty"
 
-    rle = []
-    if mask[0][0] == 1:
-        rle = [0]
+    on_value_change_indices = np.where(mask.ravel(order='F') != 
+                                       np.roll(mask.ravel(order='F'),1))[0]
+    
+    on_value_change_indices = np.append(on_value_change_indices, mask.size)
+    # need to add 0 at the beginning when the same value is in the first and 
+    # last element of the flattened mask
+    if on_value_change_indices[0] != 0:  
+      on_value_change_indices = np.insert(on_value_change_indices, 0, 0)
 
-    for _, group in groupby(mask.ravel(order="F")):
-        rle.append(len(list(group)))
+    rle = np.diff(on_value_change_indices)
 
-    return rle
+    if mask[0][0]==1:
+      rle = np.insert(rle, 0, 0)
+
+    return list(rle)
