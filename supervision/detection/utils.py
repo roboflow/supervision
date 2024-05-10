@@ -678,7 +678,9 @@ def merge_data(
     Merges the data payloads of a list of Detections instances.
 
     Args:
-        data_list: The data payloads of the instances.
+        data_list: The data payloads of the Detections instances. Each data payload
+            is a dictionary with the same keys, and the values are either lists or
+            np.ndarray.
 
     Returns:
         A single data payload containing the merged data, preserving the original data

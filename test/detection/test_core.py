@@ -219,14 +219,17 @@ def test_getitem(
 @pytest.mark.parametrize(
     "detections_list, expected_result, exception",
     [
-        # Nothing
         ([], Detections.empty(), DoesNotRaise()),  # empty detections list
-        # Single
         (
             [Detections.empty()],
             Detections.empty(),
             DoesNotRaise(),
         ),  # single empty detections
+        (
+            [Detections.empty(), Detections.empty()],
+            Detections.empty(),
+            DoesNotRaise(),
+        ),  # two empty detections
         (
             [TEST_DET_1],
             TEST_DET_1,
@@ -237,12 +240,6 @@ def test_getitem(
             TEST_DET_NONE,
             DoesNotRaise(),
         ),  # Single weakly-defined detection
-        # Similar
-        (
-            [Detections.empty(), Detections.empty()],
-            Detections.empty(),
-            DoesNotRaise(),
-        ),  # Two empty
         (
             [TEST_DET_1, TEST_DET_2],
             TEST_DET_1_2,
