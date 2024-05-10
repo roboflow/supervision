@@ -698,16 +698,18 @@ def merge_data(
                 "All data values within a single object must have equal length."
             )
 
-    data_keys = [set(data.keys()) for data in data_list]
-    data_keys = [key_set for key_set in data_keys if len(key_set) > 0]
-    if not data_keys:
+    keys_by_data = [set(data.keys()) for data in data_list]
+    keys_by_data = [keys for keys in keys_by_data if len(keys) > 0]
+    if not keys_by_data:
         return {}
 
-    common_keys = set.intersection(*data_keys)
-    all_keys = set.union(*data_keys)
+    common_keys = set.intersection(*keys_by_data)
+    all_keys = set.union(*keys_by_data)
     if common_keys != all_keys:
         raise ValueError(
-            f"All data dictionaries must have the same keys to merge. Found {data_keys}"
+            f"All sv.Detections.data dictionaries must have the same keys. Common "
+            f"keys: {common_keys}, but some dictionaries have additional keys: "
+            f"{all_keys.difference(common_keys)}."
         )
 
     merged_data = {key: [] for key in all_keys}
