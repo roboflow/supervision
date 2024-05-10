@@ -17,15 +17,14 @@ def move_detections(
         offset (np.ndarray): An array of shape `(2,)` containing offset values in format
             is `[dx, dy]`.
         image_size (np.ndarray): An array of shape `(2,)` or `(3,)`, size of the image
-            in format is `[width, height]`.
+            is in format `[width, height]`.
     Returns:
         (sv.Detections) repositioned Detections object.
     """
     detections.xyxy = move_boxes(xyxy=detections.xyxy, offset=offset)
     if detections.mask is not None:
-        shape_xy = image_shape[:2][::-1]
         detections.mask = move_masks(
-            masks=detections.mask, offset=offset, desired_shape=shape_xy
+            masks=detections.mask, offset=offset, desired_shape=image_shape
         )
     return detections
 
