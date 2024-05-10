@@ -1029,26 +1029,17 @@ def test_calculate_masks_centroids(
             pytest.raises(ValueError),
         ),  # two data dicts with the same field name and different length arrays values
         (
-            [
-                {},
-                {"test_1": [1, 2, 3]}
-            ],
+            [{}, {"test_1": [1, 2, 3]}],
             {"test_1": [1, 2, 3]},
             DoesNotRaise(),
         ),  # two data dicts; one empty and one non-empty dict
         (
-            [
-                {"test_1": [], "test_2": []},
-                {"test_1": [1, 2, 3], "test_2": [1, 2, 3]}
-            ],
+            [{"test_1": [], "test_2": []}, {"test_1": [1, 2, 3], "test_2": [1, 2, 3]}],
             {"test_1": [1, 2, 3], "test_2": [1, 2, 3]},
             DoesNotRaise(),
         ),  # two data dicts; one empty and one non-empty dict; same keys
         (
-            [
-                {"test_1": []},
-                {"test_1": [1, 2, 3], "test_2": [4, 5, 6]}
-            ],
+            [{"test_1": []}, {"test_1": [1, 2, 3], "test_2": [4, 5, 6]}],
             None,
             pytest.raises(ValueError),
         ),  # two data dicts; one empty and one non-empty dict; different keys
@@ -1059,10 +1050,7 @@ def test_calculate_masks_centroids(
                     "test_2": [4, 5, 6],
                     "test_3": [7, 8, 9],
                 },
-                {
-                    "test_1": [1, 2, 3],
-                    "test_2": [4, 5, 6]
-                },
+                {"test_1": [1, 2, 3], "test_2": [4, 5, 6]},
             ],
             None,
             pytest.raises(ValueError),
@@ -1077,8 +1065,8 @@ def test_calculate_masks_centroids(
         ),  # some keys missing in one dict
         (
             [
-                {"test_1": [1, 2, 3], "test_2": ['a', 'b']},
-                {"test_1": [4, 5], "test_2": ['c', 'd', 'e']},
+                {"test_1": [1, 2, 3], "test_2": ["a", "b"]},
+                {"test_1": [4, 5], "test_2": ["c", "d", "e"]},
             ],
             None,
             pytest.raises(ValueError),
