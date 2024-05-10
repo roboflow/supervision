@@ -1,5 +1,5 @@
 from itertools import chain
-from typing import Dict, List, Optional, Set, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
@@ -718,7 +718,9 @@ def merge_data(
     Merges the data payloads of a list of Detections instances.
 
     Args:
-        data_list: The data payloads of the instances.
+        data_list: The data payloads of the Detections instances. Each data payload
+            is a dictionary with the same keys, and the values are either lists or
+            np.ndarray.
 
     Returns:
         A single data payload containing the merged data, preserving the original data
@@ -732,50 +734,31 @@ def merge_data(
         return {}
 
     for data in data_list:
-        lengths_set = [len(value) for value in data.values()]
-        if len(set(lengths_set)) > 1:
+        lengths = [len(value) for value in data.values()]
+        if len(set(lengths)) > 1:
             raise ValueError(
                 "All data values within a single object must have equal length."
             )
 
-    all_keys: Set[str] = set()
-    for data in data_list:
-        all_keys.update(data.keys())
+    keys_by_data = [set(data.keys()) for data in data_list]
+    keys_by_data = [keys for keys in keys_by_data if len(keys) > 0]
+    if not keys_by_data:
+        return {}
 
-    # Naively merging entries and then validating length comes with a problem:
-    # N values may come from data[0]["key_1"] and N values from data[1]["key_2"].
-    # These should not be joined together.
-    # Here, as soon as we find data of len > 0, we lock the key set and raise
-    # a ValueError if later we find a value of len > 0 with an unknown key.
-    key_set = None
-    merged_data = {key: [] for key in all_keys}
-    for data in data_list:
-        data_key_set = set()
-        for key in data:
-            if len(data[key]) > 0:
-                if key_set is None:
-                    data_key_set.add(key)
-                elif key not in key_set:
-                    raise ValueError(f"Unknown key '{key}' found in data payload.")
-                merged_data[key].append(data[key])
-
-        if key_set is None and data_key_set:
-            key_set = data_key_set
-
-    merged_data = {key: val for key, val in merged_data.items() if len(val) > 0}
-
-    sum_lengths = {}  # Validation. More useful than set for error message
-    for key, value in merged_data.items():
-        sum_length = sum(len(item) for item in value)
-        sum_lengths[key] = sum_length
-    lengths_set = set(sum_lengths.values())
-    if len(lengths_set) > 1:
+    common_keys = set.intersection(*keys_by_data)
+    all_keys = set.union(*keys_by_data)
+    if common_keys != all_keys:
         raise ValueError(
-            f"All data fields should have the same lengths after merge."
-            f"Resulting lengths: {sum_lengths}"
+            f"All sv.Detections.data dictionaries must have the same keys. Common "
+            f"keys: {common_keys}, but some dictionaries have additional keys: "
+            f"{all_keys.difference(common_keys)}."
         )
 
-    key_set = set()
+    merged_data = {key: [] for key in all_keys}
+    for data in data_list:
+        for key in data:
+            merged_data[key].append(data[key])
+
     for key in merged_data:
         if all(isinstance(item, list) for item in merged_data[key]):
             merged_data[key] = list(chain.from_iterable(merged_data[key]))
