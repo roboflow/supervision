@@ -1,7 +1,6 @@
 import copy
 import os
 import random
-from itertools import groupby
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, TypeVar
 
@@ -202,18 +201,19 @@ def mask_to_rle(mask: npt.NDArray[np.bool_]) -> List[int]:
     assert mask.ndim == 2, "Input mask must be 2D"
     assert mask.size != 0, "Input mask cannot be empty"
 
-    on_value_change_indices = np.where(mask.ravel(order='F') != 
-                                       np.roll(mask.ravel(order='F'),1))[0]
-    
+    on_value_change_indices = np.where(
+        mask.ravel(order="F") != np.roll(mask.ravel(order="F"), 1)
+    )[0]
+
     on_value_change_indices = np.append(on_value_change_indices, mask.size)
-    # need to add 0 at the beginning when the same value is in the first and 
+    # need to add 0 at the beginning when the same value is in the first and
     # last element of the flattened mask
-    if on_value_change_indices[0] != 0:  
-      on_value_change_indices = np.insert(on_value_change_indices, 0, 0)
+    if on_value_change_indices[0] != 0:
+        on_value_change_indices = np.insert(on_value_change_indices, 0, 0)
 
     rle = np.diff(on_value_change_indices)
 
-    if mask[0][0]==1:
-      rle = np.insert(rle, 0, 0)
+    if mask[0][0] == 1:
+        rle = np.insert(rle, 0, 0)
 
     return list(rle)
