@@ -6,7 +6,7 @@ status: new
 # Detect Small Objects
 
 This guide shows how to detect small objects
-with the  [Inference](https://github.com/roboflow/inference),
+with the [Inference](https://github.com/roboflow/inference),
 [Ultralytics](https://github.com/ultralytics/ultralytics) or
 [Transformers](https://github.com/huggingface/transformers) packages using
 [`InferenceSlicer`](/latest/detection/tools/inference_slicer/#supervision.detection.tools.inference_slicer.InferenceSlicer).
@@ -175,7 +175,7 @@ objects within each, and aggregating the results.
 
     def callback(image_slice: np.ndarray) -> sv.Detections:
         results = model.infer(image_slice)[0]
-        detections = sv.Detections.from_inference(results)
+        return sv.Detections.from_inference(results)
 
     slicer = sv.InferenceSlicer(callback = callback)
     detections = slicer(image)
