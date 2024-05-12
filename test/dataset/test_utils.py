@@ -298,19 +298,19 @@ def test_mask_to_rle_conversion(
     "rle, resolution_wh, expected_mask, exception",
     [
         (
-            [9],
+            np.array([9]),
             [3, 3],
             np.zeros((3, 3)).astype(bool),
             DoesNotRaise(),
         ),  # mask with background only (mask with only False values)
         (
-            [0, 9],
+            np.array([0, 9]),
             [3, 3],
             np.ones((3, 3)).astype(bool),
             DoesNotRaise(),
         ),  # mask with foreground only (mask with only True values)
         (
-            [6, 3, 2, 1, 1, 1, 2, 3, 6],
+            np.array([6, 3, 2, 1, 1, 1, 2, 3, 6]),
             [5, 5],
             np.array(
                 [
@@ -324,7 +324,7 @@ def test_mask_to_rle_conversion(
             DoesNotRaise(),
         ),  # mask where foreground object has hole
         (
-            [0, 5, 5, 5, 5, 5],
+            np.array([0, 5, 5, 5, 5, 5]),
             [5, 5],
             np.array(
                 [
@@ -338,7 +338,7 @@ def test_mask_to_rle_conversion(
             DoesNotRaise(),
         ),  # mask where foreground consists of 3 separate components
         (
-            [0, 5, 5, 5, 5, 5],
+            np.array([0, 5, 5, 5, 5, 5]),
             [2, 2],
             None,
             pytest.raises(AssertionError),
