@@ -167,12 +167,13 @@ def rle_to_mask(
         "as the number of pixels in the expected mask"
     )
 
-    zero_one_values = np.zeros(shape = (rle.size,1), dtype=np.uint8)
+    zero_one_values = np.zeros(shape=(rle.size, 1), dtype=np.uint8)
     zero_one_values[1::2] = 1
 
     decoded_rle = np.repeat(zero_one_values, rle, axis=0)
-    decoded_rle = np.append(decoded_rle,
-                            np.zeros(width * height - len(decoded_rle), dtype=np.uint8))
+    decoded_rle = np.append(
+        decoded_rle, np.zeros(width * height - len(decoded_rle), dtype=np.uint8)
+    )
     return decoded_rle.reshape((height, width), order="F")
 
 
