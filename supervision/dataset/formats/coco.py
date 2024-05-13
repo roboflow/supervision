@@ -60,8 +60,7 @@ def group_coco_annotations_by_image_id(
 
 
 def coco_annotations_to_masks(
-    image_annotations: List[dict],
-    resolution_wh: Tuple[int, int]
+    image_annotations: List[dict], resolution_wh: Tuple[int, int]
 ) -> npt.NDArray[np.bool_]:
     return np.array(
         [
@@ -98,8 +97,7 @@ def coco_annotations_to_detections(
 
     if with_masks:
         mask = coco_annotations_to_masks(
-            image_annotations=image_annotations,
-            resolution_wh=resolution_wh
+            image_annotations=image_annotations, resolution_wh=resolution_wh
         )
         return Detections(
             class_id=np.asarray(class_ids, dtype=int), xyxy=xyxy, mask=mask
