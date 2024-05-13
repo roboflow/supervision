@@ -907,6 +907,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#supervision.detection.utils.move_masks" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;move_masks
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#supervision.detection.utils.scale_boxes" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;scale_boxes
@@ -1901,6 +1910,15 @@
   <a href="#supervision.detection.utils.move_boxes" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;move_boxes
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#supervision.detection.utils.move_masks" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;move_masks
     </span>
   </a>
   
@@ -3616,6 +3634,178 @@ is <code>[dx, dy]</code>.</p>
   </div>
 
 </div><div class="md-typeset">
+  <h2><a href="#supervision.detection.utils.move_masks">move_masks</a></h2>
+</div>
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+
+
+<a id="supervision.detection.utils.move_masks"></a>
+  <div class="doc doc-contents first">
+  
+      <p>Offset the masks in an array by the specified (x, y) amount.</p>
+
+
+
+  <p><span class="doc-section-title">Parameters:</span></p>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Default</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr class="doc-section-item">
+          <td><code>masks</code></td>
+          <td>
+                <code><span title="numpy.ndarray">ndarray</span></code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>A 3D array of binary masks corresponding to the predictions.
+Shape: <code>(N, H, W)</code>, where N is the number of predictions, and H, W are the
+dimensions of each mask.</p>
+            </div>
+          </td>
+          <td>
+              <em>required</em>
+          </td>
+        </tr>
+        <tr class="doc-section-item">
+          <td><code>offset</code></td>
+          <td>
+                <code><span title="numpy.ndarray">ndarray</span></code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>An array of shape <code>(2,)</code> containing non-negative int values
+<code>[dx, dy]</code>.</p>
+            </div>
+          </td>
+          <td>
+              <em>required</em>
+          </td>
+        </tr>
+        <tr class="doc-section-item">
+          <td><code>resolution_wh</code></td>
+          <td>
+                <code><span title="typing.Tuple">Tuple</span>[int, int]</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>The width and height of the desired mask
+resolution.</p>
+            </div>
+          </td>
+          <td>
+                <code>None</code>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+
+  <p><span class="doc-section-title">Returns:</span></p>
+  <table>
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr class="doc-section-item">
+          <td>
+                <code><span title="numpy.ndarray">ndarray</span></code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>(np.ndarray) repositioned masks, optionally padded to the specified shape.</p>
+            </div>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+          <details class="quote">
+            <summary>Source code in <code>supervision/detection/utils.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-624">624</a></span>
+<span class="normal"><a href="#__codelineno-0-625">625</a></span>
+<span class="normal"><a href="#__codelineno-0-626">626</a></span>
+<span class="normal"><a href="#__codelineno-0-627">627</a></span>
+<span class="normal"><a href="#__codelineno-0-628">628</a></span>
+<span class="normal"><a href="#__codelineno-0-629">629</a></span>
+<span class="normal"><a href="#__codelineno-0-630">630</a></span>
+<span class="normal"><a href="#__codelineno-0-631">631</a></span>
+<span class="normal"><a href="#__codelineno-0-632">632</a></span>
+<span class="normal"><a href="#__codelineno-0-633">633</a></span>
+<span class="normal"><a href="#__codelineno-0-634">634</a></span>
+<span class="normal"><a href="#__codelineno-0-635">635</a></span>
+<span class="normal"><a href="#__codelineno-0-636">636</a></span>
+<span class="normal"><a href="#__codelineno-0-637">637</a></span>
+<span class="normal"><a href="#__codelineno-0-638">638</a></span>
+<span class="normal"><a href="#__codelineno-0-639">639</a></span>
+<span class="normal"><a href="#__codelineno-0-640">640</a></span>
+<span class="normal"><a href="#__codelineno-0-641">641</a></span>
+<span class="normal"><a href="#__codelineno-0-642">642</a></span>
+<span class="normal"><a href="#__codelineno-0-643">643</a></span>
+<span class="normal"><a href="#__codelineno-0-644">644</a></span>
+<span class="normal"><a href="#__codelineno-0-645">645</a></span>
+<span class="normal"><a href="#__codelineno-0-646">646</a></span>
+<span class="normal"><a href="#__codelineno-0-647">647</a></span>
+<span class="normal"><a href="#__codelineno-0-648">648</a></span>
+<span class="normal"><a href="#__codelineno-0-649">649</a></span>
+<span class="normal"><a href="#__codelineno-0-650">650</a></span>
+<span class="normal"><a href="#__codelineno-0-651">651</a></span>
+<span class="normal"><a href="#__codelineno-0-652">652</a></span>
+<span class="normal"><a href="#__codelineno-0-653">653</a></span>
+<span class="normal"><a href="#__codelineno-0-654">654</a></span>
+<span class="normal"><a href="#__codelineno-0-655">655</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-624" name="__codelineno-0-624"></a><span class="k">def</span> <span class="nf">move_masks</span><span class="p">(</span>
+<a id="__codelineno-0-625" name="__codelineno-0-625"></a>    <span class="n">masks</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<a id="__codelineno-0-626" name="__codelineno-0-626"></a>    <span class="n">offset</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<a id="__codelineno-0-627" name="__codelineno-0-627"></a>    <span class="n">resolution_wh</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-628" name="__codelineno-0-628"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a id="__codelineno-0-629" name="__codelineno-0-629"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-630" name="__codelineno-0-630"></a><span class="sd">    Offset the masks in an array by the specified (x, y) amount.</span>
+<a id="__codelineno-0-631" name="__codelineno-0-631"></a>
+<a id="__codelineno-0-632" name="__codelineno-0-632"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-633" name="__codelineno-0-633"></a><span class="sd">        masks (np.ndarray): A 3D array of binary masks corresponding to the predictions.</span>
+<a id="__codelineno-0-634" name="__codelineno-0-634"></a><span class="sd">            Shape: `(N, H, W)`, where N is the number of predictions, and H, W are the</span>
+<a id="__codelineno-0-635" name="__codelineno-0-635"></a><span class="sd">            dimensions of each mask.</span>
+<a id="__codelineno-0-636" name="__codelineno-0-636"></a><span class="sd">        offset (np.ndarray): An array of shape `(2,)` containing non-negative int values</span>
+<a id="__codelineno-0-637" name="__codelineno-0-637"></a><span class="sd">            `[dx, dy]`.</span>
+<a id="__codelineno-0-638" name="__codelineno-0-638"></a><span class="sd">        resolution_wh (Tuple[int, int]): The width and height of the desired mask</span>
+<a id="__codelineno-0-639" name="__codelineno-0-639"></a><span class="sd">            resolution.</span>
+<a id="__codelineno-0-640" name="__codelineno-0-640"></a>
+<a id="__codelineno-0-641" name="__codelineno-0-641"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-642" name="__codelineno-0-642"></a><span class="sd">        (np.ndarray) repositioned masks, optionally padded to the specified shape.</span>
+<a id="__codelineno-0-643" name="__codelineno-0-643"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-644" name="__codelineno-0-644"></a>
+<a id="__codelineno-0-645" name="__codelineno-0-645"></a>    <span class="k">if</span> <span class="n">offset</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">offset</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+<a id="__codelineno-0-646" name="__codelineno-0-646"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Offset values must be non-negative integers. Got: </span><span class="si">{</span><span class="n">offset</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-647" name="__codelineno-0-647"></a>
+<a id="__codelineno-0-648" name="__codelineno-0-648"></a>    <span class="n">mask_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">masks</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">resolution_wh</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">resolution_wh</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="kc">False</span><span class="p">)</span>
+<a id="__codelineno-0-649" name="__codelineno-0-649"></a>    <span class="n">mask_array</span><span class="p">[</span>
+<a id="__codelineno-0-650" name="__codelineno-0-650"></a>        <span class="p">:,</span>
+<a id="__codelineno-0-651" name="__codelineno-0-651"></a>        <span class="n">offset</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="p">:</span> <span class="n">masks</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">offset</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+<a id="__codelineno-0-652" name="__codelineno-0-652"></a>        <span class="n">offset</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">:</span> <span class="n">masks</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">offset</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+<a id="__codelineno-0-653" name="__codelineno-0-653"></a>    <span class="p">]</span> <span class="o">=</span> <span class="n">masks</span>
+<a id="__codelineno-0-654" name="__codelineno-0-654"></a>
+<a id="__codelineno-0-655" name="__codelineno-0-655"></a>    <span class="k">return</span> <span class="n">mask_array</span>
+</code></pre></div></td></tr></table></div>
+          </details>
+  </div>
+
+</div><div class="md-typeset">
   <h2><a href="#supervision.detection.utils.scale_boxes">scale_boxes</a></h2>
 </div>
 
@@ -3720,69 +3910,69 @@ factor less than 1 shrinks them.</p>
 </details>
           <details class="quote">
             <summary>Source code in <code>supervision/detection/utils.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-624">624</a></span>
-<span class="normal"><a href="#__codelineno-0-625">625</a></span>
-<span class="normal"><a href="#__codelineno-0-626">626</a></span>
-<span class="normal"><a href="#__codelineno-0-627">627</a></span>
-<span class="normal"><a href="#__codelineno-0-628">628</a></span>
-<span class="normal"><a href="#__codelineno-0-629">629</a></span>
-<span class="normal"><a href="#__codelineno-0-630">630</a></span>
-<span class="normal"><a href="#__codelineno-0-631">631</a></span>
-<span class="normal"><a href="#__codelineno-0-632">632</a></span>
-<span class="normal"><a href="#__codelineno-0-633">633</a></span>
-<span class="normal"><a href="#__codelineno-0-634">634</a></span>
-<span class="normal"><a href="#__codelineno-0-635">635</a></span>
-<span class="normal"><a href="#__codelineno-0-636">636</a></span>
-<span class="normal"><a href="#__codelineno-0-637">637</a></span>
-<span class="normal"><a href="#__codelineno-0-638">638</a></span>
-<span class="normal"><a href="#__codelineno-0-639">639</a></span>
-<span class="normal"><a href="#__codelineno-0-640">640</a></span>
-<span class="normal"><a href="#__codelineno-0-641">641</a></span>
-<span class="normal"><a href="#__codelineno-0-642">642</a></span>
-<span class="normal"><a href="#__codelineno-0-643">643</a></span>
-<span class="normal"><a href="#__codelineno-0-644">644</a></span>
-<span class="normal"><a href="#__codelineno-0-645">645</a></span>
-<span class="normal"><a href="#__codelineno-0-646">646</a></span>
-<span class="normal"><a href="#__codelineno-0-647">647</a></span>
-<span class="normal"><a href="#__codelineno-0-648">648</a></span>
-<span class="normal"><a href="#__codelineno-0-649">649</a></span>
-<span class="normal"><a href="#__codelineno-0-650">650</a></span>
-<span class="normal"><a href="#__codelineno-0-651">651</a></span>
-<span class="normal"><a href="#__codelineno-0-652">652</a></span>
-<span class="normal"><a href="#__codelineno-0-653">653</a></span>
-<span class="normal"><a href="#__codelineno-0-654">654</a></span>
-<span class="normal"><a href="#__codelineno-0-655">655</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-624" name="__codelineno-0-624"></a><span class="k">def</span> <span class="nf">scale_boxes</span><span class="p">(</span><span class="n">xyxy</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">factor</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<a id="__codelineno-0-625" name="__codelineno-0-625"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-626" name="__codelineno-0-626"></a><span class="sd">    Scale the dimensions of bounding boxes.</span>
-<a id="__codelineno-0-627" name="__codelineno-0-627"></a>
-<a id="__codelineno-0-628" name="__codelineno-0-628"></a><span class="sd">    Parameters:</span>
-<a id="__codelineno-0-629" name="__codelineno-0-629"></a><span class="sd">        xyxy (np.ndarray): An array of shape `(n, 4)` containing the bounding boxes</span>
-<a id="__codelineno-0-630" name="__codelineno-0-630"></a><span class="sd">            coordinates in format `[x1, y1, x2, y2]`</span>
-<a id="__codelineno-0-631" name="__codelineno-0-631"></a><span class="sd">        factor (float): A float value representing the factor by which the box</span>
-<a id="__codelineno-0-632" name="__codelineno-0-632"></a><span class="sd">            dimensions are scaled. A factor greater than 1 enlarges the boxes, while a</span>
-<a id="__codelineno-0-633" name="__codelineno-0-633"></a><span class="sd">            factor less than 1 shrinks them.</span>
-<a id="__codelineno-0-634" name="__codelineno-0-634"></a>
-<a id="__codelineno-0-635" name="__codelineno-0-635"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-636" name="__codelineno-0-636"></a><span class="sd">        np.ndarray: Scaled bounding boxes.</span>
-<a id="__codelineno-0-637" name="__codelineno-0-637"></a>
-<a id="__codelineno-0-638" name="__codelineno-0-638"></a><span class="sd">    Example:</span>
-<a id="__codelineno-0-639" name="__codelineno-0-639"></a><span class="sd">        ```python</span>
-<a id="__codelineno-0-640" name="__codelineno-0-640"></a><span class="sd">        import numpy as np</span>
-<a id="__codelineno-0-641" name="__codelineno-0-641"></a><span class="sd">        import supervision as sv</span>
-<a id="__codelineno-0-642" name="__codelineno-0-642"></a>
-<a id="__codelineno-0-643" name="__codelineno-0-643"></a><span class="sd">        boxes = np.array([[10, 10, 20, 20], [30, 30, 40, 40]])</span>
-<a id="__codelineno-0-644" name="__codelineno-0-644"></a><span class="sd">        factor = 1.5</span>
-<a id="__codelineno-0-645" name="__codelineno-0-645"></a><span class="sd">        scaled_bb = sv.scale_boxes(boxes, factor)</span>
-<a id="__codelineno-0-646" name="__codelineno-0-646"></a><span class="sd">        print(scaled_bb)</span>
-<a id="__codelineno-0-647" name="__codelineno-0-647"></a><span class="sd">        # np.array([</span>
-<a id="__codelineno-0-648" name="__codelineno-0-648"></a><span class="sd">        #    [ 7.5,  7.5, 22.5, 22.5],</span>
-<a id="__codelineno-0-649" name="__codelineno-0-649"></a><span class="sd">        #    [27.5, 27.5, 42.5, 42.5]</span>
-<a id="__codelineno-0-650" name="__codelineno-0-650"></a><span class="sd">        # ])</span>
-<a id="__codelineno-0-651" name="__codelineno-0-651"></a><span class="sd">        ```</span>
-<a id="__codelineno-0-652" name="__codelineno-0-652"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-653" name="__codelineno-0-653"></a>    <span class="n">centers</span> <span class="o">=</span> <span class="p">(</span><span class="n">xyxy</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">xyxy</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">:])</span> <span class="o">/</span> <span class="mi">2</span>
-<a id="__codelineno-0-654" name="__codelineno-0-654"></a>    <span class="n">new_sizes</span> <span class="o">=</span> <span class="p">(</span><span class="n">xyxy</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">:]</span> <span class="o">-</span> <span class="n">xyxy</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">])</span> <span class="o">*</span> <span class="n">factor</span>
-<a id="__codelineno-0-655" name="__codelineno-0-655"></a>    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">centers</span> <span class="o">-</span> <span class="n">new_sizes</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">centers</span> <span class="o">+</span> <span class="n">new_sizes</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-658">658</a></span>
+<span class="normal"><a href="#__codelineno-0-659">659</a></span>
+<span class="normal"><a href="#__codelineno-0-660">660</a></span>
+<span class="normal"><a href="#__codelineno-0-661">661</a></span>
+<span class="normal"><a href="#__codelineno-0-662">662</a></span>
+<span class="normal"><a href="#__codelineno-0-663">663</a></span>
+<span class="normal"><a href="#__codelineno-0-664">664</a></span>
+<span class="normal"><a href="#__codelineno-0-665">665</a></span>
+<span class="normal"><a href="#__codelineno-0-666">666</a></span>
+<span class="normal"><a href="#__codelineno-0-667">667</a></span>
+<span class="normal"><a href="#__codelineno-0-668">668</a></span>
+<span class="normal"><a href="#__codelineno-0-669">669</a></span>
+<span class="normal"><a href="#__codelineno-0-670">670</a></span>
+<span class="normal"><a href="#__codelineno-0-671">671</a></span>
+<span class="normal"><a href="#__codelineno-0-672">672</a></span>
+<span class="normal"><a href="#__codelineno-0-673">673</a></span>
+<span class="normal"><a href="#__codelineno-0-674">674</a></span>
+<span class="normal"><a href="#__codelineno-0-675">675</a></span>
+<span class="normal"><a href="#__codelineno-0-676">676</a></span>
+<span class="normal"><a href="#__codelineno-0-677">677</a></span>
+<span class="normal"><a href="#__codelineno-0-678">678</a></span>
+<span class="normal"><a href="#__codelineno-0-679">679</a></span>
+<span class="normal"><a href="#__codelineno-0-680">680</a></span>
+<span class="normal"><a href="#__codelineno-0-681">681</a></span>
+<span class="normal"><a href="#__codelineno-0-682">682</a></span>
+<span class="normal"><a href="#__codelineno-0-683">683</a></span>
+<span class="normal"><a href="#__codelineno-0-684">684</a></span>
+<span class="normal"><a href="#__codelineno-0-685">685</a></span>
+<span class="normal"><a href="#__codelineno-0-686">686</a></span>
+<span class="normal"><a href="#__codelineno-0-687">687</a></span>
+<span class="normal"><a href="#__codelineno-0-688">688</a></span>
+<span class="normal"><a href="#__codelineno-0-689">689</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-658" name="__codelineno-0-658"></a><span class="k">def</span> <span class="nf">scale_boxes</span><span class="p">(</span><span class="n">xyxy</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">factor</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a id="__codelineno-0-659" name="__codelineno-0-659"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-660" name="__codelineno-0-660"></a><span class="sd">    Scale the dimensions of bounding boxes.</span>
+<a id="__codelineno-0-661" name="__codelineno-0-661"></a>
+<a id="__codelineno-0-662" name="__codelineno-0-662"></a><span class="sd">    Parameters:</span>
+<a id="__codelineno-0-663" name="__codelineno-0-663"></a><span class="sd">        xyxy (np.ndarray): An array of shape `(n, 4)` containing the bounding boxes</span>
+<a id="__codelineno-0-664" name="__codelineno-0-664"></a><span class="sd">            coordinates in format `[x1, y1, x2, y2]`</span>
+<a id="__codelineno-0-665" name="__codelineno-0-665"></a><span class="sd">        factor (float): A float value representing the factor by which the box</span>
+<a id="__codelineno-0-666" name="__codelineno-0-666"></a><span class="sd">            dimensions are scaled. A factor greater than 1 enlarges the boxes, while a</span>
+<a id="__codelineno-0-667" name="__codelineno-0-667"></a><span class="sd">            factor less than 1 shrinks them.</span>
+<a id="__codelineno-0-668" name="__codelineno-0-668"></a>
+<a id="__codelineno-0-669" name="__codelineno-0-669"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-670" name="__codelineno-0-670"></a><span class="sd">        np.ndarray: Scaled bounding boxes.</span>
+<a id="__codelineno-0-671" name="__codelineno-0-671"></a>
+<a id="__codelineno-0-672" name="__codelineno-0-672"></a><span class="sd">    Example:</span>
+<a id="__codelineno-0-673" name="__codelineno-0-673"></a><span class="sd">        ```python</span>
+<a id="__codelineno-0-674" name="__codelineno-0-674"></a><span class="sd">        import numpy as np</span>
+<a id="__codelineno-0-675" name="__codelineno-0-675"></a><span class="sd">        import supervision as sv</span>
+<a id="__codelineno-0-676" name="__codelineno-0-676"></a>
+<a id="__codelineno-0-677" name="__codelineno-0-677"></a><span class="sd">        boxes = np.array([[10, 10, 20, 20], [30, 30, 40, 40]])</span>
+<a id="__codelineno-0-678" name="__codelineno-0-678"></a><span class="sd">        factor = 1.5</span>
+<a id="__codelineno-0-679" name="__codelineno-0-679"></a><span class="sd">        scaled_bb = sv.scale_boxes(boxes, factor)</span>
+<a id="__codelineno-0-680" name="__codelineno-0-680"></a><span class="sd">        print(scaled_bb)</span>
+<a id="__codelineno-0-681" name="__codelineno-0-681"></a><span class="sd">        # np.array([</span>
+<a id="__codelineno-0-682" name="__codelineno-0-682"></a><span class="sd">        #    [ 7.5,  7.5, 22.5, 22.5],</span>
+<a id="__codelineno-0-683" name="__codelineno-0-683"></a><span class="sd">        #    [27.5, 27.5, 42.5, 42.5]</span>
+<a id="__codelineno-0-684" name="__codelineno-0-684"></a><span class="sd">        # ])</span>
+<a id="__codelineno-0-685" name="__codelineno-0-685"></a><span class="sd">        ```</span>
+<a id="__codelineno-0-686" name="__codelineno-0-686"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-687" name="__codelineno-0-687"></a>    <span class="n">centers</span> <span class="o">=</span> <span class="p">(</span><span class="n">xyxy</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">xyxy</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">:])</span> <span class="o">/</span> <span class="mi">2</span>
+<a id="__codelineno-0-688" name="__codelineno-0-688"></a>    <span class="n">new_sizes</span> <span class="o">=</span> <span class="p">(</span><span class="n">xyxy</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">:]</span> <span class="o">-</span> <span class="n">xyxy</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">])</span> <span class="o">*</span> <span class="n">factor</span>
+<a id="__codelineno-0-689" name="__codelineno-0-689"></a>    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">centers</span> <span class="o">-</span> <span class="n">new_sizes</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">centers</span> <span class="o">+</span> <span class="n">new_sizes</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
           </details>
   </div>
@@ -4111,7 +4301,7 @@ values.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1-2.1-2M12.5 7v5.2l4 2.4-1 1L11 13V7h1.5M11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2v1.8Z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">May 6, 2024</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">May 13, 2024</span>
   </span>
 
     
@@ -4139,6 +4329,11 @@ values.</p>
     
     <nav>
       
+        <a href="https://github.com/LinasKo" class="md-author" title="@LinasKo">
+          
+          <img src="https://avatars.githubusercontent.com/u/6500785?v=4&size=72" alt="LinasKo">
+        </a>
+      
         <a href="https://github.com/SkalskiP" class="md-author" title="@SkalskiP">
           
           <img src="https://avatars.githubusercontent.com/u/26109316?v=4&size=72" alt="SkalskiP">
@@ -4154,12 +4349,13 @@ values.</p>
           <img src="https://avatars.githubusercontent.com/u/1688848?v=4&size=72" alt="onuralpszr">
         </a>
       
-        <a href="https://github.com/apps/pre-commit-ci" class="md-author" title="@pre-commit-ci[bot]">
-          
-          <img src="https://avatars.githubusercontent.com/in/68672?v=4&size=72" alt="pre-commit-ci[bot]">
-        </a>
       
       
+        
+          <a href="https://github.com/roboflow/supervision/tree/main/docs/detection/utils.md" class="md-author md-author--more">
+            +1
+          </a>
+        
       
     </nav>
   </span>
