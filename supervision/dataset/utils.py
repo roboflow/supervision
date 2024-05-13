@@ -2,7 +2,7 @@ import copy
 import os
 import random
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union, TypeVar
+from typing import Dict, List, Optional, Tuple, TypeVar, Union
 
 import cv2
 import numpy as np
