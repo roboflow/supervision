@@ -175,7 +175,7 @@ objects within each, and aggregating the results.
 
     def callback(image_slice: np.ndarray) -> sv.Detections:
         results = model.infer(image_slice)[0]
-        detections = sv.Detections.from_inference(results)
+        return sv.Detections.from_inference(results)
 
     slicer = sv.InferenceSlicer(callback = callback)
     detections = slicer(image)

@@ -302,6 +302,35 @@ def clip_boxes(xyxy: np.ndarray, resolution_wh: Tuple[int, int]) -> np.ndarray:
     return result
 
 
+def pad_boxes(xyxy: np.ndarray, px: int, py: Optional[int] = None) -> np.ndarray:
+    """
+    Pads bounding boxes coordinates with a constant padding.
+
+    Args:
+        xyxy (np.ndarray): A numpy array of shape `(N, 4)` where each
+            row corresponds to a bounding box in the format
+            `(x_min, y_min, x_max, y_max)`.
+        px (int): The padding value to be added to both the left and right sides of
+            each bounding box.
+        py (Optional[int]): The padding value to be added to both the top and bottom
+            sides of each bounding box. If not provided, `px` will be used for both
+            dimensions.
+
+    Returns:
+        np.ndarray: A numpy array of shape `(N, 4)` where each row corresponds to a
+            bounding box with coordinates padded according to the provided padding
+            values.
+    """
+    if py is None:
+        py = px
+
+    result = xyxy.copy()
+    result[:, [0, 1]] -= [px, py]
+    result[:, [2, 3]] += [px, py]
+
+    return result
+
+
 def xywh_to_xyxy(boxes_xywh: np.ndarray) -> np.ndarray:
     xyxy = boxes_xywh.copy()
     xyxy[:, 2] = boxes_xywh[:, 0] + boxes_xywh[:, 2]
