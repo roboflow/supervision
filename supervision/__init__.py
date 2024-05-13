@@ -34,6 +34,10 @@ from supervision.dataset.core import (
     ClassificationDataset,
     DetectionDataset,
 )
+from supervision.dataset.utils import (
+    rle_to_mask,
+    mask_to_rle,
+)
 from supervision.detection.annotate import BoxAnnotator
 from supervision.detection.core import Detections
 from supervision.detection.line_zone import LineZone, LineZoneAnnotator

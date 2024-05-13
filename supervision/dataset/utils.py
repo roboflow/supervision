@@ -2,7 +2,7 @@ import copy
 import os
 import random
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, TypeVar
+from typing import Dict, List, Optional, Tuple, Union, TypeVar
 
 import cv2
 import numpy as np
@@ -133,33 +133,42 @@ def train_test_split(
 
 
 def rle_to_mask(
-    rle: npt.NDArray[np.int_], resolution_wh: Tuple[int, int]
+    rle: Union[npt.NDArray[np.int_], List[int]], resolution_wh: Tuple[int, int]
 ) -> npt.NDArray[np.bool_]:
     """
     Converts run-length encoding (RLE) to a binary mask.
 
     Args:
-        rle (npt.NDArray[np.int_]): The 1D RLE array, the format used in the COCO
-            dataset (column-wise encoding, values of an array with even indices
-            represent the number of pixels assigned as background,
+        rle (Union[npt.NDArray[np.int_], List[int]]): The 1D RLE array, the format
+            used in the COCO dataset (column-wise encoding, values of an array with
+            even indices represent the number of pixels assigned as background,
             values of an array with odd indices represent the number of pixels
             assigned as foreground object).
         resolution_wh (Tuple[int, int]): The width (w) and height (h)
-            of the desired binary mask resolution.
+            of the desired binary mask.
 
     Returns:
-        npt.NDArray[np.bool_]: The generated 2D Boolean mask of shape (h,w),
-            where the foreground object is marked with `True`'s and the rest
-            is filled with `False`'s.
+        The generated 2D Boolean mask of shape `(h, w)`, where the foreground object is
+            marked with `True`'s and the rest is filled with `False`'s.
 
     Raises:
         AssertionError: If the sum of pixels encoded in RLE differs from the
-        number of pixels in the expected mask (computed based on resolution_wh).
+            number of pixels in the expected mask (computed based on resolution_wh).
 
     Examples:
-        rle = [2, 2, 2], resolution_wh = [3, 2] -> mask = [[False, True, False],
-                                                           [False, True, False]]
+        ```python
+        import supervision as sv
+
+        sv.rle_to_mask([2, 2, 2], (3, 2))
+        # array([
+        #     [False,  True, False],
+        #     [False,  True, False]
+        # ])
+        ```
     """
+    if isinstance(rle, list):
+        rle = np.array(rle, dtype=int)
+
     width, height = resolution_wh
 
     assert width * height == np.sum(rle), (
@@ -186,20 +195,33 @@ def mask_to_rle(mask: npt.NDArray[np.bool_]) -> List[int]:
             object and `False` indicates background.
 
     Returns:
-        List[int]: the run-length encoded mask. Values of a list with even indices
+        The run-length encoded mask. Values of a list with even indices
             represent the number of pixels assigned as background (`False`), values
             of a list with odd indices represent the number of pixels assigned
             as foreground object (`True`).
 
     Raises:
-        AssertionError: If imput mask is not 2D or is empty.
+        AssertionError: If input mask is not 2D or is empty.
 
-     Examples:
-        mask = [[False, True, True],  -> rle = [2, 4]
-                [False, True, True]]
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
 
-        mask = [[True, True, True],   -> rle = [0, 6]
-                [True, True, True]]
+        mask = np.array([
+            [False, True, True],
+            [False, True, True]
+        ])
+        sv.mask_to_rle(mask)
+        # [2, 4]
+
+        mask = np.array([
+            [True, True, True],
+            [True, True, True]
+        ])
+        sv.mask_to_rle(mask)
+        # [0, 6]
+        ```
     """
     assert mask.ndim == 2, "Input mask must be 2D"
     assert mask.size != 0, "Input mask cannot be empty"

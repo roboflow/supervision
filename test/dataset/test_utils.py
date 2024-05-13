@@ -286,7 +286,7 @@ def test_map_detections_class_id(
         ),  # raises AssertionError because mask is empty
     ],
 )
-def test_mask_to_rle_conversion(
+def test_mask_to_rle(
     mask: npt.NDArray[np.bool_], expected_rle: List[int], exception: Exception
 ) -> None:
     with exception:
@@ -302,7 +302,13 @@ def test_mask_to_rle_conversion(
             [3, 3],
             np.zeros((3, 3)).astype(bool),
             DoesNotRaise(),
-        ),  # mask with background only (mask with only False values)
+        ),  # mask with background only (mask with only False values); rle as array
+        (
+            [9],
+            [3, 3],
+            np.zeros((3, 3)).astype(bool),
+            DoesNotRaise(),
+        ),  # mask with background only (mask with only False values); rle as list
         (
             np.array([0, 9]),
             [3, 3],
@@ -346,7 +352,7 @@ def test_mask_to_rle_conversion(
         # number of pixels in expected mask (width x height).
     ],
 )
-def test_rle_to_mask_convertion(
+def test_rle_to_mask(
     rle: npt.NDArray[np.int_],
     resolution_wh: Tuple[int, int],
     expected_mask: npt.NDArray[np.bool_],
