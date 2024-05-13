@@ -621,6 +621,40 @@ def move_boxes(xyxy: np.ndarray, offset: np.ndarray) -> np.ndarray:
     return xyxy + np.hstack([offset, offset])
 
 
+def move_masks(
+    masks: np.ndarray,
+    offset: np.ndarray,
+    resolution_wh: Tuple[int, int] = None,
+) -> np.ndarray:
+    """
+    Offset the masks in an array by the specified (x, y) amount.
+
+    Args:
+        masks (np.ndarray): A 3D array of binary masks corresponding to the predictions.
+            Shape: `(N, H, W)`, where N is the number of predictions, and H, W are the
+            dimensions of each mask.
+        offset (np.ndarray): An array of shape `(2,)` containing non-negative int values
+            `[dx, dy]`.
+        resolution_wh (Tuple[int, int]): The width and height of the desired mask
+            resolution.
+
+    Returns:
+        (np.ndarray) repositioned masks, optionally padded to the specified shape.
+    """
+
+    if offset[0] < 0 or offset[1] < 0:
+        raise ValueError(f"Offset values must be non-negative integers. Got: {offset}")
+
+    mask_array = np.full((masks.shape[0], resolution_wh[1], resolution_wh[0]), False)
+    mask_array[
+        :,
+        offset[1] : masks.shape[1] + offset[1],
+        offset[0] : masks.shape[2] + offset[0],
+    ] = masks
+
+    return mask_array
+
+
 def scale_boxes(xyxy: np.ndarray, factor: float) -> np.ndarray:
     """
     Scale the dimensions of bounding boxes.
