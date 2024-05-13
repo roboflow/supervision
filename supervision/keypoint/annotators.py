@@ -65,7 +65,10 @@ class VertexAnnotator(BaseKeyPointAnnotator):
             image = ...
             key_points = sv.KeyPoints(...)
 
-            vertex_annotator = sv.VertexAnnotator(color=sv.Color.GREEN, radius=10)
+            vertex_annotator = sv.VertexAnnotator(
+                color=sv.Color.GREEN,
+                radius=10
+            )
             annotated_frame = vertex_annotator.annotate(
                 scene=image.copy(),
                 key_points=key_points
@@ -139,7 +142,10 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
             image = ...
             key_points = sv.KeyPoints(...)
 
-            edge_annotator = sv.EdgeAnnotator(color=sv.Color.GREEN, thickness=5)
+            edge_annotator = sv.EdgeAnnotator(
+                color=sv.Color.GREEN,
+                thickness=5
+            )
             annotated_frame = edge_annotator.annotate(
                 scene=image.copy(),
                 key_points=key_points
@@ -240,12 +246,19 @@ class VertexLabelAnnotator:
             image = ...
             key_points = sv.KeyPoints(...)
 
-            vertex_label_annotator = sv.VertexLabelAnnotator()
+            vertex_label_annotator = sv.VertexLabelAnnotator(
+                color=sv.Color.GREEN,
+                text_color=sv.Color.BLACK,
+                border_radius=5
+            )
             annotated_frame = vertex_label_annotator.annotate(
                 scene=image.copy(),
                 key_points=key_points
             )
             ```
+
+        ![vertex-label-annotator-example](https://media.roboflow.com/
+        supervision-annotator-examples/vertex-label-annotator-example.png)
         """
         font = cv2.FONT_HERSHEY_SIMPLEX
 
