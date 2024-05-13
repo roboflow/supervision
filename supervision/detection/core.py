@@ -806,6 +806,57 @@ class Detections:
         )
 
     @classmethod
+    def from_depthai(cls, depthai_results) -> Detections:
+        """
+        Creates a Detections instance from a
+        [DepthAI](https://https://github.com/luxonis/depthai) inference result.
+
+        Args:
+            depthai_results (depthai/resources/nn):
+                The output Detections instance from DepthAI
+
+        Returns:
+            Detections: A new Detections object.
+
+        Example:
+            ```python
+            import depthai as dai
+            import supervision as sv
+
+            tracker = sv.ByteTrack()
+
+            with dai.Device(pipeline) as device:
+                qDet = device.getOutputQueue(name="nn", maxSize=4, blocking=False)
+                while True:
+                    inDet = qDet.get()
+                    detections = inDet.detections
+                    for detection in detections:
+                        results = sv.Detections.from_depthai(detection)
+                        tracks = tracker.update_with_detections(results)
+            ```
+            # For device and nn setup, refer:
+                [RGB & TinyYOLO](https://docs.luxonis.com/projects/api/en/latest/samples/SpatialDetection/spatial_tiny_yolo/)
+        """
+        depthai_detections_predictions = np.array(
+            [
+                [
+                    depthai_results.xmin,
+                    depthai_results.ymin,
+                    depthai_results.xmax,
+                    depthai_results.ymax,
+                    depthai_results.confidence,
+                    depthai_results.label,
+                ]
+            ]
+        )
+
+        return cls(
+            xyxy=depthai_detections_predictions[:, :4],
+            confidence=depthai_detections_predictions[:, 4],
+            class_id=depthai_detections_predictions[:, 5].astype(int),
+        )
+
+    @classmethod
     def empty(cls) -> Detections:
         """
         Create an empty Detections object with no bounding boxes,
