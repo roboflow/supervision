@@ -5,6 +5,7 @@ from typing import Dict, List, Tuple
 
 import cv2
 import numpy as np
+import numpy.typing as npt
 
 from supervision.dataset.utils import (
     approximate_mask_with_polygons,
@@ -58,7 +59,10 @@ def group_coco_annotations_by_image_id(
     return annotations
 
 
-def _annotations_to_mask(image_annotations: List[dict], resolution_wh: Tuple[int, int]):
+def coco_annotations_to_masks(
+    image_annotations: List[dict],
+    resolution_wh: Tuple[int, int]
+) -> npt.NDArray[np.bool_]:
     return np.array(
         [
             rle_to_mask(
@@ -93,7 +97,10 @@ def coco_annotations_to_detections(
     xyxy[:, 2:4] += xyxy[:, 0:2]
 
     if with_masks:
-        mask = _annotations_to_mask(image_annotations, resolution_wh)
+        mask = coco_annotations_to_masks(
+            image_annotations=image_annotations,
+            resolution_wh=resolution_wh
+        )
         return Detections(
             class_id=np.asarray(class_ids, dtype=int), xyxy=xyxy, mask=mask
         )
