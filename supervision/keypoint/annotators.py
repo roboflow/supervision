@@ -259,6 +259,49 @@ class VertexLabelAnnotator:
 
         ![vertex-label-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/vertex-label-annotator-example.png)
+
+        !!! tip
+
+            `VertexLabelAnnotator` allows to customize the color of each keypoint label
+            values.
+
+        Example:
+            ```python
+            import supervision as sv
+
+            image = ...
+            key_points = sv.KeyPoints(...)
+
+            LABELS = [
+                "nose", "left eye", "right eye", "left ear",
+                "right ear", "left shoulder", "right shoulder", "left elbow",
+                "right elbow", "left wrist", "right wrist", "left hip",
+                "right hip", "left knee", "right knee", "left ankle",
+                "right ankle"
+            ]
+
+            COLORS = [
+                "#FF6347", "#FF6347", "#FF6347", "#FF6347",
+                "#FF6347", "#FF1493", "#00FF00", "#FF1493",
+                "#00FF00", "#FF1493", "#00FF00", "#FFD700",
+                "#00BFFF", "#FFD700", "#00BFFF", "#FFD700",
+                "#00BFFF"
+            ]
+            COLORS = [sv.Color.from_hex(color_hex=c) for c in COLORS]
+
+            vertex_label_annotator = sv.VertexLabelAnnotator(
+                color=COLORS,
+                text_color=sv.Color.BLACK,
+                border_radius=5
+            )
+            annotated_frame = vertex_label_annotator.annotate(
+                scene=image.copy(),
+                key_points=key_points,
+                labels=labels
+            )
+            ```
+        ![vertex-label-annotator-custom-example](https://media.roboflow.com/
+        supervision-annotator-examples/vertex-label-annotator-custom-example.png)
         """
         font = cv2.FONT_HERSHEY_SIMPLEX
 
