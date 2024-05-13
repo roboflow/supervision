@@ -593,7 +593,9 @@ def move_boxes(xyxy: np.ndarray, offset: np.ndarray) -> np.ndarray:
 
 
 def move_masks(
-    masks: np.ndarray, offset: np.ndarray, desired_shape: Optional[np.ndarray] = None
+    masks: np.ndarray,
+    offset: np.ndarray,
+    desired_shape: Optional[Union[Tuple[int, int, int], Tuple[int, int]]] = None,
 ) -> np.ndarray:
     """
     Offset the masks in an array by the specified (x, y) amount.
@@ -602,34 +604,35 @@ def move_masks(
 
     - `masks`: array of shape `(n, y, x)`
     - `offset`: array of ints: `(x, y)`
-    - `desired_shape`: array of ints, shaped `(y, x, ...)`
+    - `desired_shape`: tuple of ints, shaped `(y, x)` or `(y, x, ...)`
 
     Args:
         masks (np.ndarray): array of bools
         offset (np.ndarray): An array of shape `(2,)` containing non-negative int values
             `[dx, dy]`.
-        desired_shape (np.ndarray, optional): Final shape of the mask in the format
-            `(height, width, ...)`. If provided, the masks will be padded to match this
-            shape. Note the axis order (y,x)!
+        desired_shape (Tuple, optional): Final shape of the mask in the format
+            `(height, width)`, `(height, width, ...)`. The masks will be padded to match
+            the first 2 shape dimensions. Note the axis order (y,x)!
 
     Returns:
         (np.ndarray) repositioned masks, optionally padded to the specified shape.
     """
+
     if offset[0] < 0 or offset[1] < 0:
         raise ValueError(f"Offset values must be non-negative integers. Got: {offset}")
 
-    size_x, size_y = masks.shape[1:] + offset[::-1]
+    size_y, size_x = masks.shape[1:] + offset[::-1]
     if desired_shape is not None:
         size_y, size_x = desired_shape[:2]
 
-    mask_arr = np.full((masks.shape[0], size_y, size_x), False)
-    mask_arr[
+    mask_array = np.full((masks.shape[0], size_y, size_x), False)
+    mask_array[
         :,
         offset[1] : masks.shape[1] + offset[1],
         offset[0] : masks.shape[2] + offset[0],
     ] = masks
 
-    return mask_arr
+    return mask_array
 
 
 def scale_boxes(xyxy: np.ndarray, factor: float) -> np.ndarray:

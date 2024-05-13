@@ -1,5 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Callable, Optional, Tuple
+from typing import Callable, Optional, Tuple, Union
 
 import numpy as np
 
@@ -9,15 +9,19 @@ from supervision.utils.image import crop_image
 
 
 def move_detections(
-    detections: Detections, offset: np.ndarray, image_shape: np.ndarray
+    detections: Detections,
+    offset: np.ndarray,
+    image_shape: Optional[Union[Tuple[int, int, int], Tuple[int, int]]] = None,
 ) -> Detections:
     """
     Args:
         detections (sv.Detections): Detections object to be moved.
         offset (np.ndarray): An array of shape `(2,)` containing offset values in format
             is `[dx, dy]`.
-        image_size (np.ndarray): An array of shape `(2,)` or `(3,)`, size of the image
-            is in format `[width, height]`.
+        image_size (Tuple, optional): A tuple of image shape. Can be  `(2,)` or `(3,)`.
+            Important when moving for segmentation detections, as it defines mask array
+            size.
+
     Returns:
         (sv.Detections) repositioned Detections object.
     """
