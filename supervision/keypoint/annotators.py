@@ -275,12 +275,12 @@ class VertexLabelAnnotator:
         colors = self.preprocess_and_validate_colors(
             colors=self.color,
             points_count=points_count,
-            skeletons_count=skeletons_count)
+            skeletons_count=skeletons_count,
+        )
 
         labels = self.preprocess_and_validate_labels(
-            labels=labels,
-            points_count=points_count,
-            skeletons_count=skeletons_count)
+            labels=labels, points_count=points_count, skeletons_count=skeletons_count
+        )
 
         anchors = anchors[mask]
         colors = colors[mask]
@@ -345,9 +345,7 @@ class VertexLabelAnnotator:
 
     @staticmethod
     def preprocess_and_validate_labels(
-        labels: Optional[List[str]],
-        points_count: int,
-        skeletons_count: int
+        labels: Optional[List[str]], points_count: int, skeletons_count: int
     ) -> np.array:
         if labels and len(labels) != points_count:
             raise ValueError(
@@ -363,7 +361,7 @@ class VertexLabelAnnotator:
     def preprocess_and_validate_colors(
         colors: Optional[Union[Color, List[Color]]],
         points_count: int,
-        skeletons_count: int
+        skeletons_count: int,
     ) -> np.array:
         if isinstance(colors, list) and len(colors) != points_count:
             raise ValueError(
