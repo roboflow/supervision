@@ -48,8 +48,8 @@ class VertexAnnotator(BaseKeyPointAnnotator):
         points. It draws circles at each key point location.
 
         Args:
-            scene (ImageType): The image where bounding boxes will be drawn. `ImageType`
-                is a flexible type, accepting either `numpy.ndarray` or
+            scene (ImageType): The image where skeleton vertices will be drawn.
+                `ImageType` is a flexible type, accepting either `numpy.ndarray` or
                 `PIL.Image.Image`.
             key_points (KeyPoints): A collection of key points where each key point
                 consists of x and y coordinates.
@@ -121,7 +121,7 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
         edges.
 
         Args:
-            scene (ImageType): The image where bounding boxes will be drawn. `ImageType`
+            scene (ImageType): The image where skeleton edges will be drawn. `ImageType`
                 is a flexible type, accepting either `numpy.ndarray` or
                 `PIL.Image.Image`.
             key_points (KeyPoints): A collection of key points where each key point
@@ -181,7 +181,8 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
 
 class VertexLabelAnnotator:
     """
-    A class for annotating vertex labels on an image using provided detections.
+    A class that draws labels of skeleton vertices on images. It uses specified key
+    points to determine the locations where the vertices should be drawn.
     """
 
     def __init__(
@@ -193,6 +194,18 @@ class VertexLabelAnnotator:
         text_padding: int = 10,
         border_radius: int = 0,
     ):
+        """
+        Args:
+            color (Union[Color, List[Color]], optional): The color to use for each
+                keypoint label. If a list is provided, the colors will be used in order
+                for each keypoint.
+            text_color (Color, optional): The color to use for the labels.
+            text_scale (float, optional): The scale of the text.
+            text_thickness (int, optional): The thickness of the text.
+            text_padding (int, optional): The padding around the text.
+            border_radius (int, optional): The radius of the rounded corners of the
+                boxes. Set to a high value to produce circles.
+        """
         self.border_radius: int = border_radius
         self.color: Union[Color, List[Color]] = color
         self.text_color: Color = text_color
@@ -200,50 +213,61 @@ class VertexLabelAnnotator:
         self.text_thickness: int = text_thickness
         self.text_padding: int = text_padding
 
-    @staticmethod
-    def get_text_bounding_box(
-        text: str,
-        font: int,
-        text_scale: float,
-        text_thickness: int,
-        center_coordinates: Tuple[int, int],
-    ) -> Tuple[int, int, int, int]:
-        text_w, text_h = cv2.getTextSize(
-            text=text,
-            fontFace=font,
-            fontScale=text_scale,
-            thickness=text_thickness,
-        )[0]
-        center_x, center_y = center_coordinates
-        return (
-            center_x - text_w // 2,
-            center_y - text_h // 2,
-            center_x + text_w // 2,
-            center_y + text_h // 2,
-        )
-
     def annotate(
         self, scene: ImageType, key_points: KeyPoints, labels: List[str] = None
     ) -> ImageType:
+        """
+        A class that draws labels of skeleton vertices on images. It uses specified key
+            points to determine the locations where the vertices should be drawn.
+
+        Args:
+            scene (ImageType): The image where vertex labels will be drawn. `ImageType`
+                is a flexible type, accepting either `numpy.ndarray` or
+                `PIL.Image.Image`.
+            key_points (KeyPoints): A collection of key points where each key point
+                consists of x and y coordinates.
+            labels (List[str], optional): A list of labels to be displayed on the
+                annotated image. If not provided, keypoint indices will be used.
+
+        Returns:
+            The annotated image, matching the type of `scene` (`numpy.ndarray`
+                or `PIL.Image.Image`)
+
+        Example:
+            ```python
+            import supervision as sv
+
+            image = ...
+            key_points = sv.KeyPoints(...)
+
+            vertex_label_annotator = sv.VertexLabelAnnotator()
+            annotated_frame = vertex_label_annotator.annotate(
+                scene=image.copy(),
+                key_points=key_points
+            )
+            ```
+        """
         font = cv2.FONT_HERSHEY_SIMPLEX
 
-        N, K, _ = key_points.xy.shape
-
-        if N == 0:
+        skeletons_count, points_count, _ = key_points.xy.shape
+        if skeletons_count == 0:
             return scene
 
-        anchors = key_points.xy.reshape(K * N, 2).astype(int)
-        colors = (
-            np.array(self.color * N)
-            if isinstance(self.color, list)
-            else np.array([self.color] * K * N)
-        )
-        labels = np.array(labels * N)
-
+        anchors = key_points.xy.reshape(points_count * skeletons_count, 2).astype(int)
         mask = np.all(anchors != 0, axis=1)
 
-        if np.all(mask == False):
+        if not np.any(mask):
             return scene
+
+        colors = self.preprocess_and_validate_colors(
+            colors=self.color,
+            points_count=points_count,
+            skeletons_count=skeletons_count)
+
+        labels = self.preprocess_and_validate_labels(
+            labels=labels,
+            points_count=points_count,
+            skeletons_count=skeletons_count)
 
         anchors = anchors[mask]
         colors = colors[mask]
@@ -283,3 +307,58 @@ class VertexLabelAnnotator:
             )
 
         return scene
+
+    @staticmethod
+    def get_text_bounding_box(
+        text: str,
+        font: int,
+        text_scale: float,
+        text_thickness: int,
+        center_coordinates: Tuple[int, int],
+    ) -> Tuple[int, int, int, int]:
+        text_w, text_h = cv2.getTextSize(
+            text=text,
+            fontFace=font,
+            fontScale=text_scale,
+            thickness=text_thickness,
+        )[0]
+        center_x, center_y = center_coordinates
+        return (
+            center_x - text_w // 2,
+            center_y - text_h // 2,
+            center_x + text_w // 2,
+            center_y + text_h // 2,
+        )
+
+    @staticmethod
+    def preprocess_and_validate_labels(
+        labels: Optional[List[str]],
+        points_count: int,
+        skeletons_count: int
+    ) -> np.array:
+        if labels and len(labels) != points_count:
+            raise ValueError(
+                f"Number of labels ({len(labels)}) must match number of key points "
+                f"({points_count})."
+            )
+        if labels is None:
+            labels = [str(i) for i in range(points_count)]
+
+        return np.array(labels * skeletons_count)
+
+    @staticmethod
+    def preprocess_and_validate_colors(
+        colors: Optional[Union[Color, List[Color]]],
+        points_count: int,
+        skeletons_count: int
+    ) -> np.array:
+        if isinstance(colors, list) and len(colors) != points_count:
+            raise ValueError(
+                f"Number of colors ({len(colors)}) must match number of key points "
+                f"({points_count})."
+            )
+        return (
+            np.array(colors * skeletons_count)
+            if isinstance(colors, list)
+            else np.array([colors] * points_count * skeletons_count)
+        )
