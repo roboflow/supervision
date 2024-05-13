@@ -271,7 +271,7 @@ objects within each, and aggregating the results.
 
 === "Inference"
 
-    ```{ .py hl_lines="6 16 19" }
+    ```{ .py hl_lines="6 16 19-20" }
     import cv2
     import numpy as np
     import supervision as sv
@@ -298,7 +298,7 @@ objects within each, and aggregating the results.
 
 === "Ultralytics"
 
-    ```{ .py hl_lines="6 16 19" }
+    ```{ .py hl_lines="6 16 19-20" }
     import cv2
     import numpy as np
     import supervision as sv
