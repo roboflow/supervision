@@ -1,5 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Callable, Optional, Tuple, Union
+from typing import Callable, Optional, Tuple
 
 import numpy as np
 
@@ -11,24 +11,28 @@ from supervision.utils.image import crop_image
 def move_detections(
     detections: Detections,
     offset: np.ndarray,
-    image_shape: Optional[Union[Tuple[int, int, int], Tuple[int, int]]] = None,
+    resolution_wh: Optional[Tuple[int, int]] = None,
 ) -> Detections:
     """
     Args:
         detections (sv.Detections): Detections object to be moved.
         offset (np.ndarray): An array of shape `(2,)` containing offset values in format
             is `[dx, dy]`.
-        image_size (Tuple, optional): A tuple of image shape. Can be  `(2,)` or `(3,)`.
-            Important when moving for segmentation detections, as it defines mask array
-            size.
+        resolution_wh (Tuple[int, int]): The width and height of the desired mask
+            resolution. Required for segmentation detections.
 
     Returns:
         (sv.Detections) repositioned Detections object.
     """
     detections.xyxy = move_boxes(xyxy=detections.xyxy, offset=offset)
     if detections.mask is not None:
+        if resolution_wh is None:
+            raise ValueError(
+                "Resolution width and height are required for moving segmentation "
+                "detections. This should be the same as (width, height) of image shape."
+            )
         detections.mask = move_masks(
-            masks=detections.mask, offset=offset, desired_shape=image_shape
+            masks=detections.mask, offset=offset, resolution_wh=resolution_wh
         )
     return detections
 
@@ -138,8 +142,9 @@ class InferenceSlicer:
         """
         image_slice = crop_image(image=image, xyxy=offset)
         detections = self.callback(image_slice)
+        resolution_wh = (image.shape[1], image.shape[0])
         detections = move_detections(
-            detections=detections, offset=offset[:2], image_shape=image.shape
+            detections=detections, offset=offset[:2], resolution_wh=resolution_wh
         )
 
         return detections

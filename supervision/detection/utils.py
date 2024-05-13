@@ -595,24 +595,17 @@ def move_boxes(xyxy: np.ndarray, offset: np.ndarray) -> np.ndarray:
 def move_masks(
     masks: np.ndarray,
     offset: np.ndarray,
-    desired_shape: Optional[Union[Tuple[int, int, int], Tuple[int, int]]] = None,
+    resolution_wh: Tuple[int, int] = None,
 ) -> np.ndarray:
     """
     Offset the masks in an array by the specified (x, y) amount.
-
-    Note the axis orders:
-
-    - `masks`: array of shape `(n, y, x)`
-    - `offset`: array of ints: `(x, y)`
-    - `desired_shape`: tuple of ints, shaped `(y, x)` or `(y, x, ...)`
 
     Args:
         masks (np.ndarray): array of bools
         offset (np.ndarray): An array of shape `(2,)` containing non-negative int values
             `[dx, dy]`.
-        desired_shape (Tuple, optional): Final shape of the mask in the format
-            `(height, width)`, `(height, width, ...)`. The masks will be padded to match
-            the first 2 shape dimensions. Note the axis order (y,x)!
+        resolution_wh (Tuple[int, int]): The width and height of the desired mask
+            resolution.
 
     Returns:
         (np.ndarray) repositioned masks, optionally padded to the specified shape.
@@ -621,11 +614,7 @@ def move_masks(
     if offset[0] < 0 or offset[1] < 0:
         raise ValueError(f"Offset values must be non-negative integers. Got: {offset}")
 
-    size_y, size_x = masks.shape[1:] + offset[::-1]
-    if desired_shape is not None:
-        size_y, size_x = desired_shape[:2]
-
-    mask_array = np.full((masks.shape[0], size_y, size_x), False)
+    mask_array = np.full((masks.shape[0], resolution_wh[1], resolution_wh[0]), False)
     mask_array[
         :,
         offset[1] : masks.shape[1] + offset[1],
