@@ -70,3 +70,15 @@ status: new
 </div>
 
 :::supervision.detection.utils.scale_boxes
+
+<div class="md-typeset">
+  <h2><a href="#supervision.detection.utils.clip_boxes">clip_boxes</a></h2>
+</div>
+
+:::supervision.detection.utils.clip_boxes
+
+<div class="md-typeset">
+  <h2><a href="#supervision.detection.utils.pad_boxes">pad_boxes</a></h2>
+</div>
+
+:::supervision.detection.utils.pad_boxes
