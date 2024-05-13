@@ -14,7 +14,7 @@ status: new
     key_points = sv.KeyPoints(...)
 
     vertex_annotator = sv.VertexAnnotator(
-        color=sv.Color.GREEN, 
+        color=sv.Color.GREEN,
         radius=10
     )
     annotated_frame = vertex_annotator.annotate(
@@ -38,7 +38,7 @@ status: new
     key_points = sv.KeyPoints(...)
 
     edge_annotator = sv.EdgeAnnotator(
-        color=sv.Color.GREEN, 
+        color=sv.Color.GREEN,
         thickness=5
     )
     annotated_frame = edge_annotator.annotate(
