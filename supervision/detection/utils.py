@@ -529,7 +529,7 @@ def process_roboflow_result(
     np.ndarray,
     Optional[np.ndarray],
     Optional[np.ndarray],
-    Dict[str, List[np.ndarray]],
+    Dict[str, Union[List[np.ndarray], np.ndarray]],
 ]:
     if not roboflow_result["predictions"]:
         return (
