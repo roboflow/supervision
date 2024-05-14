@@ -275,7 +275,7 @@ def box_non_max_suppression(
 
 
 def box_non_max_merge(
-    predictions: np.ndarray, threshold: float = 0.5
+    predictions: np.ndarray, iou_threshold: float = 0.5
 ) -> Dict[int, List[int]]:
     """
     Apply greedy version of non-maximum merging to avoid detecting too many
@@ -285,7 +285,7 @@ def box_non_max_merge(
         predictions (np.ndarray): An array of shape `(n, 5)` containing
             the bounding boxes coordinates in format `[x1, y1, x2, y2]`
             and the confidence scores.
-        threshold (float, optional): The intersection-over-union threshold
+        iou_threshold (float, optional): The intersection-over-union threshold
             to use for non-maximum suppression. Defaults to 0.5.
 
     Returns:
@@ -338,7 +338,7 @@ def box_non_max_merge(
         union = (rem_areas - inter) + areas[idx]
         match_metric_value = inter / union
 
-        mask = match_metric_value < threshold
+        mask = match_metric_value < iou_threshold
         mask = mask.astype(np.uint8)
         matched_box_indices = np.flip(order[np.where(mask == 0)[0]])
         unmatched_indices = order[np.where(mask == 1)[0]]
