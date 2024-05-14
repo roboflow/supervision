@@ -8,8 +8,9 @@ import numpy as np
 
 from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.utils import (
-    batch_non_max_merge,
+    box_batch_non_max_merge,
     box_iou_batch,
+    box_non_max_merge,
     box_non_max_suppression,
     calculate_masks_centroids,
     extract_ultralytics_masks,
@@ -18,7 +19,6 @@ from supervision.detection.utils import (
     mask_non_max_suppression,
     mask_to_xyxy,
     merge_data,
-    non_max_merge,
     process_roboflow_result,
     xywh_to_xyxy,
 )
@@ -1213,7 +1213,7 @@ class Detections:
 
         if class_agnostic:
             predictions = np.hstack((self.xyxy, self.confidence.reshape(-1, 1)))
-            keep_to_merge_list = non_max_merge(predictions, threshold)
+            keep_to_merge_list = box_non_max_merge(predictions, threshold)
         else:
             assert self.class_id is not None, (
                 "Detections class_id must be given for NMS to be executed. If you"
@@ -1226,14 +1226,14 @@ class Detections:
                     self.class_id.reshape(-1, 1),
                 )
             )
-            keep_to_merge_list = batch_non_max_merge(predictions, threshold)
+            keep_to_merge_list = box_batch_non_max_merge(predictions, threshold)
 
         result = []
         for keep_ind, merge_ind_list in keep_to_merge_list.items():
             for merge_ind in merge_ind_list:
                 box_iou = box_iou_batch(self[keep_ind].xyxy, self[merge_ind].xyxy)[0]
                 if box_iou > threshold:
-                    merged_detection = self._merge_object_detection_pair(
+                    merged_detection = self.merge_object_detection_pair(
                         self[keep_ind], self[merge_ind]
                     )
                     self._set_at_index(keep_ind, merged_detection)
@@ -1241,99 +1241,95 @@ class Detections:
 
         return Detections.merge(result)
 
-    @staticmethod
-    def _merge_object_detection_pair(det1: Detections, det2: Detections) -> Detections:
-        """
-        Merges two Detections object into a single Detections object.
-        Assumes each Detections contains exactly one object.
 
-        A `winning` detection is determined based on the confidence score of the two
-        input detections. This winning detection is then used to specify which
-        `class_id`, `tracker_id`, and `data` to include in the merged Detections object.
+def merge_object_detection_pair(det1: Detections, det2: Detections) -> Detections:
+    """
+    Merges two Detections object into a single Detections object.
+    Assumes each Detections contains exactly one object.
 
-        The resulting `confidence` of the merged object is calculated by the weighted
-        contribution of each detection to the merged object.
-        The bounding boxes and masks of the two input detections are merged into a
-        single bounding box and mask, respectively.
+    A `winning` detection is determined based on the confidence score of the two
+    input detections. This winning detection is then used to specify which
+    `class_id`, `tracker_id`, and `data` to include in the merged Detections object.
 
-        Args:
-            det1 (Detections):
-                The first Detections object
-            det2 (Detections):
-                The second Detections object
+    The resulting `confidence` of the merged object is calculated by the weighted
+    contribution of ea detection to the merged object.
+    The bounding boxes and masks of the two input detections are merged into a
+    single bounding box and mask, respectively.
 
-        Returns:
-            Detections: A new Detections object, with merged attributes.
+    Args:
+        det1 (Detections):
+            The first Detections object
+        det2 (Detections):
+            The second Detections object
 
-        Raises:
-            ValueError: If the input Detections objects do not have exactly 1 detected
-                object.
+    Returns:
+        Detections: A new Detections object, with merged attributes.
 
-        Example:
-            ```python
-            import cv2
-            import supervision as sv
-            from inference import get_model
+    Raises:
+        ValueError: If the input Detections objects do not have exactly 1 detected
+            object.
 
-            image = cv2.imread(<SOURCE_IMAGE_PATH>)
-            model = get_model(model_id="yolov8s-640")
+    Example:
+        ```python
+        import cv2
+        import supervision as sv
+        from inference import get_model
 
-            result = model.infer(image)[0]
-            detections = sv.Detections.from_inference(result)
+        image = cv2.imread(<SOURCE_IMAGE_PATH>)
+        model = get_model(model_id="yolov8s-640")
 
-            merged_detections = merge_object_detection_pair(
-                detections[0], detections[1])
-            ```
-        """
-        if len(det1) != 1 or len(det2) != 1:
-            raise ValueError("Both Detections should have exactly 1 detected object.")
+        result = model.infer(image)[0]
+        detections = sv.Detections.from_inference(result)
 
-        if det2.confidence is None:
-            winning_det = det1
-        elif det1.confidence is None:
-            winning_det = det2
-        elif det1.confidence[0] >= det2.confidence[0]:
-            winning_det = det1
-        else:
-            winning_det = det2
+        merged_detections = merge_object_detection_pair(
+            detections[0], detections[1])
+        ```
+    """
+    if len(det1) != 1 or len(det2) != 1:
+        raise ValueError("Both Detections should have exactly 1 detected object.")
 
-        area_det1 = (det1.xyxy[0][2] - det1.xyxy[0][0]) * (
-            det1.xyxy[0][3] - det1.xyxy[0][1]
-        )
-        area_det2 = (det2.xyxy[0][2] - det2.xyxy[0][0]) * (
-            det2.xyxy[0][3] - det2.xyxy[0][1]
-        )
+    if det2.confidence is None:
+        winning_det = det1
+    elif det1.confidence is None:
+        winning_det = det2
+    elif det1.confidence[0] >= det2.confidence[0]:
+        winning_det = det1
+    else:
+        winning_det = det2
 
-        merged_x1, merged_y1 = np.minimum(det1.xyxy[0][:2], det2.xyxy[0][:2])
-        merged_x2, merged_y2 = np.maximum(det1.xyxy[0][2:], det2.xyxy[0][2:])
+    area_det1 = (det1.xyxy[0][2] - det1.xyxy[0][0]) * (
+        det1.xyxy[0][3] - det1.xyxy[0][1]
+    )
+    area_det2 = (det2.xyxy[0][2] - det2.xyxy[0][0]) * (
+        det2.xyxy[0][3] - det2.xyxy[0][1]
+    )
 
-        merged_xy = np.array([[merged_x1, merged_y1, merged_x2, merged_y2]])
+    merged_x1, merged_y1 = np.minimum(det1.xyxy[0][:2], det2.xyxy[0][:2])
+    merged_x2, merged_y2 = np.maximum(det1.xyxy[0][2:], det2.xyxy[0][2:])
+    merged_xy = np.array([[merged_x1, merged_y1, merged_x2, merged_y2]])
 
-        winning_class_id = winning_det.class_id
+    if det2.mask is None or det1.mask is None:
+        merged_mask = winning_det.mask
+    else:
+        merged_mask = np.logical_or(det1.mask, det2.mask)
 
-        if det1.confidence is None or det2.confidence is None:
-            merged_confidence = None
-        else:
-            merged_confidence = (
-                area_det1 * det1.confidence[0] + area_det2 * det2.confidence[0]
-            ) / (area_det1 + area_det2)
-            merged_confidence = np.array([merged_confidence])
+    if det1.confidence is None or det2.confidence is None:
+        merged_confidence = winning_det.confidence
+    else:
+        merged_confidence = (
+            area_det1 * det1.confidence[0] + area_det2 * det2.confidence[0]
+        ) / (area_det1 + area_det2)
+        merged_confidence = np.array([merged_confidence])
 
-        merged_mask = None
-        if det1.mask is not None and det2.mask is not None:
-            merged_mask = np.logical_or(det1.mask, det2.mask)
+    winning_class_id = winning_det.class_id
+    winning_tracker_id = winning_det.tracker_id
+    winning_data = winning_det.data
 
-        winning_tracker_id = winning_det.tracker_id
-
-        winning_data = None
-        if det1.data and det2.data:
-            winning_data = winning_det.data
-
-        return Detections(
-            xyxy=merged_xy,
-            mask=merged_mask,
-            confidence=merged_confidence,
-            class_id=winning_class_id,
-            tracker_id=winning_tracker_id,
-            data=winning_data,
-        )
+    return Detections(
+        xyxy=merged_xy,
+        mask=merged_mask,
+        confidence=merged_confidence,
+        class_id=winning_class_id,
+        tracker_id=winning_tracker_id,
+        data=winning_data,
+    )

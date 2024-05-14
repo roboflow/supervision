@@ -274,7 +274,7 @@ def box_non_max_suppression(
     return keep[sort_index.argsort()]
 
 
-def non_max_merge(
+def box_non_max_merge(
     predictions: np.ndarray, threshold: float = 0.5
 ) -> Dict[int, List[int]]:
     """
@@ -353,7 +353,7 @@ def non_max_merge(
     return keep_to_merge_list
 
 
-def batch_non_max_merge(
+def box_batch_non_max_merge(
     predictions: np.ndarray, threshold: float = 0.5
 ) -> Dict[int, List[int]]:
     """
@@ -375,34 +375,15 @@ def batch_non_max_merge(
     keep_to_merge_list = {}
     for category_id in np.unique(category_ids):
         curr_indices = np.where(category_ids == category_id)[0]
-        curr_keep_to_merge_list = non_max_merge(predictions[curr_indices], threshold)
+        curr_keep_to_merge_list = box_non_max_merge(
+            predictions[curr_indices], threshold
+        )
         curr_indices_list = curr_indices.tolist()
         for curr_keep, curr_merge_list in curr_keep_to_merge_list.items():
             keep = curr_indices_list[curr_keep]
             merge_list = [curr_indices_list[i] for i in curr_merge_list]
             keep_to_merge_list[keep] = merge_list
     return keep_to_merge_list
-
-
-def get_merged_bbox(bbox1: np.ndarray, bbox2: np.ndarray) -> np.ndarray:
-    """
-    Merges two bounding boxes into one.
-
-    Args:
-        bbox1 (np.ndarray): A numpy array of shape `(, 4)` where the
-            row corresponds to a bounding box in
-            the format `(x_min, y_min, x_max, y_max)`.
-        bbox2 (np.ndarray): A numpy array of shape `(, 4)` where the
-            row corresponds to a bounding box in
-            the format `(x_min, y_min, x_max, y_max)`.
-
-    Returns:
-        np.ndarray: A numpy array of shape `(, 4)` where the new
-            bounding box is the merged bounding box of `bbox1` and `bbox2`.
-    """
-    left_top = np.minimum(bbox1[0][:2], bbox2[0][:2])
-    right_bottom = np.maximum(bbox1[0][2:], bbox2[0][2:])
-    return np.array([np.concatenate([left_top, right_bottom])])
 
 
 def clip_boxes(xyxy: np.ndarray, resolution_wh: Tuple[int, int]) -> np.ndarray:

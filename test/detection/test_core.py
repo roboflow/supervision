@@ -5,7 +5,7 @@ from typing import List, Optional, Union
 import numpy as np
 import pytest
 
-from supervision.detection.core import Detections
+from supervision.detection.core import Detections, merge_object_detection_pair
 from supervision.geometry.core import Position
 
 PREDICTIONS = np.array(
@@ -421,3 +421,130 @@ def test_equal(
     detections_a: Detections, detections_b: Detections, expected_result: bool
 ) -> None:
     assert (detections_a == detections_b) == expected_result
+
+
+@pytest.mark.parametrize(
+    "detection_1, detection_2, expected_result, exception",
+    [
+        (
+            mock_detections(
+                xyxy=[[10, 10, 30, 30]],
+            ),
+            mock_detections(
+                xyxy=[[10, 10, 30, 30]],
+            ),
+            mock_detections(
+                xyxy=[[10, 10, 30, 30]],
+            ),
+            DoesNotRaise(),
+        ),  # Merge with self
+        (
+            mock_detections(
+                xyxy=[[10, 10, 30, 30]],
+            ),
+            Detections.empty(),
+            None,
+            pytest.raises(ValueError),
+        ),  # merge with empty: error
+        (
+            mock_detections(
+                xyxy=[[10, 10, 30, 30]],
+            ),
+            mock_detections(
+                xyxy=[[10, 10, 30, 30], [40, 40, 60, 60]],
+            ),
+            None,
+            pytest.raises(ValueError),
+        ),  # merge with 2+ objects: error
+        (
+            mock_detections(
+                xyxy=[[10, 10, 30, 30]],
+                confidence=[0.1],
+                class_id=[1],
+                mask=[np.array([[1, 1, 0], [1, 1, 0], [0, 0, 0]], dtype=bool)],
+                tracker_id=[1],
+                data={"key_1": [1]},
+            ),
+            mock_detections(
+                xyxy=[[20, 20, 40, 40]],
+                confidence=[0.1],
+                class_id=[2],
+                mask=[np.array([[0, 0, 0], [0, 1, 1], [0, 1, 1]], dtype=bool)],
+                tracker_id=[2],
+                data={"key_2": [2]},
+            ),
+            mock_detections(
+                xyxy=[[10, 10, 40, 40]],
+                confidence=[0.1],
+                class_id=[1],
+                mask=[np.array([[1, 1, 0], [1, 1, 1], [0, 1, 1]], dtype=bool)],
+                tracker_id=[1],
+                data={"key_1": [1]},
+            ),
+            DoesNotRaise(),
+        ),  # Same confidence - merge box & mask, tiebreak to detection_1
+        (
+            mock_detections(
+                xyxy=[[0, 0, 20, 20]],
+                confidence=[0.1],
+                class_id=[1],
+                mask=[np.array([[1, 1, 0], [1, 1, 0], [0, 0, 0]], dtype=bool)],
+                tracker_id=[1],
+                data={"key_1": [1]},
+            ),
+            mock_detections(
+                xyxy=[[10, 10, 50, 50]],
+                confidence=[0.2],
+                class_id=[2],
+                mask=[np.array([[0, 0, 0], [0, 1, 1], [0, 1, 1]], dtype=bool)],
+                tracker_id=[2],
+                data={"key_2": [2]},
+            ),
+            mock_detections(
+                xyxy=[[0, 0, 50, 50]],
+                confidence=[(1 * 0.1 + 4 * 0.2) / 5],
+                class_id=[2],
+                mask=[np.array([[1, 1, 0], [1, 1, 1], [0, 1, 1]], dtype=bool)],
+                tracker_id=[2],
+                data={"key_2": [2]},
+            ),
+            DoesNotRaise(),
+        ),  # Different confidence, different area
+        (
+            mock_detections(
+                xyxy=[[0, 0, 20, 20]],
+                confidence=None,
+                class_id=[1],
+                mask=[np.array([[1, 1, 0], [1, 1, 0], [0, 0, 0]], dtype=bool)],
+                tracker_id=[1],
+                data={"key_1": [1]},
+            ),
+            mock_detections(
+                xyxy=[[10, 10, 30, 30]],
+                confidence=[0.2],
+                class_id=[2],
+                mask=[np.array([[0, 0, 0], [0, 1, 1], [0, 1, 1]], dtype=bool)],
+                tracker_id=[2],
+                data={"key_2": [2]},
+            ),
+            mock_detections(
+                xyxy=[[0, 0, 30, 30]],
+                confidence=[0.2],
+                class_id=[2],
+                mask=[np.array([[1, 1, 0], [1, 1, 1], [0, 1, 1]], dtype=bool)],
+                tracker_id=[2],
+                data={"key_2": [2]},
+            ),
+            DoesNotRaise(),
+        ),  # merge with no confidence
+    ],
+)
+def test_merge_object_detection_pair(
+    detection_1: Detections,
+    detection_2: Detections,
+    expected_result: Optional[Detections],
+    exception: Exception,
+):
+    with exception:
+        result = merge_object_detection_pair(detection_1, detection_2)
+        assert result == expected_result
