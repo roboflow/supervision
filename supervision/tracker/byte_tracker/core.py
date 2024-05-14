@@ -487,7 +487,7 @@ class ByteTrack:
         self.lost_tracks = sub_tracks(self.lost_tracks, self.tracked_tracks)
         self.lost_tracks.extend(lost_stracks)
         self.lost_tracks = sub_tracks(self.lost_tracks, self.removed_tracks)
-        self.removed_tracks.extend(removed_stracks)
+        self.removed_tracks = removed_stracks
         self.tracked_tracks, self.lost_tracks = remove_duplicate_tracks(
             self.tracked_tracks, self.lost_tracks
         )
