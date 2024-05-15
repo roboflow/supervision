@@ -1125,8 +1125,8 @@ class RichLabelAnnotator:
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating the text background.
             text_color (Color): The color to use for the text.
-            font_path (str): Path to the font file (e.g., ".ttf" or ".otf") to use for rendering text.
-                If `None`, the default PIL font will be used.
+            font_path (str): Path to the font file (e.g., ".ttf" or ".otf") to use for
+                rendering text. If `None`, the default PIL font will be used.
             font_size (int): Font size for the text.
             text_padding (int): Padding around the text within its background box.
             text_position (Position): Position of the text relative to the detection.
