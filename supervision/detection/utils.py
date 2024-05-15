@@ -353,8 +353,8 @@ def box_non_max_merge(
     return keep_to_merge_list
 
 
-def box_batch_non_max_merge(
-    predictions: np.ndarray, threshold: float = 0.5
+def batch_box_non_max_merge(
+    predictions: np.ndarray, iou_threshold: float = 0.5
 ) -> Dict[int, List[int]]:
     """
     Apply greedy version of non-maximum merging per category to avoid detecting
@@ -364,7 +364,7 @@ def box_batch_non_max_merge(
         predictions (np.ndarray): An array of shape `(n, 6)` containing
             the bounding boxes coordinates in format `[x1, y1, x2, y2]`,
             the confidence scores and class_ids.
-        threshold (float, optional): The intersection-over-union threshold
+        iou_threshold (float, optional): The intersection-over-union threshold
             to use for non-maximum suppression. Defaults to 0.5.
 
     Returns:
@@ -376,7 +376,7 @@ def box_batch_non_max_merge(
     for category_id in np.unique(category_ids):
         curr_indices = np.where(category_ids == category_id)[0]
         curr_keep_to_merge_list = box_non_max_merge(
-            predictions[curr_indices], threshold
+            predictions[curr_indices], iou_threshold
         )
         curr_indices_list = curr_indices.tolist()
         for curr_keep, curr_merge_list in curr_keep_to_merge_list.items():

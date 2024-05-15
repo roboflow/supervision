@@ -35,7 +35,7 @@ from supervision.dataset.core import (
     DetectionDataset,
 )
 from supervision.detection.annotate import BoxAnnotator
-from supervision.detection.core import Detections
+from supervision.detection.core import Detections, merge_object_detection_pair
 from supervision.detection.line_zone import LineZone, LineZoneAnnotator
 from supervision.detection.tools.csv_sink import CSVSink
 from supervision.detection.tools.inference_slicer import InferenceSlicer
@@ -43,7 +43,9 @@ from supervision.detection.tools.json_sink import JSONSink
 from supervision.detection.tools.polygon_zone import PolygonZone, PolygonZoneAnnotator
 from supervision.detection.tools.smoother import DetectionsSmoother
 from supervision.detection.utils import (
+    batch_box_non_max_merge,
     box_iou_batch,
+    box_non_max_merge,
     box_non_max_suppression,
     calculate_masks_centroids,
     clip_boxes,

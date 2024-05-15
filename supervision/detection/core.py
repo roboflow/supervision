@@ -8,7 +8,7 @@ import numpy as np
 
 from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.utils import (
-    box_batch_non_max_merge,
+    batch_box_non_max_merge,
     box_iou_batch,
     box_non_max_merge,
     box_non_max_suppression,
@@ -1226,7 +1226,7 @@ class Detections:
                     self.class_id.reshape(-1, 1),
                 )
             )
-            keep_to_merge_list = box_batch_non_max_merge(predictions, threshold)
+            keep_to_merge_list = batch_box_non_max_merge(predictions, threshold)
 
         result = []
         for keep_ind, merge_ind_list in keep_to_merge_list.items():
