@@ -1892,9 +1892,9 @@
 
 
 <a id="supervision.detection.line_zone.LineZone"></a>
-  <div class="doc doc-contents first">
+    <div class="doc doc-contents first">
 
-  
+
       <p>This class is responsible for counting the number of objects that cross a
 predefined line.</p>
 <video controls>
@@ -1911,43 +1911,43 @@ tracking into your inference pipeline.</p>
 </div>
 
 
-
-  <p><span class="doc-section-title">Attributes:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.detection.line_zone.LineZone.in_count">in_count</span></code></td>
-          <td>
-                <code>int</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The number of objects that have crossed the line from outside
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.detection.line_zone.LineZone.in_count">in_count</span></code></td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The number of objects that have crossed the line from outside
 to inside.</p>
-            </div>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.detection.line_zone.LineZone.out_count">out_count</span></code></td>
-          <td>
-                <code>int</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The number of objects that have crossed the line from inside
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.detection.line_zone.LineZone.out_count">out_count</span></code></td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The number of objects that have crossed the line from inside
 to outside.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
 
 <details class="example" open>
   <summary>Example</summary>
@@ -1970,9 +1970,9 @@ to outside.</p>
 <a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="c1"># 7, 2</span>
 </code></pre></div>
 </details>
-            <details class="quote">
-              <summary>Source code in <code>supervision/detection/line_zone.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-12"> 12</a></span>
+              <details class="quote">
+                <summary>Source code in <code>supervision/detection/line_zone.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-12"> 12</a></span>
 <span class="normal"><a href="#__codelineno-0-13"> 13</a></span>
 <span class="normal"><a href="#__codelineno-0-14"> 14</a></span>
 <span class="normal"><a href="#__codelineno-0-15"> 15</a></span>
@@ -2330,9 +2330,9 @@ to outside.</p>
 <a id="__codelineno-0-189" name="__codelineno-0-189"></a>
 <a id="__codelineno-0-190" name="__codelineno-0-190"></a>        <span class="k">return</span> <span class="n">crossed_in</span><span class="p">,</span> <span class="n">crossed_out</span>
 </code></pre></div></td></tr></table></div>
-            </details>
+              </details>
 
-  
+
 
   <div class="doc doc-children">
 
@@ -2344,85 +2344,82 @@ to outside.</p>
 
 <h2 id="supervision.detection.line_zone.LineZone-functions">Functions<a href="#supervision.detection.line_zone.LineZone-functions" class="headerlink" title="Permanent link">&para;</a></h2>
 
-
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.detection.line_zone.LineZone.__init__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">triggering_anchors</span><span class="o">=</span><span class="p">(</span><span class="n">Position</span><span class="o">.</span><span class="n">TOP_LEFT</span><span class="p">,</span> <span class="n">Position</span><span class="o">.</span><span class="n">TOP_RIGHT</span><span class="p">,</span> <span class="n">Position</span><span class="o">.</span><span class="n">BOTTOM_LEFT</span><span class="p">,</span> <span class="n">Position</span><span class="o">.</span><span class="n">BOTTOM_RIGHT</span><span class="p">))</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">triggering_anchors</span><span class="o">=</span><span class="p">(</span><span class="n">Position</span><span class="o">.</span><span class="n">TOP_LEFT</span><span class="p">,</span> <span class="n">Position</span><span class="o">.</span><span class="n">TOP_RIGHT</span><span class="p">,</span> <span class="n">Position</span><span class="o">.</span><span class="n">BOTTOM_LEFT</span><span class="p">,</span> <span class="n">Position</span><span class="o">.</span><span class="n">BOTTOM_RIGHT</span><span class="p">))</span></code>
 
 <a href="#supervision.detection.line_zone.LineZone.__init__" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
 
 
 
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>start</code></td>
-          <td>
-                <code><span title="supervision.geometry.core.Point">Point</span></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The starting point of the line.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
         </tr>
-        <tr class="doc-section-item">
-          <td><code>end</code></td>
-          <td>
-                <code><span title="supervision.geometry.core.Point">Point</span></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The ending point of the line.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>triggering_anchors</code></td>
-          <td>
-                <code>List[<span title="sv.Position">Position</span>]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>A list of positions
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>start</code></td>
+            <td>
+                  <code><span title="supervision.geometry.core.Point">Point</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The starting point of the line.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>end</code></td>
+            <td>
+                  <code><span title="supervision.geometry.core.Point">Point</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The ending point of the line.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>triggering_anchors</code></td>
+            <td>
+                  <code>List[<span title="sv.Position">Position</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A list of positions
 specifying which anchors of the detections bounding box
 to consider when deciding on whether the detection
 has passed the line counter or not. By default, this
 contains the four corners of the detection's bounding box</p>
-            </div>
-          </td>
-          <td>
-                <code>(<span title="supervision.geometry.core.Position.TOP_LEFT">TOP_LEFT</span>, <span title="supervision.geometry.core.Position.TOP_RIGHT">TOP_RIGHT</span>, <span title="supervision.geometry.core.Position.BOTTOM_LEFT">BOTTOM_LEFT</span>, <span title="supervision.geometry.core.Position.BOTTOM_RIGHT">BOTTOM_RIGHT</span>)</code>
-          </td>
-        </tr>
-    </tbody>
-  </table>
+              </div>
+            </td>
+            <td>
+                  <code>(<span title="supervision.geometry.core.Position.TOP_LEFT">TOP_LEFT</span>, <span title="supervision.geometry.core.Position.TOP_RIGHT">TOP_RIGHT</span>, <span title="supervision.geometry.core.Position.BOTTOM_LEFT">BOTTOM_LEFT</span>, <span title="supervision.geometry.core.Position.BOTTOM_RIGHT">BOTTOM_RIGHT</span>)</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
-          <details class="quote">
-            <summary>Source code in <code>supervision/detection/line_zone.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-57">57</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/detection/line_zone.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-57">57</a></span>
 <span class="normal"><a href="#__codelineno-0-58">58</a></span>
 <span class="normal"><a href="#__codelineno-0-59">59</a></span>
 <span class="normal"><a href="#__codelineno-0-60">60</a></span>
@@ -2476,87 +2473,83 @@ contains the four corners of the detection's bounding box</p>
 <a id="__codelineno-0-82" name="__codelineno-0-82"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">out_count</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
 <a id="__codelineno-0-83" name="__codelineno-0-83"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">triggering_anchors</span> <span class="o">=</span> <span class="n">triggering_anchors</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.detection.line_zone.LineZone.trigger" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">trigger</span><span class="p">(</span><span class="n">detections</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">trigger</span><span class="p">(</span><span class="n">detections</span><span class="p">)</span></code>
 
 <a href="#supervision.detection.line_zone.LineZone.trigger" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Update the <code>in_count</code> and <code>out_count</code> based on the objects that cross the line.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>detections</code></td>
-          <td>
-                <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../../core/#supervision.detection.core.Detections">Detections</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>A list of detections for which to update the
-counts.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
         </tr>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>detections</code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../../core/#supervision.detection.core.Detections">Detections</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A list of detections for which to update the
+counts.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td>
-                <code><span title="typing.Tuple">Tuple</span>[<span title="numpy.ndarray">ndarray</span>, <span title="numpy.ndarray">ndarray</span>]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>A tuple of two boolean NumPy arrays. The first array indicates which
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="typing.Tuple">Tuple</span>[<span title="numpy.ndarray">ndarray</span>, <span title="numpy.ndarray">ndarray</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A tuple of two boolean NumPy arrays. The first array indicates which
 detections have crossed the line from outside to inside. The second
 array indicates which detections have crossed the line from inside to
 outside.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
-          <details class="quote">
-            <summary>Source code in <code>supervision/detection/line_zone.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-123">123</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/detection/line_zone.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-123">123</a></span>
 <span class="normal"><a href="#__codelineno-0-124">124</a></span>
 <span class="normal"><a href="#__codelineno-0-125">125</a></span>
 <span class="normal"><a href="#__codelineno-0-126">126</a></span>
@@ -2692,8 +2685,8 @@ outside.</p>
 <a id="__codelineno-0-189" name="__codelineno-0-189"></a>
 <a id="__codelineno-0-190" name="__codelineno-0-190"></a>    <span class="k">return</span> <span class="n">crossed_in</span><span class="p">,</span> <span class="n">crossed_out</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
 
@@ -2701,8 +2694,7 @@ outside.</p>
 
   </div>
 
-  </div>
-
+    </div>
 
 </div><div class="md-typeset">
   <h2>LineZoneAnnotator</h2>
@@ -2715,12 +2707,12 @@ outside.</p>
 
 
 <a id="supervision.detection.line_zone.LineZoneAnnotator"></a>
-  <div class="doc doc-contents first">
+    <div class="doc doc-contents first">
 
 
-            <details class="quote">
-              <summary>Source code in <code>supervision/detection/line_zone.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-193">193</a></span>
+              <details class="quote">
+                <summary>Source code in <code>supervision/detection/line_zone.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-193">193</a></span>
 <span class="normal"><a href="#__codelineno-0-194">194</a></span>
 <span class="normal"><a href="#__codelineno-0-195">195</a></span>
 <span class="normal"><a href="#__codelineno-0-196">196</a></span>
@@ -3012,9 +3004,9 @@ outside.</p>
 <a id="__codelineno-0-337" name="__codelineno-0-337"></a>            <span class="p">)</span>
 <a id="__codelineno-0-338" name="__codelineno-0-338"></a>        <span class="k">return</span> <span class="n">frame</span>
 </code></pre></div></td></tr></table></div>
-            </details>
+              </details>
 
-  
+
 
   <div class="doc doc-children">
 
@@ -3026,138 +3018,135 @@ outside.</p>
 
 <h2 id="supervision.detection.line_zone.LineZoneAnnotator-functions">Functions<a href="#supervision.detection.line_zone.LineZoneAnnotator-functions" class="headerlink" title="Permanent link">&para;</a></h2>
 
-
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.detection.line_zone.LineZoneAnnotator.__init__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">thickness</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">WHITE</span><span class="p">,</span> <span class="n">text_thickness</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">text_color</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">BLACK</span><span class="p">,</span> <span class="n">text_scale</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">text_offset</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span> <span class="n">text_padding</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">custom_in_text</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">custom_out_text</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">display_in_count</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">display_out_count</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">thickness</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">WHITE</span><span class="p">,</span> <span class="n">text_thickness</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">text_color</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">BLACK</span><span class="p">,</span> <span class="n">text_scale</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">text_offset</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span> <span class="n">text_padding</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">custom_in_text</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">custom_out_text</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">display_in_count</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">display_out_count</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></code>
 
 <a href="#supervision.detection.line_zone.LineZoneAnnotator.__init__" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Initialize the LineCounterAnnotator object with default values.</p>
 
 
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.detection.line_zone.LineZoneAnnotator.__init__.thickness">thickness</span></code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The thickness of the line that will be drawn.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.detection.line_zone.LineZoneAnnotator.__init__.color">color</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="supervision.draw.color.Color" href="../../../utils/draw/#supervision.draw.color.Color">Color</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The color of the line that will be drawn.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.detection.line_zone.LineZoneAnnotator.__init__.text_thickness">text_thickness</span></code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The thickness of the text that will be drawn.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.detection.line_zone.LineZoneAnnotator.__init__.text_color">text_color</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="supervision.draw.color.Color" href="../../../utils/draw/#supervision.draw.color.Color">Color</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The color of the text that will be drawn.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.detection.line_zone.LineZoneAnnotator.__init__.text_scale">text_scale</span></code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The scale of the text that will be drawn.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.detection.line_zone.LineZoneAnnotator.__init__.text_offset">text_offset</span></code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The offset of the text that will be drawn.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.detection.line_zone.LineZoneAnnotator.__init__.text_padding">text_padding</span></code></td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The padding of the text that will be drawn.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.detection.line_zone.LineZoneAnnotator.__init__.display_in_count">display_in_count</span></code></td>
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Whether to display the in count or not.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.detection.line_zone.LineZoneAnnotator.__init__.display_out_count">display_out_count</span></code></td>
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Whether to display the out count or not.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
-  <p><span class="doc-section-title">Attributes:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.detection.line_zone.LineZoneAnnotator.__init__.thickness">thickness</span></code></td>
-          <td>
-                <code>float</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The thickness of the line that will be drawn.</p>
-            </div>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.detection.line_zone.LineZoneAnnotator.__init__.color">color</span></code></td>
-          <td>
-                <code><a class="autorefs autorefs-internal" title="supervision.draw.color.Color" href="../../../utils/draw/#supervision.draw.color.Color">Color</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The color of the line that will be drawn.</p>
-            </div>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.detection.line_zone.LineZoneAnnotator.__init__.text_thickness">text_thickness</span></code></td>
-          <td>
-                <code>float</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The thickness of the text that will be drawn.</p>
-            </div>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.detection.line_zone.LineZoneAnnotator.__init__.text_color">text_color</span></code></td>
-          <td>
-                <code><a class="autorefs autorefs-internal" title="supervision.draw.color.Color" href="../../../utils/draw/#supervision.draw.color.Color">Color</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The color of the text that will be drawn.</p>
-            </div>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.detection.line_zone.LineZoneAnnotator.__init__.text_scale">text_scale</span></code></td>
-          <td>
-                <code>float</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The scale of the text that will be drawn.</p>
-            </div>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.detection.line_zone.LineZoneAnnotator.__init__.text_offset">text_offset</span></code></td>
-          <td>
-                <code>float</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The offset of the text that will be drawn.</p>
-            </div>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.detection.line_zone.LineZoneAnnotator.__init__.text_padding">text_padding</span></code></td>
-          <td>
-                <code>int</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The padding of the text that will be drawn.</p>
-            </div>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.detection.line_zone.LineZoneAnnotator.__init__.display_in_count">display_in_count</span></code></td>
-          <td>
-                <code>bool</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Whether to display the in count or not.</p>
-            </div>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.detection.line_zone.LineZoneAnnotator.__init__.display_out_count">display_out_count</span></code></td>
-          <td>
-                <code>bool</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Whether to display the out count or not.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
-
-          <details class="quote">
-            <summary>Source code in <code>supervision/detection/line_zone.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-194">194</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/detection/line_zone.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-194">194</a></span>
 <span class="normal"><a href="#__codelineno-0-195">195</a></span>
 <span class="normal"><a href="#__codelineno-0-196">196</a></span>
 <span class="normal"><a href="#__codelineno-0-197">197</a></span>
@@ -3237,91 +3226,87 @@ outside.</p>
 <a id="__codelineno-0-232" name="__codelineno-0-232"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">display_in_count</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">display_in_count</span>
 <a id="__codelineno-0-233" name="__codelineno-0-233"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">display_out_count</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">display_out_count</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.detection.line_zone.LineZoneAnnotator.annotate" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">line_counter</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">line_counter</span><span class="p">)</span></code>
 
 <a href="#supervision.detection.line_zone.LineZoneAnnotator.annotate" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Draws the line on the frame using the line_counter provided.</p>
 
 
-
-  <p><span class="doc-section-title">Attributes:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.detection.line_zone.LineZoneAnnotator.annotate.frame">frame</span></code></td>
-          <td>
-                <code><span title="numpy.ndarray">ndarray</span></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The image on which the line will be drawn.</p>
-            </div>
-          </td>
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
         </tr>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.detection.line_zone.LineZoneAnnotator.annotate.line_counter">line_counter</span></code></td>
-          <td>
-                <code>LineCounter</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The line counter
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.detection.line_zone.LineZoneAnnotator.annotate.frame">frame</span></code></td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The image on which the line will be drawn.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.detection.line_zone.LineZoneAnnotator.annotate.line_counter">line_counter</span></code></td>
+            <td>
+                  <code>LineCounter</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The line counter
 that will be used to draw the line.</p>
-            </div>
-          </td>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>np.ndarray: The image with the line drawn on it.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
-
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td>
-                <code><span title="numpy.ndarray">ndarray</span></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>np.ndarray: The image with the line drawn on it.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
-
-          <details class="quote">
-            <summary>Source code in <code>supervision/detection/line_zone.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-270">270</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/detection/line_zone.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-270">270</a></span>
 <span class="normal"><a href="#__codelineno-0-271">271</a></span>
 <span class="normal"><a href="#__codelineno-0-272">272</a></span>
 <span class="normal"><a href="#__codelineno-0-273">273</a></span>
@@ -3459,8 +3444,8 @@ that will be used to draw the line.</p>
 <a id="__codelineno-0-337" name="__codelineno-0-337"></a>        <span class="p">)</span>
 <a id="__codelineno-0-338" name="__codelineno-0-338"></a>    <span class="k">return</span> <span class="n">frame</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
 
@@ -3468,8 +3453,7 @@ that will be used to draw the line.</p>
 
   </div>
 
-  </div>
-
+    </div>
 
 </div>
 

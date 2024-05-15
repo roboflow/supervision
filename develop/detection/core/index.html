@@ -2224,9 +2224,9 @@
 
 
 <a id="supervision.detection.core.Detections"></a>
-  <div class="doc doc-contents first">
+    <div class="doc doc-contents first">
 
-  
+
       <p>The <code>sv.Detections</code> class in the Supervision library standardizes results from
 various object detection and segmentation models into a consistent format. This
 class simplifies data manipulation and filtering, providing a uniform API for
@@ -2289,96 +2289,95 @@ method, which accepts model results from both detection and segmentation models.
 </div>
 
 
-
-  <p><span class="doc-section-title">Attributes:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.detection.core.Detections.xyxy">xyxy</span></code></td>
-          <td>
-                <code><span title="numpy.ndarray">ndarray</span></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>An array of shape <code>(n, 4)</code> containing
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.detection.core.Detections.xyxy">xyxy</span></code></td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>An array of shape <code>(n, 4)</code> containing
 the bounding boxes coordinates in format <code>[x1, y1, x2, y2]</code></p>
-            </div>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.detection.core.Detections.mask">mask</span></code></td>
-          <td>
-                <code><span title="typing.Optional">Optional</span>[<span title="numpy.ndarray">ndarray</span>]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>(Optional[np.ndarray]): An array of shape
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.detection.core.Detections.mask">mask</span></code></td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="numpy.ndarray">ndarray</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(Optional[np.ndarray]): An array of shape
 <code>(n, H, W)</code> containing the segmentation masks.</p>
-            </div>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.detection.core.Detections.confidence">confidence</span></code></td>
-          <td>
-                <code><span title="typing.Optional">Optional</span>[<span title="numpy.ndarray">ndarray</span>]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>An array of shape
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.detection.core.Detections.confidence">confidence</span></code></td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="numpy.ndarray">ndarray</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>An array of shape
 <code>(n,)</code> containing the confidence scores of the detections.</p>
-            </div>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.detection.core.Detections.class_id">class_id</span></code></td>
-          <td>
-                <code><span title="typing.Optional">Optional</span>[<span title="numpy.ndarray">ndarray</span>]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>An array of shape
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.detection.core.Detections.class_id">class_id</span></code></td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="numpy.ndarray">ndarray</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>An array of shape
 <code>(n,)</code> containing the class ids of the detections.</p>
-            </div>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.detection.core.Detections.tracker_id">tracker_id</span></code></td>
-          <td>
-                <code><span title="typing.Optional">Optional</span>[<span title="numpy.ndarray">ndarray</span>]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>An array of shape
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.detection.core.Detections.tracker_id">tracker_id</span></code></td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="numpy.ndarray">ndarray</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>An array of shape
 <code>(n,)</code> containing the tracker ids of the detections.</p>
-            </div>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.detection.core.Detections.data">data</span></code></td>
-          <td>
-                <code><span title="typing.Dict">Dict</span>[str, <span title="typing.Union">Union</span>[<span title="numpy.ndarray">ndarray</span>, <span title="typing.List">List</span>]]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>A dictionary containing additional
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.detection.core.Detections.data">data</span></code></td>
+            <td>
+                  <code><span title="typing.Dict">Dict</span>[str, <span title="typing.Union">Union</span>[<span title="numpy.ndarray">ndarray</span>, <span title="typing.List">List</span>]]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A dictionary containing additional
 data where each key is a string representing the data type, and the value
 is either a NumPy array or a list of corresponding data.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
-            <details class="quote">
-              <summary>Source code in <code>supervision/detection/core.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-27">  27</a></span>
+              <details class="quote">
+                <summary>Source code in <code>supervision/detection/core.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-27">  27</a></span>
 <span class="normal"><a href="#__codelineno-0-28">  28</a></span>
 <span class="normal"><a href="#__codelineno-0-29">  29</a></span>
 <span class="normal"><a href="#__codelineno-0-30">  30</a></span>
@@ -4630,9 +4629,9 @@ is either a NumPy array or a list of corresponding data.</p>
 <a id="__codelineno-0-1151" name="__codelineno-0-1151"></a>
 <a id="__codelineno-0-1152" name="__codelineno-0-1152"></a>        <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="n">indices</span><span class="p">]</span>
 </code></pre></div></td></tr></table></div>
-            </details>
+              </details>
 
-  
+
 
   <div class="doc doc-children">
 
@@ -4647,8 +4646,8 @@ is either a NumPy array or a list of corresponding data.</p>
 
 
 <h3 id="supervision.detection.core.Detections.area" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>          <code class="highlight language-python"><span class="n">area</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span></code>
-  
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <code class="highlight language-python"><span class="n">area</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span></code>
+
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-property"><code>property</code></small>
   </span>
@@ -4656,38 +4655,37 @@ is either a NumPy array or a list of corresponding data.</p>
 <a href="#supervision.detection.core.Detections.area" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Calculate the area of each detection in the set of object detections.
 If masks field is defined property returns are of each mask.
 If only box is given property return area of each box.</p>
 
 
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td>
-                <code><span title="numpy.ndarray">ndarray</span></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>np.ndarray: An array of floats containing the area of each detection
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>np.ndarray: An array of floats containing the area of each detection
 in the format of <code>(area_1, area_2, , area_n)</code>,
 where n is the number of detections.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
-  </div>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+    </div>
 
 </div>
 
@@ -4696,8 +4694,8 @@ where n is the number of detections.</p>
 
 
 <h3 id="supervision.detection.core.Detections.box_area" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>          <code class="highlight language-python"><span class="n">box_area</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span></code>
-  
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <code class="highlight language-python"><span class="n">box_area</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span></code>
+
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-property"><code>property</code></small>
   </span>
@@ -4705,54 +4703,51 @@ where n is the number of detections.</p>
 <a href="#supervision.detection.core.Detections.box_area" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Calculate the area of each bounding box in the set of object detections.</p>
 
 
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td>
-                <code><span title="numpy.ndarray">ndarray</span></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>np.ndarray: An array of floats containing the area of each bounding
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>np.ndarray: An array of floats containing the area of each bounding
 box in the format of <code>(area_1, area_2, , area_n)</code>,
 where n is the number of detections.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
-  </div>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+    </div>
 
 </div>
 
 <h2 id="supervision.detection.core.Detections-functions">Functions<a href="#supervision.detection.core.Detections-functions" class="headerlink" title="Permanent link">&para;</a></h2>
 
-
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.detection.core.Detections.__getitem__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="fm">__getitem__</span><span class="p">(</span><span class="n">index</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__getitem__</span><span class="p">(</span><span class="n">index</span><span class="p">)</span></code>
 
 <a href="#supervision.detection.core.Detections.__getitem__" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Get a subset of the Detections object or access an item from its data field.</p>
 <p>When provided with an integer, slice, list of integers, or a numpy array, this
 method returns a new Detections object that represents a subset of the original
@@ -4760,60 +4755,59 @@ detections. When provided with a string, it accesses the corresponding item in
 the data dictionary.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>index</code></td>
-          <td>
-                <code><span title="typing.Union">Union</span>[int, slice, <span title="typing.List">List</span>[int], <span title="numpy.ndarray">ndarray</span>, str]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The index, indices,
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>index</code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[int, slice, <span title="typing.List">List</span>[int], <span title="numpy.ndarray">ndarray</span>, str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The index, indices,
 or key to access a subset of the Detections or an item from the data.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
-
-
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td>
-                <code><span title="typing.Union">Union</span>[<a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a>, <span title="typing.List">List</span>, <span title="numpy.ndarray">ndarray</span>, None]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Union[Detections, Any]: A subset of the Detections object or an item from
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="typing.Union">Union</span>[<a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a>, <span title="typing.List">List</span>, <span title="numpy.ndarray">ndarray</span>, None]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Union[Detections, Any]: A subset of the Detections object or an item from
 the data field.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
 
 <details class="example" open>
   <summary>Example</summary>
@@ -4830,9 +4824,9 @@ the data field.</p>
 <a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="n">feature_vector</span> <span class="o">=</span> <span class="n">detections</span><span class="p">[</span><span class="s1">&#39;feature_vector&#39;</span><span class="p">]</span>
 </code></pre></div>
 </details>
-          <details class="quote">
-            <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-987"> 987</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/detection/core.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-987"> 987</a></span>
 <span class="normal"><a href="#__codelineno-0-988"> 988</a></span>
 <span class="normal"><a href="#__codelineno-0-989"> 989</a></span>
 <span class="normal"><a href="#__codelineno-0-990"> 990</a></span>
@@ -4924,30 +4918,28 @@ the data field.</p>
 <a id="__codelineno-0-1031" name="__codelineno-0-1031"></a>        <span class="n">data</span><span class="o">=</span><span class="n">get_data_item</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">index</span><span class="p">),</span>
 <a id="__codelineno-0-1032" name="__codelineno-0-1032"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.detection.core.Detections.__iter__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="fm">__iter__</span><span class="p">()</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__iter__</span><span class="p">()</span></code>
 
 <a href="#supervision.detection.core.Detections.__iter__" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Iterates over the Detections object and yield a tuple of
 <code>(xyxy, mask, confidence, class_id, tracker_id, data)</code> for each detection.</p>
 
-          <details class="quote">
-            <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-135">135</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/detection/core.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-135">135</a></span>
 <span class="normal"><a href="#__codelineno-0-136">136</a></span>
 <span class="normal"><a href="#__codelineno-0-137">137</a></span>
 <span class="normal"><a href="#__codelineno-0-138">138</a></span>
@@ -4997,29 +4989,27 @@ the data field.</p>
 <a id="__codelineno-0-158" name="__codelineno-0-158"></a>            <span class="n">get_data_item</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span>
 <a id="__codelineno-0-159" name="__codelineno-0-159"></a>        <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.detection.core.Detections.__len__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="fm">__len__</span><span class="p">()</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__len__</span><span class="p">()</span></code>
 
 <a href="#supervision.detection.core.Detections.__len__" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Returns the number of detections in the Detections object.</p>
 
-          <details class="quote">
-            <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-129">129</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/detection/core.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-129">129</a></span>
 <span class="normal"><a href="#__codelineno-0-130">130</a></span>
 <span class="normal"><a href="#__codelineno-0-131">131</a></span>
 <span class="normal"><a href="#__codelineno-0-132">132</a></span>
@@ -5029,69 +5019,67 @@ the data field.</p>
 <a id="__codelineno-0-132" name="__codelineno-0-132"></a><span class="sd">    &quot;&quot;&quot;</span>
 <a id="__codelineno-0-133" name="__codelineno-0-133"></a>    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.detection.core.Detections.__setitem__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="fm">__setitem__</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__setitem__</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span></code>
 
 <a href="#supervision.detection.core.Detections.__setitem__" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Set a value in the data dictionary of the Detections object.</p>
 
 
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>key</code></td>
+            <td>
+                  <code>str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The key in the data dictionary to set.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>value</code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[<span title="numpy.ndarray">ndarray</span>, <span title="typing.List">List</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The value to set for the key.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>key</code></td>
-          <td>
-                <code>str</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The key in the data dictionary to set.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>value</code></td>
-          <td>
-                <code><span title="typing.Union">Union</span>[<span title="numpy.ndarray">ndarray</span>, <span title="typing.List">List</span>]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The value to set for the key.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
-        </tr>
-    </tbody>
-  </table>
 
 <details class="example" open>
   <summary>Example</summary>
@@ -5112,9 +5100,9 @@ the data field.</p>
 <a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a> <span class="p">]</span>
 </code></pre></div>
 </details>
-          <details class="quote">
-            <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1034">1034</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/detection/core.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1034">1034</a></span>
 <span class="normal"><a href="#__codelineno-0-1035">1035</a></span>
 <span class="normal"><a href="#__codelineno-0-1036">1036</a></span>
 <span class="normal"><a href="#__codelineno-0-1037">1037</a></span>
@@ -5182,19 +5170,17 @@ the data field.</p>
 <a id="__codelineno-0-1066" name="__codelineno-0-1066"></a>
 <a id="__codelineno-0-1067" name="__codelineno-0-1067"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.detection.core.Detections.empty" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">empty</span><span class="p">()</span></code>
-  
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">empty</span><span class="p">()</span></code>
+
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
   </span>
@@ -5202,34 +5188,34 @@ the data field.</p>
 <a href="#supervision.detection.core.Detections.empty" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Create an empty Detections object with no bounding boxes,
     confidences, or class IDs.</p>
 
 
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td>
-                <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>An empty Detections object.</p>
-            </div>
-          </td>
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>An empty Detections object.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
 
 <details class="example" open>
   <summary>Example</summary>
@@ -5238,9 +5224,9 @@ the data field.</p>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">empty_detections</span> <span class="o">=</span> <span class="n">Detections</span><span class="o">.</span><span class="n">empty</span><span class="p">()</span>
 </code></pre></div>
 </details>
-          <details class="quote">
-            <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-808">808</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/detection/core.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-808">808</a></span>
 <span class="normal"><a href="#__codelineno-0-809">809</a></span>
 <span class="normal"><a href="#__codelineno-0-810">810</a></span>
 <span class="normal"><a href="#__codelineno-0-811">811</a></span>
@@ -5282,19 +5268,17 @@ the data field.</p>
 <a id="__codelineno-0-827" name="__codelineno-0-827"></a>        <span class="n">class_id</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">),</span>
 <a id="__codelineno-0-828" name="__codelineno-0-828"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.detection.core.Detections.from_azure_analyze_image" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">from_azure_analyze_image</span><span class="p">(</span><span class="n">azure_result</span><span class="p">,</span> <span class="n">class_map</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
-  
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_azure_analyze_image</span><span class="p">(</span><span class="n">azure_result</span><span class="p">,</span> <span class="n">class_map</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
   </span>
@@ -5302,80 +5286,79 @@ the data field.</p>
 <a href="#supervision.detection.core.Detections.from_azure_analyze_image" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Creates a Detections instance from <a href="https://learn.microsoft.com/en-us/azure/ai-services/computer-vision/
 concept-object-detection-40">Azure Image Analysis 4.0</a>.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>azure_result</code></td>
-          <td>
-                <code>dict</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The result from Azure Image Analysis. It should
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>azure_result</code></td>
+            <td>
+                  <code>dict</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The result from Azure Image Analysis. It should
 contain detected objects and their bounding box coordinates.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>class_map</code></td>
-          <td>
-                <code><span title="typing.Optional">Optional</span>[<span title="typing.Dict">Dict</span>[int, str]]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>A mapping ofclass IDs (int) to class
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>class_map</code></td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="typing.Dict">Dict</span>[int, str]]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A mapping ofclass IDs (int) to class
 names (str). If None, a new mapping is created dynamically.</p>
-            </div>
-          </td>
-          <td>
-                <code>None</code>
-          </td>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>Detections</code></td>            <td>
+                  <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A new Detections object.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
-
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-<th>Name</th>        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-<td><code>Detections</code></td>          <td>
-                <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>A new Detections object.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
 
 <details class="example" open>
   <summary>Example</summary>
@@ -5400,9 +5383,9 @@ names (str). If None, a new mapping is created dynamically.</p>
 <a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_azure_analyze_image</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
 </code></pre></div>
 </details>
-          <details class="quote">
-            <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-679">679</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/detection/core.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-679">679</a></span>
 <span class="normal"><a href="#__codelineno-0-680">680</a></span>
 <span class="normal"><a href="#__codelineno-0-681">681</a></span>
 <span class="normal"><a href="#__codelineno-0-682">682</a></span>
@@ -5574,19 +5557,17 @@ names (str). If None, a new mapping is created dynamically.</p>
 <a id="__codelineno-0-763" name="__codelineno-0-763"></a>        <span class="n">confidence</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">confidences</span><span class="p">),</span>
 <a id="__codelineno-0-764" name="__codelineno-0-764"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.detection.core.Detections.from_deepsparse" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">from_deepsparse</span><span class="p">(</span><span class="n">deepsparse_results</span><span class="p">)</span></code>
-  
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_deepsparse</span><span class="p">(</span><span class="n">deepsparse_results</span><span class="p">)</span></code>
+
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
   </span>
@@ -5594,65 +5575,64 @@ names (str). If None, a new mapping is created dynamically.</p>
 <a href="#supervision.detection.core.Detections.from_deepsparse" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Creates a Detections instance from a
 <a href="https://github.com/neuralmagic/deepsparse">DeepSparse</a>
 inference result.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>deepsparse_results</code></td>
-          <td>
-                <code><span title="deepsparse.yolo.schemas.YOLOOutput">YOLOOutput</span></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The output Results instance from DeepSparse.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
         </tr>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>deepsparse_results</code></td>
+            <td>
+                  <code><span title="deepsparse.yolo.schemas.YOLOOutput">YOLOOutput</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The output Results instance from DeepSparse.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-<th>Name</th>        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-<td><code>Detections</code></td>          <td>
-                <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>A new Detections object.</p>
-            </div>
-          </td>
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>Detections</code></td>            <td>
+                  <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A new Detections object.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
 
 <details class="example" open>
   <summary>Example</summary>
@@ -5667,9 +5647,9 @@ inference result.</p>
 <a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_deepsparse</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </code></pre></div>
 </details>
-          <details class="quote">
-            <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-352">352</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/detection/core.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-352">352</a></span>
 <span class="normal"><a href="#__codelineno-0-353">353</a></span>
 <span class="normal"><a href="#__codelineno-0-354">354</a></span>
 <span class="normal"><a href="#__codelineno-0-355">355</a></span>
@@ -5741,19 +5721,17 @@ inference result.</p>
 <a id="__codelineno-0-386" name="__codelineno-0-386"></a>        <span class="n">class_id</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">deepsparse_results</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">),</span>
 <a id="__codelineno-0-387" name="__codelineno-0-387"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.detection.core.Detections.from_detectron2" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">from_detectron2</span><span class="p">(</span><span class="n">detectron2_results</span><span class="p">)</span></code>
-  
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_detectron2</span><span class="p">(</span><span class="n">detectron2_results</span><span class="p">)</span></code>
+
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
   </span>
@@ -5761,65 +5739,64 @@ inference result.</p>
 <a href="#supervision.detection.core.Detections.from_detectron2" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Create a Detections object from the
 <a href="https://github.com/facebookresearch/detectron2">Detectron2</a> inference result.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>detectron2_results</code></td>
-          <td>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The output of a
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>detectron2_results</code></td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The output of a
 Detectron2 model containing instances with prediction data.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
-
-
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td>
-                <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>A Detections object containing the bounding boxes,
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A Detections object containing the bounding boxes,
 class IDs, and confidences of the predictions.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
 
 <details class="example" open>
   <summary>Example</summary>
@@ -5839,9 +5816,9 @@ class IDs, and confidences of the predictions.</p>
 <a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_detectron2</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </code></pre></div>
 </details>
-          <details class="quote">
-            <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-502">502</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/detection/core.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-502">502</a></span>
 <span class="normal"><a href="#__codelineno-0-503">503</a></span>
 <span class="normal"><a href="#__codelineno-0-504">504</a></span>
 <span class="normal"><a href="#__codelineno-0-505">505</a></span>
@@ -5923,19 +5900,17 @@ class IDs, and confidences of the predictions.</p>
 <a id="__codelineno-0-541" name="__codelineno-0-541"></a>        <span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">),</span>
 <a id="__codelineno-0-542" name="__codelineno-0-542"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.detection.core.Detections.from_inference" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">from_inference</span><span class="p">(</span><span class="n">roboflow_result</span><span class="p">)</span></code>
-  
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_inference</span><span class="p">(</span><span class="n">roboflow_result</span><span class="p">)</span></code>
+
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
   </span>
@@ -5943,8 +5918,8 @@ class IDs, and confidences of the predictions.</p>
 <a href="#supervision.detection.core.Detections.from_inference" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Create a <code>sv.Detections</code> object from the <a href="https://roboflow.com/">Roboflow</a>
 API inference result or the <a href="https://inference.roboflow.com/">Inference</a>
 package results. This method extracts bounding boxes, class IDs,
@@ -5952,60 +5927,59 @@ confidences, and class names from the Roboflow API result and encapsulates
 them into a Detections object.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>roboflow_result</code></td>
-          <td>
-                <code>(dict, any)</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The result from the
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>roboflow_result</code></td>
+            <td>
+                  <code>(dict, any)</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The result from the
 Roboflow API or Inference package containing predictions.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
-
-
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td>
-                <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>A Detections object containing the bounding boxes, class IDs,
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A Detections object containing the bounding boxes, class IDs,
 and confidences of the predictions.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
 
 <details class="example" open>
   <summary>Example</summary>
@@ -6024,9 +5998,9 @@ and confidences of the predictions.</p>
 <p>Class names values can be accessed using <code>detections["class_name"]</code>.</p>
 </div>
 
-          <details class="quote">
-            <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-544">544</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/detection/core.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-544">544</a></span>
 <span class="normal"><a href="#__codelineno-0-545">545</a></span>
 <span class="normal"><a href="#__codelineno-0-546">546</a></span>
 <span class="normal"><a href="#__codelineno-0-547">547</a></span>
@@ -6132,19 +6106,17 @@ and confidences of the predictions.</p>
 <a id="__codelineno-0-595" name="__codelineno-0-595"></a>        <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
 <a id="__codelineno-0-596" name="__codelineno-0-596"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.detection.core.Detections.from_mmdetection" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">from_mmdetection</span><span class="p">(</span><span class="n">mmdet_results</span><span class="p">)</span></code>
-  
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_mmdetection</span><span class="p">(</span><span class="n">mmdet_results</span><span class="p">)</span></code>
+
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
   </span>
@@ -6152,65 +6124,64 @@ and confidences of the predictions.</p>
 <a href="#supervision.detection.core.Detections.from_mmdetection" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Creates a Detections instance from a
 <a href="https://github.com/open-mmlab/mmdetection">mmdetection</a> and
 <a href="https://github.com/open-mmlab/mmyolo">mmyolo</a> inference result.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>mmdet_results</code></td>
-          <td>
-                <code><span title="mmdet.structures.DetDataSample">DetDataSample</span></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The output Results instance from MMDetection.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
         </tr>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>mmdet_results</code></td>
+            <td>
+                  <code><span title="mmdet.structures.DetDataSample">DetDataSample</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The output Results instance from MMDetection.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-<th>Name</th>        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-<td><code>Detections</code></td>          <td>
-                <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>A new Detections object.</p>
-            </div>
-          </td>
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>Detections</code></td>            <td>
+                  <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A new Detections object.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
 
 <details class="example" open>
   <summary>Example</summary>
@@ -6225,9 +6196,9 @@ and confidences of the predictions.</p>
 <a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_mmdetection</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </code></pre></div>
 </details>
-          <details class="quote">
-            <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-389">389</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/detection/core.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-389">389</a></span>
 <span class="normal"><a href="#__codelineno-0-390">390</a></span>
 <span class="normal"><a href="#__codelineno-0-391">391</a></span>
 <span class="normal"><a href="#__codelineno-0-392">392</a></span>
@@ -6299,19 +6270,17 @@ and confidences of the predictions.</p>
 <a id="__codelineno-0-423" name="__codelineno-0-423"></a>        <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
 <a id="__codelineno-0-424" name="__codelineno-0-424"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.detection.core.Detections.from_paddledet" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">from_paddledet</span><span class="p">(</span><span class="n">paddledet_result</span><span class="p">)</span></code>
-  
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_paddledet</span><span class="p">(</span><span class="n">paddledet_result</span><span class="p">)</span></code>
+
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
   </span>
@@ -6319,65 +6288,64 @@ and confidences of the predictions.</p>
 <a href="#supervision.detection.core.Detections.from_paddledet" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Creates a Detections instance from
     <a href="https://github.com/PaddlePaddle/PaddleDetection">PaddleDetection</a>
     inference result.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>paddledet_result</code></td>
-          <td>
-                <code><span title="typing.List">List</span>[dict]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The output Results instance from PaddleDet</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
         </tr>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>paddledet_result</code></td>
+            <td>
+                  <code><span title="typing.List">List</span>[dict]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The output Results instance from PaddleDet</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-<th>Name</th>        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-<td><code>Detections</code></td>          <td>
-                <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>A new Detections object.</p>
-            </div>
-          </td>
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>Detections</code></td>            <td>
+                  <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A new Detections object.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
 
 <details class="example" open>
   <summary>Example</summary>
@@ -6398,9 +6366,9 @@ and confidences of the predictions.</p>
 <a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_paddledet</span><span class="p">(</span><span class="n">paddledet_result</span><span class="p">)</span>
 </code></pre></div>
 </details>
-          <details class="quote">
-            <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-766">766</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/detection/core.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-766">766</a></span>
 <span class="normal"><a href="#__codelineno-0-767">767</a></span>
 <span class="normal"><a href="#__codelineno-0-768">768</a></span>
 <span class="normal"><a href="#__codelineno-0-769">769</a></span>
@@ -6482,19 +6450,17 @@ and confidences of the predictions.</p>
 <a id="__codelineno-0-805" name="__codelineno-0-805"></a>        <span class="n">class_id</span><span class="o">=</span><span class="n">paddledet_result</span><span class="p">[</span><span class="s2">&quot;bbox&quot;</span><span class="p">][:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">),</span>
 <a id="__codelineno-0-806" name="__codelineno-0-806"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.detection.core.Detections.from_roboflow" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">from_roboflow</span><span class="p">(</span><span class="n">roboflow_result</span><span class="p">)</span></code>
-  
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_roboflow</span><span class="p">(</span><span class="n">roboflow_result</span><span class="p">)</span></code>
+
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
   </span>
@@ -6502,8 +6468,8 @@ and confidences of the predictions.</p>
 <a href="#supervision.detection.core.Detections.from_roboflow" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <div class="admonition failure">
 <p class="admonition-title">Deprecated</p>
 <p><code>Detections.from_roboflow</code> is deprecated and will be removed in
@@ -6514,60 +6480,59 @@ and confidences of the predictions.</p>
     package results.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>roboflow_result</code></td>
-          <td>
-                <code>dict</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The result from the
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>roboflow_result</code></td>
+            <td>
+                  <code>dict</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The result from the
 Roboflow API containing predictions.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
-
-
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td>
-                <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>A Detections object containing the bounding boxes, class IDs,
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A Detections object containing the bounding boxes, class IDs,
 and confidences of the predictions.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
 
 <details class="example" open>
   <summary>Example</summary>
@@ -6582,9 +6547,9 @@ and confidences of the predictions.</p>
 <a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_roboflow</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </code></pre></div>
 </details>
-          <details class="quote">
-            <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-598">598</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/detection/core.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-598">598</a></span>
 <span class="normal"><a href="#__codelineno-0-599">599</a></span>
 <span class="normal"><a href="#__codelineno-0-600">600</a></span>
 <span class="normal"><a href="#__codelineno-0-601">601</a></span>
@@ -6660,19 +6625,17 @@ and confidences of the predictions.</p>
 <a id="__codelineno-0-634" name="__codelineno-0-634"></a><span class="sd">    &quot;&quot;&quot;</span>
 <a id="__codelineno-0-635" name="__codelineno-0-635"></a>    <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_inference</span><span class="p">(</span><span class="n">roboflow_result</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.detection.core.Detections.from_sam" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">from_sam</span><span class="p">(</span><span class="n">sam_result</span><span class="p">)</span></code>
-  
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_sam</span><span class="p">(</span><span class="n">sam_result</span><span class="p">)</span></code>
+
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
   </span>
@@ -6680,65 +6643,64 @@ and confidences of the predictions.</p>
 <a href="#supervision.detection.core.Detections.from_sam" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Creates a Detections instance from
 <a href="https://github.com/facebookresearch/segment-anything">Segment Anything Model</a>
 inference result.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>sam_result</code></td>
-          <td>
-                <code><span title="typing.List">List</span>[dict]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The output Results instance from SAM</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
         </tr>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>sam_result</code></td>
+            <td>
+                  <code><span title="typing.List">List</span>[dict]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The output Results instance from SAM</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-<th>Name</th>        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-<td><code>Detections</code></td>          <td>
-                <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>A new Detections object.</p>
-            </div>
-          </td>
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>Detections</code></td>            <td>
+                  <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A new Detections object.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
 
 <details class="example" open>
   <summary>Example</summary>
@@ -6755,9 +6717,9 @@ inference result.</p>
 <a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_sam</span><span class="p">(</span><span class="n">sam_result</span><span class="o">=</span><span class="n">sam_result</span><span class="p">)</span>
 </code></pre></div>
 </details>
-          <details class="quote">
-            <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-637">637</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/detection/core.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-637">637</a></span>
 <span class="normal"><a href="#__codelineno-0-638">638</a></span>
 <span class="normal"><a href="#__codelineno-0-639">639</a></span>
 <span class="normal"><a href="#__codelineno-0-640">640</a></span>
@@ -6839,19 +6801,17 @@ inference result.</p>
 <a id="__codelineno-0-676" name="__codelineno-0-676"></a>    <span class="n">xyxy</span> <span class="o">=</span> <span class="n">xywh_to_xyxy</span><span class="p">(</span><span class="n">boxes_xywh</span><span class="o">=</span><span class="n">xywh</span><span class="p">)</span>
 <a id="__codelineno-0-677" name="__codelineno-0-677"></a>    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">xyxy</span><span class="o">=</span><span class="n">xyxy</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.detection.core.Detections.from_tensorflow" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">from_tensorflow</span><span class="p">(</span><span class="n">tensorflow_results</span><span class="p">,</span> <span class="n">resolution_wh</span><span class="p">)</span></code>
-  
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_tensorflow</span><span class="p">(</span><span class="n">tensorflow_results</span><span class="p">,</span> <span class="n">resolution_wh</span><span class="p">)</span></code>
+
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
   </span>
@@ -6859,65 +6819,64 @@ inference result.</p>
 <a href="#supervision.detection.core.Detections.from_tensorflow" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Creates a Detections instance from a
 <a href="https://www.tensorflow.org/hub/tutorials/tf2_object_detection">Tensorflow Hub</a>
 inference result.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>tensorflow_results</code></td>
-          <td>
-                <code>dict</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The output results from Tensorflow Hub.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
         </tr>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>tensorflow_results</code></td>
+            <td>
+                  <code>dict</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The output results from Tensorflow Hub.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-<th>Name</th>        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-<td><code>Detections</code></td>          <td>
-                <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>A new Detections object.</p>
-            </div>
-          </td>
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>Detections</code></td>            <td>
+                  <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A new Detections object.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
 
 <details class="example" open>
   <summary>Example</summary>
@@ -6933,9 +6892,9 @@ inference result.</p>
 <a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_tensorflow</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </code></pre></div>
 </details>
-          <details class="quote">
-            <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-311">311</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/detection/core.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-311">311</a></span>
 <span class="normal"><a href="#__codelineno-0-312">312</a></span>
 <span class="normal"><a href="#__codelineno-0-313">313</a></span>
 <span class="normal"><a href="#__codelineno-0-314">314</a></span>
@@ -7015,19 +6974,17 @@ inference result.</p>
 <a id="__codelineno-0-349" name="__codelineno-0-349"></a>        <span class="n">class_id</span><span class="o">=</span><span class="n">tensorflow_results</span><span class="p">[</span><span class="s2">&quot;detection_classes&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">),</span>
 <a id="__codelineno-0-350" name="__codelineno-0-350"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.detection.core.Detections.from_transformers" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">from_transformers</span><span class="p">(</span><span class="n">transformers_results</span><span class="p">,</span> <span class="n">id2label</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
-  
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_transformers</span><span class="p">(</span><span class="n">transformers_results</span><span class="p">,</span> <span class="n">id2label</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
   </span>
@@ -7035,81 +6992,80 @@ inference result.</p>
 <a href="#supervision.detection.core.Detections.from_transformers" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Creates a Detections instance from object detection or segmentation
 <a href="https://github.com/huggingface/transformers">Transformer</a> inference result.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>transformers_results</code></td>
-          <td>
-                <code>dict</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The output of Transformers model inference. A
-dictionary containing the <code>scores</code>, <code>labels</code>, <code>boxes</code> and <code>masks</code> keys.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
         </tr>
-        <tr class="doc-section-item">
-          <td><code>id2label</code></td>
-          <td>
-                <code><span title="typing.Optional">Optional</span>[<span title="typing.Dict">Dict</span>[int, str]]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>A dictionary mapping class IDs to
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>transformers_results</code></td>
+            <td>
+                  <code>dict</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The output of Transformers model inference. A
+dictionary containing the <code>scores</code>, <code>labels</code>, <code>boxes</code> and <code>masks</code> keys.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>id2label</code></td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="typing.Dict">Dict</span>[int, str]]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A dictionary mapping class IDs to
 class names. If provided, the resulting Detections object will contain
 <code>class_name</code> data field with the class names.</p>
-            </div>
-          </td>
-          <td>
-                <code>None</code>
-          </td>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>Detections</code></td>            <td>
+                  <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A new Detections object.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
-
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-<th>Name</th>        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-<td><code>Detections</code></td>          <td>
-                <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>A new Detections object.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
 
 <details class="example" open>
   <summary>Example</summary>
@@ -7142,9 +7098,9 @@ class names. If provided, the resulting Detections object will contain
 <p>Class names values can be accessed using <code>detections["class_name"]</code>.</p>
 </div>
 
-          <details class="quote">
-            <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-426">426</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/detection/core.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-426">426</a></span>
 <span class="normal"><a href="#__codelineno-0-427">427</a></span>
 <span class="normal"><a href="#__codelineno-0-428">428</a></span>
 <span class="normal"><a href="#__codelineno-0-429">429</a></span>
@@ -7294,19 +7250,17 @@ class names. If provided, the resulting Detections object will contain
 <a id="__codelineno-0-499" name="__codelineno-0-499"></a>            <span class="s2">&quot;Only object detection and semantic segmentation results are supported.&quot;</span>
 <a id="__codelineno-0-500" name="__codelineno-0-500"></a>        <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.detection.core.Detections.from_ultralytics" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">from_ultralytics</span><span class="p">(</span><span class="n">ultralytics_results</span><span class="p">)</span></code>
-  
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_ultralytics</span><span class="p">(</span><span class="n">ultralytics_results</span><span class="p">)</span></code>
+
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
   </span>
@@ -7314,8 +7268,8 @@ class names. If provided, the resulting Detections object will contain
 <a href="#supervision.detection.core.Detections.from_ultralytics" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Creates a <code>sv.Detections</code> instance from a
 <a href="https://github.com/ultralytics/ultralytics">YOLOv8</a> inference result.</p>
 <div class="admonition note">
@@ -7327,58 +7281,57 @@ class names. If provided, the resulting Detections object will contain
 </div>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>ultralytics_results</code></td>
-          <td>
-                <code><span title="ultralytics.yolo.engine.results.Results">Results</span></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The output Results instance from Ultralytics</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
         </tr>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>ultralytics_results</code></td>
+            <td>
+                  <code><span title="ultralytics.yolo.engine.results.Results">Results</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The output Results instance from Ultralytics</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-<th>Name</th>        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-<td><code>Detections</code></td>          <td>
-                <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>A new Detections object.</p>
-            </div>
-          </td>
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>Detections</code></td>            <td>
+                  <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A new Detections object.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
 
 <details class="example" open>
   <summary>Example</summary>
@@ -7396,9 +7349,9 @@ class names. If provided, the resulting Detections object will contain
 <p>Class names values can be accessed using <code>detections["class_name"]</code>.</p>
 </div>
 
-          <details class="quote">
-            <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-206">206</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/detection/core.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-206">206</a></span>
 <span class="normal"><a href="#__codelineno-0-207">207</a></span>
 <span class="normal"><a href="#__codelineno-0-208">208</a></span>
 <span class="normal"><a href="#__codelineno-0-209">209</a></span>
@@ -7530,19 +7483,17 @@ class names. If provided, the resulting Detections object will contain
 <a id="__codelineno-0-270" name="__codelineno-0-270"></a>        <span class="n">data</span><span class="o">=</span><span class="p">{</span><span class="n">CLASS_NAME_DATA_FIELD</span><span class="p">:</span> <span class="n">class_names</span><span class="p">},</span>
 <a id="__codelineno-0-271" name="__codelineno-0-271"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.detection.core.Detections.from_yolo_nas" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">from_yolo_nas</span><span class="p">(</span><span class="n">yolo_nas_results</span><span class="p">)</span></code>
-  
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_yolo_nas</span><span class="p">(</span><span class="n">yolo_nas_results</span><span class="p">)</span></code>
+
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
   </span>
@@ -7550,67 +7501,66 @@ class names. If provided, the resulting Detections object will contain
 <a href="#supervision.detection.core.Detections.from_yolo_nas" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Creates a Detections instance from a
 <a href="https://github.com/Deci-AI/super-gradients/blob/master/YOLONAS.md">YOLO-NAS</a>
 inference result.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>yolo_nas_results</code></td>
-          <td>
-                <code>ImageDetectionPrediction</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The output Results instance from YOLO-NAS
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>yolo_nas_results</code></td>
+            <td>
+                  <code>ImageDetectionPrediction</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The output Results instance from YOLO-NAS
 ImageDetectionPrediction is coming from
 'super_gradients.training.models.prediction_results'</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>Detections</code></td>            <td>
+                  <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A new Detections object.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
-
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-<th>Name</th>        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-<td><code>Detections</code></td>          <td>
-                <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>A new Detections object.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
 
 <details class="example" open>
   <summary>Example</summary>
@@ -7625,9 +7575,9 @@ ImageDetectionPrediction is coming from
 <a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_yolo_nas</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </code></pre></div>
 </details>
-          <details class="quote">
-            <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-273">273</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/detection/core.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-273">273</a></span>
 <span class="normal"><a href="#__codelineno-0-274">274</a></span>
 <span class="normal"><a href="#__codelineno-0-275">275</a></span>
 <span class="normal"><a href="#__codelineno-0-276">276</a></span>
@@ -7701,19 +7651,17 @@ ImageDetectionPrediction is coming from
 <a id="__codelineno-0-308" name="__codelineno-0-308"></a>        <span class="n">class_id</span><span class="o">=</span><span class="n">yolo_nas_results</span><span class="o">.</span><span class="n">prediction</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">),</span>
 <a id="__codelineno-0-309" name="__codelineno-0-309"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.detection.core.Detections.from_yolov5" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">from_yolov5</span><span class="p">(</span><span class="n">yolov5_results</span><span class="p">)</span></code>
-  
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_yolov5</span><span class="p">(</span><span class="n">yolov5_results</span><span class="p">)</span></code>
+
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
   </span>
@@ -7721,64 +7669,63 @@ ImageDetectionPrediction is coming from
 <a href="#supervision.detection.core.Detections.from_yolov5" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Creates a Detections instance from a
 <a href="https://github.com/ultralytics/yolov5">YOLOv5</a> inference result.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>yolov5_results</code></td>
-          <td>
-                <code><span title="yolov5.models.common.Detections">Detections</span></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The output Detections instance from YOLOv5</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
         </tr>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>yolov5_results</code></td>
+            <td>
+                  <code><span title="yolov5.models.common.Detections">Detections</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The output Detections instance from YOLOv5</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-<th>Name</th>        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-<td><code>Detections</code></td>          <td>
-                <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>A new Detections object.</p>
-            </div>
-          </td>
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>Detections</code></td>            <td>
+                  <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A new Detections object.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
 
 <details class="example" open>
   <summary>Example</summary>
@@ -7792,9 +7739,9 @@ ImageDetectionPrediction is coming from
 <a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_yolov5</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </code></pre></div>
 </details>
-          <details class="quote">
-            <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-173">173</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/detection/core.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-173">173</a></span>
 <span class="normal"><a href="#__codelineno-0-174">174</a></span>
 <span class="normal"><a href="#__codelineno-0-175">175</a></span>
 <span class="normal"><a href="#__codelineno-0-176">176</a></span>
@@ -7858,114 +7805,109 @@ ImageDetectionPrediction is coming from
 <a id="__codelineno-0-203" name="__codelineno-0-203"></a>        <span class="n">class_id</span><span class="o">=</span><span class="n">yolov5_detections_predictions</span><span class="p">[:,</span> <span class="mi">5</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">),</span>
 <a id="__codelineno-0-204" name="__codelineno-0-204"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.detection.core.Detections.get_anchors_coordinates" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">get_anchors_coordinates</span><span class="p">(</span><span class="n">anchor</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">get_anchors_coordinates</span><span class="p">(</span><span class="n">anchor</span><span class="p">)</span></code>
 
 <a href="#supervision.detection.core.Detections.get_anchors_coordinates" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Calculates and returns the coordinates of a specific anchor point
 within the bounding boxes defined by the <code>xyxy</code> attribute. The anchor
 point can be any of the predefined positions in the <code>Position</code> enum,
 such as <code>CENTER</code>, <code>CENTER_LEFT</code>, <code>BOTTOM_RIGHT</code>, etc.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>anchor</code></td>
-          <td>
-                <code><a class="autorefs autorefs-internal" title="supervision.geometry.core.Position" href="../../utils/geometry/#supervision.geometry.core.Position">Position</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>An enum specifying the position of the anchor point
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>anchor</code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="supervision.geometry.core.Position" href="../../utils/geometry/#supervision.geometry.core.Position">Position</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>An enum specifying the position of the anchor point
 within the bounding box. Supported positions are defined in the
 <code>Position</code> enum.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
-
-
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td>
-                <code><span title="numpy.ndarray">ndarray</span></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>np.ndarray: An array of shape <code>(n, 2)</code>, where <code>n</code> is the number of bounding
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>np.ndarray: An array of shape <code>(n, 2)</code>, where <code>n</code> is the number of bounding
 boxes. Each row contains the <code>[x, y]</code> coordinates of the specified
 anchor point for the corresponding bounding box.</p>
-            </div>
-          </td>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>ValueError</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If the provided <code>anchor</code> is not supported.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
-
-
-  <p><span class="doc-section-title">Raises:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td>
-                <code>ValueError</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>If the provided <code>anchor</code> is not supported.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
-
-          <details class="quote">
-            <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-921">921</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/detection/core.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-921">921</a></span>
 <span class="normal"><a href="#__codelineno-0-922">922</a></span>
 <span class="normal"><a href="#__codelineno-0-923">923</a></span>
 <span class="normal"><a href="#__codelineno-0-924">924</a></span>
@@ -8095,19 +8037,17 @@ anchor point for the corresponding bounding box.</p>
 <a id="__codelineno-0-984" name="__codelineno-0-984"></a>
 <a id="__codelineno-0-985" name="__codelineno-0-985"></a>    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">anchor</span><span class="si">}</span><span class="s2"> is not supported.&quot;</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.detection.core.Detections.merge" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">merge</span><span class="p">(</span><span class="n">detections_list</span><span class="p">)</span></code>
-  
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">merge</span><span class="p">(</span><span class="n">detections_list</span><span class="p">)</span></code>
+
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
   </span>
@@ -8115,8 +8055,8 @@ anchor point for the corresponding bounding box.</p>
 <a href="#supervision.detection.core.Detections.merge" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Merge a list of Detections objects into a single Detections object.</p>
 <p>This method takes a list of Detections objects and combines their
 respective fields (<code>xyxy</code>, <code>mask</code>, <code>confidence</code>, <code>class_id</code>, and <code>tracker_id</code>)
@@ -8125,59 +8065,58 @@ into a single Detections object.</p>
 will return a Detections with 7 objects (7 entries in <code>xyxy</code>, <code>mask</code>, etc).</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>detections_list</code></td>
-          <td>
-                <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a>]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>A list of Detections objects to merge.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
         </tr>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>detections_list</code></td>
+            <td>
+                  <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A list of Detections objects to merge.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td>
-                <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>A single Detections object containing
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A single Detections object containing
 the merged data from the input list.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
 
 <details class="example" open>
   <summary>Example</summary>
@@ -8210,9 +8149,9 @@ the merged data from the input list.</p>
 <a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="n">array</span><span class="p">([</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">])</span>
 </code></pre></div>
 </details>
-          <details class="quote">
-            <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-830">830</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/detection/core.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-830">830</a></span>
 <span class="normal"><a href="#__codelineno-0-831">831</a></span>
 <span class="normal"><a href="#__codelineno-0-832">832</a></span>
 <span class="normal"><a href="#__codelineno-0-833">833</a></span>
@@ -8392,128 +8331,123 @@ the merged data from the input list.</p>
 <a id="__codelineno-0-918" name="__codelineno-0-918"></a>        <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
 <a id="__codelineno-0-919" name="__codelineno-0-919"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.detection.core.Detections.with_nms" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">with_nms</span><span class="p">(</span><span class="n">threshold</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">class_agnostic</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">with_nms</span><span class="p">(</span><span class="n">threshold</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">class_agnostic</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
 
 <a href="#supervision.detection.core.Detections.with_nms" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Performs non-max suppression on detection set. If the detections result
 from a segmentation model, the IoU mask is applied. Otherwise, box IoU is used.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>threshold</code></td>
-          <td>
-                <code>float</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The intersection-over-union threshold
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>threshold</code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The intersection-over-union threshold
 to use for non-maximum suppression. I'm the lower the value the more
 restrictive the NMS becomes. Defaults to 0.5.</p>
-            </div>
-          </td>
-          <td>
-                <code>0.5</code>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>class_agnostic</code></td>
-          <td>
-                <code>bool</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Whether to perform class-agnostic
+              </div>
+            </td>
+            <td>
+                  <code>0.5</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>class_agnostic</code></td>
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Whether to perform class-agnostic
 non-maximum suppression. If True, the class_id of each detection
 will be ignored. Defaults to False.</p>
-            </div>
-          </td>
-          <td>
-                <code>False</code>
-          </td>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
-
-
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-<th>Name</th>        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-<td><code>Detections</code></td>          <td>
-                <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>A new Detections object containing the subset of detections
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>Detections</code></td>            <td>
+                  <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A new Detections object containing the subset of detections
 after non-maximum suppression.</p>
-            </div>
-          </td>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
-
-
-
-  <p><span class="doc-section-title">Raises:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td>
-                <code>AssertionError</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>If <code>confidence</code> is None and class_agnostic is False.
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>AssertionError</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If <code>confidence</code> is None and class_agnostic is False.
 If <code>class_id</code> is None and class_agnostic is False.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
-          <details class="quote">
-            <summary>Source code in <code>supervision/detection/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1098">1098</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/detection/core.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1098">1098</a></span>
 <span class="normal"><a href="#__codelineno-0-1099">1099</a></span>
 <span class="normal"><a href="#__codelineno-0-1100">1100</a></span>
 <span class="normal"><a href="#__codelineno-0-1101">1101</a></span>
@@ -8623,8 +8557,8 @@ If <code>class_id</code> is None and class_agnostic is False.</p>
 <a id="__codelineno-0-1151" name="__codelineno-0-1151"></a>
 <a id="__codelineno-0-1152" name="__codelineno-0-1152"></a>    <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="n">indices</span><span class="p">]</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
 
@@ -8632,8 +8566,7 @@ If <code>class_id</code> is None and class_agnostic is False.</p>
 
   </div>
 
-  </div>
-
+    </div>
 
 </div>
 

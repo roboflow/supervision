@@ -2062,65 +2062,64 @@
 
 
 <a id="supervision.dataset.core.DetectionDataset"></a>
-  <div class="doc doc-contents first">
-          <p class="doc doc-class-bases">
-            Bases: <code><span title="supervision.dataset.core.BaseDataset">BaseDataset</span></code></p>
+    <div class="doc doc-contents first">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="supervision.dataset.core.BaseDataset">BaseDataset</span></code></p>
 
-  
+
       <p>Dataclass containing information about object detection dataset.</p>
 
 
-
-  <p><span class="doc-section-title">Attributes:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.dataset.core.DetectionDataset.classes">classes</span></code></td>
-          <td>
-                <code><span title="typing.List">List</span>[str]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>List containing dataset class names.</p>
-            </div>
-          </td>
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
         </tr>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.dataset.core.DetectionDataset.images">images</span></code></td>
-          <td>
-                <code><span title="typing.Dict">Dict</span>[str, <span title="numpy.ndarray">ndarray</span>]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Dictionary mapping image name to image.</p>
-            </div>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.dataset.core.DetectionDataset.annotations">annotations</span></code></td>
-          <td>
-                <code><span title="typing.Dict">Dict</span>[str, <a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../detection/core/#supervision.detection.core.Detections">Detections</a>]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Dictionary mapping
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.dataset.core.DetectionDataset.classes">classes</span></code></td>
+            <td>
+                  <code><span title="typing.List">List</span>[str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>List containing dataset class names.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.dataset.core.DetectionDataset.images">images</span></code></td>
+            <td>
+                  <code><span title="typing.Dict">Dict</span>[str, <span title="numpy.ndarray">ndarray</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Dictionary mapping image name to image.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.dataset.core.DetectionDataset.annotations">annotations</span></code></td>
+            <td>
+                  <code><span title="typing.Dict">Dict</span>[str, <a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../detection/core/#supervision.detection.core.Detections">Detections</a>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Dictionary mapping
 image name to annotations.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
-            <details class="quote">
-              <summary>Source code in <code>supervision/dataset/core.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-49"> 49</a></span>
+              <details class="quote">
+                <summary>Source code in <code>supervision/dataset/core.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-49"> 49</a></span>
 <span class="normal"><a href="#__codelineno-0-50"> 50</a></span>
 <span class="normal"><a href="#__codelineno-0-51"> 51</a></span>
 <span class="normal"><a href="#__codelineno-0-52"> 52</a></span>
@@ -3084,9 +3083,9 @@ image name to annotations.</p>
 <a id="__codelineno-0-529" name="__codelineno-0-529"></a>            <span class="n">classes</span><span class="o">=</span><span class="n">merged_classes</span><span class="p">,</span> <span class="n">images</span><span class="o">=</span><span class="n">merged_images</span><span class="p">,</span> <span class="n">annotations</span><span class="o">=</span><span class="n">merged_annotations</span>
 <a id="__codelineno-0-530" name="__codelineno-0-530"></a>        <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-            </details>
+              </details>
 
-  
+
 
   <div class="doc doc-children">
 
@@ -3098,50 +3097,47 @@ image name to annotations.</p>
 
 <h2 id="supervision.dataset.core.DetectionDataset-functions">Functions<a href="#supervision.dataset.core.DetectionDataset-functions" class="headerlink" title="Permanent link">&para;</a></h2>
 
-
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.dataset.core.DetectionDataset.__iter__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="fm">__iter__</span><span class="p">()</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__iter__</span><span class="p">()</span></code>
 
 <a href="#supervision.dataset.core.DetectionDataset.__iter__" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Iterate over the images and annotations in the dataset.</p>
 
 
-
-  <p><span class="doc-section-title">Yields:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td>
-                <code>str</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Iterator[Tuple[str, np.ndarray, Detections]]:
+    <p><span class="doc-section-title">Yields:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Iterator[Tuple[str, np.ndarray, Detections]]:
 An iterator that yields tuples containing the image name,
 the image data, and its corresponding annotation.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
-          <details class="quote">
-            <summary>Source code in <code>supervision/dataset/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-74">74</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/dataset/core.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-74">74</a></span>
 <span class="normal"><a href="#__codelineno-0-75">75</a></span>
 <span class="normal"><a href="#__codelineno-0-76">76</a></span>
 <span class="normal"><a href="#__codelineno-0-77">77</a></span>
@@ -3163,53 +3159,50 @@ the image data, and its corresponding annotation.</p>
 <a id="__codelineno-0-83" name="__codelineno-0-83"></a>    <span class="k">for</span> <span class="n">image_name</span><span class="p">,</span> <span class="n">image</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">images</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
 <a id="__codelineno-0-84" name="__codelineno-0-84"></a>        <span class="k">yield</span> <span class="n">image_name</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">annotations</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">image_name</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.dataset.core.DetectionDataset.__len__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="fm">__len__</span><span class="p">()</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__len__</span><span class="p">()</span></code>
 
 <a href="#supervision.dataset.core.DetectionDataset.__len__" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Return the number of images in the dataset.</p>
 
 
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-<th>Name</th>        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-<td><code>int</code></td>          <td>
-                <code>int</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The number of images.</p>
-            </div>
-          </td>
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>int</code></td>            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The number of images.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
-          <details class="quote">
-            <summary>Source code in <code>supervision/dataset/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-65">65</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/dataset/core.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-65">65</a></span>
 <span class="normal"><a href="#__codelineno-0-66">66</a></span>
 <span class="normal"><a href="#__codelineno-0-67">67</a></span>
 <span class="normal"><a href="#__codelineno-0-68">68</a></span>
@@ -3225,127 +3218,124 @@ the image data, and its corresponding annotation.</p>
 <a id="__codelineno-0-71" name="__codelineno-0-71"></a><span class="sd">    &quot;&quot;&quot;</span>
 <a id="__codelineno-0-72" name="__codelineno-0-72"></a>    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">images</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.dataset.core.DetectionDataset.as_coco" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">as_coco</span><span class="p">(</span><span class="n">images_directory_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">annotations_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">min_image_area_percentage</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">max_image_area_percentage</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">approximation_percentage</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">as_coco</span><span class="p">(</span><span class="n">images_directory_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">annotations_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">min_image_area_percentage</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">max_image_area_percentage</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">approximation_percentage</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span></code>
 
 <a href="#supervision.dataset.core.DetectionDataset.as_coco" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Exports the dataset to COCO format. This method saves the
 images and their corresponding annotations in COCO format.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>images_directory_path</code></td>
-          <td>
-                <code><span title="typing.Optional">Optional</span>[str]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The path to the directory
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>images_directory_path</code></td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The path to the directory
 where the images should be saved.
 If not provided, images will not be saved.</p>
-            </div>
-          </td>
-          <td>
-                <code>None</code>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>annotations_path</code></td>
-          <td>
-                <code><span title="typing.Optional">Optional</span>[str]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The path to COCO annotation file.</p>
-            </div>
-          </td>
-          <td>
-                <code>None</code>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>min_image_area_percentage</code></td>
-          <td>
-                <code>float</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The minimum percentage of
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>annotations_path</code></td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The path to COCO annotation file.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>min_image_area_percentage</code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The minimum percentage of
 detection area relative to
 the image area for a detection to be included.
 Argument is used only for segmentation datasets.</p>
-            </div>
-          </td>
-          <td>
-                <code>0.0</code>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>max_image_area_percentage</code></td>
-          <td>
-                <code>float</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The maximum percentage of
+              </div>
+            </td>
+            <td>
+                  <code>0.0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>max_image_area_percentage</code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The maximum percentage of
 detection area relative to
 the image area for a detection to be included.
 Argument is used only for segmentation datasets.</p>
-            </div>
-          </td>
-          <td>
-                <code>1.0</code>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>approximation_percentage</code></td>
-          <td>
-                <code>float</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The percentage of polygon points
+              </div>
+            </td>
+            <td>
+                  <code>1.0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>approximation_percentage</code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The percentage of polygon points
 to be removed from the input polygon,
 in the range [0, 1). This is useful for simplifying the annotations.
 Argument is used only for segmentation datasets.</p>
-            </div>
-          </td>
-          <td>
-                <code>0.0</code>
-          </td>
-        </tr>
-    </tbody>
-  </table>
+              </div>
+            </td>
+            <td>
+                  <code>0.0</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
-          <details class="quote">
-            <summary>Source code in <code>supervision/dataset/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-422">422</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/dataset/core.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-422">422</a></span>
 <span class="normal"><a href="#__codelineno-0-423">423</a></span>
 <span class="normal"><a href="#__codelineno-0-424">424</a></span>
 <span class="normal"><a href="#__codelineno-0-425">425</a></span>
@@ -3433,128 +3423,125 @@ Argument is used only for segmentation datasets.</p>
 <a id="__codelineno-0-464" name="__codelineno-0-464"></a>            <span class="n">approximation_percentage</span><span class="o">=</span><span class="n">approximation_percentage</span><span class="p">,</span>
 <a id="__codelineno-0-465" name="__codelineno-0-465"></a>        <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.dataset.core.DetectionDataset.as_pascal_voc" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">as_pascal_voc</span><span class="p">(</span><span class="n">images_directory_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">annotations_directory_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">min_image_area_percentage</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">max_image_area_percentage</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">approximation_percentage</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">as_pascal_voc</span><span class="p">(</span><span class="n">images_directory_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">annotations_directory_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">min_image_area_percentage</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">max_image_area_percentage</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">approximation_percentage</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span></code>
 
 <a href="#supervision.dataset.core.DetectionDataset.as_pascal_voc" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Exports the dataset to PASCAL VOC format. This method saves the images
 and their corresponding annotations in PASCAL VOC format.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>images_directory_path</code></td>
-          <td>
-                <code><span title="typing.Optional">Optional</span>[str]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The path to the directory
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>images_directory_path</code></td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The path to the directory
 where the images should be saved.
 If not provided, images will not be saved.</p>
-            </div>
-          </td>
-          <td>
-                <code>None</code>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>annotations_directory_path</code></td>
-          <td>
-                <code><span title="typing.Optional">Optional</span>[str]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The path to
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>annotations_directory_path</code></td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The path to
 the directory where the annotations in PASCAL VOC format should be
 saved. If not provided, annotations will not be saved.</p>
-            </div>
-          </td>
-          <td>
-                <code>None</code>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>min_image_area_percentage</code></td>
-          <td>
-                <code>float</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The minimum percentage of
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>min_image_area_percentage</code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The minimum percentage of
 detection area relative to
 the image area for a detection to be included.
 Argument is used only for segmentation datasets.</p>
-            </div>
-          </td>
-          <td>
-                <code>0.0</code>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>max_image_area_percentage</code></td>
-          <td>
-                <code>float</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The maximum percentage
+              </div>
+            </td>
+            <td>
+                  <code>0.0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>max_image_area_percentage</code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The maximum percentage
 of detection area relative to
 the image area for a detection to be included.
 Argument is used only for segmentation datasets.</p>
-            </div>
-          </td>
-          <td>
-                <code>1.0</code>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>approximation_percentage</code></td>
-          <td>
-                <code>float</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The percentage of
+              </div>
+            </td>
+            <td>
+                  <code>1.0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>approximation_percentage</code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The percentage of
 polygon points to be removed from the input polygon,
 in the range [0, 1). Argument is used only for segmentation datasets.</p>
-            </div>
-          </td>
-          <td>
-                <code>0.0</code>
-          </td>
-        </tr>
-    </tbody>
-  </table>
+              </div>
+            </td>
+            <td>
+                  <code>0.0</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
-          <details class="quote">
-            <summary>Source code in <code>supervision/dataset/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-151">151</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/dataset/core.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-151">151</a></span>
 <span class="normal"><a href="#__codelineno-0-152">152</a></span>
 <span class="normal"><a href="#__codelineno-0-153">153</a></span>
 <span class="normal"><a href="#__codelineno-0-154">154</a></span>
@@ -3672,146 +3659,143 @@ in the range [0, 1). Argument is used only for segmentation datasets.</p>
 <a id="__codelineno-0-208" name="__codelineno-0-208"></a>            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">annotations_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
 <a id="__codelineno-0-209" name="__codelineno-0-209"></a>                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pascal_voc_xml</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.dataset.core.DetectionDataset.as_yolo" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">as_yolo</span><span class="p">(</span><span class="n">images_directory_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">annotations_directory_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">data_yaml_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">min_image_area_percentage</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">max_image_area_percentage</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">approximation_percentage</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">as_yolo</span><span class="p">(</span><span class="n">images_directory_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">annotations_directory_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">data_yaml_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">min_image_area_percentage</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">max_image_area_percentage</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">approximation_percentage</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span></code>
 
 <a href="#supervision.dataset.core.DetectionDataset.as_yolo" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Exports the dataset to YOLO format. This method saves the
 images and their corresponding annotations in YOLO format.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>images_directory_path</code></td>
-          <td>
-                <code><span title="typing.Optional">Optional</span>[str]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The path to the
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>images_directory_path</code></td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The path to the
 directory where the images should be saved.
 If not provided, images will not be saved.</p>
-            </div>
-          </td>
-          <td>
-                <code>None</code>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>annotations_directory_path</code></td>
-          <td>
-                <code><span title="typing.Optional">Optional</span>[str]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The path to the
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>annotations_directory_path</code></td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The path to the
 directory where the annotations in
 YOLO format should be saved. If not provided,
 annotations will not be saved.</p>
-            </div>
-          </td>
-          <td>
-                <code>None</code>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>data_yaml_path</code></td>
-          <td>
-                <code><span title="typing.Optional">Optional</span>[str]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The path where the data.yaml
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>data_yaml_path</code></td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The path where the data.yaml
 file should be saved.
 If not provided, the file will not be saved.</p>
-            </div>
-          </td>
-          <td>
-                <code>None</code>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>min_image_area_percentage</code></td>
-          <td>
-                <code>float</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The minimum percentage of
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>min_image_area_percentage</code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The minimum percentage of
 detection area relative to
 the image area for a detection to be included.
 Argument is used only for segmentation datasets.</p>
-            </div>
-          </td>
-          <td>
-                <code>0.0</code>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>max_image_area_percentage</code></td>
-          <td>
-                <code>float</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The maximum percentage
+              </div>
+            </td>
+            <td>
+                  <code>0.0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>max_image_area_percentage</code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The maximum percentage
 of detection area relative to
 the image area for a detection to be included.
 Argument is used only for segmentation datasets.</p>
-            </div>
-          </td>
-          <td>
-                <code>1.0</code>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>approximation_percentage</code></td>
-          <td>
-                <code>float</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The percentage of polygon points to
+              </div>
+            </td>
+            <td>
+                  <code>1.0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>approximation_percentage</code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The percentage of polygon points to
 be removed from the input polygon, in the range [0, 1).
 This is useful for simplifying the annotations.
 Argument is used only for segmentation datasets.</p>
-            </div>
-          </td>
-          <td>
-                <code>0.0</code>
-          </td>
-        </tr>
-    </tbody>
-  </table>
+              </div>
+            </td>
+            <td>
+                  <code>0.0</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
-          <details class="quote">
-            <summary>Source code in <code>supervision/dataset/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-319">319</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/dataset/core.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-319">319</a></span>
 <span class="normal"><a href="#__codelineno-0-320">320</a></span>
 <span class="normal"><a href="#__codelineno-0-321">321</a></span>
 <span class="normal"><a href="#__codelineno-0-322">322</a></span>
@@ -3915,19 +3899,17 @@ Argument is used only for segmentation datasets.</p>
 <a id="__codelineno-0-369" name="__codelineno-0-369"></a>    <span class="k">if</span> <span class="n">data_yaml_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
 <a id="__codelineno-0-370" name="__codelineno-0-370"></a>        <span class="n">save_data_yaml</span><span class="p">(</span><span class="n">data_yaml_path</span><span class="o">=</span><span class="n">data_yaml_path</span><span class="p">,</span> <span class="n">classes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">classes</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.dataset.core.DetectionDataset.from_coco" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">from_coco</span><span class="p">(</span><span class="n">images_directory_path</span><span class="p">,</span> <span class="n">annotations_path</span><span class="p">,</span> <span class="n">force_masks</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
-  
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_coco</span><span class="p">(</span><span class="n">images_directory_path</span><span class="p">,</span> <span class="n">annotations_path</span><span class="p">,</span> <span class="n">force_masks</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
+
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
   </span>
@@ -3935,95 +3917,94 @@ Argument is used only for segmentation datasets.</p>
 <a href="#supervision.dataset.core.DetectionDataset.from_coco" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Creates a Dataset instance from COCO formatted data.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>images_directory_path</code></td>
-          <td>
-                <code>str</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The path to the
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>images_directory_path</code></td>
+            <td>
+                  <code>str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The path to the
 directory containing the images.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>annotations_path</code></td>
-          <td>
-                <code>str</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The path to the json annotation files.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>force_masks</code></td>
-          <td>
-                <code>bool</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>If True,
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>annotations_path</code></td>
+            <td>
+                  <code>str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The path to the json annotation files.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>force_masks</code></td>
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True,
 forces masks to be loaded for all annotations,
 regardless of whether they are present.</p>
-            </div>
-          </td>
-          <td>
-                <code>False</code>
-          </td>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
-
-
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-<th>Name</th>        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-<td><code>DetectionDataset</code></td>          <td>
-                <code><a class="autorefs autorefs-internal" title="supervision.dataset.core.DetectionDataset" href="#supervision.dataset.core.DetectionDataset">DetectionDataset</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>A DetectionDataset instance containing
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>DetectionDataset</code></td>            <td>
+                  <code><a class="autorefs autorefs-internal" title="supervision.dataset.core.DetectionDataset" href="#supervision.dataset.core.DetectionDataset">DetectionDataset</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A DetectionDataset instance containing
 the loaded images and annotations.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
 
 <details class="example" open>
   <summary>Example</summary>
@@ -4046,9 +4027,9 @@ the loaded images and annotations.</p>
 <a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="c1"># [&#39;dog&#39;, &#39;person&#39;]</span>
 </code></pre></div>
 </details>
-          <details class="quote">
-            <summary>Source code in <code>supervision/dataset/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-372">372</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/dataset/core.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-372">372</a></span>
 <span class="normal"><a href="#__codelineno-0-373">373</a></span>
 <span class="normal"><a href="#__codelineno-0-374">374</a></span>
 <span class="normal"><a href="#__codelineno-0-375">375</a></span>
@@ -4146,19 +4127,17 @@ the loaded images and annotations.</p>
 <a id="__codelineno-0-419" name="__codelineno-0-419"></a>    <span class="p">)</span>
 <a id="__codelineno-0-420" name="__codelineno-0-420"></a>    <span class="k">return</span> <span class="n">DetectionDataset</span><span class="p">(</span><span class="n">classes</span><span class="o">=</span><span class="n">classes</span><span class="p">,</span> <span class="n">images</span><span class="o">=</span><span class="n">images</span><span class="p">,</span> <span class="n">annotations</span><span class="o">=</span><span class="n">annotations</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.dataset.core.DetectionDataset.from_pascal_voc" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">from_pascal_voc</span><span class="p">(</span><span class="n">images_directory_path</span><span class="p">,</span> <span class="n">annotations_directory_path</span><span class="p">,</span> <span class="n">force_masks</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
-  
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_pascal_voc</span><span class="p">(</span><span class="n">images_directory_path</span><span class="p">,</span> <span class="n">annotations_directory_path</span><span class="p">,</span> <span class="n">force_masks</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
+
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
   </span>
@@ -4166,94 +4145,93 @@ the loaded images and annotations.</p>
 <a href="#supervision.dataset.core.DetectionDataset.from_pascal_voc" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Creates a Dataset instance from PASCAL VOC formatted data.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>images_directory_path</code></td>
-          <td>
-                <code>str</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Path to the directory containing the images.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
         </tr>
-        <tr class="doc-section-item">
-          <td><code>annotations_directory_path</code></td>
-          <td>
-                <code>str</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Path to the directory
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>images_directory_path</code></td>
+            <td>
+                  <code>str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to the directory containing the images.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>annotations_directory_path</code></td>
+            <td>
+                  <code>str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to the directory
 containing the PASCAL VOC XML annotations.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>force_masks</code></td>
-          <td>
-                <code>bool</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>If True, forces masks to
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>force_masks</code></td>
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, forces masks to
 be loaded for all annotations, regardless of whether they are present.</p>
-            </div>
-          </td>
-          <td>
-                <code>False</code>
-          </td>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
-
-
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-<th>Name</th>        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-<td><code>DetectionDataset</code></td>          <td>
-                <code><a class="autorefs autorefs-internal" title="supervision.dataset.core.DetectionDataset" href="#supervision.dataset.core.DetectionDataset">DetectionDataset</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>A DetectionDataset instance containing
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>DetectionDataset</code></td>            <td>
+                  <code><a class="autorefs autorefs-internal" title="supervision.dataset.core.DetectionDataset" href="#supervision.dataset.core.DetectionDataset">DetectionDataset</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A DetectionDataset instance containing
 the loaded images and annotations.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
 
 <details class="example" open>
   <summary>Example</summary>
@@ -4277,9 +4255,9 @@ the loaded images and annotations.</p>
 <a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="c1"># [&#39;dog&#39;, &#39;person&#39;]</span>
 </code></pre></div>
 </details>
-          <details class="quote">
-            <summary>Source code in <code>supervision/dataset/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-211">211</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/dataset/core.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-211">211</a></span>
 <span class="normal"><a href="#__codelineno-0-212">212</a></span>
 <span class="normal"><a href="#__codelineno-0-213">213</a></span>
 <span class="normal"><a href="#__codelineno-0-214">214</a></span>
@@ -4381,19 +4359,17 @@ the loaded images and annotations.</p>
 <a id="__codelineno-0-260" name="__codelineno-0-260"></a>
 <a id="__codelineno-0-261" name="__codelineno-0-261"></a>    <span class="k">return</span> <span class="n">DetectionDataset</span><span class="p">(</span><span class="n">classes</span><span class="o">=</span><span class="n">classes</span><span class="p">,</span> <span class="n">images</span><span class="o">=</span><span class="n">images</span><span class="p">,</span> <span class="n">annotations</span><span class="o">=</span><span class="n">annotations</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.dataset.core.DetectionDataset.from_yolo" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">from_yolo</span><span class="p">(</span><span class="n">images_directory_path</span><span class="p">,</span> <span class="n">annotations_directory_path</span><span class="p">,</span> <span class="n">data_yaml_path</span><span class="p">,</span> <span class="n">force_masks</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
-  
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_yolo</span><span class="p">(</span><span class="n">images_directory_path</span><span class="p">,</span> <span class="n">annotations_directory_path</span><span class="p">,</span> <span class="n">data_yaml_path</span><span class="p">,</span> <span class="n">force_masks</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
+
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
   </span>
@@ -4401,111 +4377,110 @@ the loaded images and annotations.</p>
 <a href="#supervision.dataset.core.DetectionDataset.from_yolo" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Creates a Dataset instance from YOLO formatted data.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>images_directory_path</code></td>
-          <td>
-                <code>str</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The path to the
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>images_directory_path</code></td>
+            <td>
+                  <code>str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The path to the
 directory containing the images.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>annotations_directory_path</code></td>
-          <td>
-                <code>str</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The path to the directory
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>annotations_directory_path</code></td>
+            <td>
+                  <code>str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The path to the directory
 containing the YOLO annotation files.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>data_yaml_path</code></td>
-          <td>
-                <code>str</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The path to the data
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>data_yaml_path</code></td>
+            <td>
+                  <code>str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The path to the data
 YAML file containing class information.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>force_masks</code></td>
-          <td>
-                <code>bool</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>If True, forces
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>force_masks</code></td>
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, forces
 masks to be loaded for all annotations,
 regardless of whether they are present.</p>
-            </div>
-          </td>
-          <td>
-                <code>False</code>
-          </td>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
-
-
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-<th>Name</th>        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-<td><code>DetectionDataset</code></td>          <td>
-                <code><a class="autorefs autorefs-internal" title="supervision.dataset.core.DetectionDataset" href="#supervision.dataset.core.DetectionDataset">DetectionDataset</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>A DetectionDataset instance
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>DetectionDataset</code></td>            <td>
+                  <code><a class="autorefs autorefs-internal" title="supervision.dataset.core.DetectionDataset" href="#supervision.dataset.core.DetectionDataset">DetectionDataset</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A DetectionDataset instance
 containing the loaded images and annotations.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
 
 <details class="example" open>
   <summary>Example</summary>
@@ -4529,9 +4504,9 @@ containing the loaded images and annotations.</p>
 <a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="c1"># [&#39;dog&#39;, &#39;person&#39;]</span>
 </code></pre></div>
 </details>
-          <details class="quote">
-            <summary>Source code in <code>supervision/dataset/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-263">263</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/dataset/core.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-263">263</a></span>
 <span class="normal"><a href="#__codelineno-0-264">264</a></span>
 <span class="normal"><a href="#__codelineno-0-265">265</a></span>
 <span class="normal"><a href="#__codelineno-0-266">266</a></span>
@@ -4641,19 +4616,17 @@ containing the loaded images and annotations.</p>
 <a id="__codelineno-0-316" name="__codelineno-0-316"></a>    <span class="p">)</span>
 <a id="__codelineno-0-317" name="__codelineno-0-317"></a>    <span class="k">return</span> <span class="n">DetectionDataset</span><span class="p">(</span><span class="n">classes</span><span class="o">=</span><span class="n">classes</span><span class="p">,</span> <span class="n">images</span><span class="o">=</span><span class="n">images</span><span class="p">,</span> <span class="n">annotations</span><span class="o">=</span><span class="n">annotations</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.dataset.core.DetectionDataset.merge" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">merge</span><span class="p">(</span><span class="n">dataset_list</span><span class="p">)</span></code>
-  
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">merge</span><span class="p">(</span><span class="n">dataset_list</span><span class="p">)</span></code>
+
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
   </span>
@@ -4661,8 +4634,8 @@ containing the loaded images and annotations.</p>
 <a href="#supervision.dataset.core.DetectionDataset.merge" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Merge a list of <code>DetectionDataset</code> objects into a single
     <code>DetectionDataset</code> object.</p>
 <p>This method takes a list of <code>DetectionDataset</code> objects and combines
@@ -4670,69 +4643,68 @@ their respective fields (<code>classes</code>, <code>images</code>,
 <code>annotations</code>) into a single <code>DetectionDataset</code> object.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>dataset_list</code></td>
-          <td>
-                <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="supervision.dataset.core.DetectionDataset" href="#supervision.dataset.core.DetectionDataset">DetectionDataset</a>]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>A list of <code>DetectionDataset</code>
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>dataset_list</code></td>
+            <td>
+                  <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="supervision.dataset.core.DetectionDataset" href="#supervision.dataset.core.DetectionDataset">DetectionDataset</a>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A list of <code>DetectionDataset</code>
 objects to merge.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
-        </tr>
-    </tbody>
-  </table>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="supervision.dataset.core.DetectionDataset" href="#supervision.dataset.core.DetectionDataset">DetectionDataset</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A single <code>DetectionDataset</code> object containing</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="supervision.dataset.core.DetectionDataset" href="#supervision.dataset.core.DetectionDataset">DetectionDataset</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>the merged data from the input list.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td>
-                <code><a class="autorefs autorefs-internal" title="supervision.dataset.core.DetectionDataset" href="#supervision.dataset.core.DetectionDataset">DetectionDataset</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>A single <code>DetectionDataset</code> object containing</p>
-            </div>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td>
-                <code><a class="autorefs autorefs-internal" title="supervision.dataset.core.DetectionDataset" href="#supervision.dataset.core.DetectionDataset">DetectionDataset</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>the merged data from the input list.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
 
 <details class="example" open>
   <summary>Example</summary>
@@ -4757,9 +4729,9 @@ objects to merge.</p>
 <a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="c1"># [&#39;cat&#39;, &#39;dog&#39;, &#39;person&#39;]</span>
 </code></pre></div>
 </details>
-          <details class="quote">
-            <summary>Source code in <code>supervision/dataset/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-467">467</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/dataset/core.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-467">467</a></span>
 <span class="normal"><a href="#__codelineno-0-468">468</a></span>
 <span class="normal"><a href="#__codelineno-0-469">469</a></span>
 <span class="normal"><a href="#__codelineno-0-470">470</a></span>
@@ -4887,111 +4859,108 @@ objects to merge.</p>
 <a id="__codelineno-0-529" name="__codelineno-0-529"></a>        <span class="n">classes</span><span class="o">=</span><span class="n">merged_classes</span><span class="p">,</span> <span class="n">images</span><span class="o">=</span><span class="n">merged_images</span><span class="p">,</span> <span class="n">annotations</span><span class="o">=</span><span class="n">merged_annotations</span>
 <a id="__codelineno-0-530" name="__codelineno-0-530"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.dataset.core.DetectionDataset.split" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">split</span><span class="p">(</span><span class="n">split_ratio</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">split</span><span class="p">(</span><span class="n">split_ratio</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></code>
 
 <a href="#supervision.dataset.core.DetectionDataset.split" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Splits the dataset into two parts (training and testing)
     using the provided split_ratio.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>split_ratio</code></td>
-          <td>
-                <code>float</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The ratio of the training
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>split_ratio</code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The ratio of the training
 set to the entire dataset.</p>
-            </div>
-          </td>
-          <td>
-                <code>0.8</code>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>random_state</code></td>
-          <td>
-                <code>int</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The seed for the random number generator.
+              </div>
+            </td>
+            <td>
+                  <code>0.8</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>random_state</code></td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The seed for the random number generator.
 This is used for reproducibility.</p>
-            </div>
-          </td>
-          <td>
-                <code>None</code>
-          </td>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>shuffle</code></td>
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Whether to shuffle the data before splitting.</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
         </tr>
-        <tr class="doc-section-item">
-          <td><code>shuffle</code></td>
-          <td>
-                <code>bool</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Whether to shuffle the data before splitting.</p>
-            </div>
-          </td>
-          <td>
-                <code>True</code>
-          </td>
-        </tr>
-    </tbody>
-  </table>
-
-
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td>
-                <code><span title="typing.Tuple">Tuple</span>[<a class="autorefs autorefs-internal" title="supervision.dataset.core.DetectionDataset" href="#supervision.dataset.core.DetectionDataset">DetectionDataset</a>, <a class="autorefs autorefs-internal" title="supervision.dataset.core.DetectionDataset" href="#supervision.dataset.core.DetectionDataset">DetectionDataset</a>]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Tuple[DetectionDataset, DetectionDataset]: A tuple containing
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="typing.Tuple">Tuple</span>[<a class="autorefs autorefs-internal" title="supervision.dataset.core.DetectionDataset" href="#supervision.dataset.core.DetectionDataset">DetectionDataset</a>, <a class="autorefs autorefs-internal" title="supervision.dataset.core.DetectionDataset" href="#supervision.dataset.core.DetectionDataset">DetectionDataset</a>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Tuple[DetectionDataset, DetectionDataset]: A tuple containing
 the training and testing datasets.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
 
 <details class="example" open>
   <summary>Example</summary>
@@ -5004,9 +4973,9 @@ the training and testing datasets.</p>
 <a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1"># (700, 300)</span>
 </code></pre></div>
 </details>
-          <details class="quote">
-            <summary>Source code in <code>supervision/dataset/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-101">101</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/dataset/core.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-101">101</a></span>
 <span class="normal"><a href="#__codelineno-0-102">102</a></span>
 <span class="normal"><a href="#__codelineno-0-103">103</a></span>
 <span class="normal"><a href="#__codelineno-0-104">104</a></span>
@@ -5104,8 +5073,8 @@ the training and testing datasets.</p>
 <a id="__codelineno-0-148" name="__codelineno-0-148"></a>    <span class="p">)</span>
 <a id="__codelineno-0-149" name="__codelineno-0-149"></a>    <span class="k">return</span> <span class="n">train_dataset</span><span class="p">,</span> <span class="n">test_dataset</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
 
@@ -5113,8 +5082,7 @@ the training and testing datasets.</p>
 
   </div>
 
-  </div>
-
+    </div>
 
 </div><div class="md-typeset">
   <h2>ClassificationDataset</h2>
@@ -5127,65 +5095,64 @@ the training and testing datasets.</p>
 
 
 <a id="supervision.dataset.core.ClassificationDataset"></a>
-  <div class="doc doc-contents first">
-          <p class="doc doc-class-bases">
-            Bases: <code><span title="supervision.dataset.core.BaseDataset">BaseDataset</span></code></p>
+    <div class="doc doc-contents first">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="supervision.dataset.core.BaseDataset">BaseDataset</span></code></p>
 
-  
+
       <p>Dataclass containing information about a classification dataset.</p>
 
 
-
-  <p><span class="doc-section-title">Attributes:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.dataset.core.ClassificationDataset.classes">classes</span></code></td>
-          <td>
-                <code><span title="typing.List">List</span>[str]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>List containing dataset class names.</p>
-            </div>
-          </td>
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
         </tr>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.dataset.core.ClassificationDataset.images">images</span></code></td>
-          <td>
-                <code><span title="typing.Dict">Dict</span>[str, <span title="numpy.ndarray">ndarray</span>]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Dictionary mapping image name to image.</p>
-            </div>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.dataset.core.ClassificationDataset.annotations">annotations</span></code></td>
-          <td>
-                <code><span title="typing.Dict">Dict</span>[str, <a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../detection/core/#supervision.detection.core.Detections">Detections</a>]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Dictionary mapping
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.dataset.core.ClassificationDataset.classes">classes</span></code></td>
+            <td>
+                  <code><span title="typing.List">List</span>[str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>List containing dataset class names.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.dataset.core.ClassificationDataset.images">images</span></code></td>
+            <td>
+                  <code><span title="typing.Dict">Dict</span>[str, <span title="numpy.ndarray">ndarray</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Dictionary mapping image name to image.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.dataset.core.ClassificationDataset.annotations">annotations</span></code></td>
+            <td>
+                  <code><span title="typing.Dict">Dict</span>[str, <a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../detection/core/#supervision.detection.core.Detections">Detections</a>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Dictionary mapping
 image name to annotations.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
-            <details class="quote">
-              <summary>Source code in <code>supervision/dataset/core.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-533">533</a></span>
+              <details class="quote">
+                <summary>Source code in <code>supervision/dataset/core.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-533">533</a></span>
 <span class="normal"><a href="#__codelineno-0-534">534</a></span>
 <span class="normal"><a href="#__codelineno-0-535">535</a></span>
 <span class="normal"><a href="#__codelineno-0-536">536</a></span>
@@ -5471,9 +5438,9 @@ image name to annotations.</p>
 <a id="__codelineno-0-674" name="__codelineno-0-674"></a>            <span class="n">annotations</span><span class="o">=</span><span class="n">annotations</span><span class="p">,</span>
 <a id="__codelineno-0-675" name="__codelineno-0-675"></a>        <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-            </details>
+              </details>
 
-  
+
 
   <div class="doc doc-children">
 
@@ -5485,55 +5452,52 @@ image name to annotations.</p>
 
 <h2 id="supervision.dataset.core.ClassificationDataset-functions">Functions<a href="#supervision.dataset.core.ClassificationDataset-functions" class="headerlink" title="Permanent link">&para;</a></h2>
 
-
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.dataset.core.ClassificationDataset.as_folder_structure" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">as_folder_structure</span><span class="p">(</span><span class="n">root_directory_path</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">as_folder_structure</span><span class="p">(</span><span class="n">root_directory_path</span><span class="p">)</span></code>
 
 <a href="#supervision.dataset.core.ClassificationDataset.as_folder_structure" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Saves the dataset as a multi-class folder structure.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>root_directory_path</code></td>
-          <td>
-                <code>str</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The path to the directory
-where the dataset will be saved.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
         </tr>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>root_directory_path</code></td>
+            <td>
+                  <code>str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The path to the directory
+where the dataset will be saved.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
-          <details class="quote">
-            <summary>Source code in <code>supervision/dataset/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-601">601</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/dataset/core.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-601">601</a></span>
 <span class="normal"><a href="#__codelineno-0-602">602</a></span>
 <span class="normal"><a href="#__codelineno-0-603">603</a></span>
 <span class="normal"><a href="#__codelineno-0-604">604</a></span>
@@ -5583,19 +5547,17 @@ where the dataset will be saved.</p>
 <a id="__codelineno-0-624" name="__codelineno-0-624"></a>        <span class="n">image_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root_directory_path</span><span class="p">,</span> <span class="n">class_name</span><span class="p">,</span> <span class="n">image_name</span><span class="p">)</span>
 <a id="__codelineno-0-625" name="__codelineno-0-625"></a>        <span class="n">cv2</span><span class="o">.</span><span class="n">imwrite</span><span class="p">(</span><span class="n">image_path</span><span class="p">,</span> <span class="n">image</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.dataset.core.ClassificationDataset.from_folder_structure" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">from_folder_structure</span><span class="p">(</span><span class="n">root_directory_path</span><span class="p">)</span></code>
-  
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_folder_structure</span><span class="p">(</span><span class="n">root_directory_path</span><span class="p">)</span></code>
+
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
   </span>
@@ -5603,63 +5565,62 @@ where the dataset will be saved.</p>
 <a href="#supervision.dataset.core.ClassificationDataset.from_folder_structure" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Load data from a multiclass folder structure into a ClassificationDataset.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>root_directory_path</code></td>
-          <td>
-                <code>str</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The path to the dataset directory.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
         </tr>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>root_directory_path</code></td>
+            <td>
+                  <code>str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The path to the dataset directory.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-<th>Name</th>        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-<td><code>ClassificationDataset</code></td>          <td>
-                <code><a class="autorefs autorefs-internal" title="supervision.dataset.core.ClassificationDataset" href="#supervision.dataset.core.ClassificationDataset">ClassificationDataset</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The dataset.</p>
-            </div>
-          </td>
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>ClassificationDataset</code></td>            <td>
+                  <code><a class="autorefs autorefs-internal" title="supervision.dataset.core.ClassificationDataset" href="#supervision.dataset.core.ClassificationDataset">ClassificationDataset</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The dataset.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
 
 <details class="example" open>
   <summary>Example</summary>
@@ -5678,9 +5639,9 @@ where the dataset will be saved.</p>
 <a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="p">)</span>
 </code></pre></div>
 </details>
-          <details class="quote">
-            <summary>Source code in <code>supervision/dataset/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-627">627</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/dataset/core.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-627">627</a></span>
 <span class="normal"><a href="#__codelineno-0-628">628</a></span>
 <span class="normal"><a href="#__codelineno-0-629">629</a></span>
 <span class="normal"><a href="#__codelineno-0-630">630</a></span>
@@ -5778,120 +5739,117 @@ where the dataset will be saved.</p>
 <a id="__codelineno-0-674" name="__codelineno-0-674"></a>        <span class="n">annotations</span><span class="o">=</span><span class="n">annotations</span><span class="p">,</span>
 <a id="__codelineno-0-675" name="__codelineno-0-675"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.dataset.core.ClassificationDataset.split" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">split</span><span class="p">(</span><span class="n">split_ratio</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">split</span><span class="p">(</span><span class="n">split_ratio</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></code>
 
 <a href="#supervision.dataset.core.ClassificationDataset.split" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Splits the dataset into two parts (training and testing)
     using the provided split_ratio.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>split_ratio</code></td>
-          <td>
-                <code>float</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The ratio of the training
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>split_ratio</code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The ratio of the training
 set to the entire dataset.</p>
-            </div>
-          </td>
-          <td>
-                <code>0.8</code>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>random_state</code></td>
-          <td>
-                <code>int</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The seed for the
+              </div>
+            </td>
+            <td>
+                  <code>0.8</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>random_state</code></td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The seed for the
 random number generator. This is used for reproducibility.</p>
-            </div>
-          </td>
-          <td>
-                <code>None</code>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>shuffle</code></td>
-          <td>
-                <code>bool</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Whether to shuffle the data before splitting.</p>
-            </div>
-          </td>
-          <td>
-                <code>True</code>
-          </td>
-        </tr>
-    </tbody>
-  </table>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>shuffle</code></td>
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Whether to shuffle the data before splitting.</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="supervision.dataset.core.ClassificationDataset" href="#supervision.dataset.core.ClassificationDataset">ClassificationDataset</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Tuple[ClassificationDataset, ClassificationDataset]: A tuple containing</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="supervision.dataset.core.ClassificationDataset" href="#supervision.dataset.core.ClassificationDataset">ClassificationDataset</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>the training and testing datasets.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td>
-                <code><a class="autorefs autorefs-internal" title="supervision.dataset.core.ClassificationDataset" href="#supervision.dataset.core.ClassificationDataset">ClassificationDataset</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Tuple[ClassificationDataset, ClassificationDataset]: A tuple containing</p>
-            </div>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td>
-                <code><a class="autorefs autorefs-internal" title="supervision.dataset.core.ClassificationDataset" href="#supervision.dataset.core.ClassificationDataset">ClassificationDataset</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>the training and testing datasets.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
 
 <details class="example" open>
   <summary>Example</summary>
@@ -5904,9 +5862,9 @@ random number generator. This is used for reproducibility.</p>
 <a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1"># (700, 300)</span>
 </code></pre></div>
 </details>
-          <details class="quote">
-            <summary>Source code in <code>supervision/dataset/core.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-552">552</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/dataset/core.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-552">552</a></span>
 <span class="normal"><a href="#__codelineno-0-553">553</a></span>
 <span class="normal"><a href="#__codelineno-0-554">554</a></span>
 <span class="normal"><a href="#__codelineno-0-555">555</a></span>
@@ -6002,8 +5960,8 @@ random number generator. This is used for reproducibility.</p>
 <a id="__codelineno-0-598" name="__codelineno-0-598"></a>    <span class="p">)</span>
 <a id="__codelineno-0-599" name="__codelineno-0-599"></a>    <span class="k">return</span> <span class="n">train_dataset</span><span class="p">,</span> <span class="n">test_dataset</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
 
@@ -6011,8 +5969,7 @@ random number generator. This is used for reproducibility.</p>
 
   </div>
 
-  </div>
-
+    </div>
 
 </div>
 

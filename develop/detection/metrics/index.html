@@ -1987,77 +1987,76 @@
 
 
 <a id="supervision.metrics.detection.ConfusionMatrix"></a>
-  <div class="doc doc-contents first">
+    <div class="doc doc-contents first">
 
-  
+
       <p>Confusion matrix for object detection tasks.</p>
 
 
-
-  <p><span class="doc-section-title">Attributes:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.metrics.detection.ConfusionMatrix.matrix">matrix</span></code></td>
-          <td>
-                <code><span title="numpy.ndarray">ndarray</span></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>An 2D <code>np.ndarray</code> of shape
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.metrics.detection.ConfusionMatrix.matrix">matrix</span></code></td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>An 2D <code>np.ndarray</code> of shape
 <code>(len(classes) + 1, len(classes) + 1)</code>
 containing the number of <code>TP</code>, <code>FP</code>, <code>FN</code> and <code>TN</code> for each class.</p>
-            </div>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.metrics.detection.ConfusionMatrix.classes">classes</span></code></td>
-          <td>
-                <code><span title="typing.List">List</span>[str]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Model class names.</p>
-            </div>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.metrics.detection.ConfusionMatrix.conf_threshold">conf_threshold</span></code></td>
-          <td>
-                <code>float</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Detection confidence threshold between <code>0</code> and <code>1</code>.
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.metrics.detection.ConfusionMatrix.classes">classes</span></code></td>
+            <td>
+                  <code><span title="typing.List">List</span>[str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Model class names.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.metrics.detection.ConfusionMatrix.conf_threshold">conf_threshold</span></code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Detection confidence threshold between <code>0</code> and <code>1</code>.
 Detections with lower confidence will be excluded from the matrix.</p>
-            </div>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.metrics.detection.ConfusionMatrix.iou_threshold">iou_threshold</span></code></td>
-          <td>
-                <code>float</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Detection IoU threshold between <code>0</code> and <code>1</code>.
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.metrics.detection.ConfusionMatrix.iou_threshold">iou_threshold</span></code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Detection IoU threshold between <code>0</code> and <code>1</code>.
 Detections with lower IoU will be classified as <code>FP</code>.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
-            <details class="quote">
-              <summary>Source code in <code>supervision/metrics/detection.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-72"> 72</a></span>
+              <details class="quote">
+                <summary>Source code in <code>supervision/metrics/detection.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-72"> 72</a></span>
 <span class="normal"><a href="#__codelineno-0-73"> 73</a></span>
 <span class="normal"><a href="#__codelineno-0-74"> 74</a></span>
 <span class="normal"><a href="#__codelineno-0-75"> 75</a></span>
@@ -2903,9 +2902,9 @@ Detections with lower IoU will be classified as <code>FP</code>.</p>
 <a id="__codelineno-0-493" name="__codelineno-0-493"></a>            <span class="p">)</span>
 <a id="__codelineno-0-494" name="__codelineno-0-494"></a>        <span class="k">return</span> <span class="n">fig</span>
 </code></pre></div></td></tr></table></div>
-            </details>
+              </details>
 
-  
+
 
   <div class="doc doc-children">
 
@@ -2917,14 +2916,12 @@ Detections with lower IoU will be classified as <code>FP</code>.</p>
 
 <h2 id="supervision.metrics.detection.ConfusionMatrix-functions">Functions<a href="#supervision.metrics.detection.ConfusionMatrix-functions" class="headerlink" title="Permanent link">&para;</a></h2>
 
-
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.metrics.detection.ConfusionMatrix.benchmark" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">benchmark</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">callback</span><span class="p">,</span> <span class="n">conf_threshold</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">iou_threshold</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span></code>
-  
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">benchmark</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">callback</span><span class="p">,</span> <span class="n">conf_threshold</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">iou_threshold</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span></code>
+
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
   </span>
@@ -2932,108 +2929,107 @@ Detections with lower IoU will be classified as <code>FP</code>.</p>
 <a href="#supervision.metrics.detection.ConfusionMatrix.benchmark" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Calculate confusion matrix from dataset and callback function.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>dataset</code></td>
-          <td>
-                <code><a class="autorefs autorefs-internal" title="supervision.dataset.core.DetectionDataset" href="../../datasets/#supervision.dataset.core.DetectionDataset">DetectionDataset</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Object detection dataset used for evaluation.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
         </tr>
-        <tr class="doc-section-item">
-          <td><code>callback</code></td>
-          <td>
-                <code><span title="typing.Callable">Callable</span>[[<span title="numpy.ndarray">ndarray</span>], <a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../core/#supervision.detection.core.Detections">Detections</a>]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Function that takes an image
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>dataset</code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="supervision.dataset.core.DetectionDataset" href="../../datasets/#supervision.dataset.core.DetectionDataset">DetectionDataset</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Object detection dataset used for evaluation.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>callback</code></td>
+            <td>
+                  <code><span title="typing.Callable">Callable</span>[[<span title="numpy.ndarray">ndarray</span>], <a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../core/#supervision.detection.core.Detections">Detections</a>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Function that takes an image
 as input and returns Detections object.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>conf_threshold</code></td>
-          <td>
-                <code>float</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Detection confidence threshold between <code>0</code> and <code>1</code>.
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>conf_threshold</code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Detection confidence threshold between <code>0</code> and <code>1</code>.
 Detections with lower confidence will be excluded.</p>
-            </div>
-          </td>
-          <td>
-                <code>0.3</code>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>iou_threshold</code></td>
-          <td>
-                <code>float</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Detection IoU threshold between <code>0</code> and <code>1</code>.
+              </div>
+            </td>
+            <td>
+                  <code>0.3</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>iou_threshold</code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Detection IoU threshold between <code>0</code> and <code>1</code>.
 Detections with lower IoU will be classified as <code>FP</code>.</p>
-            </div>
-          </td>
-          <td>
-                <code>0.5</code>
-          </td>
+              </div>
+            </td>
+            <td>
+                  <code>0.5</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>ConfusionMatrix</code></td>            <td>
+                  <code><a class="autorefs autorefs-internal" title="supervision.metrics.detection.ConfusionMatrix" href="#supervision.metrics.detection.ConfusionMatrix">ConfusionMatrix</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>New instance of ConfusionMatrix.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
-
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-<th>Name</th>        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-<td><code>ConfusionMatrix</code></td>          <td>
-                <code><a class="autorefs autorefs-internal" title="supervision.metrics.detection.ConfusionMatrix" href="#supervision.metrics.detection.ConfusionMatrix">ConfusionMatrix</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>New instance of ConfusionMatrix.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
 
 <details class="example" open>
   <summary>Example</summary>
@@ -3061,9 +3057,9 @@ Detections with lower IoU will be classified as <code>FP</code>.</p>
 <a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="c1"># ])</span>
 </code></pre></div>
 </details>
-          <details class="quote">
-            <summary>Source code in <code>supervision/metrics/detection.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-344">344</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/metrics/detection.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-344">344</a></span>
 <span class="normal"><a href="#__codelineno-0-345">345</a></span>
 <span class="normal"><a href="#__codelineno-0-346">346</a></span>
 <span class="normal"><a href="#__codelineno-0-347">347</a></span>
@@ -3187,19 +3183,17 @@ Detections with lower IoU will be classified as <code>FP</code>.</p>
 <a id="__codelineno-0-404" name="__codelineno-0-404"></a>        <span class="n">iou_threshold</span><span class="o">=</span><span class="n">iou_threshold</span><span class="p">,</span>
 <a id="__codelineno-0-405" name="__codelineno-0-405"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.metrics.detection.ConfusionMatrix.evaluate_detection_batch" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">evaluate_detection_batch</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">,</span> <span class="n">conf_threshold</span><span class="p">,</span> <span class="n">iou_threshold</span><span class="p">)</span></code>
-  
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">evaluate_detection_batch</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">,</span> <span class="n">conf_threshold</span><span class="p">,</span> <span class="n">iou_threshold</span><span class="p">)</span></code>
+
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-staticmethod"><code>staticmethod</code></small>
   </span>
@@ -3207,131 +3201,129 @@ Detections with lower IoU will be classified as <code>FP</code>.</p>
 <a href="#supervision.metrics.detection.ConfusionMatrix.evaluate_detection_batch" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Calculate confusion matrix for a batch of detections for a single image.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>predictions</code></td>
-          <td>
-                <code><span title="numpy.ndarray">ndarray</span></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Batch prediction. Describes a single image and
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>predictions</code></td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Batch prediction. Describes a single image and
 has <code>shape = (M, 6)</code> where <code>M</code> is the number of detected objects.
 Each row is expected to be in
 <code>(x_min, y_min, x_max, y_max, class, conf)</code> format.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>targets</code></td>
-          <td>
-                <code><span title="numpy.ndarray">ndarray</span></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Batch target labels. Describes a single image and
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>targets</code></td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Batch target labels. Describes a single image and
 has <code>shape = (N, 5)</code> where <code>N</code> is the number of ground-truth objects.
 Each row is expected to be in
 <code>(x_min, y_min, x_max, y_max, class)</code> format.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>num_classes</code></td>
-          <td>
-                <code>int</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Number of classes.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>conf_threshold</code></td>
-          <td>
-                <code>float</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Detection confidence threshold between <code>0</code> and <code>1</code>.
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>num_classes</code></td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of classes.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>conf_threshold</code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Detection confidence threshold between <code>0</code> and <code>1</code>.
 Detections with lower confidence will be excluded.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>iou_threshold</code></td>
-          <td>
-                <code>float</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Detection iou  threshold between <code>0</code> and <code>1</code>.
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>iou_threshold</code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Detection iou  threshold between <code>0</code> and <code>1</code>.
 Detections with lower iou will be classified as <code>FP</code>.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>np.ndarray: Confusion matrix based on a single image.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
-
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td>
-                <code><span title="numpy.ndarray">ndarray</span></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>np.ndarray: Confusion matrix based on a single image.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
-
-          <details class="quote">
-            <summary>Source code in <code>supervision/metrics/detection.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-256">256</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/metrics/detection.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-256">256</a></span>
 <span class="normal"><a href="#__codelineno-0-257">257</a></span>
 <span class="normal"><a href="#__codelineno-0-258">258</a></span>
 <span class="normal"><a href="#__codelineno-0-259">259</a></span>
@@ -3479,19 +3471,17 @@ Detections with lower iou will be classified as <code>FP</code>.</p>
 <a id="__codelineno-0-328" name="__codelineno-0-328"></a>
 <a id="__codelineno-0-329" name="__codelineno-0-329"></a>    <span class="k">return</span> <span class="n">result_matrix</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.metrics.detection.ConfusionMatrix.from_detections" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">from_detections</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">classes</span><span class="p">,</span> <span class="n">conf_threshold</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">iou_threshold</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span></code>
-  
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_detections</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">classes</span><span class="p">,</span> <span class="n">conf_threshold</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">iou_threshold</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span></code>
+
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
   </span>
@@ -3499,121 +3489,120 @@ Detections with lower iou will be classified as <code>FP</code>.</p>
 <a href="#supervision.metrics.detection.ConfusionMatrix.from_detections" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Calculate confusion matrix based on predicted and ground-truth detections.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>targets</code></td>
-          <td>
-                <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../core/#supervision.detection.core.Detections">Detections</a>]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Detections objects from ground-truth.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
         </tr>
-        <tr class="doc-section-item">
-          <td><code>predictions</code></td>
-          <td>
-                <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../core/#supervision.detection.core.Detections">Detections</a>]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Detections objects predicted by the model.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>classes</code></td>
-          <td>
-                <code><span title="typing.List">List</span>[str]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Model class names.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>conf_threshold</code></td>
-          <td>
-                <code>float</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Detection confidence threshold between <code>0</code> and <code>1</code>.
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>targets</code></td>
+            <td>
+                  <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../core/#supervision.detection.core.Detections">Detections</a>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Detections objects from ground-truth.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>predictions</code></td>
+            <td>
+                  <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../core/#supervision.detection.core.Detections">Detections</a>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Detections objects predicted by the model.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>classes</code></td>
+            <td>
+                  <code><span title="typing.List">List</span>[str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Model class names.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>conf_threshold</code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Detection confidence threshold between <code>0</code> and <code>1</code>.
 Detections with lower confidence will be excluded.</p>
-            </div>
-          </td>
-          <td>
-                <code>0.3</code>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>iou_threshold</code></td>
-          <td>
-                <code>float</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Detection IoU threshold between <code>0</code> and <code>1</code>.
+              </div>
+            </td>
+            <td>
+                  <code>0.3</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>iou_threshold</code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Detection IoU threshold between <code>0</code> and <code>1</code>.
 Detections with lower IoU will be classified as <code>FP</code>.</p>
-            </div>
-          </td>
-          <td>
-                <code>0.5</code>
-          </td>
+              </div>
+            </td>
+            <td>
+                  <code>0.5</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>ConfusionMatrix</code></td>            <td>
+                  <code><a class="autorefs autorefs-internal" title="supervision.metrics.detection.ConfusionMatrix" href="#supervision.metrics.detection.ConfusionMatrix">ConfusionMatrix</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>New instance of ConfusionMatrix.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
-
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-<th>Name</th>        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-<td><code>ConfusionMatrix</code></td>          <td>
-                <code><a class="autorefs autorefs-internal" title="supervision.metrics.detection.ConfusionMatrix" href="#supervision.metrics.detection.ConfusionMatrix">ConfusionMatrix</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>New instance of ConfusionMatrix.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
 
 <details class="example" open>
   <summary>Example</summary>
@@ -3644,9 +3633,9 @@ Detections with lower IoU will be classified as <code>FP</code>.</p>
 <a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="c1"># ])</span>
 </code></pre></div>
 </details>
-          <details class="quote">
-            <summary>Source code in <code>supervision/metrics/detection.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-93"> 93</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/metrics/detection.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-93"> 93</a></span>
 <span class="normal"><a href="#__codelineno-0-94"> 94</a></span>
 <span class="normal"><a href="#__codelineno-0-95"> 95</a></span>
 <span class="normal"><a href="#__codelineno-0-96"> 96</a></span>
@@ -3782,19 +3771,17 @@ Detections with lower IoU will be classified as <code>FP</code>.</p>
 <a id="__codelineno-0-159" name="__codelineno-0-159"></a>        <span class="n">iou_threshold</span><span class="o">=</span><span class="n">iou_threshold</span><span class="p">,</span>
 <a id="__codelineno-0-160" name="__codelineno-0-160"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.metrics.detection.ConfusionMatrix.from_tensors" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">from_tensors</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">classes</span><span class="p">,</span> <span class="n">conf_threshold</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">iou_threshold</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span></code>
-  
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_tensors</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">classes</span><span class="p">,</span> <span class="n">conf_threshold</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">iou_threshold</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span></code>
+
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
   </span>
@@ -3802,127 +3789,126 @@ Detections with lower IoU will be classified as <code>FP</code>.</p>
 <a href="#supervision.metrics.detection.ConfusionMatrix.from_tensors" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Calculate confusion matrix based on predicted and ground-truth detections.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>predictions</code></td>
-          <td>
-                <code><span title="typing.List">List</span>[<span title="numpy.ndarray">ndarray</span>]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Each element of the list describes a single
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>predictions</code></td>
+            <td>
+                  <code><span title="typing.List">List</span>[<span title="numpy.ndarray">ndarray</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Each element of the list describes a single
 image and has <code>shape = (M, 6)</code> where <code>M</code> is the number of detected
 objects. Each row is expected to be in
 <code>(x_min, y_min, x_max, y_max, class, conf)</code> format.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>targets</code></td>
-          <td>
-                <code><span title="typing.List">List</span>[<span title="numpy.ndarray">ndarray</span>]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Each element of the list describes a single
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>targets</code></td>
+            <td>
+                  <code><span title="typing.List">List</span>[<span title="numpy.ndarray">ndarray</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Each element of the list describes a single
 image and has <code>shape = (N, 5)</code> where <code>N</code> is the number of
 ground-truth objects. Each row is expected to be in
 <code>(x_min, y_min, x_max, y_max, class)</code> format.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>classes</code></td>
-          <td>
-                <code><span title="typing.List">List</span>[str]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Model class names.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>conf_threshold</code></td>
-          <td>
-                <code>float</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Detection confidence threshold between <code>0</code> and <code>1</code>.
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>classes</code></td>
+            <td>
+                  <code><span title="typing.List">List</span>[str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Model class names.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>conf_threshold</code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Detection confidence threshold between <code>0</code> and <code>1</code>.
 Detections with lower confidence will be excluded.</p>
-            </div>
-          </td>
-          <td>
-                <code>0.3</code>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>iou_threshold</code></td>
-          <td>
-                <code>float</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Detection iou  threshold between <code>0</code> and <code>1</code>.
+              </div>
+            </td>
+            <td>
+                  <code>0.3</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>iou_threshold</code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Detection iou  threshold between <code>0</code> and <code>1</code>.
 Detections with lower iou will be classified as <code>FP</code>.</p>
-            </div>
-          </td>
-          <td>
-                <code>0.5</code>
-          </td>
+              </div>
+            </td>
+            <td>
+                  <code>0.5</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>ConfusionMatrix</code></td>            <td>
+                  <code><a class="autorefs autorefs-internal" title="supervision.metrics.detection.ConfusionMatrix" href="#supervision.metrics.detection.ConfusionMatrix">ConfusionMatrix</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>New instance of ConfusionMatrix.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
-
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-<th>Name</th>        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-<td><code>ConfusionMatrix</code></td>          <td>
-                <code><a class="autorefs autorefs-internal" title="supervision.metrics.detection.ConfusionMatrix" href="#supervision.metrics.detection.ConfusionMatrix">ConfusionMatrix</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>New instance of ConfusionMatrix.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
 
 <details class="example" open>
   <summary>Example</summary>
@@ -3969,9 +3955,9 @@ Detections with lower iou will be classified as <code>FP</code>.</p>
 <a id="__codelineno-0-41" name="__codelineno-0-41" href="#__codelineno-0-41"></a><span class="c1"># ])</span>
 </code></pre></div>
 </details>
-          <details class="quote">
-            <summary>Source code in <code>supervision/metrics/detection.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-162">162</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/metrics/detection.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-162">162</a></span>
 <span class="normal"><a href="#__codelineno-0-163">163</a></span>
 <span class="normal"><a href="#__codelineno-0-164">164</a></span>
 <span class="normal"><a href="#__codelineno-0-165">165</a></span>
@@ -4157,141 +4143,137 @@ Detections with lower iou will be classified as <code>FP</code>.</p>
 <a id="__codelineno-0-253" name="__codelineno-0-253"></a>        <span class="n">iou_threshold</span><span class="o">=</span><span class="n">iou_threshold</span><span class="p">,</span>
 <a id="__codelineno-0-254" name="__codelineno-0-254"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.metrics.detection.ConfusionMatrix.plot" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">plot</span><span class="p">(</span><span class="n">save_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">classes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fig_size</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">plot</span><span class="p">(</span><span class="n">save_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">classes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fig_size</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span></code>
 
 <a href="#supervision.metrics.detection.ConfusionMatrix.plot" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Create confusion matrix plot and save it at selected location.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>save_path</code></td>
-          <td>
-                <code><span title="typing.Optional">Optional</span>[str]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Path to save the plot. If not provided,
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>save_path</code></td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to save the plot. If not provided,
 plot will be displayed.</p>
-            </div>
-          </td>
-          <td>
-                <code>None</code>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>title</code></td>
-          <td>
-                <code><span title="typing.Optional">Optional</span>[str]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Title of the plot.</p>
-            </div>
-          </td>
-          <td>
-                <code>None</code>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>classes</code></td>
-          <td>
-                <code><span title="typing.Optional">Optional</span>[<span title="typing.List">List</span>[str]]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>List of classes to be displayed on the plot.
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>title</code></td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Title of the plot.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>classes</code></td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="typing.List">List</span>[str]]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>List of classes to be displayed on the plot.
 If not provided, all classes will be displayed.</p>
-            </div>
-          </td>
-          <td>
-                <code>None</code>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>normalize</code></td>
-          <td>
-                <code>bool</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>If True, normalize the confusion matrix.</p>
-            </div>
-          </td>
-          <td>
-                <code>False</code>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>fig_size</code></td>
-          <td>
-                <code><span title="typing.Tuple">Tuple</span>[int, int]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Size of the plot.</p>
-            </div>
-          </td>
-          <td>
-                <code>(12, 10)</code>
-          </td>
-        </tr>
-    </tbody>
-  </table>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>normalize</code></td>
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, normalize the confusion matrix.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>fig_size</code></td>
+            <td>
+                  <code><span title="typing.Tuple">Tuple</span>[int, int]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Size of the plot.</p>
+              </div>
+            </td>
+            <td>
+                  <code>(12, 10)</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td>
-                <code><span title="matplotlib.figure.Figure">Figure</span></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>matplotlib.figure.Figure: Confusion matrix plot.</p>
-            </div>
-          </td>
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="matplotlib.figure.Figure">Figure</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>matplotlib.figure.Figure: Confusion matrix plot.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
-          <details class="quote">
-            <summary>Source code in <code>supervision/metrics/detection.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-407">407</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/metrics/detection.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-407">407</a></span>
 <span class="normal"><a href="#__codelineno-0-408">408</a></span>
 <span class="normal"><a href="#__codelineno-0-409">409</a></span>
 <span class="normal"><a href="#__codelineno-0-410">410</a></span>
@@ -4467,8 +4449,8 @@ If not provided, all classes will be displayed.</p>
 <a id="__codelineno-0-493" name="__codelineno-0-493"></a>        <span class="p">)</span>
 <a id="__codelineno-0-494" name="__codelineno-0-494"></a>    <span class="k">return</span> <span class="n">fig</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
 
@@ -4476,8 +4458,7 @@ If not provided, all classes will be displayed.</p>
 
   </div>
 
-  </div>
-
+    </div>
 
 </div><div class="md-typeset">
     <h2><a href="#supervision.metrics.detection.MeanAveragePrecision">MeanAveragePrecision</a></h2>
@@ -4490,78 +4471,77 @@ If not provided, all classes will be displayed.</p>
 
 
 <a id="supervision.metrics.detection.MeanAveragePrecision"></a>
-  <div class="doc doc-contents first">
+    <div class="doc doc-contents first">
 
-  
+
       <p>Mean Average Precision for object detection tasks.</p>
 
 
-
-  <p><span class="doc-section-title">Attributes:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.metrics.detection.MeanAveragePrecision.map50_95">map50_95</span></code></td>
-          <td>
-                <code>float</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Mean Average Precision (mAP) calculated over IoU thresholds
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.metrics.detection.MeanAveragePrecision.map50_95">map50_95</span></code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Mean Average Precision (mAP) calculated over IoU thresholds
 ranging from <code>0.50</code> to <code>0.95</code> with a step size of <code>0.05</code>.</p>
-            </div>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.metrics.detection.MeanAveragePrecision.map50">map50</span></code></td>
-          <td>
-                <code>float</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Mean Average Precision (mAP) calculated specifically at
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.metrics.detection.MeanAveragePrecision.map50">map50</span></code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Mean Average Precision (mAP) calculated specifically at
 an IoU threshold of <code>0.50</code>.</p>
-            </div>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.metrics.detection.MeanAveragePrecision.map75">map75</span></code></td>
-          <td>
-                <code>float</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Mean Average Precision (mAP) calculated specifically at
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.metrics.detection.MeanAveragePrecision.map75">map75</span></code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Mean Average Precision (mAP) calculated specifically at
 an IoU threshold of <code>0.75</code>.</p>
-            </div>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.metrics.detection.MeanAveragePrecision.per_class_ap50_95">per_class_ap50_95</span></code></td>
-          <td>
-                <code><span title="numpy.ndarray">ndarray</span></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Average Precision (AP) values calculated over
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.metrics.detection.MeanAveragePrecision.per_class_ap50_95">per_class_ap50_95</span></code></td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Average Precision (AP) values calculated over
 IoU thresholds ranging from <code>0.50</code> to <code>0.95</code> with a step size of <code>0.05</code>,
 provided for each individual class.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
-            <details class="quote">
-              <summary>Source code in <code>supervision/metrics/detection.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-497">497</a></span>
+              <details class="quote">
+                <summary>Source code in <code>supervision/metrics/detection.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-497">497</a></span>
 <span class="normal"><a href="#__codelineno-0-498">498</a></span>
 <span class="normal"><a href="#__codelineno-0-499">499</a></span>
 <span class="normal"><a href="#__codelineno-0-500">500</a></span>
@@ -5259,9 +5239,9 @@ provided for each individual class.</p>
 <a id="__codelineno-0-844" name="__codelineno-0-844"></a>
 <a id="__codelineno-0-845" name="__codelineno-0-845"></a>        <span class="k">return</span> <span class="n">average_precisions</span>
 </code></pre></div></td></tr></table></div>
-            </details>
+              </details>
 
-  
+
 
   <div class="doc doc-children">
 
@@ -5273,14 +5253,12 @@ provided for each individual class.</p>
 
 <h2 id="supervision.metrics.detection.MeanAveragePrecision-functions">Functions<a href="#supervision.metrics.detection.MeanAveragePrecision-functions" class="headerlink" title="Permanent link">&para;</a></h2>
 
-
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.metrics.detection.MeanAveragePrecision.benchmark" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">benchmark</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">callback</span><span class="p">)</span></code>
-  
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">benchmark</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">callback</span><span class="p">)</span></code>
+
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
   </span>
@@ -5288,56 +5266,56 @@ provided for each individual class.</p>
 <a href="#supervision.metrics.detection.MeanAveragePrecision.benchmark" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Calculate mean average precision from dataset and callback function.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>dataset</code></td>
-          <td>
-                <code><a class="autorefs autorefs-internal" title="supervision.dataset.core.DetectionDataset" href="../../datasets/#supervision.dataset.core.DetectionDataset">DetectionDataset</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Object detection dataset used for evaluation.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
         </tr>
-        <tr class="doc-section-item">
-          <td><code>callback</code></td>
-          <td>
-                <code><span title="typing.Callable">Callable</span>[[<span title="numpy.ndarray">ndarray</span>], <a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../core/#supervision.detection.core.Detections">Detections</a>]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Function that takes
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>dataset</code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="supervision.dataset.core.DetectionDataset" href="../../datasets/#supervision.dataset.core.DetectionDataset">DetectionDataset</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Object detection dataset used for evaluation.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>callback</code></td>
+            <td>
+                  <code><span title="typing.Callable">Callable</span>[[<span title="numpy.ndarray">ndarray</span>], <a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../core/#supervision.detection.core.Detections">Detections</a>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Function that takes
 an image as input and returns Detections object.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
-        </tr>
-    </tbody>
-  </table>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
       <p>Returns:
     MeanAveragePrecision: New instance of MeanAveragePrecision.</p>
+
 
 <details class="example" open>
   <summary>Example</summary>
@@ -5360,9 +5338,9 @@ an image as input and returns Detections object.</p>
 <a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="c1"># 0.433</span>
 </code></pre></div>
 </details>
-          <details class="quote">
-            <summary>Source code in <code>supervision/metrics/detection.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-569">569</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/metrics/detection.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-569">569</a></span>
 <span class="normal"><a href="#__codelineno-0-570">570</a></span>
 <span class="normal"><a href="#__codelineno-0-571">571</a></span>
 <span class="normal"><a href="#__codelineno-0-572">572</a></span>
@@ -5456,19 +5434,17 @@ an image as input and returns Detections object.</p>
 <a id="__codelineno-0-614" name="__codelineno-0-614"></a>        <span class="n">targets</span><span class="o">=</span><span class="n">targets</span><span class="p">,</span>
 <a id="__codelineno-0-615" name="__codelineno-0-615"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.metrics.detection.MeanAveragePrecision.compute_average_precision" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">compute_average_precision</span><span class="p">(</span><span class="n">recall</span><span class="p">,</span> <span class="n">precision</span><span class="p">)</span></code>
-  
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">compute_average_precision</span><span class="p">(</span><span class="n">recall</span><span class="p">,</span> <span class="n">precision</span><span class="p">)</span></code>
+
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-staticmethod"><code>staticmethod</code></small>
   </span>
@@ -5476,82 +5452,80 @@ an image as input and returns Detections object.</p>
 <a href="#supervision.metrics.detection.MeanAveragePrecision.compute_average_precision" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Compute the average precision using 101-point interpolation (COCO), given
     the recall and precision curves.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>recall</code></td>
-          <td>
-                <code><span title="numpy.ndarray">ndarray</span></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The recall curve.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
         </tr>
-        <tr class="doc-section-item">
-          <td><code>precision</code></td>
-          <td>
-                <code><span title="numpy.ndarray">ndarray</span></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The precision curve.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>recall</code></td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The recall curve.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>precision</code></td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The precision curve.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>float</code></td>            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Average precision.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
-
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-<th>Name</th>        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-<td><code>float</code></td>          <td>
-                <code>float</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Average precision.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
-
-          <details class="quote">
-            <summary>Source code in <code>supervision/metrics/detection.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-726">726</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/metrics/detection.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-726">726</a></span>
 <span class="normal"><a href="#__codelineno-0-727">727</a></span>
 <span class="normal"><a href="#__codelineno-0-728">728</a></span>
 <span class="normal"><a href="#__codelineno-0-729">729</a></span>
@@ -5599,19 +5573,17 @@ an image as input and returns Detections object.</p>
 <a id="__codelineno-0-748" name="__codelineno-0-748"></a>    <span class="n">average_precision</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">trapz</span><span class="p">(</span><span class="n">interpolated_precision</span><span class="p">,</span> <span class="n">interpolated_recall_levels</span><span class="p">)</span>
 <a id="__codelineno-0-749" name="__codelineno-0-749"></a>    <span class="k">return</span> <span class="n">average_precision</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.metrics.detection.MeanAveragePrecision.from_detections" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">from_detections</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span></code>
-  
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_detections</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span></code>
+
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
   </span>
@@ -5619,55 +5591,55 @@ an image as input and returns Detections object.</p>
 <a href="#supervision.metrics.detection.MeanAveragePrecision.from_detections" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Calculate mean average precision based on predicted and ground-truth detections.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>targets</code></td>
-          <td>
-                <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../core/#supervision.detection.core.Detections">Detections</a>]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Detections objects from ground-truth.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
         </tr>
-        <tr class="doc-section-item">
-          <td><code>predictions</code></td>
-          <td>
-                <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../core/#supervision.detection.core.Detections">Detections</a>]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Detections objects predicted by the model.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
-        </tr>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>targets</code></td>
+            <td>
+                  <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../core/#supervision.detection.core.Detections">Detections</a>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Detections objects from ground-truth.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>predictions</code></td>
+            <td>
+                  <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../core/#supervision.detection.core.Detections">Detections</a>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Detections objects predicted by the model.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
       <p>Returns:
     MeanAveragePrecision: New instance of ConfusionMatrix.</p>
+
 
 <details class="example" open>
   <summary>Example</summary>
@@ -5692,9 +5664,9 @@ an image as input and returns Detections object.</p>
 <a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="c1"># 0.2899</span>
 </code></pre></div>
 </details>
-          <details class="quote">
-            <summary>Source code in <code>supervision/metrics/detection.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-519">519</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/metrics/detection.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-519">519</a></span>
 <span class="normal"><a href="#__codelineno-0-520">520</a></span>
 <span class="normal"><a href="#__codelineno-0-521">521</a></span>
 <span class="normal"><a href="#__codelineno-0-522">522</a></span>
@@ -5792,19 +5764,17 @@ an image as input and returns Detections object.</p>
 <a id="__codelineno-0-566" name="__codelineno-0-566"></a>        <span class="n">targets</span><span class="o">=</span><span class="n">target_tensors</span><span class="p">,</span>
 <a id="__codelineno-0-567" name="__codelineno-0-567"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.metrics.detection.MeanAveragePrecision.from_tensors" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">from_tensors</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span></code>
-  
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_tensors</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span></code>
+
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
   </span>
@@ -5812,62 +5782,62 @@ an image as input and returns Detections object.</p>
 <a href="#supervision.metrics.detection.MeanAveragePrecision.from_tensors" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Calculate Mean Average Precision based on predicted and ground-truth
     detections at different threshold.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>predictions</code></td>
-          <td>
-                <code><span title="typing.List">List</span>[<span title="numpy.ndarray">ndarray</span>]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Each element of the list describes
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>predictions</code></td>
+            <td>
+                  <code><span title="typing.List">List</span>[<span title="numpy.ndarray">ndarray</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Each element of the list describes
 a single image and has <code>shape = (M, 6)</code> where <code>M</code> is
 the number of detected objects. Each row is expected to be
 in <code>(x_min, y_min, x_max, y_max, class, conf)</code> format.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>targets</code></td>
-          <td>
-                <code><span title="typing.List">List</span>[<span title="numpy.ndarray">ndarray</span>]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Each element of the list describes a single
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>targets</code></td>
+            <td>
+                  <code><span title="typing.List">List</span>[<span title="numpy.ndarray">ndarray</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Each element of the list describes a single
 image and has <code>shape = (N, 5)</code> where <code>N</code> is the
 number of ground-truth objects. Each row is expected to be in
 <code>(x_min, y_min, x_max, y_max, class)</code> format.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
-        </tr>
-    </tbody>
-  </table>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
       <p>Returns:
     MeanAveragePrecision: New instance of MeanAveragePrecision.</p>
+
 
 <details class="example" open>
   <summary>Example</summary>
@@ -5908,9 +5878,9 @@ number of ground-truth objects. Each row is expected to be in
 <a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a><span class="c1"># 0.6649</span>
 </code></pre></div>
 </details>
-          <details class="quote">
-            <summary>Source code in <code>supervision/metrics/detection.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-617">617</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/metrics/detection.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-617">617</a></span>
 <span class="normal"><a href="#__codelineno-0-618">618</a></span>
 <span class="normal"><a href="#__codelineno-0-619">619</a></span>
 <span class="normal"><a href="#__codelineno-0-620">620</a></span>
@@ -6126,8 +6096,8 @@ number of ground-truth objects. Each row is expected to be in
 <a id="__codelineno-0-723" name="__codelineno-0-723"></a>        <span class="n">per_class_ap50_95</span><span class="o">=</span><span class="n">average_precisions</span><span class="p">,</span>
 <a id="__codelineno-0-724" name="__codelineno-0-724"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
 
@@ -6135,8 +6105,7 @@ number of ground-truth objects. Each row is expected to be in
 
   </div>
 
-  </div>
-
+    </div>
 
 </div>
 

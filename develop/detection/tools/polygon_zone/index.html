@@ -1856,77 +1856,76 @@
 
 
 <a id="supervision.detection.tools.polygon_zone.PolygonZone"></a>
-  <div class="doc doc-contents first">
+    <div class="doc doc-contents first">
 
-  
+
       <p>A class for defining a polygon-shaped zone within a frame for detecting objects.</p>
 
 
-
-  <p><span class="doc-section-title">Attributes:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.detection.tools.polygon_zone.PolygonZone.polygon">polygon</span></code></td>
-          <td>
-                <code><span title="numpy.ndarray">ndarray</span></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>A polygon represented by a numpy array of shape
-<code>(N, 2)</code>, containing the <code>x</code>, <code>y</code> coordinates of the points.</p>
-            </div>
-          </td>
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
         </tr>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.detection.tools.polygon_zone.PolygonZone.triggering_anchors">triggering_anchors</span></code></td>
-          <td>
-                <code><span title="typing.Iterable">Iterable</span>[<span title="sv.Position">Position</span>]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>A list of positions specifying
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.detection.tools.polygon_zone.PolygonZone.polygon">polygon</span></code></td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A polygon represented by a numpy array of shape
+<code>(N, 2)</code>, containing the <code>x</code>, <code>y</code> coordinates of the points.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.detection.tools.polygon_zone.PolygonZone.triggering_anchors">triggering_anchors</span></code></td>
+            <td>
+                  <code><span title="typing.Iterable">Iterable</span>[<span title="sv.Position">Position</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A list of positions specifying
 which anchors of the detections bounding box to consider when deciding on
 whether the detection fits within the PolygonZone
 (default: (sv.Position.BOTTOM_CENTER,)).</p>
-            </div>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.detection.tools.polygon_zone.PolygonZone.current_count">current_count</span></code></td>
-          <td>
-                <code>int</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The current count of detected objects within the zone</p>
-            </div>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.detection.tools.polygon_zone.PolygonZone.mask">mask</span></code></td>
-          <td>
-                <code><span title="numpy.ndarray">ndarray</span></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The 2D bool mask for the polygon zone</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.detection.tools.polygon_zone.PolygonZone.current_count">current_count</span></code></td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The current count of detected objects within the zone</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.detection.tools.polygon_zone.PolygonZone.mask">mask</span></code></td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The 2D bool mask for the polygon zone</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
-            <details class="quote">
-              <summary>Source code in <code>supervision/detection/tools/polygon_zone.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-18">18</a></span>
+              <details class="quote">
+                <summary>Source code in <code>supervision/detection/tools/polygon_zone.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-18">18</a></span>
 <span class="normal"><a href="#__codelineno-0-19">19</a></span>
 <span class="normal"><a href="#__codelineno-0-20">20</a></span>
 <span class="normal"><a href="#__codelineno-0-21">21</a></span>
@@ -2088,9 +2087,9 @@ whether the detection fits within the PolygonZone
 <a id="__codelineno-0-97" name="__codelineno-0-97"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">current_count</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">is_in_zone</span><span class="p">))</span>
 <a id="__codelineno-0-98" name="__codelineno-0-98"></a>        <span class="k">return</span> <span class="n">is_in_zone</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-            </details>
+              </details>
 
-  
+
 
   <div class="doc doc-children">
 
@@ -2102,80 +2101,76 @@ whether the detection fits within the PolygonZone
 
 <h2 id="supervision.detection.tools.polygon_zone.PolygonZone-functions">Functions<a href="#supervision.detection.tools.polygon_zone.PolygonZone-functions" class="headerlink" title="Permanent link">&para;</a></h2>
 
-
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.detection.tools.polygon_zone.PolygonZone.trigger" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">trigger</span><span class="p">(</span><span class="n">detections</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">trigger</span><span class="p">(</span><span class="n">detections</span><span class="p">)</span></code>
 
 <a href="#supervision.detection.tools.polygon_zone.PolygonZone.trigger" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Determines if the detections are within the polygon zone.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>detections</code></td>
-          <td>
-                <code><a class="autorefs autorefs-internal" title="supervision.Detections" href="../../core/#supervision.detection.core.Detections">Detections</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The detections
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>detections</code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="supervision.Detections" href="../../core/#supervision.detection.core.Detections">Detections</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The detections
 to be checked against the polygon zone</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
-
-
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td>
-                <code><span title="numpy.typing.NDArray">NDArray</span>[<span title="numpy.bool_">bool_</span>]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>np.ndarray: A boolean numpy array indicating
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="numpy.typing.NDArray">NDArray</span>[<span title="numpy.bool_">bool_</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>np.ndarray: A boolean numpy array indicating
 if each detection is within the polygon zone</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
-          <details class="quote">
-            <summary>Source code in <code>supervision/detection/tools/polygon_zone.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-66">66</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/detection/tools/polygon_zone.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-66">66</a></span>
 <span class="normal"><a href="#__codelineno-0-67">67</a></span>
 <span class="normal"><a href="#__codelineno-0-68">68</a></span>
 <span class="normal"><a href="#__codelineno-0-69">69</a></span>
@@ -2241,8 +2236,8 @@ if each detection is within the polygon zone</p>
 <a id="__codelineno-0-97" name="__codelineno-0-97"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">current_count</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">is_in_zone</span><span class="p">))</span>
 <a id="__codelineno-0-98" name="__codelineno-0-98"></a>    <span class="k">return</span> <span class="n">is_in_zone</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
 
@@ -2250,8 +2245,7 @@ if each detection is within the polygon zone</p>
 
   </div>
 
-  </div>
-
+    </div>
 
 </div><div class="md-typeset">
   <h2>PolygonZoneAnnotator</h2>
@@ -2264,141 +2258,140 @@ if each detection is within the polygon zone</p>
 
 
 <a id="supervision.detection.tools.polygon_zone.PolygonZoneAnnotator"></a>
-  <div class="doc doc-contents first">
+    <div class="doc doc-contents first">
 
-  
+
       <p>A class for annotating a polygon-shaped zone within a
     frame with a count of detected objects.</p>
 
 
-
-  <p><span class="doc-section-title">Attributes:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.detection.tools.polygon_zone.PolygonZoneAnnotator.zone">zone</span></code></td>
-          <td>
-                <code><a class="autorefs autorefs-internal" title="supervision.detection.tools.polygon_zone.PolygonZone" href="#supervision.detection.tools.polygon_zone.PolygonZone">PolygonZone</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The polygon zone to be annotated</p>
-            </div>
-          </td>
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
         </tr>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.detection.tools.polygon_zone.PolygonZoneAnnotator.color">color</span></code></td>
-          <td>
-                <code><a class="autorefs autorefs-internal" title="supervision.draw.color.Color" href="../../../utils/draw/#supervision.draw.color.Color">Color</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The color to draw the polygon lines</p>
-            </div>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.detection.tools.polygon_zone.PolygonZoneAnnotator.thickness">thickness</span></code></td>
-          <td>
-                <code>int</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The thickness of the polygon lines, default is 2</p>
-            </div>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.detection.tools.polygon_zone.PolygonZoneAnnotator.text_color">text_color</span></code></td>
-          <td>
-                <code><a class="autorefs autorefs-internal" title="supervision.draw.color.Color" href="../../../utils/draw/#supervision.draw.color.Color">Color</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The color of the text on the polygon, default is black</p>
-            </div>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.detection.tools.polygon_zone.PolygonZoneAnnotator.text_scale">text_scale</span></code></td>
-          <td>
-                <code>float</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The scale of the text on the polygon, default is 0.5</p>
-            </div>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.detection.tools.polygon_zone.PolygonZoneAnnotator.text_thickness">text_thickness</span></code></td>
-          <td>
-                <code>int</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The thickness of the text on the polygon, default is 1</p>
-            </div>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.detection.tools.polygon_zone.PolygonZoneAnnotator.text_padding">text_padding</span></code></td>
-          <td>
-                <code>int</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The padding around the text on the polygon, default is 10</p>
-            </div>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.detection.tools.polygon_zone.PolygonZoneAnnotator.font">font</span></code></td>
-          <td>
-                <code>int</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The font type for the text on the polygon,
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.detection.tools.polygon_zone.PolygonZoneAnnotator.zone">zone</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="supervision.detection.tools.polygon_zone.PolygonZone" href="#supervision.detection.tools.polygon_zone.PolygonZone">PolygonZone</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The polygon zone to be annotated</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.detection.tools.polygon_zone.PolygonZoneAnnotator.color">color</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="supervision.draw.color.Color" href="../../../utils/draw/#supervision.draw.color.Color">Color</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The color to draw the polygon lines</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.detection.tools.polygon_zone.PolygonZoneAnnotator.thickness">thickness</span></code></td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The thickness of the polygon lines, default is 2</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.detection.tools.polygon_zone.PolygonZoneAnnotator.text_color">text_color</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="supervision.draw.color.Color" href="../../../utils/draw/#supervision.draw.color.Color">Color</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The color of the text on the polygon, default is black</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.detection.tools.polygon_zone.PolygonZoneAnnotator.text_scale">text_scale</span></code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The scale of the text on the polygon, default is 0.5</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.detection.tools.polygon_zone.PolygonZoneAnnotator.text_thickness">text_thickness</span></code></td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The thickness of the text on the polygon, default is 1</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.detection.tools.polygon_zone.PolygonZoneAnnotator.text_padding">text_padding</span></code></td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The padding around the text on the polygon, default is 10</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.detection.tools.polygon_zone.PolygonZoneAnnotator.font">font</span></code></td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The font type for the text on the polygon,
 default is cv2.FONT_HERSHEY_SIMPLEX</p>
-            </div>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.detection.tools.polygon_zone.PolygonZoneAnnotator.center">center</span></code></td>
-          <td>
-                <code><span title="typing.Tuple">Tuple</span>[int, int]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The center of the polygon for text placement</p>
-            </div>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code><span title="supervision.detection.tools.polygon_zone.PolygonZoneAnnotator.display_in_zone_count">display_in_zone_count</span></code></td>
-          <td>
-                <code>bool</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Show the label of the zone or not. Default is True</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.detection.tools.polygon_zone.PolygonZoneAnnotator.center">center</span></code></td>
+            <td>
+                  <code><span title="typing.Tuple">Tuple</span>[int, int]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The center of the polygon for text placement</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.detection.tools.polygon_zone.PolygonZoneAnnotator.display_in_zone_count">display_in_zone_count</span></code></td>
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Show the label of the zone or not. Default is True</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
-            <details class="quote">
-              <summary>Source code in <code>supervision/detection/tools/polygon_zone.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-101">101</a></span>
+              <details class="quote">
+                <summary>Source code in <code>supervision/detection/tools/polygon_zone.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-101">101</a></span>
 <span class="normal"><a href="#__codelineno-0-102">102</a></span>
 <span class="normal"><a href="#__codelineno-0-103">103</a></span>
 <span class="normal"><a href="#__codelineno-0-104">104</a></span>
@@ -2546,9 +2539,9 @@ default is cv2.FONT_HERSHEY_SIMPLEX</p>
 <a id="__codelineno-0-173" name="__codelineno-0-173"></a>
 <a id="__codelineno-0-174" name="__codelineno-0-174"></a>        <span class="k">return</span> <span class="n">annotated_frame</span>
 </code></pre></div></td></tr></table></div>
-            </details>
+              </details>
 
-  
+
 
   <div class="doc doc-children">
 
@@ -2560,93 +2553,89 @@ default is cv2.FONT_HERSHEY_SIMPLEX</p>
 
 <h2 id="supervision.detection.tools.polygon_zone.PolygonZoneAnnotator-functions">Functions<a href="#supervision.detection.tools.polygon_zone.PolygonZoneAnnotator-functions" class="headerlink" title="Permanent link">&para;</a></h2>
 
-
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.detection.tools.polygon_zone.PolygonZoneAnnotator.annotate" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
 
 <a href="#supervision.detection.tools.polygon_zone.PolygonZoneAnnotator.annotate" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Annotates the polygon zone within a frame with a count of detected objects.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>scene</code></td>
-          <td>
-                <code><span title="numpy.ndarray">ndarray</span></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The image on which the polygon zone will be annotated</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
         </tr>
-        <tr class="doc-section-item">
-          <td><code>label</code></td>
-          <td>
-                <code><span title="typing.Optional">Optional</span>[str]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>An optional label for the count of detected objects
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>scene</code></td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The image on which the polygon zone will be annotated</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>label</code></td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>An optional label for the count of detected objects
 within the polygon zone (default: None)</p>
-            </div>
-          </td>
-          <td>
-                <code>None</code>
-          </td>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>np.ndarray: The image with the polygon zone and count of detected objects</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
-
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td>
-                <code><span title="numpy.ndarray">ndarray</span></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>np.ndarray: The image with the polygon zone and count of detected objects</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
-
-          <details class="quote">
-            <summary>Source code in <code>supervision/detection/tools/polygon_zone.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-142">142</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/detection/tools/polygon_zone.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-142">142</a></span>
 <span class="normal"><a href="#__codelineno-0-143">143</a></span>
 <span class="normal"><a href="#__codelineno-0-144">144</a></span>
 <span class="normal"><a href="#__codelineno-0-145">145</a></span>
@@ -2712,8 +2701,8 @@ within the polygon zone (default: None)</p>
 <a id="__codelineno-0-173" name="__codelineno-0-173"></a>
 <a id="__codelineno-0-174" name="__codelineno-0-174"></a>    <span class="k">return</span> <span class="n">annotated_frame</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
 
@@ -2721,8 +2710,7 @@ within the polygon zone (default: None)</p>
 
   </div>
 
-  </div>
-
+    </div>
 
 </div>
 

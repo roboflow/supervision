@@ -1791,9 +1791,9 @@
 
 
 <a id="supervision.detection.tools.inference_slicer.InferenceSlicer"></a>
-  <div class="doc doc-contents first">
+    <div class="doc doc-contents first">
 
-  
+
       <p>InferenceSlicer performs slicing-based inference for small target detection. This
 method, often referred to as
 <a href="https://ieeexplore.ieee.org/document/9897990">Slicing Adaptive Inference (SAHI)</a>,
@@ -1801,94 +1801,94 @@ involves dividing a larger image into smaller slices, performing inference on ea
 slice, and then merging the detections.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>slice_wh</code></td>
-          <td>
-                <code><span title="typing.Tuple">Tuple</span>[int, int]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Dimensions of each slice in the format
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>slice_wh</code></td>
+            <td>
+                  <code><span title="typing.Tuple">Tuple</span>[int, int]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Dimensions of each slice in the format
 <code>(width, height)</code>.</p>
-            </div>
-          </td>
-          <td>
-                <code>(320, 320)</code>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>overlap_ratio_wh</code></td>
-          <td>
-                <code><span title="typing.Tuple">Tuple</span>[float, float]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Overlap ratio between consecutive
+              </div>
+            </td>
+            <td>
+                  <code>(320, 320)</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>overlap_ratio_wh</code></td>
+            <td>
+                  <code><span title="typing.Tuple">Tuple</span>[float, float]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Overlap ratio between consecutive
 slices in the format <code>(width_ratio, height_ratio)</code>.</p>
-            </div>
-          </td>
-          <td>
-                <code>(0.2, 0.2)</code>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>iou_threshold</code></td>
-          <td>
-                <code><span title="typing.Optional">Optional</span>[float]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Intersection over Union (IoU) threshold
+              </div>
+            </td>
+            <td>
+                  <code>(0.2, 0.2)</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>iou_threshold</code></td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[float]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Intersection over Union (IoU) threshold
 used for non-max suppression.</p>
-            </div>
-          </td>
-          <td>
-                <code>0.5</code>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>callback</code></td>
-          <td>
-                <code><span title="typing.Callable">Callable</span></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>A function that performs inference on a given image
+              </div>
+            </td>
+            <td>
+                  <code>0.5</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>callback</code></td>
+            <td>
+                  <code><span title="typing.Callable">Callable</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A function that performs inference on a given image
 slice and returns detections.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>thread_workers</code></td>
-          <td>
-                <code>int</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Number of threads for parallel execution.</p>
-            </div>
-          </td>
-          <td>
-                <code>1</code>
-          </td>
-        </tr>
-    </tbody>
-  </table>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>thread_workers</code></td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of threads for parallel execution.</p>
+              </div>
+            </td>
+            <td>
+                  <code>1</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
 
 <details class="note" open>
   <summary>Note</summary>
@@ -1897,9 +1897,9 @@ image. As a result, the final slices in the row and column dimensions might be
 smaller than the specified slice dimensions if the image's width or height is
 not a multiple of the slice's width or height minus the overlap.</p>
 </details>
-            <details class="quote">
-              <summary>Source code in <code>supervision/detection/tools/inference_slicer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-40"> 40</a></span>
+              <details class="quote">
+                <summary>Source code in <code>supervision/detection/tools/inference_slicer.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-40"> 40</a></span>
 <span class="normal"><a href="#__codelineno-0-41"> 41</a></span>
 <span class="normal"><a href="#__codelineno-0-42"> 42</a></span>
 <span class="normal"><a href="#__codelineno-0-43"> 43</a></span>
@@ -2219,9 +2219,9 @@ not a multiple of the slice's width or height minus the overlap.</p>
 <a id="__codelineno-0-198" name="__codelineno-0-198"></a>
 <a id="__codelineno-0-199" name="__codelineno-0-199"></a>        <span class="k">return</span> <span class="n">offsets</span>
 </code></pre></div></td></tr></table></div>
-            </details>
+              </details>
 
-  
+
 
   <div class="doc doc-children">
 
@@ -2233,78 +2233,75 @@ not a multiple of the slice's width or height minus the overlap.</p>
 
 <h2 id="supervision.detection.tools.inference_slicer.InferenceSlicer-functions">Functions<a href="#supervision.detection.tools.inference_slicer.InferenceSlicer-functions" class="headerlink" title="Permanent link">&para;</a></h2>
 
-
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.detection.tools.inference_slicer.InferenceSlicer.__call__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="fm">__call__</span><span class="p">(</span><span class="n">image</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__call__</span><span class="p">(</span><span class="n">image</span><span class="p">)</span></code>
 
 <a href="#supervision.detection.tools.inference_slicer.InferenceSlicer.__call__" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Performs slicing-based inference on the provided image using the specified
     callback.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>image</code></td>
-          <td>
-                <code><span title="numpy.ndarray">ndarray</span></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The input image on which inference needs to be
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>image</code></td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The input image on which inference needs to be
 performed. The image should be in the format
 <code>(height, width, channels)</code>.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
-
-
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-<th>Name</th>        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-<td><code>Detections</code></td>          <td>
-                <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../../core/#supervision.detection.core.Detections">Detections</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>A collection of detections for the entire image after merging
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>Detections</code></td>            <td>
+                  <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../../core/#supervision.detection.core.Detections">Detections</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A collection of detections for the entire image after merging
 results from all slices and applying NMS.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
 
 <details class="example" open>
   <summary>Example</summary>
@@ -2324,9 +2321,9 @@ results from all slices and applying NMS.</p>
 <a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="n">detections</span> <span class="o">=</span> <span class="n">slicer</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
 </code></pre></div>
 </details>
-          <details class="quote">
-            <summary>Source code in <code>supervision/detection/tools/inference_slicer.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-80"> 80</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/detection/tools/inference_slicer.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-80"> 80</a></span>
 <span class="normal"><a href="#__codelineno-0-81"> 81</a></span>
 <span class="normal"><a href="#__codelineno-0-82"> 82</a></span>
 <span class="normal"><a href="#__codelineno-0-83"> 83</a></span>
@@ -2426,8 +2423,8 @@ results from all slices and applying NMS.</p>
 <a id="__codelineno-0-128" name="__codelineno-0-128"></a>        <span class="n">threshold</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">iou_threshold</span>
 <a id="__codelineno-0-129" name="__codelineno-0-129"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
 
@@ -2435,8 +2432,7 @@ results from all slices and applying NMS.</p>
 
   </div>
 
-  </div>
-
+    </div>
 
 </div>
 

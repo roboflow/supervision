@@ -1905,88 +1905,84 @@
 
 
 
-
 <div class="doc doc-object doc-function">
 
 
 
-
 <a id="supervision.utils.image.crop_image"></a>
-  <div class="doc doc-contents first">
-  
+    <div class="doc doc-contents first">
+
       <p>Crops the given image based on the given bounding box.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>image</code></td>
-          <td>
-                <code><span title="supervision.annotators.base.ImageType">ImageType</span></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The image to be cropped. <code>ImageType</code> is a flexible type,
-accepting either <code>numpy.ndarray</code> or <code>PIL.Image.Image</code>.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
         </tr>
-        <tr class="doc-section-item">
-          <td><code>xyxy</code></td>
-          <td>
-                <code><span title="typing.Union">Union</span>[<span title="numpy.ndarray">ndarray</span>, <span title="typing.List">List</span>[int], <span title="typing.Tuple">Tuple</span>[int, int, int, int]]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>A bounding box
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>image</code></td>
+            <td>
+                  <code><span title="supervision.annotators.base.ImageType">ImageType</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The image to be cropped. <code>ImageType</code> is a flexible type,
+accepting either <code>numpy.ndarray</code> or <code>PIL.Image.Image</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>xyxy</code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[<span title="numpy.ndarray">ndarray</span>, <span title="typing.List">List</span>[int], <span title="typing.Tuple">Tuple</span>[int, int, int, int]]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A bounding box
 coordinates in the format <code>(x_min, y_min, x_max, y_max)</code>, accepted as either
 a <code>numpy.ndarray</code>, a <code>list</code>, or a <code>tuple</code>.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
-
-
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td>
-                <code><span title="supervision.annotators.base.ImageType">ImageType</span></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The cropped image. The type is determined by the input type and
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="supervision.annotators.base.ImageType">ImageType</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The cropped image. The type is determined by the input type and
 may be either a <code>numpy.ndarray</code> or <code>PIL.Image.Image</code>.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
       <div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="supervision.utils.image.crop_image--__tabbed_1_1" name="supervision.utils.image.crop_image--__tabbed_1" type="radio" /><input id="supervision.utils.image.crop_image--__tabbed_1_2" name="supervision.utils.image.crop_image--__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="supervision.utils.image.crop_image--__tabbed_1_1">OpenCV</label><label for="supervision.utils.image.crop_image--__tabbed_1_2">Pillow</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
@@ -2021,9 +2017,9 @@ may be either a <code>numpy.ndarray</code> or <code>PIL.Image.Image</code>.</p>
 </div>
 <p><img align="center" alt="crop_image" src="https://media.roboflow.com/supervision-docs/crop-image.png" width="800" /></p>
 
-          <details class="quote">
-            <summary>Source code in <code>supervision/utils/image.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-28">28</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/utils/image.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-28">28</a></span>
 <span class="normal"><a href="#__codelineno-0-29">29</a></span>
 <span class="normal"><a href="#__codelineno-0-30">30</a></span>
 <span class="normal"><a href="#__codelineno-0-31">31</a></span>
@@ -2141,8 +2137,8 @@ may be either a <code>numpy.ndarray</code> or <code>PIL.Image.Image</code>.</p>
 <a id="__codelineno-0-85" name="__codelineno-0-85"></a>    <span class="n">x_min</span><span class="p">,</span> <span class="n">y_min</span><span class="p">,</span> <span class="n">x_max</span><span class="p">,</span> <span class="n">y_max</span> <span class="o">=</span> <span class="n">xyxy</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
 <a id="__codelineno-0-86" name="__codelineno-0-86"></a>    <span class="k">return</span> <span class="n">image</span><span class="p">[</span><span class="n">y_min</span><span class="p">:</span><span class="n">y_max</span><span class="p">,</span> <span class="n">x_min</span><span class="p">:</span><span class="n">x_max</span><span class="p">]</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div><div class="md-typeset">
     <h2><a href="#supervision.utils.image.scale_image">crop_image</a></h2>
@@ -2150,111 +2146,106 @@ may be either a <code>numpy.ndarray</code> or <code>PIL.Image.Image</code>.</p>
 
 
 
-
 <div class="doc doc-object doc-function">
 
 
 
-
 <a id="supervision.utils.image.scale_image"></a>
-  <div class="doc doc-contents first">
-  
+    <div class="doc doc-contents first">
+
       <p>Scales the given image based on the given scale factor.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>image</code></td>
-          <td>
-                <code><span title="supervision.annotators.base.ImageType">ImageType</span></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The image to be scaled. <code>ImageType</code> is a flexible type,
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>image</code></td>
+            <td>
+                  <code><span title="supervision.annotators.base.ImageType">ImageType</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The image to be scaled. <code>ImageType</code> is a flexible type,
 accepting either <code>numpy.ndarray</code> or <code>PIL.Image.Image</code>.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>scale_factor</code></td>
-          <td>
-                <code>float</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The factor by which the image will be scaled. Scale
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>scale_factor</code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The factor by which the image will be scaled. Scale
 factor &gt; <code>1.0</code> zooms in, &lt; <code>1.0</code> zooms out.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
-
-
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td>
-                <code><span title="supervision.annotators.base.ImageType">ImageType</span></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The scaled image. The type is determined by the input type and
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="supervision.annotators.base.ImageType">ImageType</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The scaled image. The type is determined by the input type and
 may be either a <code>numpy.ndarray</code> or <code>PIL.Image.Image</code>.</p>
-            </div>
-          </td>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
-
-
-
-  <p><span class="doc-section-title">Raises:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td>
-                <code>ValueError</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>If the scale factor is non-positive.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>ValueError</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If the scale factor is non-positive.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
       <div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="supervision.utils.image.scale_image--__tabbed_1_1" name="supervision.utils.image.scale_image--__tabbed_1" type="radio" /><input id="supervision.utils.image.scale_image--__tabbed_1_2" name="supervision.utils.image.scale_image--__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="supervision.utils.image.scale_image--__tabbed_1_1">OpenCV</label><label for="supervision.utils.image.scale_image--__tabbed_1_2">Pillow</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
@@ -2286,9 +2277,9 @@ may be either a <code>numpy.ndarray</code> or <code>PIL.Image.Image</code>.</p>
 </div>
 </div>
 
-          <details class="quote">
-            <summary>Source code in <code>supervision/utils/image.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-89"> 89</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/utils/image.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-89"> 89</a></span>
 <span class="normal"><a href="#__codelineno-0-90"> 90</a></span>
 <span class="normal"><a href="#__codelineno-0-91"> 91</a></span>
 <span class="normal"><a href="#__codelineno-0-92"> 92</a></span>
@@ -2398,8 +2389,8 @@ may be either a <code>numpy.ndarray</code> or <code>PIL.Image.Image</code>.</p>
 <a id="__codelineno-0-142" name="__codelineno-0-142"></a>    <span class="n">height_new</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">height_old</span> <span class="o">*</span> <span class="n">scale_factor</span><span class="p">)</span>
 <a id="__codelineno-0-143" name="__codelineno-0-143"></a>    <span class="k">return</span> <span class="n">cv2</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="p">(</span><span class="n">width_new</span><span class="p">,</span> <span class="n">height_new</span><span class="p">),</span> <span class="n">interpolation</span><span class="o">=</span><span class="n">cv2</span><span class="o">.</span><span class="n">INTER_LINEAR</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div><div class="md-typeset">
     <h2><a href="#supervision.utils.image.resize_image">resize_image</a></h2>
@@ -2407,103 +2398,99 @@ may be either a <code>numpy.ndarray</code> or <code>PIL.Image.Image</code>.</p>
 
 
 
-
 <div class="doc doc-object doc-function">
 
 
 
-
 <a id="supervision.utils.image.resize_image"></a>
-  <div class="doc doc-contents first">
-  
+    <div class="doc doc-contents first">
+
       <p>Resizes the given image to a specified resolution. Can maintain the original aspect
 ratio or resize directly to the desired dimensions.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>image</code></td>
-          <td>
-                <code><span title="supervision.annotators.base.ImageType">ImageType</span></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The image to be resized. <code>ImageType</code> is a flexible type,
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>image</code></td>
+            <td>
+                  <code><span title="supervision.annotators.base.ImageType">ImageType</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The image to be resized. <code>ImageType</code> is a flexible type,
 accepting either <code>numpy.ndarray</code> or <code>PIL.Image.Image</code>.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>resolution_wh</code></td>
-          <td>
-                <code><span title="typing.Tuple">Tuple</span>[int, int]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The target resolution as
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>resolution_wh</code></td>
+            <td>
+                  <code><span title="typing.Tuple">Tuple</span>[int, int]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The target resolution as
 <code>(width, height)</code>.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>keep_aspect_ratio</code></td>
-          <td>
-                <code>bool</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Flag to maintain the image's original
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>keep_aspect_ratio</code></td>
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Flag to maintain the image's original
 aspect ratio. Defaults to <code>False</code>.</p>
-            </div>
-          </td>
-          <td>
-                <code>False</code>
-          </td>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
-
-
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td>
-                <code><span title="supervision.annotators.base.ImageType">ImageType</span></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The resized image. The type is determined by the input type and
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="supervision.annotators.base.ImageType">ImageType</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The resized image. The type is determined by the input type and
 may be either a <code>numpy.ndarray</code> or <code>PIL.Image.Image</code>.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
       <div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="supervision.utils.image.resize_image--__tabbed_1_1" name="supervision.utils.image.resize_image--__tabbed_1" type="radio" /><input id="supervision.utils.image.resize_image--__tabbed_1_2" name="supervision.utils.image.resize_image--__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="supervision.utils.image.resize_image--__tabbed_1_1">OpenCV</label><label for="supervision.utils.image.resize_image--__tabbed_1_2">Pillow</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
@@ -2540,9 +2527,9 @@ may be either a <code>numpy.ndarray</code> or <code>PIL.Image.Image</code>.</p>
 </div>
 <p><img align="center" alt="resize_image" src="https://media.roboflow.com/supervision-docs/resize-image.png" width="800" /></p>
 
-          <details class="quote">
-            <summary>Source code in <code>supervision/utils/image.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-146">146</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/utils/image.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-146">146</a></span>
 <span class="normal"><a href="#__codelineno-0-147">147</a></span>
 <span class="normal"><a href="#__codelineno-0-148">148</a></span>
 <span class="normal"><a href="#__codelineno-0-149">149</a></span>
@@ -2684,8 +2671,8 @@ may be either a <code>numpy.ndarray</code> or <code>PIL.Image.Image</code>.</p>
 <a id="__codelineno-0-215" name="__codelineno-0-215"></a>
 <a id="__codelineno-0-216" name="__codelineno-0-216"></a>    <span class="k">return</span> <span class="n">cv2</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="p">(</span><span class="n">width_new</span><span class="p">,</span> <span class="n">height_new</span><span class="p">),</span> <span class="n">interpolation</span><span class="o">=</span><span class="n">cv2</span><span class="o">.</span><span class="n">INTER_LINEAR</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div><div class="md-typeset">
     <h2><a href="#supervision.utils.image.letterbox_image">letterbox_image</a></h2>
@@ -2693,103 +2680,99 @@ may be either a <code>numpy.ndarray</code> or <code>PIL.Image.Image</code>.</p>
 
 
 
-
 <div class="doc doc-object doc-function">
 
 
 
-
 <a id="supervision.utils.image.letterbox_image"></a>
-  <div class="doc doc-contents first">
-  
+    <div class="doc doc-contents first">
+
       <p>Resizes and pads an image to a specified resolution with a given color, maintaining
 the original aspect ratio.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>image</code></td>
-          <td>
-                <code><span title="supervision.annotators.base.ImageType">ImageType</span></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The image to be resized. <code>ImageType</code> is a flexible type,
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>image</code></td>
+            <td>
+                  <code><span title="supervision.annotators.base.ImageType">ImageType</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The image to be resized. <code>ImageType</code> is a flexible type,
 accepting either <code>numpy.ndarray</code> or <code>PIL.Image.Image</code>.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>resolution_wh</code></td>
-          <td>
-                <code><span title="typing.Tuple">Tuple</span>[int, int]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The target resolution as
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>resolution_wh</code></td>
+            <td>
+                  <code><span title="typing.Tuple">Tuple</span>[int, int]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The target resolution as
 <code>(width, height)</code>.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>color</code></td>
-          <td>
-                <code><span title="typing.Union">Union</span>[<span title="typing.Tuple">Tuple</span>[int, int, int], <a class="autorefs autorefs-internal" title="supervision.draw.color.Color" href="../draw/#supervision.draw.color.Color">Color</a>]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The color to pad with. If tuple
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>color</code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[<span title="typing.Tuple">Tuple</span>[int, int, int], <a class="autorefs autorefs-internal" title="supervision.draw.color.Color" href="../draw/#supervision.draw.color.Color">Color</a>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The color to pad with. If tuple
 provided it should be in BGR format.</p>
-            </div>
-          </td>
-          <td>
-                <code><span title="supervision.draw.color.Color.BLACK">BLACK</span></code>
-          </td>
+              </div>
+            </td>
+            <td>
+                  <code><span title="supervision.draw.color.Color.BLACK">BLACK</span></code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
-
-
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td>
-                <code><span title="supervision.annotators.base.ImageType">ImageType</span></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The resized image. The type is determined by the input type and
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="supervision.annotators.base.ImageType">ImageType</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The resized image. The type is determined by the input type and
 may be either a <code>numpy.ndarray</code> or <code>PIL.Image.Image</code>.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
       <div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="supervision.utils.image.letterbox_image--__tabbed_1_1" name="supervision.utils.image.letterbox_image--__tabbed_1" type="radio" /><input id="supervision.utils.image.letterbox_image--__tabbed_1_2" name="supervision.utils.image.letterbox_image--__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="supervision.utils.image.letterbox_image--__tabbed_1_1">OpenCV</label><label for="supervision.utils.image.letterbox_image--__tabbed_1_2">Pillow</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
@@ -2822,9 +2805,9 @@ may be either a <code>numpy.ndarray</code> or <code>PIL.Image.Image</code>.</p>
 </div>
 <p><img align="center" alt="letterbox_image" src="https://media.roboflow.com/supervision-docs/letterbox-image.png" width="800" /></p>
 
-          <details class="quote">
-            <summary>Source code in <code>supervision/utils/image.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-219">219</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/utils/image.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-219">219</a></span>
 <span class="normal"><a href="#__codelineno-0-220">220</a></span>
 <span class="normal"><a href="#__codelineno-0-221">221</a></span>
 <span class="normal"><a href="#__codelineno-0-222">222</a></span>
@@ -2968,8 +2951,8 @@ may be either a <code>numpy.ndarray</code> or <code>PIL.Image.Image</code>.</p>
 <a id="__codelineno-0-289" name="__codelineno-0-289"></a>        <span class="n">value</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
 <a id="__codelineno-0-290" name="__codelineno-0-290"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div><div class="md-typeset">
     <h2><a href="#supervision.utils.image.overlay_image">overlay_image</a></h2>
@@ -2977,101 +2960,96 @@ may be either a <code>numpy.ndarray</code> or <code>PIL.Image.Image</code>.</p>
 
 
 
-
 <div class="doc doc-object doc-function">
 
 
 
-
 <a id="supervision.utils.image.overlay_image"></a>
-  <div class="doc doc-contents first">
-  
+    <div class="doc doc-contents first">
+
       <p>Places an image onto a scene at a given anchor point, handling cases where
 the image's position is partially or completely outside the scene's bounds.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>image</code></td>
-          <td>
-                <code><span title="numpy.ndarray">ndarray</span></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The background scene onto which the image is placed.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
         </tr>
-        <tr class="doc-section-item">
-          <td><code>overlay</code></td>
-          <td>
-                <code><span title="numpy.ndarray">ndarray</span></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The image to be placed onto the scene.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>anchor</code></td>
-          <td>
-                <code><span title="typing.Tuple">Tuple</span>[int, int]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The <code>(x, y)</code> coordinates in the scene where the
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>image</code></td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The background scene onto which the image is placed.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>overlay</code></td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The image to be placed onto the scene.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>anchor</code></td>
+            <td>
+                  <code><span title="typing.Tuple">Tuple</span>[int, int]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The <code>(x, y)</code> coordinates in the scene where the
 top-left corner of the image will be placed.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
-
-
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td>
-                <code><span title="numpy.ndarray">ndarray</span></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The result image with overlay.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
-
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The result image with overlay.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
 <p><span class="doc-section-title">Examples:</span></p>
@@ -3085,9 +3063,9 @@ top-left corner of the image will be placed.</p>
 </code></pre></div>
       <p><img align="center" alt="overlay_image" src="https://media.roboflow.com/supervision-docs/overlay-image.png" width="800" /></p>
 
-          <details class="quote">
-            <summary>Source code in <code>supervision/utils/image.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-293">293</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/utils/image.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-293">293</a></span>
 <span class="normal"><a href="#__codelineno-0-294">294</a></span>
 <span class="normal"><a href="#__codelineno-0-295">295</a></span>
 <span class="normal"><a href="#__codelineno-0-296">296</a></span>
@@ -3199,8 +3177,8 @@ top-left corner of the image will be placed.</p>
 <a id="__codelineno-0-347" name="__codelineno-0-347"></a>
 <a id="__codelineno-0-348" name="__codelineno-0-348"></a>    <span class="k">return</span> <span class="n">image</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div><div class="md-typeset">
     <h2><a href="#supervision.utils.image.ImageSink">ImageSink</a></h2>
@@ -3213,12 +3191,12 @@ top-left corner of the image will be placed.</p>
 
 
 <a id="supervision.utils.image.ImageSink"></a>
-  <div class="doc doc-contents first">
+    <div class="doc doc-contents first">
 
 
-            <details class="quote">
-              <summary>Source code in <code>supervision/utils/image.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-351">351</a></span>
+              <details class="quote">
+                <summary>Source code in <code>supervision/utils/image.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-351">351</a></span>
 <span class="normal"><a href="#__codelineno-0-352">352</a></span>
 <span class="normal"><a href="#__codelineno-0-353">353</a></span>
 <span class="normal"><a href="#__codelineno-0-354">354</a></span>
@@ -3346,9 +3324,9 @@ top-left corner of the image will be placed.</p>
 <a id="__codelineno-0-413" name="__codelineno-0-413"></a>    <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">exc_traceback</span><span class="p">):</span>
 <a id="__codelineno-0-414" name="__codelineno-0-414"></a>        <span class="k">pass</span>
 </code></pre></div></td></tr></table></div>
-            </details>
+              </details>
 
-  
+
 
   <div class="doc doc-children">
 
@@ -3360,81 +3338,77 @@ top-left corner of the image will be placed.</p>
 
 <h2 id="supervision.utils.image.ImageSink-functions">Functions<a href="#supervision.utils.image.ImageSink-functions" class="headerlink" title="Permanent link">&para;</a></h2>
 
-
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.utils.image.ImageSink.__init__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">target_dir_path</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">image_name_pattern</span><span class="o">=</span><span class="s1">&#39;image_</span><span class="si">{:05d}</span><span class="s1">.png&#39;</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">target_dir_path</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">image_name_pattern</span><span class="o">=</span><span class="s1">&#39;image_</span><span class="si">{:05d}</span><span class="s1">.png&#39;</span><span class="p">)</span></code>
 
 <a href="#supervision.utils.image.ImageSink.__init__" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Initialize a context manager for saving images.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>target_dir_path</code></td>
-          <td>
-                <code>str</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The target directory where images will be saved.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
         </tr>
-        <tr class="doc-section-item">
-          <td><code>overwrite</code></td>
-          <td>
-                <code>bool</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Whether to overwrite the existing directory.
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>target_dir_path</code></td>
+            <td>
+                  <code>str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The target directory where images will be saved.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>overwrite</code></td>
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Whether to overwrite the existing directory.
 Defaults to False.</p>
-            </div>
-          </td>
-          <td>
-                <code>False</code>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>image_name_pattern</code></td>
-          <td>
-                <code>str</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The image file name pattern.
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>image_name_pattern</code></td>
+            <td>
+                  <code>str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The image file name pattern.
 Defaults to "image_{:05d}.png".</p>
-            </div>
-          </td>
-          <td>
-                <code>&#39;image_{:05d}.png&#39;</code>
-          </td>
-        </tr>
-    </tbody>
-  </table>
-
+              </div>
+            </td>
+            <td>
+                  <code>&#39;image_{:05d}.png&#39;</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
 <p><span class="doc-section-title">Examples:</span></p>
@@ -3447,9 +3421,9 @@ Defaults to "image_{:05d}.png".</p>
 <a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>        <span class="n">sink</span><span class="o">.</span><span class="n">save_image</span><span class="p">(</span><span class="n">image</span><span class="o">=</span><span class="n">image</span><span class="p">)</span>
 </code></pre></div>
 
-          <details class="quote">
-            <summary>Source code in <code>supervision/utils/image.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-352">352</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/utils/image.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-352">352</a></span>
 <span class="normal"><a href="#__codelineno-0-353">353</a></span>
 <span class="normal"><a href="#__codelineno-0-354">354</a></span>
 <span class="normal"><a href="#__codelineno-0-355">355</a></span>
@@ -3513,76 +3487,73 @@ Defaults to "image_{:05d}.png".</p>
 <a id="__codelineno-0-382" name="__codelineno-0-382"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">image_name_pattern</span> <span class="o">=</span> <span class="n">image_name_pattern</span>
 <a id="__codelineno-0-383" name="__codelineno-0-383"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">image_count</span> <span class="o">=</span> <span class="mi">0</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="supervision.utils.image.ImageSink.save_image" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>          <code class="highlight language-python"><span class="n">save_image</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">image_name</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">save_image</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">image_name</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
 
 <a href="#supervision.utils.image.ImageSink.save_image" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
-  <div class="doc doc-contents ">
-  
+    <div class="doc doc-contents ">
+
       <p>Save a given image in the target directory.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>image</code></td>
-          <td>
-                <code><span title="numpy.ndarray">ndarray</span></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The image to be saved. The image must be in BGR color
-format.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
         </tr>
-        <tr class="doc-section-item">
-          <td><code>image_name</code></td>
-          <td>
-                <code>str</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The name to use for the saved image.
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>image</code></td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The image to be saved. The image must be in BGR color
+format.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>image_name</code></td>
+            <td>
+                  <code>str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The name to use for the saved image.
 If not provided, a name will be
 generated using the <code>image_name_pattern</code>.</p>
-            </div>
-          </td>
-          <td>
-                <code>None</code>
-          </td>
-        </tr>
-    </tbody>
-  </table>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
-          <details class="quote">
-            <summary>Source code in <code>supervision/utils/image.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-395">395</a></span>
+            <details class="quote">
+              <summary>Source code in <code>supervision/utils/image.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-395">395</a></span>
 <span class="normal"><a href="#__codelineno-0-396">396</a></span>
 <span class="normal"><a href="#__codelineno-0-397">397</a></span>
 <span class="normal"><a href="#__codelineno-0-398">398</a></span>
@@ -3616,8 +3587,8 @@ generated using the <code>image_name_pattern</code>.</p>
 <a id="__codelineno-0-410" name="__codelineno-0-410"></a>    <span class="n">cv2</span><span class="o">.</span><span class="n">imwrite</span><span class="p">(</span><span class="n">image_path</span><span class="p">,</span> <span class="n">image</span><span class="p">)</span>
 <a id="__codelineno-0-411" name="__codelineno-0-411"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">image_count</span> <span class="o">+=</span> <span class="mi">1</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
 
@@ -3625,8 +3596,7 @@ generated using the <code>image_name_pattern</code>.</p>
 
   </div>
 
-  </div>
-
+    </div>
 
 </div>
 
