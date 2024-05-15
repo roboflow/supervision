@@ -34,14 +34,14 @@ def resolve_color_idx(
 ) -> int:
     if detection_idx >= len(detections):
         raise ValueError(
-            f"Detection index {detection_idx}"
+            f"Detection index {detection_idx} "
             f"is out of bounds for detections of length {len(detections)}"
         )
 
     if isinstance(color_lookup, np.ndarray):
         if len(color_lookup) != len(detections):
             raise ValueError(
-                f"Length of color lookup {len(color_lookup)}"
+                f"Length of color lookup {len(color_lookup)} "
                 f"does not match length of detections {len(detections)}"
             )
         return color_lookup[detection_idx]
@@ -50,14 +50,14 @@ def resolve_color_idx(
     elif color_lookup == ColorLookup.CLASS:
         if detections.class_id is None:
             raise ValueError(
-                "Could not resolve color by class because"
+                "Could not resolve color by class because "
                 "Detections do not have class_id"
             )
         return detections.class_id[detection_idx]
     elif color_lookup == ColorLookup.TRACK:
         if detections.tracker_id is None:
             raise ValueError(
-                "Could not resolve color by track because"
+                "Could not resolve color by track because "
                 "Detections do not have tracker_id"
             )
         return detections.tracker_id[detection_idx]

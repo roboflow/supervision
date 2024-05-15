@@ -913,11 +913,27 @@ def test_calculate_masks_centroids(
         ),  # single data dict with a single field name and empty list values
         (
             [
+                {"test_1": []},
+                {"test_1": []},
+            ],
+            {"test_1": []},
+            DoesNotRaise(),
+        ),  # two data dicts with the same field name and empty list values
+        (
+            [
                 {"test_1": np.array([])},
             ],
             {"test_1": np.array([])},
             DoesNotRaise(),
         ),  # single data dict with a single field name and empty np.array values
+        (
+            [
+                {"test_1": np.array([])},
+                {"test_1": np.array([])},
+            ],
+            {"test_1": np.array([])},
+            DoesNotRaise(),
+        ),  # two data dicts with the same field name and empty np.array values
         (
             [
                 {"test_1": [1, 2, 3]},
@@ -932,7 +948,7 @@ def test_calculate_masks_centroids(
             ],
             {"test_1": [3, 2, 1]},
             DoesNotRaise(),
-        ),  # two data dicts with the same field name and empty and list values
+        ),  # two data dicts with the same field name; one of with empty list as value
         (
             [
                 {"test_1": [1, 2, 3]},
@@ -1012,6 +1028,49 @@ def test_calculate_masks_centroids(
             None,
             pytest.raises(ValueError),
         ),  # two data dicts with the same field name and different length arrays values
+        (
+            [{}, {"test_1": [1, 2, 3]}],
+            {"test_1": [1, 2, 3]},
+            DoesNotRaise(),
+        ),  # two data dicts; one empty and one non-empty dict
+        (
+            [{"test_1": [], "test_2": []}, {"test_1": [1, 2, 3], "test_2": [1, 2, 3]}],
+            {"test_1": [1, 2, 3], "test_2": [1, 2, 3]},
+            DoesNotRaise(),
+        ),  # two data dicts; one empty and one non-empty dict; same keys
+        (
+            [{"test_1": []}, {"test_1": [1, 2, 3], "test_2": [4, 5, 6]}],
+            None,
+            pytest.raises(ValueError),
+        ),  # two data dicts; one empty and one non-empty dict; different keys
+        (
+            [
+                {
+                    "test_1": [1, 2, 3],
+                    "test_2": [4, 5, 6],
+                    "test_3": [7, 8, 9],
+                },
+                {"test_1": [1, 2, 3], "test_2": [4, 5, 6]},
+            ],
+            None,
+            pytest.raises(ValueError),
+        ),  # two data dicts; one with three keys, one with two keys
+        (
+            [
+                {"test_1": [1, 2, 3]},
+                {"test_1": [1, 2, 3], "test_2": [1, 2, 3]},
+            ],
+            None,
+            pytest.raises(ValueError),
+        ),  # some keys missing in one dict
+        (
+            [
+                {"test_1": [1, 2, 3], "test_2": ["a", "b"]},
+                {"test_1": [4, 5], "test_2": ["c", "d", "e"]},
+            ],
+            None,
+            pytest.raises(ValueError),
+        ),  # different value lengths for the same key
     ],
 )
 def test_merge_data(
@@ -1021,6 +1080,9 @@ def test_merge_data(
 ):
     with exception:
         result = merge_data(data_list=data_list)
+        if expected_result is None:
+            assert False, f"Expected an error, but got result {result}"
+
         for key in result:
             if isinstance(result[key], np.ndarray):
                 assert np.array_equal(

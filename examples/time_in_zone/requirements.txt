@@ -1,5 +1,5 @@
 opencv-python
-supervision
+supervision>=0.20.0
 ultralytics
-inference
+inference==0.9.17
 pytube

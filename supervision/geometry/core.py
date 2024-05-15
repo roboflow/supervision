@@ -98,6 +98,11 @@ class Rect:
     width: float
     height: float
 
+    @classmethod
+    def from_xyxy(cls, xyxy: Tuple[float, float, float, float]) -> Rect:
+        x1, y1, x2, y2 = xyxy
+        return cls(x=x1, y=y1, width=x2 - x1, height=y2 - y1)
+
     @property
     def top_left(self) -> Point:
         return Point(x=self.x, y=self.y)
@@ -112,4 +117,12 @@ class Rect:
             y=self.y - padding,
             width=self.width + 2 * padding,
             height=self.height + 2 * padding,
+        )
+
+    def as_xyxy_int_tuple(self) -> Tuple[int, int, int, int]:
+        return (
+            int(self.x),
+            int(self.y),
+            int(self.x + self.width),
+            int(self.y + self.height),
         )
