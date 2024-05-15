@@ -8,7 +8,12 @@ from supervision.annotators.base import BaseAnnotator, ImageType
 from supervision.annotators.utils import ColorLookup, Trace, resolve_color
 from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
-from supervision.detection.utils import clip_boxes, mask_to_polygons
+from supervision.detection.utils import (
+    calculate_dynamic_kernel_size,
+    calculate_dynamic_pixel_size,
+    clip_boxes,
+    mask_to_polygons,
+)
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import draw_polygon
 from supervision.geometry.core import Position
@@ -1153,10 +1158,10 @@ class BlurAnnotator(BaseAnnotator):
     A class for blurring regions in an image using provided detections.
     """
 
-    def __init__(self, kernel_size: int = 15):
+    def __init__(self, kernel_size: int = None):
         """
         Args:
-            kernel_size (int): The size of the average pooling kernel used for blurring.
+            kernel_size (int, optional): The size of the average pooling kernel used for blurring. If not set, will use a dynamic size depending on the area size
         """
         self.kernel_size: int = kernel_size
 
@@ -1203,7 +1208,10 @@ class BlurAnnotator(BaseAnnotator):
 
         for x1, y1, x2, y2 in clipped_xyxy:
             roi = scene[y1:y2, x1:x2]
-            roi = cv2.blur(roi, (self.kernel_size, self.kernel_size))
+            kernel_size = self.kernel_size or calculate_dynamic_kernel_size(
+                x1, y1, x2, y2
+            )
+            roi = cv2.blur(roi, (kernel_size, kernel_size))
             scene[y1:y2, x1:x2] = roi
 
         return scene
@@ -1421,10 +1429,10 @@ class PixelateAnnotator(BaseAnnotator):
     A class for pixelating regions in an image using provided detections.
     """
 
-    def __init__(self, pixel_size: int = 20):
+    def __init__(self, pixel_size: int = None):
         """
         Args:
-            pixel_size (int): The size of the pixelation.
+            pixel_size (int, optional): The size of the pixelation. If not set, will use a dynamic size depending on the area size
         """
         self.pixel_size: int = pixel_size
 
@@ -1472,8 +1480,17 @@ class PixelateAnnotator(BaseAnnotator):
 
         for x1, y1, x2, y2 in clipped_xyxy:
             roi = scene[y1:y2, x1:x2]
+
+            if self.pixel_size is not None and min(y2 - y1, x2 - x1) < self.pixel_size:
+                # Calculate the average color of the ROI and fill the ROI with it
+                avg_color = cv2.mean(roi)[:3]
+                scene[y1:y2, x1:x2] = avg_color
+                continue
+
+            pixel_size = self.pixel_size or calculate_dynamic_pixel_size(x1, y1, x2, y2)
+
             scaled_up_roi = cv2.resize(
-                src=roi, dsize=None, fx=1 / self.pixel_size, fy=1 / self.pixel_size
+                src=roi, dsize=None, fx=1 / pixel_size, fy=1 / self.pixel_size
             )
             scaled_down_roi = cv2.resize(
                 src=scaled_up_roi,
