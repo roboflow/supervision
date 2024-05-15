@@ -23,6 +23,7 @@ from supervision.annotators.core import (
     PercentageBarAnnotator,
     PixelateAnnotator,
     PolygonAnnotator,
+    RichLabelAnnotator,
     RoundBoxAnnotator,
     TraceAnnotator,
     TriangleAnnotator,
