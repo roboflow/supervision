@@ -234,7 +234,7 @@ def test_group_coco_annotations_by_image_id(
                 mock_cock_coco_annotation(
                     category_id=0,
                     bbox=(0, 0, 5, 5),
-                    area= 5 * 5,
+                    area=5 * 5,
                     segmentation=[[0, 0, 2, 0, 2, 2, 4, 2, 4, 4, 0, 4]],
                 )
             ],
@@ -243,14 +243,20 @@ def test_group_coco_annotations_by_image_id(
             Detections(
                 xyxy=np.array([[0, 0, 5, 5]], dtype=np.float32),
                 class_id=np.array([0], dtype=int),
-                mask=np.array([[[1, 1, 1, 0, 0],
-                               [1, 1, 1, 0, 0],
-                               [1, 1, 1, 1, 1],
-                               [1, 1, 1, 1, 1],
-                               [1, 1, 1, 1, 1]]]),
+                mask=np.array(
+                    [
+                        [
+                            [1, 1, 1, 0, 0],
+                            [1, 1, 1, 0, 0],
+                            [1, 1, 1, 1, 1],
+                            [1, 1, 1, 1, 1],
+                            [1, 1, 1, 1, 1],
+                        ]
+                    ]
+                ),
             ),
             DoesNotRaise(),
-        ),  # single image annotations with mask as polygon 
+        ),  # single image annotations with mask as polygon
         (
             [
                 mock_cock_coco_annotation(
@@ -269,11 +275,17 @@ def test_group_coco_annotations_by_image_id(
             Detections(
                 xyxy=np.array([[0, 0, 5, 5]], dtype=np.float32),
                 class_id=np.array([0], dtype=int),
-                mask=np.array([[[1, 1, 1, 0, 0],
-                               [1, 1, 1, 0, 0],
-                               [1, 1, 1, 1, 1],
-                               [1, 1, 1, 1, 1],
-                               [1, 1, 1, 1, 1]]]),
+                mask=np.array(
+                    [
+                        [
+                            [1, 1, 1, 0, 0],
+                            [1, 1, 1, 0, 0],
+                            [1, 1, 1, 1, 1],
+                            [1, 1, 1, 1, 1],
+                            [1, 1, 1, 1, 1],
+                        ]
+                    ]
+                ),
             ),
             DoesNotRaise(),
         ),  # single image annotations with mask, RLE segmentation mask
@@ -282,7 +294,7 @@ def test_group_coco_annotations_by_image_id(
                 mock_cock_coco_annotation(
                     category_id=0,
                     bbox=(0, 0, 5, 5),
-                    area= 5 * 5,
+                    area=5 * 5,
                     segmentation=[[0, 0, 2, 0, 2, 2, 4, 2, 4, 4, 0, 4]],
                 ),
                 mock_cock_coco_annotation(
@@ -301,16 +313,24 @@ def test_group_coco_annotations_by_image_id(
             Detections(
                 xyxy=np.array([[0, 0, 5, 5], [3, 0, 5, 2]], dtype=np.float32),
                 class_id=np.array([0, 0], dtype=int),
-                mask=np.array([ [[1, 1, 1, 0, 0],
-                                 [1, 1, 1, 0, 0],
-                                 [1, 1, 1, 1, 1],
-                                 [1, 1, 1, 1, 1],
-                                 [1, 1, 1, 1, 1]],
-                                [[0, 0, 0, 1, 1],
-                                 [0, 0, 0, 1, 1],
-                                 [0, 0, 0, 0, 0],
-                                 [0, 0, 0, 0, 0],
-                                 [0, 0, 0, 0, 0]]])
+                mask=np.array(
+                    [
+                        [
+                            [1, 1, 1, 0, 0],
+                            [1, 1, 1, 0, 0],
+                            [1, 1, 1, 1, 1],
+                            [1, 1, 1, 1, 1],
+                            [1, 1, 1, 1, 1],
+                        ],
+                        [
+                            [0, 0, 0, 1, 1],
+                            [0, 0, 0, 1, 1],
+                            [0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0],
+                        ],
+                    ]
+                ),
             ),
             DoesNotRaise(),
         ),  # two image annotations with mask, one mask as polygon ans second as RLE
@@ -329,7 +349,7 @@ def test_group_coco_annotations_by_image_id(
                 mock_cock_coco_annotation(
                     category_id=1,
                     bbox=(0, 0, 5, 5),
-                    area= 5 * 5,
+                    area=5 * 5,
                     segmentation=[[0, 0, 2, 0, 2, 2, 4, 2, 4, 4, 0, 4]],
                 ),
             ],
@@ -340,16 +360,20 @@ def test_group_coco_annotations_by_image_id(
                 class_id=np.array([0, 1], dtype=int),
                 mask=np.array(
                     [
-                        [[0, 0, 0, 1, 1],
-                         [0, 0, 0, 1, 1],
-                         [0, 0, 0, 0, 0],
-                         [0, 0, 0, 0, 0],
-                         [0, 0, 0, 0, 0]],
-                        [[1, 1, 1, 0, 0],
-                         [1, 1, 1, 0, 0],
-                         [1, 1, 1, 1, 1],
-                         [1, 1, 1, 1, 1],
-                         [1, 1, 1, 1, 1]]
+                        [
+                            [0, 0, 0, 1, 1],
+                            [0, 0, 0, 1, 1],
+                            [0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0],
+                        ],
+                        [
+                            [1, 1, 1, 0, 0],
+                            [1, 1, 1, 0, 0],
+                            [1, 1, 1, 1, 1],
+                            [1, 1, 1, 1, 1],
+                            [1, 1, 1, 1, 1],
+                        ],
                     ]
                 ),
             ),
