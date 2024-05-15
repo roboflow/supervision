@@ -1177,7 +1177,7 @@ class RichLabelAnnotator:
 
         Example:
             ```python
-             import supervision as sv
+            import supervision as sv
 
             image = ...
             detections = sv.Detections(...)
@@ -1188,7 +1188,7 @@ class RichLabelAnnotator:
                 in zip(detections['class_name'], detections.confidence)
             ]
 
-            label_annotator = sv.RichLabelAnnotator(font_path="path/to/font.ttf")
+            rich_label_annotator = sv.RichLabelAnnotator(font_path="path/to/font.ttf")
             annotated_frame = label_annotator.annotate(
                 scene=image.copy(),
                 detections=detections,
