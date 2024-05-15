@@ -1233,7 +1233,7 @@ class Detections:
             for merge_ind in merge_ind_list:
                 box_iou = box_iou_batch(self[keep_ind].xyxy, self[merge_ind].xyxy)[0]
                 if box_iou > threshold:
-                    merged_detection = self.merge_object_detection_pair(
+                    merged_detection = merge_object_detection_pair(
                         self[keep_ind], self[merge_ind]
                     )
                     self._set_at_index(keep_ind, merged_detection)
