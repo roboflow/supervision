@@ -308,9 +308,9 @@ def box_non_max_merge(
 
         ious = box_iou_batch(predictions[order][:, :4], merge_candidate[:, :4])
 
-        below_threshold = ious < iou_threshold
-        matched_box_indices = np.flip(order[np.where(below_threshold is False)[0]])
-        unmatched_indices = order[np.where(below_threshold is True)[0]]
+        below_threshold = (ious < iou_threshold).astype(np.uint8)
+        matched_box_indices = np.flip(order[np.where(below_threshold == 0)[0]])
+        unmatched_indices = order[np.where(below_threshold == 1)[0]]
 
         order = unmatched_indices[scores[unmatched_indices].argsort()]
 
