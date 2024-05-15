@@ -294,14 +294,7 @@ def box_non_max_merge(
     """
     keep_to_merge_list = {}
 
-    x1 = predictions[:, 0]
-    y1 = predictions[:, 1]
-    x2 = predictions[:, 2]
-    y2 = predictions[:, 3]
-
     scores = predictions[:, 4]
-    areas = (x2 - x1) * (y2 - y1)
-
     order = scores.argsort()
 
     while len(order) > 0:
@@ -312,30 +305,12 @@ def box_non_max_merge(
             keep_to_merge_list[idx.tolist()] = []
             break
 
-        xx1 = np.take(x1, axis=0, indices=order)
-        xx2 = np.take(x2, axis=0, indices=order)
-        yy1 = np.take(y1, axis=0, indices=order)
-        yy2 = np.take(y2, axis=0, indices=order)
+        candidate = np.expand_dims(predictions[idx], axis=0)
+        ious = box_iou_batch(predictions[order][:, :4], candidate[:, :4])
 
-        xx1 = np.maximum(xx1, x1[idx])
-        yy1 = np.maximum(yy1, y1[idx])
-        xx2 = np.minimum(xx2, x2[idx])
-        yy2 = np.minimum(yy2, y2[idx])
-
-        w = np.maximum(0, xx2 - xx1)
-        h = np.maximum(0, yy2 - yy1)
-
-        inter = w * h
-
-        rem_areas = np.take(areas, axis=0, indices=order)
-
-        union = (rem_areas - inter) + areas[idx]
-        match_metric_value = inter / union
-
-        mask = match_metric_value < iou_threshold
-        mask = mask.astype(np.uint8)
-        matched_box_indices = np.flip(order[np.where(mask == 0)[0]])
-        unmatched_indices = order[np.where(mask == 1)[0]]
+        mask = ious < iou_threshold
+        matched_box_indices = np.flip(order[np.where(mask is False)[0]])
+        unmatched_indices = order[np.where(mask is True)[0]]
 
         order = unmatched_indices[scores[unmatched_indices].argsort()]
 
