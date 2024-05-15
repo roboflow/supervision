@@ -458,7 +458,7 @@ def mask_to_xyxy(masks: np.ndarray) -> np.ndarray:
             `(x_min, y_min, x_max, y_max)` for each mask
     """
     n = masks.shape[0]
-    bboxes = np.zeros((n, 4), dtype=int)
+    xyxy = np.zeros((n, 4), dtype=int)
 
     for i, mask in enumerate(masks):
         rows, cols = np.where(mask)
@@ -466,9 +466,9 @@ def mask_to_xyxy(masks: np.ndarray) -> np.ndarray:
         if len(rows) > 0 and len(cols) > 0:
             x_min, x_max = np.min(cols), np.max(cols)
             y_min, y_max = np.min(rows), np.max(rows)
-            bboxes[i, :] = [x_min, y_min, x_max, y_max]
+            xyxy[i, :] = [x_min, y_min, x_max, y_max]
 
-    return bboxes
+    return xyxy
 
 
 def mask_to_polygons(mask: np.ndarray) -> List[np.ndarray]:
