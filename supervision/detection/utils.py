@@ -300,18 +300,12 @@ def box_non_max_merge(
     y2 = predictions[:, 3]
 
     scores = predictions[:, 4]
-
     areas = (x2 - x1) * (y2 - y1)
 
     order = scores.argsort()
 
-    keep = []
-
     while len(order) > 0:
         idx = order[-1]
-
-        keep.append(idx.tolist())
-
         order = order[:-1]
 
         if len(order) == 0:
@@ -353,7 +347,7 @@ def box_non_max_merge(
     return keep_to_merge_list
 
 
-def batch_box_non_max_merge(
+def box_non_max_merge_batch(
     predictions: np.ndarray, iou_threshold: float = 0.5
 ) -> Dict[int, List[int]]:
     """
