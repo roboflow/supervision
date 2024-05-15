@@ -8,7 +8,6 @@ import numpy as np
 
 from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.utils import (
-    box_iou_batch,
     box_non_max_merge,
     box_non_max_merge_batch,
     box_non_max_suppression,
@@ -1231,12 +1230,10 @@ class Detections:
         result = []
         for keep_ind, merge_ind_list in keep_to_merge_list.items():
             for merge_ind in merge_ind_list:
-                box_iou = box_iou_batch(self[keep_ind].xyxy, self[merge_ind].xyxy)[0]
-                if box_iou > threshold:
-                    merged_detection = merge_object_detection_pair(
-                        self[keep_ind], self[merge_ind]
-                    )
-                    self._set_at_index(keep_ind, merged_detection)
+                merged_detection = merge_object_detection_pair(
+                    self[keep_ind], self[merge_ind]
+                )
+                self._set_at_index(keep_ind, merged_detection)
             result.append(self[keep_ind])
 
         return Detections.merge(result)
