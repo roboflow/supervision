@@ -299,18 +299,18 @@ def box_non_max_merge(
 
     while len(order) > 0:
         idx = order[-1]
-        order = order[:-1]
+        merge_candidate = np.expand_dims(predictions[idx], axis=0)
 
+        order = order[:-1]
         if len(order) == 0:
             keep_to_merge_list[idx.tolist()] = []
             break
 
-        candidate = np.expand_dims(predictions[idx], axis=0)
-        ious = box_iou_batch(predictions[order][:, :4], candidate[:, :4])
+        ious = box_iou_batch(predictions[order][:, :4], merge_candidate[:, :4])
 
-        mask = ious < iou_threshold
-        matched_box_indices = np.flip(order[np.where(mask is False)[0]])
-        unmatched_indices = order[np.where(mask is True)[0]]
+        below_threshold = ious < iou_threshold
+        matched_box_indices = np.flip(order[np.where(below_threshold is False)[0]])
+        unmatched_indices = order[np.where(below_threshold is True)[0]]
 
         order = unmatched_indices[scores[unmatched_indices].argsort()]
 
