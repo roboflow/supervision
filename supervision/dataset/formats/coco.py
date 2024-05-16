@@ -11,6 +11,7 @@ from supervision.dataset.utils import (
     approximate_mask_with_polygons,
     map_detections_class_id,
     rle_to_mask,
+    mask_to_rle
 )
 from supervision.detection.core import Detections
 from supervision.detection.utils import polygon_to_mask
@@ -106,6 +107,21 @@ def coco_annotations_to_detections(
     return Detections(xyxy=xyxy, class_id=np.asarray(class_ids, dtype=int))
 
 
+def _mask_has_holes(mask: np.ndarray)-> bool:
+    _, hierarchy = cv2.findContours(mask.astype(np.uint8), cv2.RETR_CCOMP, 
+                                   cv2.CHAIN_APPROX_SIMPLE)
+    parent_countour_index = 3
+    for h in hierarchy[0]:
+        if h[parent_countour_index] != -1:
+            return True
+    return False
+
+
+def _mask_has_multiple_segments(mask: np.ndarray)-> bool:
+    number_of_labels, _ = cv2.connectedComponents(mask.astype(np.uint8), connectivity=4)
+    return number_of_labels > 2 
+
+
 def detections_to_coco_annotations(
     detections: Detections,
     image_id: int,
@@ -118,26 +134,31 @@ def detections_to_coco_annotations(
     for xyxy, mask, _, class_id, _, _ in detections:
         box_width, box_height = xyxy[2] - xyxy[0], xyxy[3] - xyxy[1]
         segmentation = []
+        iscrowd = 0
         if mask is not None:
-            segmentation = list(
-                approximate_mask_with_polygons(
-                    mask=mask,
-                    min_image_area_percentage=min_image_area_percentage,
-                    max_image_area_percentage=max_image_area_percentage,
-                    approximation_percentage=approximation_percentage,
-                )[0].flatten()
-            )
-            # todo: flag for when to use RLE?
-            # segmentation = {"counts": mask_to_rle(binary_mask=mask),
-            #                 "size": list(mask.shape[:2])}
+            iscrowd = _mask_has_holes(mask = mask) or \
+                      _mask_has_multiple_segments(mask = mask)
+
+            if iscrowd:
+                segmentation = {"counts": mask_to_rle(mask=mask),
+                                "size": list(mask.shape[:2])}
+            else:
+                segmentation = [list(
+                    approximate_mask_with_polygons(
+                        mask=mask,
+                        min_image_area_percentage=min_image_area_percentage,
+                        max_image_area_percentage=max_image_area_percentage,
+                        approximation_percentage=approximation_percentage,
+                    )[0].flatten()
+                )] # multicomponent masks supported only for rle format
         coco_annotation = {
             "id": annotation_id,
             "image_id": image_id,
             "category_id": int(class_id),
             "bbox": [xyxy[0], xyxy[1], box_width, box_height],
             "area": box_width * box_height,
-            "segmentation": [segmentation] if segmentation else [],
-            "iscrowd": 0,  ## todo: iscrowd depends on flag 1 if RLE 0 if polygon
+            "segmentation": segmentation,
+            "iscrowd": iscrowd,
         }
         coco_annotations.append(coco_annotation)
         annotation_id += 1
