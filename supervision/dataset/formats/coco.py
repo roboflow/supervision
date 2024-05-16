@@ -108,9 +108,8 @@ def coco_annotations_to_detections(
 
 
 def _mask_has_holes(mask: np.ndarray) -> bool:
-    mask_uint8  = mask.astype(np.uint8)
-    _, hierarchy = cv2.findContours(
-        mask_uint8, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+    mask_uint8 = mask.astype(np.uint8)
+    _, hierarchy = cv2.findContours(mask_uint8, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
     parent_countour_index = 3
     for h in hierarchy[0]:
         if h[parent_countour_index] != -1:
