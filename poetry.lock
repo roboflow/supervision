@@ -2198,13 +2198,13 @@ pygments = ">2.12.0"
 
 [[package]]
 name = "mkdocs-material"
-version = "9.5.22"
+version = "9.5.23"
 description = "Documentation that simply works"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "mkdocs_material-9.5.22-py3-none-any.whl", hash = "sha256:8c7a377d323567934e6cd46915e64dc209efceaec0dec1cf2202184f5649862c"},
-    {file = "mkdocs_material-9.5.22.tar.gz", hash = "sha256:22a853a456ae8c581c4628159574d6fc7c71b2c7569dc9c3a82cc70432219599"},
+    {file = "mkdocs_material-9.5.23-py3-none-any.whl", hash = "sha256:ffd08a5beaef3cd135aceb58ded8b98bbbbf2b70e5b656f6a14a63c917d9b001"},
+    {file = "mkdocs_material-9.5.23.tar.gz", hash = "sha256:4627fc3f15de2cba2bde9debc2fd59b9888ef494beabfe67eb352e23d14bf288"},
 ]
 
 [package.dependencies]
