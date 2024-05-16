@@ -120,7 +120,7 @@ def _mask_has_holes(mask: np.ndarray) -> bool:
 def _mask_has_multiple_segments(mask: np.ndarray) -> bool:
     if mask.size == 0:
         return False
-    mask_uint8  = mask.astype(np.uint8)
+    mask_uint8 = mask.astype(np.uint8)
     number_of_labels, _ = cv2.connectedComponents(mask_uint8, connectivity=4)
     return number_of_labels > 2
 
