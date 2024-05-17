@@ -1,7 +1,7 @@
 from contextlib import ExitStack as DoesNotRaise
 from itertools import chain, combinations
 from test.test_utils import mock_detections
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 
 import numpy as np
 import pytest
@@ -204,7 +204,7 @@ def test_calculate_region_of_interest_limits(
     ],
 )
 def test_line_zone_single_detection(
-    vector, bbox_sequence, expected_count_in: list[bool], expected_count_out: list[bool]
+    vector, bbox_sequence, expected_count_in: List[bool], expected_count_out: List[bool]
 ) -> None:
     line_zone = LineZone(start=vector.start, end=vector.end)
     for i, bbox in enumerate(bbox_sequence):
@@ -253,8 +253,8 @@ def test_line_zone_single_detection(
 def test_line_zone_single_detection_on_subset_of_anchors(
     vector,
     bbox_sequence,
-    expected_count_in: list[bool],
-    expected_count_out: list[bool],
+    expected_count_in: List[bool],
+    expected_count_out: List[bool],
     crossing_anchors,
 ) -> None:
     def powerset(s):
@@ -342,7 +342,7 @@ def test_line_zone_single_detection_on_subset_of_anchors(
     ],
 )
 def test_line_zone_multiple_detections(
-    vector, bbox_sequence, expected_count_in: list[bool], expected_count_out: list[bool]
+    vector, bbox_sequence, expected_count_in: List[bool], expected_count_out: List[bool]
 ) -> None:
     line_zone = LineZone(start=vector.start, end=vector.end)
     for i, bboxes in enumerate(bbox_sequence):
