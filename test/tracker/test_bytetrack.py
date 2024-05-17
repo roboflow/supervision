@@ -33,7 +33,6 @@ PREDICTIONS = np.array(
 TARGET_TRACKER_IDS = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9], dtype=int)
 
 LOW_CONFIDENCE_PREDICTIONS = PREDICTIONS.copy()
-# all low confidence predictions (<.1)
 LOW_CONFIDENCE_PREDICTIONS[:, 4] = 0.1
 
 # Test data value
@@ -43,22 +42,17 @@ DATA = {
 }
 
 TARGET_PREDICTIONS = PREDICTIONS.copy()
-# Add 1 pixel to every dimension every frame.
 TARGET_PREDICTIONS[:, :4] += 3
 
 LOW_CONFIDENCE_TARGET_PREDICTIONS = TARGET_PREDICTIONS.copy()
-# all low confidence predictions (<.1)
 LOW_CONFIDENCE_TARGET_PREDICTIONS[:, 4] = 0.1
 
 # set mask to only be inside bboxes
 TARGET_MASK = np.zeros((TARGET_PREDICTIONS.shape[0], IMG_HEIGHT, IMG_WIDTH))
 for i in range(TARGET_PREDICTIONS.shape[0]):
-    #   box            y                        x
     TARGET_MASK[
-        i,  # Box index
-        # Y range
+        i,
         int(TARGET_PREDICTIONS[i, 1]) : int(TARGET_PREDICTIONS[i, 3]),
-        # X range
         int(TARGET_PREDICTIONS[i, 0]) : int(TARGET_PREDICTIONS[i, 2]),
     ] = 1
 
@@ -74,7 +68,6 @@ def assert_strack_lists_equal(stracks, target_stracks):
         strack = stracks[i]
         target_strack = target_stracks[i]
         for j in range(strack.tlwh.shape[0]):
-            # check if the boxes are within 3 pixels of each other
             assert_almost_equal(strack.tlwh[j], target_strack.tlwh[j], tolerance=3)
         assert (
             strack.start_frame == target_strack.start_frame
@@ -87,11 +80,11 @@ def assert_strack_lists_equal(stracks, target_stracks):
 
 
 @pytest.mark.parametrize(
-    "incoming_detections, target_detections, with_mask," " exception",
+    "incoming_detections, target_detections, with_mask, exception",
     [
         (  # Test empty detections
             Detections.empty(),
-            TARGET_EMPTY_DETECTIONS,  # empty detections with tracker_id array
+            TARGET_EMPTY_DETECTIONS,
             False,
             DoesNotRaise(),
         ),
@@ -113,7 +106,7 @@ def assert_strack_lists_equal(stracks, target_stracks):
         (  # Test base detections with low confidence
             mock_detections(
                 xyxy=LOW_CONFIDENCE_PREDICTIONS[:, :4],
-                confidence=LOW_CONFIDENCE_PREDICTIONS[:, 4],  # confidence < .1
+                confidence=LOW_CONFIDENCE_PREDICTIONS[:, 4],
                 class_id=LOW_CONFIDENCE_PREDICTIONS[:, 5].astype(int),
             ),
             TARGET_EMPTY_DETECTIONS,
@@ -206,13 +199,13 @@ def test_update_with_detections(
                 )
                 for i in range(incoming_detections.xyxy.shape[0]):
                     mask[
-                        i,  # box
+                        i,
                         int(incoming_detections.xyxy[i, 1]) : int(
                             incoming_detections.xyxy[i, 3]
-                        ),  # y
+                        ),
                         int(incoming_detections.xyxy[i, 0]) : int(
                             incoming_detections.xyxy[i, 2]
-                        ),  # x
+                        ),
                     ] = 1
                 incoming_detections.mask = mask
             tracked_detections = BYTE_TRACKER.update_with_detections(
@@ -239,7 +232,7 @@ for i, track in enumerate(TARGET_STRACKS):
 
 
 @pytest.mark.parametrize(
-    "tensors, target_stracks," " exception",
+    "tensors, target_stracks, exception",
     [
         (  # Test baseline detection tensors with some high confidence values
             PREDICTIONS.copy(),
@@ -283,7 +276,7 @@ for i, track in enumerate(TARGET_STRACKS):
 
 
 @pytest.mark.parametrize(
-    "tensors, target_stracks," " exception",
+    "tensors, target_stracks, exception",
     [
         (
             PREDICTIONS,
