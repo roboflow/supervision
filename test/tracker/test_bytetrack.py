@@ -57,9 +57,9 @@ for i in range(TARGET_PREDICTIONS.shape[0]):
     TARGET_MASK[
         i,  # Box index
         # Y range
-        int(TARGET_PREDICTIONS[i, 1]): int(TARGET_PREDICTIONS[i, 3]),
+        int(TARGET_PREDICTIONS[i, 1]) : int(TARGET_PREDICTIONS[i, 3]),
         # X range
-        int(TARGET_PREDICTIONS[i, 0]): int(TARGET_PREDICTIONS[i, 2]),
+        int(TARGET_PREDICTIONS[i, 0]) : int(TARGET_PREDICTIONS[i, 2]),
     ] = 1
 
 TARGET_EMPTY_DETECTIONS = Detections.empty()
@@ -75,8 +75,7 @@ def assert_strack_lists_equal(stracks, target_stracks):
         target_strack = target_stracks[i]
         for j in range(strack.tlwh.shape[0]):
             # check if the boxes are within 3 pixels of each other
-            assert_almost_equal(
-                strack.tlwh[j], target_strack.tlwh[j], tolerance=3)
+            assert_almost_equal(strack.tlwh[j], target_strack.tlwh[j], tolerance=3)
         assert (
             strack.start_frame == target_strack.start_frame
         ), f"Expected start frame {strack.start_frame},\
@@ -208,10 +207,10 @@ def test_update_with_detections(
                 for i in range(incoming_detections.xyxy.shape[0]):
                     mask[
                         i,  # box
-                        int(incoming_detections.xyxy[i, 1]): int(
+                        int(incoming_detections.xyxy[i, 1]) : int(
                             incoming_detections.xyxy[i, 3]
                         ),  # y
-                        int(incoming_detections.xyxy[i, 0]): int(
+                        int(incoming_detections.xyxy[i, 0]) : int(
                             incoming_detections.xyxy[i, 2]
                         ),  # x
                     ] = 1
@@ -228,7 +227,7 @@ TARGET_STRACKS = [
         tlwh=[det[0], det[1], det[2] - det[0], det[3] - det[1]],
         score=det[4],
         class_ids=det[5],
-        minimum_consecutive_frames=1
+        minimum_consecutive_frames=1,
     )
     for det in TARGET_PREDICTIONS
 ]
@@ -271,7 +270,7 @@ TARGET_STRACKS = [
         tlwh=[det[0], det[1], det[2] - det[0], det[3] - det[1]],
         score=det[4],
         class_ids=det[5],
-        minimum_consecutive_frames=1
+        minimum_consecutive_frames=1,
     )
     for det in TARGET_PREDICTIONS
 ]
