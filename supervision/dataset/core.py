@@ -430,8 +430,8 @@ class DetectionDataset(BaseDataset):
         """
         Exports the dataset to COCO format. This method saves the
         images and their corresponding annotations in COCO format.
-        The format of the mask is determined automatically: 
-        when a mask consists of multiple disconnected elements 
+        The format of the mask is determined automatically:
+        when a mask consists of multiple disconnected elements
         or has holes the RLE format is used,
         otherwise, the mask is encoded as a polygon.
 
