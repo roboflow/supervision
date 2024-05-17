@@ -476,31 +476,32 @@ def test_build_coco_class_index_mapping(
             ],
             DoesNotRaise(),
         ),  # no segmentation mask
-        #     (
-        #     Detections(
-        #             xyxy=np.array([[0, 0, 5, 5]], dtype=np.float32),
-        #             class_id=np.array([0], dtype=int),
-        #             mask=np.array(
-        #                 [
-        #                     [
-        #                         [1, 1, 1, 0, 0],
-        #                         [1, 1, 1, 0, 0],
-        #                         [1, 1, 1, 1, 1],
-        #                         [1, 1, 1, 1, 1],
-        #                         [1, 1, 1, 1, 1],
-        #                     ]
-        #                 ]
-        #             ),
-        #         ),
-        #     0,
-        #     0,
-        #     [mock_cock_coco_annotation(
-        #             category_id=0,
-        #             bbox=(0, 0, 5, 5),
-        #             area=5 * 5,
-        #             segmentation=[[0, 0, 2, 0, 2, 2, 4, 2, 4, 4, 0, 4]])],
-        #     DoesNotRaise(),
-        #    ), # segmentation mask in single component,no holes in mask, expects polygon mask
+            (
+            Detections(
+                    xyxy=np.array([[0, 0, 4, 5]], dtype=np.float32),
+                    class_id=np.array([0], dtype=int),
+                    mask=np.array(
+                        [
+                            [
+                                [1, 1, 1, 1, 0],
+                                [1, 1, 1, 1, 0],
+                                [1, 1, 1, 1, 0],
+                                [1, 1, 1, 1, 0],
+                                [1, 1, 1, 1, 0],
+                            ]
+                        ]
+                    ),
+                ),
+            0,
+            0,
+            [mock_cock_coco_annotation(
+                    category_id=0,
+                    bbox=(0, 0, 4, 5),
+                    area=4 * 5,
+                    segmentation=[[0, 0, 0, 4, 3, 4, 3, 0]])],
+            DoesNotRaise(),
+           ), # segmentation mask in single component,no holes in mask, 
+              # expects polygon mask
         (
             Detections(
                 xyxy=np.array([[0, 0, 5, 5]], dtype=np.float32),
@@ -564,7 +565,7 @@ def test_build_coco_class_index_mapping(
                 )
             ],
             DoesNotRaise(),
-        ),  # segmentation mask in single component, with holes in mask, expects RLE mask
+        ), # segmentation mask in single component, with holes in mask, expects RLE mask
     ],
 )
 def test_detections_to_coco_annotations(
@@ -576,6 +577,6 @@ def test_detections_to_coco_annotations(
 ) -> None:
     with exception:
         result, _ = detections_to_coco_annotations(
-            detections=detections, image_id=image_id, annotation_id=annotation_id
+            detections=detections, image_id=image_id, annotation_id=annotation_id,
         )
         assert result == expected_result
