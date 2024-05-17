@@ -3,6 +3,7 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
+import numpy.typing as npt
 
 from supervision.config import CLASS_NAME_DATA_FIELD
 
@@ -275,14 +276,14 @@ def box_non_max_suppression(
 
 
 def box_non_max_merge(
-    predictions: np.ndarray, iou_threshold: float = 0.5
+    predictions: npt.NDArray[np.float64], iou_threshold: float = 0.5
 ) -> Dict[int, List[int]]:
     """
     Apply greedy version of non-maximum merging to avoid detecting too many
     overlapping bounding boxes for a given object.
 
     Args:
-        predictions (np.ndarray): An array of shape `(n, 5)` containing
+        predictions (npt.NDArray[np.float64]): An array of shape `(n, 5)` containing
             the bounding boxes coordinates in format `[x1, y1, x2, y2]`
             and the confidence scores.
         iou_threshold (float, optional): The intersection-over-union threshold
@@ -317,14 +318,14 @@ def box_non_max_merge(
 
 
 def box_non_max_merge_batch(
-    predictions: np.ndarray, iou_threshold: float = 0.5
+    predictions: npt.NDArray[np.float64], iou_threshold: float = 0.5
 ) -> Dict[int, List[int]]:
     """
     Apply greedy version of non-maximum merging per category to avoid detecting
     too many overlapping bounding boxes for a given object.
 
     Args:
-        predictions (np.ndarray): An array of shape `(n, 6)` containing
+        predictions (npt.NDArray[np.float64]): An array of shape `(n, 6)` containing
             the bounding boxes coordinates in format `[x1, y1, x2, y2]`,
             the confidence scores and class_ids.
         iou_threshold (float, optional): The intersection-over-union threshold
@@ -667,16 +668,18 @@ def process_roboflow_result(
     return xyxy, confidence, class_id, masks, tracker_id, data
 
 
-def move_boxes(xyxy: np.ndarray, offset: np.ndarray) -> np.ndarray:
+def move_boxes(
+    xyxy: npt.NDArray[np.float64], offset: npt.NDArray[np.int32]
+) -> npt.NDArray[np.float64]:
     """
     Parameters:
-        xyxy (np.ndarray): An array of shape `(n, 4)` containing the bounding boxes
-            coordinates in format `[x1, y1, x2, y2]`
+        xyxy (npt.NDArray[np.float64]): An array of shape `(n, 4)` containing the
+            bounding boxes coordinates in format `[x1, y1, x2, y2]`
         offset (np.array): An array of shape `(2,)` containing offset values in format
             is `[dx, dy]`.
 
     Returns:
-        np.ndarray: Repositioned bounding boxes.
+        npt.NDArray[np.float64]: Repositioned bounding boxes.
 
     Example:
         ```python
@@ -697,24 +700,25 @@ def move_boxes(xyxy: np.ndarray, offset: np.ndarray) -> np.ndarray:
 
 
 def move_masks(
-    masks: np.ndarray,
-    offset: np.ndarray,
-    resolution_wh: Tuple[int, int] = None,
-) -> np.ndarray:
+    masks: npt.NDArray[np.bool_],
+    offset: npt.NDArray[np.int32],
+    resolution_wh: Tuple[int, int],
+) -> npt.NDArray[np.bool_]:
     """
     Offset the masks in an array by the specified (x, y) amount.
 
     Args:
-        masks (np.ndarray): A 3D array of binary masks corresponding to the predictions.
-            Shape: `(N, H, W)`, where N is the number of predictions, and H, W are the
-            dimensions of each mask.
-        offset (np.ndarray): An array of shape `(2,)` containing non-negative int values
-            `[dx, dy]`.
+        masks (npt.NDArray[np.bool_]): A 3D array of binary masks corresponding to the
+            predictions. Shape: `(N, H, W)`, where N is the number of predictions, and
+            H, W are the dimensions of each mask.
+        offset (npt.NDArray[np.int32]): An array of shape `(2,)` containing non-negative
+            int values `[dx, dy]`.
         resolution_wh (Tuple[int, int]): The width and height of the desired mask
             resolution.
 
     Returns:
-        (np.ndarray) repositioned masks, optionally padded to the specified shape.
+        (npt.NDArray[np.bool_]) repositioned masks, optionally padded to the specified
+            shape.
     """
 
     if offset[0] < 0 or offset[1] < 0:
@@ -730,19 +734,21 @@ def move_masks(
     return mask_array
 
 
-def scale_boxes(xyxy: np.ndarray, factor: float) -> np.ndarray:
+def scale_boxes(
+    xyxy: npt.NDArray[np.float64], factor: float
+) -> npt.NDArray[np.float64]:
     """
     Scale the dimensions of bounding boxes.
 
     Parameters:
-        xyxy (np.ndarray): An array of shape `(n, 4)` containing the bounding boxes
-            coordinates in format `[x1, y1, x2, y2]`
+        xyxy (npt.NDArray[np.float64]): An array of shape `(n, 4)` containing the
+            bounding boxes coordinates in format `[x1, y1, x2, y2]`
         factor (float): A float value representing the factor by which the box
             dimensions are scaled. A factor greater than 1 enlarges the boxes, while a
             factor less than 1 shrinks them.
 
     Returns:
-        np.ndarray: Scaled bounding boxes.
+        npt.NDArray[np.float64]: Scaled bounding boxes.
 
     Example:
         ```python
@@ -810,19 +816,19 @@ def is_data_equal(data_a: Dict[str, np.ndarray], data_b: Dict[str, np.ndarray]) 
 
 
 def merge_data(
-    data_list: List[Dict[str, Union[np.ndarray, List]]],
-) -> Dict[str, Union[np.ndarray, List]]:
+    data_list: List[Dict[str, Union[npt.NDArray[np.generic], List]]],
+) -> Dict[str, Union[npt.NDArray[np.generic], List]]:
     """
     Merges the data payloads of a list of Detections instances.
 
     Args:
         data_list: The data payloads of the Detections instances. Each data payload
             is a dictionary with the same keys, and the values are either lists or
-            np.ndarray.
+            npt.NDArray[np.generic].
 
     Returns:
         A single data payload containing the merged data, preserving the original data
-            types (list or np.ndarray).
+            types (list or npt.NDArray[np.generic]).
 
     Raises:
         ValueError: If data values within a single object have different lengths or if
