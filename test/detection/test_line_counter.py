@@ -1,7 +1,7 @@
 from contextlib import ExitStack as DoesNotRaise
 from itertools import chain, combinations
 from test.test_utils import mock_detections
-from typing import Optional, Tuple, List
+from typing import List, Optional, Tuple
 
 import numpy as np
 import pytest
