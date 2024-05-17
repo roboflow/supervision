@@ -476,7 +476,7 @@ def test_build_coco_class_index_mapping(
             ],
             DoesNotRaise(),
         ),  # no segmentation mask
-            (
+        (
             Detections(
                     xyxy=np.array([[0, 0, 4, 5]], dtype=np.float32),
                     class_id=np.array([0], dtype=int),
@@ -565,7 +565,7 @@ def test_build_coco_class_index_mapping(
                 )
             ],
             DoesNotRaise(),
-        ), # segmentation mask in single component, with holes in mask, expects RLE mask
+        ),  # seg mask in single component, with holes in mask, expects RLE mask
     ],
 )
 def test_detections_to_coco_annotations(
