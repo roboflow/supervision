@@ -121,7 +121,8 @@ def _mask_has_multiple_segments(mask: np.ndarray) -> bool:
     if mask.size == 0:
         return False
     mask_uint8 = mask.astype(np.uint8)
-    number_of_labels, _ = cv2.connectedComponents(mask_uint8, connectivity=4)
+    labels = np.zeros_like(mask_uint8, dtype=np.int32)
+    number_of_labels, _ = cv2.connectedComponents(mask_uint8, labels, connectivity=4)
     return number_of_labels > 2
 
 

@@ -500,7 +500,7 @@ def test_build_coco_class_index_mapping(
         #             area=5 * 5,
         #             segmentation=[[0, 0, 2, 0, 2, 2, 4, 2, 4, 4, 0, 4]])],
         #     DoesNotRaise(),
-        #    ), # segmentation mask in single component,no holes in mask, expects polygon mask
+        #    ), # seg mask in single component,no holes in mask, expects polygon
         (
             Detections(
                 xyxy=np.array([[0, 0, 5, 5]], dtype=np.float32),
@@ -564,7 +564,7 @@ def test_build_coco_class_index_mapping(
                 )
             ],
             DoesNotRaise(),
-        ),  # segmentation mask in single component, with holes in mask, expects RLE mask
+        ),  # seg mask in single component, with holes in mask, expects RLE mask
     ],
 )
 def test_detections_to_coco_annotations(
