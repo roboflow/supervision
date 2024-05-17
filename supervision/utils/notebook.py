@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from PIL import Image
 
 from supervision.annotators.base import ImageType
-from supervision.annotators.utils import pillow_to_cv2
+from supervision.utils.conversion import pillow_to_cv2
 
 
 def plot_image(

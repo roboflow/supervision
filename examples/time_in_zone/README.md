@@ -1,5 +1,7 @@
 # time in zone
 
+[![YouTube](https://badges.aleen42.com/src/youtube.svg)](https://www.youtube.com/watch?v=hAWpsIuem10)
+
 ## 👋 hello
 
 Practical demonstration on leveraging computer vision for analyzing wait times and
@@ -101,7 +103,7 @@ python scripts/draw_zones.py \
 ```bash
 python scripts/draw_zones.py \
 --source_path "data/traffic/video.mp4" \
---zone_configuration_path "data/traffic/custom_config.json"
+--zone_configuration_path "data/traffic/config.json"
 ```
 
 https://github.com/roboflow/supervision/assets/26109316/9d514c9e-2a61-418b-ae49-6ac1ad6ae5ac
@@ -155,7 +157,7 @@ Script to run object detection on a video stream using the Roboflow Inference mo
   - `--iou_threshold`: IOU threshold for non-max suppression. Default is `0.7`.
 
 ```bash
-python inference_file_example.py \
+python inference_stream_example.py \
 --zone_configuration_path "data/checkout/config.json" \
 --rtsp_url "rtsp://localhost:8554/live0.stream" \
 --model_id "yolov8x-640" \
@@ -165,7 +167,7 @@ python inference_file_example.py \
 ```
 
 ```bash
-python inference_file_example.py \
+python inference_stream_example.py \
 --zone_configuration_path "data/traffic/config.json" \
 --rtsp_url "rtsp://localhost:8554/live0.stream" \
 --model_id "yolov8x-640" \
@@ -190,7 +192,7 @@ Script to run object detection on a video file using the Ultralytics YOLOv8 mode
   - `--iou_threshold`: IOU threshold for non-max suppression. Default is `0.7`.
 
 ```bash
-python inference_file_example.py \
+python ultralytics_file_example.py \
 --zone_configuration_path "data/checkout/config.json" \
 --source_video_path "data/checkout/video.mp4" \
 --weights "yolov8x.pt" \
@@ -201,7 +203,7 @@ python inference_file_example.py \
 ```
 
 ```bash
-python inference_file_example.py \
+python ultralytics_file_example.py \
 --zone_configuration_path "data/traffic/config.json" \
 --source_video_path "data/traffic/video.mp4" \
 --weights "yolov8x.pt" \
@@ -224,7 +226,7 @@ Script to run object detection on a video stream using the Ultralytics YOLOv8 mo
   - `--iou_threshold`: IOU threshold for non-max suppression. Default is `0.7`.
 
 ```bash
-python inference_file_example.py \
+python ultralytics_stream_example.py \
 --zone_configuration_path "data/checkout/config.json" \
 --rtsp_url "rtsp://localhost:8554/live0.stream" \
 --weights "yolov8x.pt" \
@@ -235,7 +237,7 @@ python inference_file_example.py \
 ```
 
 ```bash
-python inference_file_example.py \
+python ultralytics_stream_example.py \
 --zone_configuration_path "data/traffic/config.json" \
 --rtsp_url "rtsp://localhost:8554/live0.stream" \
 --weights "yolov8x.pt" \

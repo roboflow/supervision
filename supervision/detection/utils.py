@@ -1,5 +1,5 @@
 from itertools import chain
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
@@ -297,6 +297,35 @@ def clip_boxes(xyxy: np.ndarray, resolution_wh: Tuple[int, int]) -> np.ndarray:
     return result
 
 
+def pad_boxes(xyxy: np.ndarray, px: int, py: Optional[int] = None) -> np.ndarray:
+    """
+    Pads bounding boxes coordinates with a constant padding.
+
+    Args:
+        xyxy (np.ndarray): A numpy array of shape `(N, 4)` where each
+            row corresponds to a bounding box in the format
+            `(x_min, y_min, x_max, y_max)`.
+        px (int): The padding value to be added to both the left and right sides of
+            each bounding box.
+        py (Optional[int]): The padding value to be added to both the top and bottom
+            sides of each bounding box. If not provided, `px` will be used for both
+            dimensions.
+
+    Returns:
+        np.ndarray: A numpy array of shape `(N, 4)` where each row corresponds to a
+            bounding box with coordinates padded according to the provided padding
+            values.
+    """
+    if py is None:
+        py = px
+
+    result = xyxy.copy()
+    result[:, [0, 1]] -= [px, py]
+    result[:, [2, 3]] += [px, py]
+
+    return result
+
+
 def xywh_to_xyxy(boxes_xywh: np.ndarray) -> np.ndarray:
     xyxy = boxes_xywh.copy()
     xyxy[:, 2] = boxes_xywh[:, 0] + boxes_xywh[:, 2]
@@ -500,7 +529,7 @@ def process_roboflow_result(
     np.ndarray,
     Optional[np.ndarray],
     Optional[np.ndarray],
-    Dict[str, List[np.ndarray]],
+    Dict[str, Union[List[np.ndarray], np.ndarray]],
 ]:
     if not roboflow_result["predictions"]:
         return (
@@ -592,6 +621,40 @@ def move_boxes(xyxy: np.ndarray, offset: np.ndarray) -> np.ndarray:
     return xyxy + np.hstack([offset, offset])
 
 
+def move_masks(
+    masks: np.ndarray,
+    offset: np.ndarray,
+    resolution_wh: Tuple[int, int] = None,
+) -> np.ndarray:
+    """
+    Offset the masks in an array by the specified (x, y) amount.
+
+    Args:
+        masks (np.ndarray): A 3D array of binary masks corresponding to the predictions.
+            Shape: `(N, H, W)`, where N is the number of predictions, and H, W are the
+            dimensions of each mask.
+        offset (np.ndarray): An array of shape `(2,)` containing non-negative int values
+            `[dx, dy]`.
+        resolution_wh (Tuple[int, int]): The width and height of the desired mask
+            resolution.
+
+    Returns:
+        (np.ndarray) repositioned masks, optionally padded to the specified shape.
+    """
+
+    if offset[0] < 0 or offset[1] < 0:
+        raise ValueError(f"Offset values must be non-negative integers. Got: {offset}")
+
+    mask_array = np.full((masks.shape[0], resolution_wh[1], resolution_wh[0]), False)
+    mask_array[
+        :,
+        offset[1] : masks.shape[1] + offset[1],
+        offset[0] : masks.shape[2] + offset[0],
+    ] = masks
+
+    return mask_array
+
+
 def scale_boxes(xyxy: np.ndarray, factor: float) -> np.ndarray:
     """
     Scale the dimensions of bounding boxes.
@@ -656,102 +719,6 @@ def calculate_masks_centroids(masks: np.ndarray) -> np.ndarray:
     return np.column_stack((centroid_x, centroid_y)).astype(int)
 
 
-def validate_xyxy(xyxy: Any) -> None:
-    expected_shape = "(_, 4)"
-    actual_shape = str(getattr(xyxy, "shape", None))
-    is_valid = isinstance(xyxy, np.ndarray) and xyxy.ndim == 2 and xyxy.shape[1] == 4
-    if not is_valid:
-        raise ValueError(
-            f"xyxy must be a 2D np.ndarray with shape {expected_shape}, but got shape "
-            f"{actual_shape}"
-        )
-
-
-def validate_mask(mask: Any, n: int) -> None:
-    expected_shape = f"({n}, H, W)"
-    actual_shape = str(getattr(mask, "shape", None))
-    is_valid = mask is None or (
-        isinstance(mask, np.ndarray) and len(mask.shape) == 3 and mask.shape[0] == n
-    )
-    if not is_valid:
-        raise ValueError(
-            f"mask must be a 3D np.ndarray with shape {expected_shape}, but got shape "
-            f"{actual_shape}"
-        )
-
-
-def validate_class_id(class_id: Any, n: int) -> None:
-    expected_shape = f"({n},)"
-    actual_shape = str(getattr(class_id, "shape", None))
-    is_valid = class_id is None or (
-        isinstance(class_id, np.ndarray) and class_id.shape == (n,)
-    )
-    if not is_valid:
-        raise ValueError(
-            f"class_id must be a 1D np.ndarray with shape {expected_shape}, but got "
-            f"shape {actual_shape}"
-        )
-
-
-def validate_confidence(confidence: Any, n: int) -> None:
-    expected_shape = f"({n},)"
-    actual_shape = str(getattr(confidence, "shape", None))
-    is_valid = confidence is None or (
-        isinstance(confidence, np.ndarray) and confidence.shape == (n,)
-    )
-    if not is_valid:
-        raise ValueError(
-            f"confidence must be a 1D np.ndarray with shape {expected_shape}, but got "
-            f"shape {actual_shape}"
-        )
-
-
-def validate_tracker_id(tracker_id: Any, n: int) -> None:
-    expected_shape = f"({n},)"
-    actual_shape = str(getattr(tracker_id, "shape", None))
-    is_valid = tracker_id is None or (
-        isinstance(tracker_id, np.ndarray) and tracker_id.shape == (n,)
-    )
-    if not is_valid:
-        raise ValueError(
-            f"tracker_id must be a 1D np.ndarray with shape {expected_shape}, but got "
-            f"shape {actual_shape}"
-        )
-
-
-def validate_data(data: Dict[str, Any], n: int) -> None:
-    for key, value in data.items():
-        if isinstance(value, list):
-            if len(value) != n:
-                raise ValueError(f"Length of list for key '{key}' must be {n}")
-        elif isinstance(value, np.ndarray):
-            if value.ndim == 1 and value.shape[0] != n:
-                raise ValueError(f"Shape of np.ndarray for key '{key}' must be ({n},)")
-            elif value.ndim > 1 and value.shape[0] != n:
-                raise ValueError(
-                    f"First dimension of np.ndarray for key '{key}' must have size {n}"
-                )
-        else:
-            raise ValueError(f"Value for key '{key}' must be a list or np.ndarray")
-
-
-def validate_detections_fields(
-    xyxy: Any,
-    mask: Any,
-    class_id: Any,
-    confidence: Any,
-    tracker_id: Any,
-    data: Dict[str, Any],
-) -> None:
-    validate_xyxy(xyxy)
-    n = len(xyxy)
-    validate_mask(mask, n)
-    validate_class_id(class_id, n)
-    validate_confidence(confidence, n)
-    validate_tracker_id(tracker_id, n)
-    validate_data(data, n)
-
-
 def is_data_equal(data_a: Dict[str, np.ndarray], data_b: Dict[str, np.ndarray]) -> bool:
     """
     Compares the data payloads of two Detections instances.
@@ -774,7 +741,9 @@ def merge_data(
     Merges the data payloads of a list of Detections instances.
 
     Args:
-        data_list: The data payloads of the instances.
+        data_list: The data payloads of the Detections instances. Each data payload
+            is a dictionary with the same keys, and the values are either lists or
+            np.ndarray.
 
     Returns:
         A single data payload containing the merged data, preserving the original data
@@ -787,10 +756,6 @@ def merge_data(
     if not data_list:
         return {}
 
-    all_keys_sets = [set(data.keys()) for data in data_list]
-    if not all(keys_set == all_keys_sets[0] for keys_set in all_keys_sets):
-        raise ValueError("All data dictionaries must have the same keys to merge.")
-
     for data in data_list:
         lengths = [len(value) for value in data.values()]
         if len(set(lengths)) > 1:
@@ -798,10 +763,23 @@ def merge_data(
                 "All data values within a single object must have equal length."
             )
 
-    merged_data = {key: [] for key in all_keys_sets[0]}
+    keys_by_data = [set(data.keys()) for data in data_list]
+    keys_by_data = [keys for keys in keys_by_data if len(keys) > 0]
+    if not keys_by_data:
+        return {}
 
+    common_keys = set.intersection(*keys_by_data)
+    all_keys = set.union(*keys_by_data)
+    if common_keys != all_keys:
+        raise ValueError(
+            f"All sv.Detections.data dictionaries must have the same keys. Common "
+            f"keys: {common_keys}, but some dictionaries have additional keys: "
+            f"{all_keys.difference(common_keys)}."
+        )
+
+    merged_data = {key: [] for key in all_keys}
     for data in data_list:
-        for key in merged_data:
+        for key in data:
             merged_data[key].append(data[key])
 
     for key in merged_data:

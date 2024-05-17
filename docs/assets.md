@@ -19,13 +19,13 @@ as an extra within the Supervision package.
     ```
 
 <div class="md-typeset">
-  <h2>download_assets</h2>
+    <h2><a href="#supervision.assets.downloader.download_assets.download_assets">download_assets</a></h2>
 </div>
 
 :::supervision.assets.downloader.download_assets
 
 <div class="md-typeset">
-  <h2>VideoAssets</h2>
+    <h2><a href="#supervision.assets.downloader.download_assets.VideoAssets">VideoAssets</a></h2>
 </div>
 
 :::supervision.assets.list.VideoAssets
