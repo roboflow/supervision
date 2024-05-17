@@ -1,13 +1,13 @@
 from contextlib import ExitStack as DoesNotRaise
 from itertools import chain, combinations
+from test.test_utils import mock_detections
 from typing import Optional, Tuple
 
 import numpy as np
 import pytest
 
-from supervision import LineZone, Detections
-from supervision.geometry.core import Point, Vector, Position
-from test.test_utils import mock_detections
+from supervision import Detections, LineZone
+from supervision.geometry.core import Point, Position, Vector
 
 
 @pytest.mark.parametrize(

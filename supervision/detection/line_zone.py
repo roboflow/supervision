@@ -53,16 +53,17 @@ class LineZone:
         # 7, 2
         ```
     """  # noqa: E501 // docs
+
     def __init__(
-            self,
-            start: Point,
-            end: Point,
-            triggering_anchors: Iterable[Position] = (
-                    Position.TOP_LEFT,
-                    Position.TOP_RIGHT,
-                    Position.BOTTOM_LEFT,
-                    Position.BOTTOM_RIGHT,
-            ),
+        self,
+        start: Point,
+        end: Point,
+        triggering_anchors: Iterable[Position] = (
+            Position.TOP_LEFT,
+            Position.TOP_RIGHT,
+            Position.BOTTOM_LEFT,
+            Position.BOTTOM_RIGHT,
+        ),
     ):
         """
         Args:
@@ -77,7 +78,9 @@ class LineZone:
         self._vector = Vector(start=start, end=end)
         if self._vector.magnitude == 0:
             raise ValueError("The magnitude of the line cannot be zero.")
-        vector, rotation, translation = self._transform_to_vertical_at_zero(self._vector)
+        vector, rotation, translation = self._transform_to_vertical_at_zero(
+            self._vector
+        )
         self.limits = self.calculate_region_of_interest_limits(vector=self._vector)
         self._transformed_vector = vector
         self._rotation = rotation
@@ -162,7 +165,9 @@ class LineZone:
         min_vector_y = min(vector.start.y, vector.end.y)
         max_anchor_y = np.max(all_anchors[:, :, 1], axis=0)
         min_anchor_y = np.min(all_anchors[:, :, 1], axis=0)
-        in_limits = np.logical_and(max_anchor_y <= max_vector_y, min_anchor_y >= min_vector_y)
+        in_limits = np.logical_and(
+            max_anchor_y <= max_vector_y, min_anchor_y >= min_vector_y
+        )
         trigger_out = np.min(all_anchors[:, :, 0], axis=0) < 0
         trigger_in = np.max(all_anchors[:, :, 0], axis=0) >= 0
         for i, tracker_id in enumerate(detections.tracker_id):
@@ -213,7 +218,7 @@ class LineZone:
 
     @staticmethod
     def _transform_to_vertical_at_zero(
-            vector: Vector,
+        vector: Vector,
     ) -> Tuple[Vector, np.ndarray, np.ndarray]:
         """
         Translate and rotate vector so that it is vertical, centered at zero.
@@ -244,6 +249,7 @@ class LineZone:
             end=Point(x=vector[0], y=vector[1]),
         )
         return vector, rotation, translation
+
 
 class LineZoneAnnotator:
     def __init__(
