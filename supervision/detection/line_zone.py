@@ -53,17 +53,16 @@ class LineZone:
         # 7, 2
         ```
     """  # noqa: E501 // docs
-
     def __init__(
-        self,
-        start: Point,
-        end: Point,
-        triggering_anchors: Iterable[Position] = (
-            Position.TOP_LEFT,
-            Position.TOP_RIGHT,
-            Position.BOTTOM_LEFT,
-            Position.BOTTOM_RIGHT,
-        ),
+            self,
+            start: Point,
+            end: Point,
+            triggering_anchors: Iterable[Position] = (
+                    Position.TOP_LEFT,
+                    Position.TOP_RIGHT,
+                    Position.BOTTOM_LEFT,
+                    Position.BOTTOM_RIGHT,
+            ),
     ):
         """
         Args:
@@ -75,15 +74,29 @@ class LineZone:
                 has passed the line counter or not. By default, this
                 contains the four corners of the detection's bounding box
         """
-        self.vector = Vector(start=start, end=end)
-        self.limits = self.calculate_region_of_interest_limits(vector=self.vector)
+        self._vector = Vector(start=start, end=end)
+        if self._vector.magnitude == 0:
+            raise ValueError("The magnitude of the line cannot be zero.")
+        vector, rotation, translation = self._transform_to_vertical_at_zero(self._vector)
+        self.limits = self.calculate_region_of_interest_limits(vector=self._vector)
+        self._transformed_vector = vector
+        self._rotation = rotation
+        self._translation = translation
         self.tracker_state: Dict[str, bool] = {}
         self.in_count: int = 0
         self.out_count: int = 0
         self.triggering_anchors = triggering_anchors
 
+    @property
+    def vector(self):
+        return self._vector
+
     @staticmethod
     def calculate_region_of_interest_limits(vector: Vector) -> Tuple[Vector, Vector]:
+        """
+        !!! Warning "This method is not a part of the API and as such it's
+        not stable and may change in the future. Use at your own risk."
+        """
         magnitude = vector.magnitude
 
         if magnitude == 0:
@@ -116,6 +129,10 @@ class LineZone:
 
     @staticmethod
     def is_point_in_limits(point: Point, limits: Tuple[Vector, Vector]) -> bool:
+        """
+        !!! Warning "This method is not a part of the API and as such it's
+        not stable and may change in the future. Use at your own risk."
+        """
         cross_product_1 = limits[0].cross_product(point)
         cross_product_2 = limits[1].cross_product(point)
         return (cross_product_1 > 0) == (cross_product_2 > 0)
@@ -137,41 +154,28 @@ class LineZone:
         crossed_in = np.full(len(detections), False)
         crossed_out = np.full(len(detections), False)
 
-        if len(detections) == 0:
+        if len(detections) == 0 or detections.tracker_id is None:
             return crossed_in, crossed_out
-
-        all_anchors = np.array(
-            [
-                detections.get_anchors_coordinates(anchor)
-                for anchor in self.triggering_anchors
-            ]
-        )
-
+        vector = self._transformed_vector
+        all_anchors = self._get_detection_anchors(detections)
+        max_vector_y = max(vector.start.y, vector.end.y)
+        min_vector_y = min(vector.start.y, vector.end.y)
+        max_anchor_y = np.max(all_anchors[:, :, 1], axis=0)
+        min_anchor_y = np.min(all_anchors[:, :, 1], axis=0)
+        in_limits = np.logical_and(max_anchor_y <= max_vector_y, min_anchor_y >= min_vector_y)
+        trigger_out = np.min(all_anchors[:, :, 0], axis=0) < 0
+        trigger_in = np.max(all_anchors[:, :, 0], axis=0) >= 0
         for i, tracker_id in enumerate(detections.tracker_id):
-            if tracker_id is None:
+            if tracker_id is None or not in_limits[i]:
                 continue
 
-            box_anchors = [Point(x=x, y=y) for x, y in all_anchors[:, i, :]]
-
-            in_limits = all(
-                [
-                    self.is_point_in_limits(point=anchor, limits=self.limits)
-                    for anchor in box_anchors
-                ]
-            )
-
-            if not in_limits:
+            if trigger_out[i] and trigger_in[i]:
                 continue
 
-            triggers = [
-                self.vector.cross_product(point=anchor) < 0 for anchor in box_anchors
-            ]
-
-            if len(set(triggers)) == 2:
-                continue
-
-            tracker_state = triggers[0]
-
+            if self._transformed_vector.end.y > 0:
+                tracker_state = trigger_in[i]
+            else:
+                tracker_state = trigger_out[i]
             if tracker_id not in self.tracker_state:
                 self.tracker_state[tracker_id] = tracker_state
                 continue
@@ -181,14 +185,65 @@ class LineZone:
 
             self.tracker_state[tracker_id] = tracker_state
             if tracker_state:
-                self.in_count += 1
                 crossed_in[i] = True
             else:
-                self.out_count += 1
                 crossed_out[i] = True
 
+        self.in_count += np.sum(crossed_in)
+        self.out_count += np.sum(crossed_out)
         return crossed_in, crossed_out
 
+    def _get_detection_anchors(self, detections: Detections) -> np.ndarray:
+        """
+        Create array of detection anchors in coordinates where the line is vertical.
+        Args:
+            detections: Detections from which the anchors will be extracted
+        Returns: Numpy array of shape `(anchors, detections, 2)`
+        """
+        all_anchors = np.array(
+            [
+                detections.get_anchors_coordinates(anchor)
+                for anchor in self.triggering_anchors
+            ]
+        )
+        # Transform anchors to coordinates where the line is vertical
+        all_anchors = all_anchors - self._translation
+        all_anchors = all_anchors @ self._rotation.T
+        return all_anchors
+
+    @staticmethod
+    def _transform_to_vertical_at_zero(
+            vector: Vector,
+    ) -> Tuple[Vector, np.ndarray, np.ndarray]:
+        """
+        Translate and rotate vector so that it is vertical, centered at zero.
+
+        Args:
+            vector (Vector): A vector which will be transformed.
+
+        Returns:
+            A tuple consisting of transformed vector and two float NumPy arrays. The
+            first array is a 2x2 rotation matrix which was used to rotate the vector.
+            The second array is a translation. Original vector can be retrieved
+            by A^T * v + w where w is the translation and A is the rotation matrix.
+        """
+        translation = np.array((vector.start.x, vector.start.y))
+        vector = Vector(
+            start=Point(x=0.0, y=0.0),
+            end=Point(x=vector.end.x - vector.start.x, y=vector.end.y - vector.start.y),
+        )
+        # Calculate the angle of rotation
+        theta = np.arccos(vector.end.y / vector.magnitude)
+        # Define the rotation matrix
+        rotation = np.array(
+            [[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]]
+        )
+        vector = rotation @ np.array([vector.end.x, vector.end.y])
+        vector = Vector(
+            start=Point(x=0.0, y=0.0),
+            end=Point(x=vector[0], y=vector[1]),
+        )
+        return vector, rotation, translation
 
 class LineZoneAnnotator:
     def __init__(
