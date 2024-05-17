@@ -41,7 +41,7 @@ comments: true
 :::supervision.draw.utils.draw_image
 
 <div class="md-typeset">
-    <h2><a href="#supervision.draw.utils.calculate_optimal_font_scale">calculate_optimal_font_scale</a></h2>
+    <h2><a href="#supervision.draw.utils.calculate_optimal_text_scale">calculate_optimal_text_scale</a></h2>
 </div>
 
 :::supervision.draw.utils.calculate_optimal_text_scale
