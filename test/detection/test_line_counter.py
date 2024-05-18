@@ -210,7 +210,7 @@ def test_line_zone_single_detection(
     for i, bbox in enumerate(bbox_sequence):
         detections = mock_detections(
             xyxy=[bbox],
-            tracker_id=[i for i in range(0, 1)],
+            tracker_id=[0],
         )
         count_in, count_out = line_zone.trigger(detections)
         assert count_in[0] == expected_count_in[i]
@@ -276,7 +276,7 @@ def test_line_zone_single_detection_on_subset_of_anchors(
         for i, bbox in enumerate(bbox_sequence):
             detections = mock_detections(
                 xyxy=[bbox],
-                tracker_id=[i for i in range(0, 1)],
+                tracker_id=[0],
             )
             count_in, count_out = line_zone.trigger(detections)
             if all(anchor in crossing_anchors for anchor in anchors):
@@ -385,7 +385,7 @@ def test_line_zone_does_not_count_detections_without_tracker_id(vector, bbox_seq
     for bbox in bbox_sequence:
         detections = Detections(
             xyxy=np.array([bbox]).reshape((-1, 4)),
-            tracker_id=np.array([None for _ in range(0, 1)]),
+            tracker_id=np.array([None]),
         )
         count_in, count_out = line_zone.trigger(detections)
         assert np.all(not count_in)
