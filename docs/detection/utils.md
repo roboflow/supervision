@@ -70,3 +70,15 @@ status: new
 </div>
 
 :::supervision.detection.utils.scale_boxes
+
+<div class="md-typeset">
+  <h2><a href="#supervision.detection.utils.mask_has_holes">mask_has_holes</a></h2>
+</div>
+
+:::supervision.detection.utils.mask_has_holes
+
+<div class="md-typeset">
+  <h2><a href="#supervision.detection.utils.mask_has_multiple_segments">mask_has_multiple_segments</a></h2>
+</div>
+
+:::supervision.detection.utils.mask_has_multiple_segments

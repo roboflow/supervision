@@ -56,6 +56,8 @@ from supervision.detection.utils import (
     polygon_to_mask,
     polygon_to_xyxy,
     scale_boxes,
+    mask_has_holes,
+    mask_has_multiple_segments,
 )
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import (
