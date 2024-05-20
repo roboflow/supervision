@@ -76,7 +76,7 @@ def test_calculate_region_of_interest_limits(
 
 
 @pytest.mark.parametrize(
-    "vector, bbox_sequence, expected_count_in, expected_count_out",
+    "vector, bbox_sequence, expected_crossed_in, expected_crossed_out",
     [
         (
             Vector(
@@ -204,7 +204,10 @@ def test_calculate_region_of_interest_limits(
     ],
 )
 def test_line_zone_single_detection(
-    vector, bbox_sequence, expected_count_in: List[bool], expected_count_out: List[bool]
+    vector: Vector,
+    bbox_sequence: List[List[int]],
+    expected_crossed_in: List[bool],
+    expected_crossed_out: List[bool],
 ) -> None:
     line_zone = LineZone(start=vector.start, end=vector.end)
     for i, bbox in enumerate(bbox_sequence):
@@ -212,15 +215,19 @@ def test_line_zone_single_detection(
             xyxy=[bbox],
             tracker_id=[0],
         )
-        count_in, count_out = line_zone.trigger(detections)
-        assert count_in[0] == expected_count_in[i]
-        assert count_out[0] == expected_count_out[i]
-        assert line_zone.in_count == sum(expected_count_in[: (i + 1)])
-        assert line_zone.out_count == sum(expected_count_out[: (i + 1)])
+        crossed_in, crossed_out = line_zone.trigger(detections)
+        assert crossed_in[0] == expected_crossed_in[i]
+        assert crossed_out[0] == expected_crossed_out[i]
+        assert line_zone.in_count == sum(expected_crossed_in[: (i + 1)])
+        assert line_zone.out_count == sum(expected_crossed_out[: (i + 1)])
 
 
 @pytest.mark.parametrize(
-    "vector, bbox_sequence, expected_count_in, expected_count_out, crossing_anchors",
+    "vector,"
+    "bbox_sequence,"
+    "expected_crossed_in,"
+    "expected_crossed_out,"
+    "crossing_anchors",
     [
         (
             Vector(
@@ -251,11 +258,11 @@ def test_line_zone_single_detection(
     ],
 )
 def test_line_zone_single_detection_on_subset_of_anchors(
-    vector,
-    bbox_sequence,
-    expected_count_in: List[bool],
-    expected_count_out: List[bool],
-    crossing_anchors,
+    vector: Vector,
+    bbox_sequence: List[List[int]],
+    expected_crossed_in: List[bool],
+    expected_crossed_out: List[bool],
+    crossing_anchors: List[Position],
 ) -> None:
     def powerset(s):
         return chain.from_iterable(combinations(s, r) for r in range(len(s) + 1))
@@ -278,17 +285,17 @@ def test_line_zone_single_detection_on_subset_of_anchors(
                 xyxy=[bbox],
                 tracker_id=[0],
             )
-            count_in, count_out = line_zone.trigger(detections)
+            crossed_in, crossed_out = line_zone.trigger(detections)
             if all(anchor in crossing_anchors for anchor in anchors):
-                assert count_in == expected_count_in[i]
-                assert count_out == expected_count_out[i]
+                assert crossed_in == expected_crossed_in[i]
+                assert crossed_out == expected_crossed_out[i]
             else:
-                assert np.all(not count_in)
-                assert np.all(not count_out)
+                assert np.all(not crossed_in)
+                assert np.all(not crossed_out)
 
 
 @pytest.mark.parametrize(
-    "vector, bbox_sequence, expected_count_in, expected_count_out",
+    "vector, bbox_sequence, expected_crossed_in, expected_crossed_out",
     [
         (
             Vector(
@@ -342,7 +349,10 @@ def test_line_zone_single_detection_on_subset_of_anchors(
     ],
 )
 def test_line_zone_multiple_detections(
-    vector, bbox_sequence, expected_count_in: List[bool], expected_count_out: List[bool]
+    vector: Vector,
+    bbox_sequence: List[List[List[int]]],
+    expected_crossed_in: List[bool],
+    expected_crossed_out: List[bool],
 ) -> None:
     line_zone = LineZone(start=vector.start, end=vector.end)
     for i, bboxes in enumerate(bbox_sequence):
@@ -350,9 +360,9 @@ def test_line_zone_multiple_detections(
             xyxy=bboxes,
             tracker_id=[i for i in range(0, len(bboxes))],
         )
-        count_in, count_out = line_zone.trigger(detections)
-        assert np.all(count_in == expected_count_in[i])
-        assert np.all(count_out == expected_count_out[i])
+        crossed_in, crossed_out = line_zone.trigger(detections)
+        assert np.all(crossed_in == expected_crossed_in[i])
+        assert np.all(crossed_out == expected_crossed_out[i])
 
 
 @pytest.mark.parametrize(
@@ -380,13 +390,15 @@ def test_line_zone_multiple_detections(
         ),
     ],
 )
-def test_line_zone_does_not_count_detections_without_tracker_id(vector, bbox_sequence):
+def test_line_zone_does_not_count_detections_without_tracker_id(
+    vector: Vector, bbox_sequence: List[List[int]]
+):
     line_zone = LineZone(start=vector.start, end=vector.end)
     for bbox in bbox_sequence:
         detections = Detections(
             xyxy=np.array([bbox]).reshape((-1, 4)),
             tracker_id=np.array([None]),
         )
-        count_in, count_out = line_zone.trigger(detections)
-        assert np.all(not count_in)
-        assert np.all(not count_out)
+        crossed_in, crossed_out = line_zone.trigger(detections)
+        assert np.all(not crossed_in)
+        assert np.all(not crossed_out)
