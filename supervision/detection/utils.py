@@ -3,6 +3,7 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
+import numpy.typing as npt
 
 from supervision.config import CLASS_NAME_DATA_FIELD
 
@@ -766,3 +767,49 @@ def get_data_item(
             raise TypeError(f"Unsupported data type for key '{key}': {type(value)}")
 
     return subset_data
+
+
+def mask_has_holes(mask: npt.NDArray[np.bool_]) -> bool:
+    """
+    Checks if target objects in binary mask contain holes 
+    (A hole is when background pixels are fully enclosed by foreground pixels)
+
+    Args:
+        mask (npt.NDArray[np.bool_]): 2D binary mask where `True` indicates foreground
+            object and `False` indicates background.
+    Returns:
+        True when holes are detected, False otherwise.
+    """
+    mask_uint8 = mask.astype(np.uint8)
+    _, hierarchy = cv2.findContours(mask_uint8, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+    parent_countour_index = 3
+    for h in hierarchy[0]:
+        if h[parent_countour_index] != -1:
+            return True
+    return False
+
+
+def mask_has_multiple_segments(mask: npt.NDArray[np.bool_], 
+                               connectivity:int = 4) -> bool:
+    """
+    Checks if the binary mask consists of multiple not connected elements representing 
+    the foreground objects.
+    Args:
+        mask (npt.NDArray[np.bool_]): 2D binary mask where `True` indicates foreground
+            object and `False` indicates background.
+        connectivity (int) : Default: 4 is 4-way connectivity, which means that 
+            foreground pixels are the part of the same segment/component 
+            if their edges touch. 
+            Alternatively: 8 for 8-way connectivity, when foreground pixels are 
+            connected by their edges or corners touch.
+    Returns:
+        True when the mask contains multiple not connected components, False otherwise.
+    """
+    if connectivity!=4 and connectivity!=8:
+        raise ValueError('''Incorrect connectivity value,'''
+                         ''' possible connectivity values: 4 or 8''')
+    mask_uint8 = mask.astype(np.uint8)
+    labels = np.zeros_like(mask_uint8, dtype=np.int32)
+    number_of_labels, _ = cv2.connectedComponents(mask_uint8, labels, 
+                                                  connectivity=connectivity)
+    return number_of_labels > 2

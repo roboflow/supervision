@@ -14,7 +14,11 @@ from supervision.dataset.utils import (
     rle_to_mask,
 )
 from supervision.detection.core import Detections
-from supervision.detection.utils import polygon_to_mask
+from supervision.detection.utils import (
+    polygon_to_mask,
+    mask_has_multiple_segments,
+    mask_has_holes
+)
 from supervision.utils.file import read_json_file, save_json_file
 
 
@@ -107,23 +111,6 @@ def coco_annotations_to_detections(
     return Detections(xyxy=xyxy, class_id=np.asarray(class_ids, dtype=int))
 
 
-def _mask_has_holes(mask: np.ndarray) -> bool:
-    mask_uint8 = mask.astype(np.uint8)
-    _, hierarchy = cv2.findContours(mask_uint8, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
-    parent_countour_index = 3
-    for h in hierarchy[0]:
-        if h[parent_countour_index] != -1:
-            return True
-    return False
-
-
-def _mask_has_multiple_segments(mask: np.ndarray) -> bool:
-    mask_uint8 = mask.astype(np.uint8)
-    labels = np.zeros_like(mask_uint8, dtype=np.int32)
-    number_of_labels, _ = cv2.connectedComponents(mask_uint8, labels, connectivity=4)
-    return number_of_labels > 2
-
-
 def detections_to_coco_annotations(
     detections: Detections,
     image_id: int,
@@ -138,7 +125,7 @@ def detections_to_coco_annotations(
         segmentation = []
         iscrowd = 0
         if mask is not None:
-            iscrowd = _mask_has_holes(mask=mask) or _mask_has_multiple_segments(
+            iscrowd = mask_has_holes(mask=mask) or mask_has_multiple_segments(
                 mask=mask
             )
 
