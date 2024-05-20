@@ -771,7 +771,7 @@ def get_data_item(
 
 def mask_has_holes(mask: npt.NDArray[np.bool_]) -> bool:
     """
-    Checks if target objects in binary mask contain holes 
+    Checks if target objects in binary mask contain holes
     (A hole is when background pixels are fully enclosed by foreground pixels)
 
     Args:
@@ -791,19 +791,20 @@ def mask_has_holes(mask: npt.NDArray[np.bool_]) -> bool:
     return False
 
 
-def mask_has_multiple_segments(mask: npt.NDArray[np.bool_], 
-                               connectivity:int = 4) -> bool:
+def mask_has_multiple_segments(
+    mask: npt.NDArray[np.bool_], connectivity: int = 4
+) -> bool:
     """
-    Checks if the binary mask consists of multiple not connected elements representing 
+    Checks if the binary mask consists of multiple not connected elements representing
     the foreground objects.
 
     Args:
         mask (npt.NDArray[np.bool_]): 2D binary mask where `True` indicates foreground
             object and `False` indicates background.
-        connectivity (int) : Default: 4 is 4-way connectivity, which means that 
-            foreground pixels are the part of the same segment/component 
-            if their edges touch. 
-            Alternatively: 8 for 8-way connectivity, when foreground pixels are 
+        connectivity (int) : Default: 4 is 4-way connectivity, which means that
+            foreground pixels are the part of the same segment/component
+            if their edges touch.
+            Alternatively: 8 for 8-way connectivity, when foreground pixels are
             connected by their edges or corners touch.
 
     Returns:
@@ -812,11 +813,14 @@ def mask_has_multiple_segments(mask: npt.NDArray[np.bool_],
     Raises:
         ValueError: If connectivity(int) parameter value is not 4 or 8.
     """
-    if connectivity!=4 and connectivity!=8:
-        raise ValueError('''Incorrect connectivity value,'''
-                         ''' possible connectivity values: 4 or 8''')
+    if connectivity != 4 and connectivity != 8:
+        raise ValueError(
+            """Incorrect connectivity value,"""
+            """ possible connectivity values: 4 or 8"""
+        )
     mask_uint8 = mask.astype(np.uint8)
     labels = np.zeros_like(mask_uint8, dtype=np.int32)
-    number_of_labels, _ = cv2.connectedComponents(mask_uint8, labels, 
-                                                  connectivity=connectivity)
+    number_of_labels, _ = cv2.connectedComponents(
+        mask_uint8, labels, connectivity=connectivity
+    )
     return number_of_labels > 2

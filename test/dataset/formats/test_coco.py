@@ -108,13 +108,7 @@ def test_classes_to_coco_categories_and_back_to_classes(
         ([], {}, DoesNotRaise()),  # empty coco annotations
         (
             [mock_coco_annotation(annotation_id=0, image_id=0, category_id=0)],
-            {
-                0: [
-                    mock_coco_annotation(
-                        annotation_id=0, image_id=0, category_id=0
-                    )
-                ]
-            },
+            {0: [mock_coco_annotation(annotation_id=0, image_id=0, category_id=0)]},
             DoesNotRaise(),
         ),  # single coco annotation
         (
@@ -123,16 +117,8 @@ def test_classes_to_coco_categories_and_back_to_classes(
                 mock_coco_annotation(annotation_id=1, image_id=1, category_id=0),
             ],
             {
-                0: [
-                    mock_coco_annotation(
-                        annotation_id=0, image_id=0, category_id=0
-                    )
-                ],
-                1: [
-                    mock_coco_annotation(
-                        annotation_id=1, image_id=1, category_id=0
-                    )
-                ],
+                0: [mock_coco_annotation(annotation_id=0, image_id=0, category_id=0)],
+                1: [mock_coco_annotation(annotation_id=1, image_id=1, category_id=0)],
             },
             DoesNotRaise(),
         ),  # two coco annotations
@@ -148,33 +134,19 @@ def test_classes_to_coco_categories_and_back_to_classes(
             ],
             {
                 0: [
-                    mock_coco_annotation(
-                        annotation_id=0, image_id=0, category_id=0
-                    ),
+                    mock_coco_annotation(annotation_id=0, image_id=0, category_id=0),
                 ],
                 1: [
-                    mock_coco_annotation(
-                        annotation_id=1, image_id=1, category_id=1
-                    ),
-                    mock_coco_annotation(
-                        annotation_id=2, image_id=1, category_id=2
-                    ),
+                    mock_coco_annotation(annotation_id=1, image_id=1, category_id=1),
+                    mock_coco_annotation(annotation_id=2, image_id=1, category_id=2),
                 ],
                 2: [
-                    mock_coco_annotation(
-                        annotation_id=3, image_id=2, category_id=3
-                    ),
+                    mock_coco_annotation(annotation_id=3, image_id=2, category_id=3),
                 ],
                 3: [
-                    mock_coco_annotation(
-                        annotation_id=4, image_id=3, category_id=1
-                    ),
-                    mock_coco_annotation(
-                        annotation_id=5, image_id=3, category_id=2
-                    ),
-                    mock_coco_annotation(
-                        annotation_id=5, image_id=3, category_id=3
-                    ),
+                    mock_coco_annotation(annotation_id=4, image_id=3, category_id=1),
+                    mock_coco_annotation(annotation_id=5, image_id=3, category_id=2),
+                    mock_coco_annotation(annotation_id=5, image_id=3, category_id=3),
                 ],
             },
             DoesNotRaise(),
@@ -494,7 +466,8 @@ def test_build_coco_class_index_mapping(
             ),
             0,
             0,
-            [mock_coco_annotation(
+            [
+                mock_coco_annotation(
                     category_id=0,
                     bbox=(0, 0, 4, 5),
                     area=4 * 5,
