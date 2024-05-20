@@ -50,6 +50,8 @@ from supervision.detection.utils import (
     calculate_masks_centroids,
     clip_boxes,
     filter_polygons_by_area,
+    mask_has_holes,
+    mask_has_multiple_segments,
     mask_iou_batch,
     mask_non_max_suppression,
     mask_to_polygons,
@@ -60,8 +62,6 @@ from supervision.detection.utils import (
     polygon_to_mask,
     polygon_to_xyxy,
     scale_boxes,
-    mask_has_holes,
-    mask_has_multiple_segments,
 )
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import (

@@ -857,7 +857,7 @@ def mask_has_holes(mask: npt.NDArray[np.bool_]) -> bool:
     mask_uint8 = mask.astype(np.uint8)
     _, hierarchy = cv2.findContours(mask_uint8, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
 
-    if hierarchy: # at least one contour was found
+    if hierarchy:  # at least one contour was found
         parent_countour_index = 3
         for h in hierarchy[0]:
             if h[parent_countour_index] != -1:
