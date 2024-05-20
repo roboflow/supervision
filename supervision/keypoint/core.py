@@ -188,7 +188,7 @@ class KeyPoints:
     @classmethod
     def from_ultralytics(cls, ultralytics_results) -> KeyPoints:
         """
-        Creates a Keypoints instance from a
+        Creates a KeyPoints instance from a
             [YOLOv8](https://github.com/ultralytics/ultralytics) inference result.
 
         Args:
@@ -196,7 +196,7 @@ class KeyPoints:
                 The output Results instance from YOLOv8
 
         Returns:
-            KeyPoints: A new Keypoints object.
+            KeyPoints: A new KeyPoints object.
 
         Example:
             ```python
@@ -221,9 +221,66 @@ class KeyPoints:
         data = {CLASS_NAME_DATA_FIELD: class_names}
         return cls(xy, class_id, confidence, data)
 
+    @classmethod
+    def from_yolo_nas(cls, yolo_nas_results) -> KeyPoints:
+        """
+        Create a KeyPoints instance from a YOLO NAS results.
+
+        Args:
+            yolo_nas_results (ImagePoseEstimationPrediction):
+                The output object from YOLO NAS.
+
+        Returns:
+            KeyPoints: A new KeyPoints object.
+
+        Example:
+            ```python
+            import cv2
+            import torch
+            import supervision as sv
+            import super_gradients
+
+            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            yolo_nas = super_gradients.training.models.get(
+                "yolo_nas_pose_s", pretrained_weights="coco_pose").to(device)
+
+            results = yolo_nas.predict(image, conf=0.1)
+            keypoints = sv.KeyPoints.from_yolo_nas(results)
+            ```
+        """
+        if len(yolo_nas_results.prediction.poses) == 0:
+            return cls.empty()
+
+        xy = yolo_nas_results.prediction.poses[:, :, :2]
+        confidence = yolo_nas_results.prediction.poses[:, :, 2]
+
+        # yolo_nas_results treats params differently.
+        # prediction.labels may not exist, whereas class_names might be None
+        if hasattr(yolo_nas_results.prediction, "labels"):
+            class_id = yolo_nas_results.prediction.labels  # np.array[int]
+        else:
+            class_id = None
+
+        data = {}
+        if class_id is not None and yolo_nas_results.class_names is not None:
+            class_names = []
+            for c_id in class_id:
+                name = yolo_nas_results.class_names[c_id]  # tuple[str]
+                class_names.append(name)
+            data[CLASS_NAME_DATA_FIELD] = class_names
+
+        return cls(
+            xy=xy,
+            confidence=confidence,
+            class_id=class_id,
+            data=data,
+        )
+
     def __getitem__(
         self, index: Union[int, slice, List[int], np.ndarray, str]
-    ) -> Union["KeyPoints", List, np.ndarray, None]:
+    ) -> Union[KeyPoints, List, np.ndarray, None]:
         """
         Get a subset of the KeyPoints object or access an item from its data field.
 

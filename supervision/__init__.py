@@ -23,6 +23,7 @@ from supervision.annotators.core import (
     PercentageBarAnnotator,
     PixelateAnnotator,
     PolygonAnnotator,
+    RichLabelAnnotator,
     RoundBoxAnnotator,
     TraceAnnotator,
     TriangleAnnotator,
@@ -47,12 +48,15 @@ from supervision.detection.utils import (
     box_iou_batch,
     box_non_max_suppression,
     calculate_masks_centroids,
+    clip_boxes,
     filter_polygons_by_area,
     mask_iou_batch,
     mask_non_max_suppression,
     mask_to_polygons,
     mask_to_xyxy,
     move_boxes,
+    move_masks,
+    pad_boxes,
     polygon_to_mask,
     polygon_to_xyxy,
     scale_boxes,
@@ -72,7 +76,11 @@ from supervision.draw.utils import (
 )
 from supervision.geometry.core import Point, Position, Rect
 from supervision.geometry.utils import get_polygon_center
-from supervision.keypoint.annotators import EdgeAnnotator, VertexAnnotator
+from supervision.keypoint.annotators import (
+    EdgeAnnotator,
+    VertexAnnotator,
+    VertexLabelAnnotator,
+)
 from supervision.keypoint.core import KeyPoints
 from supervision.metrics.detection import ConfusionMatrix, MeanAveragePrecision
 from supervision.tracker.byte_tracker.core import ByteTrack
