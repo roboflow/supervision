@@ -782,10 +782,12 @@ def mask_has_holes(mask: npt.NDArray[np.bool_]) -> bool:
     """
     mask_uint8 = mask.astype(np.uint8)
     _, hierarchy = cv2.findContours(mask_uint8, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
-    parent_countour_index = 3
-    for h in hierarchy[0]:
-        if h[parent_countour_index] != -1:
-            return True
+
+    if hierarchy: # at least one contour was found
+        parent_countour_index = 3
+        for h in hierarchy[0]:
+            if h[parent_countour_index] != -1:
+                return True
     return False
 
 
@@ -794,6 +796,7 @@ def mask_has_multiple_segments(mask: npt.NDArray[np.bool_],
     """
     Checks if the binary mask consists of multiple not connected elements representing 
     the foreground objects.
+
     Args:
         mask (npt.NDArray[np.bool_]): 2D binary mask where `True` indicates foreground
             object and `False` indicates background.
@@ -802,8 +805,12 @@ def mask_has_multiple_segments(mask: npt.NDArray[np.bool_],
             if their edges touch. 
             Alternatively: 8 for 8-way connectivity, when foreground pixels are 
             connected by their edges or corners touch.
+
     Returns:
         True when the mask contains multiple not connected components, False otherwise.
+
+    Raises:
+        ValueError: If connectivity(int) parameter value is not 4 or 8.
     """
     if connectivity!=4 and connectivity!=8:
         raise ValueError('''Incorrect connectivity value,'''

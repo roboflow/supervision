@@ -2,6 +2,7 @@ from contextlib import ExitStack as DoesNotRaise
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
+import numpy.typing as npt
 import pytest
 
 from supervision.config import CLASS_NAME_DATA_FIELD
@@ -16,6 +17,8 @@ from supervision.detection.utils import (
     move_boxes,
     process_roboflow_result,
     scale_boxes,
+    mask_has_holes,
+    mask_has_multiple_segments,
 )
 
 TEST_MASK = np.zeros((1, 1000, 1000), dtype=bool)
@@ -1203,3 +1206,59 @@ def test_get_data_item(
                 assert (
                     result[key] == expected_result[key]
                 ), f"Mismatch in non-array data for key {key}"
+
+
+@pytest.mark.parametrize(
+    "mask, expected_result, exception",
+    [
+        (np.array([[0, 0, 0, 0],
+                   [0, 1, 1, 0],
+                   [0, 1, 0, 0],
+                   [0, 1, 1, 0]]).astype(bool),
+        False,
+        DoesNotRaise(),
+        ), # foreground object in one continuous piece
+        (np.array([[1, 0, 0, 0],
+                   [1, 0, 0, 0],
+                   [0, 0, 0, 0],
+                   [0, 1, 1, 0]]).astype(bool),
+        False,
+        DoesNotRaise(),
+        ), # foreground object in 2 seperate elements
+        (np.array([[0, 0, 0, 0],
+                   [0, 0, 0, 0],
+                   [0, 0, 0, 0],
+                   [0, 0, 0, 0]]).astype(bool),
+        False,
+        DoesNotRaise(),
+        ), # no foreground pixels in mask
+        (np.array([[1, 1, 1, 1],
+                   [1, 1, 1, 1],
+                   [1, 1, 1, 1],
+                   [1, 1, 1, 1]]).astype(bool),
+        False,
+        DoesNotRaise(),
+        ), # only foreground pixels in mask
+        (np.array([[1, 1, 1, 0],
+                   [1, 0, 1, 0],
+                   [1, 1, 1, 0],
+                   [0, 0, 0, 0]]).astype(bool),
+        True,
+        DoesNotRaise(),
+        ), # foreground object has 1 hole
+        (np.array([[1, 1, 1, 0],
+                   [1, 0, 1, 1],
+                   [1, 1, 0, 1],
+                   [0, 1, 1, 1]]).astype(bool),
+        True,
+        DoesNotRaise(),
+        ), # foreground object has 2 holes
+    ],
+)
+def test_mask_has_holes(
+    mask: npt.NDArray[np.bool_], expected_result: bool, exception: Exception
+) -> None:
+    with exception:
+        result = mask_has_holes(mask)
+        assert result == expected_result 
+        
