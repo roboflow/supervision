@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import cv2
 import numpy as np
@@ -84,17 +84,47 @@ def coco_annotations_to_detections(
 
     if with_masks:
         polygons = [
-            np.reshape(
-                np.asarray(image_annotation["segmentation"], dtype=np.int32), (-1, 2)
-            )
+            np.reshape(np.asarray(segmentation, dtype=np.int32), (-1, 2))
             for image_annotation in image_annotations
+            for segmentation in image_annotation["segmentation"]
         ]
-        mask = _polygons_to_masks(polygons=polygons, resolution_wh=resolution_wh)
+        separate_masks = _polygons_to_masks(
+            polygons=polygons, resolution_wh=resolution_wh
+        )
+        mask = (
+            np.sum(
+                separate_masks, axis=0, keepdims=True
+            )  # merge mask parts representing a disjoint mask
+            > 0  # ensure that the result is a binary mask
+        )
+
         return Detections(
             class_id=np.asarray(class_ids, dtype=int), xyxy=xyxy, mask=mask
         )
 
     return Detections(xyxy=xyxy, class_id=np.asarray(class_ids, dtype=int))
+
+
+def object_to_coco(
+    xyxy: np.ndarray,
+    class_id: int,
+    annotation_id: int,
+    image_id: int,
+    polygon: Optional[np.ndarray] = None,
+) -> dict:
+    box_width, box_height = xyxy[2] - xyxy[0], xyxy[3] - xyxy[1]
+
+    coco_annotation = {
+        "id": annotation_id,
+        "image_id": image_id,
+        "category_id": int(class_id),
+        "iscrowd": 0,
+        "bbox": [xyxy[0], xyxy[1], box_width, box_height],
+        "area": box_width * box_height,
+        "segmentation": [] if polygon is None else polygon,
+    }
+
+    return coco_annotation
 
 
 def detections_to_coco_annotations(
@@ -105,31 +135,38 @@ def detections_to_coco_annotations(
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.75,
 ) -> Tuple[List[Dict], int]:
-    coco_annotations = []
+    annotation = []
     for xyxy, mask, _, class_id, _, _ in detections:
-        box_width, box_height = xyxy[2] - xyxy[0], xyxy[3] - xyxy[1]
-        polygon = []
         if mask is not None:
-            polygon = list(
-                approximate_mask_with_polygons(
-                    mask=mask,
-                    min_image_area_percentage=min_image_area_percentage,
-                    max_image_area_percentage=max_image_area_percentage,
-                    approximation_percentage=approximation_percentage,
-                )[0].flatten()
+            polygons = approximate_mask_with_polygons(
+                mask=mask,
+                min_image_area_percentage=min_image_area_percentage,
+                max_image_area_percentage=max_image_area_percentage,
+                approximation_percentage=approximation_percentage,
             )
-        coco_annotation = {
-            "id": annotation_id,
-            "image_id": image_id,
-            "category_id": int(class_id),
-            "bbox": [xyxy[0], xyxy[1], box_width, box_height],
-            "area": box_width * box_height,
-            "segmentation": [polygon] if polygon else [],
-            "iscrowd": 0,
-        }
-        coco_annotations.append(coco_annotation)
-        annotation_id += 1
-    return coco_annotations, annotation_id
+            reshaped_polygons = [
+                polygon.reshape(-1) for polygon in polygons if polygon.any()
+            ]
+            if reshaped_polygons:
+                next_object = object_to_coco(
+                    xyxy=xyxy,
+                    class_id=class_id,
+                    annotation_id=annotation_id,
+                    image_id=image_id,
+                    polygon=reshaped_polygons,
+                )
+                annotation.append(next_object)
+                annotation_id += 1
+        else:
+            next_object = object_to_coco(
+                xyxy=xyxy,
+                class_id=class_id,
+                annotation_id=annotation_id,
+                image_id=image_id,
+            )
+            annotation.append(next_object)
+            annotation_id += 1
+    return annotation, annotation_id
 
 
 def load_coco_annotations(
