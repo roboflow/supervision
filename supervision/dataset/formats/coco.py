@@ -157,7 +157,7 @@ def detections_to_coco_annotations(
                             approximation_percentage=approximation_percentage,
                         )[0].flatten()
                     )
-                ]  # multicomponent masks supported only for rle format
+                ]
         coco_annotation = {
             "id": annotation_id,
             "image_id": image_id,

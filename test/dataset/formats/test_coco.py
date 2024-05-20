@@ -15,7 +15,7 @@ from supervision.dataset.formats.coco import (
 )
 
 
-def mock_cock_coco_annotation(
+def mock_coco_annotation(
     annotation_id: int = 0,
     image_id: int = 0,
     category_id: int = 0,
@@ -107,10 +107,10 @@ def test_classes_to_coco_categories_and_back_to_classes(
     [
         ([], {}, DoesNotRaise()),  # empty coco annotations
         (
-            [mock_cock_coco_annotation(annotation_id=0, image_id=0, category_id=0)],
+            [mock_coco_annotation(annotation_id=0, image_id=0, category_id=0)],
             {
                 0: [
-                    mock_cock_coco_annotation(
+                    mock_coco_annotation(
                         annotation_id=0, image_id=0, category_id=0
                     )
                 ]
@@ -119,17 +119,17 @@ def test_classes_to_coco_categories_and_back_to_classes(
         ),  # single coco annotation
         (
             [
-                mock_cock_coco_annotation(annotation_id=0, image_id=0, category_id=0),
-                mock_cock_coco_annotation(annotation_id=1, image_id=1, category_id=0),
+                mock_coco_annotation(annotation_id=0, image_id=0, category_id=0),
+                mock_coco_annotation(annotation_id=1, image_id=1, category_id=0),
             ],
             {
                 0: [
-                    mock_cock_coco_annotation(
+                    mock_coco_annotation(
                         annotation_id=0, image_id=0, category_id=0
                     )
                 ],
                 1: [
-                    mock_cock_coco_annotation(
+                    mock_coco_annotation(
                         annotation_id=1, image_id=1, category_id=0
                     )
                 ],
@@ -138,41 +138,41 @@ def test_classes_to_coco_categories_and_back_to_classes(
         ),  # two coco annotations
         (
             [
-                mock_cock_coco_annotation(annotation_id=0, image_id=0, category_id=0),
-                mock_cock_coco_annotation(annotation_id=1, image_id=1, category_id=1),
-                mock_cock_coco_annotation(annotation_id=2, image_id=1, category_id=2),
-                mock_cock_coco_annotation(annotation_id=3, image_id=2, category_id=3),
-                mock_cock_coco_annotation(annotation_id=4, image_id=3, category_id=1),
-                mock_cock_coco_annotation(annotation_id=5, image_id=3, category_id=2),
-                mock_cock_coco_annotation(annotation_id=5, image_id=3, category_id=3),
+                mock_coco_annotation(annotation_id=0, image_id=0, category_id=0),
+                mock_coco_annotation(annotation_id=1, image_id=1, category_id=1),
+                mock_coco_annotation(annotation_id=2, image_id=1, category_id=2),
+                mock_coco_annotation(annotation_id=3, image_id=2, category_id=3),
+                mock_coco_annotation(annotation_id=4, image_id=3, category_id=1),
+                mock_coco_annotation(annotation_id=5, image_id=3, category_id=2),
+                mock_coco_annotation(annotation_id=5, image_id=3, category_id=3),
             ],
             {
                 0: [
-                    mock_cock_coco_annotation(
+                    mock_coco_annotation(
                         annotation_id=0, image_id=0, category_id=0
                     ),
                 ],
                 1: [
-                    mock_cock_coco_annotation(
+                    mock_coco_annotation(
                         annotation_id=1, image_id=1, category_id=1
                     ),
-                    mock_cock_coco_annotation(
+                    mock_coco_annotation(
                         annotation_id=2, image_id=1, category_id=2
                     ),
                 ],
                 2: [
-                    mock_cock_coco_annotation(
+                    mock_coco_annotation(
                         annotation_id=3, image_id=2, category_id=3
                     ),
                 ],
                 3: [
-                    mock_cock_coco_annotation(
+                    mock_coco_annotation(
                         annotation_id=4, image_id=3, category_id=1
                     ),
-                    mock_cock_coco_annotation(
+                    mock_coco_annotation(
                         annotation_id=5, image_id=3, category_id=2
                     ),
-                    mock_cock_coco_annotation(
+                    mock_coco_annotation(
                         annotation_id=5, image_id=3, category_id=3
                     ),
                 ],
@@ -201,7 +201,7 @@ def test_group_coco_annotations_by_image_id(
         ),  # empty image annotations
         (
             [
-                mock_cock_coco_annotation(
+                mock_coco_annotation(
                     category_id=0, bbox=(0, 0, 100, 100), area=100 * 100
                 )
             ],
@@ -215,10 +215,10 @@ def test_group_coco_annotations_by_image_id(
         ),  # single image annotations
         (
             [
-                mock_cock_coco_annotation(
+                mock_coco_annotation(
                     category_id=0, bbox=(0, 0, 100, 100), area=100 * 100
                 ),
-                mock_cock_coco_annotation(
+                mock_coco_annotation(
                     category_id=0, bbox=(100, 100, 100, 100), area=100 * 100
                 ),
             ],
@@ -234,7 +234,7 @@ def test_group_coco_annotations_by_image_id(
         ),  # two image annotations
         (
             [
-                mock_cock_coco_annotation(
+                mock_coco_annotation(
                     category_id=0,
                     bbox=(0, 0, 5, 5),
                     area=5 * 5,
@@ -262,7 +262,7 @@ def test_group_coco_annotations_by_image_id(
         ),  # single image annotations with mask as polygon
         (
             [
-                mock_cock_coco_annotation(
+                mock_coco_annotation(
                     category_id=0,
                     bbox=(0, 0, 5, 5),
                     area=5 * 5,
@@ -294,13 +294,13 @@ def test_group_coco_annotations_by_image_id(
         ),  # single image annotations with mask, RLE segmentation mask
         (
             [
-                mock_cock_coco_annotation(
+                mock_coco_annotation(
                     category_id=0,
                     bbox=(0, 0, 5, 5),
                     area=5 * 5,
                     segmentation=[[0, 0, 2, 0, 2, 2, 4, 2, 4, 4, 0, 4]],
                 ),
-                mock_cock_coco_annotation(
+                mock_coco_annotation(
                     category_id=0,
                     bbox=(3, 0, 2, 2),
                     area=2 * 2,
@@ -339,7 +339,7 @@ def test_group_coco_annotations_by_image_id(
         ),  # two image annotations with mask, one mask as polygon ans second as RLE
         (
             [
-                mock_cock_coco_annotation(
+                mock_coco_annotation(
                     category_id=0,
                     bbox=(3, 0, 2, 2),
                     area=2 * 2,
@@ -349,7 +349,7 @@ def test_group_coco_annotations_by_image_id(
                     },
                     iscrowd=True,
                 ),
-                mock_cock_coco_annotation(
+                mock_coco_annotation(
                     category_id=1,
                     bbox=(0, 0, 5, 5),
                     area=5 * 5,
@@ -470,7 +470,7 @@ def test_build_coco_class_index_mapping(
             0,
             0,
             [
-                mock_cock_coco_annotation(
+                mock_coco_annotation(
                     category_id=0, bbox=(0, 0, 100, 100), area=100 * 100
                 )
             ],
@@ -494,7 +494,7 @@ def test_build_coco_class_index_mapping(
                 ),
             0,
             0,
-            [mock_cock_coco_annotation(
+            [mock_coco_annotation(
                     category_id=0,
                     bbox=(0, 0, 4, 5),
                     area=4 * 5,
@@ -521,7 +521,7 @@ def test_build_coco_class_index_mapping(
             0,
             0,
             [
-                mock_cock_coco_annotation(
+                mock_coco_annotation(
                     category_id=0,
                     bbox=(0, 0, 5, 5),
                     area=5 * 5,
@@ -553,7 +553,7 @@ def test_build_coco_class_index_mapping(
             0,
             0,
             [
-                mock_cock_coco_annotation(
+                mock_coco_annotation(
                     category_id=0,
                     bbox=(0, 0, 5, 5),
                     area=5 * 5,
