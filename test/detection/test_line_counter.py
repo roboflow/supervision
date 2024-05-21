@@ -6,7 +6,7 @@ from typing import List, Optional, Tuple
 import numpy as np
 import pytest
 
-from supervision import Detections, LineZone
+from supervision import LineZone
 from supervision.geometry.core import Point, Position, Vector
 
 
