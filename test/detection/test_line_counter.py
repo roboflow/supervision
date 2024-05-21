@@ -209,6 +209,12 @@ def test_line_zone_single_detection(
     expected_crossed_in: List[bool],
     expected_crossed_out: List[bool],
 ) -> None:
+    """
+    Test LineZone with single detection which crosses the line.
+    The detection is represented by a sequence of xyxy bboxes which represent
+    subsequent positions of the detected object. If a line is crossed (in either
+    direction) it is crossed by all anchors simultaneously.
+    """
     line_zone = LineZone(start=vector.start, end=vector.end)
     for i, bbox in enumerate(xyxy_sequence):
         detections = mock_detections(
@@ -264,6 +270,13 @@ def test_line_zone_single_detection_on_subset_of_anchors(
     expected_crossed_out: List[bool],
     crossing_anchors: List[Position],
 ) -> None:
+    """
+    Test LineZone with single detection which crosses the line with only a subset of
+    anchors.
+    The detection is represented by a sequence of xyxy bboxes which represent
+    subsequent positions of the detected object. The line is crossed by only a subset
+    of anchors - this subset is given by @crossing_anchors.
+    """
     def powerset(s):
         return chain.from_iterable(combinations(s, r) for r in range(len(s) + 1))
 
@@ -354,6 +367,12 @@ def test_line_zone_multiple_detections(
     expected_crossed_in: List[bool],
     expected_crossed_out: List[bool],
 ) -> None:
+    """
+    Test LineZone with multiple detections.
+    A detection is represented by a sequence of xyxy bboxes which represent
+    subsequent positions of the detected object. If a line is crossed (in either
+    direction) by a detection it is crossed by all its anchors simultaneously.
+    """
     line_zone = LineZone(start=vector.start, end=vector.end)
     for i, bboxes in enumerate(xyxy_sequence):
         detections = mock_detections(
