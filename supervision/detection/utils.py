@@ -604,7 +604,7 @@ def move_boxes(xyxy: np.ndarray, offset: np.ndarray) -> np.ndarray:
     Returns:
         np.ndarray: Repositioned bounding boxes.
 
-    Example:
+    Examples:
         ```python
         import numpy as np
         import supervision as sv
@@ -673,7 +673,7 @@ def scale_boxes(xyxy: np.ndarray, factor: float) -> np.ndarray:
     Returns:
         np.ndarray: Scaled bounding boxes.
 
-    Example:
+    Examples:
         ```python
         import numpy as np
         import supervision as sv
