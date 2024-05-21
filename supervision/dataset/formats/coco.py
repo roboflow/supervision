@@ -15,8 +15,8 @@ from supervision.dataset.utils import (
 )
 from supervision.detection.core import Detections
 from supervision.detection.utils import (
-    mask_has_holes,
-    mask_has_multiple_segments,
+    contains_holes,
+    contains_multiple_segments,
     polygon_to_mask,
 )
 from supervision.utils.file import read_json_file, save_json_file
@@ -125,7 +125,7 @@ def detections_to_coco_annotations(
         segmentation = []
         iscrowd = 0
         if mask is not None:
-            iscrowd = mask_has_holes(mask=mask) or mask_has_multiple_segments(mask=mask)
+            iscrowd = contains_holes(mask=mask) or contains_multiple_segments(mask=mask)
 
             if iscrowd:
                 segmentation = {

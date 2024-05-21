@@ -12,8 +12,8 @@ from supervision.detection.utils import (
     clip_boxes,
     filter_polygons_by_area,
     get_data_item,
-    mask_has_holes,
-    mask_has_multiple_segments,
+    contains_holes,
+    contains_multiple_segments,
     mask_non_max_suppression,
     merge_data,
     move_boxes,
@@ -1317,11 +1317,11 @@ def test_get_data_item(
         ),  # foreground object has 2 holes
     ],
 )
-def test_mask_has_holes(
+def test_contains_holes(
     mask: npt.NDArray[np.bool_], expected_result: bool, exception: Exception
 ) -> None:
     with exception:
-        result = mask_has_holes(mask)
+        result = contains_holes(mask)
         assert result == expected_result
 
 
@@ -1394,12 +1394,12 @@ def test_mask_has_holes(
         ),  # Incorrect connectivity parameter value, raises ValueError
     ],
 )
-def test_mask_has_multiple_segments(
+def test_contains_multiple_segments(
     mask: npt.NDArray[np.bool_],
     connectivity: int,
     expected_result: bool,
     exception: Exception,
 ) -> None:
     with exception:
-        result = mask_has_multiple_segments(mask=mask, connectivity=connectivity)
+        result = contains_multiple_segments(mask=mask, connectivity=connectivity)
         assert result == expected_result

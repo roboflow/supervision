@@ -78,7 +78,7 @@ status: new
 :::supervision.detection.utils.scale_boxes
 
 <div class="md-typeset">
-<h2><a href="#supervision.detection.utils.clip_boxes">clip_boxes</a></h2>
+  <h2><a href="#supervision.detection.utils.clip_boxes">clip_boxes</a></h2>
 </div>
 
 :::supervision.detection.utils.clip_boxes
@@ -90,13 +90,13 @@ status: new
 :::supervision.detection.utils.pad_boxes
 
 <div class="md-typeset">
-  <h2><a href="#supervision.detection.utils.mask_has_holes">mask_has_holes</a></h2>
+  <h2><a href="#supervision.detection.utils.contains_holes">contains_holes</a></h2>
 </div>
 
-:::supervision.detection.utils.mask_has_holes
+:::supervision.detection.utils.contains_holes
 
 <div class="md-typeset">
-  <h2><a href="#supervision.detection.utils.mask_has_multiple_segments">mask_has_multiple_segments</a></h2>
+  <h2><a href="#supervision.detection.utils.contains_multiple_segments">contains_multiple_segments</a></h2>
 </div>
 
-:::supervision.detection.utils.mask_has_multiple_segments
+:::supervision.detection.utils.contains_multiple_segments
