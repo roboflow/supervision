@@ -228,7 +228,7 @@ def mask_to_rle(mask: npt.NDArray[np.bool_]) -> List[int]:
         sv.mask_to_rle(mask)
         # [5, 2, 2, 2, 5]
         ```
-        
+
     ![mask_to_rle](https://media.roboflow.com/supervision-docs/mask-to-rle.png){ align=center width="800" }
     """  # noqa E501 // docs
     assert mask.ndim == 2, "Input mask must be 2D"
