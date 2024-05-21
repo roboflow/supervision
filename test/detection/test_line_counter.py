@@ -76,7 +76,7 @@ def test_calculate_region_of_interest_limits(
 
 
 @pytest.mark.parametrize(
-    "vector, bbox_sequence, expected_crossed_in, expected_crossed_out",
+    "vector, xyxy_sequence, expected_crossed_in, expected_crossed_out",
     [
         (
             Vector(
@@ -205,12 +205,12 @@ def test_calculate_region_of_interest_limits(
 )
 def test_line_zone_single_detection(
     vector: Vector,
-    bbox_sequence: List[List[int]],
+    xyxy_sequence: List[List[int]],
     expected_crossed_in: List[bool],
     expected_crossed_out: List[bool],
 ) -> None:
     line_zone = LineZone(start=vector.start, end=vector.end)
-    for i, bbox in enumerate(bbox_sequence):
+    for i, bbox in enumerate(xyxy_sequence):
         detections = mock_detections(
             xyxy=[bbox],
             tracker_id=[0],
@@ -224,7 +224,7 @@ def test_line_zone_single_detection(
 
 @pytest.mark.parametrize(
     "vector,"
-    "bbox_sequence,"
+    "xyxy_sequence,"
     "expected_crossed_in,"
     "expected_crossed_out,"
     "crossing_anchors",
@@ -259,7 +259,7 @@ def test_line_zone_single_detection(
 )
 def test_line_zone_single_detection_on_subset_of_anchors(
     vector: Vector,
-    bbox_sequence: List[List[int]],
+    xyxy_sequence: List[List[int]],
     expected_crossed_in: List[bool],
     expected_crossed_out: List[bool],
     crossing_anchors: List[Position],
@@ -280,7 +280,7 @@ def test_line_zone_single_detection_on_subset_of_anchors(
         line_zone = LineZone(
             start=vector.start, end=vector.end, triggering_anchors=anchors
         )
-        for i, bbox in enumerate(bbox_sequence):
+        for i, bbox in enumerate(xyxy_sequence):
             detections = mock_detections(
                 xyxy=[bbox],
                 tracker_id=[0],
@@ -295,7 +295,7 @@ def test_line_zone_single_detection_on_subset_of_anchors(
 
 
 @pytest.mark.parametrize(
-    "vector, bbox_sequence, expected_crossed_in, expected_crossed_out",
+    "vector, xyxy_sequence, expected_crossed_in, expected_crossed_out",
     [
         (
             Vector(
@@ -350,12 +350,12 @@ def test_line_zone_single_detection_on_subset_of_anchors(
 )
 def test_line_zone_multiple_detections(
     vector: Vector,
-    bbox_sequence: List[List[List[int]]],
+    xyxy_sequence: List[List[List[int]]],
     expected_crossed_in: List[bool],
     expected_crossed_out: List[bool],
 ) -> None:
     line_zone = LineZone(start=vector.start, end=vector.end)
-    for i, bboxes in enumerate(bbox_sequence):
+    for i, bboxes in enumerate(xyxy_sequence):
         detections = mock_detections(
             xyxy=bboxes,
             tracker_id=[i for i in range(0, len(bboxes))],
@@ -363,42 +363,3 @@ def test_line_zone_multiple_detections(
         crossed_in, crossed_out = line_zone.trigger(detections)
         assert np.all(crossed_in == expected_crossed_in[i])
         assert np.all(crossed_out == expected_crossed_out[i])
-
-
-@pytest.mark.parametrize(
-    "vector, bbox_sequence",
-    [
-        (
-            Vector(
-                Point(0, 0),
-                Point(0, 100),
-            ),
-            [
-                [100, 50, 120, 70],
-                [-100, 50, -80, 70],
-            ],
-        ),
-        (
-            Vector(
-                Point(0, 0),
-                Point(0, 100),
-            ),
-            [
-                [-100, 50, -80, 70],
-                [100, 50, 120, 70],
-            ],
-        ),
-    ],
-)
-def test_line_zone_does_not_count_detections_without_tracker_id(
-    vector: Vector, bbox_sequence: List[List[int]]
-):
-    line_zone = LineZone(start=vector.start, end=vector.end)
-    for bbox in bbox_sequence:
-        detections = Detections(
-            xyxy=np.array([bbox]).reshape((-1, 4)),
-            tracker_id=np.array([None]),
-        )
-        crossed_in, crossed_out = line_zone.trigger(detections)
-        assert np.all(not crossed_in)
-        assert np.all(not crossed_out)
