@@ -31,11 +31,6 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>https://supervision.roboflow.com/develop/datasets/</loc>
-         <lastmod>2024-05-21</lastmod>
-         <changefreq>daily</changefreq>
-    </url>
-    <url>
          <loc>https://supervision.roboflow.com/develop/deprecated/</loc>
          <lastmod>2024-05-21</lastmod>
          <changefreq>daily</changefreq>
@@ -52,6 +47,16 @@
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/classification/core/</loc>
+         <lastmod>2024-05-21</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://supervision.roboflow.com/develop/datasets/core/</loc>
+         <lastmod>2024-05-21</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://supervision.roboflow.com/develop/datasets/utils/</loc>
          <lastmod>2024-05-21</lastmod>
          <changefreq>daily</changefreq>
     </url>

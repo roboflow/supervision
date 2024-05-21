@@ -88,3 +88,15 @@ status: new
 </div>
 
 :::supervision.detection.utils.pad_boxes
+
+<div class="md-typeset">
+  <h2><a href="#supervision.detection.utils.contains_holes">contains_holes</a></h2>
+</div>
+
+:::supervision.detection.utils.contains_holes
+
+<div class="md-typeset">
+  <h2><a href="#supervision.detection.utils.contains_multiple_segments">contains_multiple_segments</a></h2>
+</div>
+
+:::supervision.detection.utils.contains_multiple_segments
