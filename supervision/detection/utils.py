@@ -887,7 +887,9 @@ def contains_holes(mask: npt.NDArray[np.bool_]) -> bool:
         sv.contains_holes(mask=mask)
         # False
         ```
-    """
+        
+    ![contains_holes](https://media.roboflow.com/supervision-docs/contains-holes.png){ align=center width="800" }
+    """  # noqa E501 // docs
     mask_uint8 = mask.astype(np.uint8)
     _, hierarchy = cv2.findContours(mask_uint8, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
 
@@ -949,7 +951,9 @@ def contains_multiple_segments(
         sv.contains_multiple_segments(mask=mask, connectivity=4)
         # False
         ```
-    """
+        
+    ![contains_multiple_segments](https://media.roboflow.com/supervision-docs/contains-multiple-segments.png){ align=center width="800" }
+    """  # noqa E501 // docs
     if connectivity != 4 and connectivity != 8:
         raise ValueError(
             "Incorrect connectivity value. Possible connectivity values: 4 or 8."
