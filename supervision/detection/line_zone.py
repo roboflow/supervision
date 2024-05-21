@@ -140,6 +140,13 @@ class LineZone:
         if len(detections) == 0:
             return crossed_in, crossed_out
 
+        if detections.tracker_id is None:
+            print(
+                "Line zone conting skipped. LineZone requires tracker_id. Refer to "
+                "https://supervision.roboflow.com/latest/trackers for more information."
+            )
+            return crossed_in, crossed_out
+
         all_anchors = np.array(
             [
                 detections.get_anchors_coordinates(anchor)
@@ -148,9 +155,6 @@ class LineZone:
         )
 
         for i, tracker_id in enumerate(detections.tracker_id):
-            if tracker_id is None:
-                continue
-
             box_anchors = [Point(x=x, y=y) for x, y in all_anchors[:, i, :]]
 
             in_limits = all(

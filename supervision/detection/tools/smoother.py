@@ -78,8 +78,6 @@ class DetectionsSmoother:
 
         for detection_idx in range(len(detections)):
             tracker_id = detections.tracker_id[detection_idx]
-            if tracker_id is None:
-                continue
 
             self.tracks[tracker_id].append(detections[detection_idx])
 
