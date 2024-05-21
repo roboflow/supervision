@@ -2,6 +2,7 @@ from contextlib import ExitStack as DoesNotRaise
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
+import numpy.typing as npt
 import pytest
 
 from supervision.config import CLASS_NAME_DATA_FIELD
@@ -9,6 +10,8 @@ from supervision.detection.utils import (
     box_non_max_suppression,
     calculate_masks_centroids,
     clip_boxes,
+    contains_holes,
+    contains_multiple_segments,
     filter_polygons_by_area,
     get_data_item,
     mask_non_max_suppression,
@@ -1265,3 +1268,138 @@ def test_get_data_item(
                 assert (
                     result[key] == expected_result[key]
                 ), f"Mismatch in non-array data for key {key}"
+
+
+@pytest.mark.parametrize(
+    "mask, expected_result, exception",
+    [
+        (
+            np.array([[0, 0, 0, 0], [0, 1, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0]]).astype(
+                bool
+            ),
+            False,
+            DoesNotRaise(),
+        ),  # foreground object in one continuous piece
+        (
+            np.array([[1, 0, 0, 0], [1, 0, 0, 0], [0, 0, 0, 0], [0, 1, 1, 0]]).astype(
+                bool
+            ),
+            False,
+            DoesNotRaise(),
+        ),  # foreground object in 2 seperate elements
+        (
+            np.array([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]).astype(
+                bool
+            ),
+            False,
+            DoesNotRaise(),
+        ),  # no foreground pixels in mask
+        (
+            np.array([[1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1]]).astype(
+                bool
+            ),
+            False,
+            DoesNotRaise(),
+        ),  # only foreground pixels in mask
+        (
+            np.array([[1, 1, 1, 0], [1, 0, 1, 0], [1, 1, 1, 0], [0, 0, 0, 0]]).astype(
+                bool
+            ),
+            True,
+            DoesNotRaise(),
+        ),  # foreground object has 1 hole
+        (
+            np.array([[1, 1, 1, 0], [1, 0, 1, 1], [1, 1, 0, 1], [0, 1, 1, 1]]).astype(
+                bool
+            ),
+            True,
+            DoesNotRaise(),
+        ),  # foreground object has 2 holes
+    ],
+)
+def test_contains_holes(
+    mask: npt.NDArray[np.bool_], expected_result: bool, exception: Exception
+) -> None:
+    with exception:
+        result = contains_holes(mask)
+        assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    "mask, connectivity, expected_result, exception",
+    [
+        (
+            np.array([[0, 0, 0, 0], [0, 1, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0]]).astype(
+                bool
+            ),
+            4,
+            False,
+            DoesNotRaise(),
+        ),  # foreground object in one continuous piece
+        (
+            np.array([[1, 0, 0, 0], [1, 0, 0, 0], [0, 0, 0, 0], [0, 1, 1, 0]]).astype(
+                bool
+            ),
+            4,
+            True,
+            DoesNotRaise(),
+        ),  # foreground object in 2 seperate elements
+        (
+            np.array([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]).astype(
+                bool
+            ),
+            4,
+            False,
+            DoesNotRaise(),
+        ),  # no foreground pixels in mask
+        (
+            np.array([[1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1]]).astype(
+                bool
+            ),
+            4,
+            False,
+            DoesNotRaise(),
+        ),  # only foreground pixels in mask
+        (
+            np.array([[1, 1, 1, 0], [1, 0, 1, 1], [1, 1, 0, 1], [0, 1, 1, 1]]).astype(
+                bool
+            ),
+            4,
+            False,
+            DoesNotRaise(),
+        ),  # foreground object has 2 holes, but is in single piece
+        (
+            np.array([[1, 1, 0, 0], [1, 1, 0, 1], [1, 0, 1, 1], [0, 0, 1, 1]]).astype(
+                bool
+            ),
+            4,
+            True,
+            DoesNotRaise(),
+        ),  # foreground object in 2 elements with respect to 4-way connectivity
+        (
+            np.array([[1, 1, 0, 0], [1, 1, 0, 1], [1, 0, 1, 1], [0, 0, 1, 1]]).astype(
+                bool
+            ),
+            8,
+            False,
+            DoesNotRaise(),
+        ),  # foreground object in single piece with respect to 8-way connectivity
+        (
+            np.array([[1, 1, 0, 0], [1, 1, 0, 1], [1, 0, 1, 1], [0, 0, 1, 1]]).astype(
+                bool
+            ),
+            5,
+            None,
+            pytest.raises(ValueError),
+        ),  # Incorrect connectivity parameter value, raises ValueError
+    ],
+)
+def test_contains_multiple_segments(
+    mask: npt.NDArray[np.bool_],
+    connectivity: int,
+    expected_result: bool,
+    exception: Exception,
+) -> None:
+    with exception:
+        result = contains_multiple_segments(mask=mask, connectivity=connectivity)
+        assert result == expected_result

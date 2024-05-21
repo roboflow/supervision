@@ -3,6 +3,7 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
+import numpy.typing as npt
 
 from supervision.config import CLASS_NAME_DATA_FIELD
 
@@ -603,18 +604,21 @@ def move_boxes(xyxy: np.ndarray, offset: np.ndarray) -> np.ndarray:
     Returns:
         np.ndarray: Repositioned bounding boxes.
 
-    Example:
+    Examples:
         ```python
         import numpy as np
         import supervision as sv
 
-        boxes = np.array([[10, 10, 20, 20], [30, 30, 40, 40]])
+        xyxy = np.array([
+            [10, 10, 20, 20],
+            [30, 30, 40, 40]
+        ])
         offset = np.array([5, 5])
-        moved_box = sv.move_boxes(boxes, offset)
-        print(moved_box)
-        # np.array([
+
+        sv.move_boxes(xyxy=xyxy, offset=offset)
+        # array([
         #    [15, 15, 25, 25],
-        #     [35, 35, 45, 45]
+        #    [35, 35, 45, 45]
         # ])
         ```
     """
@@ -669,16 +673,18 @@ def scale_boxes(xyxy: np.ndarray, factor: float) -> np.ndarray:
     Returns:
         np.ndarray: Scaled bounding boxes.
 
-    Example:
+    Examples:
         ```python
         import numpy as np
         import supervision as sv
 
-        boxes = np.array([[10, 10, 20, 20], [30, 30, 40, 40]])
-        factor = 1.5
-        scaled_bb = sv.scale_boxes(boxes, factor)
-        print(scaled_bb)
-        # np.array([
+        xyxy = np.array([
+            [10, 10, 20, 20],
+            [30, 30, 40, 40]
+        ])
+
+        scaled_bb = sv.scale_boxes(xyxy=xyxy, factor=1.5)
+        # array([
         #    [ 7.5,  7.5, 22.5, 22.5],
         #    [27.5, 27.5, 42.5, 42.5]
         # ])
@@ -840,3 +846,121 @@ def get_data_item(
             raise TypeError(f"Unsupported data type for key '{key}': {type(value)}")
 
     return subset_data
+
+
+def contains_holes(mask: npt.NDArray[np.bool_]) -> bool:
+    """
+    Checks if the binary mask contains holes (background pixels fully enclosed by
+    foreground pixels).
+
+    Args:
+        mask (npt.NDArray[np.bool_]): 2D binary mask where `True` indicates foreground
+            object and `False` indicates background.
+
+    Returns:
+        True if holes are detected, False otherwise.
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        mask = np.array([
+            [0, 0, 0, 0, 0],
+            [0, 1, 1, 1, 0],
+            [0, 1, 0, 1, 0],
+            [0, 1, 1, 1, 0],
+            [0, 0, 0, 0, 0]
+        ]).astype(bool)
+
+        sv.contains_holes(mask=mask)
+        # True
+
+        mask = np.array([
+            [0, 0, 0, 0, 0],
+            [0, 1, 1, 1, 0],
+            [0, 1, 1, 1, 0],
+            [0, 1, 1, 1, 0],
+            [0, 0, 0, 0, 0]
+        ]).astype(bool)
+
+        sv.contains_holes(mask=mask)
+        # False
+        ```
+
+    ![contains_holes](https://media.roboflow.com/supervision-docs/contains-holes.png){ align=center width="800" }
+    """  # noqa E501 // docs
+    mask_uint8 = mask.astype(np.uint8)
+    _, hierarchy = cv2.findContours(mask_uint8, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+
+    if hierarchy is not None:
+        parent_contour_index = 3
+        for h in hierarchy[0]:
+            if h[parent_contour_index] != -1:
+                return True
+    return False
+
+
+def contains_multiple_segments(
+    mask: npt.NDArray[np.bool_], connectivity: int = 4
+) -> bool:
+    """
+    Checks if the binary mask contains multiple unconnected foreground segments.
+
+    Args:
+        mask (npt.NDArray[np.bool_]): 2D binary mask where `True` indicates foreground
+            object and `False` indicates background.
+        connectivity (int) : Default: 4 is 4-way connectivity, which means that
+            foreground pixels are the part of the same segment/component
+            if their edges touch.
+            Alternatively: 8 for 8-way connectivity, when foreground pixels are
+            connected by their edges or corners touch.
+
+    Returns:
+        True when the mask contains multiple not connected components, False otherwise.
+
+    Raises:
+        ValueError: If connectivity(int) parameter value is not 4 or 8.
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        mask = np.array([
+            [0, 0, 0, 0, 0, 0],
+            [0, 1, 1, 0, 1, 1],
+            [0, 1, 1, 0, 1, 1],
+            [0, 0, 0, 0, 0, 0],
+            [0, 1, 1, 1, 0, 0],
+            [0, 1, 1, 1, 0, 0]
+        ]).astype(bool)
+
+        sv.contains_multiple_segments(mask=mask, connectivity=4)
+        # True
+
+        mask = np.array([
+            [0, 0, 0, 0, 0, 0],
+            [0, 1, 1, 1, 1, 1],
+            [0, 1, 1, 1, 1, 1],
+            [0, 1, 1, 1, 1, 1],
+            [0, 1, 1, 1, 1, 1],
+            [0, 0, 0, 0, 0, 0]
+        ]).astype(bool)
+
+        sv.contains_multiple_segments(mask=mask, connectivity=4)
+        # False
+        ```
+
+    ![contains_multiple_segments](https://media.roboflow.com/supervision-docs/contains-multiple-segments.png){ align=center width="800" }
+    """  # noqa E501 // docs
+    if connectivity != 4 and connectivity != 8:
+        raise ValueError(
+            "Incorrect connectivity value. Possible connectivity values: 4 or 8."
+        )
+    mask_uint8 = mask.astype(np.uint8)
+    labels = np.zeros_like(mask_uint8, dtype=np.int32)
+    number_of_labels, _ = cv2.connectedComponents(
+        mask_uint8, labels, connectivity=connectivity
+    )
+    return number_of_labels > 2
