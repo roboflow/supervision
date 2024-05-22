@@ -41,7 +41,7 @@ nav:
       - Save Detections: how_to/save_detections.md
       - Filter Detections: how_to/filter_detections.md
       - Detect Small Objects: how_to/detect_small_objects.md
-      - Detect and Track Objects on Video: how_to/track_objects.md
+      - Track Objects on Video: how_to/track_objects.md
 
   - API:
     - Detection and Segmentation:
