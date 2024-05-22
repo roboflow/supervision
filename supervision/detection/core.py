@@ -7,7 +7,7 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 import numpy as np
 
 from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES
-from supervision.detection.lmm import LMM, validate_lmm_and_kwargs, from_paligemma
+from supervision.detection.lmm import LMM, from_paligemma, validate_lmm_and_kwargs
 from supervision.detection.utils import (
     box_non_max_suppression,
     calculate_masks_centroids,
