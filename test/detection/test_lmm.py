@@ -13,43 +13,43 @@ from supervision.detection.lmm import from_paligemma
             "",
             (1000, 1000),
             None,
-            (np.empty((0, 4)), None, np.empty(0).astype(np.dtype('U')))
+            (np.empty((0, 4)), None, np.empty(0).astype(str))
         ),  # empty response
         (
             "\n",
             (1000, 1000),
             None,
-            (np.empty((0, 4)), None, np.empty(0).astype(np.dtype('U')))
+            (np.empty((0, 4)), None, np.empty(0).astype(str))
         ),  # new line response
         (
             "the quick brown fox jumps over the lazy dog.",
             (1000, 1000),
             None,
-            (np.empty((0, 4)), None, np.empty(0).astype(np.dtype('U')))
+            (np.empty((0, 4)), None, np.empty(0).astype(str))
         ),  # response with no location
         (
             "<loc0256><loc0768><loc0768> cat",
             (1000, 1000),
             None,
-            (np.empty((0, 4)), None, np.empty(0).astype(np.dtype('U')))
+            (np.empty((0, 4)), None, np.empty(0).astype(str))
         ),  # response with missing location
         (
             "<loc0256><loc0256><loc0768><loc0768><loc0768> cat",
             (1000, 1000),
             None,
-            (np.empty((0, 4)), None, np.empty(0).astype(np.dtype('U')))
+            (np.empty((0, 4)), None, np.empty(0).astype(str))
         ),  # response with extra location
         (
             "<loc0256><loc0256><loc0768><loc0768>",
             (1000, 1000),
             None,
-            (np.empty((0, 4)), None, np.empty(0).astype(np.dtype('U')))
+            (np.empty((0, 4)), None, np.empty(0).astype(str))
         ),  # response with no class
         (
             "<loc0256><loc0256><loc0768><loc0768> catt",
             (1000, 1000),
             ['cat', 'dog'],
-            (np.empty((0, 4)), np.empty(0), np.empty(0).astype(np.dtype('U')))
+            (np.empty((0, 4)), np.empty(0), np.empty(0).astype(str))
         ),  # response with invalid class
         (
             "<loc0256><loc0256><loc0768><loc0768> cat",
@@ -58,7 +58,17 @@ from supervision.detection.lmm import from_paligemma
             (
                 np.array([[250., 250., 750., 750.]]),
                 None,
-                np.array(['cat']).astype(np.dtype('U'))
+                np.array(['cat']).astype(str)
+            )
+        ),  # correct response; no classes
+        (
+            "<loc0256><loc0256><loc0768><loc0768> black cat",
+            (1000, 1000),
+            None,
+            (
+                np.array([[250., 250., 750., 750.]]),
+                None,
+                np.array(['black cat']).astype(np.dtype('U'))
             )
         ),  # correct response; no classes
         (
@@ -68,7 +78,20 @@ from supervision.detection.lmm import from_paligemma
             (
                 np.array([[250., 250., 750., 750.]]),
                 np.array([0]),
-                np.array(['cat']).astype(np.dtype('U'))
+                np.array(['cat']).astype(str)
+            )
+        ),  # correct response; with classes
+        (
+            "<loc0256><loc0256><loc0768><loc0768> cat ; <loc0256><loc0256><loc0768><loc0768> dog",
+            (1000, 1000),
+            ['cat', 'dog'],
+            (
+                np.array([
+                    [250., 250., 750., 750.],
+                    [250., 250., 750., 750.]
+                ]),
+                np.array([0, 1]),
+                np.array(['cat', 'dog']).astype(np.dtype('U'))
             )
         ),  # correct response; with classes
         (
@@ -78,7 +101,7 @@ from supervision.detection.lmm import from_paligemma
             (
                 np.array([[250., 250., 750., 750.]]),
                 np.array([0]),
-                np.array(['cat']).astype(np.dtype('U'))
+                np.array(['cat']).astype(str)
             )
         ),  # partially correct response; with classes
         (
@@ -88,7 +111,7 @@ from supervision.detection.lmm import from_paligemma
             (
                 np.array([[250., 250., 750., 750.]]),
                 np.array([0]),
-                np.array(['cat']).astype(np.dtype('U'))
+                np.array(['cat']).astype(str)
             )
         ),  # partially correct response; with classes
     ]

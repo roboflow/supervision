@@ -46,12 +46,13 @@ def from_paligemma(
 ) -> Tuple[np.ndarray, Optional[np.ndarray], np.ndarray]:
     w, h = resolution_wh
     pattern = re.compile(
-        r'(?<!<loc\d{4}>)<loc(\d{4})><loc(\d{4})><loc(\d{4})><loc(\d{4})> (\w+)')
+        r'(?<!<loc\d{4}>)<loc(\d{4})><loc(\d{4})><loc(\d{4})><loc(\d{4})> ([\w\s]+)')
     matches = pattern.findall(result)
     matches = np.array(matches) if matches else np.empty((0, 5))
 
     xyxy, class_name = matches[:, [1, 0, 3, 2]], matches[:, 4]
     xyxy = xyxy.astype(int) / 1024 * np.array([w, h, w, h])
+    class_name = np.char.strip(class_name.astype(str))
     class_id = None
 
     if classes is not None:
@@ -59,4 +60,4 @@ def from_paligemma(
         xyxy, class_name = xyxy[mask], class_name[mask]
         class_id = np.array([classes.index(name) for name in class_name])
 
-    return xyxy, class_id, class_name.astype(np.dtype('U'))
+    return xyxy, class_id, class_name
