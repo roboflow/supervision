@@ -82,7 +82,7 @@ from supervision.detection.lmm import from_paligemma
             ),
         ),  # correct response; with classes
         (
-            "<loc0256><loc0256><loc0768><loc0768> cat ; <loc0256><loc0256><loc0768><loc0768> dog",
+            "<loc0256><loc0256><loc0768><loc0768> cat ; <loc0256><loc0256><loc0768><loc0768> dog",  # noqa: E501
             (1000, 1000),
             ["cat", "dog"],
             (
@@ -92,7 +92,7 @@ from supervision.detection.lmm import from_paligemma
             ),
         ),  # correct response; with classes
         (
-            "<loc0256><loc0256><loc0768><loc0768> cat ; <loc0256><loc0256><loc0768> cat",
+            "<loc0256><loc0256><loc0768><loc0768> cat ; <loc0256><loc0256><loc0768> cat",  # noqa: E501
             (1000, 1000),
             ["cat", "dog"],
             (
@@ -102,7 +102,7 @@ from supervision.detection.lmm import from_paligemma
             ),
         ),  # partially correct response; with classes
         (
-            "<loc0256><loc0256><loc0768><loc0768> cat ; <loc0256><loc0256><loc0768><loc0768><loc0768> cat",
+            "<loc0256><loc0256><loc0768><loc0768> cat ; <loc0256><loc0256><loc0768><loc0768><loc0768> cat",  # noqa: E501
             (1000, 1000),
             ["cat", "dog"],
             (
