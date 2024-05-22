@@ -100,14 +100,6 @@ def test_from_paligemma(
     expected_results: Tuple[np.ndarray, Optional[np.ndarray], np.ndarray]
 ) -> None:
     result = from_paligemma(result=result, resolution_wh=resolution_wh, classes=classes)
-
-    print(result[0].dtype)
-    print(expected_results[0].dtype)
-    # print(result[1])
-    # print(expected_results[1])
-    print(result[2].dtype)
-    print(expected_results[2].dtype)
-
     np.testing.assert_array_equal(result[0], expected_results[0])
     np.testing.assert_array_equal(result[1], expected_results[1])
     np.testing.assert_array_equal(result[2], expected_results[2])
