@@ -1,20 +1,17 @@
 import re
-import numpy as np
 from enum import Enum
-from typing import Dict, List, Tuple, Optional, Union, Any
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+import numpy as np
 
 
 class LMM(Enum):
-    PALIGEMMA = 'paligemma'
+    PALIGEMMA = "paligemma"
 
 
-REQUIRED_ARGUMENTS: Dict[LMM, List[str]] = {
-    LMM.PALIGEMMA: ['resolution_wh']
-}
+REQUIRED_ARGUMENTS: Dict[LMM, List[str]] = {LMM.PALIGEMMA: ["resolution_wh"]}
 
-ALLOWED_ARGUMENTS: Dict[LMM, List[str]] = {
-    LMM.PALIGEMMA: ['resolution_wh', 'classes']
-}
+ALLOWED_ARGUMENTS: Dict[LMM, List[str]] = {LMM.PALIGEMMA: ["resolution_wh", "classes"]}
 
 
 def validate_lmm_and_kwargs(lmm: Union[LMM, str], kwargs: Dict[str, Any]) -> LMM:
@@ -40,13 +37,12 @@ def validate_lmm_and_kwargs(lmm: Union[LMM, str], kwargs: Dict[str, Any]) -> LMM
 
 
 def from_paligemma(
-    result: str,
-    resolution_wh: Tuple[int, int],
-    classes: Optional[List[str]] = None
+    result: str, resolution_wh: Tuple[int, int], classes: Optional[List[str]] = None
 ) -> Tuple[np.ndarray, Optional[np.ndarray], np.ndarray]:
     w, h = resolution_wh
     pattern = re.compile(
-        r'(?<!<loc\d{4}>)<loc(\d{4})><loc(\d{4})><loc(\d{4})><loc(\d{4})> ([\w\s]+)')
+        r"(?<!<loc\d{4}>)<loc(\d{4})><loc(\d{4})><loc(\d{4})><loc(\d{4})> ([\w\s]+)"
+    )
     matches = pattern.findall(result)
     matches = np.array(matches) if matches else np.empty((0, 5))
 
