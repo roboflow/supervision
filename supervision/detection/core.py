@@ -1068,33 +1068,6 @@ class Detections:
 
         self.data[key] = value
 
-    def _set_at_index(self, index: int, other: Detections):
-        """
-        Set detection values (xyxy, confidence, ...) at a specified index
-        to those of another Detections object, at index 0.
-
-        Args:
-            index (int): The index in current detection, where values
-                will be set.
-            other (Detections): Detections object with exactly one element
-                to set the values from.
-
-        Raises:
-            ValueError: If `other` is not made of exactly one element.
-        """
-        if len(other) != 1:
-            raise ValueError("Detection to set from must have exactly one element.")
-
-        self.xyxy[index] = other.xyxy[0]
-        if self.mask is not None and other.mask is not None:
-            self.mask[index] = other.mask[0]
-        if self.confidence is not None and other.confidence is not None:
-            self.confidence[index] = other.confidence[0]
-        if self.class_id is not None and other.class_id is not None:
-            self.class_id[index] = other.class_id[0]
-        if self.tracker_id is not None and other.tracker_id is not None:
-            self.tracker_id[index] = other.tracker_id[0]
-
     @property
     def area(self) -> np.ndarray:
         """
