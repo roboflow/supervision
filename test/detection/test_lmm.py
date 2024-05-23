@@ -18,7 +18,7 @@ from supervision.detection.lmm import from_paligemma
         (
             "",
             (1000, 1000),
-            ['cat', 'dog'],
+            ["cat", "dog"],
             (np.empty((0, 4)), None, np.empty(0).astype(str)),
         ),  # empty response with classes
         (
