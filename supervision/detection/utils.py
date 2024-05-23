@@ -56,8 +56,7 @@ def box_iou_batch(boxes_true: np.ndarray, boxes_detection: np.ndarray) -> np.nda
     top_left = np.maximum(boxes_true[:, None, :2], boxes_detection[:, :2])
     bottom_right = np.minimum(boxes_true[:, None, 2:], boxes_detection[:, 2:])
 
-    area_inter = np.prod(
-        np.clip(bottom_right - top_left, a_min=0, a_max=None), 2)
+    area_inter = np.prod(np.clip(bottom_right - top_left, a_min=0, a_max=None), 2)
     return area_inter / (area_true[:, None] + area_detection - area_inter)
 
 
@@ -82,8 +81,7 @@ def _mask_iou_batch_split(
 
     masks_true_area = masks_true.sum(axis=(1, 2))
     masks_detection_area = masks_detection.sum(axis=(1, 2))
-    union_area = masks_true_area[:, None] + \
-        masks_detection_area - intersection_area
+    union_area = masks_true_area[:, None] + masks_detection_area - intersection_area
 
     return np.divide(
         intersection_area,
@@ -134,8 +132,7 @@ def mask_iou_batch(
         1,
     )
     for i in range(0, masks_true.shape[0], step):
-        ious.append(_mask_iou_batch_split(
-            masks_true[i: i + step], masks_detection))
+        ious.append(_mask_iou_batch_split(masks_true[i : i + step], masks_detection))
 
     return np.vstack(ious)
 
@@ -165,8 +162,7 @@ def resize_masks(masks: np.ndarray, max_dimension: int = 640) -> np.ndarray:
 
     resized_masks = masks[:, yv, xv]
 
-    resized_masks = resized_masks.reshape(
-        masks.shape[0], new_height, new_width)
+    resized_masks = resized_masks.reshape(masks.shape[0], new_height, new_width)
     return resized_masks
 
 
@@ -219,9 +215,8 @@ def mask_non_max_suppression(
     keep = np.ones(rows, dtype=bool)
     for i in range(rows):
         if keep[i]:
-            condition = (ious[i] > iou_threshold) & (
-                categories[i] == categories)
-            keep[i + 1:] = np.where(condition[i + 1:], False, keep[i + 1:])
+            condition = (ious[i] > iou_threshold) & (categories[i] == categories)
+            keep[i + 1 :] = np.where(condition[i + 1 :], False, keep[i + 1 :])
 
     return keep[sort_index.argsort()]
 
@@ -567,8 +562,7 @@ def approximate_polygon(
     approximated_points = polygon
     while True:
         epsilon += epsilon_step
-        new_approximated_points = cv2.approxPolyDP(
-            polygon, epsilon, closed=True)
+        new_approximated_points = cv2.approxPolyDP(polygon, epsilon, closed=True)
         if len(new_approximated_points) > target_points:
             approximated_points = new_approximated_points
         else:
@@ -597,8 +591,7 @@ def extract_ultralytics_masks(yolov8_results) -> Optional[np.ndarray]:
         )
 
     top, left = int(pad[1]), int(pad[0])
-    bottom, right = int(
-        inference_shape[0] - pad[1]), int(inference_shape[1] - pad[0])
+    bottom, right = int(inference_shape[0] - pad[1]), int(inference_shape[1] - pad[0])
 
     mask_maps = []
     masks = yolov8_results.masks.data.cpu().numpy()
@@ -665,8 +658,7 @@ def process_roboflow_result(
             polygon = np.array(
                 [[point["x"], point["y"]] for point in prediction["points"]], dtype=int
             )
-            mask = polygon_to_mask(
-                polygon, resolution_wh=(image_width, image_height))
+            mask = polygon_to_mask(polygon, resolution_wh=(image_width, image_height))
             xyxy.append([x_min, y_min, x_max, y_max])
             class_id.append(prediction["class_id"])
             class_name.append(prediction["class"])
@@ -677,12 +669,10 @@ def process_roboflow_result(
 
     xyxy = np.array(xyxy) if len(xyxy) > 0 else np.empty((0, 4))
     confidence = np.array(confidence) if len(confidence) > 0 else np.empty(0)
-    class_id = np.array(class_id).astype(
-        int) if len(class_id) > 0 else np.empty(0)
+    class_id = np.array(class_id).astype(int) if len(class_id) > 0 else np.empty(0)
     class_name = np.array(class_name) if len(class_name) > 0 else np.empty(0)
     masks = np.array(masks, dtype=bool) if len(masks) > 0 else None
-    tracker_id = np.array(tracker_ids).astype(
-        int) if len(tracker_ids) > 0 else None
+    tracker_id = np.array(tracker_ids).astype(int) if len(tracker_ids) > 0 else None
     data = {CLASS_NAME_DATA_FIELD: class_name}
 
     return xyxy, confidence, class_id, masks, tracker_id, data
@@ -742,15 +732,13 @@ def move_masks(
     """
 
     if offset[0] < 0 or offset[1] < 0:
-        raise ValueError(
-            f"Offset values must be non-negative integers. Got: {offset}")
+        raise ValueError(f"Offset values must be non-negative integers. Got: {offset}")
 
-    mask_array = np.full(
-        (masks.shape[0], resolution_wh[1], resolution_wh[0]), False)
+    mask_array = np.full((masks.shape[0], resolution_wh[1], resolution_wh[0]), False)
     mask_array[
         :,
-        offset[1]: masks.shape[1] + offset[1],
-        offset[0]: masks.shape[2] + offset[0],
+        offset[1] : masks.shape[1] + offset[1],
+        offset[0] : masks.shape[2] + offset[0],
     ] = masks
 
     return mask_array
@@ -816,10 +804,8 @@ def calculate_masks_centroids(masks: np.ndarray) -> np.ndarray:
         return np.tensordot(masks, indices, axes=axis)
 
     aggregation_axis = ([1, 2], [0, 1])
-    centroid_x = sum_over_mask(
-        horizontal_indices, aggregation_axis) / total_pixels
-    centroid_y = sum_over_mask(
-        vertical_indices, aggregation_axis) / total_pixels
+    centroid_x = sum_over_mask(horizontal_indices, aggregation_axis) / total_pixels
+    centroid_y = sum_over_mask(vertical_indices, aggregation_axis) / total_pixels
 
     return np.column_stack((centroid_x, centroid_y)).astype(int)
 
@@ -897,8 +883,7 @@ def merge_data(
             elif ndim > 1:
                 merged_data[key] = np.vstack(merged_data[key])
             else:
-                raise ValueError(
-                    f"Unexpected array dimension for key '{key}'.")
+                raise ValueError(f"Unexpected array dimension for key '{key}'.")
         else:
             raise ValueError(
                 f"Inconsistent data types for key '{key}'. Only np.ndarray and list "
@@ -943,7 +928,6 @@ def get_data_item(
             else:
                 raise TypeError(f"Unsupported index type: {type(index)}")
         else:
-            raise TypeError(
-                f"Unsupported data type for key '{key}': {type(value)}")
+            raise TypeError(f"Unsupported data type for key '{key}': {type(value)}")
 
     return subset_data

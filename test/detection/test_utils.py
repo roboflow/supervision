@@ -666,8 +666,7 @@ def test_filter_polygons_by_area(
                 "image": {"width": 1000, "height": 1000},
             },
             (
-                np.array([[175.0, 275.0, 225.0, 325.0],
-                         [450.0, 450.0, 550.0, 550.0]]),
+                np.array([[175.0, 275.0, 225.0, 325.0], [450.0, 450.0, 550.0, 550.0]]),
                 np.array([0.9, 0.8]),
                 np.array([0, 7]),
                 None,
@@ -1121,10 +1120,8 @@ def test_calculate_masks_centroids(
         ),  # two data dicts with the same field name and np.array values as 2D arrays
         (
             [
-                {"test_1": np.array([1, 2, 3]),
-                 "test_2": np.array(["a", "b", "c"])},
-                {"test_1": np.array([3, 2, 1]),
-                 "test_2": np.array(["c", "b", "a"])},
+                {"test_1": np.array([1, 2, 3]), "test_2": np.array(["a", "b", "c"])},
+                {"test_1": np.array([3, 2, 1]), "test_2": np.array(["c", "b", "a"])},
             ],
             {
                 "test_1": np.array([1, 2, 3, 3, 2, 1]),
@@ -1153,10 +1150,8 @@ def test_calculate_masks_centroids(
         ),  # two data dicts with the same field name and 1D and 2D arrays values
         (
             [
-                {"test_1": np.array([1, 2, 3]),
-                 "test_2": np.array(["a", "b"])},
-                {"test_1": np.array([3, 2, 1]),
-                 "test_2": np.array(["c", "b", "a"])},
+                {"test_1": np.array([1, 2, 3]), "test_2": np.array(["a", "b"])},
+                {"test_1": np.array([3, 2, 1]), "test_2": np.array(["c", "b", "a"])},
             ],
             None,
             pytest.raises(ValueError),
@@ -1167,8 +1162,7 @@ def test_calculate_masks_centroids(
             DoesNotRaise(),
         ),  # two data dicts; one empty and one non-empty dict
         (
-            [{"test_1": [], "test_2": []}, {
-                "test_1": [1, 2, 3], "test_2": [1, 2, 3]}],
+            [{"test_1": [], "test_2": []}, {"test_1": [1, 2, 3], "test_2": [1, 2, 3]}],
             {"test_1": [1, 2, 3], "test_2": [1, 2, 3]},
             DoesNotRaise(),
         ),  # two data dicts; one empty and one non-empty dict; same keys

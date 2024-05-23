@@ -193,8 +193,7 @@ TEST_DET_DIFFERENT_DATA = Detections(
             DoesNotRaise(),
         ),  # take only first detection by index slice (1, 3)
         (DETECTIONS, 10, None, pytest.raises(IndexError)),  # index out of range
-        (DETECTIONS, [0, 2, 10], None, pytest.raises(
-            IndexError)),  # index out of range
+        (DETECTIONS, [0, 2, 10], None, pytest.raises(IndexError)),  # index out of range
         (DETECTIONS, np.array([0, 2, 10]), None, pytest.raises(IndexError)),
         (
             DETECTIONS,
@@ -550,7 +549,7 @@ def test_equal(
             None,
             pytest.raises(ValueError),
         ),  # confidence: None + [x]
-            (
+        (
             mock_detections(
                 xyxy=[[0, 0, 20, 20]],
                 mask=[np.array([[1, 1, 0], [1, 1, 0], [0, 0, 0]], dtype=bool)],
@@ -563,10 +562,7 @@ def test_equal(
             pytest.raises(ValueError),
         ),  # mask: None + [x]
         (
-            mock_detections(
-                xyxy=[[0, 0, 20, 20]],
-                tracker_id=[1]
-            ),
+            mock_detections(xyxy=[[0, 0, 20, 20]], tracker_id=[1]),
             mock_detections(
                 xyxy=[[10, 10, 30, 30]],
                 tracker_id=None,
@@ -575,17 +571,14 @@ def test_equal(
             pytest.raises(ValueError),
         ),  # tracker_id: None + []
         (
-            mock_detections(
-                xyxy=[[0, 0, 20, 20]],
-                class_id=[1]
-            ),
+            mock_detections(xyxy=[[0, 0, 20, 20]], class_id=[1]),
             mock_detections(
                 xyxy=[[10, 10, 30, 30]],
                 class_id=None,
             ),
             None,
             pytest.raises(ValueError),
-        )  # class_id: None + []
+        ),  # class_id: None + []
     ],
 )
 def test_merge_inner_detection_object_pair(
