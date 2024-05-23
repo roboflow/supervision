@@ -52,7 +52,7 @@ def from_paligemma(
     class_id = None
 
     if classes is not None:
-        mask = np.array([name in classes for name in class_name])
+        mask = np.array([name in classes for name in class_name]).astype(bool)
         xyxy, class_name = xyxy[mask], class_name[mask]
         class_id = np.array([classes.index(name) for name in class_name])
 

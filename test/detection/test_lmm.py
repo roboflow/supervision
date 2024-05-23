@@ -16,6 +16,12 @@ from supervision.detection.lmm import from_paligemma
             (np.empty((0, 4)), None, np.empty(0).astype(str)),
         ),  # empty response
         (
+            "",
+            (1000, 1000),
+            ['cat', 'dog'],
+            (np.empty((0, 4)), None, np.empty(0).astype(str)),
+        ),  # empty response with classes
+        (
             "\n",
             (1000, 1000),
             None,
