@@ -8,8 +8,8 @@ import numpy as np
 
 from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.utils import (
+    box_iou_batch,
     box_non_max_merge,
-    box_non_max_merge_batch,
     box_non_max_suppression,
     calculate_masks_centroids,
     extract_ultralytics_masks,
@@ -1198,13 +1198,11 @@ class Detections:
                 after non-maximum merging.
 
         Raises:
-            AssertionError: If `confidence` is None and class_agnostic is False.
-                If `class_id` is None and class_agnostic is False.
+            AssertionError: If `confidence` is None or `class_id` is None and
+                class_agnostic is False.
         """
         if len(self) == 0:
             return self
-
-        assert 0.0 <= threshold <= 1.0, "Threshold must be between 0 and 1."
 
         assert (
             self.confidence is not None
@@ -1212,10 +1210,9 @@ class Detections:
 
         if class_agnostic:
             predictions = np.hstack((self.xyxy, self.confidence.reshape(-1, 1)))
-            keep_to_merge_list = box_non_max_merge(predictions, threshold)
         else:
             assert self.class_id is not None, (
-                "Detections class_id must be given for NMS to be executed. If you"
+                "Detections class_id must be given for NMM to be executed. If you"
                 " intended to perform class agnostic NMM set class_agnostic=True."
             )
             predictions = np.hstack(
@@ -1225,21 +1222,25 @@ class Detections:
                     self.class_id.reshape(-1, 1),
                 )
             )
-            keep_to_merge_list = box_non_max_merge_batch(predictions, threshold)
+
+        merge_groups = box_non_max_merge(
+            predictions=predictions, iou_threshold=threshold
+        )
 
         result = []
-        for keep_ind, merge_ind_list in keep_to_merge_list.items():
-            for merge_ind in merge_ind_list:
-                merged_detection = merge_object_detection_pair(
-                    self[keep_ind], self[merge_ind]
-                )
-                self._set_at_index(keep_ind, merged_detection)
-            result.append(self[keep_ind])
+        for merge_group in merge_groups:
+            unmerged_detections = [self[i] for i in merge_group]
+            merged_detections = _merge_inner_detections_objects(
+                unmerged_detections, threshold
+            )
+            result.append(merged_detections)
 
         return Detections.merge(result)
 
 
-def merge_object_detection_pair(det1: Detections, det2: Detections) -> Detections:
+def _merge_inner_detection_object_pair(
+    detections_1: Detections, detections_2: Detections
+) -> Detections:
     """
     Merges two Detections object into a single Detections object.
     Assumes each Detections contains exactly one object.
@@ -1254,9 +1255,9 @@ def merge_object_detection_pair(det1: Detections, det2: Detections) -> Detection
     single bounding box and mask, respectively.
 
     Args:
-        det1 (Detections):
+        detections_1 (Detections):
             The first Detections object
-        det2 (Detections):
+        detections_2 (Detections):
             The second Detections object
 
     Returns:
@@ -1282,51 +1283,99 @@ def merge_object_detection_pair(det1: Detections, det2: Detections) -> Detection
             detections[0], detections[1])
         ```
     """
-    if len(det1) != 1 or len(det2) != 1:
+    if len(detections_1) != 1 or len(detections_2) != 1:
         raise ValueError("Both Detections should have exactly 1 detected object.")
 
-    if det2.confidence is None:
-        winning_det = det1
-    elif det1.confidence is None:
-        winning_det = det2
-    elif det1.confidence[0] >= det2.confidence[0]:
-        winning_det = det1
+    _verify_fields_both_defined_or_none(detections_1, detections_2)
+
+    if detections_1.confidence is None and detections_2.confidence is None:
+        merged_confidence = None
     else:
-        winning_det = det2
-
-    area_det1 = (det1.xyxy[0][2] - det1.xyxy[0][0]) * (
-        det1.xyxy[0][3] - det1.xyxy[0][1]
-    )
-    area_det2 = (det2.xyxy[0][2] - det2.xyxy[0][0]) * (
-        det2.xyxy[0][3] - det2.xyxy[0][1]
-    )
-
-    merged_x1, merged_y1 = np.minimum(det1.xyxy[0][:2], det2.xyxy[0][:2])
-    merged_x2, merged_y2 = np.maximum(det1.xyxy[0][2:], det2.xyxy[0][2:])
-    merged_xy = np.array([[merged_x1, merged_y1, merged_x2, merged_y2]])
-
-    if det2.mask is None or det1.mask is None:
-        merged_mask = winning_det.mask
-    else:
-        merged_mask = np.logical_or(det1.mask, det2.mask)
-
-    if det1.confidence is None or det2.confidence is None:
-        merged_confidence = winning_det.confidence
-    else:
+        area_det1 = (detections_1.xyxy[0][2] - detections_1.xyxy[0][0]) * (
+            detections_1.xyxy[0][3] - detections_1.xyxy[0][1]
+        )
+        area_det2 = (detections_2.xyxy[0][2] - detections_2.xyxy[0][0]) * (
+            detections_2.xyxy[0][3] - detections_2.xyxy[0][1]
+        )
         merged_confidence = (
-            area_det1 * det1.confidence[0] + area_det2 * det2.confidence[0]
+            area_det1 * detections_1.confidence[0]
+            + area_det2 * detections_2.confidence[0]
         ) / (area_det1 + area_det2)
         merged_confidence = np.array([merged_confidence])
+
+    merged_x1, merged_y1 = np.minimum(
+        detections_1.xyxy[0][:2], detections_2.xyxy[0][:2]
+    )
+    merged_x2, merged_y2 = np.maximum(
+        detections_1.xyxy[0][2:], detections_2.xyxy[0][2:]
+    )
+    merged_xyxy = np.array([[merged_x1, merged_y1, merged_x2, merged_y2]])
+
+    if detections_1.mask is None and detections_2.mask is None:
+        merged_mask = None
+    else:
+        merged_mask = np.logical_or(detections_1.mask, detections_2.mask)
+
+    if detections_1.confidence is None and detections_2.confidence is None:
+        winning_det = detections_1
+    elif detections_1.confidence[0] >= detections_2.confidence[0]:
+        winning_det = detections_1
+    else:
+        winning_det = detections_2
 
     winning_class_id = winning_det.class_id
     winning_tracker_id = winning_det.tracker_id
     winning_data = winning_det.data
 
     return Detections(
-        xyxy=merged_xy,
+        xyxy=merged_xyxy,
         mask=merged_mask,
         confidence=merged_confidence,
         class_id=winning_class_id,
         tracker_id=winning_tracker_id,
         data=winning_data,
     )
+
+
+def _merge_inner_detections_objects(
+    detections: List[Detections], threshold=0.5
+) -> Detections:
+    """
+    Given N detections each of length 1 (exactly one object inside), combine them into a
+    single detection object of length 1. The contained inner object will be the merged
+    result of all the input detections.
+
+    For example, this lets you merge N boxes into one big box, N masks into one mask,
+    etc.
+    """
+    detections_1 = detections[0]
+    for detections_2 in detections[1:]:
+        box_iou = box_iou_batch(detections_1.xyxy, detections_2.xyxy)[0]
+        if box_iou < threshold:
+            break
+        detections_1 = _merge_inner_detection_object_pair(detections_1, detections_2)
+    return detections_1
+
+
+def _verify_fields_both_defined_or_none(
+    detections_1: Detections, detections_2: Detections
+) -> None:
+    """
+    Verify that for each optional field in the Detections, both instances either have
+    the field set to None or both have it set to non-None values.
+
+    `data` field is ignored.
+
+    Raises:
+        ValueError: If one field is None and the other is not, for any of the fields.
+    """
+    attributes = ["mask", "confidence", "class_id", "tracker_id"]
+    for attribute in attributes:
+        value_1 = getattr(detections_1, attribute)
+        value_2 = getattr(detections_2, attribute)
+
+        if (value_1 is None) != (value_2 is None):
+            raise ValueError(
+                f"Field '{attribute}' should be consistently None or not None in both "
+                "Detections."
+            )

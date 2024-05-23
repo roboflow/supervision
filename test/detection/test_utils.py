@@ -6,7 +6,7 @@ import pytest
 
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.utils import (
-    box_non_max_merge,
+    _box_non_max_merge_all,
     box_non_max_suppression,
     calculate_masks_centroids,
     clip_boxes,
@@ -134,67 +134,67 @@ def test_box_non_max_suppression(
         (
             np.empty(shape=(0, 5), dtype=float),
             0.5,
-            {},
+            [],
             DoesNotRaise(),
         ),
         (
             np.array([[0, 0, 10, 10, 1.0]]),
             0.5,
-            {0: []},
+            [[0]],
             DoesNotRaise(),
         ),
         (
             np.array([[0, 0, 10, 10, 1.0], [0, 0, 9, 9, 1.0]]),
             0.5,
-            {1: [0]},
+            [[1, 0]],
             DoesNotRaise(),
         ),  # High overlap, tie-break to second det
         (
             np.array([[0, 0, 10, 10, 1.0], [0, 0, 9, 9, 0.99]]),
             0.5,
-            {0: [1]},
+            [[0, 1]],
             DoesNotRaise(),
         ),  # High overlap, merge to high confidence
         (
             np.array([[0, 0, 10, 10, 0.99], [0, 0, 9, 9, 1.0]]),
             0.5,
-            {1: [0]},
+            [[1, 0]],
             DoesNotRaise(),
         ),  # (test symmetry) High overlap, merge to high confidence
         (
-            np.array([[0, 0, 10, 10, 0.99], [0, 0, 9, 9, 1.0]]),
+            np.array([[0, 0, 10, 10, 0.90], [0, 0, 9, 9, 1.0]]),
             0.5,
-            {1: [0]},
+            [[1, 0]],
             DoesNotRaise(),
         ),  # (test symmetry) High overlap, merge to high confidence
         (
             np.array([[0, 0, 10, 10, 1.0], [0, 0, 9, 9, 1.0]]),
             1.0,
-            {0: [], 1: []},
+            [[1], [0]],
             DoesNotRaise(),
         ),  # High IOU required
         (
             np.array([[0, 0, 10, 10, 1.0], [0, 0, 9, 9, 1.0]]),
             0.0,
-            {1: [0]},
+            [[1, 0]],
             DoesNotRaise(),
         ),  # No IOU required
         (
             np.array([[0, 0, 10, 10, 1.0], [0, 0, 5, 5, 0.9]]),
             0.25,
-            {0: [1]},
+            [[0, 1]],
             DoesNotRaise(),
         ),  # Below IOU requirement
         (
             np.array([[0, 0, 10, 10, 1.0], [0, 0, 5, 5, 0.9]]),
             0.26,
-            {0: [], 1: []},
+            [[0], [1]],
             DoesNotRaise(),
         ),  # Above IOU requirement
         (
             np.array([[0, 0, 10, 10, 1.0], [0, 0, 9, 9, 1.0], [0, 0, 8, 8, 1.0]]),
             0.5,
-            {2: [1, 0]},
+            [[2, 1, 0]],
             DoesNotRaise(),
         ),  # 3 boxes
         (
@@ -208,7 +208,7 @@ def test_box_non_max_suppression(
                 ]
             ),
             0.5,
-            {1: [0], 3: [2], 4: []},
+            [[4], [3, 2], [1, 0]],
             DoesNotRaise(),
         ),  # 5 boxes, 2 merges, 1 separate
         (
@@ -222,7 +222,7 @@ def test_box_non_max_suppression(
                 ]
             ),
             0.33,
-            {0: [], 2: [1], 4: [3]},
+            [[4, 3], [2, 1], [0]],
             DoesNotRaise(),
         ),  # sequential merge, half overlap
         (
@@ -236,7 +236,7 @@ def test_box_non_max_suppression(
                 ]
             ),
             0.33,
-            {0: [], 2: [3, 1], 4: []},
+            [[2, 3, 1], [4], [0]],
             DoesNotRaise(),
         ),  # confidence
     ],
@@ -244,11 +244,13 @@ def test_box_non_max_suppression(
 def test_box_non_max_merge(
     predictions: np.ndarray,
     iou_threshold: float,
-    expected_result: Dict[int, List[int]],
+    expected_result: List[List[int]],
     exception: Exception,
 ) -> None:
     with exception:
-        result = box_non_max_merge(predictions=predictions, iou_threshold=iou_threshold)
+        result = _box_non_max_merge_all(
+            predictions=predictions, iou_threshold=iou_threshold
+        )
 
         assert result == expected_result
 
@@ -664,7 +666,8 @@ def test_filter_polygons_by_area(
                 "image": {"width": 1000, "height": 1000},
             },
             (
-                np.array([[175.0, 275.0, 225.0, 325.0], [450.0, 450.0, 550.0, 550.0]]),
+                np.array([[175.0, 275.0, 225.0, 325.0],
+                         [450.0, 450.0, 550.0, 550.0]]),
                 np.array([0.9, 0.8]),
                 np.array([0, 7]),
                 None,
@@ -1118,8 +1121,10 @@ def test_calculate_masks_centroids(
         ),  # two data dicts with the same field name and np.array values as 2D arrays
         (
             [
-                {"test_1": np.array([1, 2, 3]), "test_2": np.array(["a", "b", "c"])},
-                {"test_1": np.array([3, 2, 1]), "test_2": np.array(["c", "b", "a"])},
+                {"test_1": np.array([1, 2, 3]),
+                 "test_2": np.array(["a", "b", "c"])},
+                {"test_1": np.array([3, 2, 1]),
+                 "test_2": np.array(["c", "b", "a"])},
             ],
             {
                 "test_1": np.array([1, 2, 3, 3, 2, 1]),
@@ -1148,8 +1153,10 @@ def test_calculate_masks_centroids(
         ),  # two data dicts with the same field name and 1D and 2D arrays values
         (
             [
-                {"test_1": np.array([1, 2, 3]), "test_2": np.array(["a", "b"])},
-                {"test_1": np.array([3, 2, 1]), "test_2": np.array(["c", "b", "a"])},
+                {"test_1": np.array([1, 2, 3]),
+                 "test_2": np.array(["a", "b"])},
+                {"test_1": np.array([3, 2, 1]),
+                 "test_2": np.array(["c", "b", "a"])},
             ],
             None,
             pytest.raises(ValueError),
@@ -1160,7 +1167,8 @@ def test_calculate_masks_centroids(
             DoesNotRaise(),
         ),  # two data dicts; one empty and one non-empty dict
         (
-            [{"test_1": [], "test_2": []}, {"test_1": [1, 2, 3], "test_2": [1, 2, 3]}],
+            [{"test_1": [], "test_2": []}, {
+                "test_1": [1, 2, 3], "test_2": [1, 2, 3]}],
             {"test_1": [1, 2, 3], "test_2": [1, 2, 3]},
             DoesNotRaise(),
         ),  # two data dicts; one empty and one non-empty dict; same keys
