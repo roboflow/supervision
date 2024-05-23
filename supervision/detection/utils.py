@@ -56,7 +56,9 @@ def box_iou_batch(boxes_true: np.ndarray, boxes_detection: np.ndarray) -> np.nda
     bottom_right = np.minimum(boxes_true[:, None, 2:], boxes_detection[:, 2:])
 
     area_inter = np.prod(np.clip(bottom_right - top_left, a_min=0, a_max=None), 2)
-    return area_inter / (area_true[:, None] + area_detection - area_inter)
+    ious = area_inter / (area_true[:, None] + area_detection - area_inter)
+    ious = np.nan_to_num(ious)
+    return ious
 
 
 def _mask_iou_batch_split(
