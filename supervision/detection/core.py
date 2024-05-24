@@ -7,6 +7,7 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 import numpy as np
 
 from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES
+from supervision.detection.lmm import LMM, from_paligemma, validate_lmm_and_kwargs
 from supervision.detection.utils import (
     box_non_max_suppression,
     calculate_masks_centroids,
@@ -804,6 +805,52 @@ class Detections:
             confidence=paddledet_result["bbox"][:, 1],
             class_id=paddledet_result["bbox"][:, 0].astype(int),
         )
+
+    @classmethod
+    def from_lmm(cls, lmm: Union[LMM, str], result: str, **kwargs) -> Detections:
+        """
+        Creates a Detections object from the given result string based on the specified
+        Large Multimodal Model (LMM).
+
+        Args:
+            lmm (Union[LMM, str]): The type of LMM (Large Multimodal Model) to use.
+            result (str): The result string containing the detection data.
+            **kwargs: Additional keyword arguments required by the specified LMM.
+
+        Returns:
+            Detections: A new Detections object.
+
+        Raises:
+            ValueError: If the LMM is invalid, required arguments are missing, or
+                disallowed arguments are provided.
+            ValueError: If the specified LMM is not supported.
+
+        Examples:
+            ```python
+            import supervision as sv
+
+            paligemma_result = "<loc0256><loc0256><loc0768><loc0768> cat"
+            detections = sv.Detections.from_lmm(
+                sv.LMM.PALIGEMMA,
+                paligemma_result,
+                resolution_wh=(1000, 1000),
+                classes=['cat', 'dog']
+            )
+            detections.xyxy
+            # array([[250., 250., 750., 750.]])
+
+            detections.class_id
+            # array([0])
+            ```
+        """
+        lmm = validate_lmm_and_kwargs(lmm, kwargs)
+
+        if lmm == LMM.PALIGEMMA:
+            xyxy, class_id, class_name = from_paligemma(result, **kwargs)
+            data = {CLASS_NAME_DATA_FIELD: class_name}
+            return cls(xyxy=xyxy, class_id=class_id, data=data)
+
+        raise ValueError(f"Unsupported LMM: {lmm}")
 
     @classmethod
     def empty(cls) -> Detections:
