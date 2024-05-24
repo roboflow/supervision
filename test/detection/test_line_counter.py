@@ -318,6 +318,7 @@ def test_line_zone_single_detection_on_subset_of_anchors(
     subsequent positions of the detected object. The line is crossed by only a subset
     of anchors - this subset is given by @crossing_anchors.
     """
+
     def powerset(s):
         return chain.from_iterable(combinations(s, r) for r in range(len(s) + 1))
 
