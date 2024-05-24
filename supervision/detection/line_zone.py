@@ -1,3 +1,4 @@
+import warnings
 from typing import Dict, Iterable, Optional, Tuple
 
 import cv2
@@ -7,6 +8,7 @@ from supervision.detection.core import Detections
 from supervision.draw.color import Color
 from supervision.draw.utils import draw_text
 from supervision.geometry.core import Point, Position, Vector
+from supervision.utils.internal import SupervisionWarnings
 
 
 class LineZone:
@@ -140,6 +142,15 @@ class LineZone:
         if len(detections) == 0:
             return crossed_in, crossed_out
 
+        if detections.tracker_id is None:
+            warnings.warn(
+                "Line zone counting skipped. LineZone requires tracker_id. Refer to "
+                "https://supervision.roboflow.com/latest/trackers for more "
+                "information.",
+                category=SupervisionWarnings,
+            )
+            return crossed_in, crossed_out
+
         all_anchors = np.array(
             [
                 detections.get_anchors_coordinates(anchor)
@@ -148,9 +159,6 @@ class LineZone:
         )
 
         for i, tracker_id in enumerate(detections.tracker_id):
-            if tracker_id is None:
-                continue
-
             box_anchors = [Point(x=x, y=y) for x, y in all_anchors[:, i, :]]
 
             in_limits = all(
