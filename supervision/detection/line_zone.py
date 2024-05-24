@@ -161,7 +161,7 @@ class LineZone:
         cross_products_1 = self._cross_product(all_anchors, self.limits[0])
         cross_products_2 = self._cross_product(all_anchors, self.limits[1])
         # anchor is in limits if it's on the same side of both limit vectors
-        in_limits = ~ np.logical_xor(cross_products_1 > 0, cross_products_2 > 0)
+        in_limits = ~np.logical_xor(cross_products_1 > 0, cross_products_2 > 0)
         # Reduce array to find out if all anchors for a detection are within limits
         in_limits = np.min(in_limits, axis=0)
 
