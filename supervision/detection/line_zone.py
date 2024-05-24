@@ -1,3 +1,4 @@
+import warnings
 from typing import Dict, Iterable, Optional, Tuple
 
 import cv2
@@ -7,6 +8,7 @@ from supervision.detection.core import Detections
 from supervision.draw.color import Color
 from supervision.draw.utils import draw_text
 from supervision.geometry.core import Point, Position, Vector
+from supervision.utils.internal import SupervisionWarnings
 
 
 class LineZone:
@@ -55,15 +57,15 @@ class LineZone:
     """  # noqa: E501 // docs
 
     def __init__(
-            self,
-            start: Point,
-            end: Point,
-            triggering_anchors: Iterable[Position] = (
-                    Position.TOP_LEFT,
-                    Position.TOP_RIGHT,
-                    Position.BOTTOM_LEFT,
-                    Position.BOTTOM_RIGHT,
-            ),
+        self,
+        start: Point,
+        end: Point,
+        triggering_anchors: Iterable[Position] = (
+            Position.TOP_LEFT,
+            Position.TOP_RIGHT,
+            Position.BOTTOM_LEFT,
+            Position.BOTTOM_RIGHT,
+        ),
     ):
         """
         Args:
@@ -140,6 +142,15 @@ class LineZone:
         if len(detections) == 0:
             return crossed_in, crossed_out
 
+        if detections.tracker_id is None:
+            warnings.warn(
+                "Line zone counting skipped. LineZone requires tracker_id. Refer to "
+                "https://supervision.roboflow.com/latest/trackers for more "
+                "information.",
+                category=SupervisionWarnings,
+            )
+            return crossed_in, crossed_out
+
         all_anchors = np.array(
             [
                 detections.get_anchors_coordinates(anchor)
@@ -161,9 +172,6 @@ class LineZone:
         max_triggers = np.max(triggers, axis=0)
         min_triggers = np.min(triggers, axis=0)
         for i, tracker_id in enumerate(detections.tracker_id):
-            if tracker_id is None:
-                continue
-
             if not in_limits[i]:
                 continue
 
@@ -207,18 +215,18 @@ class LineZone:
 
 class LineZoneAnnotator:
     def __init__(
-            self,
-            thickness: float = 2,
-            color: Color = Color.WHITE,
-            text_thickness: float = 2,
-            text_color: Color = Color.BLACK,
-            text_scale: float = 0.5,
-            text_offset: float = 1.5,
-            text_padding: int = 10,
-            custom_in_text: Optional[str] = None,
-            custom_out_text: Optional[str] = None,
-            display_in_count: bool = True,
-            display_out_count: bool = True,
+        self,
+        thickness: float = 2,
+        color: Color = Color.WHITE,
+        text_thickness: float = 2,
+        text_color: Color = Color.BLACK,
+        text_scale: float = 0.5,
+        text_offset: float = 1.5,
+        text_padding: int = 10,
+        custom_in_text: Optional[str] = None,
+        custom_out_text: Optional[str] = None,
+        display_in_count: bool = True,
+        display_out_count: bool = True,
     ):
         """
         Initialize the LineCounterAnnotator object with default values.
@@ -248,11 +256,11 @@ class LineZoneAnnotator:
         self.display_out_count: bool = display_out_count
 
     def _annotate_count(
-            self,
-            frame: np.ndarray,
-            center_text_anchor: Point,
-            text: str,
-            is_in_count: bool,
+        self,
+        frame: np.ndarray,
+        center_text_anchor: Point,
+        text: str,
+        is_in_count: bool,
     ) -> None:
         """This method is drawing the text on the frame.
 

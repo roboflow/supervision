@@ -5,13 +5,20 @@ from typing import Dict, List, Tuple
 
 import cv2
 import numpy as np
+import numpy.typing as npt
 
 from supervision.dataset.utils import (
     approximate_mask_with_polygons,
     map_detections_class_id,
+    mask_to_rle,
+    rle_to_mask,
 )
 from supervision.detection.core import Detections
-from supervision.detection.utils import polygon_to_mask
+from supervision.detection.utils import (
+    contains_holes,
+    contains_multiple_segments,
+    polygon_to_mask,
+)
 from supervision.utils.file import read_json_file, save_json_file
 
 
@@ -57,13 +64,24 @@ def group_coco_annotations_by_image_id(
     return annotations
 
 
-def _polygons_to_masks(
-    polygons: List[np.ndarray], resolution_wh: Tuple[int, int]
-) -> np.ndarray:
+def coco_annotations_to_masks(
+    image_annotations: List[dict], resolution_wh: Tuple[int, int]
+) -> npt.NDArray[np.bool_]:
     return np.array(
         [
-            polygon_to_mask(polygon=polygon, resolution_wh=resolution_wh)
-            for polygon in polygons
+            rle_to_mask(
+                rle=np.array(image_annotation["segmentation"]["counts"]),
+                resolution_wh=resolution_wh,
+            )
+            if image_annotation["iscrowd"]
+            else polygon_to_mask(
+                polygon=np.reshape(
+                    np.asarray(image_annotation["segmentation"], dtype=np.int32),
+                    (-1, 2),
+                ),
+                resolution_wh=resolution_wh,
+            )
+            for image_annotation in image_annotations
         ],
         dtype=bool,
     )
@@ -83,13 +101,9 @@ def coco_annotations_to_detections(
     xyxy[:, 2:4] += xyxy[:, 0:2]
 
     if with_masks:
-        polygons = [
-            np.reshape(
-                np.asarray(image_annotation["segmentation"], dtype=np.int32), (-1, 2)
-            )
-            for image_annotation in image_annotations
-        ]
-        mask = _polygons_to_masks(polygons=polygons, resolution_wh=resolution_wh)
+        mask = coco_annotations_to_masks(
+            image_annotations=image_annotations, resolution_wh=resolution_wh
+        )
         return Detections(
             class_id=np.asarray(class_ids, dtype=int), xyxy=xyxy, mask=mask
         )
@@ -108,24 +122,35 @@ def detections_to_coco_annotations(
     coco_annotations = []
     for xyxy, mask, _, class_id, _, _ in detections:
         box_width, box_height = xyxy[2] - xyxy[0], xyxy[3] - xyxy[1]
-        polygon = []
+        segmentation = []
+        iscrowd = 0
         if mask is not None:
-            polygon = list(
-                approximate_mask_with_polygons(
-                    mask=mask,
-                    min_image_area_percentage=min_image_area_percentage,
-                    max_image_area_percentage=max_image_area_percentage,
-                    approximation_percentage=approximation_percentage,
-                )[0].flatten()
-            )
+            iscrowd = contains_holes(mask=mask) or contains_multiple_segments(mask=mask)
+
+            if iscrowd:
+                segmentation = {
+                    "counts": mask_to_rle(mask=mask),
+                    "size": list(mask.shape[:2]),
+                }
+            else:
+                segmentation = [
+                    list(
+                        approximate_mask_with_polygons(
+                            mask=mask,
+                            min_image_area_percentage=min_image_area_percentage,
+                            max_image_area_percentage=max_image_area_percentage,
+                            approximation_percentage=approximation_percentage,
+                        )[0].flatten()
+                    )
+                ]
         coco_annotation = {
             "id": annotation_id,
             "image_id": image_id,
             "category_id": int(class_id),
             "bbox": [xyxy[0], xyxy[1], box_width, box_height],
             "area": box_width * box_height,
-            "segmentation": [polygon] if polygon else [],
-            "iscrowd": 0,
+            "segmentation": segmentation,
+            "iscrowd": iscrowd,
         }
         coco_annotations.append(coco_annotation)
         annotation_id += 1

@@ -41,7 +41,7 @@ nav:
       - Save Detections: how_to/save_detections.md
       - Filter Detections: how_to/filter_detections.md
       - Detect Small Objects: how_to/detect_small_objects.md
-      - Track Objects: how_to/track_objects.md
+      - Track Objects on Video: how_to/track_objects.md
 
   - API:
     - Detection and Segmentation:
@@ -61,7 +61,9 @@ nav:
         - Detection Smoother: detection/tools/smoother.md
         - Save Detections: detection/tools/save_detections.md
     - Trackers: trackers.md
-    - Datasets: datasets.md
+    - Datasets:
+        - Core: datasets/core.md
+        - Utils: datasets/utils.md
     - Utils:
         - Video: utils/video.md
         - Image: utils/image.md
