@@ -211,7 +211,7 @@ def test_calculate_region_of_interest_limits(
                 [-100, 50, -80, 70],
                 [-10, 50, 20, 70],
                 [100, 50, 120, 70],
-            ], # detection goes "around" line start and hence never crosses it
+            ],  # detection goes "around" line start and hence never crosses it
             [False, False, False, False],
             [False, False, False, False],
         ),
@@ -225,7 +225,7 @@ def test_calculate_region_of_interest_limits(
                 [-100, 250, -80, 270],
                 [-10, 250, 20, 270],
                 [100, 250, 120, 270],
-            ], # detection goes "around" line end and hence never crosses it
+            ],  # detection goes "around" line end and hence never crosses it
             [False, False, False, False],
             [False, False, False, False],
         ),
@@ -241,8 +241,8 @@ def test_calculate_region_of_interest_limits(
             ],
             [False, True, False],
             [False, False, True],
-        )
-        ],
+        ),
+    ],
 )
 def test_line_zone_single_detection(
     vector: Vector,
@@ -364,7 +364,12 @@ def test_line_zone_single_detection_on_subset_of_anchors(
             ],
             [[False, False], [False, False], [True, False]],
             [[False, False], [True, False], [False, False]],
-            [Position.TOP_LEFT, Position.TOP_RIGHT, Position.BOTTOM_LEFT, Position.BOTTOM_RIGHT],
+            [
+                Position.TOP_LEFT,
+                Position.TOP_RIGHT,
+                Position.BOTTOM_LEFT,
+                Position.BOTTOM_RIGHT,
+            ],
             DoesNotRaise(),
         ),
         (
@@ -402,7 +407,12 @@ def test_line_zone_single_detection_on_subset_of_anchors(
                 (False, False),
                 (True, True),
             ],
-            [Position.TOP_LEFT, Position.TOP_RIGHT, Position.BOTTOM_LEFT, Position.BOTTOM_RIGHT],
+            [
+                Position.TOP_LEFT,
+                Position.TOP_RIGHT,
+                Position.BOTTOM_LEFT,
+                Position.BOTTOM_RIGHT,
+            ],
             DoesNotRaise(),
         ),
         (
@@ -427,9 +437,9 @@ def test_line_zone_single_detection_on_subset_of_anchors(
             [[[-50, 70, -40, 50], [-80, -50, -70, -40]]],
             [(False, False)],
             [(False, False)],
-            [], # raise because of empty anchors
+            [],  # raise because of empty anchors
             pytest.raises(ValueError),
-        )
+        ),
     ],
 )
 def test_line_zone_multiple_detections(
@@ -437,9 +447,8 @@ def test_line_zone_multiple_detections(
     xyxy_sequence: List[List[List[int]]],
     expected_crossed_in: List[bool],
     expected_crossed_out: List[bool],
-        anchors: list[Position],
-        exception: Exception
-
+    anchors: list[Position],
+    exception: Exception,
 ) -> None:
     """
     Test LineZone with multiple detections.
@@ -448,7 +457,9 @@ def test_line_zone_multiple_detections(
     direction) by a detection it is crossed by exactly all anchors from @anchors.
     """
     with exception:
-        line_zone = LineZone(start=vector.start, end=vector.end, triggering_anchors=anchors)
+        line_zone = LineZone(
+            start=vector.start, end=vector.end, triggering_anchors=anchors
+        )
         for i, bboxes in enumerate(xyxy_sequence):
             detections = mock_detections(
                 xyxy=bboxes,
@@ -457,4 +468,3 @@ def test_line_zone_multiple_detections(
             crossed_in, crossed_out = line_zone.trigger(detections)
             assert np.all(crossed_in == expected_crossed_in[i])
             assert np.all(crossed_out == expected_crossed_out[i])
-
