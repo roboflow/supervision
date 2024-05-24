@@ -201,7 +201,48 @@ def test_calculate_region_of_interest_limits(
             [False, False, True, False, True, False, True, False],
             [False, True, False, True, False, True, False, True],
         ),
-    ],
+        (
+            Vector(
+                Point(0, 100),
+                Point(0, 200),
+            ),
+            [
+                [-100, 150, -80, 170],
+                [-100, 50, -80, 70],
+                [-10, 50, 20, 70],
+                [100, 50, 120, 70],
+            ], # detection goes "around" line start and hence never crosses it
+            [False, False, False, False],
+            [False, False, False, False],
+        ),
+        (
+            Vector(
+                Point(0, 100),
+                Point(0, 200),
+            ),
+            [
+                [-100, 150, -80, 170],
+                [-100, 250, -80, 270],
+                [-10, 250, 20, 270],
+                [100, 250, 120, 270],
+            ], # detection goes "around" line end and hence never crosses it
+            [False, False, False, False],
+            [False, False, False, False],
+        ),
+        (
+            Vector(
+                Point(-50, -50),
+                Point(-100, -150),
+            ),
+            [
+                [-30, -80, -20, -100],
+                [-150, -60, -110, -70],
+                [-10, -100, 20, -130],
+            ],
+            [False, True, False],
+            [False, False, True],
+        )
+        ],
 )
 def test_line_zone_single_detection(
     vector: Vector,
@@ -210,7 +251,7 @@ def test_line_zone_single_detection(
     expected_crossed_out: List[bool],
 ) -> None:
     """
-    Test LineZone with single detection which crosses the line.
+    Test LineZone with single detection.
     The detection is represented by a sequence of xyxy bboxes which represent
     subsequent positions of the detected object. If a line is crossed (in either
     direction) it is crossed by all anchors simultaneously.
@@ -308,7 +349,7 @@ def test_line_zone_single_detection_on_subset_of_anchors(
 
 
 @pytest.mark.parametrize(
-    "vector, xyxy_sequence, expected_crossed_in, expected_crossed_out",
+    "vector, xyxy_sequence, expected_crossed_in, expected_crossed_out, anchors, exception",
     [
         (
             Vector(
@@ -322,6 +363,8 @@ def test_line_zone_single_detection_on_subset_of_anchors(
             ],
             [[False, False], [False, False], [True, False]],
             [[False, False], [True, False], [False, False]],
+            [Position.TOP_LEFT, Position.TOP_RIGHT, Position.BOTTOM_LEFT, Position.BOTTOM_RIGHT],
+            DoesNotRaise(),
         ),
         (
             Vector(
@@ -358,7 +401,34 @@ def test_line_zone_single_detection_on_subset_of_anchors(
                 (False, False),
                 (True, True),
             ],
+            [Position.TOP_LEFT, Position.TOP_RIGHT, Position.BOTTOM_LEFT, Position.BOTTOM_RIGHT],
+            DoesNotRaise(),
         ),
+        (
+            Vector(
+                Point(-50, -50),
+                Point(-100, -150),
+            ),
+            [
+                [[-30, -80, -20, -100], [100, 50, 120, 70]],
+                [[-100, -80, -20, -100], [100, 50, 120, 70]],
+            ],
+            [[False, False], [True, False]],
+            [[False, False], [False, False]],
+            [Position.TOP_LEFT],
+            DoesNotRaise(),
+        ),
+        (
+            Vector(
+                Point(0, 0),
+                Point(-100, 0),
+            ),
+            [[[-50, 70, -40, 50], [-80, -50, -70, -40]]],
+            [(False, False)],
+            [(False, False)],
+            [], # raise because of empty anchors
+            pytest.raises(ValueError),
+        )
     ],
 )
 def test_line_zone_multiple_detections(
@@ -366,19 +436,24 @@ def test_line_zone_multiple_detections(
     xyxy_sequence: List[List[List[int]]],
     expected_crossed_in: List[bool],
     expected_crossed_out: List[bool],
+        anchors: list[Position],
+        exception: Exception
+
 ) -> None:
     """
     Test LineZone with multiple detections.
     A detection is represented by a sequence of xyxy bboxes which represent
     subsequent positions of the detected object. If a line is crossed (in either
-    direction) by a detection it is crossed by all its anchors simultaneously.
+    direction) by a detection it is crossed by exactly all anchors from @anchors.
     """
-    line_zone = LineZone(start=vector.start, end=vector.end)
-    for i, bboxes in enumerate(xyxy_sequence):
-        detections = mock_detections(
-            xyxy=bboxes,
-            tracker_id=[i for i in range(0, len(bboxes))],
-        )
-        crossed_in, crossed_out = line_zone.trigger(detections)
-        assert np.all(crossed_in == expected_crossed_in[i])
-        assert np.all(crossed_out == expected_crossed_out[i])
+    with exception:
+        line_zone = LineZone(start=vector.start, end=vector.end, triggering_anchors=anchors)
+        for i, bboxes in enumerate(xyxy_sequence):
+            detections = mock_detections(
+                xyxy=bboxes,
+                tracker_id=[i for i in range(0, len(bboxes))],
+            )
+            crossed_in, crossed_out = line_zone.trigger(detections)
+            assert np.all(crossed_in == expected_crossed_in[i])
+            assert np.all(crossed_out == expected_crossed_out[i])
+
