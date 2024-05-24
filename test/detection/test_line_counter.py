@@ -350,7 +350,11 @@ def test_line_zone_single_detection_on_subset_of_anchors(
 
 
 @pytest.mark.parametrize(
-    "vector, xyxy_sequence, expected_crossed_in, expected_crossed_out, anchors, exception",
+    "vector,"
+    "xyxy_sequence,"
+    "expected_crossed_in,"
+    "expected_crossed_out,"
+    "anchors, exception",
     [
         (
             Vector(
