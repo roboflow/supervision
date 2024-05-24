@@ -86,7 +86,7 @@ def yolo_annotations_to_detections(
             if with_masks:
                 relative_polygon.append(_box_to_polygon(box=box))
         elif len(values) > 5:
-            polygon = _parse_polygon(values=values[1:]) 
+            polygon = _parse_polygon(values=values[1:])
             relative_xyxy.append(polygon_to_xyxy(polygon=polygon))
             if with_masks:
                 relative_polygon.append(polygon)
