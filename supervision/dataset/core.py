@@ -267,6 +267,7 @@ class DetectionDataset(BaseDataset):
         annotations_directory_path: str,
         data_yaml_path: str,
         force_masks: bool = False,
+        is_obb: bool = False,
     ) -> DetectionDataset:
         """
         Creates a Dataset instance from YOLO formatted data.
@@ -281,6 +282,8 @@ class DetectionDataset(BaseDataset):
             force_masks (bool, optional): If True, forces
                 masks to be loaded for all annotations,
                 regardless of whether they are present.
+            is_obb (bool, optional): If True, returns the  
+                annotations in YOLO-OBB format.
 
         Returns:
             DetectionDataset: A DetectionDataset instance
@@ -313,6 +316,7 @@ class DetectionDataset(BaseDataset):
             annotations_directory_path=annotations_directory_path,
             data_yaml_path=data_yaml_path,
             force_masks=force_masks,
+            is_obb=is_obb,
         )
         return DetectionDataset(classes=classes, images=images, annotations=annotations)
 

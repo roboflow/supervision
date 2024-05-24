@@ -86,7 +86,7 @@ def yolo_annotations_to_detections(
             if with_masks:
                 relative_polygon.append(_box_to_polygon(box=box))
         elif len(values) > 5:
-            polygon = _parse_polygon(values=values[1:])
+            polygon = _parse_polygon(values=values[1:]) 
             relative_xyxy.append(polygon_to_xyxy(polygon=polygon))
             if with_masks:
                 relative_polygon.append(polygon)
@@ -110,6 +110,7 @@ def load_yolo_annotations(
     annotations_directory_path: str,
     data_yaml_path: str,
     force_masks: bool = False,
+    is_obb: bool = False,
 ) -> Tuple[List[str], Dict[str, np.ndarray], Dict[str, Detections]]:
     """
     Loads YOLO annotations and returns class names, images,
@@ -123,6 +124,7 @@ def load_yolo_annotations(
             YAML file containing class information.
         force_masks (bool, optional): If True, forces masks to be loaded
             for all annotations, regardless of whether they are present.
+        is_obb (bool, optional): If True, returns the annotations in YOLO-OBB format.
 
     Returns:
         Tuple[List[str], Dict[str, np.ndarray], Dict[str, Detections]]:
@@ -158,7 +160,6 @@ def load_yolo_annotations(
         annotation = yolo_annotations_to_detections(
             lines=lines, resolution_wh=resolution_wh, with_masks=with_masks
         )
-
         images[image_path] = image
         annotations[image_path] = annotation
     return classes, images, annotations
