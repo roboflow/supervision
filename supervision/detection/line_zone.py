@@ -176,7 +176,8 @@ class LineZone:
                 continue
 
             if min_triggers[i] != max_triggers[i]:
-                # One anchor lies to the left of the line whilst another lies to the right
+                # One anchor lies to the left of the line
+                # whilst another lies to the right
                 continue
 
             tracker_state = max_triggers[i]
@@ -208,7 +209,9 @@ class LineZone:
         Returns:
             Array of cross products of shape (number of anchors, detections)
         """
-        vector_at_zero = np.array([vector.end.x - vector.start.x, vector.end.y - vector.start.y])
+        vector_at_zero = np.array(
+            [vector.end.x - vector.start.x, vector.end.y - vector.start.y]
+        )
         vector_start = np.array([vector.start.x, vector.start.y])
         return np.cross(vector_at_zero, anchors - vector_start)
 
