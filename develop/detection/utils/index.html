@@ -2211,7 +2211,9 @@
 <span class="normal"><a href="#__codelineno-0-57">57</a></span>
 <span class="normal"><a href="#__codelineno-0-58">58</a></span>
 <span class="normal"><a href="#__codelineno-0-59">59</a></span>
-<span class="normal"><a href="#__codelineno-0-60">60</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-32" name="__codelineno-0-32"></a><span class="k">def</span> <span class="nf">box_iou_batch</span><span class="p">(</span><span class="n">boxes_true</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">boxes_detection</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="normal"><a href="#__codelineno-0-60">60</a></span>
+<span class="normal"><a href="#__codelineno-0-61">61</a></span>
+<span class="normal"><a href="#__codelineno-0-62">62</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-32" name="__codelineno-0-32"></a><span class="k">def</span> <span class="nf">box_iou_batch</span><span class="p">(</span><span class="n">boxes_true</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">boxes_detection</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <a id="__codelineno-0-33" name="__codelineno-0-33"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-34" name="__codelineno-0-34"></a><span class="sd">    Compute Intersection over Union (IoU) of two sets of bounding boxes -</span>
 <a id="__codelineno-0-35" name="__codelineno-0-35"></a><span class="sd">        `boxes_true` and `boxes_detection`. Both sets</span>
@@ -2239,7 +2241,9 @@
 <a id="__codelineno-0-57" name="__codelineno-0-57"></a>    <span class="n">bottom_right</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">boxes_true</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="mi">2</span><span class="p">:],</span> <span class="n">boxes_detection</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">:])</span>
 <a id="__codelineno-0-58" name="__codelineno-0-58"></a>
 <a id="__codelineno-0-59" name="__codelineno-0-59"></a>    <span class="n">area_inter</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">bottom_right</span> <span class="o">-</span> <span class="n">top_left</span><span class="p">,</span> <span class="n">a_min</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">a_max</span><span class="o">=</span><span class="kc">None</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
-<a id="__codelineno-0-60" name="__codelineno-0-60"></a>    <span class="k">return</span> <span class="n">area_inter</span> <span class="o">/</span> <span class="p">(</span><span class="n">area_true</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="n">area_detection</span> <span class="o">-</span> <span class="n">area_inter</span><span class="p">)</span>
+<a id="__codelineno-0-60" name="__codelineno-0-60"></a>    <span class="n">ious</span> <span class="o">=</span> <span class="n">area_inter</span> <span class="o">/</span> <span class="p">(</span><span class="n">area_true</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="n">area_detection</span> <span class="o">-</span> <span class="n">area_inter</span><span class="p">)</span>
+<a id="__codelineno-0-61" name="__codelineno-0-61"></a>    <span class="n">ious</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">ious</span><span class="p">)</span>
+<a id="__codelineno-0-62" name="__codelineno-0-62"></a>    <span class="k">return</span> <span class="n">ious</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2342,9 +2346,7 @@
 
             <details class="quote">
               <summary>Source code in <code>supervision/detection/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-94"> 94</a></span>
-<span class="normal"><a href="#__codelineno-0-95"> 95</a></span>
-<span class="normal"><a href="#__codelineno-0-96"> 96</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-96"> 96</a></span>
 <span class="normal"><a href="#__codelineno-0-97"> 97</a></span>
 <span class="normal"><a href="#__codelineno-0-98"> 98</a></span>
 <span class="normal"><a href="#__codelineno-0-99"> 99</a></span>
@@ -2385,50 +2387,52 @@
 <span class="normal"><a href="#__codelineno-0-134">134</a></span>
 <span class="normal"><a href="#__codelineno-0-135">135</a></span>
 <span class="normal"><a href="#__codelineno-0-136">136</a></span>
-<span class="normal"><a href="#__codelineno-0-137">137</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-94" name="__codelineno-0-94"></a><span class="k">def</span> <span class="nf">mask_iou_batch</span><span class="p">(</span>
-<a id="__codelineno-0-95" name="__codelineno-0-95"></a>    <span class="n">masks_true</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-<a id="__codelineno-0-96" name="__codelineno-0-96"></a>    <span class="n">masks_detection</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-<a id="__codelineno-0-97" name="__codelineno-0-97"></a>    <span class="n">memory_limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">5</span><span class="p">,</span>
-<a id="__codelineno-0-98" name="__codelineno-0-98"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<a id="__codelineno-0-99" name="__codelineno-0-99"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-100" name="__codelineno-0-100"></a><span class="sd">    Compute Intersection over Union (IoU) of two sets of masks -</span>
-<a id="__codelineno-0-101" name="__codelineno-0-101"></a><span class="sd">        `masks_true` and `masks_detection`.</span>
-<a id="__codelineno-0-102" name="__codelineno-0-102"></a>
-<a id="__codelineno-0-103" name="__codelineno-0-103"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-104" name="__codelineno-0-104"></a><span class="sd">        masks_true (np.ndarray): 3D `np.ndarray` representing ground-truth masks.</span>
-<a id="__codelineno-0-105" name="__codelineno-0-105"></a><span class="sd">        masks_detection (np.ndarray): 3D `np.ndarray` representing detection masks.</span>
-<a id="__codelineno-0-106" name="__codelineno-0-106"></a><span class="sd">        memory_limit (int, optional): memory limit in MB, default is 1024 * 5 MB (5GB).</span>
-<a id="__codelineno-0-107" name="__codelineno-0-107"></a>
-<a id="__codelineno-0-108" name="__codelineno-0-108"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-109" name="__codelineno-0-109"></a><span class="sd">        np.ndarray: Pairwise IoU of masks from `masks_true` and `masks_detection`.</span>
-<a id="__codelineno-0-110" name="__codelineno-0-110"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-111" name="__codelineno-0-111"></a>    <span class="n">memory</span> <span class="o">=</span> <span class="p">(</span>
-<a id="__codelineno-0-112" name="__codelineno-0-112"></a>        <span class="n">masks_true</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-<a id="__codelineno-0-113" name="__codelineno-0-113"></a>        <span class="o">*</span> <span class="n">masks_true</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-<a id="__codelineno-0-114" name="__codelineno-0-114"></a>        <span class="o">*</span> <span class="n">masks_true</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
-<a id="__codelineno-0-115" name="__codelineno-0-115"></a>        <span class="o">*</span> <span class="n">masks_detection</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-<a id="__codelineno-0-116" name="__codelineno-0-116"></a>        <span class="o">/</span> <span class="mi">1024</span>
-<a id="__codelineno-0-117" name="__codelineno-0-117"></a>        <span class="o">/</span> <span class="mi">1024</span>
-<a id="__codelineno-0-118" name="__codelineno-0-118"></a>    <span class="p">)</span>
-<a id="__codelineno-0-119" name="__codelineno-0-119"></a>    <span class="k">if</span> <span class="n">memory</span> <span class="o">&lt;=</span> <span class="n">memory_limit</span><span class="p">:</span>
-<a id="__codelineno-0-120" name="__codelineno-0-120"></a>        <span class="k">return</span> <span class="n">_mask_iou_batch_split</span><span class="p">(</span><span class="n">masks_true</span><span class="p">,</span> <span class="n">masks_detection</span><span class="p">)</span>
-<a id="__codelineno-0-121" name="__codelineno-0-121"></a>
-<a id="__codelineno-0-122" name="__codelineno-0-122"></a>    <span class="n">ious</span> <span class="o">=</span> <span class="p">[]</span>
-<a id="__codelineno-0-123" name="__codelineno-0-123"></a>    <span class="n">step</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
-<a id="__codelineno-0-124" name="__codelineno-0-124"></a>        <span class="n">memory_limit</span>
-<a id="__codelineno-0-125" name="__codelineno-0-125"></a>        <span class="o">*</span> <span class="mi">1024</span>
-<a id="__codelineno-0-126" name="__codelineno-0-126"></a>        <span class="o">*</span> <span class="mi">1024</span>
-<a id="__codelineno-0-127" name="__codelineno-0-127"></a>        <span class="o">//</span> <span class="p">(</span>
-<a id="__codelineno-0-128" name="__codelineno-0-128"></a>            <span class="n">masks_detection</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-<a id="__codelineno-0-129" name="__codelineno-0-129"></a>            <span class="o">*</span> <span class="n">masks_detection</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-<a id="__codelineno-0-130" name="__codelineno-0-130"></a>            <span class="o">*</span> <span class="n">masks_detection</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
-<a id="__codelineno-0-131" name="__codelineno-0-131"></a>        <span class="p">),</span>
-<a id="__codelineno-0-132" name="__codelineno-0-132"></a>        <span class="mi">1</span><span class="p">,</span>
-<a id="__codelineno-0-133" name="__codelineno-0-133"></a>    <span class="p">)</span>
-<a id="__codelineno-0-134" name="__codelineno-0-134"></a>    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">masks_true</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">step</span><span class="p">):</span>
-<a id="__codelineno-0-135" name="__codelineno-0-135"></a>        <span class="n">ious</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_mask_iou_batch_split</span><span class="p">(</span><span class="n">masks_true</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">step</span><span class="p">],</span> <span class="n">masks_detection</span><span class="p">))</span>
-<a id="__codelineno-0-136" name="__codelineno-0-136"></a>
-<a id="__codelineno-0-137" name="__codelineno-0-137"></a>    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">ious</span><span class="p">)</span>
+<span class="normal"><a href="#__codelineno-0-137">137</a></span>
+<span class="normal"><a href="#__codelineno-0-138">138</a></span>
+<span class="normal"><a href="#__codelineno-0-139">139</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-96" name="__codelineno-0-96"></a><span class="k">def</span> <span class="nf">mask_iou_batch</span><span class="p">(</span>
+<a id="__codelineno-0-97" name="__codelineno-0-97"></a>    <span class="n">masks_true</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<a id="__codelineno-0-98" name="__codelineno-0-98"></a>    <span class="n">masks_detection</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<a id="__codelineno-0-99" name="__codelineno-0-99"></a>    <span class="n">memory_limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">5</span><span class="p">,</span>
+<a id="__codelineno-0-100" name="__codelineno-0-100"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a id="__codelineno-0-101" name="__codelineno-0-101"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-102" name="__codelineno-0-102"></a><span class="sd">    Compute Intersection over Union (IoU) of two sets of masks -</span>
+<a id="__codelineno-0-103" name="__codelineno-0-103"></a><span class="sd">        `masks_true` and `masks_detection`.</span>
+<a id="__codelineno-0-104" name="__codelineno-0-104"></a>
+<a id="__codelineno-0-105" name="__codelineno-0-105"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-106" name="__codelineno-0-106"></a><span class="sd">        masks_true (np.ndarray): 3D `np.ndarray` representing ground-truth masks.</span>
+<a id="__codelineno-0-107" name="__codelineno-0-107"></a><span class="sd">        masks_detection (np.ndarray): 3D `np.ndarray` representing detection masks.</span>
+<a id="__codelineno-0-108" name="__codelineno-0-108"></a><span class="sd">        memory_limit (int, optional): memory limit in MB, default is 1024 * 5 MB (5GB).</span>
+<a id="__codelineno-0-109" name="__codelineno-0-109"></a>
+<a id="__codelineno-0-110" name="__codelineno-0-110"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-111" name="__codelineno-0-111"></a><span class="sd">        np.ndarray: Pairwise IoU of masks from `masks_true` and `masks_detection`.</span>
+<a id="__codelineno-0-112" name="__codelineno-0-112"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-113" name="__codelineno-0-113"></a>    <span class="n">memory</span> <span class="o">=</span> <span class="p">(</span>
+<a id="__codelineno-0-114" name="__codelineno-0-114"></a>        <span class="n">masks_true</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<a id="__codelineno-0-115" name="__codelineno-0-115"></a>        <span class="o">*</span> <span class="n">masks_true</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<a id="__codelineno-0-116" name="__codelineno-0-116"></a>        <span class="o">*</span> <span class="n">masks_true</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+<a id="__codelineno-0-117" name="__codelineno-0-117"></a>        <span class="o">*</span> <span class="n">masks_detection</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<a id="__codelineno-0-118" name="__codelineno-0-118"></a>        <span class="o">/</span> <span class="mi">1024</span>
+<a id="__codelineno-0-119" name="__codelineno-0-119"></a>        <span class="o">/</span> <span class="mi">1024</span>
+<a id="__codelineno-0-120" name="__codelineno-0-120"></a>    <span class="p">)</span>
+<a id="__codelineno-0-121" name="__codelineno-0-121"></a>    <span class="k">if</span> <span class="n">memory</span> <span class="o">&lt;=</span> <span class="n">memory_limit</span><span class="p">:</span>
+<a id="__codelineno-0-122" name="__codelineno-0-122"></a>        <span class="k">return</span> <span class="n">_mask_iou_batch_split</span><span class="p">(</span><span class="n">masks_true</span><span class="p">,</span> <span class="n">masks_detection</span><span class="p">)</span>
+<a id="__codelineno-0-123" name="__codelineno-0-123"></a>
+<a id="__codelineno-0-124" name="__codelineno-0-124"></a>    <span class="n">ious</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="__codelineno-0-125" name="__codelineno-0-125"></a>    <span class="n">step</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+<a id="__codelineno-0-126" name="__codelineno-0-126"></a>        <span class="n">memory_limit</span>
+<a id="__codelineno-0-127" name="__codelineno-0-127"></a>        <span class="o">*</span> <span class="mi">1024</span>
+<a id="__codelineno-0-128" name="__codelineno-0-128"></a>        <span class="o">*</span> <span class="mi">1024</span>
+<a id="__codelineno-0-129" name="__codelineno-0-129"></a>        <span class="o">//</span> <span class="p">(</span>
+<a id="__codelineno-0-130" name="__codelineno-0-130"></a>            <span class="n">masks_detection</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<a id="__codelineno-0-131" name="__codelineno-0-131"></a>            <span class="o">*</span> <span class="n">masks_detection</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<a id="__codelineno-0-132" name="__codelineno-0-132"></a>            <span class="o">*</span> <span class="n">masks_detection</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+<a id="__codelineno-0-133" name="__codelineno-0-133"></a>        <span class="p">),</span>
+<a id="__codelineno-0-134" name="__codelineno-0-134"></a>        <span class="mi">1</span><span class="p">,</span>
+<a id="__codelineno-0-135" name="__codelineno-0-135"></a>    <span class="p">)</span>
+<a id="__codelineno-0-136" name="__codelineno-0-136"></a>    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">masks_true</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">step</span><span class="p">):</span>
+<a id="__codelineno-0-137" name="__codelineno-0-137"></a>        <span class="n">ious</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_mask_iou_batch_split</span><span class="p">(</span><span class="n">masks_true</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">step</span><span class="p">],</span> <span class="n">masks_detection</span><span class="p">))</span>
+<a id="__codelineno-0-138" name="__codelineno-0-138"></a>
+<a id="__codelineno-0-139" name="__codelineno-0-139"></a>    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">ious</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2544,9 +2548,7 @@ closed range from <code>0</code> to <code>1</code>.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/detection/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-224">224</a></span>
-<span class="normal"><a href="#__codelineno-0-225">225</a></span>
-<span class="normal"><a href="#__codelineno-0-226">226</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-226">226</a></span>
 <span class="normal"><a href="#__codelineno-0-227">227</a></span>
 <span class="normal"><a href="#__codelineno-0-228">228</a></span>
 <span class="normal"><a href="#__codelineno-0-229">229</a></span>
@@ -2595,58 +2597,60 @@ closed range from <code>0</code> to <code>1</code>.</p>
 <span class="normal"><a href="#__codelineno-0-272">272</a></span>
 <span class="normal"><a href="#__codelineno-0-273">273</a></span>
 <span class="normal"><a href="#__codelineno-0-274">274</a></span>
-<span class="normal"><a href="#__codelineno-0-275">275</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-224" name="__codelineno-0-224"></a><span class="k">def</span> <span class="nf">box_non_max_suppression</span><span class="p">(</span>
-<a id="__codelineno-0-225" name="__codelineno-0-225"></a>    <span class="n">predictions</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">iou_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span>
-<a id="__codelineno-0-226" name="__codelineno-0-226"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<a id="__codelineno-0-227" name="__codelineno-0-227"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-228" name="__codelineno-0-228"></a><span class="sd">    Perform Non-Maximum Suppression (NMS) on object detection predictions.</span>
-<a id="__codelineno-0-229" name="__codelineno-0-229"></a>
-<a id="__codelineno-0-230" name="__codelineno-0-230"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-231" name="__codelineno-0-231"></a><span class="sd">        predictions (np.ndarray): An array of object detection predictions in</span>
-<a id="__codelineno-0-232" name="__codelineno-0-232"></a><span class="sd">            the format of `(x_min, y_min, x_max, y_max, score)`</span>
-<a id="__codelineno-0-233" name="__codelineno-0-233"></a><span class="sd">            or `(x_min, y_min, x_max, y_max, score, class)`.</span>
-<a id="__codelineno-0-234" name="__codelineno-0-234"></a><span class="sd">        iou_threshold (float, optional): The intersection-over-union threshold</span>
-<a id="__codelineno-0-235" name="__codelineno-0-235"></a><span class="sd">            to use for non-maximum suppression.</span>
-<a id="__codelineno-0-236" name="__codelineno-0-236"></a>
-<a id="__codelineno-0-237" name="__codelineno-0-237"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-238" name="__codelineno-0-238"></a><span class="sd">        np.ndarray: A boolean array indicating which predictions to keep after n</span>
-<a id="__codelineno-0-239" name="__codelineno-0-239"></a><span class="sd">            on-maximum suppression.</span>
-<a id="__codelineno-0-240" name="__codelineno-0-240"></a>
-<a id="__codelineno-0-241" name="__codelineno-0-241"></a><span class="sd">    Raises:</span>
-<a id="__codelineno-0-242" name="__codelineno-0-242"></a><span class="sd">        AssertionError: If `iou_threshold` is not within the</span>
-<a id="__codelineno-0-243" name="__codelineno-0-243"></a><span class="sd">            closed range from `0` to `1`.</span>
-<a id="__codelineno-0-244" name="__codelineno-0-244"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-245" name="__codelineno-0-245"></a>    <span class="k">assert</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">iou_threshold</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span>
-<a id="__codelineno-0-246" name="__codelineno-0-246"></a>        <span class="s2">&quot;Value of `iou_threshold` must be in the closed range from 0 to 1, &quot;</span>
-<a id="__codelineno-0-247" name="__codelineno-0-247"></a>        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">iou_threshold</span><span class="si">}</span><span class="s2"> given.&quot;</span>
-<a id="__codelineno-0-248" name="__codelineno-0-248"></a>    <span class="p">)</span>
-<a id="__codelineno-0-249" name="__codelineno-0-249"></a>    <span class="n">rows</span><span class="p">,</span> <span class="n">columns</span> <span class="o">=</span> <span class="n">predictions</span><span class="o">.</span><span class="n">shape</span>
-<a id="__codelineno-0-250" name="__codelineno-0-250"></a>
-<a id="__codelineno-0-251" name="__codelineno-0-251"></a>    <span class="c1"># add column #5 - category filled with zeros for agnostic nms</span>
-<a id="__codelineno-0-252" name="__codelineno-0-252"></a>    <span class="k">if</span> <span class="n">columns</span> <span class="o">==</span> <span class="mi">5</span><span class="p">:</span>
-<a id="__codelineno-0-253" name="__codelineno-0-253"></a>        <span class="n">predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">c_</span><span class="p">[</span><span class="n">predictions</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">rows</span><span class="p">)]</span>
-<a id="__codelineno-0-254" name="__codelineno-0-254"></a>
-<a id="__codelineno-0-255" name="__codelineno-0-255"></a>    <span class="c1"># sort predictions column #4 - score</span>
-<a id="__codelineno-0-256" name="__codelineno-0-256"></a>    <span class="n">sort_index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">predictions</span><span class="p">[:,</span> <span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">argsort</span><span class="p">())</span>
-<a id="__codelineno-0-257" name="__codelineno-0-257"></a>    <span class="n">predictions</span> <span class="o">=</span> <span class="n">predictions</span><span class="p">[</span><span class="n">sort_index</span><span class="p">]</span>
-<a id="__codelineno-0-258" name="__codelineno-0-258"></a>
-<a id="__codelineno-0-259" name="__codelineno-0-259"></a>    <span class="n">boxes</span> <span class="o">=</span> <span class="n">predictions</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">4</span><span class="p">]</span>
-<a id="__codelineno-0-260" name="__codelineno-0-260"></a>    <span class="n">categories</span> <span class="o">=</span> <span class="n">predictions</span><span class="p">[:,</span> <span class="mi">5</span><span class="p">]</span>
-<a id="__codelineno-0-261" name="__codelineno-0-261"></a>    <span class="n">ious</span> <span class="o">=</span> <span class="n">box_iou_batch</span><span class="p">(</span><span class="n">boxes</span><span class="p">,</span> <span class="n">boxes</span><span class="p">)</span>
-<a id="__codelineno-0-262" name="__codelineno-0-262"></a>    <span class="n">ious</span> <span class="o">=</span> <span class="n">ious</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span>
-<a id="__codelineno-0-263" name="__codelineno-0-263"></a>
-<a id="__codelineno-0-264" name="__codelineno-0-264"></a>    <span class="n">keep</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+<span class="normal"><a href="#__codelineno-0-275">275</a></span>
+<span class="normal"><a href="#__codelineno-0-276">276</a></span>
+<span class="normal"><a href="#__codelineno-0-277">277</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-226" name="__codelineno-0-226"></a><span class="k">def</span> <span class="nf">box_non_max_suppression</span><span class="p">(</span>
+<a id="__codelineno-0-227" name="__codelineno-0-227"></a>    <span class="n">predictions</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">iou_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span>
+<a id="__codelineno-0-228" name="__codelineno-0-228"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a id="__codelineno-0-229" name="__codelineno-0-229"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-230" name="__codelineno-0-230"></a><span class="sd">    Perform Non-Maximum Suppression (NMS) on object detection predictions.</span>
+<a id="__codelineno-0-231" name="__codelineno-0-231"></a>
+<a id="__codelineno-0-232" name="__codelineno-0-232"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-233" name="__codelineno-0-233"></a><span class="sd">        predictions (np.ndarray): An array of object detection predictions in</span>
+<a id="__codelineno-0-234" name="__codelineno-0-234"></a><span class="sd">            the format of `(x_min, y_min, x_max, y_max, score)`</span>
+<a id="__codelineno-0-235" name="__codelineno-0-235"></a><span class="sd">            or `(x_min, y_min, x_max, y_max, score, class)`.</span>
+<a id="__codelineno-0-236" name="__codelineno-0-236"></a><span class="sd">        iou_threshold (float, optional): The intersection-over-union threshold</span>
+<a id="__codelineno-0-237" name="__codelineno-0-237"></a><span class="sd">            to use for non-maximum suppression.</span>
+<a id="__codelineno-0-238" name="__codelineno-0-238"></a>
+<a id="__codelineno-0-239" name="__codelineno-0-239"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-240" name="__codelineno-0-240"></a><span class="sd">        np.ndarray: A boolean array indicating which predictions to keep after n</span>
+<a id="__codelineno-0-241" name="__codelineno-0-241"></a><span class="sd">            on-maximum suppression.</span>
+<a id="__codelineno-0-242" name="__codelineno-0-242"></a>
+<a id="__codelineno-0-243" name="__codelineno-0-243"></a><span class="sd">    Raises:</span>
+<a id="__codelineno-0-244" name="__codelineno-0-244"></a><span class="sd">        AssertionError: If `iou_threshold` is not within the</span>
+<a id="__codelineno-0-245" name="__codelineno-0-245"></a><span class="sd">            closed range from `0` to `1`.</span>
+<a id="__codelineno-0-246" name="__codelineno-0-246"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-247" name="__codelineno-0-247"></a>    <span class="k">assert</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">iou_threshold</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span>
+<a id="__codelineno-0-248" name="__codelineno-0-248"></a>        <span class="s2">&quot;Value of `iou_threshold` must be in the closed range from 0 to 1, &quot;</span>
+<a id="__codelineno-0-249" name="__codelineno-0-249"></a>        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">iou_threshold</span><span class="si">}</span><span class="s2"> given.&quot;</span>
+<a id="__codelineno-0-250" name="__codelineno-0-250"></a>    <span class="p">)</span>
+<a id="__codelineno-0-251" name="__codelineno-0-251"></a>    <span class="n">rows</span><span class="p">,</span> <span class="n">columns</span> <span class="o">=</span> <span class="n">predictions</span><span class="o">.</span><span class="n">shape</span>
+<a id="__codelineno-0-252" name="__codelineno-0-252"></a>
+<a id="__codelineno-0-253" name="__codelineno-0-253"></a>    <span class="c1"># add column #5 - category filled with zeros for agnostic nms</span>
+<a id="__codelineno-0-254" name="__codelineno-0-254"></a>    <span class="k">if</span> <span class="n">columns</span> <span class="o">==</span> <span class="mi">5</span><span class="p">:</span>
+<a id="__codelineno-0-255" name="__codelineno-0-255"></a>        <span class="n">predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">c_</span><span class="p">[</span><span class="n">predictions</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">rows</span><span class="p">)]</span>
+<a id="__codelineno-0-256" name="__codelineno-0-256"></a>
+<a id="__codelineno-0-257" name="__codelineno-0-257"></a>    <span class="c1"># sort predictions column #4 - score</span>
+<a id="__codelineno-0-258" name="__codelineno-0-258"></a>    <span class="n">sort_index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">predictions</span><span class="p">[:,</span> <span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">argsort</span><span class="p">())</span>
+<a id="__codelineno-0-259" name="__codelineno-0-259"></a>    <span class="n">predictions</span> <span class="o">=</span> <span class="n">predictions</span><span class="p">[</span><span class="n">sort_index</span><span class="p">]</span>
+<a id="__codelineno-0-260" name="__codelineno-0-260"></a>
+<a id="__codelineno-0-261" name="__codelineno-0-261"></a>    <span class="n">boxes</span> <span class="o">=</span> <span class="n">predictions</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">4</span><span class="p">]</span>
+<a id="__codelineno-0-262" name="__codelineno-0-262"></a>    <span class="n">categories</span> <span class="o">=</span> <span class="n">predictions</span><span class="p">[:,</span> <span class="mi">5</span><span class="p">]</span>
+<a id="__codelineno-0-263" name="__codelineno-0-263"></a>    <span class="n">ious</span> <span class="o">=</span> <span class="n">box_iou_batch</span><span class="p">(</span><span class="n">boxes</span><span class="p">,</span> <span class="n">boxes</span><span class="p">)</span>
+<a id="__codelineno-0-264" name="__codelineno-0-264"></a>    <span class="n">ious</span> <span class="o">=</span> <span class="n">ious</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span>
 <a id="__codelineno-0-265" name="__codelineno-0-265"></a>
-<a id="__codelineno-0-266" name="__codelineno-0-266"></a>    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="p">(</span><span class="n">iou</span><span class="p">,</span> <span class="n">category</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">ious</span><span class="p">,</span> <span class="n">categories</span><span class="p">)):</span>
-<a id="__codelineno-0-267" name="__codelineno-0-267"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">keep</span><span class="p">[</span><span class="n">index</span><span class="p">]:</span>
-<a id="__codelineno-0-268" name="__codelineno-0-268"></a>            <span class="k">continue</span>
-<a id="__codelineno-0-269" name="__codelineno-0-269"></a>
-<a id="__codelineno-0-270" name="__codelineno-0-270"></a>        <span class="c1"># drop detections with iou &gt; iou_threshold and</span>
-<a id="__codelineno-0-271" name="__codelineno-0-271"></a>        <span class="c1"># same category as current detections</span>
-<a id="__codelineno-0-272" name="__codelineno-0-272"></a>        <span class="n">condition</span> <span class="o">=</span> <span class="p">(</span><span class="n">iou</span> <span class="o">&gt;</span> <span class="n">iou_threshold</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">categories</span> <span class="o">==</span> <span class="n">category</span><span class="p">)</span>
-<a id="__codelineno-0-273" name="__codelineno-0-273"></a>        <span class="n">keep</span> <span class="o">=</span> <span class="n">keep</span> <span class="o">&amp;</span> <span class="o">~</span><span class="n">condition</span>
-<a id="__codelineno-0-274" name="__codelineno-0-274"></a>
-<a id="__codelineno-0-275" name="__codelineno-0-275"></a>    <span class="k">return</span> <span class="n">keep</span><span class="p">[</span><span class="n">sort_index</span><span class="o">.</span><span class="n">argsort</span><span class="p">()]</span>
+<a id="__codelineno-0-266" name="__codelineno-0-266"></a>    <span class="n">keep</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+<a id="__codelineno-0-267" name="__codelineno-0-267"></a>
+<a id="__codelineno-0-268" name="__codelineno-0-268"></a>    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="p">(</span><span class="n">iou</span><span class="p">,</span> <span class="n">category</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">ious</span><span class="p">,</span> <span class="n">categories</span><span class="p">)):</span>
+<a id="__codelineno-0-269" name="__codelineno-0-269"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">keep</span><span class="p">[</span><span class="n">index</span><span class="p">]:</span>
+<a id="__codelineno-0-270" name="__codelineno-0-270"></a>            <span class="k">continue</span>
+<a id="__codelineno-0-271" name="__codelineno-0-271"></a>
+<a id="__codelineno-0-272" name="__codelineno-0-272"></a>        <span class="c1"># drop detections with iou &gt; iou_threshold and</span>
+<a id="__codelineno-0-273" name="__codelineno-0-273"></a>        <span class="c1"># same category as current detections</span>
+<a id="__codelineno-0-274" name="__codelineno-0-274"></a>        <span class="n">condition</span> <span class="o">=</span> <span class="p">(</span><span class="n">iou</span> <span class="o">&gt;</span> <span class="n">iou_threshold</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">categories</span> <span class="o">==</span> <span class="n">category</span><span class="p">)</span>
+<a id="__codelineno-0-275" name="__codelineno-0-275"></a>        <span class="n">keep</span> <span class="o">=</span> <span class="n">keep</span> <span class="o">&amp;</span> <span class="o">~</span><span class="n">condition</span>
+<a id="__codelineno-0-276" name="__codelineno-0-276"></a>
+<a id="__codelineno-0-277" name="__codelineno-0-277"></a>    <span class="k">return</span> <span class="n">keep</span><span class="p">[</span><span class="n">sort_index</span><span class="o">.</span><span class="n">argsort</span><span class="p">()]</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2793,9 +2797,7 @@ non-maximum suppression.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/detection/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-169">169</a></span>
-<span class="normal"><a href="#__codelineno-0-170">170</a></span>
-<span class="normal"><a href="#__codelineno-0-171">171</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-171">171</a></span>
 <span class="normal"><a href="#__codelineno-0-172">172</a></span>
 <span class="normal"><a href="#__codelineno-0-173">173</a></span>
 <span class="normal"><a href="#__codelineno-0-174">174</a></span>
@@ -2845,59 +2847,61 @@ non-maximum suppression.</p>
 <span class="normal"><a href="#__codelineno-0-218">218</a></span>
 <span class="normal"><a href="#__codelineno-0-219">219</a></span>
 <span class="normal"><a href="#__codelineno-0-220">220</a></span>
-<span class="normal"><a href="#__codelineno-0-221">221</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-169" name="__codelineno-0-169"></a><span class="k">def</span> <span class="nf">mask_non_max_suppression</span><span class="p">(</span>
-<a id="__codelineno-0-170" name="__codelineno-0-170"></a>    <span class="n">predictions</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-<a id="__codelineno-0-171" name="__codelineno-0-171"></a>    <span class="n">masks</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-<a id="__codelineno-0-172" name="__codelineno-0-172"></a>    <span class="n">iou_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
-<a id="__codelineno-0-173" name="__codelineno-0-173"></a>    <span class="n">mask_dimension</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">640</span><span class="p">,</span>
-<a id="__codelineno-0-174" name="__codelineno-0-174"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<a id="__codelineno-0-175" name="__codelineno-0-175"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-176" name="__codelineno-0-176"></a><span class="sd">    Perform Non-Maximum Suppression (NMS) on segmentation predictions.</span>
-<a id="__codelineno-0-177" name="__codelineno-0-177"></a>
-<a id="__codelineno-0-178" name="__codelineno-0-178"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-179" name="__codelineno-0-179"></a><span class="sd">        predictions (np.ndarray): A 2D array of object detection predictions in</span>
-<a id="__codelineno-0-180" name="__codelineno-0-180"></a><span class="sd">            the format of `(x_min, y_min, x_max, y_max, score)`</span>
-<a id="__codelineno-0-181" name="__codelineno-0-181"></a><span class="sd">            or `(x_min, y_min, x_max, y_max, score, class)`. Shape: `(N, 5)` or</span>
-<a id="__codelineno-0-182" name="__codelineno-0-182"></a><span class="sd">            `(N, 6)`, where N is the number of predictions.</span>
-<a id="__codelineno-0-183" name="__codelineno-0-183"></a><span class="sd">        masks (np.ndarray): A 3D array of binary masks corresponding to the predictions.</span>
-<a id="__codelineno-0-184" name="__codelineno-0-184"></a><span class="sd">            Shape: `(N, H, W)`, where N is the number of predictions, and H, W are the</span>
-<a id="__codelineno-0-185" name="__codelineno-0-185"></a><span class="sd">            dimensions of each mask.</span>
-<a id="__codelineno-0-186" name="__codelineno-0-186"></a><span class="sd">        iou_threshold (float, optional): The intersection-over-union threshold</span>
-<a id="__codelineno-0-187" name="__codelineno-0-187"></a><span class="sd">            to use for non-maximum suppression.</span>
-<a id="__codelineno-0-188" name="__codelineno-0-188"></a><span class="sd">        mask_dimension (int, optional): The dimension to which the masks should be</span>
-<a id="__codelineno-0-189" name="__codelineno-0-189"></a><span class="sd">            resized before computing IOU values. Defaults to 640.</span>
-<a id="__codelineno-0-190" name="__codelineno-0-190"></a>
-<a id="__codelineno-0-191" name="__codelineno-0-191"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-192" name="__codelineno-0-192"></a><span class="sd">        np.ndarray: A boolean array indicating which predictions to keep after</span>
-<a id="__codelineno-0-193" name="__codelineno-0-193"></a><span class="sd">            non-maximum suppression.</span>
-<a id="__codelineno-0-194" name="__codelineno-0-194"></a>
-<a id="__codelineno-0-195" name="__codelineno-0-195"></a><span class="sd">    Raises:</span>
-<a id="__codelineno-0-196" name="__codelineno-0-196"></a><span class="sd">        AssertionError: If `iou_threshold` is not within the closed</span>
-<a id="__codelineno-0-197" name="__codelineno-0-197"></a><span class="sd">        range from `0` to `1`.</span>
-<a id="__codelineno-0-198" name="__codelineno-0-198"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-199" name="__codelineno-0-199"></a>    <span class="k">assert</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">iou_threshold</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span>
-<a id="__codelineno-0-200" name="__codelineno-0-200"></a>        <span class="s2">&quot;Value of `iou_threshold` must be in the closed range from 0 to 1, &quot;</span>
-<a id="__codelineno-0-201" name="__codelineno-0-201"></a>        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">iou_threshold</span><span class="si">}</span><span class="s2"> given.&quot;</span>
-<a id="__codelineno-0-202" name="__codelineno-0-202"></a>    <span class="p">)</span>
-<a id="__codelineno-0-203" name="__codelineno-0-203"></a>    <span class="n">rows</span><span class="p">,</span> <span class="n">columns</span> <span class="o">=</span> <span class="n">predictions</span><span class="o">.</span><span class="n">shape</span>
-<a id="__codelineno-0-204" name="__codelineno-0-204"></a>
-<a id="__codelineno-0-205" name="__codelineno-0-205"></a>    <span class="k">if</span> <span class="n">columns</span> <span class="o">==</span> <span class="mi">5</span><span class="p">:</span>
-<a id="__codelineno-0-206" name="__codelineno-0-206"></a>        <span class="n">predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">c_</span><span class="p">[</span><span class="n">predictions</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">rows</span><span class="p">)]</span>
-<a id="__codelineno-0-207" name="__codelineno-0-207"></a>
-<a id="__codelineno-0-208" name="__codelineno-0-208"></a>    <span class="n">sort_index</span> <span class="o">=</span> <span class="n">predictions</span><span class="p">[:,</span> <span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">argsort</span><span class="p">()[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-<a id="__codelineno-0-209" name="__codelineno-0-209"></a>    <span class="n">predictions</span> <span class="o">=</span> <span class="n">predictions</span><span class="p">[</span><span class="n">sort_index</span><span class="p">]</span>
-<a id="__codelineno-0-210" name="__codelineno-0-210"></a>    <span class="n">masks</span> <span class="o">=</span> <span class="n">masks</span><span class="p">[</span><span class="n">sort_index</span><span class="p">]</span>
-<a id="__codelineno-0-211" name="__codelineno-0-211"></a>    <span class="n">masks_resized</span> <span class="o">=</span> <span class="n">resize_masks</span><span class="p">(</span><span class="n">masks</span><span class="p">,</span> <span class="n">mask_dimension</span><span class="p">)</span>
-<a id="__codelineno-0-212" name="__codelineno-0-212"></a>    <span class="n">ious</span> <span class="o">=</span> <span class="n">mask_iou_batch</span><span class="p">(</span><span class="n">masks_resized</span><span class="p">,</span> <span class="n">masks_resized</span><span class="p">)</span>
-<a id="__codelineno-0-213" name="__codelineno-0-213"></a>    <span class="n">categories</span> <span class="o">=</span> <span class="n">predictions</span><span class="p">[:,</span> <span class="mi">5</span><span class="p">]</span>
-<a id="__codelineno-0-214" name="__codelineno-0-214"></a>
-<a id="__codelineno-0-215" name="__codelineno-0-215"></a>    <span class="n">keep</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
-<a id="__codelineno-0-216" name="__codelineno-0-216"></a>    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">rows</span><span class="p">):</span>
-<a id="__codelineno-0-217" name="__codelineno-0-217"></a>        <span class="k">if</span> <span class="n">keep</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
-<a id="__codelineno-0-218" name="__codelineno-0-218"></a>            <span class="n">condition</span> <span class="o">=</span> <span class="p">(</span><span class="n">ious</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">iou_threshold</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">categories</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="n">categories</span><span class="p">)</span>
-<a id="__codelineno-0-219" name="__codelineno-0-219"></a>            <span class="n">keep</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">condition</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:],</span> <span class="kc">False</span><span class="p">,</span> <span class="n">keep</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:])</span>
-<a id="__codelineno-0-220" name="__codelineno-0-220"></a>
-<a id="__codelineno-0-221" name="__codelineno-0-221"></a>    <span class="k">return</span> <span class="n">keep</span><span class="p">[</span><span class="n">sort_index</span><span class="o">.</span><span class="n">argsort</span><span class="p">()]</span>
+<span class="normal"><a href="#__codelineno-0-221">221</a></span>
+<span class="normal"><a href="#__codelineno-0-222">222</a></span>
+<span class="normal"><a href="#__codelineno-0-223">223</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-171" name="__codelineno-0-171"></a><span class="k">def</span> <span class="nf">mask_non_max_suppression</span><span class="p">(</span>
+<a id="__codelineno-0-172" name="__codelineno-0-172"></a>    <span class="n">predictions</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<a id="__codelineno-0-173" name="__codelineno-0-173"></a>    <span class="n">masks</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<a id="__codelineno-0-174" name="__codelineno-0-174"></a>    <span class="n">iou_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+<a id="__codelineno-0-175" name="__codelineno-0-175"></a>    <span class="n">mask_dimension</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">640</span><span class="p">,</span>
+<a id="__codelineno-0-176" name="__codelineno-0-176"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a id="__codelineno-0-177" name="__codelineno-0-177"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-178" name="__codelineno-0-178"></a><span class="sd">    Perform Non-Maximum Suppression (NMS) on segmentation predictions.</span>
+<a id="__codelineno-0-179" name="__codelineno-0-179"></a>
+<a id="__codelineno-0-180" name="__codelineno-0-180"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-181" name="__codelineno-0-181"></a><span class="sd">        predictions (np.ndarray): A 2D array of object detection predictions in</span>
+<a id="__codelineno-0-182" name="__codelineno-0-182"></a><span class="sd">            the format of `(x_min, y_min, x_max, y_max, score)`</span>
+<a id="__codelineno-0-183" name="__codelineno-0-183"></a><span class="sd">            or `(x_min, y_min, x_max, y_max, score, class)`. Shape: `(N, 5)` or</span>
+<a id="__codelineno-0-184" name="__codelineno-0-184"></a><span class="sd">            `(N, 6)`, where N is the number of predictions.</span>
+<a id="__codelineno-0-185" name="__codelineno-0-185"></a><span class="sd">        masks (np.ndarray): A 3D array of binary masks corresponding to the predictions.</span>
+<a id="__codelineno-0-186" name="__codelineno-0-186"></a><span class="sd">            Shape: `(N, H, W)`, where N is the number of predictions, and H, W are the</span>
+<a id="__codelineno-0-187" name="__codelineno-0-187"></a><span class="sd">            dimensions of each mask.</span>
+<a id="__codelineno-0-188" name="__codelineno-0-188"></a><span class="sd">        iou_threshold (float, optional): The intersection-over-union threshold</span>
+<a id="__codelineno-0-189" name="__codelineno-0-189"></a><span class="sd">            to use for non-maximum suppression.</span>
+<a id="__codelineno-0-190" name="__codelineno-0-190"></a><span class="sd">        mask_dimension (int, optional): The dimension to which the masks should be</span>
+<a id="__codelineno-0-191" name="__codelineno-0-191"></a><span class="sd">            resized before computing IOU values. Defaults to 640.</span>
+<a id="__codelineno-0-192" name="__codelineno-0-192"></a>
+<a id="__codelineno-0-193" name="__codelineno-0-193"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-194" name="__codelineno-0-194"></a><span class="sd">        np.ndarray: A boolean array indicating which predictions to keep after</span>
+<a id="__codelineno-0-195" name="__codelineno-0-195"></a><span class="sd">            non-maximum suppression.</span>
+<a id="__codelineno-0-196" name="__codelineno-0-196"></a>
+<a id="__codelineno-0-197" name="__codelineno-0-197"></a><span class="sd">    Raises:</span>
+<a id="__codelineno-0-198" name="__codelineno-0-198"></a><span class="sd">        AssertionError: If `iou_threshold` is not within the closed</span>
+<a id="__codelineno-0-199" name="__codelineno-0-199"></a><span class="sd">        range from `0` to `1`.</span>
+<a id="__codelineno-0-200" name="__codelineno-0-200"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-201" name="__codelineno-0-201"></a>    <span class="k">assert</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">iou_threshold</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span>
+<a id="__codelineno-0-202" name="__codelineno-0-202"></a>        <span class="s2">&quot;Value of `iou_threshold` must be in the closed range from 0 to 1, &quot;</span>
+<a id="__codelineno-0-203" name="__codelineno-0-203"></a>        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">iou_threshold</span><span class="si">}</span><span class="s2"> given.&quot;</span>
+<a id="__codelineno-0-204" name="__codelineno-0-204"></a>    <span class="p">)</span>
+<a id="__codelineno-0-205" name="__codelineno-0-205"></a>    <span class="n">rows</span><span class="p">,</span> <span class="n">columns</span> <span class="o">=</span> <span class="n">predictions</span><span class="o">.</span><span class="n">shape</span>
+<a id="__codelineno-0-206" name="__codelineno-0-206"></a>
+<a id="__codelineno-0-207" name="__codelineno-0-207"></a>    <span class="k">if</span> <span class="n">columns</span> <span class="o">==</span> <span class="mi">5</span><span class="p">:</span>
+<a id="__codelineno-0-208" name="__codelineno-0-208"></a>        <span class="n">predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">c_</span><span class="p">[</span><span class="n">predictions</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">rows</span><span class="p">)]</span>
+<a id="__codelineno-0-209" name="__codelineno-0-209"></a>
+<a id="__codelineno-0-210" name="__codelineno-0-210"></a>    <span class="n">sort_index</span> <span class="o">=</span> <span class="n">predictions</span><span class="p">[:,</span> <span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">argsort</span><span class="p">()[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+<a id="__codelineno-0-211" name="__codelineno-0-211"></a>    <span class="n">predictions</span> <span class="o">=</span> <span class="n">predictions</span><span class="p">[</span><span class="n">sort_index</span><span class="p">]</span>
+<a id="__codelineno-0-212" name="__codelineno-0-212"></a>    <span class="n">masks</span> <span class="o">=</span> <span class="n">masks</span><span class="p">[</span><span class="n">sort_index</span><span class="p">]</span>
+<a id="__codelineno-0-213" name="__codelineno-0-213"></a>    <span class="n">masks_resized</span> <span class="o">=</span> <span class="n">resize_masks</span><span class="p">(</span><span class="n">masks</span><span class="p">,</span> <span class="n">mask_dimension</span><span class="p">)</span>
+<a id="__codelineno-0-214" name="__codelineno-0-214"></a>    <span class="n">ious</span> <span class="o">=</span> <span class="n">mask_iou_batch</span><span class="p">(</span><span class="n">masks_resized</span><span class="p">,</span> <span class="n">masks_resized</span><span class="p">)</span>
+<a id="__codelineno-0-215" name="__codelineno-0-215"></a>    <span class="n">categories</span> <span class="o">=</span> <span class="n">predictions</span><span class="p">[:,</span> <span class="mi">5</span><span class="p">]</span>
+<a id="__codelineno-0-216" name="__codelineno-0-216"></a>
+<a id="__codelineno-0-217" name="__codelineno-0-217"></a>    <span class="n">keep</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+<a id="__codelineno-0-218" name="__codelineno-0-218"></a>    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">rows</span><span class="p">):</span>
+<a id="__codelineno-0-219" name="__codelineno-0-219"></a>        <span class="k">if</span> <span class="n">keep</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+<a id="__codelineno-0-220" name="__codelineno-0-220"></a>            <span class="n">condition</span> <span class="o">=</span> <span class="p">(</span><span class="n">ious</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">iou_threshold</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">categories</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="n">categories</span><span class="p">)</span>
+<a id="__codelineno-0-221" name="__codelineno-0-221"></a>            <span class="n">keep</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">condition</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:],</span> <span class="kc">False</span><span class="p">,</span> <span class="n">keep</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:])</span>
+<a id="__codelineno-0-222" name="__codelineno-0-222"></a>
+<a id="__codelineno-0-223" name="__codelineno-0-223"></a>    <span class="k">return</span> <span class="n">keep</span><span class="p">[</span><span class="n">sort_index</span><span class="o">.</span><span class="n">argsort</span><span class="p">()]</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3095,9 +3099,7 @@ containing 2D bool masks</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/detection/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-337">337</a></span>
-<span class="normal"><a href="#__codelineno-0-338">338</a></span>
-<span class="normal"><a href="#__codelineno-0-339">339</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-339">339</a></span>
 <span class="normal"><a href="#__codelineno-0-340">340</a></span>
 <span class="normal"><a href="#__codelineno-0-341">341</a></span>
 <span class="normal"><a href="#__codelineno-0-342">342</a></span>
@@ -3118,30 +3120,32 @@ containing 2D bool masks</p>
 <span class="normal"><a href="#__codelineno-0-357">357</a></span>
 <span class="normal"><a href="#__codelineno-0-358">358</a></span>
 <span class="normal"><a href="#__codelineno-0-359">359</a></span>
-<span class="normal"><a href="#__codelineno-0-360">360</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-337" name="__codelineno-0-337"></a><span class="k">def</span> <span class="nf">mask_to_xyxy</span><span class="p">(</span><span class="n">masks</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<a id="__codelineno-0-338" name="__codelineno-0-338"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-339" name="__codelineno-0-339"></a><span class="sd">    Converts a 3D `np.array` of 2D bool masks into a 2D `np.array` of bounding boxes.</span>
-<a id="__codelineno-0-340" name="__codelineno-0-340"></a>
-<a id="__codelineno-0-341" name="__codelineno-0-341"></a><span class="sd">    Parameters:</span>
-<a id="__codelineno-0-342" name="__codelineno-0-342"></a><span class="sd">        masks (np.ndarray): A 3D `np.array` of shape `(N, W, H)`</span>
-<a id="__codelineno-0-343" name="__codelineno-0-343"></a><span class="sd">            containing 2D bool masks</span>
-<a id="__codelineno-0-344" name="__codelineno-0-344"></a>
-<a id="__codelineno-0-345" name="__codelineno-0-345"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-346" name="__codelineno-0-346"></a><span class="sd">        np.ndarray: A 2D `np.array` of shape `(N, 4)` containing the bounding boxes</span>
-<a id="__codelineno-0-347" name="__codelineno-0-347"></a><span class="sd">            `(x_min, y_min, x_max, y_max)` for each mask</span>
-<a id="__codelineno-0-348" name="__codelineno-0-348"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-349" name="__codelineno-0-349"></a>    <span class="n">n</span> <span class="o">=</span> <span class="n">masks</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-<a id="__codelineno-0-350" name="__codelineno-0-350"></a>    <span class="n">bboxes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
-<a id="__codelineno-0-351" name="__codelineno-0-351"></a>
-<a id="__codelineno-0-352" name="__codelineno-0-352"></a>    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">mask</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">masks</span><span class="p">):</span>
-<a id="__codelineno-0-353" name="__codelineno-0-353"></a>        <span class="n">rows</span><span class="p">,</span> <span class="n">cols</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span>
-<a id="__codelineno-0-354" name="__codelineno-0-354"></a>
-<a id="__codelineno-0-355" name="__codelineno-0-355"></a>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">cols</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-<a id="__codelineno-0-356" name="__codelineno-0-356"></a>            <span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">cols</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">cols</span><span class="p">)</span>
-<a id="__codelineno-0-357" name="__codelineno-0-357"></a>            <span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">rows</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span>
-<a id="__codelineno-0-358" name="__codelineno-0-358"></a>            <span class="n">bboxes</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">x_min</span><span class="p">,</span> <span class="n">y_min</span><span class="p">,</span> <span class="n">x_max</span><span class="p">,</span> <span class="n">y_max</span><span class="p">]</span>
-<a id="__codelineno-0-359" name="__codelineno-0-359"></a>
-<a id="__codelineno-0-360" name="__codelineno-0-360"></a>    <span class="k">return</span> <span class="n">bboxes</span>
+<span class="normal"><a href="#__codelineno-0-360">360</a></span>
+<span class="normal"><a href="#__codelineno-0-361">361</a></span>
+<span class="normal"><a href="#__codelineno-0-362">362</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-339" name="__codelineno-0-339"></a><span class="k">def</span> <span class="nf">mask_to_xyxy</span><span class="p">(</span><span class="n">masks</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a id="__codelineno-0-340" name="__codelineno-0-340"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-341" name="__codelineno-0-341"></a><span class="sd">    Converts a 3D `np.array` of 2D bool masks into a 2D `np.array` of bounding boxes.</span>
+<a id="__codelineno-0-342" name="__codelineno-0-342"></a>
+<a id="__codelineno-0-343" name="__codelineno-0-343"></a><span class="sd">    Parameters:</span>
+<a id="__codelineno-0-344" name="__codelineno-0-344"></a><span class="sd">        masks (np.ndarray): A 3D `np.array` of shape `(N, W, H)`</span>
+<a id="__codelineno-0-345" name="__codelineno-0-345"></a><span class="sd">            containing 2D bool masks</span>
+<a id="__codelineno-0-346" name="__codelineno-0-346"></a>
+<a id="__codelineno-0-347" name="__codelineno-0-347"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-348" name="__codelineno-0-348"></a><span class="sd">        np.ndarray: A 2D `np.array` of shape `(N, 4)` containing the bounding boxes</span>
+<a id="__codelineno-0-349" name="__codelineno-0-349"></a><span class="sd">            `(x_min, y_min, x_max, y_max)` for each mask</span>
+<a id="__codelineno-0-350" name="__codelineno-0-350"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-351" name="__codelineno-0-351"></a>    <span class="n">n</span> <span class="o">=</span> <span class="n">masks</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<a id="__codelineno-0-352" name="__codelineno-0-352"></a>    <span class="n">bboxes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+<a id="__codelineno-0-353" name="__codelineno-0-353"></a>
+<a id="__codelineno-0-354" name="__codelineno-0-354"></a>    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">mask</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">masks</span><span class="p">):</span>
+<a id="__codelineno-0-355" name="__codelineno-0-355"></a>        <span class="n">rows</span><span class="p">,</span> <span class="n">cols</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span>
+<a id="__codelineno-0-356" name="__codelineno-0-356"></a>
+<a id="__codelineno-0-357" name="__codelineno-0-357"></a>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">cols</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+<a id="__codelineno-0-358" name="__codelineno-0-358"></a>            <span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">cols</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">cols</span><span class="p">)</span>
+<a id="__codelineno-0-359" name="__codelineno-0-359"></a>            <span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">rows</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span>
+<a id="__codelineno-0-360" name="__codelineno-0-360"></a>            <span class="n">bboxes</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">x_min</span><span class="p">,</span> <span class="n">y_min</span><span class="p">,</span> <span class="n">x_max</span><span class="p">,</span> <span class="n">y_max</span><span class="p">]</span>
+<a id="__codelineno-0-361" name="__codelineno-0-361"></a>
+<a id="__codelineno-0-362" name="__codelineno-0-362"></a>    <span class="k">return</span> <span class="n">bboxes</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3220,9 +3224,7 @@ are excluded from the output.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/detection/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-363">363</a></span>
-<span class="normal"><a href="#__codelineno-0-364">364</a></span>
-<span class="normal"><a href="#__codelineno-0-365">365</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-365">365</a></span>
 <span class="normal"><a href="#__codelineno-0-366">366</a></span>
 <span class="normal"><a href="#__codelineno-0-367">367</a></span>
 <span class="normal"><a href="#__codelineno-0-368">368</a></span>
@@ -3243,30 +3245,32 @@ are excluded from the output.</p>
 <span class="normal"><a href="#__codelineno-0-383">383</a></span>
 <span class="normal"><a href="#__codelineno-0-384">384</a></span>
 <span class="normal"><a href="#__codelineno-0-385">385</a></span>
-<span class="normal"><a href="#__codelineno-0-386">386</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-363" name="__codelineno-0-363"></a><span class="k">def</span> <span class="nf">mask_to_polygons</span><span class="p">(</span><span class="n">mask</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
-<a id="__codelineno-0-364" name="__codelineno-0-364"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-365" name="__codelineno-0-365"></a><span class="sd">    Converts a binary mask to a list of polygons.</span>
-<a id="__codelineno-0-366" name="__codelineno-0-366"></a>
-<a id="__codelineno-0-367" name="__codelineno-0-367"></a><span class="sd">    Parameters:</span>
-<a id="__codelineno-0-368" name="__codelineno-0-368"></a><span class="sd">        mask (np.ndarray): A binary mask represented as a 2D NumPy array of</span>
-<a id="__codelineno-0-369" name="__codelineno-0-369"></a><span class="sd">            shape `(H, W)`, where H and W are the height and width of</span>
-<a id="__codelineno-0-370" name="__codelineno-0-370"></a><span class="sd">            the mask, respectively.</span>
-<a id="__codelineno-0-371" name="__codelineno-0-371"></a>
-<a id="__codelineno-0-372" name="__codelineno-0-372"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-373" name="__codelineno-0-373"></a><span class="sd">        List[np.ndarray]: A list of polygons, where each polygon is represented by a</span>
-<a id="__codelineno-0-374" name="__codelineno-0-374"></a><span class="sd">            NumPy array of shape `(N, 2)`, containing the `x`, `y` coordinates</span>
-<a id="__codelineno-0-375" name="__codelineno-0-375"></a><span class="sd">            of the points. Polygons with fewer points than `MIN_POLYGON_POINT_COUNT = 3`</span>
-<a id="__codelineno-0-376" name="__codelineno-0-376"></a><span class="sd">            are excluded from the output.</span>
-<a id="__codelineno-0-377" name="__codelineno-0-377"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-378" name="__codelineno-0-378"></a>
-<a id="__codelineno-0-379" name="__codelineno-0-379"></a>    <span class="n">contours</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">findContours</span><span class="p">(</span>
-<a id="__codelineno-0-380" name="__codelineno-0-380"></a>        <span class="n">mask</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">),</span> <span class="n">cv2</span><span class="o">.</span><span class="n">RETR_TREE</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">CHAIN_APPROX_SIMPLE</span>
-<a id="__codelineno-0-381" name="__codelineno-0-381"></a>    <span class="p">)</span>
-<a id="__codelineno-0-382" name="__codelineno-0-382"></a>    <span class="k">return</span> <span class="p">[</span>
-<a id="__codelineno-0-383" name="__codelineno-0-383"></a>        <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">contour</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-<a id="__codelineno-0-384" name="__codelineno-0-384"></a>        <span class="k">for</span> <span class="n">contour</span> <span class="ow">in</span> <span class="n">contours</span>
-<a id="__codelineno-0-385" name="__codelineno-0-385"></a>        <span class="k">if</span> <span class="n">contour</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">MIN_POLYGON_POINT_COUNT</span>
-<a id="__codelineno-0-386" name="__codelineno-0-386"></a>    <span class="p">]</span>
+<span class="normal"><a href="#__codelineno-0-386">386</a></span>
+<span class="normal"><a href="#__codelineno-0-387">387</a></span>
+<span class="normal"><a href="#__codelineno-0-388">388</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-365" name="__codelineno-0-365"></a><span class="k">def</span> <span class="nf">mask_to_polygons</span><span class="p">(</span><span class="n">mask</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<a id="__codelineno-0-366" name="__codelineno-0-366"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-367" name="__codelineno-0-367"></a><span class="sd">    Converts a binary mask to a list of polygons.</span>
+<a id="__codelineno-0-368" name="__codelineno-0-368"></a>
+<a id="__codelineno-0-369" name="__codelineno-0-369"></a><span class="sd">    Parameters:</span>
+<a id="__codelineno-0-370" name="__codelineno-0-370"></a><span class="sd">        mask (np.ndarray): A binary mask represented as a 2D NumPy array of</span>
+<a id="__codelineno-0-371" name="__codelineno-0-371"></a><span class="sd">            shape `(H, W)`, where H and W are the height and width of</span>
+<a id="__codelineno-0-372" name="__codelineno-0-372"></a><span class="sd">            the mask, respectively.</span>
+<a id="__codelineno-0-373" name="__codelineno-0-373"></a>
+<a id="__codelineno-0-374" name="__codelineno-0-374"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-375" name="__codelineno-0-375"></a><span class="sd">        List[np.ndarray]: A list of polygons, where each polygon is represented by a</span>
+<a id="__codelineno-0-376" name="__codelineno-0-376"></a><span class="sd">            NumPy array of shape `(N, 2)`, containing the `x`, `y` coordinates</span>
+<a id="__codelineno-0-377" name="__codelineno-0-377"></a><span class="sd">            of the points. Polygons with fewer points than `MIN_POLYGON_POINT_COUNT = 3`</span>
+<a id="__codelineno-0-378" name="__codelineno-0-378"></a><span class="sd">            are excluded from the output.</span>
+<a id="__codelineno-0-379" name="__codelineno-0-379"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-380" name="__codelineno-0-380"></a>
+<a id="__codelineno-0-381" name="__codelineno-0-381"></a>    <span class="n">contours</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">findContours</span><span class="p">(</span>
+<a id="__codelineno-0-382" name="__codelineno-0-382"></a>        <span class="n">mask</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">),</span> <span class="n">cv2</span><span class="o">.</span><span class="n">RETR_TREE</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">CHAIN_APPROX_SIMPLE</span>
+<a id="__codelineno-0-383" name="__codelineno-0-383"></a>    <span class="p">)</span>
+<a id="__codelineno-0-384" name="__codelineno-0-384"></a>    <span class="k">return</span> <span class="p">[</span>
+<a id="__codelineno-0-385" name="__codelineno-0-385"></a>        <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">contour</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<a id="__codelineno-0-386" name="__codelineno-0-386"></a>        <span class="k">for</span> <span class="n">contour</span> <span class="ow">in</span> <span class="n">contours</span>
+<a id="__codelineno-0-387" name="__codelineno-0-387"></a>        <span class="k">if</span> <span class="n">contour</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">MIN_POLYGON_POINT_COUNT</span>
+<a id="__codelineno-0-388" name="__codelineno-0-388"></a>    <span class="p">]</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3342,9 +3346,7 @@ containing the <code>x</code>, <code>y</code> coordinates of the points.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/detection/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-425">425</a></span>
-<span class="normal"><a href="#__codelineno-0-426">426</a></span>
-<span class="normal"><a href="#__codelineno-0-427">427</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-427">427</a></span>
 <span class="normal"><a href="#__codelineno-0-428">428</a></span>
 <span class="normal"><a href="#__codelineno-0-429">429</a></span>
 <span class="normal"><a href="#__codelineno-0-430">430</a></span>
@@ -3356,21 +3358,23 @@ containing the <code>x</code>, <code>y</code> coordinates of the points.</p>
 <span class="normal"><a href="#__codelineno-0-436">436</a></span>
 <span class="normal"><a href="#__codelineno-0-437">437</a></span>
 <span class="normal"><a href="#__codelineno-0-438">438</a></span>
-<span class="normal"><a href="#__codelineno-0-439">439</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-425" name="__codelineno-0-425"></a><span class="k">def</span> <span class="nf">polygon_to_xyxy</span><span class="p">(</span><span class="n">polygon</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<a id="__codelineno-0-426" name="__codelineno-0-426"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-427" name="__codelineno-0-427"></a><span class="sd">    Converts a polygon represented by a NumPy array into a bounding box.</span>
-<a id="__codelineno-0-428" name="__codelineno-0-428"></a>
-<a id="__codelineno-0-429" name="__codelineno-0-429"></a><span class="sd">    Parameters:</span>
-<a id="__codelineno-0-430" name="__codelineno-0-430"></a><span class="sd">        polygon (np.ndarray): A polygon represented by a NumPy array of shape `(N, 2)`,</span>
-<a id="__codelineno-0-431" name="__codelineno-0-431"></a><span class="sd">            containing the `x`, `y` coordinates of the points.</span>
-<a id="__codelineno-0-432" name="__codelineno-0-432"></a>
-<a id="__codelineno-0-433" name="__codelineno-0-433"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-434" name="__codelineno-0-434"></a><span class="sd">        np.ndarray: A 1D NumPy array containing the bounding box</span>
-<a id="__codelineno-0-435" name="__codelineno-0-435"></a><span class="sd">            `(x_min, y_min, x_max, y_max)` of the input polygon.</span>
-<a id="__codelineno-0-436" name="__codelineno-0-436"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-437" name="__codelineno-0-437"></a>    <span class="n">x_min</span><span class="p">,</span> <span class="n">y_min</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">polygon</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-<a id="__codelineno-0-438" name="__codelineno-0-438"></a>    <span class="n">x_max</span><span class="p">,</span> <span class="n">y_max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">polygon</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-<a id="__codelineno-0-439" name="__codelineno-0-439"></a>    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">x_min</span><span class="p">,</span> <span class="n">y_min</span><span class="p">,</span> <span class="n">x_max</span><span class="p">,</span> <span class="n">y_max</span><span class="p">])</span>
+<span class="normal"><a href="#__codelineno-0-439">439</a></span>
+<span class="normal"><a href="#__codelineno-0-440">440</a></span>
+<span class="normal"><a href="#__codelineno-0-441">441</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-427" name="__codelineno-0-427"></a><span class="k">def</span> <span class="nf">polygon_to_xyxy</span><span class="p">(</span><span class="n">polygon</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a id="__codelineno-0-428" name="__codelineno-0-428"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-429" name="__codelineno-0-429"></a><span class="sd">    Converts a polygon represented by a NumPy array into a bounding box.</span>
+<a id="__codelineno-0-430" name="__codelineno-0-430"></a>
+<a id="__codelineno-0-431" name="__codelineno-0-431"></a><span class="sd">    Parameters:</span>
+<a id="__codelineno-0-432" name="__codelineno-0-432"></a><span class="sd">        polygon (np.ndarray): A polygon represented by a NumPy array of shape `(N, 2)`,</span>
+<a id="__codelineno-0-433" name="__codelineno-0-433"></a><span class="sd">            containing the `x`, `y` coordinates of the points.</span>
+<a id="__codelineno-0-434" name="__codelineno-0-434"></a>
+<a id="__codelineno-0-435" name="__codelineno-0-435"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-436" name="__codelineno-0-436"></a><span class="sd">        np.ndarray: A 1D NumPy array containing the bounding box</span>
+<a id="__codelineno-0-437" name="__codelineno-0-437"></a><span class="sd">            `(x_min, y_min, x_max, y_max)` of the input polygon.</span>
+<a id="__codelineno-0-438" name="__codelineno-0-438"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-439" name="__codelineno-0-439"></a>    <span class="n">x_min</span><span class="p">,</span> <span class="n">y_min</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">polygon</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-0-440" name="__codelineno-0-440"></a>    <span class="n">x_max</span><span class="p">,</span> <span class="n">y_max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">polygon</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-0-441" name="__codelineno-0-441"></a>    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">x_min</span><span class="p">,</span> <span class="n">y_min</span><span class="p">,</span> <span class="n">x_max</span><span class="p">,</span> <span class="n">y_max</span><span class="p">])</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3481,9 +3485,7 @@ areas within the specified thresholds.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/detection/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-389">389</a></span>
-<span class="normal"><a href="#__codelineno-0-390">390</a></span>
-<span class="normal"><a href="#__codelineno-0-391">391</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-391">391</a></span>
 <span class="normal"><a href="#__codelineno-0-392">392</a></span>
 <span class="normal"><a href="#__codelineno-0-393">393</a></span>
 <span class="normal"><a href="#__codelineno-0-394">394</a></span>
@@ -3514,40 +3516,42 @@ areas within the specified thresholds.</p>
 <span class="normal"><a href="#__codelineno-0-419">419</a></span>
 <span class="normal"><a href="#__codelineno-0-420">420</a></span>
 <span class="normal"><a href="#__codelineno-0-421">421</a></span>
-<span class="normal"><a href="#__codelineno-0-422">422</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-389" name="__codelineno-0-389"></a><span class="k">def</span> <span class="nf">filter_polygons_by_area</span><span class="p">(</span>
-<a id="__codelineno-0-390" name="__codelineno-0-390"></a>    <span class="n">polygons</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
-<a id="__codelineno-0-391" name="__codelineno-0-391"></a>    <span class="n">min_area</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-392" name="__codelineno-0-392"></a>    <span class="n">max_area</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-393" name="__codelineno-0-393"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
-<a id="__codelineno-0-394" name="__codelineno-0-394"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-395" name="__codelineno-0-395"></a><span class="sd">    Filters a list of polygons based on their area.</span>
-<a id="__codelineno-0-396" name="__codelineno-0-396"></a>
-<a id="__codelineno-0-397" name="__codelineno-0-397"></a><span class="sd">    Parameters:</span>
-<a id="__codelineno-0-398" name="__codelineno-0-398"></a><span class="sd">        polygons (List[np.ndarray]): A list of polygons, where each polygon is</span>
-<a id="__codelineno-0-399" name="__codelineno-0-399"></a><span class="sd">            represented by a NumPy array of shape `(N, 2)`,</span>
-<a id="__codelineno-0-400" name="__codelineno-0-400"></a><span class="sd">            containing the `x`, `y` coordinates of the points.</span>
-<a id="__codelineno-0-401" name="__codelineno-0-401"></a><span class="sd">        min_area (Optional[float]): The minimum area threshold.</span>
-<a id="__codelineno-0-402" name="__codelineno-0-402"></a><span class="sd">            Only polygons with an area greater than or equal to this value</span>
-<a id="__codelineno-0-403" name="__codelineno-0-403"></a><span class="sd">            will be included in the output. If set to None,</span>
-<a id="__codelineno-0-404" name="__codelineno-0-404"></a><span class="sd">            no minimum area constraint will be applied.</span>
-<a id="__codelineno-0-405" name="__codelineno-0-405"></a><span class="sd">        max_area (Optional[float]): The maximum area threshold.</span>
-<a id="__codelineno-0-406" name="__codelineno-0-406"></a><span class="sd">            Only polygons with an area less than or equal to this value</span>
-<a id="__codelineno-0-407" name="__codelineno-0-407"></a><span class="sd">            will be included in the output. If set to None,</span>
-<a id="__codelineno-0-408" name="__codelineno-0-408"></a><span class="sd">            no maximum area constraint will be applied.</span>
-<a id="__codelineno-0-409" name="__codelineno-0-409"></a>
-<a id="__codelineno-0-410" name="__codelineno-0-410"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-411" name="__codelineno-0-411"></a><span class="sd">        List[np.ndarray]: A new list of polygons containing only those with</span>
-<a id="__codelineno-0-412" name="__codelineno-0-412"></a><span class="sd">            areas within the specified thresholds.</span>
-<a id="__codelineno-0-413" name="__codelineno-0-413"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-414" name="__codelineno-0-414"></a>    <span class="k">if</span> <span class="n">min_area</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">max_area</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-415" name="__codelineno-0-415"></a>        <span class="k">return</span> <span class="n">polygons</span>
-<a id="__codelineno-0-416" name="__codelineno-0-416"></a>    <span class="n">ares</span> <span class="o">=</span> <span class="p">[</span><span class="n">cv2</span><span class="o">.</span><span class="n">contourArea</span><span class="p">(</span><span class="n">polygon</span><span class="p">)</span> <span class="k">for</span> <span class="n">polygon</span> <span class="ow">in</span> <span class="n">polygons</span><span class="p">]</span>
-<a id="__codelineno-0-417" name="__codelineno-0-417"></a>    <span class="k">return</span> <span class="p">[</span>
-<a id="__codelineno-0-418" name="__codelineno-0-418"></a>        <span class="n">polygon</span>
-<a id="__codelineno-0-419" name="__codelineno-0-419"></a>        <span class="k">for</span> <span class="n">polygon</span><span class="p">,</span> <span class="n">area</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">polygons</span><span class="p">,</span> <span class="n">ares</span><span class="p">)</span>
-<a id="__codelineno-0-420" name="__codelineno-0-420"></a>        <span class="k">if</span> <span class="p">(</span><span class="n">min_area</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">area</span> <span class="o">&gt;=</span> <span class="n">min_area</span><span class="p">)</span>
-<a id="__codelineno-0-421" name="__codelineno-0-421"></a>        <span class="ow">and</span> <span class="p">(</span><span class="n">max_area</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">area</span> <span class="o">&lt;=</span> <span class="n">max_area</span><span class="p">)</span>
-<a id="__codelineno-0-422" name="__codelineno-0-422"></a>    <span class="p">]</span>
+<span class="normal"><a href="#__codelineno-0-422">422</a></span>
+<span class="normal"><a href="#__codelineno-0-423">423</a></span>
+<span class="normal"><a href="#__codelineno-0-424">424</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-391" name="__codelineno-0-391"></a><span class="k">def</span> <span class="nf">filter_polygons_by_area</span><span class="p">(</span>
+<a id="__codelineno-0-392" name="__codelineno-0-392"></a>    <span class="n">polygons</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
+<a id="__codelineno-0-393" name="__codelineno-0-393"></a>    <span class="n">min_area</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-394" name="__codelineno-0-394"></a>    <span class="n">max_area</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-395" name="__codelineno-0-395"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<a id="__codelineno-0-396" name="__codelineno-0-396"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-397" name="__codelineno-0-397"></a><span class="sd">    Filters a list of polygons based on their area.</span>
+<a id="__codelineno-0-398" name="__codelineno-0-398"></a>
+<a id="__codelineno-0-399" name="__codelineno-0-399"></a><span class="sd">    Parameters:</span>
+<a id="__codelineno-0-400" name="__codelineno-0-400"></a><span class="sd">        polygons (List[np.ndarray]): A list of polygons, where each polygon is</span>
+<a id="__codelineno-0-401" name="__codelineno-0-401"></a><span class="sd">            represented by a NumPy array of shape `(N, 2)`,</span>
+<a id="__codelineno-0-402" name="__codelineno-0-402"></a><span class="sd">            containing the `x`, `y` coordinates of the points.</span>
+<a id="__codelineno-0-403" name="__codelineno-0-403"></a><span class="sd">        min_area (Optional[float]): The minimum area threshold.</span>
+<a id="__codelineno-0-404" name="__codelineno-0-404"></a><span class="sd">            Only polygons with an area greater than or equal to this value</span>
+<a id="__codelineno-0-405" name="__codelineno-0-405"></a><span class="sd">            will be included in the output. If set to None,</span>
+<a id="__codelineno-0-406" name="__codelineno-0-406"></a><span class="sd">            no minimum area constraint will be applied.</span>
+<a id="__codelineno-0-407" name="__codelineno-0-407"></a><span class="sd">        max_area (Optional[float]): The maximum area threshold.</span>
+<a id="__codelineno-0-408" name="__codelineno-0-408"></a><span class="sd">            Only polygons with an area less than or equal to this value</span>
+<a id="__codelineno-0-409" name="__codelineno-0-409"></a><span class="sd">            will be included in the output. If set to None,</span>
+<a id="__codelineno-0-410" name="__codelineno-0-410"></a><span class="sd">            no maximum area constraint will be applied.</span>
+<a id="__codelineno-0-411" name="__codelineno-0-411"></a>
+<a id="__codelineno-0-412" name="__codelineno-0-412"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-413" name="__codelineno-0-413"></a><span class="sd">        List[np.ndarray]: A new list of polygons containing only those with</span>
+<a id="__codelineno-0-414" name="__codelineno-0-414"></a><span class="sd">            areas within the specified thresholds.</span>
+<a id="__codelineno-0-415" name="__codelineno-0-415"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-416" name="__codelineno-0-416"></a>    <span class="k">if</span> <span class="n">min_area</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">max_area</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-417" name="__codelineno-0-417"></a>        <span class="k">return</span> <span class="n">polygons</span>
+<a id="__codelineno-0-418" name="__codelineno-0-418"></a>    <span class="n">ares</span> <span class="o">=</span> <span class="p">[</span><span class="n">cv2</span><span class="o">.</span><span class="n">contourArea</span><span class="p">(</span><span class="n">polygon</span><span class="p">)</span> <span class="k">for</span> <span class="n">polygon</span> <span class="ow">in</span> <span class="n">polygons</span><span class="p">]</span>
+<a id="__codelineno-0-419" name="__codelineno-0-419"></a>    <span class="k">return</span> <span class="p">[</span>
+<a id="__codelineno-0-420" name="__codelineno-0-420"></a>        <span class="n">polygon</span>
+<a id="__codelineno-0-421" name="__codelineno-0-421"></a>        <span class="k">for</span> <span class="n">polygon</span><span class="p">,</span> <span class="n">area</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">polygons</span><span class="p">,</span> <span class="n">ares</span><span class="p">)</span>
+<a id="__codelineno-0-422" name="__codelineno-0-422"></a>        <span class="k">if</span> <span class="p">(</span><span class="n">min_area</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">area</span> <span class="o">&gt;=</span> <span class="n">min_area</span><span class="p">)</span>
+<a id="__codelineno-0-423" name="__codelineno-0-423"></a>        <span class="ow">and</span> <span class="p">(</span><span class="n">max_area</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">area</span> <span class="o">&lt;=</span> <span class="n">max_area</span><span class="p">)</span>
+<a id="__codelineno-0-424" name="__codelineno-0-424"></a>    <span class="p">]</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3654,9 +3658,7 @@ is <code>[dx, dy]</code>.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/detection/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-596">596</a></span>
-<span class="normal"><a href="#__codelineno-0-597">597</a></span>
-<span class="normal"><a href="#__codelineno-0-598">598</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-598">598</a></span>
 <span class="normal"><a href="#__codelineno-0-599">599</a></span>
 <span class="normal"><a href="#__codelineno-0-600">600</a></span>
 <span class="normal"><a href="#__codelineno-0-601">601</a></span>
@@ -3683,36 +3685,38 @@ is <code>[dx, dy]</code>.</p>
 <span class="normal"><a href="#__codelineno-0-622">622</a></span>
 <span class="normal"><a href="#__codelineno-0-623">623</a></span>
 <span class="normal"><a href="#__codelineno-0-624">624</a></span>
-<span class="normal"><a href="#__codelineno-0-625">625</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-596" name="__codelineno-0-596"></a><span class="k">def</span> <span class="nf">move_boxes</span><span class="p">(</span><span class="n">xyxy</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">offset</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<a id="__codelineno-0-597" name="__codelineno-0-597"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-598" name="__codelineno-0-598"></a><span class="sd">    Parameters:</span>
-<a id="__codelineno-0-599" name="__codelineno-0-599"></a><span class="sd">        xyxy (np.ndarray): An array of shape `(n, 4)` containing the bounding boxes</span>
-<a id="__codelineno-0-600" name="__codelineno-0-600"></a><span class="sd">            coordinates in format `[x1, y1, x2, y2]`</span>
-<a id="__codelineno-0-601" name="__codelineno-0-601"></a><span class="sd">        offset (np.array): An array of shape `(2,)` containing offset values in format</span>
-<a id="__codelineno-0-602" name="__codelineno-0-602"></a><span class="sd">            is `[dx, dy]`.</span>
-<a id="__codelineno-0-603" name="__codelineno-0-603"></a>
-<a id="__codelineno-0-604" name="__codelineno-0-604"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-605" name="__codelineno-0-605"></a><span class="sd">        np.ndarray: Repositioned bounding boxes.</span>
-<a id="__codelineno-0-606" name="__codelineno-0-606"></a>
-<a id="__codelineno-0-607" name="__codelineno-0-607"></a><span class="sd">    Examples:</span>
-<a id="__codelineno-0-608" name="__codelineno-0-608"></a><span class="sd">        ```python</span>
-<a id="__codelineno-0-609" name="__codelineno-0-609"></a><span class="sd">        import numpy as np</span>
-<a id="__codelineno-0-610" name="__codelineno-0-610"></a><span class="sd">        import supervision as sv</span>
-<a id="__codelineno-0-611" name="__codelineno-0-611"></a>
-<a id="__codelineno-0-612" name="__codelineno-0-612"></a><span class="sd">        xyxy = np.array([</span>
-<a id="__codelineno-0-613" name="__codelineno-0-613"></a><span class="sd">            [10, 10, 20, 20],</span>
-<a id="__codelineno-0-614" name="__codelineno-0-614"></a><span class="sd">            [30, 30, 40, 40]</span>
-<a id="__codelineno-0-615" name="__codelineno-0-615"></a><span class="sd">        ])</span>
-<a id="__codelineno-0-616" name="__codelineno-0-616"></a><span class="sd">        offset = np.array([5, 5])</span>
-<a id="__codelineno-0-617" name="__codelineno-0-617"></a>
-<a id="__codelineno-0-618" name="__codelineno-0-618"></a><span class="sd">        sv.move_boxes(xyxy=xyxy, offset=offset)</span>
-<a id="__codelineno-0-619" name="__codelineno-0-619"></a><span class="sd">        # array([</span>
-<a id="__codelineno-0-620" name="__codelineno-0-620"></a><span class="sd">        #    [15, 15, 25, 25],</span>
-<a id="__codelineno-0-621" name="__codelineno-0-621"></a><span class="sd">        #    [35, 35, 45, 45]</span>
-<a id="__codelineno-0-622" name="__codelineno-0-622"></a><span class="sd">        # ])</span>
-<a id="__codelineno-0-623" name="__codelineno-0-623"></a><span class="sd">        ```</span>
-<a id="__codelineno-0-624" name="__codelineno-0-624"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-625" name="__codelineno-0-625"></a>    <span class="k">return</span> <span class="n">xyxy</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span><span class="n">offset</span><span class="p">,</span> <span class="n">offset</span><span class="p">])</span>
+<span class="normal"><a href="#__codelineno-0-625">625</a></span>
+<span class="normal"><a href="#__codelineno-0-626">626</a></span>
+<span class="normal"><a href="#__codelineno-0-627">627</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-598" name="__codelineno-0-598"></a><span class="k">def</span> <span class="nf">move_boxes</span><span class="p">(</span><span class="n">xyxy</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">offset</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a id="__codelineno-0-599" name="__codelineno-0-599"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-600" name="__codelineno-0-600"></a><span class="sd">    Parameters:</span>
+<a id="__codelineno-0-601" name="__codelineno-0-601"></a><span class="sd">        xyxy (np.ndarray): An array of shape `(n, 4)` containing the bounding boxes</span>
+<a id="__codelineno-0-602" name="__codelineno-0-602"></a><span class="sd">            coordinates in format `[x1, y1, x2, y2]`</span>
+<a id="__codelineno-0-603" name="__codelineno-0-603"></a><span class="sd">        offset (np.array): An array of shape `(2,)` containing offset values in format</span>
+<a id="__codelineno-0-604" name="__codelineno-0-604"></a><span class="sd">            is `[dx, dy]`.</span>
+<a id="__codelineno-0-605" name="__codelineno-0-605"></a>
+<a id="__codelineno-0-606" name="__codelineno-0-606"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-607" name="__codelineno-0-607"></a><span class="sd">        np.ndarray: Repositioned bounding boxes.</span>
+<a id="__codelineno-0-608" name="__codelineno-0-608"></a>
+<a id="__codelineno-0-609" name="__codelineno-0-609"></a><span class="sd">    Examples:</span>
+<a id="__codelineno-0-610" name="__codelineno-0-610"></a><span class="sd">        ```python</span>
+<a id="__codelineno-0-611" name="__codelineno-0-611"></a><span class="sd">        import numpy as np</span>
+<a id="__codelineno-0-612" name="__codelineno-0-612"></a><span class="sd">        import supervision as sv</span>
+<a id="__codelineno-0-613" name="__codelineno-0-613"></a>
+<a id="__codelineno-0-614" name="__codelineno-0-614"></a><span class="sd">        xyxy = np.array([</span>
+<a id="__codelineno-0-615" name="__codelineno-0-615"></a><span class="sd">            [10, 10, 20, 20],</span>
+<a id="__codelineno-0-616" name="__codelineno-0-616"></a><span class="sd">            [30, 30, 40, 40]</span>
+<a id="__codelineno-0-617" name="__codelineno-0-617"></a><span class="sd">        ])</span>
+<a id="__codelineno-0-618" name="__codelineno-0-618"></a><span class="sd">        offset = np.array([5, 5])</span>
+<a id="__codelineno-0-619" name="__codelineno-0-619"></a>
+<a id="__codelineno-0-620" name="__codelineno-0-620"></a><span class="sd">        sv.move_boxes(xyxy=xyxy, offset=offset)</span>
+<a id="__codelineno-0-621" name="__codelineno-0-621"></a><span class="sd">        # array([</span>
+<a id="__codelineno-0-622" name="__codelineno-0-622"></a><span class="sd">        #    [15, 15, 25, 25],</span>
+<a id="__codelineno-0-623" name="__codelineno-0-623"></a><span class="sd">        #    [35, 35, 45, 45]</span>
+<a id="__codelineno-0-624" name="__codelineno-0-624"></a><span class="sd">        # ])</span>
+<a id="__codelineno-0-625" name="__codelineno-0-625"></a><span class="sd">        ```</span>
+<a id="__codelineno-0-626" name="__codelineno-0-626"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-627" name="__codelineno-0-627"></a>    <span class="k">return</span> <span class="n">xyxy</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span><span class="n">offset</span><span class="p">,</span> <span class="n">offset</span><span class="p">])</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3818,9 +3822,7 @@ resolution.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/detection/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-628">628</a></span>
-<span class="normal"><a href="#__codelineno-0-629">629</a></span>
-<span class="normal"><a href="#__codelineno-0-630">630</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-630">630</a></span>
 <span class="normal"><a href="#__codelineno-0-631">631</a></span>
 <span class="normal"><a href="#__codelineno-0-632">632</a></span>
 <span class="normal"><a href="#__codelineno-0-633">633</a></span>
@@ -3849,38 +3851,40 @@ resolution.</p>
 <span class="normal"><a href="#__codelineno-0-656">656</a></span>
 <span class="normal"><a href="#__codelineno-0-657">657</a></span>
 <span class="normal"><a href="#__codelineno-0-658">658</a></span>
-<span class="normal"><a href="#__codelineno-0-659">659</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-628" name="__codelineno-0-628"></a><span class="k">def</span> <span class="nf">move_masks</span><span class="p">(</span>
-<a id="__codelineno-0-629" name="__codelineno-0-629"></a>    <span class="n">masks</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-<a id="__codelineno-0-630" name="__codelineno-0-630"></a>    <span class="n">offset</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-<a id="__codelineno-0-631" name="__codelineno-0-631"></a>    <span class="n">resolution_wh</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-632" name="__codelineno-0-632"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<a id="__codelineno-0-633" name="__codelineno-0-633"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-634" name="__codelineno-0-634"></a><span class="sd">    Offset the masks in an array by the specified (x, y) amount.</span>
-<a id="__codelineno-0-635" name="__codelineno-0-635"></a>
-<a id="__codelineno-0-636" name="__codelineno-0-636"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-637" name="__codelineno-0-637"></a><span class="sd">        masks (np.ndarray): A 3D array of binary masks corresponding to the predictions.</span>
-<a id="__codelineno-0-638" name="__codelineno-0-638"></a><span class="sd">            Shape: `(N, H, W)`, where N is the number of predictions, and H, W are the</span>
-<a id="__codelineno-0-639" name="__codelineno-0-639"></a><span class="sd">            dimensions of each mask.</span>
-<a id="__codelineno-0-640" name="__codelineno-0-640"></a><span class="sd">        offset (np.ndarray): An array of shape `(2,)` containing non-negative int values</span>
-<a id="__codelineno-0-641" name="__codelineno-0-641"></a><span class="sd">            `[dx, dy]`.</span>
-<a id="__codelineno-0-642" name="__codelineno-0-642"></a><span class="sd">        resolution_wh (Tuple[int, int]): The width and height of the desired mask</span>
-<a id="__codelineno-0-643" name="__codelineno-0-643"></a><span class="sd">            resolution.</span>
-<a id="__codelineno-0-644" name="__codelineno-0-644"></a>
-<a id="__codelineno-0-645" name="__codelineno-0-645"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-646" name="__codelineno-0-646"></a><span class="sd">        (np.ndarray) repositioned masks, optionally padded to the specified shape.</span>
-<a id="__codelineno-0-647" name="__codelineno-0-647"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-648" name="__codelineno-0-648"></a>
-<a id="__codelineno-0-649" name="__codelineno-0-649"></a>    <span class="k">if</span> <span class="n">offset</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">offset</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
-<a id="__codelineno-0-650" name="__codelineno-0-650"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Offset values must be non-negative integers. Got: </span><span class="si">{</span><span class="n">offset</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-651" name="__codelineno-0-651"></a>
-<a id="__codelineno-0-652" name="__codelineno-0-652"></a>    <span class="n">mask_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">masks</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">resolution_wh</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">resolution_wh</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="kc">False</span><span class="p">)</span>
-<a id="__codelineno-0-653" name="__codelineno-0-653"></a>    <span class="n">mask_array</span><span class="p">[</span>
-<a id="__codelineno-0-654" name="__codelineno-0-654"></a>        <span class="p">:,</span>
-<a id="__codelineno-0-655" name="__codelineno-0-655"></a>        <span class="n">offset</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="p">:</span> <span class="n">masks</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">offset</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
-<a id="__codelineno-0-656" name="__codelineno-0-656"></a>        <span class="n">offset</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">:</span> <span class="n">masks</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">offset</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-<a id="__codelineno-0-657" name="__codelineno-0-657"></a>    <span class="p">]</span> <span class="o">=</span> <span class="n">masks</span>
-<a id="__codelineno-0-658" name="__codelineno-0-658"></a>
-<a id="__codelineno-0-659" name="__codelineno-0-659"></a>    <span class="k">return</span> <span class="n">mask_array</span>
+<span class="normal"><a href="#__codelineno-0-659">659</a></span>
+<span class="normal"><a href="#__codelineno-0-660">660</a></span>
+<span class="normal"><a href="#__codelineno-0-661">661</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-630" name="__codelineno-0-630"></a><span class="k">def</span> <span class="nf">move_masks</span><span class="p">(</span>
+<a id="__codelineno-0-631" name="__codelineno-0-631"></a>    <span class="n">masks</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<a id="__codelineno-0-632" name="__codelineno-0-632"></a>    <span class="n">offset</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<a id="__codelineno-0-633" name="__codelineno-0-633"></a>    <span class="n">resolution_wh</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-634" name="__codelineno-0-634"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a id="__codelineno-0-635" name="__codelineno-0-635"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-636" name="__codelineno-0-636"></a><span class="sd">    Offset the masks in an array by the specified (x, y) amount.</span>
+<a id="__codelineno-0-637" name="__codelineno-0-637"></a>
+<a id="__codelineno-0-638" name="__codelineno-0-638"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-639" name="__codelineno-0-639"></a><span class="sd">        masks (np.ndarray): A 3D array of binary masks corresponding to the predictions.</span>
+<a id="__codelineno-0-640" name="__codelineno-0-640"></a><span class="sd">            Shape: `(N, H, W)`, where N is the number of predictions, and H, W are the</span>
+<a id="__codelineno-0-641" name="__codelineno-0-641"></a><span class="sd">            dimensions of each mask.</span>
+<a id="__codelineno-0-642" name="__codelineno-0-642"></a><span class="sd">        offset (np.ndarray): An array of shape `(2,)` containing non-negative int values</span>
+<a id="__codelineno-0-643" name="__codelineno-0-643"></a><span class="sd">            `[dx, dy]`.</span>
+<a id="__codelineno-0-644" name="__codelineno-0-644"></a><span class="sd">        resolution_wh (Tuple[int, int]): The width and height of the desired mask</span>
+<a id="__codelineno-0-645" name="__codelineno-0-645"></a><span class="sd">            resolution.</span>
+<a id="__codelineno-0-646" name="__codelineno-0-646"></a>
+<a id="__codelineno-0-647" name="__codelineno-0-647"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-648" name="__codelineno-0-648"></a><span class="sd">        (np.ndarray) repositioned masks, optionally padded to the specified shape.</span>
+<a id="__codelineno-0-649" name="__codelineno-0-649"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-650" name="__codelineno-0-650"></a>
+<a id="__codelineno-0-651" name="__codelineno-0-651"></a>    <span class="k">if</span> <span class="n">offset</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">offset</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+<a id="__codelineno-0-652" name="__codelineno-0-652"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Offset values must be non-negative integers. Got: </span><span class="si">{</span><span class="n">offset</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-653" name="__codelineno-0-653"></a>
+<a id="__codelineno-0-654" name="__codelineno-0-654"></a>    <span class="n">mask_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">masks</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">resolution_wh</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">resolution_wh</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="kc">False</span><span class="p">)</span>
+<a id="__codelineno-0-655" name="__codelineno-0-655"></a>    <span class="n">mask_array</span><span class="p">[</span>
+<a id="__codelineno-0-656" name="__codelineno-0-656"></a>        <span class="p">:,</span>
+<a id="__codelineno-0-657" name="__codelineno-0-657"></a>        <span class="n">offset</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="p">:</span> <span class="n">masks</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">offset</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+<a id="__codelineno-0-658" name="__codelineno-0-658"></a>        <span class="n">offset</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">:</span> <span class="n">masks</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">offset</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+<a id="__codelineno-0-659" name="__codelineno-0-659"></a>    <span class="p">]</span> <span class="o">=</span> <span class="n">masks</span>
+<a id="__codelineno-0-660" name="__codelineno-0-660"></a>
+<a id="__codelineno-0-661" name="__codelineno-0-661"></a>    <span class="k">return</span> <span class="n">mask_array</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3988,9 +3992,7 @@ factor less than 1 shrinks them.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/detection/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-662">662</a></span>
-<span class="normal"><a href="#__codelineno-0-663">663</a></span>
-<span class="normal"><a href="#__codelineno-0-664">664</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-664">664</a></span>
 <span class="normal"><a href="#__codelineno-0-665">665</a></span>
 <span class="normal"><a href="#__codelineno-0-666">666</a></span>
 <span class="normal"><a href="#__codelineno-0-667">667</a></span>
@@ -4021,40 +4023,42 @@ factor less than 1 shrinks them.</p>
 <span class="normal"><a href="#__codelineno-0-692">692</a></span>
 <span class="normal"><a href="#__codelineno-0-693">693</a></span>
 <span class="normal"><a href="#__codelineno-0-694">694</a></span>
-<span class="normal"><a href="#__codelineno-0-695">695</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-662" name="__codelineno-0-662"></a><span class="k">def</span> <span class="nf">scale_boxes</span><span class="p">(</span><span class="n">xyxy</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">factor</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<a id="__codelineno-0-663" name="__codelineno-0-663"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-664" name="__codelineno-0-664"></a><span class="sd">    Scale the dimensions of bounding boxes.</span>
-<a id="__codelineno-0-665" name="__codelineno-0-665"></a>
-<a id="__codelineno-0-666" name="__codelineno-0-666"></a><span class="sd">    Parameters:</span>
-<a id="__codelineno-0-667" name="__codelineno-0-667"></a><span class="sd">        xyxy (np.ndarray): An array of shape `(n, 4)` containing the bounding boxes</span>
-<a id="__codelineno-0-668" name="__codelineno-0-668"></a><span class="sd">            coordinates in format `[x1, y1, x2, y2]`</span>
-<a id="__codelineno-0-669" name="__codelineno-0-669"></a><span class="sd">        factor (float): A float value representing the factor by which the box</span>
-<a id="__codelineno-0-670" name="__codelineno-0-670"></a><span class="sd">            dimensions are scaled. A factor greater than 1 enlarges the boxes, while a</span>
-<a id="__codelineno-0-671" name="__codelineno-0-671"></a><span class="sd">            factor less than 1 shrinks them.</span>
-<a id="__codelineno-0-672" name="__codelineno-0-672"></a>
-<a id="__codelineno-0-673" name="__codelineno-0-673"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-674" name="__codelineno-0-674"></a><span class="sd">        np.ndarray: Scaled bounding boxes.</span>
-<a id="__codelineno-0-675" name="__codelineno-0-675"></a>
-<a id="__codelineno-0-676" name="__codelineno-0-676"></a><span class="sd">    Examples:</span>
-<a id="__codelineno-0-677" name="__codelineno-0-677"></a><span class="sd">        ```python</span>
-<a id="__codelineno-0-678" name="__codelineno-0-678"></a><span class="sd">        import numpy as np</span>
-<a id="__codelineno-0-679" name="__codelineno-0-679"></a><span class="sd">        import supervision as sv</span>
-<a id="__codelineno-0-680" name="__codelineno-0-680"></a>
-<a id="__codelineno-0-681" name="__codelineno-0-681"></a><span class="sd">        xyxy = np.array([</span>
-<a id="__codelineno-0-682" name="__codelineno-0-682"></a><span class="sd">            [10, 10, 20, 20],</span>
-<a id="__codelineno-0-683" name="__codelineno-0-683"></a><span class="sd">            [30, 30, 40, 40]</span>
-<a id="__codelineno-0-684" name="__codelineno-0-684"></a><span class="sd">        ])</span>
-<a id="__codelineno-0-685" name="__codelineno-0-685"></a>
-<a id="__codelineno-0-686" name="__codelineno-0-686"></a><span class="sd">        scaled_bb = sv.scale_boxes(xyxy=xyxy, factor=1.5)</span>
-<a id="__codelineno-0-687" name="__codelineno-0-687"></a><span class="sd">        # array([</span>
-<a id="__codelineno-0-688" name="__codelineno-0-688"></a><span class="sd">        #    [ 7.5,  7.5, 22.5, 22.5],</span>
-<a id="__codelineno-0-689" name="__codelineno-0-689"></a><span class="sd">        #    [27.5, 27.5, 42.5, 42.5]</span>
-<a id="__codelineno-0-690" name="__codelineno-0-690"></a><span class="sd">        # ])</span>
-<a id="__codelineno-0-691" name="__codelineno-0-691"></a><span class="sd">        ```</span>
-<a id="__codelineno-0-692" name="__codelineno-0-692"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-693" name="__codelineno-0-693"></a>    <span class="n">centers</span> <span class="o">=</span> <span class="p">(</span><span class="n">xyxy</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">xyxy</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">:])</span> <span class="o">/</span> <span class="mi">2</span>
-<a id="__codelineno-0-694" name="__codelineno-0-694"></a>    <span class="n">new_sizes</span> <span class="o">=</span> <span class="p">(</span><span class="n">xyxy</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">:]</span> <span class="o">-</span> <span class="n">xyxy</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">])</span> <span class="o">*</span> <span class="n">factor</span>
-<a id="__codelineno-0-695" name="__codelineno-0-695"></a>    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">centers</span> <span class="o">-</span> <span class="n">new_sizes</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">centers</span> <span class="o">+</span> <span class="n">new_sizes</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="normal"><a href="#__codelineno-0-695">695</a></span>
+<span class="normal"><a href="#__codelineno-0-696">696</a></span>
+<span class="normal"><a href="#__codelineno-0-697">697</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-664" name="__codelineno-0-664"></a><span class="k">def</span> <span class="nf">scale_boxes</span><span class="p">(</span><span class="n">xyxy</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">factor</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a id="__codelineno-0-665" name="__codelineno-0-665"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-666" name="__codelineno-0-666"></a><span class="sd">    Scale the dimensions of bounding boxes.</span>
+<a id="__codelineno-0-667" name="__codelineno-0-667"></a>
+<a id="__codelineno-0-668" name="__codelineno-0-668"></a><span class="sd">    Parameters:</span>
+<a id="__codelineno-0-669" name="__codelineno-0-669"></a><span class="sd">        xyxy (np.ndarray): An array of shape `(n, 4)` containing the bounding boxes</span>
+<a id="__codelineno-0-670" name="__codelineno-0-670"></a><span class="sd">            coordinates in format `[x1, y1, x2, y2]`</span>
+<a id="__codelineno-0-671" name="__codelineno-0-671"></a><span class="sd">        factor (float): A float value representing the factor by which the box</span>
+<a id="__codelineno-0-672" name="__codelineno-0-672"></a><span class="sd">            dimensions are scaled. A factor greater than 1 enlarges the boxes, while a</span>
+<a id="__codelineno-0-673" name="__codelineno-0-673"></a><span class="sd">            factor less than 1 shrinks them.</span>
+<a id="__codelineno-0-674" name="__codelineno-0-674"></a>
+<a id="__codelineno-0-675" name="__codelineno-0-675"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-676" name="__codelineno-0-676"></a><span class="sd">        np.ndarray: Scaled bounding boxes.</span>
+<a id="__codelineno-0-677" name="__codelineno-0-677"></a>
+<a id="__codelineno-0-678" name="__codelineno-0-678"></a><span class="sd">    Examples:</span>
+<a id="__codelineno-0-679" name="__codelineno-0-679"></a><span class="sd">        ```python</span>
+<a id="__codelineno-0-680" name="__codelineno-0-680"></a><span class="sd">        import numpy as np</span>
+<a id="__codelineno-0-681" name="__codelineno-0-681"></a><span class="sd">        import supervision as sv</span>
+<a id="__codelineno-0-682" name="__codelineno-0-682"></a>
+<a id="__codelineno-0-683" name="__codelineno-0-683"></a><span class="sd">        xyxy = np.array([</span>
+<a id="__codelineno-0-684" name="__codelineno-0-684"></a><span class="sd">            [10, 10, 20, 20],</span>
+<a id="__codelineno-0-685" name="__codelineno-0-685"></a><span class="sd">            [30, 30, 40, 40]</span>
+<a id="__codelineno-0-686" name="__codelineno-0-686"></a><span class="sd">        ])</span>
+<a id="__codelineno-0-687" name="__codelineno-0-687"></a>
+<a id="__codelineno-0-688" name="__codelineno-0-688"></a><span class="sd">        scaled_bb = sv.scale_boxes(xyxy=xyxy, factor=1.5)</span>
+<a id="__codelineno-0-689" name="__codelineno-0-689"></a><span class="sd">        # array([</span>
+<a id="__codelineno-0-690" name="__codelineno-0-690"></a><span class="sd">        #    [ 7.5,  7.5, 22.5, 22.5],</span>
+<a id="__codelineno-0-691" name="__codelineno-0-691"></a><span class="sd">        #    [27.5, 27.5, 42.5, 42.5]</span>
+<a id="__codelineno-0-692" name="__codelineno-0-692"></a><span class="sd">        # ])</span>
+<a id="__codelineno-0-693" name="__codelineno-0-693"></a><span class="sd">        ```</span>
+<a id="__codelineno-0-694" name="__codelineno-0-694"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-695" name="__codelineno-0-695"></a>    <span class="n">centers</span> <span class="o">=</span> <span class="p">(</span><span class="n">xyxy</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">xyxy</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">:])</span> <span class="o">/</span> <span class="mi">2</span>
+<a id="__codelineno-0-696" name="__codelineno-0-696"></a>    <span class="n">new_sizes</span> <span class="o">=</span> <span class="p">(</span><span class="n">xyxy</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">:]</span> <span class="o">-</span> <span class="n">xyxy</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">])</span> <span class="o">*</span> <span class="n">factor</span>
+<a id="__codelineno-0-697" name="__codelineno-0-697"></a>    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">centers</span> <span class="o">-</span> <span class="n">new_sizes</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">centers</span> <span class="o">+</span> <span class="n">new_sizes</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -4146,9 +4150,7 @@ within the frame resolution.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/detection/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-278">278</a></span>
-<span class="normal"><a href="#__codelineno-0-279">279</a></span>
-<span class="normal"><a href="#__codelineno-0-280">280</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-280">280</a></span>
 <span class="normal"><a href="#__codelineno-0-281">281</a></span>
 <span class="normal"><a href="#__codelineno-0-282">282</a></span>
 <span class="normal"><a href="#__codelineno-0-283">283</a></span>
@@ -4166,27 +4168,29 @@ within the frame resolution.</p>
 <span class="normal"><a href="#__codelineno-0-295">295</a></span>
 <span class="normal"><a href="#__codelineno-0-296">296</a></span>
 <span class="normal"><a href="#__codelineno-0-297">297</a></span>
-<span class="normal"><a href="#__codelineno-0-298">298</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-278" name="__codelineno-0-278"></a><span class="k">def</span> <span class="nf">clip_boxes</span><span class="p">(</span><span class="n">xyxy</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">resolution_wh</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<a id="__codelineno-0-279" name="__codelineno-0-279"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-280" name="__codelineno-0-280"></a><span class="sd">    Clips bounding boxes coordinates to fit within the frame resolution.</span>
-<a id="__codelineno-0-281" name="__codelineno-0-281"></a>
-<a id="__codelineno-0-282" name="__codelineno-0-282"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-283" name="__codelineno-0-283"></a><span class="sd">        xyxy (np.ndarray): A numpy array of shape `(N, 4)` where each</span>
-<a id="__codelineno-0-284" name="__codelineno-0-284"></a><span class="sd">            row corresponds to a bounding box in</span>
-<a id="__codelineno-0-285" name="__codelineno-0-285"></a><span class="sd">        the format `(x_min, y_min, x_max, y_max)`.</span>
-<a id="__codelineno-0-286" name="__codelineno-0-286"></a><span class="sd">        resolution_wh (Tuple[int, int]): A tuple of the form `(width, height)`</span>
-<a id="__codelineno-0-287" name="__codelineno-0-287"></a><span class="sd">            representing the resolution of the frame.</span>
-<a id="__codelineno-0-288" name="__codelineno-0-288"></a>
-<a id="__codelineno-0-289" name="__codelineno-0-289"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-290" name="__codelineno-0-290"></a><span class="sd">        np.ndarray: A numpy array of shape `(N, 4)` where each row</span>
-<a id="__codelineno-0-291" name="__codelineno-0-291"></a><span class="sd">            corresponds to a bounding box with coordinates clipped to fit</span>
-<a id="__codelineno-0-292" name="__codelineno-0-292"></a><span class="sd">            within the frame resolution.</span>
-<a id="__codelineno-0-293" name="__codelineno-0-293"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-294" name="__codelineno-0-294"></a>    <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">xyxy</span><span class="p">)</span>
-<a id="__codelineno-0-295" name="__codelineno-0-295"></a>    <span class="n">width</span><span class="p">,</span> <span class="n">height</span> <span class="o">=</span> <span class="n">resolution_wh</span>
-<a id="__codelineno-0-296" name="__codelineno-0-296"></a>    <span class="n">result</span><span class="p">[:,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[:,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]]</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">width</span><span class="p">)</span>
-<a id="__codelineno-0-297" name="__codelineno-0-297"></a>    <span class="n">result</span><span class="p">[:,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">]]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[:,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">]]</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">height</span><span class="p">)</span>
-<a id="__codelineno-0-298" name="__codelineno-0-298"></a>    <span class="k">return</span> <span class="n">result</span>
+<span class="normal"><a href="#__codelineno-0-298">298</a></span>
+<span class="normal"><a href="#__codelineno-0-299">299</a></span>
+<span class="normal"><a href="#__codelineno-0-300">300</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-280" name="__codelineno-0-280"></a><span class="k">def</span> <span class="nf">clip_boxes</span><span class="p">(</span><span class="n">xyxy</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">resolution_wh</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a id="__codelineno-0-281" name="__codelineno-0-281"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-282" name="__codelineno-0-282"></a><span class="sd">    Clips bounding boxes coordinates to fit within the frame resolution.</span>
+<a id="__codelineno-0-283" name="__codelineno-0-283"></a>
+<a id="__codelineno-0-284" name="__codelineno-0-284"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-285" name="__codelineno-0-285"></a><span class="sd">        xyxy (np.ndarray): A numpy array of shape `(N, 4)` where each</span>
+<a id="__codelineno-0-286" name="__codelineno-0-286"></a><span class="sd">            row corresponds to a bounding box in</span>
+<a id="__codelineno-0-287" name="__codelineno-0-287"></a><span class="sd">        the format `(x_min, y_min, x_max, y_max)`.</span>
+<a id="__codelineno-0-288" name="__codelineno-0-288"></a><span class="sd">        resolution_wh (Tuple[int, int]): A tuple of the form `(width, height)`</span>
+<a id="__codelineno-0-289" name="__codelineno-0-289"></a><span class="sd">            representing the resolution of the frame.</span>
+<a id="__codelineno-0-290" name="__codelineno-0-290"></a>
+<a id="__codelineno-0-291" name="__codelineno-0-291"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-292" name="__codelineno-0-292"></a><span class="sd">        np.ndarray: A numpy array of shape `(N, 4)` where each row</span>
+<a id="__codelineno-0-293" name="__codelineno-0-293"></a><span class="sd">            corresponds to a bounding box with coordinates clipped to fit</span>
+<a id="__codelineno-0-294" name="__codelineno-0-294"></a><span class="sd">            within the frame resolution.</span>
+<a id="__codelineno-0-295" name="__codelineno-0-295"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-296" name="__codelineno-0-296"></a>    <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">xyxy</span><span class="p">)</span>
+<a id="__codelineno-0-297" name="__codelineno-0-297"></a>    <span class="n">width</span><span class="p">,</span> <span class="n">height</span> <span class="o">=</span> <span class="n">resolution_wh</span>
+<a id="__codelineno-0-298" name="__codelineno-0-298"></a>    <span class="n">result</span><span class="p">[:,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[:,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]]</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">width</span><span class="p">)</span>
+<a id="__codelineno-0-299" name="__codelineno-0-299"></a>    <span class="n">result</span><span class="p">[:,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">]]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[:,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">]]</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">height</span><span class="p">)</span>
+<a id="__codelineno-0-300" name="__codelineno-0-300"></a>    <span class="k">return</span> <span class="n">result</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -4295,9 +4299,7 @@ values.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/detection/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-301">301</a></span>
-<span class="normal"><a href="#__codelineno-0-302">302</a></span>
-<span class="normal"><a href="#__codelineno-0-303">303</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-303">303</a></span>
 <span class="normal"><a href="#__codelineno-0-304">304</a></span>
 <span class="normal"><a href="#__codelineno-0-305">305</a></span>
 <span class="normal"><a href="#__codelineno-0-306">306</a></span>
@@ -4321,33 +4323,35 @@ values.</p>
 <span class="normal"><a href="#__codelineno-0-324">324</a></span>
 <span class="normal"><a href="#__codelineno-0-325">325</a></span>
 <span class="normal"><a href="#__codelineno-0-326">326</a></span>
-<span class="normal"><a href="#__codelineno-0-327">327</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-301" name="__codelineno-0-301"></a><span class="k">def</span> <span class="nf">pad_boxes</span><span class="p">(</span><span class="n">xyxy</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">px</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">py</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<a id="__codelineno-0-302" name="__codelineno-0-302"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-303" name="__codelineno-0-303"></a><span class="sd">    Pads bounding boxes coordinates with a constant padding.</span>
-<a id="__codelineno-0-304" name="__codelineno-0-304"></a>
-<a id="__codelineno-0-305" name="__codelineno-0-305"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-306" name="__codelineno-0-306"></a><span class="sd">        xyxy (np.ndarray): A numpy array of shape `(N, 4)` where each</span>
-<a id="__codelineno-0-307" name="__codelineno-0-307"></a><span class="sd">            row corresponds to a bounding box in the format</span>
-<a id="__codelineno-0-308" name="__codelineno-0-308"></a><span class="sd">            `(x_min, y_min, x_max, y_max)`.</span>
-<a id="__codelineno-0-309" name="__codelineno-0-309"></a><span class="sd">        px (int): The padding value to be added to both the left and right sides of</span>
-<a id="__codelineno-0-310" name="__codelineno-0-310"></a><span class="sd">            each bounding box.</span>
-<a id="__codelineno-0-311" name="__codelineno-0-311"></a><span class="sd">        py (Optional[int]): The padding value to be added to both the top and bottom</span>
-<a id="__codelineno-0-312" name="__codelineno-0-312"></a><span class="sd">            sides of each bounding box. If not provided, `px` will be used for both</span>
-<a id="__codelineno-0-313" name="__codelineno-0-313"></a><span class="sd">            dimensions.</span>
-<a id="__codelineno-0-314" name="__codelineno-0-314"></a>
-<a id="__codelineno-0-315" name="__codelineno-0-315"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-316" name="__codelineno-0-316"></a><span class="sd">        np.ndarray: A numpy array of shape `(N, 4)` where each row corresponds to a</span>
-<a id="__codelineno-0-317" name="__codelineno-0-317"></a><span class="sd">            bounding box with coordinates padded according to the provided padding</span>
-<a id="__codelineno-0-318" name="__codelineno-0-318"></a><span class="sd">            values.</span>
-<a id="__codelineno-0-319" name="__codelineno-0-319"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-320" name="__codelineno-0-320"></a>    <span class="k">if</span> <span class="n">py</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-321" name="__codelineno-0-321"></a>        <span class="n">py</span> <span class="o">=</span> <span class="n">px</span>
-<a id="__codelineno-0-322" name="__codelineno-0-322"></a>
-<a id="__codelineno-0-323" name="__codelineno-0-323"></a>    <span class="n">result</span> <span class="o">=</span> <span class="n">xyxy</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-<a id="__codelineno-0-324" name="__codelineno-0-324"></a>    <span class="n">result</span><span class="p">[:,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]]</span> <span class="o">-=</span> <span class="p">[</span><span class="n">px</span><span class="p">,</span> <span class="n">py</span><span class="p">]</span>
-<a id="__codelineno-0-325" name="__codelineno-0-325"></a>    <span class="n">result</span><span class="p">[:,</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]]</span> <span class="o">+=</span> <span class="p">[</span><span class="n">px</span><span class="p">,</span> <span class="n">py</span><span class="p">]</span>
-<a id="__codelineno-0-326" name="__codelineno-0-326"></a>
-<a id="__codelineno-0-327" name="__codelineno-0-327"></a>    <span class="k">return</span> <span class="n">result</span>
+<span class="normal"><a href="#__codelineno-0-327">327</a></span>
+<span class="normal"><a href="#__codelineno-0-328">328</a></span>
+<span class="normal"><a href="#__codelineno-0-329">329</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-303" name="__codelineno-0-303"></a><span class="k">def</span> <span class="nf">pad_boxes</span><span class="p">(</span><span class="n">xyxy</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">px</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">py</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a id="__codelineno-0-304" name="__codelineno-0-304"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-305" name="__codelineno-0-305"></a><span class="sd">    Pads bounding boxes coordinates with a constant padding.</span>
+<a id="__codelineno-0-306" name="__codelineno-0-306"></a>
+<a id="__codelineno-0-307" name="__codelineno-0-307"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-308" name="__codelineno-0-308"></a><span class="sd">        xyxy (np.ndarray): A numpy array of shape `(N, 4)` where each</span>
+<a id="__codelineno-0-309" name="__codelineno-0-309"></a><span class="sd">            row corresponds to a bounding box in the format</span>
+<a id="__codelineno-0-310" name="__codelineno-0-310"></a><span class="sd">            `(x_min, y_min, x_max, y_max)`.</span>
+<a id="__codelineno-0-311" name="__codelineno-0-311"></a><span class="sd">        px (int): The padding value to be added to both the left and right sides of</span>
+<a id="__codelineno-0-312" name="__codelineno-0-312"></a><span class="sd">            each bounding box.</span>
+<a id="__codelineno-0-313" name="__codelineno-0-313"></a><span class="sd">        py (Optional[int]): The padding value to be added to both the top and bottom</span>
+<a id="__codelineno-0-314" name="__codelineno-0-314"></a><span class="sd">            sides of each bounding box. If not provided, `px` will be used for both</span>
+<a id="__codelineno-0-315" name="__codelineno-0-315"></a><span class="sd">            dimensions.</span>
+<a id="__codelineno-0-316" name="__codelineno-0-316"></a>
+<a id="__codelineno-0-317" name="__codelineno-0-317"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-318" name="__codelineno-0-318"></a><span class="sd">        np.ndarray: A numpy array of shape `(N, 4)` where each row corresponds to a</span>
+<a id="__codelineno-0-319" name="__codelineno-0-319"></a><span class="sd">            bounding box with coordinates padded according to the provided padding</span>
+<a id="__codelineno-0-320" name="__codelineno-0-320"></a><span class="sd">            values.</span>
+<a id="__codelineno-0-321" name="__codelineno-0-321"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-322" name="__codelineno-0-322"></a>    <span class="k">if</span> <span class="n">py</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-323" name="__codelineno-0-323"></a>        <span class="n">py</span> <span class="o">=</span> <span class="n">px</span>
+<a id="__codelineno-0-324" name="__codelineno-0-324"></a>
+<a id="__codelineno-0-325" name="__codelineno-0-325"></a>    <span class="n">result</span> <span class="o">=</span> <span class="n">xyxy</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<a id="__codelineno-0-326" name="__codelineno-0-326"></a>    <span class="n">result</span><span class="p">[:,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]]</span> <span class="o">-=</span> <span class="p">[</span><span class="n">px</span><span class="p">,</span> <span class="n">py</span><span class="p">]</span>
+<a id="__codelineno-0-327" name="__codelineno-0-327"></a>    <span class="n">result</span><span class="p">[:,</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]]</span> <span class="o">+=</span> <span class="p">[</span><span class="n">px</span><span class="p">,</span> <span class="n">py</span><span class="p">]</span>
+<a id="__codelineno-0-328" name="__codelineno-0-328"></a>
+<a id="__codelineno-0-329" name="__codelineno-0-329"></a>    <span class="k">return</span> <span class="n">result</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -4452,9 +4456,7 @@ object and <code>False</code> indicates background.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/detection/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-851">851</a></span>
-<span class="normal"><a href="#__codelineno-0-852">852</a></span>
-<span class="normal"><a href="#__codelineno-0-853">853</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-853">853</a></span>
 <span class="normal"><a href="#__codelineno-0-854">854</a></span>
 <span class="normal"><a href="#__codelineno-0-855">855</a></span>
 <span class="normal"><a href="#__codelineno-0-856">856</a></span>
@@ -4502,57 +4504,59 @@ object and <code>False</code> indicates background.</p>
 <span class="normal"><a href="#__codelineno-0-898">898</a></span>
 <span class="normal"><a href="#__codelineno-0-899">899</a></span>
 <span class="normal"><a href="#__codelineno-0-900">900</a></span>
-<span class="normal"><a href="#__codelineno-0-901">901</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-851" name="__codelineno-0-851"></a><span class="k">def</span> <span class="nf">contains_holes</span><span class="p">(</span><span class="n">mask</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<a id="__codelineno-0-852" name="__codelineno-0-852"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-853" name="__codelineno-0-853"></a><span class="sd">    Checks if the binary mask contains holes (background pixels fully enclosed by</span>
-<a id="__codelineno-0-854" name="__codelineno-0-854"></a><span class="sd">    foreground pixels).</span>
-<a id="__codelineno-0-855" name="__codelineno-0-855"></a>
-<a id="__codelineno-0-856" name="__codelineno-0-856"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-857" name="__codelineno-0-857"></a><span class="sd">        mask (npt.NDArray[np.bool_]): 2D binary mask where `True` indicates foreground</span>
-<a id="__codelineno-0-858" name="__codelineno-0-858"></a><span class="sd">            object and `False` indicates background.</span>
-<a id="__codelineno-0-859" name="__codelineno-0-859"></a>
-<a id="__codelineno-0-860" name="__codelineno-0-860"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-861" name="__codelineno-0-861"></a><span class="sd">        True if holes are detected, False otherwise.</span>
-<a id="__codelineno-0-862" name="__codelineno-0-862"></a>
-<a id="__codelineno-0-863" name="__codelineno-0-863"></a><span class="sd">    Examples:</span>
-<a id="__codelineno-0-864" name="__codelineno-0-864"></a><span class="sd">        ```python</span>
-<a id="__codelineno-0-865" name="__codelineno-0-865"></a><span class="sd">        import numpy as np</span>
-<a id="__codelineno-0-866" name="__codelineno-0-866"></a><span class="sd">        import supervision as sv</span>
-<a id="__codelineno-0-867" name="__codelineno-0-867"></a>
-<a id="__codelineno-0-868" name="__codelineno-0-868"></a><span class="sd">        mask = np.array([</span>
-<a id="__codelineno-0-869" name="__codelineno-0-869"></a><span class="sd">            [0, 0, 0, 0, 0],</span>
-<a id="__codelineno-0-870" name="__codelineno-0-870"></a><span class="sd">            [0, 1, 1, 1, 0],</span>
-<a id="__codelineno-0-871" name="__codelineno-0-871"></a><span class="sd">            [0, 1, 0, 1, 0],</span>
+<span class="normal"><a href="#__codelineno-0-901">901</a></span>
+<span class="normal"><a href="#__codelineno-0-902">902</a></span>
+<span class="normal"><a href="#__codelineno-0-903">903</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-853" name="__codelineno-0-853"></a><span class="k">def</span> <span class="nf">contains_holes</span><span class="p">(</span><span class="n">mask</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<a id="__codelineno-0-854" name="__codelineno-0-854"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-855" name="__codelineno-0-855"></a><span class="sd">    Checks if the binary mask contains holes (background pixels fully enclosed by</span>
+<a id="__codelineno-0-856" name="__codelineno-0-856"></a><span class="sd">    foreground pixels).</span>
+<a id="__codelineno-0-857" name="__codelineno-0-857"></a>
+<a id="__codelineno-0-858" name="__codelineno-0-858"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-859" name="__codelineno-0-859"></a><span class="sd">        mask (npt.NDArray[np.bool_]): 2D binary mask where `True` indicates foreground</span>
+<a id="__codelineno-0-860" name="__codelineno-0-860"></a><span class="sd">            object and `False` indicates background.</span>
+<a id="__codelineno-0-861" name="__codelineno-0-861"></a>
+<a id="__codelineno-0-862" name="__codelineno-0-862"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-863" name="__codelineno-0-863"></a><span class="sd">        True if holes are detected, False otherwise.</span>
+<a id="__codelineno-0-864" name="__codelineno-0-864"></a>
+<a id="__codelineno-0-865" name="__codelineno-0-865"></a><span class="sd">    Examples:</span>
+<a id="__codelineno-0-866" name="__codelineno-0-866"></a><span class="sd">        ```python</span>
+<a id="__codelineno-0-867" name="__codelineno-0-867"></a><span class="sd">        import numpy as np</span>
+<a id="__codelineno-0-868" name="__codelineno-0-868"></a><span class="sd">        import supervision as sv</span>
+<a id="__codelineno-0-869" name="__codelineno-0-869"></a>
+<a id="__codelineno-0-870" name="__codelineno-0-870"></a><span class="sd">        mask = np.array([</span>
+<a id="__codelineno-0-871" name="__codelineno-0-871"></a><span class="sd">            [0, 0, 0, 0, 0],</span>
 <a id="__codelineno-0-872" name="__codelineno-0-872"></a><span class="sd">            [0, 1, 1, 1, 0],</span>
-<a id="__codelineno-0-873" name="__codelineno-0-873"></a><span class="sd">            [0, 0, 0, 0, 0]</span>
-<a id="__codelineno-0-874" name="__codelineno-0-874"></a><span class="sd">        ]).astype(bool)</span>
-<a id="__codelineno-0-875" name="__codelineno-0-875"></a>
-<a id="__codelineno-0-876" name="__codelineno-0-876"></a><span class="sd">        sv.contains_holes(mask=mask)</span>
-<a id="__codelineno-0-877" name="__codelineno-0-877"></a><span class="sd">        # True</span>
-<a id="__codelineno-0-878" name="__codelineno-0-878"></a>
-<a id="__codelineno-0-879" name="__codelineno-0-879"></a><span class="sd">        mask = np.array([</span>
-<a id="__codelineno-0-880" name="__codelineno-0-880"></a><span class="sd">            [0, 0, 0, 0, 0],</span>
-<a id="__codelineno-0-881" name="__codelineno-0-881"></a><span class="sd">            [0, 1, 1, 1, 0],</span>
-<a id="__codelineno-0-882" name="__codelineno-0-882"></a><span class="sd">            [0, 1, 1, 1, 0],</span>
+<a id="__codelineno-0-873" name="__codelineno-0-873"></a><span class="sd">            [0, 1, 0, 1, 0],</span>
+<a id="__codelineno-0-874" name="__codelineno-0-874"></a><span class="sd">            [0, 1, 1, 1, 0],</span>
+<a id="__codelineno-0-875" name="__codelineno-0-875"></a><span class="sd">            [0, 0, 0, 0, 0]</span>
+<a id="__codelineno-0-876" name="__codelineno-0-876"></a><span class="sd">        ]).astype(bool)</span>
+<a id="__codelineno-0-877" name="__codelineno-0-877"></a>
+<a id="__codelineno-0-878" name="__codelineno-0-878"></a><span class="sd">        sv.contains_holes(mask=mask)</span>
+<a id="__codelineno-0-879" name="__codelineno-0-879"></a><span class="sd">        # True</span>
+<a id="__codelineno-0-880" name="__codelineno-0-880"></a>
+<a id="__codelineno-0-881" name="__codelineno-0-881"></a><span class="sd">        mask = np.array([</span>
+<a id="__codelineno-0-882" name="__codelineno-0-882"></a><span class="sd">            [0, 0, 0, 0, 0],</span>
 <a id="__codelineno-0-883" name="__codelineno-0-883"></a><span class="sd">            [0, 1, 1, 1, 0],</span>
-<a id="__codelineno-0-884" name="__codelineno-0-884"></a><span class="sd">            [0, 0, 0, 0, 0]</span>
-<a id="__codelineno-0-885" name="__codelineno-0-885"></a><span class="sd">        ]).astype(bool)</span>
-<a id="__codelineno-0-886" name="__codelineno-0-886"></a>
-<a id="__codelineno-0-887" name="__codelineno-0-887"></a><span class="sd">        sv.contains_holes(mask=mask)</span>
-<a id="__codelineno-0-888" name="__codelineno-0-888"></a><span class="sd">        # False</span>
-<a id="__codelineno-0-889" name="__codelineno-0-889"></a><span class="sd">        ```</span>
-<a id="__codelineno-0-890" name="__codelineno-0-890"></a>
-<a id="__codelineno-0-891" name="__codelineno-0-891"></a><span class="sd">    ![contains_holes](https://media.roboflow.com/supervision-docs/contains-holes.png){ align=center width=&quot;800&quot; }</span>
-<a id="__codelineno-0-892" name="__codelineno-0-892"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa E501 // docs</span>
-<a id="__codelineno-0-893" name="__codelineno-0-893"></a>    <span class="n">mask_uint8</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
-<a id="__codelineno-0-894" name="__codelineno-0-894"></a>    <span class="n">_</span><span class="p">,</span> <span class="n">hierarchy</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">findContours</span><span class="p">(</span><span class="n">mask_uint8</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">RETR_CCOMP</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">CHAIN_APPROX_SIMPLE</span><span class="p">)</span>
-<a id="__codelineno-0-895" name="__codelineno-0-895"></a>
-<a id="__codelineno-0-896" name="__codelineno-0-896"></a>    <span class="k">if</span> <span class="n">hierarchy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-897" name="__codelineno-0-897"></a>        <span class="n">parent_contour_index</span> <span class="o">=</span> <span class="mi">3</span>
-<a id="__codelineno-0-898" name="__codelineno-0-898"></a>        <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hierarchy</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
-<a id="__codelineno-0-899" name="__codelineno-0-899"></a>            <span class="k">if</span> <span class="n">h</span><span class="p">[</span><span class="n">parent_contour_index</span><span class="p">]</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
-<a id="__codelineno-0-900" name="__codelineno-0-900"></a>                <span class="k">return</span> <span class="kc">True</span>
-<a id="__codelineno-0-901" name="__codelineno-0-901"></a>    <span class="k">return</span> <span class="kc">False</span>
+<a id="__codelineno-0-884" name="__codelineno-0-884"></a><span class="sd">            [0, 1, 1, 1, 0],</span>
+<a id="__codelineno-0-885" name="__codelineno-0-885"></a><span class="sd">            [0, 1, 1, 1, 0],</span>
+<a id="__codelineno-0-886" name="__codelineno-0-886"></a><span class="sd">            [0, 0, 0, 0, 0]</span>
+<a id="__codelineno-0-887" name="__codelineno-0-887"></a><span class="sd">        ]).astype(bool)</span>
+<a id="__codelineno-0-888" name="__codelineno-0-888"></a>
+<a id="__codelineno-0-889" name="__codelineno-0-889"></a><span class="sd">        sv.contains_holes(mask=mask)</span>
+<a id="__codelineno-0-890" name="__codelineno-0-890"></a><span class="sd">        # False</span>
+<a id="__codelineno-0-891" name="__codelineno-0-891"></a><span class="sd">        ```</span>
+<a id="__codelineno-0-892" name="__codelineno-0-892"></a>
+<a id="__codelineno-0-893" name="__codelineno-0-893"></a><span class="sd">    ![contains_holes](https://media.roboflow.com/supervision-docs/contains-holes.png){ align=center width=&quot;800&quot; }</span>
+<a id="__codelineno-0-894" name="__codelineno-0-894"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa E501 // docs</span>
+<a id="__codelineno-0-895" name="__codelineno-0-895"></a>    <span class="n">mask_uint8</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+<a id="__codelineno-0-896" name="__codelineno-0-896"></a>    <span class="n">_</span><span class="p">,</span> <span class="n">hierarchy</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">findContours</span><span class="p">(</span><span class="n">mask_uint8</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">RETR_CCOMP</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">CHAIN_APPROX_SIMPLE</span><span class="p">)</span>
+<a id="__codelineno-0-897" name="__codelineno-0-897"></a>
+<a id="__codelineno-0-898" name="__codelineno-0-898"></a>    <span class="k">if</span> <span class="n">hierarchy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-899" name="__codelineno-0-899"></a>        <span class="n">parent_contour_index</span> <span class="o">=</span> <span class="mi">3</span>
+<a id="__codelineno-0-900" name="__codelineno-0-900"></a>        <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hierarchy</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+<a id="__codelineno-0-901" name="__codelineno-0-901"></a>            <span class="k">if</span> <span class="n">h</span><span class="p">[</span><span class="n">parent_contour_index</span><span class="p">]</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+<a id="__codelineno-0-902" name="__codelineno-0-902"></a>                <span class="k">return</span> <span class="kc">True</span>
+<a id="__codelineno-0-903" name="__codelineno-0-903"></a>    <span class="k">return</span> <span class="kc">False</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -4699,9 +4703,7 @@ connected by their edges or corners touch.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/detection/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-904">904</a></span>
-<span class="normal"><a href="#__codelineno-0-905">905</a></span>
-<span class="normal"><a href="#__codelineno-0-906">906</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-906">906</a></span>
 <span class="normal"><a href="#__codelineno-0-907">907</a></span>
 <span class="normal"><a href="#__codelineno-0-908">908</a></span>
 <span class="normal"><a href="#__codelineno-0-909">909</a></span>
@@ -4761,69 +4763,71 @@ connected by their edges or corners touch.</p>
 <span class="normal"><a href="#__codelineno-0-963">963</a></span>
 <span class="normal"><a href="#__codelineno-0-964">964</a></span>
 <span class="normal"><a href="#__codelineno-0-965">965</a></span>
-<span class="normal"><a href="#__codelineno-0-966">966</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-904" name="__codelineno-0-904"></a><span class="k">def</span> <span class="nf">contains_multiple_segments</span><span class="p">(</span>
-<a id="__codelineno-0-905" name="__codelineno-0-905"></a>    <span class="n">mask</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">],</span> <span class="n">connectivity</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span>
-<a id="__codelineno-0-906" name="__codelineno-0-906"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<a id="__codelineno-0-907" name="__codelineno-0-907"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-908" name="__codelineno-0-908"></a><span class="sd">    Checks if the binary mask contains multiple unconnected foreground segments.</span>
-<a id="__codelineno-0-909" name="__codelineno-0-909"></a>
-<a id="__codelineno-0-910" name="__codelineno-0-910"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-911" name="__codelineno-0-911"></a><span class="sd">        mask (npt.NDArray[np.bool_]): 2D binary mask where `True` indicates foreground</span>
-<a id="__codelineno-0-912" name="__codelineno-0-912"></a><span class="sd">            object and `False` indicates background.</span>
-<a id="__codelineno-0-913" name="__codelineno-0-913"></a><span class="sd">        connectivity (int) : Default: 4 is 4-way connectivity, which means that</span>
-<a id="__codelineno-0-914" name="__codelineno-0-914"></a><span class="sd">            foreground pixels are the part of the same segment/component</span>
-<a id="__codelineno-0-915" name="__codelineno-0-915"></a><span class="sd">            if their edges touch.</span>
-<a id="__codelineno-0-916" name="__codelineno-0-916"></a><span class="sd">            Alternatively: 8 for 8-way connectivity, when foreground pixels are</span>
-<a id="__codelineno-0-917" name="__codelineno-0-917"></a><span class="sd">            connected by their edges or corners touch.</span>
-<a id="__codelineno-0-918" name="__codelineno-0-918"></a>
-<a id="__codelineno-0-919" name="__codelineno-0-919"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-920" name="__codelineno-0-920"></a><span class="sd">        True when the mask contains multiple not connected components, False otherwise.</span>
-<a id="__codelineno-0-921" name="__codelineno-0-921"></a>
-<a id="__codelineno-0-922" name="__codelineno-0-922"></a><span class="sd">    Raises:</span>
-<a id="__codelineno-0-923" name="__codelineno-0-923"></a><span class="sd">        ValueError: If connectivity(int) parameter value is not 4 or 8.</span>
-<a id="__codelineno-0-924" name="__codelineno-0-924"></a>
-<a id="__codelineno-0-925" name="__codelineno-0-925"></a><span class="sd">    Examples:</span>
-<a id="__codelineno-0-926" name="__codelineno-0-926"></a><span class="sd">        ```python</span>
-<a id="__codelineno-0-927" name="__codelineno-0-927"></a><span class="sd">        import numpy as np</span>
-<a id="__codelineno-0-928" name="__codelineno-0-928"></a><span class="sd">        import supervision as sv</span>
-<a id="__codelineno-0-929" name="__codelineno-0-929"></a>
-<a id="__codelineno-0-930" name="__codelineno-0-930"></a><span class="sd">        mask = np.array([</span>
-<a id="__codelineno-0-931" name="__codelineno-0-931"></a><span class="sd">            [0, 0, 0, 0, 0, 0],</span>
-<a id="__codelineno-0-932" name="__codelineno-0-932"></a><span class="sd">            [0, 1, 1, 0, 1, 1],</span>
-<a id="__codelineno-0-933" name="__codelineno-0-933"></a><span class="sd">            [0, 1, 1, 0, 1, 1],</span>
-<a id="__codelineno-0-934" name="__codelineno-0-934"></a><span class="sd">            [0, 0, 0, 0, 0, 0],</span>
-<a id="__codelineno-0-935" name="__codelineno-0-935"></a><span class="sd">            [0, 1, 1, 1, 0, 0],</span>
-<a id="__codelineno-0-936" name="__codelineno-0-936"></a><span class="sd">            [0, 1, 1, 1, 0, 0]</span>
-<a id="__codelineno-0-937" name="__codelineno-0-937"></a><span class="sd">        ]).astype(bool)</span>
-<a id="__codelineno-0-938" name="__codelineno-0-938"></a>
-<a id="__codelineno-0-939" name="__codelineno-0-939"></a><span class="sd">        sv.contains_multiple_segments(mask=mask, connectivity=4)</span>
-<a id="__codelineno-0-940" name="__codelineno-0-940"></a><span class="sd">        # True</span>
-<a id="__codelineno-0-941" name="__codelineno-0-941"></a>
-<a id="__codelineno-0-942" name="__codelineno-0-942"></a><span class="sd">        mask = np.array([</span>
-<a id="__codelineno-0-943" name="__codelineno-0-943"></a><span class="sd">            [0, 0, 0, 0, 0, 0],</span>
-<a id="__codelineno-0-944" name="__codelineno-0-944"></a><span class="sd">            [0, 1, 1, 1, 1, 1],</span>
-<a id="__codelineno-0-945" name="__codelineno-0-945"></a><span class="sd">            [0, 1, 1, 1, 1, 1],</span>
+<span class="normal"><a href="#__codelineno-0-966">966</a></span>
+<span class="normal"><a href="#__codelineno-0-967">967</a></span>
+<span class="normal"><a href="#__codelineno-0-968">968</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-906" name="__codelineno-0-906"></a><span class="k">def</span> <span class="nf">contains_multiple_segments</span><span class="p">(</span>
+<a id="__codelineno-0-907" name="__codelineno-0-907"></a>    <span class="n">mask</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">],</span> <span class="n">connectivity</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span>
+<a id="__codelineno-0-908" name="__codelineno-0-908"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<a id="__codelineno-0-909" name="__codelineno-0-909"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-910" name="__codelineno-0-910"></a><span class="sd">    Checks if the binary mask contains multiple unconnected foreground segments.</span>
+<a id="__codelineno-0-911" name="__codelineno-0-911"></a>
+<a id="__codelineno-0-912" name="__codelineno-0-912"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-913" name="__codelineno-0-913"></a><span class="sd">        mask (npt.NDArray[np.bool_]): 2D binary mask where `True` indicates foreground</span>
+<a id="__codelineno-0-914" name="__codelineno-0-914"></a><span class="sd">            object and `False` indicates background.</span>
+<a id="__codelineno-0-915" name="__codelineno-0-915"></a><span class="sd">        connectivity (int) : Default: 4 is 4-way connectivity, which means that</span>
+<a id="__codelineno-0-916" name="__codelineno-0-916"></a><span class="sd">            foreground pixels are the part of the same segment/component</span>
+<a id="__codelineno-0-917" name="__codelineno-0-917"></a><span class="sd">            if their edges touch.</span>
+<a id="__codelineno-0-918" name="__codelineno-0-918"></a><span class="sd">            Alternatively: 8 for 8-way connectivity, when foreground pixels are</span>
+<a id="__codelineno-0-919" name="__codelineno-0-919"></a><span class="sd">            connected by their edges or corners touch.</span>
+<a id="__codelineno-0-920" name="__codelineno-0-920"></a>
+<a id="__codelineno-0-921" name="__codelineno-0-921"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-922" name="__codelineno-0-922"></a><span class="sd">        True when the mask contains multiple not connected components, False otherwise.</span>
+<a id="__codelineno-0-923" name="__codelineno-0-923"></a>
+<a id="__codelineno-0-924" name="__codelineno-0-924"></a><span class="sd">    Raises:</span>
+<a id="__codelineno-0-925" name="__codelineno-0-925"></a><span class="sd">        ValueError: If connectivity(int) parameter value is not 4 or 8.</span>
+<a id="__codelineno-0-926" name="__codelineno-0-926"></a>
+<a id="__codelineno-0-927" name="__codelineno-0-927"></a><span class="sd">    Examples:</span>
+<a id="__codelineno-0-928" name="__codelineno-0-928"></a><span class="sd">        ```python</span>
+<a id="__codelineno-0-929" name="__codelineno-0-929"></a><span class="sd">        import numpy as np</span>
+<a id="__codelineno-0-930" name="__codelineno-0-930"></a><span class="sd">        import supervision as sv</span>
+<a id="__codelineno-0-931" name="__codelineno-0-931"></a>
+<a id="__codelineno-0-932" name="__codelineno-0-932"></a><span class="sd">        mask = np.array([</span>
+<a id="__codelineno-0-933" name="__codelineno-0-933"></a><span class="sd">            [0, 0, 0, 0, 0, 0],</span>
+<a id="__codelineno-0-934" name="__codelineno-0-934"></a><span class="sd">            [0, 1, 1, 0, 1, 1],</span>
+<a id="__codelineno-0-935" name="__codelineno-0-935"></a><span class="sd">            [0, 1, 1, 0, 1, 1],</span>
+<a id="__codelineno-0-936" name="__codelineno-0-936"></a><span class="sd">            [0, 0, 0, 0, 0, 0],</span>
+<a id="__codelineno-0-937" name="__codelineno-0-937"></a><span class="sd">            [0, 1, 1, 1, 0, 0],</span>
+<a id="__codelineno-0-938" name="__codelineno-0-938"></a><span class="sd">            [0, 1, 1, 1, 0, 0]</span>
+<a id="__codelineno-0-939" name="__codelineno-0-939"></a><span class="sd">        ]).astype(bool)</span>
+<a id="__codelineno-0-940" name="__codelineno-0-940"></a>
+<a id="__codelineno-0-941" name="__codelineno-0-941"></a><span class="sd">        sv.contains_multiple_segments(mask=mask, connectivity=4)</span>
+<a id="__codelineno-0-942" name="__codelineno-0-942"></a><span class="sd">        # True</span>
+<a id="__codelineno-0-943" name="__codelineno-0-943"></a>
+<a id="__codelineno-0-944" name="__codelineno-0-944"></a><span class="sd">        mask = np.array([</span>
+<a id="__codelineno-0-945" name="__codelineno-0-945"></a><span class="sd">            [0, 0, 0, 0, 0, 0],</span>
 <a id="__codelineno-0-946" name="__codelineno-0-946"></a><span class="sd">            [0, 1, 1, 1, 1, 1],</span>
 <a id="__codelineno-0-947" name="__codelineno-0-947"></a><span class="sd">            [0, 1, 1, 1, 1, 1],</span>
-<a id="__codelineno-0-948" name="__codelineno-0-948"></a><span class="sd">            [0, 0, 0, 0, 0, 0]</span>
-<a id="__codelineno-0-949" name="__codelineno-0-949"></a><span class="sd">        ]).astype(bool)</span>
-<a id="__codelineno-0-950" name="__codelineno-0-950"></a>
-<a id="__codelineno-0-951" name="__codelineno-0-951"></a><span class="sd">        sv.contains_multiple_segments(mask=mask, connectivity=4)</span>
-<a id="__codelineno-0-952" name="__codelineno-0-952"></a><span class="sd">        # False</span>
-<a id="__codelineno-0-953" name="__codelineno-0-953"></a><span class="sd">        ```</span>
-<a id="__codelineno-0-954" name="__codelineno-0-954"></a>
-<a id="__codelineno-0-955" name="__codelineno-0-955"></a><span class="sd">    ![contains_multiple_segments](https://media.roboflow.com/supervision-docs/contains-multiple-segments.png){ align=center width=&quot;800&quot; }</span>
-<a id="__codelineno-0-956" name="__codelineno-0-956"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa E501 // docs</span>
-<a id="__codelineno-0-957" name="__codelineno-0-957"></a>    <span class="k">if</span> <span class="n">connectivity</span> <span class="o">!=</span> <span class="mi">4</span> <span class="ow">and</span> <span class="n">connectivity</span> <span class="o">!=</span> <span class="mi">8</span><span class="p">:</span>
-<a id="__codelineno-0-958" name="__codelineno-0-958"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-<a id="__codelineno-0-959" name="__codelineno-0-959"></a>            <span class="s2">&quot;Incorrect connectivity value. Possible connectivity values: 4 or 8.&quot;</span>
-<a id="__codelineno-0-960" name="__codelineno-0-960"></a>        <span class="p">)</span>
-<a id="__codelineno-0-961" name="__codelineno-0-961"></a>    <span class="n">mask_uint8</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
-<a id="__codelineno-0-962" name="__codelineno-0-962"></a>    <span class="n">labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">mask_uint8</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-<a id="__codelineno-0-963" name="__codelineno-0-963"></a>    <span class="n">number_of_labels</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">connectedComponents</span><span class="p">(</span>
-<a id="__codelineno-0-964" name="__codelineno-0-964"></a>        <span class="n">mask_uint8</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">connectivity</span><span class="o">=</span><span class="n">connectivity</span>
-<a id="__codelineno-0-965" name="__codelineno-0-965"></a>    <span class="p">)</span>
-<a id="__codelineno-0-966" name="__codelineno-0-966"></a>    <span class="k">return</span> <span class="n">number_of_labels</span> <span class="o">&gt;</span> <span class="mi">2</span>
+<a id="__codelineno-0-948" name="__codelineno-0-948"></a><span class="sd">            [0, 1, 1, 1, 1, 1],</span>
+<a id="__codelineno-0-949" name="__codelineno-0-949"></a><span class="sd">            [0, 1, 1, 1, 1, 1],</span>
+<a id="__codelineno-0-950" name="__codelineno-0-950"></a><span class="sd">            [0, 0, 0, 0, 0, 0]</span>
+<a id="__codelineno-0-951" name="__codelineno-0-951"></a><span class="sd">        ]).astype(bool)</span>
+<a id="__codelineno-0-952" name="__codelineno-0-952"></a>
+<a id="__codelineno-0-953" name="__codelineno-0-953"></a><span class="sd">        sv.contains_multiple_segments(mask=mask, connectivity=4)</span>
+<a id="__codelineno-0-954" name="__codelineno-0-954"></a><span class="sd">        # False</span>
+<a id="__codelineno-0-955" name="__codelineno-0-955"></a><span class="sd">        ```</span>
+<a id="__codelineno-0-956" name="__codelineno-0-956"></a>
+<a id="__codelineno-0-957" name="__codelineno-0-957"></a><span class="sd">    ![contains_multiple_segments](https://media.roboflow.com/supervision-docs/contains-multiple-segments.png){ align=center width=&quot;800&quot; }</span>
+<a id="__codelineno-0-958" name="__codelineno-0-958"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa E501 // docs</span>
+<a id="__codelineno-0-959" name="__codelineno-0-959"></a>    <span class="k">if</span> <span class="n">connectivity</span> <span class="o">!=</span> <span class="mi">4</span> <span class="ow">and</span> <span class="n">connectivity</span> <span class="o">!=</span> <span class="mi">8</span><span class="p">:</span>
+<a id="__codelineno-0-960" name="__codelineno-0-960"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+<a id="__codelineno-0-961" name="__codelineno-0-961"></a>            <span class="s2">&quot;Incorrect connectivity value. Possible connectivity values: 4 or 8.&quot;</span>
+<a id="__codelineno-0-962" name="__codelineno-0-962"></a>        <span class="p">)</span>
+<a id="__codelineno-0-963" name="__codelineno-0-963"></a>    <span class="n">mask_uint8</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+<a id="__codelineno-0-964" name="__codelineno-0-964"></a>    <span class="n">labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">mask_uint8</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+<a id="__codelineno-0-965" name="__codelineno-0-965"></a>    <span class="n">number_of_labels</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">connectedComponents</span><span class="p">(</span>
+<a id="__codelineno-0-966" name="__codelineno-0-966"></a>        <span class="n">mask_uint8</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">connectivity</span><span class="o">=</span><span class="n">connectivity</span>
+<a id="__codelineno-0-967" name="__codelineno-0-967"></a>    <span class="p">)</span>
+<a id="__codelineno-0-968" name="__codelineno-0-968"></a>    <span class="k">return</span> <span class="n">number_of_labels</span> <span class="o">&gt;</span> <span class="mi">2</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
