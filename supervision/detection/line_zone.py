@@ -154,7 +154,10 @@ class LineZone:
         # Reduce array to find out if all anchors for a detection are within limits
         in_limits = np.min(in_limits, axis=0)
 
+        # Calculate which anchors lie to the left of the line
         triggers = self._cross_product(all_anchors, self.vector) < 0
+        # Reduce to find out if all anchors for a
+        # detection lie to the left (or right) of the line
         max_triggers = np.max(triggers, axis=0)
         min_triggers = np.min(triggers, axis=0)
         for i, tracker_id in enumerate(detections.tracker_id):
