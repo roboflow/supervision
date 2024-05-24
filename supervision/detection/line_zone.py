@@ -55,15 +55,15 @@ class LineZone:
     """  # noqa: E501 // docs
 
     def __init__(
-        self,
-        start: Point,
-        end: Point,
-        triggering_anchors: Iterable[Position] = (
-            Position.TOP_LEFT,
-            Position.TOP_RIGHT,
-            Position.BOTTOM_LEFT,
-            Position.BOTTOM_RIGHT,
-        ),
+            self,
+            start: Point,
+            end: Point,
+            triggering_anchors: Iterable[Position] = (
+                    Position.TOP_LEFT,
+                    Position.TOP_RIGHT,
+                    Position.BOTTOM_LEFT,
+                    Position.BOTTOM_RIGHT,
+            ),
     ):
         """
         Args:
@@ -147,31 +147,28 @@ class LineZone:
             ]
         )
 
+        cross_products_1 = self._cross_product(all_anchors, self.limits[0])
+        cross_products_2 = self._cross_product(all_anchors, self.limits[1])
+        # anchor is in limits if it's on the same side of both limit vectors
+        in_limits = ~ np.logical_xor(cross_products_1 > 0, cross_products_2 > 0)
+        # Reduce array to find out if all anchors for a detection are within limits
+        in_limits = np.min(in_limits, axis=0)
+
+        triggers = self._cross_product(all_anchors, self.vector) < 0
+        max_triggers = np.max(triggers, axis=0)
+        min_triggers = np.min(triggers, axis=0)
         for i, tracker_id in enumerate(detections.tracker_id):
             if tracker_id is None:
                 continue
 
-            box_anchors = [Point(x=x, y=y) for x, y in all_anchors[:, i, :]]
-
-            in_limits = all(
-                [
-                    self.is_point_in_limits(point=anchor, limits=self.limits)
-                    for anchor in box_anchors
-                ]
-            )
-
-            if not in_limits:
+            if not in_limits[i]:
                 continue
 
-            triggers = [
-                self.vector.cross_product(point=anchor) < 0 for anchor in box_anchors
-            ]
-
-            if len(set(triggers)) == 2:
+            if min_triggers[i] != max_triggers[i]:
+                # One anchor lies to the left of the line whilst another lies to the right
                 continue
 
-            tracker_state = triggers[0]
-
+            tracker_state = max_triggers[i]
             if tracker_id not in self.tracker_state:
                 self.tracker_state[tracker_id] = tracker_state
                 continue
@@ -189,21 +186,36 @@ class LineZone:
 
         return crossed_in, crossed_out
 
+    @staticmethod
+    def _cross_product(anchors: np.ndarray, vector: Vector) -> np.ndarray:
+        """
+        Get array of cross products of each anchor with a vector.
+        Args:
+            anchors: Array of anchors of shape (number of anchors, detections, 2)
+            vector: Vector to calculate cross product with
+
+        Returns:
+            Array of cross products of shape (number of anchors, detections)
+        """
+        vector_at_zero = np.array([vector.end.x - vector.start.x, vector.end.y - vector.start.y])
+        vector_start = np.array([vector.start.x, vector.start.y])
+        return np.cross(vector_at_zero, anchors - vector_start)
+
 
 class LineZoneAnnotator:
     def __init__(
-        self,
-        thickness: float = 2,
-        color: Color = Color.WHITE,
-        text_thickness: float = 2,
-        text_color: Color = Color.BLACK,
-        text_scale: float = 0.5,
-        text_offset: float = 1.5,
-        text_padding: int = 10,
-        custom_in_text: Optional[str] = None,
-        custom_out_text: Optional[str] = None,
-        display_in_count: bool = True,
-        display_out_count: bool = True,
+            self,
+            thickness: float = 2,
+            color: Color = Color.WHITE,
+            text_thickness: float = 2,
+            text_color: Color = Color.BLACK,
+            text_scale: float = 0.5,
+            text_offset: float = 1.5,
+            text_padding: int = 10,
+            custom_in_text: Optional[str] = None,
+            custom_out_text: Optional[str] = None,
+            display_in_count: bool = True,
+            display_out_count: bool = True,
     ):
         """
         Initialize the LineCounterAnnotator object with default values.
@@ -233,11 +245,11 @@ class LineZoneAnnotator:
         self.display_out_count: bool = display_out_count
 
     def _annotate_count(
-        self,
-        frame: np.ndarray,
-        center_text_anchor: Point,
-        text: str,
-        is_in_count: bool,
+            self,
+            frame: np.ndarray,
+            center_text_anchor: Point,
+            text: str,
+            is_in_count: bool,
     ) -> None:
         """This method is drawing the text on the frame.
 
