@@ -7,6 +7,7 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 import numpy as np
 
 from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES
+from supervision.detection.lmm import LMM, from_paligemma, validate_lmm_and_kwargs
 from supervision.detection.utils import (
     box_non_max_suppression,
     calculate_masks_centroids,
@@ -240,7 +241,7 @@ class Detections:
             Class names values can be accessed using `detections["class_name"]`.
         """  # noqa: E501 // docs
 
-        if "obb" in ultralytics_results and ultralytics_results.obb is not None:
+        if hasattr(ultralytics_results, "obb") and ultralytics_results.obb is not None:
             class_id = ultralytics_results.obb.cls.cpu().numpy().astype(int)
             class_names = np.array([ultralytics_results.names[i] for i in class_id])
             oriented_box_coordinates = ultralytics_results.obb.xyxyxyxy.cpu().numpy()
@@ -418,6 +419,9 @@ class Detections:
             xyxy=mmdet_results.pred_instances.bboxes.cpu().numpy(),
             confidence=mmdet_results.pred_instances.scores.cpu().numpy(),
             class_id=mmdet_results.pred_instances.labels.cpu().numpy().astype(int),
+            mask=mmdet_results.pred_instances.masks.cpu().numpy()
+            if "masks" in mmdet_results.pred_instances
+            else None,
         )
 
     @classmethod
@@ -803,6 +807,52 @@ class Detections:
         )
 
     @classmethod
+    def from_lmm(cls, lmm: Union[LMM, str], result: str, **kwargs) -> Detections:
+        """
+        Creates a Detections object from the given result string based on the specified
+        Large Multimodal Model (LMM).
+
+        Args:
+            lmm (Union[LMM, str]): The type of LMM (Large Multimodal Model) to use.
+            result (str): The result string containing the detection data.
+            **kwargs: Additional keyword arguments required by the specified LMM.
+
+        Returns:
+            Detections: A new Detections object.
+
+        Raises:
+            ValueError: If the LMM is invalid, required arguments are missing, or
+                disallowed arguments are provided.
+            ValueError: If the specified LMM is not supported.
+
+        Examples:
+            ```python
+            import supervision as sv
+
+            paligemma_result = "<loc0256><loc0256><loc0768><loc0768> cat"
+            detections = sv.Detections.from_lmm(
+                sv.LMM.PALIGEMMA,
+                paligemma_result,
+                resolution_wh=(1000, 1000),
+                classes=['cat', 'dog']
+            )
+            detections.xyxy
+            # array([[250., 250., 750., 750.]])
+
+            detections.class_id
+            # array([0])
+            ```
+        """
+        lmm = validate_lmm_and_kwargs(lmm, kwargs)
+
+        if lmm == LMM.PALIGEMMA:
+            xyxy, class_id, class_name = from_paligemma(result, **kwargs)
+            data = {CLASS_NAME_DATA_FIELD: class_name}
+            return cls(xyxy=xyxy, class_id=class_id, data=data)
+
+        raise ValueError(f"Unsupported LMM: {lmm}")
+
+    @classmethod
     def empty(cls) -> Detections:
         """
         Create an empty Detections object with no bounding boxes,
@@ -831,9 +881,10 @@ class Detections:
 
         This method takes a list of Detections objects and combines their
         respective fields (`xyxy`, `mask`, `confidence`, `class_id`, and `tracker_id`)
-        into a single Detections object. If all elements in a field are not
-        `None`, the corresponding field will be stacked.
-        Otherwise, the field will be set to `None`.
+        into a single Detections object.
+
+        For example, if merging Detections with 3 and 4 detected objects, this method
+        will return a Detections with 7 objects (7 entries in `xyxy`, `mask`, etc).
 
         Args:
             detections_list (List[Detections]): A list of Detections objects to merge.
@@ -891,13 +942,12 @@ class Detections:
         def stack_or_none(name: str):
             if all(d.__getattribute__(name) is None for d in detections_list):
                 return None
-            if any(d.__getattribute__(name) is None for d in detections_list):
-                raise ValueError(f"All or none of the '{name}' fields must be None")
-            return (
-                np.vstack([d.__getattribute__(name) for d in detections_list])
-                if name == "mask"
-                else np.hstack([d.__getattribute__(name) for d in detections_list])
-            )
+            stack_list = [
+                d.__getattribute__(name)
+                for d in detections_list
+                if d.__getattribute__(name) is not None
+            ]
+            return np.vstack(stack_list) if name == "mask" else np.hstack(stack_list)
 
         mask = stack_or_none("mask")
         confidence = stack_or_none("confidence")

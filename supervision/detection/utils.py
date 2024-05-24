@@ -3,6 +3,7 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
+import numpy.typing as npt
 
 from supervision.config import CLASS_NAME_DATA_FIELD
 
@@ -56,7 +57,9 @@ def box_iou_batch(boxes_true: np.ndarray, boxes_detection: np.ndarray) -> np.nda
     bottom_right = np.minimum(boxes_true[:, None, 2:], boxes_detection[:, 2:])
 
     area_inter = np.prod(np.clip(bottom_right - top_left, a_min=0, a_max=None), 2)
-    return area_inter / (area_true[:, None] + area_detection - area_inter)
+    ious = area_inter / (area_true[:, None] + area_detection - area_inter)
+    ious = np.nan_to_num(ious)
+    return ious
 
 
 def _mask_iou_batch_split(
@@ -297,6 +300,35 @@ def clip_boxes(xyxy: np.ndarray, resolution_wh: Tuple[int, int]) -> np.ndarray:
     return result
 
 
+def pad_boxes(xyxy: np.ndarray, px: int, py: Optional[int] = None) -> np.ndarray:
+    """
+    Pads bounding boxes coordinates with a constant padding.
+
+    Args:
+        xyxy (np.ndarray): A numpy array of shape `(N, 4)` where each
+            row corresponds to a bounding box in the format
+            `(x_min, y_min, x_max, y_max)`.
+        px (int): The padding value to be added to both the left and right sides of
+            each bounding box.
+        py (Optional[int]): The padding value to be added to both the top and bottom
+            sides of each bounding box. If not provided, `px` will be used for both
+            dimensions.
+
+    Returns:
+        np.ndarray: A numpy array of shape `(N, 4)` where each row corresponds to a
+            bounding box with coordinates padded according to the provided padding
+            values.
+    """
+    if py is None:
+        py = px
+
+    result = xyxy.copy()
+    result[:, [0, 1]] -= [px, py]
+    result[:, [2, 3]] += [px, py]
+
+    return result
+
+
 def xywh_to_xyxy(boxes_xywh: np.ndarray) -> np.ndarray:
     xyxy = boxes_xywh.copy()
     xyxy[:, 2] = boxes_xywh[:, 0] + boxes_xywh[:, 2]
@@ -500,7 +532,7 @@ def process_roboflow_result(
     np.ndarray,
     Optional[np.ndarray],
     Optional[np.ndarray],
-    Dict[str, List[np.ndarray]],
+    Dict[str, Union[List[np.ndarray], np.ndarray]],
 ]:
     if not roboflow_result["predictions"]:
         return (
@@ -574,22 +606,59 @@ def move_boxes(xyxy: np.ndarray, offset: np.ndarray) -> np.ndarray:
     Returns:
         np.ndarray: Repositioned bounding boxes.
 
-    Example:
+    Examples:
         ```python
         import numpy as np
         import supervision as sv
 
-        boxes = np.array([[10, 10, 20, 20], [30, 30, 40, 40]])
+        xyxy = np.array([
+            [10, 10, 20, 20],
+            [30, 30, 40, 40]
+        ])
         offset = np.array([5, 5])
-        moved_box = sv.move_boxes(boxes, offset)
-        print(moved_box)
-        # np.array([
+
+        sv.move_boxes(xyxy=xyxy, offset=offset)
+        # array([
         #    [15, 15, 25, 25],
-        #     [35, 35, 45, 45]
+        #    [35, 35, 45, 45]
         # ])
         ```
     """
     return xyxy + np.hstack([offset, offset])
+
+
+def move_masks(
+    masks: np.ndarray,
+    offset: np.ndarray,
+    resolution_wh: Tuple[int, int] = None,
+) -> np.ndarray:
+    """
+    Offset the masks in an array by the specified (x, y) amount.
+
+    Args:
+        masks (np.ndarray): A 3D array of binary masks corresponding to the predictions.
+            Shape: `(N, H, W)`, where N is the number of predictions, and H, W are the
+            dimensions of each mask.
+        offset (np.ndarray): An array of shape `(2,)` containing non-negative int values
+            `[dx, dy]`.
+        resolution_wh (Tuple[int, int]): The width and height of the desired mask
+            resolution.
+
+    Returns:
+        (np.ndarray) repositioned masks, optionally padded to the specified shape.
+    """
+
+    if offset[0] < 0 or offset[1] < 0:
+        raise ValueError(f"Offset values must be non-negative integers. Got: {offset}")
+
+    mask_array = np.full((masks.shape[0], resolution_wh[1], resolution_wh[0]), False)
+    mask_array[
+        :,
+        offset[1] : masks.shape[1] + offset[1],
+        offset[0] : masks.shape[2] + offset[0],
+    ] = masks
+
+    return mask_array
 
 
 def scale_boxes(xyxy: np.ndarray, factor: float) -> np.ndarray:
@@ -606,16 +675,18 @@ def scale_boxes(xyxy: np.ndarray, factor: float) -> np.ndarray:
     Returns:
         np.ndarray: Scaled bounding boxes.
 
-    Example:
+    Examples:
         ```python
         import numpy as np
         import supervision as sv
 
-        boxes = np.array([[10, 10, 20, 20], [30, 30, 40, 40]])
-        factor = 1.5
-        scaled_bb = sv.scale_boxes(boxes, factor)
-        print(scaled_bb)
-        # np.array([
+        xyxy = np.array([
+            [10, 10, 20, 20],
+            [30, 30, 40, 40]
+        ])
+
+        scaled_bb = sv.scale_boxes(xyxy=xyxy, factor=1.5)
+        # array([
         #    [ 7.5,  7.5, 22.5, 22.5],
         #    [27.5, 27.5, 42.5, 42.5]
         # ])
@@ -678,7 +749,9 @@ def merge_data(
     Merges the data payloads of a list of Detections instances.
 
     Args:
-        data_list: The data payloads of the instances.
+        data_list: The data payloads of the Detections instances. Each data payload
+            is a dictionary with the same keys, and the values are either lists or
+            np.ndarray.
 
     Returns:
         A single data payload containing the merged data, preserving the original data
@@ -691,10 +764,6 @@ def merge_data(
     if not data_list:
         return {}
 
-    all_keys_sets = [set(data.keys()) for data in data_list]
-    if not all(keys_set == all_keys_sets[0] for keys_set in all_keys_sets):
-        raise ValueError("All data dictionaries must have the same keys to merge.")
-
     for data in data_list:
         lengths = [len(value) for value in data.values()]
         if len(set(lengths)) > 1:
@@ -702,10 +771,23 @@ def merge_data(
                 "All data values within a single object must have equal length."
             )
 
-    merged_data = {key: [] for key in all_keys_sets[0]}
+    keys_by_data = [set(data.keys()) for data in data_list]
+    keys_by_data = [keys for keys in keys_by_data if len(keys) > 0]
+    if not keys_by_data:
+        return {}
 
+    common_keys = set.intersection(*keys_by_data)
+    all_keys = set.union(*keys_by_data)
+    if common_keys != all_keys:
+        raise ValueError(
+            f"All sv.Detections.data dictionaries must have the same keys. Common "
+            f"keys: {common_keys}, but some dictionaries have additional keys: "
+            f"{all_keys.difference(common_keys)}."
+        )
+
+    merged_data = {key: [] for key in all_keys}
     for data in data_list:
-        for key in merged_data:
+        for key in data:
             merged_data[key].append(data[key])
 
     for key in merged_data:
@@ -766,3 +848,121 @@ def get_data_item(
             raise TypeError(f"Unsupported data type for key '{key}': {type(value)}")
 
     return subset_data
+
+
+def contains_holes(mask: npt.NDArray[np.bool_]) -> bool:
+    """
+    Checks if the binary mask contains holes (background pixels fully enclosed by
+    foreground pixels).
+
+    Args:
+        mask (npt.NDArray[np.bool_]): 2D binary mask where `True` indicates foreground
+            object and `False` indicates background.
+
+    Returns:
+        True if holes are detected, False otherwise.
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        mask = np.array([
+            [0, 0, 0, 0, 0],
+            [0, 1, 1, 1, 0],
+            [0, 1, 0, 1, 0],
+            [0, 1, 1, 1, 0],
+            [0, 0, 0, 0, 0]
+        ]).astype(bool)
+
+        sv.contains_holes(mask=mask)
+        # True
+
+        mask = np.array([
+            [0, 0, 0, 0, 0],
+            [0, 1, 1, 1, 0],
+            [0, 1, 1, 1, 0],
+            [0, 1, 1, 1, 0],
+            [0, 0, 0, 0, 0]
+        ]).astype(bool)
+
+        sv.contains_holes(mask=mask)
+        # False
+        ```
+
+    ![contains_holes](https://media.roboflow.com/supervision-docs/contains-holes.png){ align=center width="800" }
+    """  # noqa E501 // docs
+    mask_uint8 = mask.astype(np.uint8)
+    _, hierarchy = cv2.findContours(mask_uint8, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+
+    if hierarchy is not None:
+        parent_contour_index = 3
+        for h in hierarchy[0]:
+            if h[parent_contour_index] != -1:
+                return True
+    return False
+
+
+def contains_multiple_segments(
+    mask: npt.NDArray[np.bool_], connectivity: int = 4
+) -> bool:
+    """
+    Checks if the binary mask contains multiple unconnected foreground segments.
+
+    Args:
+        mask (npt.NDArray[np.bool_]): 2D binary mask where `True` indicates foreground
+            object and `False` indicates background.
+        connectivity (int) : Default: 4 is 4-way connectivity, which means that
+            foreground pixels are the part of the same segment/component
+            if their edges touch.
+            Alternatively: 8 for 8-way connectivity, when foreground pixels are
+            connected by their edges or corners touch.
+
+    Returns:
+        True when the mask contains multiple not connected components, False otherwise.
+
+    Raises:
+        ValueError: If connectivity(int) parameter value is not 4 or 8.
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        mask = np.array([
+            [0, 0, 0, 0, 0, 0],
+            [0, 1, 1, 0, 1, 1],
+            [0, 1, 1, 0, 1, 1],
+            [0, 0, 0, 0, 0, 0],
+            [0, 1, 1, 1, 0, 0],
+            [0, 1, 1, 1, 0, 0]
+        ]).astype(bool)
+
+        sv.contains_multiple_segments(mask=mask, connectivity=4)
+        # True
+
+        mask = np.array([
+            [0, 0, 0, 0, 0, 0],
+            [0, 1, 1, 1, 1, 1],
+            [0, 1, 1, 1, 1, 1],
+            [0, 1, 1, 1, 1, 1],
+            [0, 1, 1, 1, 1, 1],
+            [0, 0, 0, 0, 0, 0]
+        ]).astype(bool)
+
+        sv.contains_multiple_segments(mask=mask, connectivity=4)
+        # False
+        ```
+
+    ![contains_multiple_segments](https://media.roboflow.com/supervision-docs/contains-multiple-segments.png){ align=center width="800" }
+    """  # noqa E501 // docs
+    if connectivity != 4 and connectivity != 8:
+        raise ValueError(
+            "Incorrect connectivity value. Possible connectivity values: 4 or 8."
+        )
+    mask_uint8 = mask.astype(np.uint8)
+    labels = np.zeros_like(mask_uint8, dtype=np.int32)
+    number_of_labels, _ = cv2.connectedComponents(
+        mask_uint8, labels, connectivity=connectivity
+    )
+    return number_of_labels > 2
