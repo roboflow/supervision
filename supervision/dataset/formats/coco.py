@@ -11,7 +11,7 @@ from supervision.dataset.utils import (
     approximate_mask_with_polygons,
     map_detections_class_id,
     mask_to_rle,
-    merge_masks,
+    merge_polygons,
     rle_to_mask,
 )
 from supervision.detection.core import Detections
@@ -75,7 +75,7 @@ def coco_annotations_to_masks(
                 resolution_wh=resolution_wh,
             )
             if image_annotation["iscrowd"]
-            else merge_masks(image_annotation["segmentation"], resolution_wh)
+            else merge_polygons(image_annotation["segmentation"], resolution_wh)
             if len(image_annotation["segmentation"]) > 1
             else polygon_to_mask(
                 polygon=np.reshape(

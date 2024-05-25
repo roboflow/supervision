@@ -47,29 +47,57 @@ def approximate_mask_with_polygons(
     ]
 
 
-def merge_masks(segmentations, resolution_wh):
-    parent = None
-    for s in segmentations:
-        if parent is None:
-            parent = polygon_to_mask(
-                polygon=np.reshape(
-                    np.asarray(s, dtype=np.int32),
-                    (-1, 2),
-                ),
-                resolution_wh=resolution_wh,
-            )
-        else:
-            mask = polygon_to_mask(
-                polygon=np.reshape(
-                    np.asarray(s, dtype=np.int32),
-                    (-1, 2),
-                ),
-                resolution_wh=resolution_wh,
-            )
+def merge_polygons(
+    polygons: List[np.ndarray], resolution_wh: Tuple[int, int]
+) -> np.ndarray:
+    """
+    Merge polygons (in the form of vertices) within the segmentation list
+    of a COCO annotation.
 
-            parent = np.logical_or(parent, mask)
+    Args:
+        polygons (List[np.ndarray]): A nested list of vertices, with each
+            nested list representing one polygon
+        resolution_wh (Tuple[int, int]): The width (w) and height (h)
+            of the desired binary mask.
 
-    return parent
+    Returns:
+        np.ndarray: The generated 2D mask, where the polygon is marked with
+            `1`'s and the rest is filled with `0`'s.
+
+    Examples:
+        ```python
+        import supervision as sv
+
+        sv.merge_polygons([[1.0, 1.0, 2.0, 3.0], [1.0, 1.0, 3.0, 2.0]], (8, 4))
+        # array([
+        #     [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        #     [0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        #     [0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0],
+        #     [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        # ])
+        ```
+    """
+    parent_polygon = polygons[0]
+    parent_mask = polygon_to_mask(
+        polygon=np.reshape(
+            np.asarray(parent_polygon, dtype=np.int32),
+            (-1, 2),
+        ),
+        resolution_wh=resolution_wh,
+    )
+
+    for p in polygons[1:]:
+        child_mask = polygon_to_mask(
+            polygon=np.reshape(
+                np.asarray(p, dtype=np.int32),
+                (-1, 2),
+            ),
+            resolution_wh=resolution_wh,
+        )
+
+        parent_mask = np.logical_or(parent_mask, child_mask)
+
+    return parent_mask.astype(float)
 
 
 def merge_class_lists(class_lists: List[List[str]]) -> List[str]:
