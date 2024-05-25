@@ -13,6 +13,7 @@ from supervision.detection.utils import (
     approximate_polygon,
     filter_polygons_by_area,
     mask_to_polygons,
+    polygon_to_mask,
 )
 
 T = TypeVar("T")
@@ -44,6 +45,31 @@ def approximate_mask_with_polygons(
         approximate_polygon(polygon=polygon, percentage=approximation_percentage)
         for polygon in polygons
     ]
+
+
+def merge_masks(segmentations, resolution_wh):
+    parent = None
+    for s in segmentations:
+        if parent is None:
+            parent = polygon_to_mask(
+                polygon=np.reshape(
+                    np.asarray(s, dtype=np.int32),
+                    (-1, 2),
+                ),
+                resolution_wh=resolution_wh,
+            )
+        else:
+            mask = polygon_to_mask(
+                polygon=np.reshape(
+                    np.asarray(s, dtype=np.int32),
+                    (-1, 2),
+                ),
+                resolution_wh=resolution_wh,
+            )
+
+            parent = np.logical_or(parent, mask)
+
+    return parent
 
 
 def merge_class_lists(class_lists: List[List[str]]) -> List[str]:
