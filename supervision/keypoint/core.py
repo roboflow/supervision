@@ -192,13 +192,14 @@ class KeyPoints:
     ) -> KeyPoints:
         """
         Creates a KeyPoints instance from a
-            [Pose landmark detection](https://ai.google.dev/edge/mediapipe/) inference result.
+            [Pose landmark detection](https://ai.google.dev/edge/mediapipe/)
+                inference result.
 
         Args:
             mediapipe_results (mediapipe.python.solution_base.SolutionOutputs):
                 The output Results from Mediapipe
-            resolution (Tuple[int, int]): image resolution (w, h) since mediapipe only provides
-                normalized coordinates
+            resolution (Tuple[int, int]): image resolution (w, h) since mediapipe
+                only provides normalized coordinates
 
         Returns:
             KeyPoints: A new KeyPoints object.
@@ -209,8 +210,9 @@ class KeyPoints:
             import mediapipe as mp
             import supervision as sv
 
+            mp_pose = mp.solutions.pose
             image = cv2.imread(<SOURCE_IMAGE_PATH>)
-            pose = mp.solutions.pose.Pose(static_image_mode=True, min_detection_confidence=0.5)
+            pose = mp_pose.Pose(static_image_mode=True, min_detection_confidence=0.5)
             results = pose.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
             keypoints = sv.KeyPoints.from_mediapipe(results)
             ```
