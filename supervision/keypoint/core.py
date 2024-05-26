@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from contextlib import suppress
 from dataclasses import dataclass, field
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
@@ -183,6 +184,55 @@ class KeyPoints:
             confidence=np.array(confidence, dtype=np.float32),
             class_id=np.array(class_id, dtype=int),
             data=data,
+        )
+
+    @classmethod
+    def from_mediapipe(
+        cls, mediapipe_results, resolution: Tuple[int, int]
+    ) -> KeyPoints:
+        """
+        Creates a KeyPoints instance from a
+            [Pose landmark detection](https://ai.google.dev/edge/mediapipe/) inference result.
+
+        Args:
+            mediapipe_results (mediapipe.python.solution_base.SolutionOutputs):
+                The output Results from Mediapipe
+            resolution (Tuple[int, int]): image resolution (w, h) since mediapipe only provides
+                normalized coordinates
+
+        Returns:
+            KeyPoints: A new KeyPoints object.
+
+        Example:
+            ```python
+            import cv2
+            import mediapipe as mp
+            import supervision as sv
+
+            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            pose = mp.solutions.pose.Pose(static_image_mode=True, min_detection_confidence=0.5)
+            results = pose.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+            keypoints = sv.KeyPoints.from_mediapipe(results)
+            ```
+        """
+        if mediapipe_results.pose_landmarks is None:
+            return cls.empty()
+
+        prediction_xy = []
+        prediction_confidence = []
+
+        for landmark in mediapipe_results.pose_landmarks.landmark:
+            prediction_xy.append(
+                [
+                    min(math.floor(landmark.x * resolution[0]), resolution[0] - 1),
+                    min(math.floor(landmark.y * resolution[1]), resolution[1] - 1),
+                ]
+            )
+            prediction_confidence.append(landmark.visibility)
+
+        return cls(
+            xy=np.array([prediction_xy], dtype=np.float32),
+            confidence=np.array([prediction_confidence], dtype=np.float32),
         )
 
     @classmethod
