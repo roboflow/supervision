@@ -1203,7 +1203,7 @@ class Detections:
         result = []
         for merge_group in merge_groups:
             unmerged_detections = [self[i] for i in merge_group]
-            merged_detections = _merge_inner_detections_objects(
+            merged_detections = merge_inner_detections_objects(
                 unmerged_detections, threshold
             )
             result.append(merged_detections)
@@ -1211,7 +1211,7 @@ class Detections:
         return Detections.merge(result)
 
 
-def _merge_inner_detection_object_pair(
+def merge_inner_detection_object_pair(
     detections_1: Detections, detections_2: Detections
 ) -> Detections:
     """
@@ -1259,29 +1259,23 @@ def _merge_inner_detection_object_pair(
     if len(detections_1) != 1 or len(detections_2) != 1:
         raise ValueError("Both Detections should have exactly 1 detected object.")
 
-    _verify_fields_both_defined_or_none(detections_1, detections_2)
+    validate_fields_both_defined_or_none(detections_1, detections_2)
 
+    xyxy_1 = detections_1.xyxy[0]
+    xyxy_2 = detections_2.xyxy[0]
     if detections_1.confidence is None and detections_2.confidence is None:
         merged_confidence = None
     else:
-        area_det1 = (detections_1.xyxy[0][2] - detections_1.xyxy[0][0]) * (
-            detections_1.xyxy[0][3] - detections_1.xyxy[0][1]
-        )
-        area_det2 = (detections_2.xyxy[0][2] - detections_2.xyxy[0][0]) * (
-            detections_2.xyxy[0][3] - detections_2.xyxy[0][1]
-        )
+        detection_1_area = (xyxy_1[2] - xyxy_1[0]) * (xyxy_1[3] - xyxy_1[1])
+        detections_2_area = (xyxy_2[2] - xyxy_2[0]) * (xyxy_2[3] - xyxy_2[1])
         merged_confidence = (
-            area_det1 * detections_1.confidence[0]
-            + area_det2 * detections_2.confidence[0]
-        ) / (area_det1 + area_det2)
+            detection_1_area * detections_1.confidence[0]
+            + detections_2_area * detections_2.confidence[0]
+        ) / (detection_1_area + detections_2_area)
         merged_confidence = np.array([merged_confidence])
 
-    merged_x1, merged_y1 = np.minimum(
-        detections_1.xyxy[0][:2], detections_2.xyxy[0][:2]
-    )
-    merged_x2, merged_y2 = np.maximum(
-        detections_1.xyxy[0][2:], detections_2.xyxy[0][2:]
-    )
+    merged_x1, merged_y1 = np.minimum(xyxy_1[:2], xyxy_2[:2])
+    merged_x2, merged_y2 = np.maximum(xyxy_1[2:], xyxy_2[2:])
     merged_xyxy = np.array([[merged_x1, merged_y1, merged_x2, merged_y2]])
 
     if detections_1.mask is None and detections_2.mask is None:
@@ -1290,27 +1284,23 @@ def _merge_inner_detection_object_pair(
         merged_mask = np.logical_or(detections_1.mask, detections_2.mask)
 
     if detections_1.confidence is None and detections_2.confidence is None:
-        winning_det = detections_1
+        winning_detection = detections_1
     elif detections_1.confidence[0] >= detections_2.confidence[0]:
-        winning_det = detections_1
+        winning_detection = detections_1
     else:
-        winning_det = detections_2
-
-    winning_class_id = winning_det.class_id
-    winning_tracker_id = winning_det.tracker_id
-    winning_data = winning_det.data
+        winning_detection = detections_2
 
     return Detections(
         xyxy=merged_xyxy,
         mask=merged_mask,
         confidence=merged_confidence,
-        class_id=winning_class_id,
-        tracker_id=winning_tracker_id,
-        data=winning_data,
+        class_id=winning_detection.class_id,
+        tracker_id=winning_detection.tracker_id,
+        data=winning_detection.data,
     )
 
 
-def _merge_inner_detections_objects(
+def merge_inner_detections_objects(
     detections: List[Detections], threshold=0.5
 ) -> Detections:
     """
@@ -1326,11 +1316,11 @@ def _merge_inner_detections_objects(
         box_iou = box_iou_batch(detections_1.xyxy, detections_2.xyxy)[0]
         if box_iou < threshold:
             break
-        detections_1 = _merge_inner_detection_object_pair(detections_1, detections_2)
+        detections_1 = merge_inner_detection_object_pair(detections_1, detections_2)
     return detections_1
 
 
-def _verify_fields_both_defined_or_none(
+def validate_fields_both_defined_or_none(
     detections_1: Detections, detections_2: Detections
 ) -> None:
     """

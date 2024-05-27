@@ -5,7 +5,7 @@ from typing import List, Optional, Union
 import numpy as np
 import pytest
 
-from supervision.detection.core import Detections, _merge_inner_detection_object_pair
+from supervision.detection.core import Detections, merge_inner_detection_object_pair
 from supervision.geometry.core import Position
 
 PREDICTIONS = np.array(
@@ -588,5 +588,5 @@ def test_merge_inner_detection_object_pair(
     exception: Exception,
 ):
     with exception:
-        result = _merge_inner_detection_object_pair(detection_1, detection_2)
+        result = merge_inner_detection_object_pair(detection_1, detection_2)
         assert result == expected_result
