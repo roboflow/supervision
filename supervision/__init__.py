@@ -47,6 +47,7 @@ from supervision.detection.tools.polygon_zone import PolygonZone, PolygonZoneAnn
 from supervision.detection.tools.smoother import DetectionsSmoother
 from supervision.detection.utils import (
     box_iou_batch,
+    box_non_max_merge,
     box_non_max_suppression,
     calculate_masks_centroids,
     clip_boxes,
