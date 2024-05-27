@@ -6,12 +6,12 @@ import pytest
 
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.utils import (
-    _box_non_max_merge_all,
     box_non_max_suppression,
     calculate_masks_centroids,
     clip_boxes,
     filter_polygons_by_area,
     get_data_item,
+    group_overlapping_boxes,
     mask_non_max_suppression,
     merge_data,
     move_boxes,
@@ -241,14 +241,14 @@ def test_box_non_max_suppression(
         ),  # confidence
     ],
 )
-def test_box_non_max_merge(
+def test_group_overlapping_boxes(
     predictions: np.ndarray,
     iou_threshold: float,
     expected_result: List[List[int]],
     exception: Exception,
 ) -> None:
     with exception:
-        result = _box_non_max_merge_all(
+        result = group_overlapping_boxes(
             predictions=predictions, iou_threshold=iou_threshold
         )
 

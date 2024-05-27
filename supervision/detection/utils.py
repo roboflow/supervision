@@ -275,7 +275,7 @@ def box_non_max_suppression(
     return keep[sort_index.argsort()]
 
 
-def _box_non_max_merge_all(
+def group_overlapping_boxes(
     predictions: npt.NDArray[np.float64], iou_threshold: float = 0.5
 ) -> List[List[int]]:
     """
@@ -338,13 +338,13 @@ def box_non_max_merge(
             Each group may have 1 or more elements.
     """
     if predictions.shape[1] == 5:
-        return _box_non_max_merge_all(predictions, iou_threshold)
+        return group_overlapping_boxes(predictions, iou_threshold)
 
     category_ids = predictions[:, 5]
     merge_groups = []
     for category_id in np.unique(category_ids):
         curr_indices = np.where(category_ids == category_id)[0]
-        merge_class_groups = _box_non_max_merge_all(
+        merge_class_groups = group_overlapping_boxes(
             predictions[curr_indices], iou_threshold
         )
 
