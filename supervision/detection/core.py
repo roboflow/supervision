@@ -23,7 +23,7 @@ from supervision.detection.utils import (
     xywh_to_xyxy,
 )
 from supervision.geometry.core import Position
-from supervision.utils.internal import deprecated
+from supervision.utils.internal import deprecated, get_instance_variables
 from supervision.validators import validate_detections_fields
 
 
@@ -1379,7 +1379,7 @@ def validate_fields_both_defined_or_none(
     Raises:
         ValueError: If one field is None and the other is not, for any of the fields.
     """
-    attributes = ["mask", "confidence", "class_id", "tracker_id"]
+    attributes = get_instance_variables(detections_1)
     for attribute in attributes:
         value_1 = getattr(detections_1, attribute)
         value_2 = getattr(detections_2, attribute)
