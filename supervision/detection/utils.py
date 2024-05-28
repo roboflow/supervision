@@ -1,3 +1,4 @@
+from enum import Enum
 from itertools import chain
 from typing import Dict, List, Optional, Tuple, Union
 
@@ -1056,3 +1057,19 @@ def contains_multiple_segments(
         mask_uint8, labels, connectivity=connectivity
     )
     return number_of_labels > 2
+
+
+class OverlapFilter(Enum):
+    """
+    Enum specifying the strategy for filtering overlapping detections.
+
+    Attributes:
+        NONE: Do not filter detections based on overlap.
+        NON_MAX_SUPPRESSION: Filter detections using non-max suppression.
+        NON_MAX_MERGE: Merge detections with non-max-merging instead of
+            discarding them.
+    """
+
+    NONE = "none"
+    NON_MAX_SUPPRESSION = "non_max_suppression"
+    NON_MAX_MERGE = "non_max_merge"
