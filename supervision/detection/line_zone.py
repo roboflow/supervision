@@ -82,8 +82,8 @@ class LineZone:
         self.tracker_state: Dict[str, bool] = {}
         self.in_count: int = 0
         self.out_count: int = 0
-        self.triggering_anchors = list(triggering_anchors)
-        if not self.triggering_anchors:
+        self.triggering_anchors = triggering_anchors
+        if not list(self.triggering_anchors):
             raise ValueError("Triggering anchors cannot be empty.")
 
     @staticmethod
