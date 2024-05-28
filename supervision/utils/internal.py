@@ -144,14 +144,12 @@ class classproperty(property):
         return self.fget(owner_cls)
 
 
-def get_instance_variables(cls: Any, include_properties=False) -> Set[str]:
+def get_instance_variables(instance: Any, include_properties=False) -> Set[str]:
     """
-    Get the non-private variables of a class or instance.
-    Some variables are only during initialization, so passing an instance
-    is more reliable.
+    Get the public variables of a class instance.
 
     Args:
-        cls (Any): The class or instance
+        instance (Any): The class or instance
         include_properties (bool): Whether to include properties in the result
 
     Usage:
@@ -161,20 +159,22 @@ def get_instance_variables(cls: Any, include_properties=False) -> Set[str]:
         # Returns ["xyxy", "mask", "confidence", ..., "data"]
         ```
     """
+    if isinstance(instance, type):
+        raise ValueError("Only class instances are supported, not classes.")
+
     fields = set(
         (
             name
-            for name, val in inspect.getmembers(cls)
-            if not name.startswith("__") and not callable(val)
+            for name, val in inspect.getmembers(instance)
+            if not callable(val) and not name.startswith("_")
         )
     )
 
     if not include_properties:
-        class_type = cls if isinstance(cls, type) else type(cls)
         properties = set(
             (
                 name
-                for name, val in inspect.getmembers(class_type)
+                for name, val in inspect.getmembers(instance.__class__)
                 if isinstance(val, property)
             )
         )
