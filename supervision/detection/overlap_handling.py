@@ -242,6 +242,8 @@ class OverlapHandlingStrategy(Enum):
         NON_MAX_MERGE: Merge detections with non-max-merging. This means,
             detections that overlap by more than a set threshold will be merged
             into a single detection.
+
+    ![overlap-handling-strategies-example](https://media.roboflow.com/supervision-docs/overlap-handling-strategies-example.png)
     """
 
     NONE = "none"
