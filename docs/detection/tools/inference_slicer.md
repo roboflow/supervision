@@ -8,4 +8,4 @@ comments: true
 
 # Overlap Handling Strategy
 
-:::supervision.detection.utils.OverlapHandlingStrategy
+:::supervision.detection.overlap_handling.OverlapHandlingStrategy
