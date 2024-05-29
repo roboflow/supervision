@@ -1,7 +1,8 @@
 import functools
+import inspect
 import os
 import warnings
-from typing import Callable
+from typing import Any, Callable, Set
 
 
 class SupervisionWarnings(Warning):
@@ -141,3 +142,42 @@ class classproperty(property):
         The result of calling the function stored in 'fget' with 'owner_cls'.
         """
         return self.fget(owner_cls)
+
+
+def get_instance_variables(instance: Any, include_properties=False) -> Set[str]:
+    """
+    Get the public variables of a class instance.
+
+    Args:
+        instance (Any): The instance of a class
+        include_properties (bool): Whether to include properties in the result
+
+    Usage:
+        ```python
+        detections = Detections(xyxy=np.array([1,2,3,4]))
+        variables = get_class_variables(detections)
+        # ["xyxy", "mask", "confidence", ..., "data"]
+        ```
+    """
+    if isinstance(instance, type):
+        raise ValueError("Only class instances are supported, not classes.")
+
+    fields = set(
+        (
+            name
+            for name, val in inspect.getmembers(instance)
+            if not callable(val) and not name.startswith("_")
+        )
+    )
+
+    if not include_properties:
+        properties = set(
+            (
+                name
+                for name, val in inspect.getmembers(instance.__class__)
+                if isinstance(val, property)
+            )
+        )
+        fields -= properties
+
+    return fields
