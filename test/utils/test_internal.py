@@ -1,5 +1,5 @@
 from contextlib import ExitStack as DoesNotRaise
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Set
 
 import numpy as np
@@ -43,6 +43,14 @@ class MockDataclass:
     _protected: int = 1
     __private: int = 2
 
+    public_field: int = field(default=0)
+    _protected_field: int = field(default=1)
+    __private_field: int = field(default=2)
+
+    public_field_with_factory: dict = field(default_factory=dict)
+    _protected_field_with_factory: dict = field(default_factory=dict)
+    __private_field_with_factory: dict = field(default_factory=dict)
+
     def public_method(self):
         pass
 
@@ -66,7 +74,7 @@ class MockDataclass:
 
 
 @pytest.mark.parametrize(
-    "input_obj, include_properties, expected, exception",
+    "input_instance, include_properties, expected, exception",
     [
         (
             MockClass,
@@ -89,13 +97,13 @@ class MockDataclass:
         (
             MockDataclass(),
             False,
-            {"public"},
+            {"public", "public_field", "public_field_with_factory"},
             DoesNotRaise(),
         ),
         (
             MockDataclass(),
             True,
-            {"public", "public_property"},
+            {"public", "public_field", "public_field_with_factory", "public_property"},
             DoesNotRaise(),
         ),
         (
@@ -173,10 +181,13 @@ class MockDataclass:
     ],
 )
 def test_get_instance_variables(
-    input_obj: Any, include_properties: bool, expected: Set[str], exception: Exception
+    input_instance: Any,
+    include_properties: bool,
+    expected: Set[str],
+    exception: Exception,
 ) -> None:
     with exception:
         result = get_instance_variables(
-            input_obj, include_properties=include_properties
+            input_instance, include_properties=include_properties
         )
         assert result == expected

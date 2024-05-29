@@ -149,14 +149,14 @@ def get_instance_variables(instance: Any, include_properties=False) -> Set[str]:
     Get the public variables of a class instance.
 
     Args:
-        instance (Any): The class or instance
+        instance (Any): The instance of a class
         include_properties (bool): Whether to include properties in the result
 
     Usage:
         ```python
         detections = Detections(xyxy=np.array([1,2,3,4]))
         variables = get_class_variables(detections)
-        # Returns ["xyxy", "mask", "confidence", ..., "data"]
+        # ["xyxy", "mask", "confidence", ..., "data"]
         ```
     """
     if isinstance(instance, type):
