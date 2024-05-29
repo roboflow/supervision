@@ -1059,17 +1059,34 @@ def contains_multiple_segments(
     return number_of_labels > 2
 
 
-class OverlapFilter(Enum):
+class OverlapHandlingStrategy(Enum):
     """
     Enum specifying the strategy for filtering overlapping detections.
 
     Attributes:
         NONE: Do not filter detections based on overlap.
-        NON_MAX_SUPPRESSION: Filter detections using non-max suppression.
-        NON_MAX_MERGE: Merge detections with non-max-merging instead of
-            discarding them.
+        NON_MAX_SUPPRESSION: Filter detections using non-max suppression. This means,
+            detections that overlap by more than a set threshold will be discarded,
+            except for the one with the highest confidence.
+        NON_MAX_MERGE: Merge detections with non-max-merging. This means,
+            detections that overlap by more than a set threshold will be merged
+            into a single detection.
     """
 
     NONE = "none"
     NON_MAX_SUPPRESSION = "non_max_suppression"
     NON_MAX_MERGE = "non_max_merge"
+
+
+def validate_overlapping_handling_strategy(
+    strategy: Union[OverlapHandlingStrategy, str],
+) -> OverlapHandlingStrategy:
+    if isinstance(strategy, str):
+        try:
+            strategy = OverlapHandlingStrategy(strategy.lower())
+        except ValueError:
+            raise ValueError(
+                f"Invalid strategy value: {strategy}. Must be one of "
+                f"{[e.value for e in OverlapHandlingStrategy]}"
+            )
+    return strategy

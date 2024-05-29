@@ -46,7 +46,7 @@ from supervision.detection.tools.json_sink import JSONSink
 from supervision.detection.tools.polygon_zone import PolygonZone, PolygonZoneAnnotator
 from supervision.detection.tools.smoother import DetectionsSmoother
 from supervision.detection.utils import (
-    OverlapFilter,
+    OverlapHandlingStrategy,
     box_iou_batch,
     box_non_max_merge,
     box_non_max_suppression,
