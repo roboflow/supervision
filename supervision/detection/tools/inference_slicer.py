@@ -5,12 +5,11 @@ from typing import Callable, Optional, Tuple, Union
 import numpy as np
 
 from supervision.detection.core import Detections
-from supervision.detection.utils import (
+from supervision.detection.overlap_handling import (
     OverlapHandlingStrategy,
-    move_boxes,
-    move_masks,
     validate_overlapping_handling_strategy,
 )
+from supervision.detection.utils import move_boxes, move_masks
 from supervision.utils.image import crop_image
 from supervision.utils.internal import SupervisionWarnings
 
