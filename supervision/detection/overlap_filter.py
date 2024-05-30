@@ -230,7 +230,7 @@ def box_non_max_merge(
     return merge_groups
 
 
-class OverlapHandlingStrategy(Enum):
+class OverlapFilter(Enum):
     """
     Enum specifying the strategy for filtering overlapping detections.
 
@@ -239,11 +239,9 @@ class OverlapHandlingStrategy(Enum):
         NON_MAX_SUPPRESSION: Filter detections using non-max suppression. This means,
             detections that overlap by more than a set threshold will be discarded,
             except for the one with the highest confidence.
-        NON_MAX_MERGE: Merge detections with non-max-merging. This means,
+        NON_MAX_MERGE: Merge detections with non-max merging. This means,
             detections that overlap by more than a set threshold will be merged
             into a single detection.
-
-    ![overlap-handling-strategies-example](https://media.roboflow.com/supervision-docs/overlap-handling-strategies-example.png)
     """
 
     NONE = "none"
@@ -251,15 +249,15 @@ class OverlapHandlingStrategy(Enum):
     NON_MAX_MERGE = "non_max_merge"
 
 
-def validate_overlapping_handling_strategy(
-    strategy: Union[OverlapHandlingStrategy, str],
-) -> OverlapHandlingStrategy:
+def validate_overlap_filter(
+    strategy: Union[OverlapFilter, str],
+) -> OverlapFilter:
     if isinstance(strategy, str):
         try:
-            strategy = OverlapHandlingStrategy(strategy.lower())
+            strategy = OverlapFilter(strategy.lower())
         except ValueError:
             raise ValueError(
                 f"Invalid strategy value: {strategy}. Must be one of "
-                f"{[e.value for e in OverlapHandlingStrategy]}"
+                f"{[e.value for e in OverlapFilter]}"
             )
     return strategy

@@ -40,8 +40,8 @@ from supervision.detection.annotate import BoxAnnotator
 from supervision.detection.core import Detections
 from supervision.detection.line_zone import LineZone, LineZoneAnnotator
 from supervision.detection.lmm import LMM
-from supervision.detection.overlap_handling import (
-    OverlapHandlingStrategy,
+from supervision.detection.overlap_filter import (
+    OverlapFilter,
     box_non_max_merge,
     box_non_max_suppression,
     mask_non_max_suppression,

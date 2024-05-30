@@ -18,24 +18,6 @@ status: new
 :::supervision.detection.utils.mask_iou_batch
 
 <div class="md-typeset">
-  <h2><a href="#supervision.detection.overlap_handling.box_non_max_suppression">box_non_max_suppression</a></h2>
-</div>
-
-:::supervision.detection.overlap_handling.box_non_max_suppression
-
-<div class="md-typeset">
-  <h2><a href="#supervision.detection.overlap_handling.mask_non_max_suppression">mask_non_max_suppression</a></h2>
-</div>
-
-:::supervision.detection.overlap_handling.mask_non_max_suppression
-
-<div class="md-typeset">
-  <h2><a href="#supervision.detection.overlap_handling.box_non_max_merge">box_non_max_merge</a></h2>
-</div>
-
-:::supervision.detection.overlap_handling.box_non_max_merge
-
-<div class="md-typeset">
   <h2><a href="#supervision.detection.utils.polygon_to_mask">polygon_to_mask</a></h2>
 </div>
 

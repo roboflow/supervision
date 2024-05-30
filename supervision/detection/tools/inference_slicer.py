@@ -5,10 +5,7 @@ from typing import Callable, Optional, Tuple, Union
 import numpy as np
 
 from supervision.detection.core import Detections
-from supervision.detection.overlap_handling import (
-    OverlapHandlingStrategy,
-    validate_overlapping_handling_strategy,
-)
+from supervision.detection.overlap_filter import OverlapFilter, validate_overlap_filter
 from supervision.detection.utils import move_boxes, move_masks
 from supervision.utils.image import crop_image
 from supervision.utils.internal import SupervisionWarnings
@@ -56,7 +53,7 @@ class InferenceSlicer:
             `(width, height)`.
         overlap_ratio_wh (Tuple[float, float]): Overlap ratio between consecutive
             slices in the format `(width_ratio, height_ratio)`.
-        overlap_handling_strategy (Union[OverlapHandlingStrategy, str]): Strategy for
+        overlap_filter_strategy (Union[OverlapFilter, str]): Strategy for
             filtering or merging overlapping detections in slices.
         iou_threshold (float): Intersection over Union (IoU) threshold
             used when filtering by overlap.
@@ -76,20 +73,18 @@ class InferenceSlicer:
         callback: Callable[[np.ndarray], Detections],
         slice_wh: Tuple[int, int] = (320, 320),
         overlap_ratio_wh: Tuple[float, float] = (0.2, 0.2),
-        overlap_handling_strategy: Union[
-            OverlapHandlingStrategy, str
-        ] = OverlapHandlingStrategy.NON_MAX_SUPPRESSION,
+        overlap_filter_strategy: Union[
+            OverlapFilter, str
+        ] = OverlapFilter.NON_MAX_SUPPRESSION,
         iou_threshold: float = 0.5,
         thread_workers: int = 1,
     ):
-        overlap_handling_strategy = validate_overlapping_handling_strategy(
-            overlap_handling_strategy
-        )
+        overlap_filter_strategy = validate_overlap_filter(overlap_filter_strategy)
 
         self.slice_wh = slice_wh
         self.overlap_ratio_wh = overlap_ratio_wh
         self.iou_threshold = iou_threshold
-        self.overlap_handling_strategy = overlap_handling_strategy
+        self.overlap_filter_strategy = overlap_filter_strategy
         self.callback = callback
         self.thread_workers = thread_workers
 
@@ -120,7 +115,10 @@ class InferenceSlicer:
                 result = model(image_slice)[0]
                 return sv.Detections.from_ultralytics(result)
 
-            slicer = sv.InferenceSlicer(callback = callback)
+            slicer = sv.InferenceSlicer(
+                callback=callback,
+                overlap_filter_strategy=sv.OverlapFilter.NON_MAX_SUPPRESSION,
+            )
 
             detections = slicer(image)
             ```
@@ -141,18 +139,15 @@ class InferenceSlicer:
                 detections_list.append(future.result())
 
         merged = Detections.merge(detections_list=detections_list)
-        if self.overlap_handling_strategy == OverlapHandlingStrategy.NONE:
+        if self.overlap_filter_strategy == OverlapFilter.NONE:
             return merged
-        elif (
-            self.overlap_handling_strategy
-            == OverlapHandlingStrategy.NON_MAX_SUPPRESSION
-        ):
+        elif self.overlap_filter_strategy == OverlapFilter.NON_MAX_SUPPRESSION:
             return merged.with_nms(threshold=self.iou_threshold)
-        elif self.overlap_handling_strategy == OverlapHandlingStrategy.NON_MAX_MERGE:
+        elif self.overlap_filter_strategy == OverlapFilter.NON_MAX_MERGE:
             return merged.with_nmm(threshold=self.iou_threshold)
         else:
             warnings.warn(
-                f"Invalid overlap filter strategy: {self.overlap_handling_strategy}",
+                f"Invalid overlap filter strategy: {self.overlap_filter_strategy}",
                 category=SupervisionWarnings,
             )
             return merged

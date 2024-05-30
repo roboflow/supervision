@@ -8,7 +8,7 @@ import numpy as np
 
 from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.lmm import LMM, from_paligemma, validate_lmm_and_kwargs
-from supervision.detection.overlap_handling import (
+from supervision.detection.overlap_filter import (
     box_non_max_merge,
     box_non_max_suppression,
     mask_non_max_suppression,
