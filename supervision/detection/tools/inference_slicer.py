@@ -170,28 +170,25 @@ class InferenceSlicer:
                     results = self._callback_image_batch(image, offset_batch)
                     detections_list.extend(results)
 
-            return Detections.merge(detections_list=detections_list).with_nms(
-                threshold=self.iou_threshold
-            )
+        else:
+            with ThreadPoolExecutor(max_workers=self.thread_workers) as executor:
+                futures = []
+                for offset_batch in batched_offsets_generator:
+                    if self.batch_size == 1:
+                        future = executor.submit(
+                            self._callback_image_single, image, offset_batch[0]
+                        )
+                    else:
+                        future = executor.submit(
+                            self._callback_image_batch, image, offset_batch
+                        )
+                    futures.append(future)
 
-        with ThreadPoolExecutor(max_workers=self.thread_workers) as executor:
-            futures = []
-            for offset_batch in batched_offsets_generator:
-                if self.batch_size == 1:
-                    future = executor.submit(
-                        self._callback_image_single, image, offset_batch[0]
-                    )
-                else:
-                    future = executor.submit(
-                        self._callback_image_batch, image, offset_batch
-                    )
-                futures.append(future)
-
-            for future in as_completed(futures):
-                if self.batch_size == 1:
-                    detections_list.append(future.result())
-                else:
-                    detections_list.extend(future.result())
+                for future in as_completed(futures):
+                    if self.batch_size == 1:
+                        detections_list.append(future.result())
+                    else:
+                        detections_list.extend(future.result())
 
         merged = Detections.merge(detections_list=detections_list)
         if self.overlap_filter_strategy == OverlapFilter.NONE:
