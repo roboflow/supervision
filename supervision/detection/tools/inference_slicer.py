@@ -1,6 +1,6 @@
 import warnings
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Callable, List, Optional, Tuple, Union, Union
+from typing import Callable, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -8,8 +8,8 @@ from supervision.detection.core import Detections
 from supervision.detection.overlap_filter import OverlapFilter, validate_overlap_filter
 from supervision.detection.utils import move_boxes, move_masks
 from supervision.utils.image import crop_image
-from supervision.utils.iterables import create_batches
 from supervision.utils.internal import SupervisionWarnings
+from supervision.utils.iterables import create_batches
 
 
 def move_detections(
