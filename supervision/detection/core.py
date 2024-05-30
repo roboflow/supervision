@@ -8,15 +8,17 @@ import numpy as np
 
 from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.lmm import LMM, from_paligemma, validate_lmm_and_kwargs
-from supervision.detection.utils import (
-    box_iou_batch,
+from supervision.detection.overlap_filter import (
     box_non_max_merge,
     box_non_max_suppression,
+    mask_non_max_suppression,
+)
+from supervision.detection.utils import (
+    box_iou_batch,
     calculate_masks_centroids,
     extract_ultralytics_masks,
     get_data_item,
     is_data_equal,
-    mask_non_max_suppression,
     mask_to_xyxy,
     merge_data,
     process_roboflow_result,
