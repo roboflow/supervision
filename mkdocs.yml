@@ -48,6 +48,7 @@ nav:
         - Core: detection/core.md
         - Annotators: detection/annotators.md
         - Metrics: detection/metrics.md
+        - Double Detection Filter: detection/double_detection_filter.md
         - Utils: detection/utils.md
     - Keypoint Detection:
         - Core: keypoint/core.md

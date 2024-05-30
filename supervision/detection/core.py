@@ -8,22 +8,24 @@ import numpy as np
 
 from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.lmm import LMM, from_paligemma, validate_lmm_and_kwargs
-from supervision.detection.utils import (
-    box_iou_batch,
+from supervision.detection.overlap_filter import (
     box_non_max_merge,
     box_non_max_suppression,
+    mask_non_max_suppression,
+)
+from supervision.detection.utils import (
+    box_iou_batch,
     calculate_masks_centroids,
     extract_ultralytics_masks,
     get_data_item,
     is_data_equal,
-    mask_non_max_suppression,
     mask_to_xyxy,
     merge_data,
     process_roboflow_result,
     xywh_to_xyxy,
 )
 from supervision.geometry.core import Position
-from supervision.utils.internal import deprecated
+from supervision.utils.internal import deprecated, get_instance_variables
 from supervision.validators import validate_detections_fields
 
 
@@ -1379,7 +1381,7 @@ def validate_fields_both_defined_or_none(
     Raises:
         ValueError: If one field is None and the other is not, for any of the fields.
     """
-    attributes = ["mask", "confidence", "class_id", "tracker_id"]
+    attributes = get_instance_variables(detections_1)
     for attribute in attributes:
         value_1 = getattr(detections_1, attribute)
         value_2 = getattr(detections_2, attribute)

@@ -1,12 +1,15 @@
+import warnings
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Callable, List, Optional, Tuple, Union, Union
 
 import numpy as np
 
 from supervision.detection.core import Detections
+from supervision.detection.overlap_filter import OverlapFilter, validate_overlap_filter
 from supervision.detection.utils import move_boxes, move_masks
 from supervision.utils.image import crop_image
 from supervision.utils.iterables import create_batches
+from supervision.utils.internal import SupervisionWarnings
 
 
 def move_detections(
@@ -51,6 +54,8 @@ class InferenceSlicer:
             `(width, height)`.
         overlap_ratio_wh (Tuple[float, float]): Overlap ratio between consecutive
             slices in the format `(width_ratio, height_ratio)`.
+        overlap_filter_strategy (Union[OverlapFilter, str]): Strategy for
+            filtering or merging overlapping detections in slices.
         iou_threshold (float): Intersection over Union (IoU) threshold
             used for non-max suppression.
         callback (Callable): A function that performs inference on a given image
@@ -77,13 +82,19 @@ class InferenceSlicer:
         ],
         slice_wh: Tuple[int, int] = (320, 320),
         overlap_ratio_wh: Tuple[float, float] = (0.2, 0.2),
+        overlap_filter_strategy: Union[
+            OverlapFilter, str
+        ] = OverlapFilter.NON_MAX_SUPPRESSION,
         iou_threshold: float = 0.5,
         batch_size: int = 1,
         thread_workers: int = 1,
     ):
+        overlap_filter_strategy = validate_overlap_filter(overlap_filter_strategy)
+
         self.slice_wh = slice_wh
         self.overlap_ratio_wh = overlap_ratio_wh
         self.iou_threshold = iou_threshold
+        self.overlap_filter_strategy = overlap_filter_strategy
         self.callback = callback
         self.batch_size = batch_size
         self.thread_workers = thread_workers
@@ -133,7 +144,11 @@ class InferenceSlicer:
                     sv.Detections.from_ultralytics(result) for result in results]
                 return detections_list
 
-            slicer = sv.InferenceSlicer(callback=callback, batch_size=4)
+            slicer = sv.InferenceSlicer(
+                callback=callback,
+                overlap_filter_strategy=sv.OverlapFilter.NON_MAX_SUPPRESSION,
+            )
+
             detections = slicer(image)
             ```
         """
@@ -178,9 +193,19 @@ class InferenceSlicer:
                 else:
                     detections_list.extend(future.result())
 
-        return Detections.merge(detections_list=detections_list).with_nms(
-            threshold=self.iou_threshold
-        )
+        merged = Detections.merge(detections_list=detections_list)
+        if self.overlap_filter_strategy == OverlapFilter.NONE:
+            return merged
+        elif self.overlap_filter_strategy == OverlapFilter.NON_MAX_SUPPRESSION:
+            return merged.with_nms(threshold=self.iou_threshold)
+        elif self.overlap_filter_strategy == OverlapFilter.NON_MAX_MERGE:
+            return merged.with_nmm(threshold=self.iou_threshold)
+        else:
+            warnings.warn(
+                f"Invalid overlap filter strategy: {self.overlap_filter_strategy}",
+                category=SupervisionWarnings,
+            )
+            return merged
 
     def _callback_image_single(
         self, image: np.ndarray, offset: np.ndarray
