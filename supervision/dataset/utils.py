@@ -2,10 +2,11 @@ import copy
 import os
 import random
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, TypeVar
+from typing import Dict, List, Optional, Tuple, TypeVar, Union
 
 import cv2
 import numpy as np
+import numpy.typing as npt
 
 from supervision.detection.core import Detections
 from supervision.detection.utils import (
@@ -129,3 +130,123 @@ def train_test_split(
 
     split_index = int(len(data) * train_ratio)
     return data[:split_index], data[split_index:]
+
+
+def rle_to_mask(
+    rle: Union[npt.NDArray[np.int_], List[int]], resolution_wh: Tuple[int, int]
+) -> npt.NDArray[np.bool_]:
+    """
+    Converts run-length encoding (RLE) to a binary mask.
+
+    Args:
+        rle (Union[npt.NDArray[np.int_], List[int]]): The 1D RLE array, the format
+            used in the COCO dataset (column-wise encoding, values of an array with
+            even indices represent the number of pixels assigned as background,
+            values of an array with odd indices represent the number of pixels
+            assigned as foreground object).
+        resolution_wh (Tuple[int, int]): The width (w) and height (h)
+            of the desired binary mask.
+
+    Returns:
+        The generated 2D Boolean mask of shape `(h, w)`, where the foreground object is
+            marked with `True`'s and the rest is filled with `False`'s.
+
+    Raises:
+        AssertionError: If the sum of pixels encoded in RLE differs from the
+            number of pixels in the expected mask (computed based on resolution_wh).
+
+    Examples:
+        ```python
+        import supervision as sv
+
+        sv.rle_to_mask([5, 2, 2, 2, 5], (4, 4))
+        # array([
+        #     [False, False, False, False],
+        #     [False, True,  True,  False],
+        #     [False, True,  True,  False],
+        #     [False, False, False, False],
+        # ])
+        ```
+    """
+    if isinstance(rle, list):
+        rle = np.array(rle, dtype=int)
+
+    width, height = resolution_wh
+
+    assert width * height == np.sum(rle), (
+        "the sum of the number of pixels in the RLE must be the same "
+        "as the number of pixels in the expected mask"
+    )
+
+    zero_one_values = np.zeros(shape=(rle.size, 1), dtype=np.uint8)
+    zero_one_values[1::2] = 1
+
+    decoded_rle = np.repeat(zero_one_values, rle, axis=0)
+    decoded_rle = np.append(
+        decoded_rle, np.zeros(width * height - len(decoded_rle), dtype=np.uint8)
+    )
+    return decoded_rle.reshape((height, width), order="F")
+
+
+def mask_to_rle(mask: npt.NDArray[np.bool_]) -> List[int]:
+    """
+    Converts a binary mask into a run-length encoding (RLE).
+
+    Args:
+        mask (npt.NDArray[np.bool_]): 2D binary mask where `True` indicates foreground
+            object and `False` indicates background.
+
+    Returns:
+        The run-length encoded mask. Values of a list with even indices
+            represent the number of pixels assigned as background (`False`), values
+            of a list with odd indices represent the number of pixels assigned
+            as foreground object (`True`).
+
+    Raises:
+        AssertionError: If input mask is not 2D or is empty.
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        mask = np.array([
+            [True, True, True, True],
+            [True, True, True, True],
+            [True, True, True, True],
+            [True, True, True, True],
+        ])
+        sv.mask_to_rle(mask)
+        # [0, 16]
+
+        mask = np.array([
+            [False, False, False, False],
+            [False, True,  True,  False],
+            [False, True,  True,  False],
+            [False, False, False, False],
+        ])
+        sv.mask_to_rle(mask)
+        # [5, 2, 2, 2, 5]
+        ```
+
+    ![mask_to_rle](https://media.roboflow.com/supervision-docs/mask-to-rle.png){ align=center width="800" }
+    """  # noqa E501 // docs
+    assert mask.ndim == 2, "Input mask must be 2D"
+    assert mask.size != 0, "Input mask cannot be empty"
+
+    on_value_change_indices = np.where(
+        mask.ravel(order="F") != np.roll(mask.ravel(order="F"), 1)
+    )[0]
+
+    on_value_change_indices = np.append(on_value_change_indices, mask.size)
+    # need to add 0 at the beginning when the same value is in the first and
+    # last element of the flattened mask
+    if on_value_change_indices[0] != 0:
+        on_value_change_indices = np.insert(on_value_change_indices, 0, 0)
+
+    rle = np.diff(on_value_change_indices)
+
+    if mask[0][0] == 1:
+        rle = np.insert(rle, 0, 0)
+
+    return list(rle)

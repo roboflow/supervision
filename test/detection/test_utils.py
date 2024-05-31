@@ -2,16 +2,17 @@ from contextlib import ExitStack as DoesNotRaise
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
+import numpy.typing as npt
 import pytest
 
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.utils import (
-    box_non_max_suppression,
     calculate_masks_centroids,
     clip_boxes,
+    contains_holes,
+    contains_multiple_segments,
     filter_polygons_by_area,
     get_data_item,
-    mask_non_max_suppression,
     merge_data,
     move_boxes,
     process_roboflow_result,
@@ -20,317 +21,6 @@ from supervision.detection.utils import (
 
 TEST_MASK = np.zeros((1, 1000, 1000), dtype=bool)
 TEST_MASK[:, 300:351, 200:251] = True
-
-
-@pytest.mark.parametrize(
-    "predictions, iou_threshold, expected_result, exception",
-    [
-        (
-            np.empty(shape=(0, 5)),
-            0.5,
-            np.array([]),
-            DoesNotRaise(),
-        ),  # single box with no category
-        (
-            np.array([[10.0, 10.0, 40.0, 40.0, 0.8]]),
-            0.5,
-            np.array([True]),
-            DoesNotRaise(),
-        ),  # single box with no category
-        (
-            np.array([[10.0, 10.0, 40.0, 40.0, 0.8, 0]]),
-            0.5,
-            np.array([True]),
-            DoesNotRaise(),
-        ),  # single box with category
-        (
-            np.array(
-                [
-                    [10.0, 10.0, 40.0, 40.0, 0.8],
-                    [15.0, 15.0, 40.0, 40.0, 0.9],
-                ]
-            ),
-            0.5,
-            np.array([False, True]),
-            DoesNotRaise(),
-        ),  # two boxes with no category
-        (
-            np.array(
-                [
-                    [10.0, 10.0, 40.0, 40.0, 0.8, 0],
-                    [15.0, 15.0, 40.0, 40.0, 0.9, 1],
-                ]
-            ),
-            0.5,
-            np.array([True, True]),
-            DoesNotRaise(),
-        ),  # two boxes with different category
-        (
-            np.array(
-                [
-                    [10.0, 10.0, 40.0, 40.0, 0.8, 0],
-                    [15.0, 15.0, 40.0, 40.0, 0.9, 0],
-                ]
-            ),
-            0.5,
-            np.array([False, True]),
-            DoesNotRaise(),
-        ),  # two boxes with same category
-        (
-            np.array(
-                [
-                    [0.0, 0.0, 30.0, 40.0, 0.8],
-                    [5.0, 5.0, 35.0, 45.0, 0.9],
-                    [10.0, 10.0, 40.0, 50.0, 0.85],
-                ]
-            ),
-            0.5,
-            np.array([False, True, False]),
-            DoesNotRaise(),
-        ),  # three boxes with no category
-        (
-            np.array(
-                [
-                    [0.0, 0.0, 30.0, 40.0, 0.8, 0],
-                    [5.0, 5.0, 35.0, 45.0, 0.9, 1],
-                    [10.0, 10.0, 40.0, 50.0, 0.85, 2],
-                ]
-            ),
-            0.5,
-            np.array([True, True, True]),
-            DoesNotRaise(),
-        ),  # three boxes with same category
-        (
-            np.array(
-                [
-                    [0.0, 0.0, 30.0, 40.0, 0.8, 0],
-                    [5.0, 5.0, 35.0, 45.0, 0.9, 0],
-                    [10.0, 10.0, 40.0, 50.0, 0.85, 1],
-                ]
-            ),
-            0.5,
-            np.array([False, True, True]),
-            DoesNotRaise(),
-        ),  # three boxes with different category
-    ],
-)
-def test_box_non_max_suppression(
-    predictions: np.ndarray,
-    iou_threshold: float,
-    expected_result: Optional[np.ndarray],
-    exception: Exception,
-) -> None:
-    with exception:
-        result = box_non_max_suppression(
-            predictions=predictions, iou_threshold=iou_threshold
-        )
-        assert np.array_equal(result, expected_result)
-
-
-@pytest.mark.parametrize(
-    "predictions, masks, iou_threshold, expected_result, exception",
-    [
-        (
-            np.empty((0, 6)),
-            np.empty((0, 5, 5)),
-            0.5,
-            np.array([]),
-            DoesNotRaise(),
-        ),  # empty predictions and masks
-        (
-            np.array([[0, 0, 0, 0, 0.8]]),
-            np.array(
-                [
-                    [
-                        [False, False, False, False, False],
-                        [False, True, True, True, False],
-                        [False, True, True, True, False],
-                        [False, True, True, True, False],
-                        [False, False, False, False, False],
-                    ]
-                ]
-            ),
-            0.5,
-            np.array([True]),
-            DoesNotRaise(),
-        ),  # single mask with no category
-        (
-            np.array([[0, 0, 0, 0, 0.8, 0]]),
-            np.array(
-                [
-                    [
-                        [False, False, False, False, False],
-                        [False, True, True, True, False],
-                        [False, True, True, True, False],
-                        [False, True, True, True, False],
-                        [False, False, False, False, False],
-                    ]
-                ]
-            ),
-            0.5,
-            np.array([True]),
-            DoesNotRaise(),
-        ),  # single mask with category
-        (
-            np.array([[0, 0, 0, 0, 0.8], [0, 0, 0, 0, 0.9]]),
-            np.array(
-                [
-                    [
-                        [False, False, False, False, False],
-                        [False, True, True, False, False],
-                        [False, True, True, False, False],
-                        [False, False, False, False, False],
-                        [False, False, False, False, False],
-                    ],
-                    [
-                        [False, False, False, False, False],
-                        [False, False, False, False, False],
-                        [False, False, False, True, True],
-                        [False, False, False, True, True],
-                        [False, False, False, False, False],
-                    ],
-                ]
-            ),
-            0.5,
-            np.array([True, True]),
-            DoesNotRaise(),
-        ),  # two masks non-overlapping with no category
-        (
-            np.array([[0, 0, 0, 0, 0.8], [0, 0, 0, 0, 0.9]]),
-            np.array(
-                [
-                    [
-                        [False, False, False, False, False],
-                        [False, True, True, True, False],
-                        [False, True, True, True, False],
-                        [False, True, True, True, False],
-                        [False, False, False, False, False],
-                    ],
-                    [
-                        [False, False, False, False, False],
-                        [False, False, True, True, True],
-                        [False, False, True, True, True],
-                        [False, False, True, True, True],
-                        [False, False, False, False, False],
-                    ],
-                ]
-            ),
-            0.4,
-            np.array([False, True]),
-            DoesNotRaise(),
-        ),  # two masks partially overlapping with no category
-        (
-            np.array([[0, 0, 0, 0, 0.8, 0], [0, 0, 0, 0, 0.9, 1]]),
-            np.array(
-                [
-                    [
-                        [False, False, False, False, False],
-                        [False, True, True, True, False],
-                        [False, True, True, True, False],
-                        [False, True, True, True, False],
-                        [False, False, False, False, False],
-                    ],
-                    [
-                        [False, False, False, False, False],
-                        [False, False, True, True, True],
-                        [False, False, True, True, True],
-                        [False, False, True, True, True],
-                        [False, False, False, False, False],
-                    ],
-                ]
-            ),
-            0.5,
-            np.array([True, True]),
-            DoesNotRaise(),
-        ),  # two masks partially overlapping with different category
-        (
-            np.array(
-                [
-                    [0, 0, 0, 0, 0.8],
-                    [0, 0, 0, 0, 0.85],
-                    [0, 0, 0, 0, 0.9],
-                ]
-            ),
-            np.array(
-                [
-                    [
-                        [False, False, False, False, False],
-                        [False, True, True, False, False],
-                        [False, True, True, False, False],
-                        [False, False, False, False, False],
-                        [False, False, False, False, False],
-                    ],
-                    [
-                        [False, False, False, False, False],
-                        [False, True, True, False, False],
-                        [False, True, True, False, False],
-                        [False, False, False, False, False],
-                        [False, False, False, False, False],
-                    ],
-                    [
-                        [False, False, False, False, False],
-                        [False, False, False, True, True],
-                        [False, False, False, True, True],
-                        [False, False, False, False, False],
-                        [False, False, False, False, False],
-                    ],
-                ]
-            ),
-            0.5,
-            np.array([False, True, True]),
-            DoesNotRaise(),
-        ),  # three masks with no category
-        (
-            np.array(
-                [
-                    [0, 0, 0, 0, 0.8, 0],
-                    [0, 0, 0, 0, 0.85, 1],
-                    [0, 0, 0, 0, 0.9, 2],
-                ]
-            ),
-            np.array(
-                [
-                    [
-                        [False, False, False, False, False],
-                        [False, True, True, False, False],
-                        [False, True, True, False, False],
-                        [False, False, False, False, False],
-                        [False, False, False, False, False],
-                    ],
-                    [
-                        [False, False, False, False, False],
-                        [False, True, True, False, False],
-                        [False, True, True, False, False],
-                        [False, True, True, False, False],
-                        [False, False, False, False, False],
-                    ],
-                    [
-                        [False, False, False, False, False],
-                        [False, True, True, False, False],
-                        [False, True, True, False, False],
-                        [False, False, False, False, False],
-                        [False, False, False, False, False],
-                    ],
-                ]
-            ),
-            0.5,
-            np.array([True, True, True]),
-            DoesNotRaise(),
-        ),  # three masks with different category
-    ],
-)
-def test_mask_non_max_suppression(
-    predictions: np.ndarray,
-    masks: np.ndarray,
-    iou_threshold: float,
-    expected_result: Optional[np.ndarray],
-    exception: Exception,
-) -> None:
-    with exception:
-        result = mask_non_max_suppression(
-            predictions=predictions, masks=masks, iou_threshold=iou_threshold
-        )
-        assert np.array_equal(result, expected_result)
 
 
 @pytest.mark.parametrize(
@@ -913,11 +603,27 @@ def test_calculate_masks_centroids(
         ),  # single data dict with a single field name and empty list values
         (
             [
+                {"test_1": []},
+                {"test_1": []},
+            ],
+            {"test_1": []},
+            DoesNotRaise(),
+        ),  # two data dicts with the same field name and empty list values
+        (
+            [
                 {"test_1": np.array([])},
             ],
             {"test_1": np.array([])},
             DoesNotRaise(),
         ),  # single data dict with a single field name and empty np.array values
+        (
+            [
+                {"test_1": np.array([])},
+                {"test_1": np.array([])},
+            ],
+            {"test_1": np.array([])},
+            DoesNotRaise(),
+        ),  # two data dicts with the same field name and empty np.array values
         (
             [
                 {"test_1": [1, 2, 3]},
@@ -932,7 +638,7 @@ def test_calculate_masks_centroids(
             ],
             {"test_1": [3, 2, 1]},
             DoesNotRaise(),
-        ),  # two data dicts with the same field name and empty and list values
+        ),  # two data dicts with the same field name; one of with empty list as value
         (
             [
                 {"test_1": [1, 2, 3]},
@@ -1012,6 +718,49 @@ def test_calculate_masks_centroids(
             None,
             pytest.raises(ValueError),
         ),  # two data dicts with the same field name and different length arrays values
+        (
+            [{}, {"test_1": [1, 2, 3]}],
+            {"test_1": [1, 2, 3]},
+            DoesNotRaise(),
+        ),  # two data dicts; one empty and one non-empty dict
+        (
+            [{"test_1": [], "test_2": []}, {"test_1": [1, 2, 3], "test_2": [1, 2, 3]}],
+            {"test_1": [1, 2, 3], "test_2": [1, 2, 3]},
+            DoesNotRaise(),
+        ),  # two data dicts; one empty and one non-empty dict; same keys
+        (
+            [{"test_1": []}, {"test_1": [1, 2, 3], "test_2": [4, 5, 6]}],
+            None,
+            pytest.raises(ValueError),
+        ),  # two data dicts; one empty and one non-empty dict; different keys
+        (
+            [
+                {
+                    "test_1": [1, 2, 3],
+                    "test_2": [4, 5, 6],
+                    "test_3": [7, 8, 9],
+                },
+                {"test_1": [1, 2, 3], "test_2": [4, 5, 6]},
+            ],
+            None,
+            pytest.raises(ValueError),
+        ),  # two data dicts; one with three keys, one with two keys
+        (
+            [
+                {"test_1": [1, 2, 3]},
+                {"test_1": [1, 2, 3], "test_2": [1, 2, 3]},
+            ],
+            None,
+            pytest.raises(ValueError),
+        ),  # some keys missing in one dict
+        (
+            [
+                {"test_1": [1, 2, 3], "test_2": ["a", "b"]},
+                {"test_1": [4, 5], "test_2": ["c", "d", "e"]},
+            ],
+            None,
+            pytest.raises(ValueError),
+        ),  # different value lengths for the same key
     ],
 )
 def test_merge_data(
@@ -1021,6 +770,9 @@ def test_merge_data(
 ):
     with exception:
         result = merge_data(data_list=data_list)
+        if expected_result is None:
+            assert False, f"Expected an error, but got result {result}"
+
         for key in result:
             if isinstance(result[key], np.ndarray):
                 assert np.array_equal(
@@ -1203,3 +955,138 @@ def test_get_data_item(
                 assert (
                     result[key] == expected_result[key]
                 ), f"Mismatch in non-array data for key {key}"
+
+
+@pytest.mark.parametrize(
+    "mask, expected_result, exception",
+    [
+        (
+            np.array([[0, 0, 0, 0], [0, 1, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0]]).astype(
+                bool
+            ),
+            False,
+            DoesNotRaise(),
+        ),  # foreground object in one continuous piece
+        (
+            np.array([[1, 0, 0, 0], [1, 0, 0, 0], [0, 0, 0, 0], [0, 1, 1, 0]]).astype(
+                bool
+            ),
+            False,
+            DoesNotRaise(),
+        ),  # foreground object in 2 seperate elements
+        (
+            np.array([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]).astype(
+                bool
+            ),
+            False,
+            DoesNotRaise(),
+        ),  # no foreground pixels in mask
+        (
+            np.array([[1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1]]).astype(
+                bool
+            ),
+            False,
+            DoesNotRaise(),
+        ),  # only foreground pixels in mask
+        (
+            np.array([[1, 1, 1, 0], [1, 0, 1, 0], [1, 1, 1, 0], [0, 0, 0, 0]]).astype(
+                bool
+            ),
+            True,
+            DoesNotRaise(),
+        ),  # foreground object has 1 hole
+        (
+            np.array([[1, 1, 1, 0], [1, 0, 1, 1], [1, 1, 0, 1], [0, 1, 1, 1]]).astype(
+                bool
+            ),
+            True,
+            DoesNotRaise(),
+        ),  # foreground object has 2 holes
+    ],
+)
+def test_contains_holes(
+    mask: npt.NDArray[np.bool_], expected_result: bool, exception: Exception
+) -> None:
+    with exception:
+        result = contains_holes(mask)
+        assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    "mask, connectivity, expected_result, exception",
+    [
+        (
+            np.array([[0, 0, 0, 0], [0, 1, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0]]).astype(
+                bool
+            ),
+            4,
+            False,
+            DoesNotRaise(),
+        ),  # foreground object in one continuous piece
+        (
+            np.array([[1, 0, 0, 0], [1, 0, 0, 0], [0, 0, 0, 0], [0, 1, 1, 0]]).astype(
+                bool
+            ),
+            4,
+            True,
+            DoesNotRaise(),
+        ),  # foreground object in 2 seperate elements
+        (
+            np.array([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]).astype(
+                bool
+            ),
+            4,
+            False,
+            DoesNotRaise(),
+        ),  # no foreground pixels in mask
+        (
+            np.array([[1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1]]).astype(
+                bool
+            ),
+            4,
+            False,
+            DoesNotRaise(),
+        ),  # only foreground pixels in mask
+        (
+            np.array([[1, 1, 1, 0], [1, 0, 1, 1], [1, 1, 0, 1], [0, 1, 1, 1]]).astype(
+                bool
+            ),
+            4,
+            False,
+            DoesNotRaise(),
+        ),  # foreground object has 2 holes, but is in single piece
+        (
+            np.array([[1, 1, 0, 0], [1, 1, 0, 1], [1, 0, 1, 1], [0, 0, 1, 1]]).astype(
+                bool
+            ),
+            4,
+            True,
+            DoesNotRaise(),
+        ),  # foreground object in 2 elements with respect to 4-way connectivity
+        (
+            np.array([[1, 1, 0, 0], [1, 1, 0, 1], [1, 0, 1, 1], [0, 0, 1, 1]]).astype(
+                bool
+            ),
+            8,
+            False,
+            DoesNotRaise(),
+        ),  # foreground object in single piece with respect to 8-way connectivity
+        (
+            np.array([[1, 1, 0, 0], [1, 1, 0, 1], [1, 0, 1, 1], [0, 0, 1, 1]]).astype(
+                bool
+            ),
+            5,
+            None,
+            pytest.raises(ValueError),
+        ),  # Incorrect connectivity parameter value, raises ValueError
+    ],
+)
+def test_contains_multiple_segments(
+    mask: npt.NDArray[np.bool_],
+    connectivity: int,
+    expected_result: bool,
+    exception: Exception,
+) -> None:
+    with exception:
+        result = contains_multiple_segments(mask=mask, connectivity=connectivity)
+        assert result == expected_result
