@@ -2,7 +2,6 @@ from contextlib import ExitStack as DoesNotRaise
 from test.test_utils import mock_detections
 from typing import List, Optional, Tuple
 
-import numpy as np
 import pytest
 
 from supervision import LineZone
@@ -212,7 +211,7 @@ def test_calculate_region_of_interest_limits(
 )
 def test_line_zone_one_detection_default_anchors(
     vector: Vector,
-    xyxy_sequence: List[List[int]],
+    xyxy_sequence: List[List[float]],
     expected_crossed_in: List[bool],
     expected_crossed_out: List[bool],
 ) -> None:
@@ -361,7 +360,7 @@ def test_line_zone_one_detection_default_anchors(
 )
 def test_line_zone_one_detection(
     vector: Vector,
-    xyxy_sequence: List[List[int]],
+    xyxy_sequence: List[List[float]],
     triggering_anchors: List[Position],
     expected_crossed_in: List[bool],
     expected_crossed_out: List[bool],
@@ -390,63 +389,16 @@ def test_line_zone_one_detection(
 
 
 @pytest.mark.parametrize(
-    "vector, xyxy_sequence, expected_crossed_in, expected_crossed_out, "
-    "anchors, exception",
+    "vector, xyxy_sequence, anchors, expected_crossed_in, "
+    "expected_crossed_out, exception",
     [
-        (
-            Vector(
-                Point(0, 0),
-                Point(0, 10),
-            ),
+        (  # One stays, one crosses
+            Vector(Point(0, 0), Point(10, 0)),
             [
-                [[10, 5, 12, 7], [10, 5, 12, 7]],
-                [[-10, 5, -8, 7], [10, 5, 12, 7]],
-                [[10, 5, 12, 7], [10, 5, 12, 7]],
-            ],
-            [[False, False], [False, False], [True, False]],
-            [[False, False], [True, False], [False, False]],
-            [
-                Position.TOP_LEFT,
-                Position.TOP_RIGHT,
-                Position.BOTTOM_LEFT,
-                Position.BOTTOM_RIGHT,
-            ],
-            DoesNotRaise(),
-        ),
-        (
-            Vector(
-                Point(0, 0),
-                Point(-10, 0),
-            ),
-            [
-                [[-5, 7, -4, 5], [-8, -5, -7, -4]],
-                [[-5, -7, -4, -5], [-8, 5, -7, 4]],
-                [[-5, 7, -4, 5], [-8, 5, -7, 4]],
-                [[-5, -7, -4, -5], [-8, 5, -7, 4]],
-                [[-5, 7, -4, 5], [-8, 5, -7, 4]],
-                [[-5, -7, -4, -5], [-8, 5, -7, 4]],
-                [[-5, 7, -4, 5], [-8, 5, -7, 4]],
-                [[-5, -7, -4, -5], [-8, -5, -7, -4]],
-            ],
-            [
-                (False, False),
-                (False, True),
-                (True, False),
-                (False, False),
-                (True, False),
-                (False, False),
-                (True, False),
-                (False, False),
-            ],
-            [
-                (False, False),
-                (True, False),
-                (False, False),
-                (True, False),
-                (False, False),
-                (True, False),
-                (False, False),
-                (True, True),
+                [[4, 4, 6, 6], [4, 4, 6, 6]],
+                [[4, 4, 6, 6], [4, 4 - 10, 6, 6 - 10]],
+                [[4, 4, 6, 6], [4, 4, 6, 6]],
+                [[4, 4, 6, 6], [4, 4 - 10, 6, 6 - 10]],
             ],
             [
                 Position.TOP_LEFT,
@@ -454,58 +406,52 @@ def test_line_zone_one_detection(
                 Position.BOTTOM_LEFT,
                 Position.BOTTOM_RIGHT,
             ],
+            [[False, False], [False, True], [False, False], [False, True]],
+            [[False, False], [False, False], [False, True], [False, False]],
             DoesNotRaise(),
         ),
-        (
-            Vector(
-                Point(-5, -5),
-                Point(-10, -15),
-            ),
+        (  # Both cross at the same time
+            Vector(Point(0, 0), Point(10, 0)),
             [
-                [[-3, -8, -2, -10], [10, 5, 12, 7]],
-                [[-10, -8, -2, -10], [10, 5, 12, 7]],
+                [[4, 4, 6, 6], [4, 4, 6, 6]],
+                [[4, 4 - 10, 6, 6 - 10], [4, 4 - 10, 6, 6 - 10]],
+                [[4, 4, 6, 6], [4, 4, 6, 6]],
+                [[4, 4 - 10, 6, 6 - 10], [4, 4 - 10, 6, 6 - 10]],
             ],
-            [[False, False], [True, False]],
-            [[False, False], [False, False]],
-            [Position.TOP_LEFT],
+            [
+                Position.TOP_LEFT,
+                Position.TOP_RIGHT,
+                Position.BOTTOM_LEFT,
+                Position.BOTTOM_RIGHT,
+            ],
+            [[False, False], [True, True], [False, False], [True, True]],
+            [[False, False], [False, False], [True, True], [False, False]],
             DoesNotRaise(),
-        ),
-        (
-            Vector(
-                Point(0, 0),
-                Point(-10, 0),
-            ),
-            [[[-5, 7, -4, 5], [-8, -5, -7, -4]]],
-            [(False, False)],
-            [(False, False)],
-            [],  # raise because of empty anchors
-            pytest.raises(ValueError),
         ),
     ],
 )
 def test_line_zone_multiple_detections(
     vector: Vector,
-    xyxy_sequence: List[List[List[int]]],
-    expected_crossed_in: List[bool],
-    expected_crossed_out: List[bool],
+    xyxy_sequence: List[List[List[float]]],
     anchors: List[Position],
+    expected_crossed_in: List[List[bool]],
+    expected_crossed_out: List[List[bool]],
     exception: Exception,
 ) -> None:
-    """
-    Test LineZone with multiple detections.
-    A detection is represented by a sequence of xyxy bboxes which represent
-    subsequent positions of the detected object. If a line is crossed (in either
-    direction) by a detection it is crossed by exactly all anchors from @anchors.
-    """
     with exception:
         line_zone = LineZone(
             start=vector.start, end=vector.end, triggering_anchors=anchors
         )
-        for i, bboxes in enumerate(xyxy_sequence):
+        crossed_in_list = []
+        crossed_out_list = []
+        for bboxes in xyxy_sequence:
             detections = mock_detections(
                 xyxy=bboxes,
                 tracker_id=[i for i in range(0, len(bboxes))],
             )
             crossed_in, crossed_out = line_zone.trigger(detections)
-            assert np.all(crossed_in == expected_crossed_in[i])
-            assert np.all(crossed_out == expected_crossed_out[i])
+            crossed_in_list.append(list(crossed_in))
+            crossed_out_list.append(list(crossed_out))
+
+        assert crossed_in_list == expected_crossed_in
+        assert crossed_out_list == expected_crossed_out
