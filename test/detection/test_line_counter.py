@@ -142,6 +142,17 @@ def test_calculate_region_of_interest_limits(
             [False, False, False, False],
             [False, False, False, False],
         ),
+        (  # Horizontal line, simple crossing, far away
+            Vector(Point(0, 0), Point(10, 0)),
+            [
+                [4, 1e32, 6, 1e32 + 2],
+                [4, -1e32, 6, -1e32 + 2],
+                [4, 1e32, 6, 1e32 + 2],
+                [4, -1e32, 6, -1e32 + 2],
+            ],
+            [False, True, False, True],
+            [False, False, True, False],
+        ),
         (  # Crossing beside - left side
             Vector(Point(0, 0), Point(10, 0)),
             [
