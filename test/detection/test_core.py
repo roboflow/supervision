@@ -278,6 +278,22 @@ def test_getitem(
             None,
             pytest.raises(ValueError),
         ),  # Non-empty detections with different data keys
+        (
+            [
+                mock_detections(
+                    xyxy=[[10, 10, 20, 20]],
+                    class_id=[1],
+                    mask=[np.zeros((4, 4), dtype=bool)],
+                ),
+                Detections.empty(),
+            ],
+            mock_detections(
+                xyxy=[[10, 10, 20, 20]],
+                class_id=[1],
+                mask=[np.zeros((4, 4), dtype=bool)],
+            ),
+            DoesNotRaise(),
+        ),  # Segmentation + Empty
     ],
 )
 def test_merge(

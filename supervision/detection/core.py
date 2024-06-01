@@ -928,6 +928,12 @@ class Detections:
             array([0.1, 0.2, 0.3])
             ```
         """
+        detections_list = [
+            detections
+            for detections in detections_list
+            if detections != Detections.empty()
+        ]
+
         if len(detections_list) == 0:
             return Detections.empty()
 
