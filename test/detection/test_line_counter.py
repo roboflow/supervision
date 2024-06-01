@@ -218,6 +218,24 @@ def test_calculate_region_of_interest_limits(
         #     [False, False, True],
         #     [False, True, False]
         # ),
+        # (   # Diagonal movement, from within limits to outside - does not work
+        #     Vector(Point(0, 0), Point(10, 0)),
+        #     [
+        #         [4, 1, 6, 3],
+        #         [11, 1-20, 13, 3-20]
+        #     ],
+        #     [False, False],
+        #     [False, True]
+        # ),
+        # (   # Diagonal movement, from within outside limits to inside - does not work
+        #     Vector(Point(0, 0), Point(10, 0)),
+        #     [
+        #         [11, 21, 13, 23],
+        #         [4, -3, 6, -1],
+        #     ],
+        #     [False, False],
+        #     [False, True]
+        # )
     ],
 )
 def test_line_zone_one_detection_default_anchors(
