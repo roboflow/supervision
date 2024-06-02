@@ -188,18 +188,23 @@ class KeyPoints:
 
     @classmethod
     def from_mediapipe(
-        cls, mediapipe_results, resolution: Tuple[int, int]
+        cls, mediapipe_results, resolution_wh: Tuple[int, int]
     ) -> KeyPoints:
         """
         Creates a KeyPoints instance from a
-            [Pose landmark detection](https://ai.google.dev/edge/mediapipe/)
-                inference result.
+            [Pose landmark detection](https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker/python)
+            inference result.
+
 
         Args:
-            mediapipe_results (mediapipe.python.solution_base.SolutionOutputs):
-                The output Results from Mediapipe
-            resolution (Tuple[int, int]): image resolution (w, h) since mediapipe
-                only provides normalized coordinates
+            mediapipe_results
+                (Union[mediapipe.tasks.python.vision.pose_landmarker.PoseLandmarkerResult,
+                    mediapipe.python.solution_base.SolutionOutputs]):
+                The output results from Mediapipe. It supports both: the inference result from
+                mp.tasks.vision.pose_landmaker.PoseLandmarker and the legacy one from
+                mp.solutions.pose.Pose.
+            resolution_wh (Tuple[int, int]): A tuple of the form `(width, height)`
+                representing the resolution of the frame.
 
         Returns:
             KeyPoints: A new KeyPoints object.
@@ -210,31 +215,76 @@ class KeyPoints:
             import mediapipe as mp
             import supervision as sv
 
-            mp_pose = mp.solutions.pose
             image = cv2.imread(<SOURCE_IMAGE_PATH>)
-            pose = mp_pose.Pose(static_image_mode=True, min_detection_confidence=0.5)
+            image_height, image_width, _ = image.shape
+            mp_image = mp.Image(
+                image_format=mp.ImageFormat.SRGB,
+                data=cv2.cvtColor(image, cv2.COLOR_BGR2RGB),
+            )
+
+            options = mp.tasks.vision.PoseLandmarkerOptions(
+                base_options=mp.tasks.BaseOptions(
+                    model_asset_path="pose_landmarker_heavy.task"
+                ),
+                running_mode=mp.tasks.vision.RunningMode.IMAGE,
+                num_poses=2,
+            )
+
+            with mp.tasks.vision.PoseLandmarker.create_from_options(options) as landmarker:
+                pose_landmarker_result = landmarker.detect(mp_image)
+
+            keypoints = sv.KeyPoints.from_mediapipe(
+                pose_landmarker_result, [image_width, image_height]
+            )
+            ```
+
+            ```python
+            import cv2
+            import mediapipe as mp
+            import supervision as sv
+
+            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            image_height, image_width, _ = image.shape
+            pose = mp.solutions.pose.Pose(
+                static_image_mode=True,
+                min_detection_confidence=0.5,
+            )
             results = pose.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-            keypoints = sv.KeyPoints.from_mediapipe(results)
+            keypoints = sv.KeyPoints.from_mediapipe(
+                pose_landmarker_result, [image_width, image_height]
+            )
             ```
         """
-        if mediapipe_results.pose_landmarks is None:
+        results = mediapipe_results.pose_landmarks
+
+        if not isinstance(mediapipe_results.pose_landmarks, list):
+            if not mediapipe_results.pose_landmarks is None:
+                results = [
+                    [landmark for landmark in mediapipe_results.pose_landmarks.landmark]
+                ]
+            else:
+                results = []
+
+        if len(results) == 0:
             return cls.empty()
 
-        prediction_xy = []
-        prediction_confidence = []
+        xy = []
+        confidence = []
+        for pose in results:
+            prediction_xy = []
+            prediction_confidence = []
+            for landmark in pose:
+                prediction_xy.append(
+                    [landmark.x * resolution_wh[0], landmark.y * resolution_wh[1]]
+                )
+                prediction_confidence.append(landmark.visibility)
 
-        for landmark in mediapipe_results.pose_landmarks.landmark:
-            prediction_xy.append(
-                [
-                    min(math.floor(landmark.x * resolution[0]), resolution[0] - 1),
-                    min(math.floor(landmark.y * resolution[1]), resolution[1] - 1),
-                ]
-            )
-            prediction_confidence.append(landmark.visibility)
+            xy.append(prediction_xy)
+            confidence.append(prediction_confidence)
 
         return cls(
-            xy=np.array([prediction_xy], dtype=np.float32),
-            confidence=np.array([prediction_confidence], dtype=np.float32),
+            xy=np.array(xy, dtype=np.float32),
+            confidence=np.array(confidence, dtype=np.float32),
         )
 
     @classmethod
