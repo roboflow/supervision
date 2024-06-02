@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import math
 from contextlib import suppress
 from dataclasses import dataclass, field
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
@@ -258,7 +257,7 @@ class KeyPoints:
         results = mediapipe_results.pose_landmarks
 
         if not isinstance(mediapipe_results.pose_landmarks, list):
-            if not mediapipe_results.pose_landmarks is None:
+            if mediapipe_results.pose_landmarks is not None:
                 results = [
                     [landmark for landmark in mediapipe_results.pose_landmarks.landmark]
                 ]
