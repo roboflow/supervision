@@ -929,9 +929,7 @@ class Detections:
             ```
         """
         detections_list = [
-            detections
-            for detections in detections_list
-            if detections != Detections.empty()
+            detections for detections in detections_list if not is_empty(detections)
         ]
 
         if len(detections_list) == 0:
@@ -1398,3 +1396,9 @@ def validate_fields_both_defined_or_none(
                 f"Field '{attribute}' should be consistently None or not None in both "
                 "Detections."
             )
+
+
+def is_empty(detections: Detections) -> bool:
+    empty_detections = Detections.empty()
+    empty_detections.data = detections.data
+    return detections == empty_detections
