@@ -928,6 +928,12 @@ class Detections:
             array([0.1, 0.2, 0.3])
             ```
         """
+        detections_list = [
+            detections
+            for detections in detections_list
+            if detections != Detections.empty()
+        ]
+
         if len(detections_list) == 0:
             return Detections.empty()
 
@@ -946,12 +952,13 @@ class Detections:
         def stack_or_none(name: str):
             if all(d.__getattribute__(name) is None for d in detections_list):
                 return None
-            stack_list = [
-                d.__getattribute__(name)
-                for d in detections_list
-                if d.__getattribute__(name) is not None
-            ]
-            return np.vstack(stack_list) if name == "mask" else np.hstack(stack_list)
+            if any(d.__getattribute__(name) is None for d in detections_list):
+                raise ValueError(f"All or none of the '{name}' fields must be None")
+            return (
+                np.vstack([d.__getattribute__(name) for d in detections_list])
+                if name == "mask"
+                else np.hstack([d.__getattribute__(name) for d in detections_list])
+            )
 
         mask = stack_or_none("mask")
         confidence = stack_or_none("confidence")

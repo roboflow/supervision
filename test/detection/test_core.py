@@ -245,7 +245,6 @@ def test_getitem(
             TEST_DET_1_2,
             DoesNotRaise(),
         ),  # Fields with same keys
-        # Fields and empty
         (
             [TEST_DET_1, Detections.empty()],
             TEST_DET_1,
@@ -264,9 +263,9 @@ def test_getitem(
                 TEST_DET_1,
                 TEST_DET_NONE,
             ],
-            TEST_DET_1,
-            DoesNotRaise(),
-        ),  # Single detection and None fields (+ missing Dict keys)
+            None,
+            pytest.raises(ValueError),
+        ),  # Empty detection, but not Detections.empty()
         # Errors: Non-zero-length differently defined keys & data
         (
             [TEST_DET_1, TEST_DET_DIFFERENT_FIELDS],
@@ -278,6 +277,22 @@ def test_getitem(
             None,
             pytest.raises(ValueError),
         ),  # Non-empty detections with different data keys
+        (
+            [
+                mock_detections(
+                    xyxy=[[10, 10, 20, 20]],
+                    class_id=[1],
+                    mask=[np.zeros((4, 4), dtype=bool)],
+                ),
+                Detections.empty(),
+            ],
+            mock_detections(
+                xyxy=[[10, 10, 20, 20]],
+                class_id=[1],
+                mask=[np.zeros((4, 4), dtype=bool)],
+            ),
+            DoesNotRaise(),
+        ),  # Segmentation + Empty
     ],
 )
 def test_merge(
@@ -285,6 +300,9 @@ def test_merge(
     expected_result: Optional[Detections],
     exception: Exception,
 ) -> None:
+    print(len(detections_list))
+    for det in detections_list:
+        print(det)
     with exception:
         result = Detections.merge(detections_list=detections_list)
         assert result == expected_result
