@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 
 from supervision.detection.core import Detections
+from supervision.detection.utils import cross_product
 from supervision.draw.color import Color
 from supervision.draw.utils import draw_text
 from supervision.geometry.core import Point, Position, Vector
@@ -158,15 +159,13 @@ class LineZone:
             ]
         )
 
-        cross_products_1 = self._cross_product(all_anchors, self.limits[0])
-        cross_products_2 = self._cross_product(all_anchors, self.limits[1])
+        cross_products_1 = cross_product(all_anchors, self.limits[0])
+        cross_products_2 = cross_product(all_anchors, self.limits[1])
         # anchor is in limits if it's on the same side of both limit vectors
-        in_limits = ~np.logical_xor(cross_products_1 > 0, cross_products_2 > 0)
-        # Reduce array to find out if all anchors for a detection are within limits
-        in_limits = np.min(in_limits, axis=0)
+        in_limits = (cross_products_1 > 0) == (cross_products_2 > 0)
+        in_limits = np.all(in_limits, axis=0)
 
-        # Calculate which anchors lie to the left of the line
-        triggers = self._cross_product(all_anchors, self.vector) < 0
+        triggers = cross_product(all_anchors, self.vector) < 0
         has_any_left_trigger = np.any(triggers, axis=0)
         has_any_right_trigger = np.any(~triggers, axis=0)
         is_uniformly_triggered = ~(has_any_left_trigger & has_any_right_trigger)
@@ -175,8 +174,6 @@ class LineZone:
                 continue
 
             if not is_uniformly_triggered[i]:
-                # One anchor lies to the left of the line
-                # whilst another lies to the right
                 continue
 
             tracker_state = has_any_left_trigger[i]
@@ -196,23 +193,6 @@ class LineZone:
                 crossed_out[i] = True
 
         return crossed_in, crossed_out
-
-    @staticmethod
-    def _cross_product(anchors: np.ndarray, vector: Vector) -> np.ndarray:
-        """
-        Get array of cross products of each anchor with a vector.
-        Args:
-            anchors: Array of anchors of shape (number of anchors, detections, 2)
-            vector: Vector to calculate cross product with
-
-        Returns:
-            Array of cross products of shape (number of anchors, detections)
-        """
-        vector_at_zero = np.array(
-            [vector.end.x - vector.start.x, vector.end.y - vector.start.y]
-        )
-        vector_start = np.array([vector.start.x, vector.start.y])
-        return np.cross(vector_at_zero, anchors - vector_start)
 
 
 class LineZoneAnnotator:
