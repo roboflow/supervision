@@ -87,22 +87,19 @@ def yolo_annotations_to_detections(
             if with_masks:
                 relative_polygon.append(_box_to_polygon(box=box))
         elif len(values) > 5:
+            polygon = _parse_polygon(values=values[1:])
             if is_obb:
-                polygon = _parse_polygon(values=values[1:])
                 relative_xyxyxyxy.append(np.array(values[1:]))
-                if with_masks:
-                    relative_polygon.append(polygon)
             else:
-                polygon = _parse_polygon(values=values[1:]) 
                 relative_xyxy.append(polygon_to_xyxy(polygon=polygon))
-                if with_masks:
+            if with_masks:
                     relative_polygon.append(polygon)
-
+                
     class_id = np.array(class_id, dtype=int)
     relative_xyxy = np.array(relative_xyxy, dtype=np.float32)
     relative_xyxyxyxy = np.array(relative_xyxyxyxy, dtype=np.float32)
     xyxy = relative_xyxy * np.array([w, h, w, h], dtype=np.float32)
-    xyxyxyxy = relative_xyxyxyxy * np.array([w, h, w, h], dtype=np.float32)
+    xyxyxyxy = relative_xyxyxyxy * np.array([w, h, w, h, w, h, w, h], dtype=np.float32)
 
     data = {
                 ORIENTED_BOX_COORDINATES: xyxyxyxy
@@ -110,14 +107,14 @@ def yolo_annotations_to_detections(
     
     if not with_masks:
         if is_obb:
-            return Detections(class_id=class_id, data=data)
+            return Detections(class_id=class_id, xyxy=xyxy, data=data)
         return Detections(class_id=class_id, xyxy=xyxy)
 
     polygons = [
         (polygon * np.array(resolution_wh)).astype(int) for polygon in relative_polygon
     ]
     mask = _polygons_to_masks(polygons=polygons, resolution_wh=resolution_wh)
-    return Detections(class_id=class_id, data=data, mask=mask) if is_obb else Detections(class_id=class_id, xyxy=xyxy, mask=mask)
+    return Detections(class_id=class_id, xyxy=xyxy, data=data, mask=mask) if is_obb else Detections(class_id=class_id, xyxy=xyxy, mask=mask)
 
 
 def load_yolo_annotations(
