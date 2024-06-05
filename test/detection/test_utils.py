@@ -720,8 +720,8 @@ def test_calculate_masks_centroids(
         ),  # two data dicts with the same field name and different length arrays values
         (
             [{}, {"test_1": [1, 2, 3]}],
-            {"test_1": [1, 2, 3]},
-            DoesNotRaise(),
+            None,
+            pytest.raises(ValueError),
         ),  # two data dicts; one empty and one non-empty dict
         (
             [{"test_1": [], "test_2": []}, {"test_1": [1, 2, 3], "test_2": [1, 2, 3]}],
