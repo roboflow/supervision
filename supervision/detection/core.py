@@ -878,6 +878,14 @@ class Detections:
             class_id=np.array([], dtype=int),
         )
 
+    def is_empty(self) -> bool:
+        """
+        Returns `True` if the `Detections` object is considered empty.
+        """
+        empty_detections = Detections.empty()
+        empty_detections.data = self.data
+        return self == empty_detections
+
     @classmethod
     def merge(cls, detections_list: List[Detections]) -> Detections:
         """
@@ -929,7 +937,7 @@ class Detections:
             ```
         """
         detections_list = [
-            detections for detections in detections_list if not is_empty(detections)
+            detections for detections in detections_list if not detections.is_empty()
         ]
 
         if len(detections_list) == 0:
@@ -1396,9 +1404,3 @@ def validate_fields_both_defined_or_none(
                 f"Field '{attribute}' should be consistently None or not None in both "
                 "Detections."
             )
-
-
-def is_empty(detections: Detections) -> bool:
-    empty_detections = Detections.empty()
-    empty_detections.data = detections.data
-    return detections == empty_detections
