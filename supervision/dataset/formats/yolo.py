@@ -5,10 +5,10 @@ from typing import Dict, List, Optional, Tuple
 import cv2
 import numpy as np
 
+from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.dataset.utils import approximate_mask_with_polygons
 from supervision.detection.core import Detections
 from supervision.detection.utils import polygon_to_mask, polygon_to_xyxy
-from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.utils.file import (
     list_files_with_extensions,
     read_txt_file,
@@ -93,7 +93,7 @@ def yolo_annotations_to_detections(
                 if with_masks:
                     relative_polygon.append(polygon)
             else:
-                polygon = _parse_polygon(values=values[1:]) 
+                polygon = _parse_polygon(values=values[1:])
                 relative_xyxy.append(polygon_to_xyxy(polygon=polygon))
                 if with_masks:
                     relative_polygon.append(polygon)
@@ -104,10 +104,8 @@ def yolo_annotations_to_detections(
     xyxy = relative_xyxy * np.array([w, h, w, h], dtype=np.float32)
     xyxyxyxy = relative_xyxyxyxy * np.array([w, h, w, h], dtype=np.float32)
 
-    data = {
-                ORIENTED_BOX_COORDINATES: xyxyxyxy
-            }
-    
+    data = {ORIENTED_BOX_COORDINATES: xyxyxyxy}
+
     if not with_masks:
         if is_obb:
             return Detections(class_id=class_id, data=data)
@@ -117,7 +115,11 @@ def yolo_annotations_to_detections(
         (polygon * np.array(resolution_wh)).astype(int) for polygon in relative_polygon
     ]
     mask = _polygons_to_masks(polygons=polygons, resolution_wh=resolution_wh)
-    return Detections(class_id=class_id, data=data, mask=mask) if is_obb else Detections(class_id=class_id, xyxy=xyxy, mask=mask)
+    return (
+        Detections(class_id=class_id, data=data, mask=mask)
+        if is_obb
+        else Detections(class_id=class_id, xyxy=xyxy, mask=mask)
+    )
 
 
 def load_yolo_annotations(
@@ -173,7 +175,10 @@ def load_yolo_annotations(
         with_masks = _with_mask(lines=lines)
         with_masks = force_masks if force_masks else with_masks
         annotation = yolo_annotations_to_detections(
-            lines=lines, resolution_wh=resolution_wh, with_masks=with_masks, is_obb=is_obb
+            lines=lines,
+            resolution_wh=resolution_wh,
+            with_masks=with_masks,
+            is_obb=is_obb,
         )
         images[image_path] = image
         annotations[image_path] = annotation
