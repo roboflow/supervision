@@ -93,7 +93,7 @@ def yolo_annotations_to_detections(
             else:
                 relative_xyxy.append(polygon_to_xyxy(polygon=polygon))
             if with_masks:
-                    relative_polygon.append(polygon)
+                relative_polygon.append(polygon)
 
     class_id = np.array(class_id, dtype=int)
     relative_xyxy = np.array(relative_xyxy, dtype=np.float32)
@@ -112,7 +112,11 @@ def yolo_annotations_to_detections(
         (polygon * np.array(resolution_wh)).astype(int) for polygon in relative_polygon
     ]
     mask = _polygons_to_masks(polygons=polygons, resolution_wh=resolution_wh)
-    return Detections(class_id=class_id, xyxy=xyxy, data=data, mask=mask) if is_obb else Detections(class_id=class_id, xyxy=xyxy, mask=mask)
+    return (
+        Detections(class_id=class_id, xyxy=xyxy, data=data, mask=mask)
+        if is_obb
+        else Detections(class_id=class_id, xyxy=xyxy, mask=mask)
+    )
 
 
 def load_yolo_annotations(
