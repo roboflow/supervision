@@ -161,7 +161,6 @@ class LineZone:
 
         cross_products_1 = cross_product(all_anchors, self.limits[0])
         cross_products_2 = cross_product(all_anchors, self.limits[1])
-        # anchor is in limits if it's on the same side of both limit vectors
         in_limits = (cross_products_1 > 0) == (cross_products_2 > 0)
         in_limits = np.all(in_limits, axis=0)
 
