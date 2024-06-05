@@ -6,6 +6,7 @@ import numpy as np
 import numpy.typing as npt
 
 from supervision.config import CLASS_NAME_DATA_FIELD
+from supervision.geometry.core import Vector
 
 MIN_POLYGON_POINT_COUNT = 3
 
@@ -833,3 +834,20 @@ def contains_multiple_segments(
         mask_uint8, labels, connectivity=connectivity
     )
     return number_of_labels > 2
+
+
+def cross_product(anchors: np.ndarray, vector: Vector) -> np.ndarray:
+    """
+    Get array of cross products of each anchor with a vector.
+    Args:
+        anchors: Array of anchors of shape (number of anchors, detections, 2)
+        vector: Vector to calculate cross product with
+
+    Returns:
+        Array of cross products of shape (number of anchors, detections)
+    """
+    vector_at_zero = np.array(
+        [vector.end.x - vector.start.x, vector.end.y - vector.start.y]
+    )
+    vector_start = np.array([vector.start.x, vector.start.y])
+    return np.cross(vector_at_zero, anchors - vector_start)
