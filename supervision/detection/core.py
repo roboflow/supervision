@@ -898,6 +898,10 @@ class Detections:
         For example, if merging Detections with 3 and 4 detected objects, this method
         will return a Detections with 7 objects (7 entries in `xyxy`, `mask`, etc).
 
+        !!! Note
+
+            When merging, empty `Detections` objects are ignored.
+
         Args:
             detections_list (List[Detections]): A list of Detections objects to merge.
 
