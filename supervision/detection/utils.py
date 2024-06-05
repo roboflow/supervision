@@ -155,6 +155,25 @@ def clip_boxes(xyxy: np.ndarray, resolution_wh: Tuple[int, int]) -> np.ndarray:
         np.ndarray: A numpy array of shape `(N, 4)` where each row
             corresponds to a bounding box with coordinates clipped to fit
             within the frame resolution.
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        xyxy = np.array([
+            [10, 20, 300, 200],
+            [15, 25, 350, 450],
+            [-10, -20, 30, 40]
+        ])
+
+        sv.clip_boxes(xyxy=xyxy, resolution_wh=(320, 240))
+        # array([
+        #     [ 10,  20, 300, 200],
+        #     [ 15,  25, 320, 240],
+        #     [  0,   0,  30,  40]
+        # ])
+        ```
     """
     result = np.copy(xyxy)
     width, height = resolution_wh
@@ -181,6 +200,23 @@ def pad_boxes(xyxy: np.ndarray, px: int, py: Optional[int] = None) -> np.ndarray
         np.ndarray: A numpy array of shape `(N, 4)` where each row corresponds to a
             bounding box with coordinates padded according to the provided padding
             values.
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        xyxy = np.array([
+            [10, 20, 30, 40],
+            [15, 25, 35, 45]
+        ])
+
+        sv.pad_boxes(xyxy=xyxy, px=5, py=10)
+        # array([
+        #     [ 5, 10, 35, 50],
+        #     [10, 15, 40, 55]
+        # ])
+        ```
     """
     if py is None:
         py = px
@@ -553,7 +589,7 @@ def scale_boxes(
             [30, 30, 40, 40]
         ])
 
-        scaled_bb = sv.scale_boxes(xyxy=xyxy, factor=1.5)
+        sv.scale_boxes(xyxy=xyxy, factor=1.5)
         # array([
         #    [ 7.5,  7.5, 22.5, 22.5],
         #    [27.5, 27.5, 42.5, 42.5]
