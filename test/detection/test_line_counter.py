@@ -197,45 +197,38 @@ def test_calculate_region_of_interest_limits(
             [False, False, False, False],
             [False, False, False, False],
         ),
-        # (  # Diagonal crossing of a straight line - does not work.
-        #     Vector(Point(0, 0), Point(10, 0)),
-        #     [
-        #         [-4, 4, -2, 8],
-        #         [-4 + 16, -4, -2 + 16, -6],
-        #         [-4, 4, -2, 8],
-        #         [-4 + 16, -4, -2 + 16, -6]
-        #     ],
-        #     [False, False, True, False],
-        #     [False, True, False, True],
-        # ),
-        # (  # V-shaped crossing - does not work.
-        #     Vector(Point(0, 0), Point(10, 0)),
-        #     [
-        #         [-3, 6, -1, 8],
-        #         [4, -6, 6, -4],
-        #         [11, 6, 13, 8]
-        #     ],
-        #     [False, False, True],
-        #     [False, True, False]
-        # ),
-        # (   # Diagonal movement, from within limits to outside - does not work
-        #     Vector(Point(0, 0), Point(10, 0)),
-        #     [
-        #         [4, 1, 6, 3],
-        #         [11, 1-20, 13, 3-20]
-        #     ],
-        #     [False, False],
-        #     [False, True]
-        # ),
-        # (   # Diagonal movement, from within outside limits to inside - does not work
-        #     Vector(Point(0, 0), Point(10, 0)),
-        #     [
-        #         [11, 21, 13, 23],
-        #         [4, -3, 6, -1],
-        #     ],
-        #     [False, False],
-        #     [False, True]
-        # )
+        (  # V-shaped crossing from outside limits - not supported.
+            Vector(Point(0, 0), Point(10, 0)),
+            [[-3, 6, -1, 8], [4, -6, 6, -4], [11, 6, 13, 8]],
+            [False, False, False],
+            [False, False, False],
+        ),
+        (  # Diagonal movement, from within limits to outside - not supported
+            Vector(Point(0, 0), Point(10, 0)),
+            [[4, 1, 6, 3], [11, 1 - 20, 13, 3 - 20]],
+            [False, False],
+            [False, False],
+        ),
+        (  # Diagonal movement, from outside limits to within - not supported
+            Vector(Point(0, 0), Point(10, 0)),
+            [
+                [11, 21, 13, 23],
+                [4, -3, 6, -1],
+            ],
+            [False, False],
+            [False, False],
+        ),
+        (  # Diagonal crossing, from outside to outside limits - not supported.
+            Vector(Point(0, 0), Point(10, 0)),
+            [
+                [-4, 4, -2, 8],
+                [-4 + 16, -4, -2 + 16, -6],
+                [-4, 4, -2, 8],
+                [-4 + 16, -4, -2 + 16, -6],
+            ],
+            [False, False, False, False],
+            [False, False, False, False],
+        ),
     ],
 )
 def test_line_zone_one_detection_default_anchors(
