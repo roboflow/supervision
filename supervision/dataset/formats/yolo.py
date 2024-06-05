@@ -94,7 +94,7 @@ def yolo_annotations_to_detections(
                 relative_xyxy.append(polygon_to_xyxy(polygon=polygon))
             if with_masks:
                     relative_polygon.append(polygon)
-                
+
     class_id = np.array(class_id, dtype=int)
     relative_xyxy = np.array(relative_xyxy, dtype=np.float32)
     relative_xyxyxyxy = np.array(relative_xyxyxyxy, dtype=np.float32)
