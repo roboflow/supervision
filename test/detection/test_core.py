@@ -300,9 +300,6 @@ def test_merge(
     expected_result: Optional[Detections],
     exception: Exception,
 ) -> None:
-    print(len(detections_list))
-    for det in detections_list:
-        print(det)
     with exception:
         result = Detections.merge(detections_list=detections_list)
         assert result == expected_result
