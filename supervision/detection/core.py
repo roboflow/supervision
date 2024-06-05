@@ -1222,7 +1222,7 @@ class Detections:
         Raises:
             AssertionError: If `confidence` is None or `class_id` is None and
                 class_agnostic is False.
-                
+
         ![non-max-merging](https://media.roboflow.com/supervision-docs/non-max-merging.png){ align=center width="800" }
         """  # noqa: E501 // docs
         if len(self) == 0:
