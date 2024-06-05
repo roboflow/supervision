@@ -282,7 +282,7 @@ class DetectionDataset(BaseDataset):
             force_masks (bool, optional): If True, forces
                 masks to be loaded for all annotations,
                 regardless of whether they are present.
-            is_obb (bool, optional): If True, returns the  
+            is_obb (bool, optional): If True, returns the
                 annotations in YOLO-OBB format.
 
         Returns:
