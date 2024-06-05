@@ -54,6 +54,8 @@ class PolygonZone:
 
         self.polygon = polygon.astype(int)
         self.triggering_anchors = triggering_anchors
+        if not list(self.triggering_anchors):
+            raise ValueError("Triggering anchors cannot be empty.")
 
         self.current_count = 0
 

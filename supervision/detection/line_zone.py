@@ -84,6 +84,8 @@ class LineZone:
         self.in_count: int = 0
         self.out_count: int = 0
         self.triggering_anchors = triggering_anchors
+        if not list(self.triggering_anchors):
+            raise ValueError("Triggering anchors cannot be empty.")
 
     @staticmethod
     def calculate_region_of_interest_limits(vector: Vector) -> Tuple[Vector, Vector]:
