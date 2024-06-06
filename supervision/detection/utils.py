@@ -6,6 +6,7 @@ import numpy as np
 import numpy.typing as npt
 
 from supervision.config import CLASS_NAME_DATA_FIELD
+from supervision.geometry.core import Vector
 
 MIN_POLYGON_POINT_COUNT = 3
 
@@ -154,6 +155,25 @@ def clip_boxes(xyxy: np.ndarray, resolution_wh: Tuple[int, int]) -> np.ndarray:
         np.ndarray: A numpy array of shape `(N, 4)` where each row
             corresponds to a bounding box with coordinates clipped to fit
             within the frame resolution.
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        xyxy = np.array([
+            [10, 20, 300, 200],
+            [15, 25, 350, 450],
+            [-10, -20, 30, 40]
+        ])
+
+        sv.clip_boxes(xyxy=xyxy, resolution_wh=(320, 240))
+        # array([
+        #     [ 10,  20, 300, 200],
+        #     [ 15,  25, 320, 240],
+        #     [  0,   0,  30,  40]
+        # ])
+        ```
     """
     result = np.copy(xyxy)
     width, height = resolution_wh
@@ -180,6 +200,23 @@ def pad_boxes(xyxy: np.ndarray, px: int, py: Optional[int] = None) -> np.ndarray
         np.ndarray: A numpy array of shape `(N, 4)` where each row corresponds to a
             bounding box with coordinates padded according to the provided padding
             values.
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        xyxy = np.array([
+            [10, 20, 30, 40],
+            [15, 25, 35, 45]
+        ])
+
+        sv.pad_boxes(xyxy=xyxy, px=5, py=10)
+        # array([
+        #     [ 5, 10, 35, 50],
+        #     [10, 15, 40, 55]
+        # ])
+        ```
     """
     if py is None:
         py = px
@@ -552,7 +589,7 @@ def scale_boxes(
             [30, 30, 40, 40]
         ])
 
-        scaled_bb = sv.scale_boxes(xyxy=xyxy, factor=1.5)
+        sv.scale_boxes(xyxy=xyxy, factor=1.5)
         # array([
         #    [ 7.5,  7.5, 22.5, 22.5],
         #    [27.5, 27.5, 42.5, 42.5]
@@ -631,6 +668,10 @@ def merge_data(
     if not data_list:
         return {}
 
+    all_keys_sets = [set(data.keys()) for data in data_list]
+    if not all(keys_set == all_keys_sets[0] for keys_set in all_keys_sets):
+        raise ValueError("All data dictionaries must have the same keys to merge.")
+
     for data in data_list:
         lengths = [len(value) for value in data.values()]
         if len(set(lengths)) > 1:
@@ -638,21 +679,7 @@ def merge_data(
                 "All data values within a single object must have equal length."
             )
 
-    keys_by_data = [set(data.keys()) for data in data_list]
-    keys_by_data = [keys for keys in keys_by_data if len(keys) > 0]
-    if not keys_by_data:
-        return {}
-
-    common_keys = set.intersection(*keys_by_data)
-    all_keys = set.union(*keys_by_data)
-    if common_keys != all_keys:
-        raise ValueError(
-            f"All sv.Detections.data dictionaries must have the same keys. Common "
-            f"keys: {common_keys}, but some dictionaries have additional keys: "
-            f"{all_keys.difference(common_keys)}."
-        )
-
-    merged_data = {key: [] for key in all_keys}
+    merged_data = {key: [] for key in all_keys_sets[0]}
     for data in data_list:
         for key in data:
             merged_data[key].append(data[key])
@@ -833,3 +860,20 @@ def contains_multiple_segments(
         mask_uint8, labels, connectivity=connectivity
     )
     return number_of_labels > 2
+
+
+def cross_product(anchors: np.ndarray, vector: Vector) -> np.ndarray:
+    """
+    Get array of cross products of each anchor with a vector.
+    Args:
+        anchors: Array of anchors of shape (number of anchors, detections, 2)
+        vector: Vector to calculate cross product with
+
+    Returns:
+        Array of cross products of shape (number of anchors, detections)
+    """
+    vector_at_zero = np.array(
+        [vector.end.x - vector.start.x, vector.end.y - vector.start.y]
+    )
+    vector_start = np.array([vector.start.x, vector.start.y])
+    return np.cross(vector_at_zero, anchors - vector_start)

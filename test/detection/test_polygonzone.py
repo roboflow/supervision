@@ -92,3 +92,19 @@ def test_polygon_zone_trigger(
     with exception:
         in_zone = polygon_zone.trigger(detections)
         assert np.all(in_zone == expected_results)
+
+
+@pytest.mark.parametrize(
+    "polygon, triggering_anchors, exception",
+    [
+        (POLYGON, [sv.Position.CENTER], DoesNotRaise()),
+        (
+            POLYGON,
+            [],
+            pytest.raises(ValueError),
+        ),
+    ],
+)
+def test_polygon_zone_initialization(polygon, triggering_anchors, exception):
+    with exception:
+        sv.PolygonZone(polygon, FRAME_RESOLUTION, triggering_anchors=triggering_anchors)

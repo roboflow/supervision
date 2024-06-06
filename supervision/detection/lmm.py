@@ -41,7 +41,7 @@ def from_paligemma(
 ) -> Tuple[np.ndarray, Optional[np.ndarray], np.ndarray]:
     w, h = resolution_wh
     pattern = re.compile(
-        r"(?<!<loc\d{4}>)<loc(\d{4})><loc(\d{4})><loc(\d{4})><loc(\d{4})> ([\w\s]+)"
+        r"(?<!<loc\d{4}>)<loc(\d{4})><loc(\d{4})><loc(\d{4})><loc(\d{4})> ([\w\s\-]+)"
     )
     matches = pattern.findall(result)
     matches = np.array(matches) if matches else np.empty((0, 5))
