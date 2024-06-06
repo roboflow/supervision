@@ -7,20 +7,25 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 import numpy as np
 
 from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES
-from supervision.detection.utils import (
+from supervision.detection.lmm import LMM, from_paligemma, validate_lmm_and_kwargs
+from supervision.detection.overlap_filter import (
+    box_non_max_merge,
     box_non_max_suppression,
+    mask_non_max_suppression,
+)
+from supervision.detection.utils import (
+    box_iou_batch,
     calculate_masks_centroids,
     extract_ultralytics_masks,
     get_data_item,
     is_data_equal,
-    mask_non_max_suppression,
     mask_to_xyxy,
     merge_data,
     process_roboflow_result,
     xywh_to_xyxy,
 )
 from supervision.geometry.core import Position
-from supervision.utils.internal import deprecated
+from supervision.utils.internal import deprecated, get_instance_variables
 from supervision.validators import validate_detections_fields
 
 
@@ -240,7 +245,7 @@ class Detections:
             Class names values can be accessed using `detections["class_name"]`.
         """  # noqa: E501 // docs
 
-        if "obb" in ultralytics_results and ultralytics_results.obb is not None:
+        if hasattr(ultralytics_results, "obb") and ultralytics_results.obb is not None:
             class_id = ultralytics_results.obb.cls.cpu().numpy().astype(int)
             class_names = np.array([ultralytics_results.names[i] for i in class_id])
             oriented_box_coordinates = ultralytics_results.obb.xyxyxyxy.cpu().numpy()
@@ -418,6 +423,9 @@ class Detections:
             xyxy=mmdet_results.pred_instances.bboxes.cpu().numpy(),
             confidence=mmdet_results.pred_instances.scores.cpu().numpy(),
             class_id=mmdet_results.pred_instances.labels.cpu().numpy().astype(int),
+            mask=mmdet_results.pred_instances.masks.cpu().numpy()
+            if "masks" in mmdet_results.pred_instances
+            else None,
         )
 
     @classmethod
@@ -803,6 +811,52 @@ class Detections:
         )
 
     @classmethod
+    def from_lmm(cls, lmm: Union[LMM, str], result: str, **kwargs) -> Detections:
+        """
+        Creates a Detections object from the given result string based on the specified
+        Large Multimodal Model (LMM).
+
+        Args:
+            lmm (Union[LMM, str]): The type of LMM (Large Multimodal Model) to use.
+            result (str): The result string containing the detection data.
+            **kwargs: Additional keyword arguments required by the specified LMM.
+
+        Returns:
+            Detections: A new Detections object.
+
+        Raises:
+            ValueError: If the LMM is invalid, required arguments are missing, or
+                disallowed arguments are provided.
+            ValueError: If the specified LMM is not supported.
+
+        Examples:
+            ```python
+            import supervision as sv
+
+            paligemma_result = "<loc0256><loc0256><loc0768><loc0768> cat"
+            detections = sv.Detections.from_lmm(
+                sv.LMM.PALIGEMMA,
+                paligemma_result,
+                resolution_wh=(1000, 1000),
+                classes=['cat', 'dog']
+            )
+            detections.xyxy
+            # array([[250., 250., 750., 750.]])
+
+            detections.class_id
+            # array([0])
+            ```
+        """
+        lmm = validate_lmm_and_kwargs(lmm, kwargs)
+
+        if lmm == LMM.PALIGEMMA:
+            xyxy, class_id, class_name = from_paligemma(result, **kwargs)
+            data = {CLASS_NAME_DATA_FIELD: class_name}
+            return cls(xyxy=xyxy, class_id=class_id, data=data)
+
+        raise ValueError(f"Unsupported LMM: {lmm}")
+
+    @classmethod
     def empty(cls) -> Detections:
         """
         Create an empty Detections object with no bounding boxes,
@@ -824,6 +878,14 @@ class Detections:
             class_id=np.array([], dtype=int),
         )
 
+    def is_empty(self) -> bool:
+        """
+        Returns `True` if the `Detections` object is considered empty.
+        """
+        empty_detections = Detections.empty()
+        empty_detections.data = self.data
+        return self == empty_detections
+
     @classmethod
     def merge(cls, detections_list: List[Detections]) -> Detections:
         """
@@ -831,9 +893,14 @@ class Detections:
 
         This method takes a list of Detections objects and combines their
         respective fields (`xyxy`, `mask`, `confidence`, `class_id`, and `tracker_id`)
-        into a single Detections object. If all elements in a field are not
-        `None`, the corresponding field will be stacked.
-        Otherwise, the field will be set to `None`.
+        into a single Detections object.
+
+        For example, if merging Detections with 3 and 4 detected objects, this method
+        will return a Detections with 7 objects (7 entries in `xyxy`, `mask`, etc).
+
+        !!! Note
+
+            When merging, empty `Detections` objects are ignored.
 
         Args:
             detections_list (List[Detections]): A list of Detections objects to merge.
@@ -873,6 +940,10 @@ class Detections:
             array([0.1, 0.2, 0.3])
             ```
         """
+        detections_list = [
+            detections for detections in detections_list if not detections.is_empty()
+        ]
+
         if len(detections_list) == 0:
             return Detections.empty()
 
@@ -1147,3 +1218,195 @@ class Detections:
             )
 
         return self[indices]
+
+    def with_nmm(
+        self, threshold: float = 0.5, class_agnostic: bool = False
+    ) -> Detections:
+        """
+        Perform non-maximum merging on the current set of object detections.
+
+        Args:
+            threshold (float, optional): The intersection-over-union threshold
+                to use for non-maximum merging. Defaults to 0.5.
+            class_agnostic (bool, optional): Whether to perform class-agnostic
+                non-maximum merging. If True, the class_id of each detection
+                will be ignored. Defaults to False.
+
+        Returns:
+            Detections: A new Detections object containing the subset of detections
+                after non-maximum merging.
+
+        Raises:
+            AssertionError: If `confidence` is None or `class_id` is None and
+                class_agnostic is False.
+
+        ![non-max-merging](https://media.roboflow.com/supervision-docs/non-max-merging.png){ align=center width="800" }
+        """  # noqa: E501 // docs
+        if len(self) == 0:
+            return self
+
+        assert (
+            self.confidence is not None
+        ), "Detections confidence must be given for NMM to be executed."
+
+        if class_agnostic:
+            predictions = np.hstack((self.xyxy, self.confidence.reshape(-1, 1)))
+        else:
+            assert self.class_id is not None, (
+                "Detections class_id must be given for NMM to be executed. If you"
+                " intended to perform class agnostic NMM set class_agnostic=True."
+            )
+            predictions = np.hstack(
+                (
+                    self.xyxy,
+                    self.confidence.reshape(-1, 1),
+                    self.class_id.reshape(-1, 1),
+                )
+            )
+
+        merge_groups = box_non_max_merge(
+            predictions=predictions, iou_threshold=threshold
+        )
+
+        result = []
+        for merge_group in merge_groups:
+            unmerged_detections = [self[i] for i in merge_group]
+            merged_detections = merge_inner_detections_objects(
+                unmerged_detections, threshold
+            )
+            result.append(merged_detections)
+
+        return Detections.merge(result)
+
+
+def merge_inner_detection_object_pair(
+    detections_1: Detections, detections_2: Detections
+) -> Detections:
+    """
+    Merges two Detections object into a single Detections object.
+    Assumes each Detections contains exactly one object.
+
+    A `winning` detection is determined based on the confidence score of the two
+    input detections. This winning detection is then used to specify which
+    `class_id`, `tracker_id`, and `data` to include in the merged Detections object.
+
+    The resulting `confidence` of the merged object is calculated by the weighted
+    contribution of ea detection to the merged object.
+    The bounding boxes and masks of the two input detections are merged into a
+    single bounding box and mask, respectively.
+
+    Args:
+        detections_1 (Detections):
+            The first Detections object
+        detections_2 (Detections):
+            The second Detections object
+
+    Returns:
+        Detections: A new Detections object, with merged attributes.
+
+    Raises:
+        ValueError: If the input Detections objects do not have exactly 1 detected
+            object.
+
+    Example:
+        ```python
+        import cv2
+        import supervision as sv
+        from inference import get_model
+
+        image = cv2.imread(<SOURCE_IMAGE_PATH>)
+        model = get_model(model_id="yolov8s-640")
+
+        result = model.infer(image)[0]
+        detections = sv.Detections.from_inference(result)
+
+        merged_detections = merge_object_detection_pair(
+            detections[0], detections[1])
+        ```
+    """
+    if len(detections_1) != 1 or len(detections_2) != 1:
+        raise ValueError("Both Detections should have exactly 1 detected object.")
+
+    validate_fields_both_defined_or_none(detections_1, detections_2)
+
+    xyxy_1 = detections_1.xyxy[0]
+    xyxy_2 = detections_2.xyxy[0]
+    if detections_1.confidence is None and detections_2.confidence is None:
+        merged_confidence = None
+    else:
+        detection_1_area = (xyxy_1[2] - xyxy_1[0]) * (xyxy_1[3] - xyxy_1[1])
+        detections_2_area = (xyxy_2[2] - xyxy_2[0]) * (xyxy_2[3] - xyxy_2[1])
+        merged_confidence = (
+            detection_1_area * detections_1.confidence[0]
+            + detections_2_area * detections_2.confidence[0]
+        ) / (detection_1_area + detections_2_area)
+        merged_confidence = np.array([merged_confidence])
+
+    merged_x1, merged_y1 = np.minimum(xyxy_1[:2], xyxy_2[:2])
+    merged_x2, merged_y2 = np.maximum(xyxy_1[2:], xyxy_2[2:])
+    merged_xyxy = np.array([[merged_x1, merged_y1, merged_x2, merged_y2]])
+
+    if detections_1.mask is None and detections_2.mask is None:
+        merged_mask = None
+    else:
+        merged_mask = np.logical_or(detections_1.mask, detections_2.mask)
+
+    if detections_1.confidence is None and detections_2.confidence is None:
+        winning_detection = detections_1
+    elif detections_1.confidence[0] >= detections_2.confidence[0]:
+        winning_detection = detections_1
+    else:
+        winning_detection = detections_2
+
+    return Detections(
+        xyxy=merged_xyxy,
+        mask=merged_mask,
+        confidence=merged_confidence,
+        class_id=winning_detection.class_id,
+        tracker_id=winning_detection.tracker_id,
+        data=winning_detection.data,
+    )
+
+
+def merge_inner_detections_objects(
+    detections: List[Detections], threshold=0.5
+) -> Detections:
+    """
+    Given N detections each of length 1 (exactly one object inside), combine them into a
+    single detection object of length 1. The contained inner object will be the merged
+    result of all the input detections.
+
+    For example, this lets you merge N boxes into one big box, N masks into one mask,
+    etc.
+    """
+    detections_1 = detections[0]
+    for detections_2 in detections[1:]:
+        box_iou = box_iou_batch(detections_1.xyxy, detections_2.xyxy)[0]
+        if box_iou < threshold:
+            break
+        detections_1 = merge_inner_detection_object_pair(detections_1, detections_2)
+    return detections_1
+
+
+def validate_fields_both_defined_or_none(
+    detections_1: Detections, detections_2: Detections
+) -> None:
+    """
+    Verify that for each optional field in the Detections, both instances either have
+    the field set to None or both have it set to non-None values.
+
+    `data` field is ignored.
+
+    Raises:
+        ValueError: If one field is None and the other is not, for any of the fields.
+    """
+    attributes = get_instance_variables(detections_1)
+    for attribute in attributes:
+        value_1 = getattr(detections_1, attribute)
+        value_2 = getattr(detections_2, attribute)
+
+        if (value_1 is None) != (value_2 is None):
+            raise ValueError(
+                f"Field '{attribute}' should be consistently None or not None in both "
+                "Detections."
+            )

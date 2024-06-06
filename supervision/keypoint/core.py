@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import suppress
 from dataclasses import dataclass, field
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
@@ -101,9 +102,93 @@ class KeyPoints:
         )
 
     @classmethod
+    def from_inference(cls, inference_result: Union[dict, Any]) -> KeyPoints:
+        """
+        Create a `sv.KeyPoints` object from the [Roboflow](https://roboflow.com/)
+        API inference result or the [Inference](https://inference.roboflow.com/)
+        package results. When a keypoint detection model is used, this method
+        extracts the keypoint coordinates, class IDs, confidences, and class names.
+
+        Args:
+            inference_result (dict, any): The result from the
+                Roboflow API or Inference package containing predictions with keypoints.
+
+        Returns:
+            (KeyPoints): A KeyPoints object containing the keypoint coordinates,
+                class IDs, and confidences of each keypoint.
+
+        Example:
+            ```python
+            import cv2
+            import supervision as sv
+            from inference import get_model
+
+            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            model = get_model(model_id=<POSE_MODEL_ID>, api_key=<ROBOFLOW_API_KEY>)
+
+            result = model.infer(image)[0]
+            key_points = sv.KeyPoints.from_inference(result)
+            ```
+
+            ```python
+            import cv2
+            import supervision as sv
+            from inference_sdk import InferenceHTTPClient
+
+            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            client = InferenceHTTPClient(
+                api_url="https://detect.roboflow.com",
+                api_key=<ROBOFLOW_API_KEY>
+            )
+
+            result = client.infer(image, model_id=<POSE_MODEL_ID>)
+            key_points = sv.KeyPoints.from_inference(result)
+            ```
+        """
+        if isinstance(inference_result, list):
+            raise ValueError(
+                "from_inference() operates on a single result at a time."
+                "You can retrieve it like so:  inference_result = model.infer(image)[0]"
+            )
+
+        # Unpack the result if received from inference.get_model,
+        # rather than inference_sdk.InferenceHTTPClient
+        with suppress(AttributeError):
+            inference_result = inference_result.dict(exclude_none=True, by_alias=True)
+
+        if not inference_result.get("predictions"):
+            return cls.empty()
+
+        xy = []
+        confidence = []
+        class_id = []
+        class_names = []
+
+        for prediction in inference_result["predictions"]:
+            prediction_xy = []
+            prediction_confidence = []
+            for keypoint in prediction["keypoints"]:
+                prediction_xy.append([keypoint["x"], keypoint["y"]])
+                prediction_confidence.append(keypoint["confidence"])
+            xy.append(prediction_xy)
+            confidence.append(prediction_confidence)
+
+            class_id.append(prediction["class_id"])
+            class_names.append(prediction["class"])
+
+        data = {CLASS_NAME_DATA_FIELD: np.array(class_names)}
+
+        return cls(
+            xy=np.array(xy, dtype=np.float32),
+            confidence=np.array(confidence, dtype=np.float32),
+            class_id=np.array(class_id, dtype=int),
+            data=data,
+        )
+
+    @classmethod
     def from_ultralytics(cls, ultralytics_results) -> KeyPoints:
         """
-        Creates a Keypoints instance from a
+        Creates a KeyPoints instance from a
             [YOLOv8](https://github.com/ultralytics/ultralytics) inference result.
 
         Args:
@@ -111,7 +196,7 @@ class KeyPoints:
                 The output Results instance from YOLOv8
 
         Returns:
-            KeyPoints: A new Keypoints object.
+            KeyPoints: A new KeyPoints object.
 
         Example:
             ```python
@@ -136,9 +221,66 @@ class KeyPoints:
         data = {CLASS_NAME_DATA_FIELD: class_names}
         return cls(xy, class_id, confidence, data)
 
+    @classmethod
+    def from_yolo_nas(cls, yolo_nas_results) -> KeyPoints:
+        """
+        Create a KeyPoints instance from a YOLO NAS results.
+
+        Args:
+            yolo_nas_results (ImagePoseEstimationPrediction):
+                The output object from YOLO NAS.
+
+        Returns:
+            KeyPoints: A new KeyPoints object.
+
+        Example:
+            ```python
+            import cv2
+            import torch
+            import supervision as sv
+            import super_gradients
+
+            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            yolo_nas = super_gradients.training.models.get(
+                "yolo_nas_pose_s", pretrained_weights="coco_pose").to(device)
+
+            results = yolo_nas.predict(image, conf=0.1)
+            keypoints = sv.KeyPoints.from_yolo_nas(results)
+            ```
+        """
+        if len(yolo_nas_results.prediction.poses) == 0:
+            return cls.empty()
+
+        xy = yolo_nas_results.prediction.poses[:, :, :2]
+        confidence = yolo_nas_results.prediction.poses[:, :, 2]
+
+        # yolo_nas_results treats params differently.
+        # prediction.labels may not exist, whereas class_names might be None
+        if hasattr(yolo_nas_results.prediction, "labels"):
+            class_id = yolo_nas_results.prediction.labels  # np.array[int]
+        else:
+            class_id = None
+
+        data = {}
+        if class_id is not None and yolo_nas_results.class_names is not None:
+            class_names = []
+            for c_id in class_id:
+                name = yolo_nas_results.class_names[c_id]  # tuple[str]
+                class_names.append(name)
+            data[CLASS_NAME_DATA_FIELD] = class_names
+
+        return cls(
+            xy=xy,
+            confidence=confidence,
+            class_id=class_id,
+            data=data,
+        )
+
     def __getitem__(
         self, index: Union[int, slice, List[int], np.ndarray, str]
-    ) -> Union["KeyPoints", List, np.ndarray, None]:
+    ) -> Union[KeyPoints, List, np.ndarray, None]:
         """
         Get a subset of the KeyPoints object or access an item from its data field.
 

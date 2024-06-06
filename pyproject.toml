@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "supervision"
-version = "0.20.0"
+version = "0.21.0"
 description = "A set of easy-to-use utils that will come in handy in any Computer Vision project"
 authors = ["Piotr Skalski <piotr.skalski92@gmail.com>"]
 maintainers = ["Piotr Skalski <piotr.skalski92@gmail.com>"]
@@ -42,8 +42,8 @@ pyyaml = ">=5.3"
 defusedxml = "^0.7.1"
 opencv-python = { version = ">=4.5.5.64", optional = true }
 opencv-python-headless = ">=4.5.5.64"
-requests = { version = ">=2.26.0,<=2.31.0", optional = true }
-tqdm = { version = ">=4.62.3,<=4.66.2", optional = true }
+requests = { version = ">=2.26.0,<=2.32.3", optional = true }
+tqdm = { version = ">=4.62.3,<=4.66.4", optional = true }
 pillow = ">=9.4"
 
 [tool.poetry.extras]
@@ -67,7 +67,7 @@ nbconvert = "^7.14.2"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs-material = {extras = ["imaging"], version = "^9.5.5"}
-mkdocstrings = {extras = ["python"], version = ">=0.20,<0.25"}
+mkdocstrings = {extras = ["python"], version = ">=0.20,<0.26"}
 mike = "^2.0.0"
 # For Documentation Development use Python 3.10 or above
 # Use Latest mkdocs-jupyter min 0.24.6 for Jupyter Notebook Theme support

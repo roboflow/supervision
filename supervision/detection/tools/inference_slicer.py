@@ -1,23 +1,42 @@
+import warnings
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Callable, Optional, Tuple
+from typing import Callable, Optional, Tuple, Union
 
 import numpy as np
 
 from supervision.detection.core import Detections
-from supervision.detection.utils import move_boxes
+from supervision.detection.overlap_filter import OverlapFilter, validate_overlap_filter
+from supervision.detection.utils import move_boxes, move_masks
 from supervision.utils.image import crop_image
+from supervision.utils.internal import SupervisionWarnings
 
 
-def move_detections(detections: Detections, offset: np.array) -> Detections:
+def move_detections(
+    detections: Detections,
+    offset: np.ndarray,
+    resolution_wh: Optional[Tuple[int, int]] = None,
+) -> Detections:
     """
     Args:
         detections (sv.Detections): Detections object to be moved.
-        offset (np.array): An array of shape `(2,)` containing offset values in format
+        offset (np.ndarray): An array of shape `(2,)` containing offset values in format
             is `[dx, dy]`.
+        resolution_wh (Tuple[int, int]): The width and height of the desired mask
+            resolution. Required for segmentation detections.
+
     Returns:
         (sv.Detections) repositioned Detections object.
     """
     detections.xyxy = move_boxes(xyxy=detections.xyxy, offset=offset)
+    if detections.mask is not None:
+        if resolution_wh is None:
+            raise ValueError(
+                "Resolution width and height are required for moving segmentation "
+                "detections. This should be the same as (width, height) of image shape."
+            )
+        detections.mask = move_masks(
+            masks=detections.mask, offset=offset, resolution_wh=resolution_wh
+        )
     return detections
 
 
@@ -34,8 +53,10 @@ class InferenceSlicer:
             `(width, height)`.
         overlap_ratio_wh (Tuple[float, float]): Overlap ratio between consecutive
             slices in the format `(width_ratio, height_ratio)`.
-        iou_threshold (Optional[float]): Intersection over Union (IoU) threshold
-            used for non-max suppression.
+        overlap_filter_strategy (Union[OverlapFilter, str]): Strategy for
+            filtering or merging overlapping detections in slices.
+        iou_threshold (float): Intersection over Union (IoU) threshold
+            used when filtering by overlap.
         callback (Callable): A function that performs inference on a given image
             slice and returns detections.
         thread_workers (int): Number of threads for parallel execution.
@@ -52,12 +73,18 @@ class InferenceSlicer:
         callback: Callable[[np.ndarray], Detections],
         slice_wh: Tuple[int, int] = (320, 320),
         overlap_ratio_wh: Tuple[float, float] = (0.2, 0.2),
-        iou_threshold: Optional[float] = 0.5,
+        overlap_filter_strategy: Union[
+            OverlapFilter, str
+        ] = OverlapFilter.NON_MAX_SUPPRESSION,
+        iou_threshold: float = 0.5,
         thread_workers: int = 1,
     ):
+        overlap_filter_strategy = validate_overlap_filter(overlap_filter_strategy)
+
         self.slice_wh = slice_wh
         self.overlap_ratio_wh = overlap_ratio_wh
         self.iou_threshold = iou_threshold
+        self.overlap_filter_strategy = overlap_filter_strategy
         self.callback = callback
         self.thread_workers = thread_workers
 
@@ -88,7 +115,10 @@ class InferenceSlicer:
                 result = model(image_slice)[0]
                 return sv.Detections.from_ultralytics(result)
 
-            slicer = sv.InferenceSlicer(callback = callback)
+            slicer = sv.InferenceSlicer(
+                callback=callback,
+                overlap_filter_strategy=sv.OverlapFilter.NON_MAX_SUPPRESSION,
+            )
 
             detections = slicer(image)
             ```
@@ -108,9 +138,19 @@ class InferenceSlicer:
             for future in as_completed(futures):
                 detections_list.append(future.result())
 
-        return Detections.merge(detections_list=detections_list).with_nms(
-            threshold=self.iou_threshold
-        )
+        merged = Detections.merge(detections_list=detections_list)
+        if self.overlap_filter_strategy == OverlapFilter.NONE:
+            return merged
+        elif self.overlap_filter_strategy == OverlapFilter.NON_MAX_SUPPRESSION:
+            return merged.with_nms(threshold=self.iou_threshold)
+        elif self.overlap_filter_strategy == OverlapFilter.NON_MAX_MERGE:
+            return merged.with_nmm(threshold=self.iou_threshold)
+        else:
+            warnings.warn(
+                f"Invalid overlap filter strategy: {self.overlap_filter_strategy}",
+                category=SupervisionWarnings,
+            )
+            return merged
 
     def _run_callback(self, image, offset) -> Detections:
         """
@@ -126,7 +166,10 @@ class InferenceSlicer:
         """
         image_slice = crop_image(image=image, xyxy=offset)
         detections = self.callback(image_slice)
-        detections = move_detections(detections=detections, offset=offset[:2])
+        resolution_wh = (image.shape[1], image.shape[0])
+        detections = move_detections(
+            detections=detections, offset=offset[:2], resolution_wh=resolution_wh
+        )
 
         return detections
 
