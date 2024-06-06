@@ -71,7 +71,10 @@ def _image_name_to_annotation_name(image_name: str) -> str:
 
 
 def yolo_annotations_to_detections(
-    lines: List[str], resolution_wh: Tuple[int, int], with_masks: bool, is_obb: bool = False
+    lines: List[str],
+    resolution_wh: Tuple[int, int],
+    with_masks: bool,
+    is_obb: bool = False,
 ) -> Detections:
     if len(lines) == 0:
         return Detections.empty()
