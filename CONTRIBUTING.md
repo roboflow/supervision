@@ -64,7 +64,7 @@ To run the pre-commit tool, follow these steps:
 
 3. Run the command `pre-commit run --all-files`. This will execute the pre-commit hooks configured for this project against the modified files. If any issues are found, the pre-commit tool will provide feedback on how to resolve them. Make the necessary changes and re-run the pre-commit command until all issues are resolved.
 
-4. You can also install pre-commit as a git hook by execute `pre-commit install`. Every time you made `git commit` pre-commit run automatically for you.
+4. You can also install pre-commit as a git hook by executing `pre-commit install`. Every time you do a `git commit` pre-commit run automatically for you.
 
 ### Docstrings
 
