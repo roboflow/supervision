@@ -905,7 +905,7 @@ class DotAnnotator(BaseAnnotator):
         return scene
 
 
-class LabelAnnotator:
+class LabelAnnotator(BaseAnnotator):
     """
     A class for annotating labels on an image using provided detections.
     """
@@ -1103,7 +1103,7 @@ class LabelAnnotator:
         return scene
 
 
-class RichLabelAnnotator:
+class RichLabelAnnotator(BaseAnnotator):
     """
     A class for annotating labels on an image using provided detections,
     with support for Unicode characters by using a custom font.
@@ -1156,7 +1156,7 @@ class RichLabelAnnotator:
         self,
         scene: ImageType,
         detections: Detections,
-        labels: List[str] = None,
+        labels: Optional[List[str]] = None,
         custom_color_lookup: Optional[np.ndarray] = None,
     ) -> ImageType:
         """
@@ -1321,7 +1321,7 @@ class BlurAnnotator(BaseAnnotator):
         return scene
 
 
-class TraceAnnotator:
+class TraceAnnotator(BaseAnnotator):
     """
     A class for drawing trace paths on an image based on detection coordinates.
 
@@ -1430,7 +1430,7 @@ class TraceAnnotator:
         return scene
 
 
-class HeatMapAnnotator:
+class HeatMapAnnotator(BaseAnnotator):
     """
     A class for drawing heatmaps on an image based on provided detections.
     Heat accumulates over time and is drawn as a semi-transparent overlay
