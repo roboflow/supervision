@@ -216,11 +216,12 @@ class KeyPoints:
 
             image = cv2.imread(<SOURCE_IMAGE_PATH>)
             image_height, image_width, _ = image.shape
-            mp_image = mp.Image(
+            mediapipe_image = mp.Image(
                 image_format=mp.ImageFormat.SRGB,
                 data=cv2.cvtColor(image, cv2.COLOR_BGR2RGB),
             )
 
+            # Download model task from: https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker/index#models
             options = mp.tasks.vision.PoseLandmarkerOptions(
                 base_options=mp.tasks.BaseOptions(
                     model_asset_path="pose_landmarker_heavy.task"
@@ -231,27 +232,10 @@ class KeyPoints:
 
             PoseLandmarker = mp.tasks.vision.PoseLandmarker
             with PoseLandmarker.create_from_options(options) as landmarker:
-                pose_landmarker_result = landmarker.detect(mp_image)
+                pose_landmarker_result = landmarker.detect(mediapipe_image)
 
             keypoints = sv.KeyPoints.from_mediapipe(
-                pose_landmarker_result, [image_width, image_height]
-            )
-            ```
-
-            ```python
-            import cv2
-            import mediapipe as mp
-            import supervision as sv
-
-            image = cv2.imread(<SOURCE_IMAGE_PATH>)
-            image_height, image_width, _ = image.shape
-            pose = mp.solutions.pose.Pose(
-                static_image_mode=True,
-                min_detection_confidence=0.5,
-            )
-            results = pose.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-            keypoints = sv.KeyPoints.from_mediapipe(
-                pose_landmarker_result, [image_width, image_height]
+                pose_landmarker_result, (image_width, image_height)
             )
             ```
         """
