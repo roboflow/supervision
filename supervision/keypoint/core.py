@@ -199,9 +199,9 @@ class KeyPoints:
             mediapipe_results
                 (Union[mediapipe.tasks.python.vision.pose_landmarker.PoseLandmarkerResult,
                     mediapipe.python.solution_base.SolutionOutputs]):
-                The output results from Mediapipe. It supports both: the inference result from
-                mp.tasks.vision.pose_landmaker.PoseLandmarker and the legacy one from
-                mp.solutions.pose.Pose.
+                The output results from Mediapipe. It supports both: the inference
+                result from mp.tasks.vision.pose_landmaker.PoseLandmarker and the legacy
+                one from mp.solutions.pose.Pose.
             resolution_wh (Tuple[int, int]): A tuple of the form `(width, height)`
                 representing the resolution of the frame.
 
@@ -229,7 +229,8 @@ class KeyPoints:
                 num_poses=2,
             )
 
-            with mp.tasks.vision.PoseLandmarker.create_from_options(options) as landmarker:
+            PoseLandmarker = mp.tasks.vision.PoseLandmarker
+            with PoseLandmarker.create_from_options(options) as landmarker:
                 pose_landmarker_result = landmarker.detect(mp_image)
 
             keypoints = sv.KeyPoints.from_mediapipe(
