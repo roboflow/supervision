@@ -3,7 +3,7 @@ from typing import List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+from PIL import ImageDraw, ImageFont
 
 from supervision.annotators.base import BaseAnnotator, ImageType
 from supervision.annotators.utils import (
@@ -18,7 +18,10 @@ from supervision.detection.utils import clip_boxes, mask_to_polygons
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import draw_polygon
 from supervision.geometry.core import Position
-from supervision.utils.conversion import convert_for_annotation_method
+from supervision.utils.conversion import (
+    convert_for_annotation_method,
+    convert_for_rich_text_annotation,
+)
 from supervision.utils.image import crop_image, overlay_image, scale_image
 
 
@@ -947,7 +950,7 @@ class LabelAnnotator:
         self,
         scene: ImageType,
         detections: Detections,
-        labels: List[str] = None,
+        labels: Optional[List[str]] = None,
         custom_color_lookup: Optional[np.ndarray] = None,
     ) -> ImageType:
         """
@@ -958,7 +961,7 @@ class LabelAnnotator:
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
                 or `PIL.Image.Image`.
             detections (Detections): Object detections to annotate.
-            labels (List[str]): Optional. Custom labels for each detection.
+            labels (Optional[List[str]]): Custom labels for each detection.
             custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
                 Allows to override the default color mapping strategy.
 
@@ -968,7 +971,7 @@ class LabelAnnotator:
 
         Example:
             ```python
-             import supervision as sv
+            import supervision as sv
 
             image = ...
             detections = sv.Detections(...)
@@ -996,12 +999,9 @@ class LabelAnnotator:
         ).astype(int)
         if labels is not None and len(labels) != len(detections):
             raise ValueError(
-                f"The number of labels provided ({len(labels)}) does not match the "
-                f"number of detections ({len(detections)}). Each detection should have "
-                f"a corresponding label. This discrepancy can occur if the labels and "
-                f"detections are not aligned or if an incorrect number of labels has "
-                f"been provided. Please ensure that the labels array has the same "
-                f"length as the Detections object."
+                f"The number of labels ({len(labels)}) does not match the "
+                f"number of detections ({len(detections)}). Each detection "
+                f"should have exactly 1 label."
             )
 
         for detection_idx, center_coordinates in enumerate(anchors_coordinates):
@@ -1113,7 +1113,7 @@ class RichLabelAnnotator:
         self,
         color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
         text_color: Color = Color.WHITE,
-        font_path: str = None,
+        font_path: Optional[str] = None,
         font_size: int = 10,
         text_padding: int = 10,
         text_position: Position = Position.TOP_LEFT,
@@ -1125,8 +1125,8 @@ class RichLabelAnnotator:
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating the text background.
             text_color (Color): The color to use for the text.
-            font_path (str): Path to the font file (e.g., ".ttf" or ".otf") to use for
-                rendering text. If `None`, the default PIL font will be used.
+            font_path (Optional[str]): Path to the font file (e.g., ".ttf" or ".otf")
+                to use for rendering text. If `None`, the default PIL font will be used.
             font_size (int): Font size for the text.
             text_padding (int): Padding around the text within its background box.
             text_position (Position): Position of the text relative to the detection.
@@ -1151,6 +1151,7 @@ class RichLabelAnnotator:
         else:
             self.font = ImageFont.load_default(size=font_size)
 
+    @convert_for_rich_text_annotation
     def annotate(
         self,
         scene: ImageType,
@@ -1197,8 +1198,6 @@ class RichLabelAnnotator:
             ```
 
         """
-        if isinstance(scene, np.ndarray):
-            scene = Image.fromarray(cv2.cvtColor(scene, cv2.COLOR_BGR2RGB))
         draw = ImageDraw.Draw(scene)
         anchors_coordinates = detections.get_anchors_coordinates(
             anchor=self.text_anchor
@@ -1258,7 +1257,6 @@ class RichLabelAnnotator:
                 font=self.font,
                 fill=self.text_color.as_rgb(),
             )
-
         return scene
 
 

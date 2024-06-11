@@ -51,6 +51,27 @@ def convert_for_image_processing(image_processing_fun):
     return wrapper
 
 
+def convert_for_rich_text_annotation(annotate_func):
+    """
+    Decorates image processing functions that accept np.ndarray, converting `image` to
+    PIL image, converts back when processing is complete.
+    """
+
+    @wraps(annotate_func)
+    def wrapper(self, scene: ImageType, *args, **kwargs):
+        if isinstance(scene, np.ndarray):
+            scene = cv2_to_pillow(scene)
+            annotated = annotate_func(self, scene, *args, **kwargs)
+            return pillow_to_cv2(image=annotated)
+
+        if isinstance(scene, Image.Image):
+            return annotate_func(self, scene, *args, **kwargs)
+
+        raise ValueError(f"Unsupported image type: {type(scene)}")
+
+    return wrapper
+
+
 def images_to_cv2(images: List[ImageType]) -> List[np.ndarray]:
     """
     Converts images provided either as Pillow images or OpenCV
