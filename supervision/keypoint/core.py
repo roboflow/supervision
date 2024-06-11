@@ -240,14 +240,13 @@ class KeyPoints:
             ```
         """
         results = mediapipe_results.pose_landmarks
-
         if not isinstance(mediapipe_results.pose_landmarks, list):
-            if mediapipe_results.pose_landmarks is not None:
+            if mediapipe_results.pose_landmarks is None:
+                results = []
+            else:
                 results = [
                     [landmark for landmark in mediapipe_results.pose_landmarks.landmark]
                 ]
-            else:
-                results = []
 
         if len(results) == 0:
             return cls.empty()
@@ -258,9 +257,11 @@ class KeyPoints:
             prediction_xy = []
             prediction_confidence = []
             for landmark in pose:
-                prediction_xy.append(
-                    [landmark.x * resolution_wh[0], landmark.y * resolution_wh[1]]
-                )
+                keypoint_xy = [
+                    landmark.x * resolution_wh[0],
+                    landmark.y * resolution_wh[1],
+                ]
+                prediction_xy.append(keypoint_xy)
                 prediction_confidence.append(landmark.visibility)
 
             xy.append(prediction_xy)
