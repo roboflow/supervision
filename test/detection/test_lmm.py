@@ -76,7 +76,27 @@ from supervision.detection.lmm import from_paligemma
                 None,
                 np.array(["black cat"]).astype(np.dtype("U")),
             ),
-        ),  # correct response; no classes
+        ),  # correct response; class name with space; no classes
+        (
+            "<loc0256><loc0256><loc0768><loc0768> black-cat",
+            (1000, 1000),
+            None,
+            (
+                np.array([[250.0, 250.0, 750.0, 750.0]]),
+                None,
+                np.array(["black-cat"]).astype(np.dtype("U")),
+            ),
+        ),  # correct response; class name with hyphen; no classes
+        (
+            "<loc0256><loc0256><loc0768><loc0768> black_cat",
+            (1000, 1000),
+            None,
+            (
+                np.array([[250.0, 250.0, 750.0, 750.0]]),
+                None,
+                np.array(["black_cat"]).astype(np.dtype("U")),
+            ),
+        ),  # correct response; class name with underscore; no classes
         (
             "<loc0256><loc0256><loc0768><loc0768> cat ;",
             (1000, 1000),

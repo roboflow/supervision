@@ -35,19 +35,20 @@ extra_css:
 
 
 nav:
-  - Home: index.md
-  - How to:
+  - Supervision: index.md
+  - Learn:
       - Detect and Annotate: how_to/detect_and_annotate.md
       - Save Detections: how_to/save_detections.md
       - Filter Detections: how_to/filter_detections.md
       - Detect Small Objects: how_to/detect_small_objects.md
       - Track Objects on Video: how_to/track_objects.md
 
-  - API:
+  - Reference - Code API:
     - Detection and Segmentation:
         - Core: detection/core.md
         - Annotators: detection/annotators.md
         - Metrics: detection/metrics.md
+        - Double Detection Filter: detection/double_detection_filter.md
         - Utils: detection/utils.md
     - Keypoint Detection:
         - Core: keypoint/core.md
@@ -78,7 +79,7 @@ nav:
     - Contributing: contributing.md
     - Code of Conduct: code_of_conduct.md
     - License: license.md
-  - Changelog:
+  - Release Notes:
         - Changelog: changelog.md
         - Deprecated: deprecated.md
 
