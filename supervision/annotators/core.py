@@ -1175,7 +1175,7 @@ class RichLabelAnnotator(BaseAnnotator):
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
                 or `PIL.Image.Image`.
             detections (Detections): Object detections to annotate.
-            labels (List[str]): Optional. Custom labels for each detection.
+            labels (Optional[List[str]]): Custom labels for each detection.
             custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
                 Allows to override the default color mapping strategy.
 
@@ -1213,10 +1213,7 @@ class RichLabelAnnotator(BaseAnnotator):
             raise ValueError(
                 f"The number of labels provided ({len(labels)}) does not match the "
                 f"number of detections ({len(detections)}). Each detection should have "
-                f"a corresponding label. This discrepancy can occur if the labels and "
-                f"detections are not aligned or if an incorrect number of labels has "
-                f"been provided. Please ensure that the labels array has the same "
-                f"length as the Detections object."
+                f"a corresponding label."
             )
         for detection_idx, center_coordinates in enumerate(anchors_coordinates):
             color = resolve_color(
