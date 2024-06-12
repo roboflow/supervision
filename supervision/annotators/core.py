@@ -273,8 +273,11 @@ class MaskAnnotator(BaseAnnotator):
             mask = detections.mask[detection_idx]
             colored_mask[mask] = color.as_bgr()
 
-        scene = cv2.addWeighted(colored_mask, self.opacity, scene, 1 - self.opacity, 0)
-        return scene.astype(np.uint8)
+        blended_scene = cv2.addWeighted(
+            colored_mask, self.opacity, scene, 1 - self.opacity, 0
+        )
+        np.copyto(scene, blended_scene.astype(np.uint8))
+        return scene
 
 
 class PolygonAnnotator(BaseAnnotator):
@@ -552,7 +555,8 @@ class HaloAnnotator(BaseAnnotator):
         gray = cv2.cvtColor(colored_mask, cv2.COLOR_BGR2GRAY)
         alpha = self.opacity * gray / gray.max()
         alpha_mask = alpha[:, :, np.newaxis]
-        scene = np.uint8(scene * (1 - alpha_mask) + colored_mask * self.opacity)
+        blended_scene = np.uint8(scene * (1 - alpha_mask) + colored_mask * self.opacity)
+        np.copyto(scene, blended_scene)
         return scene
 
 
