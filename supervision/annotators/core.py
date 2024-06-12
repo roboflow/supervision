@@ -1154,9 +1154,9 @@ class RichLabelAnnotator(BaseAnnotator):
                 self.font = ImageFont.truetype(font_path, font_size)
             except OSError:
                 print(f"Font path '{font_path}' not found. Using PIL's default font.")
-                self.font = ImageFont.load_default(font_size)
+                self.font = self._load_default_font(font_size)
         else:
-            self.font = ImageFont.load_default(font_size)
+            self.font = self._load_default_font(font_size)
 
     @convert_for_rich_text_annotation
     def annotate(
@@ -1262,6 +1262,19 @@ class RichLabelAnnotator(BaseAnnotator):
                 fill=self.text_color.as_rgb(),
             )
         return scene
+
+    @staticmethod
+    def _load_default_font(size):
+        """
+        PIL either loads a font that accepts a size (e.g. on my machine)
+        or raises an error saying `load_default` does not accept arguments
+        (e.g. in Colab).
+        """
+        try:
+            font = ImageFont.load_default(size)
+        except TypeError:
+            font = ImageFont.load_default()
+        return font
 
 
 class BlurAnnotator(BaseAnnotator):
