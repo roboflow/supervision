@@ -1147,9 +1147,9 @@ class RichLabelAnnotator(BaseAnnotator):
                 self.font = ImageFont.truetype(font_path, font_size)
             except OSError:
                 print(f"Font path '{font_path}' not found. Using PIL's default font.")
-                self.font = ImageFont.load_default(size=font_size)
+                self.font = ImageFont.load_default()
         else:
-            self.font = ImageFont.load_default(size=font_size)
+            self.font = ImageFont.load_default()
 
     @convert_for_rich_text_annotation
     def annotate(
