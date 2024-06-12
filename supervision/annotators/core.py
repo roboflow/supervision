@@ -430,6 +430,7 @@ class ColorAnnotator(BaseAnnotator):
         supervision-annotator-examples/box-mask-annotator-example-purple.png)
         """
         mask_image = scene.copy()
+        scene_with_boxes = scene.copy()
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
             color = resolve_color(
@@ -441,15 +442,17 @@ class ColorAnnotator(BaseAnnotator):
                 else custom_color_lookup,
             )
             cv2.rectangle(
-                img=scene,
+                img=scene_with_boxes,
                 pt1=(x1, y1),
                 pt2=(x2, y2),
                 color=color.as_bgr(),
                 thickness=-1,
             )
-        scene = cv2.addWeighted(
-            scene, self.opacity, mask_image, 1 - self.opacity, gamma=0
+
+        blended_scene = cv2.addWeighted(
+            scene_with_boxes, self.opacity, mask_image, 1 - self.opacity, gamma=0
         )
+        np.copyto(scene, blended_scene)
         return scene
 
 
