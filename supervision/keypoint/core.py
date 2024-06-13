@@ -23,7 +23,7 @@ class KeyPoints:
     === "Ultralytics"
 
         Use [`sv.KeyPoints.from_ultralytics`](/keypoint/core/#supervision.keypoint.core.KeyPoints.from_ultralytics)
-        method, which accepts [YOLOv8](https://github.com/ultralytics/ultralytics) 
+        method, which accepts [YOLOv8](https://github.com/ultralytics/ultralytics)
         pose result.
 
         ```python
@@ -33,16 +33,16 @@ class KeyPoints:
 
         image = cv2.imread(<SOURCE_IMAGE_PATH>)
         model = YOLO('yolov8s-pose.pt')
-        
+
         result = model(image)[0]
         key_points = sv.KeyPoints.from_ultralytics(result)
         ```
-        
+
     === "Inference"
-    
+
         Use [`sv.KeyPoints.from_inference`](/keypoint/core/#supervision.keypoint.core.KeyPoints.from_inference)
         method, which accepts [Inference](https://inference.roboflow.com/) pose result.
-        
+
         ```python
         import cv2
         import supervision as sv
@@ -54,13 +54,13 @@ class KeyPoints:
         result = model.infer(image)[0]
         key_points = sv.KeyPoints.from_inference(result)
         ```
-        
+
     === "MediaPipe"
-    
+
         Use [`sv.KeyPoints.from_mediapipe`](/keypoint/core/#supervision.keypoint.core.KeyPoints.from_mediapipe)
-        method, which accepts [MediaPipe](https://github.com/google-ai-edge/mediapipe) 
+        method, which accepts [MediaPipe](https://github.com/google-ai-edge/mediapipe)
         pose result.
-        
+
         ```python
         import cv2
         import mediapipe as mp
@@ -238,23 +238,23 @@ class KeyPoints:
         cls, mediapipe_results, resolution_wh: Tuple[int, int]
     ) -> KeyPoints:
         """
-        Creates a `sv.KeyPoints` instance from a 
+        Creates a `sv.KeyPoints` instance from a
         [MediaPipe](https://github.com/google-ai-edge/mediapipe)
         pose landmark detection inference result.
 
         Args:
-            mediapipe_results (Union[PoseLandmarkerResult, SolutionOutputs]): 
+            mediapipe_results (Union[PoseLandmarkerResult, SolutionOutputs]):
                 The output results from Mediapipe. It supports both: the inference
                 result `PoseLandmarker` and the legacy one from `Pose`.
             resolution_wh (Tuple[int, int]): A tuple of the form `(width, height)`
                 representing the resolution of the frame.
 
         Returns:
-            A `sv.KeyPoints` object containing the keypoint coordinates and 
+            A `sv.KeyPoints` object containing the keypoint coordinates and
                 confidences of each keypoint.
-            
+
         !!! tip
-            Before you start, download model bundles from the 
+            Before you start, download model bundles from the
             [MediaPipe website](https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker/index#models).
 
         Examples:
@@ -358,7 +358,7 @@ class KeyPoints:
     @classmethod
     def from_yolo_nas(cls, yolo_nas_results) -> KeyPoints:
         """
-        Create a `sv.KeyPoints` instance from a [YOLO-NAS](https://github.com/Deci-AI/super-gradients/blob/master/YOLONAS-POSE.md) 
+        Create a `sv.KeyPoints` instance from a [YOLO-NAS](https://github.com/Deci-AI/super-gradients/blob/master/YOLONAS-POSE.md)
         pose inference results.
 
         Args:
