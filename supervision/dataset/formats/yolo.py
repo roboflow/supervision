@@ -100,10 +100,12 @@ def yolo_annotations_to_detections(
     class_id = np.array(class_id, dtype=int)
     relative_xyxy = np.array(relative_xyxy, dtype=np.float32)
     xyxy = relative_xyxy * np.array([w, h, w, h], dtype=np.float32)
-    
+
     if is_obb:
         relative_xyxyxyxy = np.array(relative_xyxyxyxy, dtype=np.float32)
-        xyxyxyxy = relative_xyxyxyxy * np.array([w, h, w, h, w, h, w, h], dtype=np.float32)
+        xyxyxyxy = relative_xyxyxyxy * np.array(
+            [w, h, w, h, w, h, w, h], dtype=np.float32
+        )
         data = {ORIENTED_BOX_COORDINATES: xyxyxyxy}
 
     if not with_masks:
