@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Dict
 
 import numpy as np
 import yaml
@@ -79,7 +79,7 @@ def read_txt_file(file_path: Union[str, Path], skip_empty: bool = False) -> List
     return lines
 
 
-def save_text_file(lines: List[str], file_path: Union[str, Path]):
+def save_text_file(lines: List[str], file_path: Union[str, Path]) -> None:
     """
     Write a list of strings to a text file, each string on a new line.
 
@@ -92,7 +92,7 @@ def save_text_file(lines: List[str], file_path: Union[str, Path]):
             file.write(line + "\n")
 
 
-def read_json_file(file_path: Union[str, Path]) -> dict:
+def read_json_file(file_path: Union[str, Path]) -> Dict:
     """
     Read a json file and return a dict.
 
@@ -120,7 +120,7 @@ def save_json_file(data: dict, file_path: Union[str, Path], indent: int = 3) -> 
         json.dump(data, fp, cls=NumpyJsonEncoder, indent=indent)
 
 
-def read_yaml_file(file_path: Union[str, Path]) -> dict:
+def read_yaml_file(file_path: Union[str, Path]) -> Dict:
     """
     Read a yaml file and return a dict.
 
