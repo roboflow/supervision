@@ -1613,6 +1613,7 @@ class TriangleAnnotator(BaseAnnotator):
         height: int = 10,
         position: Position = Position.TOP_CENTER,
         color_lookup: ColorLookup = ColorLookup.CLASS,
+        outline_thickness: int = 0
     ):
         """
         Args:
@@ -1629,6 +1630,7 @@ class TriangleAnnotator(BaseAnnotator):
         self.height: int = height
         self.position: Position = position
         self.color_lookup: ColorLookup = color_lookup
+        self.outline_thickness : int = outline_thickness
 
     @convert_for_annotation_method
     def annotate(
@@ -1669,27 +1671,53 @@ class TriangleAnnotator(BaseAnnotator):
         ![triangle-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/triangle-annotator-example.png)
         """
-        xy = detections.get_anchors_coordinates(anchor=self.position)
-        for detection_idx in range(len(detections)):
-            color = resolve_color(
-                color=self.color,
-                detections=detections,
-                detection_idx=detection_idx,
-                color_lookup=self.color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
-            )
-            tip_x, tip_y = int(xy[detection_idx, 0]), int(xy[detection_idx, 1])
-            vertices = np.array(
-                [
-                    [tip_x - self.base // 2, tip_y - self.height],
-                    [tip_x + self.base // 2, tip_y - self.height],
-                    [tip_x, tip_y],
-                ],
-                np.int32,
-            )
+        if (self.outline_thickness):
+            for detection_idx in range(len(detections)):
+                x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
+                color = resolve_color(
+                    color=self.color,
+                    detections=detections,
+                    detection_idx=detection_idx,
+                    color_lookup=self.color_lookup
+                    if custom_color_lookup is None
+                    else custom_color_lookup,
+                )
 
-            cv2.fillPoly(scene, [vertices], color.as_bgr())
+                midpoint_top = ((x1 + x2) // 2, (y1 + y1) // 2) #midpoint((x1, y1), (x2, y1))
+
+                #shifted origin/centroid
+                cen2 = (midpoint_top[0], midpoint_top[1]-18)
+                tri_vertices = np.array([[cen2[0], cen2[1]+12],
+                                            [cen2[0]-10, cen2[1]-10],
+                                            [cen2[0]+10, cen2[1]-10]])
+
+                #upperhead pointer
+                cv2.drawContours(scene, [tri_vertices], -1, color.as_bgr(), thickness=-1) #BGR -->(0,255,232)
+                cv2.line(scene, ([cen2[0], cen2[1]+12]), ([cen2[0]-10, cen2[1]-10]), (0,0,0), self.outline_thickness)
+                cv2.line(scene, [cen2[0]-10, cen2[1]-10], [cen2[0]+10, cen2[1]-10], (0,0,0), self.outline_thickness)
+                cv2.line(scene, [cen2[0]+10, cen2[1]-10], [cen2[0], cen2[1]+12], (0,0,0), self.outline_thickness)
+        else:   
+            xy = detections.get_anchors_coordinates(anchor=self.position)
+            for detection_idx in range(len(detections)):
+                color = resolve_color(
+                    color=self.color,
+                    detections=detections,
+                    detection_idx=detection_idx,
+                    color_lookup=self.color_lookup
+                    if custom_color_lookup is None
+                    else custom_color_lookup,
+                )
+                tip_x, tip_y = int(xy[detection_idx, 0]), int(xy[detection_idx, 1])
+                vertices = np.array(
+                    [
+                        [tip_x - self.base // 2, tip_y - self.height],
+                        [tip_x + self.base // 2, tip_y - self.height],
+                        [tip_x, tip_y],
+                    ],
+                    np.int32,
+                )
+    
+                cv2.fillPoly(scene, [vertices], color.as_bgr())
 
         return scene
 
