@@ -70,7 +70,7 @@ def read_txt_file(file_path: Union[str, Path], skip_empty: bool = False) -> List
     Returns:
         List[str]: A list of strings representing the lines in the text file.
     """
-    with open(file_path.as_posix(), "r") as file:
+    with open(str(file_path), "r") as file:
         if skip_empty:
             lines = [line.rstrip("\n") for line in file if line.strip()]
         else:
@@ -87,7 +87,7 @@ def save_text_file(lines: List[str], file_path: Union[str, Path]):
         lines (List[str]): The list of strings to be written to the file.
         file_path (Union[str, Path]): The file path as a string or Path object.
     """
-    with open(file_path.as_posix(), "w") as file:
+    with open(str(file_path), "w") as file:
         for line in lines:
             file.write(line + "\n")
 
@@ -102,7 +102,7 @@ def read_json_file(file_path: Union[str, Path]) -> dict:
     Returns:
         dict: A dict of annotations information
     """
-    with open(file_path.as_posix(), "r") as file:
+    with open(str(file_path), "r") as file:
         data = json.load(file)
     return data
 
@@ -116,7 +116,7 @@ def save_json_file(data: dict, file_path: Union[str, Path], indent: int = 3) -> 
         data (dict): dict with unique keys and value as pair.
         file_path (Union[str, Path]): The file path as a string or Path object.
     """
-    with open(file_path.as_posix(), "w") as fp:
+    with open(str(file_path), "w") as fp:
         json.dump(data, fp, cls=NumpyJsonEncoder, indent=indent)
 
 
@@ -130,7 +130,7 @@ def read_yaml_file(file_path: Union[str, Path]) -> dict:
     Returns:
         dict: A dict of content information
     """
-    with open(file_path.as_posix(), "r") as file:
+    with open(str(file_path), "r") as file:
         data = yaml.safe_load(file)
     return data
 
@@ -145,5 +145,5 @@ def save_yaml_file(data: dict, file_path: Union[str, Path]) -> None:
         file_path (Union[str, Path]): The file path as a string or Path object.
     """
 
-    with open(file_path.as_posix(), "w") as outfile:
+    with open(str(file_path), "w") as outfile:
         yaml.dump(data, outfile, sort_keys=False, default_flow_style=None)
