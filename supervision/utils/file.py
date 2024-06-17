@@ -63,7 +63,7 @@ def read_txt_file(file_path: Union[str, Path], skip_empty: bool = False) -> List
     Optionally skip empty lines.
 
     Args:
-        file_path (str): The path to the text file.
+        file_path (Union[str, Path]): The file path as a string or Path object.
         skip_empty (bool): If True, skip lines that are empty or contain only
             whitespace. Default is False.
 
@@ -85,7 +85,7 @@ def save_text_file(lines: List[str], file_path: Union[str, Path]):
 
     Args:
         lines (List[str]): The list of strings to be written to the file.
-        file_path (str): The path to the text file.
+        file_path (Union[str, Path]): The file path as a string or Path object.
     """
     with open(file_path.as_posix(), "w") as file:
         for line in lines:
@@ -97,7 +97,7 @@ def read_json_file(file_path: Union[str, Path]) -> dict:
     Read a json file and return a dict.
 
     Args:
-        file_path (str): The path to the json file.
+        file_path (Union[str, Path]): The file path as a string or Path object.
 
     Returns:
         dict: A dict of annotations information
@@ -114,7 +114,7 @@ def save_json_file(data: dict, file_path: Union[str, Path], indent: int = 3) -> 
     Args:
         indent:
         data (dict): dict with unique keys and value as pair.
-        file_path (str): The path to the json file.
+        file_path (Union[str, Path]): The file path as a string or Path object.
     """
     with open(file_path.as_posix(), "w") as fp:
         json.dump(data, fp, cls=NumpyJsonEncoder, indent=indent)
@@ -125,7 +125,7 @@ def read_yaml_file(file_path: Union[str, Path]) -> dict:
     Read a yaml file and return a dict.
 
     Args:
-        file_path (str): The path to the yaml file.
+        file_path (Union[str, Path]): The file path as a string or Path object.
 
     Returns:
         dict: A dict of content information
@@ -142,7 +142,7 @@ def save_yaml_file(data: dict, file_path: Union[str, Path]) -> None:
     Args:
         indent:
         data (dict): dict with unique keys and value as pair.
-        file_path (str): The path to the json file.
+        file_path (Union[str, Path]): The file path as a string or Path object.
     """
 
     with open(file_path.as_posix(), "w") as outfile:
