@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import List, Optional, Union, Dict
+from typing import Dict, List, Optional, Union
 
 import numpy as np
 import yaml
