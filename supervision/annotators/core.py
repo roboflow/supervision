@@ -1613,7 +1613,7 @@ class TriangleAnnotator(BaseAnnotator):
         height: int = 10,
         position: Position = Position.TOP_CENTER,
         color_lookup: ColorLookup = ColorLookup.CLASS,
-        outline_thickness: int = 0
+        outline_thickness: int = 0,
     ):
         """
         Args:
@@ -1630,7 +1630,7 @@ class TriangleAnnotator(BaseAnnotator):
         self.height: int = height
         self.position: Position = position
         self.color_lookup: ColorLookup = color_lookup
-        self.outline_thickness : int = outline_thickness
+        self.outline_thickness: int = outline_thickness
 
     @convert_for_annotation_method
     def annotate(
