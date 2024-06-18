@@ -100,28 +100,22 @@ def yolo_annotations_to_detections(
     class_id = np.array(class_id, dtype=int)
     relative_xyxy = np.array(relative_xyxy, dtype=np.float32)
     xyxy = relative_xyxy * np.array([w, h, w, h], dtype=np.float32)
+    data = {}
 
     if is_obb:
         relative_xyxyxyxy = np.array(relative_xyxyxyxy, dtype=np.float32)
-        xyxyxyxy = relative_xyxyxyxy * np.array(
-            [w, h, w, h, w, h, w, h], dtype=np.float32
-        )
-        data = {ORIENTED_BOX_COORDINATES: xyxyxyxy}
+        xyxyxyxy = relative_xyxyxyxy.reshape(-1, 4, 2)
+        xyxyxyxy *= np.array([w, h], dtype=np.float32)
+        data[ORIENTED_BOX_COORDINATES] = xyxyxyxy
 
     if not with_masks:
-        if is_obb:
-            return Detections(class_id=class_id, xyxy=xyxy, data=data)
-        return Detections(class_id=class_id, xyxy=xyxy)
+        return Detections(class_id=class_id, xyxy=xyxy, data=data)
 
     polygons = [
         (polygon * np.array(resolution_wh)).astype(int) for polygon in relative_polygon
     ]
     mask = _polygons_to_masks(polygons=polygons, resolution_wh=resolution_wh)
-    return (
-        Detections(class_id=class_id, xyxy=xyxy, data=data, mask=mask)
-        if is_obb
-        else Detections(class_id=class_id, xyxy=xyxy, mask=mask)
-    )
+    return Detections(class_id=class_id, xyxy=xyxy, data=data, mask=mask)
 
 
 def load_yolo_annotations(
