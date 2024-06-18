@@ -14,8 +14,8 @@ from supervision.draw.color import Color, unify_to_bgr
 from supervision.draw.utils import calculate_optimal_text_scale, draw_text
 from supervision.geometry.core import Point
 from supervision.utils.conversion import (
-    convert_for_image_processing,
     cv2_to_pillow,
+    ensure_cv2_image_for_processing,
     images_to_cv2,
 )
 from supervision.utils.iterables import create_batches, fill
@@ -25,7 +25,7 @@ RelativePosition = Literal["top", "bottom"]
 MAX_COLUMNS_FOR_SINGLE_ROW_GRID = 3
 
 
-@convert_for_image_processing
+@ensure_cv2_image_for_processing
 def crop_image(
     image: ImageType,
     xyxy: Union[npt.NDArray[int], List[int], Tuple[int, int, int, int]],
@@ -86,7 +86,7 @@ def crop_image(
     return image[y_min:y_max, x_min:x_max]
 
 
-@convert_for_image_processing
+@ensure_cv2_image_for_processing
 def scale_image(image: ImageType, scale_factor: float) -> ImageType:
     """
     Scales the given image based on the given scale factor.
@@ -143,7 +143,7 @@ def scale_image(image: ImageType, scale_factor: float) -> ImageType:
     return cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)
 
 
-@convert_for_image_processing
+@ensure_cv2_image_for_processing
 def resize_image(
     image: ImageType,
     resolution_wh: Tuple[int, int],
@@ -216,7 +216,7 @@ def resize_image(
     return cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)
 
 
-@convert_for_image_processing
+@ensure_cv2_image_for_processing
 def letterbox_image(
     image: ImageType,
     resolution_wh: Tuple[int, int],

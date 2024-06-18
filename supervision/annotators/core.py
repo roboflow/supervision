@@ -19,8 +19,8 @@ from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import draw_polygon
 from supervision.geometry.core import Position
 from supervision.utils.conversion import (
-    convert_for_annotation_method,
-    convert_for_rich_text_annotation,
+    ensure_cv2_image_for_annotation,
+    ensure_pil_image_for_annotation,
 )
 from supervision.utils.image import crop_image, overlay_image, scale_image
 
@@ -48,7 +48,7 @@ class BoundingBoxAnnotator(BaseAnnotator):
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
 
-    @convert_for_annotation_method
+    @ensure_cv2_image_for_annotation
     def annotate(
         self,
         scene: ImageType,
@@ -129,7 +129,7 @@ class OrientedBoxAnnotator(BaseAnnotator):
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
 
-    @convert_for_annotation_method
+    @ensure_cv2_image_for_annotation
     def annotate(
         self,
         scene: ImageType,
@@ -217,7 +217,7 @@ class MaskAnnotator(BaseAnnotator):
         self.opacity = opacity
         self.color_lookup: ColorLookup = color_lookup
 
-    @convert_for_annotation_method
+    @ensure_cv2_image_for_annotation
     def annotate(
         self,
         scene: ImageType,
@@ -273,10 +273,9 @@ class MaskAnnotator(BaseAnnotator):
             mask = detections.mask[detection_idx]
             colored_mask[mask] = color.as_bgr()
 
-        blended_scene = cv2.addWeighted(
-            colored_mask, self.opacity, scene, 1 - self.opacity, 0
+        cv2.addWeighted(
+            colored_mask, self.opacity, scene, 1 - self.opacity, 0, dst=scene
         )
-        np.copyto(scene, blended_scene.astype(np.uint8))
         return scene
 
 
@@ -307,7 +306,7 @@ class PolygonAnnotator(BaseAnnotator):
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
 
-    @convert_for_annotation_method
+    @ensure_cv2_image_for_annotation
     def annotate(
         self,
         scene: ImageType,
@@ -393,7 +392,7 @@ class ColorAnnotator(BaseAnnotator):
         self.color_lookup: ColorLookup = color_lookup
         self.opacity = opacity
 
-    @convert_for_annotation_method
+    @ensure_cv2_image_for_annotation
     def annotate(
         self,
         scene: ImageType,
@@ -432,7 +431,6 @@ class ColorAnnotator(BaseAnnotator):
         ![box-mask-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/box-mask-annotator-example-purple.png)
         """
-        mask_image = scene.copy()
         scene_with_boxes = scene.copy()
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
@@ -452,10 +450,9 @@ class ColorAnnotator(BaseAnnotator):
                 thickness=-1,
             )
 
-        blended_scene = cv2.addWeighted(
-            scene_with_boxes, self.opacity, mask_image, 1 - self.opacity, gamma=0
+        cv2.addWeighted(
+            scene_with_boxes, self.opacity, scene, 1 - self.opacity, gamma=0, dst=scene
         )
-        np.copyto(scene, blended_scene)
         return scene
 
 
@@ -490,7 +487,7 @@ class HaloAnnotator(BaseAnnotator):
         self.color_lookup: ColorLookup = color_lookup
         self.kernel_size: int = kernel_size
 
-    @convert_for_annotation_method
+    @ensure_cv2_image_for_annotation
     def annotate(
         self,
         scene: ImageType,
@@ -589,7 +586,7 @@ class EllipseAnnotator(BaseAnnotator):
         self.end_angle: int = end_angle
         self.color_lookup: ColorLookup = color_lookup
 
-    @convert_for_annotation_method
+    @ensure_cv2_image_for_annotation
     def annotate(
         self,
         scene: ImageType,
@@ -680,7 +677,7 @@ class BoxCornerAnnotator(BaseAnnotator):
         self.corner_length: int = corner_length
         self.color_lookup: ColorLookup = color_lookup
 
-    @convert_for_annotation_method
+    @ensure_cv2_image_for_annotation
     def annotate(
         self,
         scene: ImageType,
@@ -768,7 +765,7 @@ class CircleAnnotator(BaseAnnotator):
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
 
-    @convert_for_annotation_method
+    @ensure_cv2_image_for_annotation
     def annotate(
         self,
         scene: ImageType,
@@ -858,7 +855,7 @@ class DotAnnotator(BaseAnnotator):
         self.position: Position = position
         self.color_lookup: ColorLookup = color_lookup
 
-    @convert_for_annotation_method
+    @ensure_cv2_image_for_annotation
     def annotate(
         self,
         scene: ImageType,
@@ -952,7 +949,7 @@ class LabelAnnotator(BaseAnnotator):
         self.text_anchor: Position = text_position
         self.color_lookup: ColorLookup = color_lookup
 
-    @convert_for_annotation_method
+    @ensure_cv2_image_for_annotation
     def annotate(
         self,
         scene: ImageType,
@@ -1158,7 +1155,7 @@ class RichLabelAnnotator(BaseAnnotator):
         else:
             self.font = self._load_default_font(font_size)
 
-    @convert_for_rich_text_annotation
+    @ensure_pil_image_for_annotation
     def annotate(
         self,
         scene: ImageType,
@@ -1289,7 +1286,7 @@ class BlurAnnotator(BaseAnnotator):
         """
         self.kernel_size: int = kernel_size
 
-    @convert_for_annotation_method
+    @ensure_cv2_image_for_annotation
     def annotate(
         self,
         scene: ImageType,
@@ -1374,7 +1371,7 @@ class TraceAnnotator(BaseAnnotator):
         self.thickness = thickness
         self.color_lookup: ColorLookup = color_lookup
 
-    @convert_for_annotation_method
+    @ensure_cv2_image_for_annotation
     def annotate(
         self,
         scene: ImageType,
@@ -1481,7 +1478,7 @@ class HeatMapAnnotator(BaseAnnotator):
         self.top_hue = top_hue
         self.low_hue = low_hue
 
-    @convert_for_annotation_method
+    @ensure_cv2_image_for_annotation
     def annotate(self, scene: ImageType, detections: Detections) -> ImageType:
         """
         Annotates the scene with a heatmap based on the provided detections.
@@ -1557,7 +1554,7 @@ class PixelateAnnotator(BaseAnnotator):
         """
         self.pixel_size: int = pixel_size
 
-    @convert_for_annotation_method
+    @ensure_cv2_image_for_annotation
     def annotate(
         self,
         scene: ImageType,
@@ -1645,7 +1642,7 @@ class TriangleAnnotator(BaseAnnotator):
         self.position: Position = position
         self.color_lookup: ColorLookup = color_lookup
 
-    @convert_for_annotation_method
+    @ensure_cv2_image_for_annotation
     def annotate(
         self,
         scene: ImageType,
@@ -1741,7 +1738,7 @@ class RoundBoxAnnotator(BaseAnnotator):
             raise ValueError("roundness attribute must be float between (0, 1.0]")
         self.roundness: float = roundness
 
-    @convert_for_annotation_method
+    @ensure_cv2_image_for_annotation
     def annotate(
         self,
         scene: ImageType,
@@ -1878,7 +1875,7 @@ class PercentageBarAnnotator(BaseAnnotator):
         if border_thickness is None:
             self.border_thickness = int(0.15 * self.height)
 
-    @convert_for_annotation_method
+    @ensure_cv2_image_for_annotation
     def annotate(
         self,
         scene: ImageType,
@@ -2051,7 +2048,7 @@ class CropAnnotator(BaseAnnotator):
         self.border_thickness: int = border_thickness
         self.border_color_lookup: ColorLookup = border_color_lookup
 
-    @convert_for_annotation_method
+    @ensure_cv2_image_for_annotation
     def annotate(
         self,
         scene: ImageType,

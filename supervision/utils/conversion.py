@@ -8,7 +8,7 @@ from PIL import Image
 from supervision.annotators.base import ImageType
 
 
-def convert_for_annotation_method(annotate_func):
+def ensure_cv2_image_for_annotation(annotate_func):
     """
     Decorates `BaseAnnotator.annotate` implementations, converts scene to
     an image type used internally by the annotators, converts back when annotation
@@ -33,7 +33,7 @@ def convert_for_annotation_method(annotate_func):
     return wrapper
 
 
-def convert_for_image_processing(image_processing_fun):
+def ensure_cv2_image_for_processing(image_processing_fun):
     """
     Decorates image processing functions that accept np.ndarray, converting `image` to
     np.ndarray, converts back when processing is complete.
@@ -56,7 +56,7 @@ def convert_for_image_processing(image_processing_fun):
     return wrapper
 
 
-def convert_for_rich_text_annotation(annotate_func):
+def ensure_pil_image_for_annotation(annotate_func):
     """
     Decorates image processing functions that accept np.ndarray, converting `image` to
     PIL image, converts back when processing is complete.
