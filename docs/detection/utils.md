@@ -1,6 +1,5 @@
 ---
 comments: true
-status: new
 ---
 
 # Detection Utils
@@ -16,18 +15,6 @@ status: new
 </div>
 
 :::supervision.detection.utils.mask_iou_batch
-
-<div class="md-typeset">
-  <h2><a href="#supervision.detection.utils.box_non_max_suppression">box_non_max_suppression</a></h2>
-</div>
-
-:::supervision.detection.utils.box_non_max_suppression
-
-<div class="md-typeset">
-  <h2><a href="#supervision.detection.utils.mask_non_max_suppression">mask_non_max_suppression</a></h2>
-</div>
-
-:::supervision.detection.utils.mask_non_max_suppression
 
 <div class="md-typeset">
   <h2><a href="#supervision.detection.utils.polygon_to_mask">polygon_to_mask</a></h2>
@@ -88,3 +75,15 @@ status: new
 </div>
 
 :::supervision.detection.utils.pad_boxes
+
+<div class="md-typeset">
+  <h2><a href="#supervision.detection.utils.contains_holes">contains_holes</a></h2>
+</div>
+
+:::supervision.detection.utils.contains_holes
+
+<div class="md-typeset">
+  <h2><a href="#supervision.detection.utils.contains_multiple_segments">contains_multiple_segments</a></h2>
+</div>
+
+:::supervision.detection.utils.contains_multiple_segments
