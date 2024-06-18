@@ -137,7 +137,9 @@ def load_yolo_annotations(
             YAML file containing class information.
         force_masks (bool, optional): If True, forces masks to be loaded
             for all annotations, regardless of whether they are present.
-        is_obb (bool, optional): If True, returns the annotations in YOLO-OBB format.
+        is_obb (bool, optional): If True, loads the annotations in OBB format.
+            OBB annotations are defined as `[class_id, x, y, x, y, x, y, x, y]`,
+            where pairs of [x, y] are box corners.
 
     Returns:
         Tuple[List[str], Dict[str, np.ndarray], Dict[str, Detections]]:
