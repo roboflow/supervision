@@ -843,6 +843,7 @@ class DotAnnotator(BaseAnnotator):
             position (Position): The anchor position for placing the dot.
             color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
+            outline_thickness (int): Thickness of the outline of the dot.
         """
         self.color: Union[Color, ColorPalette] = color
         self.radius: int = radius
@@ -1627,6 +1628,7 @@ class TriangleAnnotator(BaseAnnotator):
             position (Position): The anchor position for placing the triangle.
             color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
+            outline_thickness (int): Thickness of the outline of the triangle.
         """
         self.color: Union[Color, ColorPalette] = color
         self.base: int = base
