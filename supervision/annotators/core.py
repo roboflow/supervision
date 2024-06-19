@@ -1695,7 +1695,9 @@ class TriangleAnnotator(BaseAnnotator):
             )
 
             cv2.fillPoly(scene, [vertices], color.as_bgr())
-            cv2.polylines(scene, [vertices], True, (0,0,0), thickness=self.outline_thickness)
+            cv2.polylines(
+                scene, [vertices], True, (0, 0, 0), thickness=self.outline_thickness
+            )
 
         return scene
 
