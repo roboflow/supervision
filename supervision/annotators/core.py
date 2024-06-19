@@ -172,7 +172,7 @@ class OrientedBoxAnnotator(BaseAnnotator):
             return scene
 
         for detection_idx in range(len(detections)):
-            bbox = np.int0(detections.data.get(ORIENTED_BOX_COORDINATES)[detection_idx])
+            bbox = np.intp(detections.data.get(ORIENTED_BOX_COORDINATES)[detection_idx])
             color = resolve_color(
                 color=self.color,
                 detections=detections,
