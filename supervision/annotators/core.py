@@ -901,8 +901,13 @@ class DotAnnotator(BaseAnnotator):
                 else custom_color_lookup,
             )
             center = (int(xy[detection_idx, 0]), int(xy[detection_idx, 1]))
-            cv2.circle(scene, center, self.radius, (0, 0, 0), self.outline_thickness)
-            cv2.circle(scene, center, self.radius, color.as_bgr(), -1)
+            
+            if self.outline_thickness:
+                cv2.circle(scene, center, self.radius, (0,0,0), self.outline_thickness)
+                cv2.circle(scene, center, self.radius, color.as_bgr(), -1)
+            else:
+                cv2.circle(scene, center, self.radius, color.as_bgr(), -1)
+        
         return scene
 
 
