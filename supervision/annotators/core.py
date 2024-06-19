@@ -1675,27 +1675,27 @@ class TriangleAnnotator(BaseAnnotator):
         supervision-annotator-examples/triangle-annotator-example.png)
         """
         xy = detections.get_anchors_coordinates(anchor=self.position)
-            for detection_idx in range(len(detections)):
-                color = resolve_color(
-                    color=self.color,
-                    detections=detections,
-                    detection_idx=detection_idx,
-                    color_lookup=self.color_lookup
-                    if custom_color_lookup is None
-                    else custom_color_lookup,
-                )
-                tip_x, tip_y = int(xy[detection_idx, 0]), int(xy[detection_idx, 1])
-                vertices = np.array(
-                    [
-                        [tip_x - self.base // 2, tip_y - self.height],
-                        [tip_x + self.base // 2, tip_y - self.height],
-                        [tip_x, tip_y],
-                    ],
-                    np.int32,
-                )
+        for detection_idx in range(len(detections)):
+            color = resolve_color(
+                color=self.color,
+                detections=detections,
+                detection_idx=detection_idx,
+                color_lookup=self.color_lookup
+                if custom_color_lookup is None
+                else custom_color_lookup,
+            )
+            tip_x, tip_y = int(xy[detection_idx, 0]), int(xy[detection_idx, 1])
+            vertices = np.array(
+                [
+                    [tip_x - self.base // 2, tip_y - self.height],
+                    [tip_x + self.base // 2, tip_y - self.height],
+                    [tip_x, tip_y],
+                ],
+                np.int32,
+            )
 
-                cv2.fillPoly(scene, [vertices], color.as_bgr())
-                cv2.polylines(scene, [vertices], True, (0,0,0), thickness=self.outline_thickness)
+            cv2.fillPoly(scene, [vertices], color.as_bgr())
+            cv2.polylines(scene, [vertices], True, (0,0,0), thickness=self.outline_thickness)
 
         return scene
 
