@@ -830,10 +830,10 @@ class DotAnnotator(BaseAnnotator):
     def __init__(
         self,
         color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
-        radius: int = 5,
+        radius: int = 4,
         position: Position = Position.CENTER,
         color_lookup: ColorLookup = ColorLookup.CLASS,
-        outer_thickness: int = 0,
+        outline_thickness: int = 0,
     ):
         """
         Args:
@@ -848,7 +848,7 @@ class DotAnnotator(BaseAnnotator):
         self.radius: int = radius
         self.position: Position = position
         self.color_lookup: ColorLookup = color_lookup
-        self.outer_thickness = outer_thickness
+        self.outline_thickness = outline_thickness
 
     @convert_for_annotation_method
     def annotate(
@@ -900,8 +900,8 @@ class DotAnnotator(BaseAnnotator):
                 else custom_color_lookup,
             )
             center = (int(xy[detection_idx, 0]), int(xy[detection_idx, 1]))
+            cv2.circle(scene, center, self.radius, (0, 0, 0), self.outline_thickness)
             cv2.circle(scene, center, self.radius, color.as_bgr(), -1)
-            cv2.circle(scene, center, self.radius, (0, 0, 0), self.outer_thickness)
         return scene
 
 
@@ -1674,60 +1674,7 @@ class TriangleAnnotator(BaseAnnotator):
         ![triangle-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/triangle-annotator-example.png)
         """
-        if self.outline_thickness:
-            for detection_idx in range(len(detections)):
-                x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
-                color = resolve_color(
-                    color=self.color,
-                    detections=detections,
-                    detection_idx=detection_idx,
-                    color_lookup=self.color_lookup
-                    if custom_color_lookup is None
-                    else custom_color_lookup,
-                )
-
-                midpoint_top = (
-                    (x1 + x2) // 2,
-                    (y1 + y1) // 2,
-                )  # midpoint((x1, y1), (x2, y1))
-
-                # shifted origin/centroid
-                cen2 = (midpoint_top[0], midpoint_top[1] - 18)
-                tri_vertices = np.array(
-                    [
-                        [cen2[0], cen2[1] + 12],
-                        [cen2[0] - 10, cen2[1] - 10],
-                        [cen2[0] + 10, cen2[1] - 10],
-                    ]
-                )
-
-                # upperhead pointer
-                cv2.drawContours(
-                    scene, [tri_vertices], -1, color.as_bgr(), thickness=-1
-                )  # BGR -->(0,255,232)
-                cv2.line(
-                    scene,
-                    ([cen2[0], cen2[1] + 12]),
-                    ([cen2[0] - 10, cen2[1] - 10]),
-                    (0, 0, 0),
-                    self.outline_thickness,
-                )
-                cv2.line(
-                    scene,
-                    [cen2[0] - 10, cen2[1] - 10],
-                    [cen2[0] + 10, cen2[1] - 10],
-                    (0, 0, 0),
-                    self.outline_thickness,
-                )
-                cv2.line(
-                    scene,
-                    [cen2[0] + 10, cen2[1] - 10],
-                    [cen2[0], cen2[1] + 12],
-                    (0, 0, 0),
-                    self.outline_thickness,
-                )
-        else:
-            xy = detections.get_anchors_coordinates(anchor=self.position)
+        xy = detections.get_anchors_coordinates(anchor=self.position)
             for detection_idx in range(len(detections)):
                 color = resolve_color(
                     color=self.color,
@@ -1748,7 +1695,8 @@ class TriangleAnnotator(BaseAnnotator):
                 )
 
                 cv2.fillPoly(scene, [vertices], color.as_bgr())
-
+                cv2.polylines(scene, [vertices], True, (0,0,0), thickness=self.outline_thickness)
+            
         return scene
 
 
