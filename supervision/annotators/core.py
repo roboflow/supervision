@@ -830,9 +830,10 @@ class DotAnnotator(BaseAnnotator):
     def __init__(
         self,
         color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
-        radius: int = 4,
+        radius: int = 5,
         position: Position = Position.CENTER,
         color_lookup: ColorLookup = ColorLookup.CLASS,
+        outer_thickness : int = 0
     ):
         """
         Args:
@@ -847,6 +848,7 @@ class DotAnnotator(BaseAnnotator):
         self.radius: int = radius
         self.position: Position = position
         self.color_lookup: ColorLookup = color_lookup
+        self.outer_thickness = outer_thickness
 
     @convert_for_annotation_method
     def annotate(
@@ -899,6 +901,7 @@ class DotAnnotator(BaseAnnotator):
             )
             center = (int(xy[detection_idx, 0]), int(xy[detection_idx, 1]))
             cv2.circle(scene, center, self.radius, color.as_bgr(), -1)
+            cv2.circle(scene, center, self.radius, (0,0,0), self.outer_thickness)
         return scene
 
 
