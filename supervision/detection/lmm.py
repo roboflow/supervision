@@ -143,6 +143,7 @@ def from_florence_2(
         masks_list = []
         for polygons_of_same_class in result["polygons"]:
             for polygon in polygons_of_same_class:
+                polygon = np.reshape(polygon, (-1, 2))
                 mask = polygon_to_mask(polygon, resolution_wh)
                 masks_list.append(mask)
                 xyxy = polygon_to_xyxy(polygon)
