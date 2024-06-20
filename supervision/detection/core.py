@@ -864,7 +864,7 @@ class Detections:
 
         if lmm == LMM.FLORENCE_2:
             assert isinstance(result, dict)
-            xyxy, labels, xyxyxyxy = from_florence_2(result, **kwargs)
+            xyxy, labels, mask, xyxyxyxy = from_florence_2(result, **kwargs)
             if len(xyxy) == 0:
                 return cls.empty()
 
@@ -873,7 +873,8 @@ class Detections:
                 data[CLASS_NAME_DATA_FIELD] = labels
             if xyxyxyxy is not None:
                 data[ORIENTED_BOX_COORDINATES] = xyxyxyxy
-            return cls(xyxy=xyxy, data=data)
+
+            return cls(xyxy=xyxy, mask=mask, data=data)
 
         raise ValueError(f"Unsupported LMM: {lmm}")
 
