@@ -121,7 +121,6 @@ def from_florence_2(
         xyxyxyxy = np.array(result["quad_boxes"], dtype=np.float32)
         xyxyxyxy = xyxyxyxy.reshape(-1, 4, 2)
         xyxy = np.array([polygon_to_xyxy(polygon) for polygon in xyxyxyxy])
-
         labels = np.array(result["labels"])
         return xyxy, labels, xyxyxyxy
 

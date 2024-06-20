@@ -865,6 +865,9 @@ class Detections:
         if lmm == LMM.FLORENCE_2:
             assert isinstance(result, dict)
             xyxy, labels, xyxyxyxy = from_florence_2(result, **kwargs)
+            if len(xyxy) == 0:
+                return cls.empty()
+
             data = {}
             if labels is not None:
                 data[CLASS_NAME_DATA_FIELD] = labels
