@@ -177,7 +177,7 @@ def from_florence_2(
             match is not None
         ), f"Expected string to end in location tags, but got {result}"
 
-        xyxy = np.array(match.groups(), dtype=np.float32)
+        xyxy = np.array([match.groups()], dtype=np.float32)
         result_string = result[: match.start()]
         labels = np.array([result_string])
         return xyxy, labels, None, None
