@@ -833,6 +833,7 @@ class DotAnnotator(BaseAnnotator):
         radius: int = 4,
         position: Position = Position.CENTER,
         color_lookup: ColorLookup = ColorLookup.CLASS,
+        outline_thickness: int = 0,
     ):
         """
         Args:
@@ -842,11 +843,13 @@ class DotAnnotator(BaseAnnotator):
             position (Position): The anchor position for placing the dot.
             color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
+            outline_thickness (int): Thickness of the outline of the dot.
         """
         self.color: Union[Color, ColorPalette] = color
         self.radius: int = radius
         self.position: Position = position
         self.color_lookup: ColorLookup = color_lookup
+        self.outline_thickness = outline_thickness
 
     @convert_for_annotation_method
     def annotate(
@@ -898,7 +901,12 @@ class DotAnnotator(BaseAnnotator):
                 else custom_color_lookup,
             )
             center = (int(xy[detection_idx, 0]), int(xy[detection_idx, 1]))
+
             cv2.circle(scene, center, self.radius, color.as_bgr(), -1)
+            if self.outline_thickness:
+                cv2.circle(
+                    scene, center, self.radius, (0, 0, 0), self.outline_thickness
+                )
         return scene
 
 
@@ -1613,6 +1621,7 @@ class TriangleAnnotator(BaseAnnotator):
         height: int = 10,
         position: Position = Position.TOP_CENTER,
         color_lookup: ColorLookup = ColorLookup.CLASS,
+        outline_thickness: int = 0,
     ):
         """
         Args:
@@ -1623,12 +1632,14 @@ class TriangleAnnotator(BaseAnnotator):
             position (Position): The anchor position for placing the triangle.
             color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
+            outline_thickness (int): Thickness of the outline of the triangle.
         """
         self.color: Union[Color, ColorPalette] = color
         self.base: int = base
         self.height: int = height
         self.position: Position = position
         self.color_lookup: ColorLookup = color_lookup
+        self.outline_thickness: int = outline_thickness
 
     @convert_for_annotation_method
     def annotate(
@@ -1690,7 +1701,10 @@ class TriangleAnnotator(BaseAnnotator):
             )
 
             cv2.fillPoly(scene, [vertices], color.as_bgr())
-
+            if self.outline_thickness:
+                cv2.polylines(
+                    scene, [vertices], True, (0, 0, 0), thickness=self.outline_thickness
+                )
         return scene
 
 
