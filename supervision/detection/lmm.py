@@ -165,6 +165,9 @@ def from_florence_2(
             result, str
         ), f"Expected string as <REGION_TO_CATEGORY> result, got {type(result)}"
 
+        if result == "No object detected.":
+            return np.empty((0, 4), dtype=np.float32), np.array([]), None, None
+
         pattern = re.compile(r"<loc_(\d+)><loc_(\d+)><loc_(\d+)><loc_(\d+)>")
         match = pattern.search(result)
         assert (
