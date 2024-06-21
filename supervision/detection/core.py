@@ -7,7 +7,12 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 import numpy as np
 
 from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES
-from supervision.detection.lmm import LMM, from_paligemma, validate_lmm_and_kwargs
+from supervision.detection.lmm import (
+    LMM,
+    from_florence_2,
+    from_paligemma,
+    validate_lmm_parameters,
+)
 from supervision.detection.overlap_filter import (
     box_non_max_merge,
     box_non_max_suppression,
@@ -811,7 +816,9 @@ class Detections:
         )
 
     @classmethod
-    def from_lmm(cls, lmm: Union[LMM, str], result: str, **kwargs) -> Detections:
+    def from_lmm(
+        cls, lmm: Union[LMM, str], result: Union[str, dict], **kwargs
+    ) -> Detections:
         """
         Creates a Detections object from the given result string based on the specified
         Large Multimodal Model (LMM).
@@ -847,12 +854,27 @@ class Detections:
             # array([0])
             ```
         """
-        lmm = validate_lmm_and_kwargs(lmm, kwargs)
+        lmm = validate_lmm_parameters(lmm, result, kwargs)
 
         if lmm == LMM.PALIGEMMA:
+            assert isinstance(result, str)
             xyxy, class_id, class_name = from_paligemma(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             return cls(xyxy=xyxy, class_id=class_id, data=data)
+
+        if lmm == LMM.FLORENCE_2:
+            assert isinstance(result, dict)
+            xyxy, labels, mask, xyxyxyxy = from_florence_2(result, **kwargs)
+            if len(xyxy) == 0:
+                return cls.empty()
+
+            data = {}
+            if labels is not None:
+                data[CLASS_NAME_DATA_FIELD] = labels
+            if xyxyxyxy is not None:
+                data[ORIENTED_BOX_COORDINATES] = xyxyxyxy
+
+            return cls(xyxy=xyxy, mask=mask, data=data)
 
         raise ValueError(f"Unsupported LMM: {lmm}")
 
