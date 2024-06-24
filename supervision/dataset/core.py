@@ -116,13 +116,12 @@ class DetectionDataset(BaseDataset):
             Tuple[DetectionDataset, DetectionDataset]: A tuple containing
                 the training and testing datasets.
 
-        Example:
+        Examples:
             ```python
             import supervision as sv
 
             ds = sv.DetectionDataset(...)
-            train_ds, test_ds = ds.split(split_ratio=0.7,
-                                         random_state=42, shuffle=True)
+            train_ds, test_ds = ds.split(split_ratio=0.7, random_state=42, shuffle=True)
             len(train_ds), len(test_ds)
             # (700, 300)
             ```
@@ -229,7 +228,7 @@ class DetectionDataset(BaseDataset):
             DetectionDataset: A DetectionDataset instance containing
                 the loaded images and annotations.
 
-        Example:
+        Examples:
             ```python
             import roboflow
             from roboflow import Roboflow
@@ -267,6 +266,7 @@ class DetectionDataset(BaseDataset):
         annotations_directory_path: str,
         data_yaml_path: str,
         force_masks: bool = False,
+        is_obb: bool = False,
     ) -> DetectionDataset:
         """
         Creates a Dataset instance from YOLO formatted data.
@@ -281,12 +281,15 @@ class DetectionDataset(BaseDataset):
             force_masks (bool, optional): If True, forces
                 masks to be loaded for all annotations,
                 regardless of whether they are present.
+            is_obb (bool, optional): If True, loads the annotations in OBB format.
+                OBB annotations are defined as `[class_id, x, y, x, y, x, y, x, y]`,
+                where pairs of [x, y] are box corners.
 
         Returns:
             DetectionDataset: A DetectionDataset instance
                 containing the loaded images and annotations.
 
-        Example:
+        Examples:
             ```python
             import roboflow
             from roboflow import Roboflow
@@ -313,6 +316,7 @@ class DetectionDataset(BaseDataset):
             annotations_directory_path=annotations_directory_path,
             data_yaml_path=data_yaml_path,
             force_masks=force_masks,
+            is_obb=is_obb,
         )
         return DetectionDataset(classes=classes, images=images, annotations=annotations)
 
@@ -391,7 +395,7 @@ class DetectionDataset(BaseDataset):
             DetectionDataset: A DetectionDataset instance containing
                 the loaded images and annotations.
 
-        Example:
+        Examples:
             ```python
             import roboflow
             from roboflow import Roboflow
@@ -430,6 +434,20 @@ class DetectionDataset(BaseDataset):
         """
         Exports the dataset to COCO format. This method saves the
         images and their corresponding annotations in COCO format.
+
+        !!! tip
+
+            The format of the mask is determined automatically based on its structure:
+
+            - If a mask contains multiple disconnected components or holes, it will be
+            saved using the Run-Length Encoding (RLE) format for efficient storage and
+            processing.
+            - If a mask consists of a single, contiguous region without any holes, it
+            will be encoded as a polygon, preserving the outline of the object.
+
+            This automatic selection ensures that the masks are stored in the most
+            appropriate and space-efficient format, complying with COCO dataset
+            standards.
 
         Args:
             images_directory_path (Optional[str]): The path to the directory
@@ -482,7 +500,7 @@ class DetectionDataset(BaseDataset):
             (DetectionDataset): A single `DetectionDataset` object containing
             the merged data from the input list.
 
-        Example:
+        Examples:
             ```python
             import supervision as sv
 
@@ -567,13 +585,12 @@ class ClassificationDataset(BaseDataset):
             Tuple[ClassificationDataset, ClassificationDataset]: A tuple containing
             the training and testing datasets.
 
-        Example:
+        Examples:
             ```python
             import supervision as sv
 
             cd = sv.ClassificationDataset(...)
-            train_cd,test_cd = cd.split(split_ratio=0.7,
-                                        random_state=42,shuffle=True)
+            train_cd,test_cd = cd.split(split_ratio=0.7, random_state=42,shuffle=True)
             len(train_cd), len(test_cd)
             # (700, 300)
             ```
@@ -635,7 +652,7 @@ class ClassificationDataset(BaseDataset):
         Returns:
             ClassificationDataset: The dataset.
 
-        Example:
+        Examples:
             ```python
             import roboflow
             from roboflow import Roboflow

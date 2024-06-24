@@ -1,5 +1,5 @@
 import argparse
-from typing import Dict, List, Set, Tuple
+from typing import Dict, Iterable, List, Set
 
 import cv2
 import numpy as np
@@ -8,7 +8,7 @@ from ultralytics import YOLO
 
 import supervision as sv
 
-COLORS = sv.ColorPalette.default()
+COLORS = sv.ColorPalette.from_hex(["#E6194B", "#3CB44B", "#FFE119", "#3C76D1"])
 
 ZONE_IN_POLYGONS = [
     np.array([[592, 282], [900, 282], [900, 82], [592, 82]]),
@@ -58,14 +58,12 @@ class DetectionsManager:
 
 def initiate_polygon_zones(
     polygons: List[np.ndarray],
-    frame_resolution_wh: Tuple[int, int],
-    triggering_position: sv.Position = sv.Position.CENTER,
+    triggering_anchors: Iterable[sv.Position] = [sv.Position.CENTER],
 ) -> List[sv.PolygonZone]:
     return [
         sv.PolygonZone(
             polygon=polygon,
-            frame_resolution_wh=frame_resolution_wh,
-            triggering_position=triggering_position,
+            triggering_anchors=triggering_anchors,
         )
         for polygon in polygons
     ]
@@ -89,14 +87,13 @@ class VideoProcessor:
         self.tracker = sv.ByteTrack()
 
         self.video_info = sv.VideoInfo.from_video_path(source_video_path)
-        self.zones_in = initiate_polygon_zones(
-            ZONE_IN_POLYGONS, self.video_info.resolution_wh, sv.Position.CENTER
-        )
-        self.zones_out = initiate_polygon_zones(
-            ZONE_OUT_POLYGONS, self.video_info.resolution_wh, sv.Position.CENTER
-        )
+        self.zones_in = initiate_polygon_zones(ZONE_IN_POLYGONS, [sv.Position.CENTER])
+        self.zones_out = initiate_polygon_zones(ZONE_OUT_POLYGONS, [sv.Position.CENTER])
 
-        self.box_annotator = sv.BoxAnnotator(color=COLORS)
+        self.bounding_box_annotator = sv.BoundingBoxAnnotator(color=COLORS)
+        self.label_annotator = sv.LabelAnnotator(
+            color=COLORS, text_color=sv.Color.BLACK
+        )
         self.trace_annotator = sv.TraceAnnotator(
             color=COLORS, position=sv.Position.CENTER, trace_length=100, thickness=2
         )
@@ -134,7 +131,10 @@ class VideoProcessor:
 
         labels = [f"#{tracker_id}" for tracker_id in detections.tracker_id]
         annotated_frame = self.trace_annotator.annotate(annotated_frame, detections)
-        annotated_frame = self.box_annotator.annotate(
+        annotated_frame = self.bounding_box_annotator.annotate(
+            annotated_frame, detections
+        )
+        annotated_frame = self.label_annotator.annotate(
             annotated_frame, detections, labels
         )
 
@@ -165,7 +165,7 @@ class VideoProcessor:
         detections_in_zones = []
         detections_out_zones = []
 
-        for i, (zone_in, zone_out) in enumerate(zip(self.zones_in, self.zones_out)):
+        for zone_in, zone_out in zip(self.zones_in, self.zones_out):
             detections_in_zone = detections[zone_in.trigger(detections=detections)]
             detections_in_zones.append(detections_in_zone)
             detections_out_zone = detections[zone_out.trigger(detections=detections)]

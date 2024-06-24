@@ -1,3 +1,4 @@
+import warnings
 from collections import defaultdict, deque
 from copy import deepcopy
 from typing import Optional
@@ -5,6 +6,7 @@ from typing import Optional
 import numpy as np
 
 from supervision.detection.core import Detections
+from supervision.utils.internal import SupervisionWarnings
 
 
 class DetectionsSmoother:
@@ -70,16 +72,16 @@ class DetectionsSmoother:
         """
 
         if detections.tracker_id is None:
-            print(
+            warnings.warn(
                 "Smoothing skipped. DetectionsSmoother requires tracker_id. Refer to "
-                "https://supervision.roboflow.com/latest/trackers for more information."
+                "https://supervision.roboflow.com/latest/trackers for more "
+                "information.",
+                category=SupervisionWarnings,
             )
             return detections
 
         for detection_idx in range(len(detections)):
             tracker_id = detections.tracker_id[detection_idx]
-            if tracker_id is None:
-                continue
 
             self.tracks[tracker_id].append(detections[detection_idx])
 

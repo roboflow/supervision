@@ -3,13 +3,14 @@ from typing import List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
+from PIL import Image, ImageDraw, ImageFont
 
 from supervision.annotators.base import BaseAnnotator, ImageType
 from supervision.annotators.utils import (
     ColorLookup,
     Trace,
     resolve_color,
-    scene_to_annotator_img_type,
+    resolve_text_background_xyxy,
 )
 from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
@@ -17,6 +18,8 @@ from supervision.detection.utils import clip_boxes, mask_to_polygons
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import draw_polygon
 from supervision.geometry.core import Position
+from supervision.utils.conversion import convert_for_annotation_method
+from supervision.utils.image import crop_image, overlay_image, scale_image
 
 
 class BoundingBoxAnnotator(BaseAnnotator):
@@ -42,7 +45,7 @@ class BoundingBoxAnnotator(BaseAnnotator):
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
 
-    @scene_to_annotator_img_type
+    @convert_for_annotation_method
     def annotate(
         self,
         scene: ImageType,
@@ -123,7 +126,7 @@ class OrientedBoxAnnotator(BaseAnnotator):
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
 
-    @scene_to_annotator_img_type
+    @convert_for_annotation_method
     def annotate(
         self,
         scene: ImageType,
@@ -169,7 +172,7 @@ class OrientedBoxAnnotator(BaseAnnotator):
             return scene
 
         for detection_idx in range(len(detections)):
-            bbox = np.int0(detections.data.get(ORIENTED_BOX_COORDINATES)[detection_idx])
+            bbox = np.intp(detections.data.get(ORIENTED_BOX_COORDINATES)[detection_idx])
             color = resolve_color(
                 color=self.color,
                 detections=detections,
@@ -211,7 +214,7 @@ class MaskAnnotator(BaseAnnotator):
         self.opacity = opacity
         self.color_lookup: ColorLookup = color_lookup
 
-    @scene_to_annotator_img_type
+    @convert_for_annotation_method
     def annotate(
         self,
         scene: ImageType,
@@ -298,7 +301,7 @@ class PolygonAnnotator(BaseAnnotator):
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
 
-    @scene_to_annotator_img_type
+    @convert_for_annotation_method
     def annotate(
         self,
         scene: ImageType,
@@ -384,7 +387,7 @@ class ColorAnnotator(BaseAnnotator):
         self.color_lookup: ColorLookup = color_lookup
         self.opacity = opacity
 
-    @scene_to_annotator_img_type
+    @convert_for_annotation_method
     def annotate(
         self,
         scene: ImageType,
@@ -478,7 +481,7 @@ class HaloAnnotator(BaseAnnotator):
         self.color_lookup: ColorLookup = color_lookup
         self.kernel_size: int = kernel_size
 
-    @scene_to_annotator_img_type
+    @convert_for_annotation_method
     def annotate(
         self,
         scene: ImageType,
@@ -576,7 +579,7 @@ class EllipseAnnotator(BaseAnnotator):
         self.end_angle: int = end_angle
         self.color_lookup: ColorLookup = color_lookup
 
-    @scene_to_annotator_img_type
+    @convert_for_annotation_method
     def annotate(
         self,
         scene: ImageType,
@@ -667,7 +670,7 @@ class BoxCornerAnnotator(BaseAnnotator):
         self.corner_length: int = corner_length
         self.color_lookup: ColorLookup = color_lookup
 
-    @scene_to_annotator_img_type
+    @convert_for_annotation_method
     def annotate(
         self,
         scene: ImageType,
@@ -755,7 +758,7 @@ class CircleAnnotator(BaseAnnotator):
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
 
-    @scene_to_annotator_img_type
+    @convert_for_annotation_method
     def annotate(
         self,
         scene: ImageType,
@@ -830,6 +833,7 @@ class DotAnnotator(BaseAnnotator):
         radius: int = 4,
         position: Position = Position.CENTER,
         color_lookup: ColorLookup = ColorLookup.CLASS,
+        outline_thickness: int = 0,
     ):
         """
         Args:
@@ -839,13 +843,15 @@ class DotAnnotator(BaseAnnotator):
             position (Position): The anchor position for placing the dot.
             color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
+            outline_thickness (int): Thickness of the outline of the dot.
         """
         self.color: Union[Color, ColorPalette] = color
         self.radius: int = radius
         self.position: Position = position
         self.color_lookup: ColorLookup = color_lookup
+        self.outline_thickness = outline_thickness
 
-    @scene_to_annotator_img_type
+    @convert_for_annotation_method
     def annotate(
         self,
         scene: ImageType,
@@ -895,7 +901,12 @@ class DotAnnotator(BaseAnnotator):
                 else custom_color_lookup,
             )
             center = (int(xy[detection_idx, 0]), int(xy[detection_idx, 1]))
+
             cv2.circle(scene, center, self.radius, color.as_bgr(), -1)
+            if self.outline_thickness:
+                cv2.circle(
+                    scene, center, self.radius, (0, 0, 0), self.outline_thickness
+                )
         return scene
 
 
@@ -913,6 +924,7 @@ class LabelAnnotator:
         text_padding: int = 10,
         text_position: Position = Position.TOP_LEFT,
         color_lookup: ColorLookup = ColorLookup.CLASS,
+        border_radius: int = 0,
     ):
         """
         Args:
@@ -926,7 +938,10 @@ class LabelAnnotator:
                 Possible values are defined in the `Position` enum.
             color_lookup (str): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
+            border_radius (int): The radius to apply round edges. If the selected
+                value is higher than the lower dimension, width or height, is clipped.
         """
+        self.border_radius: int = border_radius
         self.color: Union[Color, ColorPalette] = color
         self.text_color: Color = text_color
         self.text_scale: float = text_scale
@@ -935,60 +950,7 @@ class LabelAnnotator:
         self.text_anchor: Position = text_position
         self.color_lookup: ColorLookup = color_lookup
 
-    @staticmethod
-    def resolve_text_background_xyxy(
-        center_coordinates: Tuple[int, int],
-        text_wh: Tuple[int, int],
-        position: Position,
-    ) -> Tuple[int, int, int, int]:
-        center_x, center_y = center_coordinates
-        text_w, text_h = text_wh
-
-        if position == Position.TOP_LEFT:
-            return center_x, center_y - text_h, center_x + text_w, center_y
-        elif position == Position.TOP_RIGHT:
-            return center_x - text_w, center_y - text_h, center_x, center_y
-        elif position == Position.TOP_CENTER:
-            return (
-                center_x - text_w // 2,
-                center_y - text_h,
-                center_x + text_w // 2,
-                center_y,
-            )
-        elif position == Position.CENTER or position == Position.CENTER_OF_MASS:
-            return (
-                center_x - text_w // 2,
-                center_y - text_h // 2,
-                center_x + text_w // 2,
-                center_y + text_h // 2,
-            )
-        elif position == Position.BOTTOM_LEFT:
-            return center_x, center_y, center_x + text_w, center_y + text_h
-        elif position == Position.BOTTOM_RIGHT:
-            return center_x - text_w, center_y, center_x, center_y + text_h
-        elif position == Position.BOTTOM_CENTER:
-            return (
-                center_x - text_w // 2,
-                center_y,
-                center_x + text_w // 2,
-                center_y + text_h,
-            )
-        elif position == Position.CENTER_LEFT:
-            return (
-                center_x - text_w,
-                center_y - text_h // 2,
-                center_x,
-                center_y + text_h // 2,
-            )
-        elif position == Position.CENTER_RIGHT:
-            return (
-                center_x,
-                center_y - text_h // 2,
-                center_x + text_w,
-                center_y + text_h // 2,
-            )
-
-    @scene_to_annotator_img_type
+    @convert_for_annotation_method
     def annotate(
         self,
         scene: ImageType,
@@ -1014,15 +976,22 @@ class LabelAnnotator:
 
         Example:
             ```python
-            import supervision as sv
+             import supervision as sv
 
             image = ...
             detections = sv.Detections(...)
 
+            labels = [
+                f"{class_name} {confidence:.2f}"
+                for class_name, confidence
+                in zip(detections['class_name'], detections.confidence)
+            ]
+
             label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER)
             annotated_frame = label_annotator.annotate(
                 scene=image.copy(),
-                detections=detections
+                detections=detections,
+                labels=labels
             )
             ```
 
@@ -1048,9 +1017,11 @@ class LabelAnnotator:
                 color=self.color,
                 detections=detections,
                 detection_idx=detection_idx,
-                color_lookup=self.color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
+                color_lookup=(
+                    self.color_lookup
+                    if custom_color_lookup is None
+                    else custom_color_lookup
+                ),
             )
 
             if labels is not None:
@@ -1070,7 +1041,7 @@ class LabelAnnotator:
             )[0]
             text_w_padded = text_w + 2 * self.text_padding
             text_h_padded = text_h + 2 * self.text_padding
-            text_background_xyxy = self.resolve_text_background_xyxy(
+            text_background_xyxy = resolve_text_background_xyxy(
                 center_coordinates=tuple(center_coordinates),
                 text_wh=(text_w_padded, text_h_padded),
                 position=self.text_anchor,
@@ -1079,12 +1050,11 @@ class LabelAnnotator:
             text_x = text_background_xyxy[0] + self.text_padding
             text_y = text_background_xyxy[1] + self.text_padding + text_h
 
-            cv2.rectangle(
-                img=scene,
-                pt1=(text_background_xyxy[0], text_background_xyxy[1]),
-                pt2=(text_background_xyxy[2], text_background_xyxy[3]),
+            self.draw_rounded_rectangle(
+                scene=scene,
+                xyxy=text_background_xyxy,
                 color=color.as_bgr(),
-                thickness=cv2.FILLED,
+                border_radius=self.border_radius,
             )
             cv2.putText(
                 img=scene,
@@ -1096,6 +1066,207 @@ class LabelAnnotator:
                 thickness=self.text_thickness,
                 lineType=cv2.LINE_AA,
             )
+        return scene
+
+    @staticmethod
+    def draw_rounded_rectangle(
+        scene: np.ndarray,
+        xyxy: Tuple[int, int, int, int],
+        color: Tuple[int, int, int],
+        border_radius: int,
+    ) -> np.ndarray:
+        x1, y1, x2, y2 = xyxy
+        width = x2 - x1
+        height = y2 - y1
+
+        border_radius = min(border_radius, min(width, height) // 2)
+
+        rectangle_coordinates = [
+            ((x1 + border_radius, y1), (x2 - border_radius, y2)),
+            ((x1, y1 + border_radius), (x2, y2 - border_radius)),
+        ]
+        circle_centers = [
+            (x1 + border_radius, y1 + border_radius),
+            (x2 - border_radius, y1 + border_radius),
+            (x1 + border_radius, y2 - border_radius),
+            (x2 - border_radius, y2 - border_radius),
+        ]
+
+        for coordinates in rectangle_coordinates:
+            cv2.rectangle(
+                img=scene,
+                pt1=coordinates[0],
+                pt2=coordinates[1],
+                color=color,
+                thickness=-1,
+            )
+        for center in circle_centers:
+            cv2.circle(
+                img=scene,
+                center=center,
+                radius=border_radius,
+                color=color,
+                thickness=-1,
+            )
+        return scene
+
+
+class RichLabelAnnotator:
+    """
+    A class for annotating labels on an image using provided detections,
+    with support for Unicode characters by using a custom font.
+    """
+
+    def __init__(
+        self,
+        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
+        text_color: Color = Color.WHITE,
+        font_path: str = None,
+        font_size: int = 10,
+        text_padding: int = 10,
+        text_position: Position = Position.TOP_LEFT,
+        color_lookup: ColorLookup = ColorLookup.CLASS,
+        border_radius: int = 0,
+    ):
+        """
+        Args:
+            color (Union[Color, ColorPalette]): The color or color palette to use for
+                annotating the text background.
+            text_color (Color): The color to use for the text.
+            font_path (str): Path to the font file (e.g., ".ttf" or ".otf") to use for
+                rendering text. If `None`, the default PIL font will be used.
+            font_size (int): Font size for the text.
+            text_padding (int): Padding around the text within its background box.
+            text_position (Position): Position of the text relative to the detection.
+                Possible values are defined in the `Position` enum.
+            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
+                Options are `INDEX`, `CLASS`, `TRACK`.
+            border_radius (int): The radius to apply round edges. If the selected
+                value is higher than the lower dimension, width or height, is clipped.
+        """
+        self.color = color
+        self.text_color = text_color
+        self.text_padding = text_padding
+        self.text_anchor = text_position
+        self.color_lookup = color_lookup
+        self.border_radius = border_radius
+        if font_path is not None:
+            try:
+                self.font = ImageFont.truetype(font_path, font_size)
+            except OSError:
+                print(f"Font path '{font_path}' not found. Using PIL's default font.")
+                self.font = ImageFont.load_default(size=font_size)
+        else:
+            self.font = ImageFont.load_default(size=font_size)
+
+    def annotate(
+        self,
+        scene: ImageType,
+        detections: Detections,
+        labels: List[str] = None,
+        custom_color_lookup: Optional[np.ndarray] = None,
+    ) -> ImageType:
+        """
+        Annotates the given scene with labels based on the provided
+        detections, with support for Unicode characters.
+
+        Args:
+            scene (ImageType): The image where labels will be drawn.
+                `ImageType` is a flexible type, accepting either `numpy.ndarray`
+                or `PIL.Image.Image`.
+            detections (Detections): Object detections to annotate.
+            labels (List[str]): Optional. Custom labels for each detection.
+            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
+                Allows to override the default color mapping strategy.
+
+        Returns:
+            The annotated image, matching the type of `scene` (`numpy.ndarray`
+                or `PIL.Image.Image`)
+
+        Example:
+            ```python
+            import supervision as sv
+
+            image = ...
+            detections = sv.Detections(...)
+
+            labels = [
+                f"{class_name} {confidence:.2f}"
+                for class_name, confidence
+                in zip(detections['class_name'], detections.confidence)
+            ]
+
+            rich_label_annotator = sv.RichLabelAnnotator(font_path="path/to/font.ttf")
+            annotated_frame = label_annotator.annotate(
+                scene=image.copy(),
+                detections=detections,
+                labels=labels
+            )
+            ```
+
+        """
+        if isinstance(scene, np.ndarray):
+            scene = Image.fromarray(cv2.cvtColor(scene, cv2.COLOR_BGR2RGB))
+        draw = ImageDraw.Draw(scene)
+        anchors_coordinates = detections.get_anchors_coordinates(
+            anchor=self.text_anchor
+        ).astype(int)
+        if labels is not None and len(labels) != len(detections):
+            raise ValueError(
+                f"The number of labels provided ({len(labels)}) does not match the "
+                f"number of detections ({len(detections)}). Each detection should have "
+                f"a corresponding label. This discrepancy can occur if the labels and "
+                f"detections are not aligned or if an incorrect number of labels has "
+                f"been provided. Please ensure that the labels array has the same "
+                f"length as the Detections object."
+            )
+        for detection_idx, center_coordinates in enumerate(anchors_coordinates):
+            color = resolve_color(
+                color=self.color,
+                detections=detections,
+                detection_idx=detection_idx,
+                color_lookup=(
+                    self.color_lookup
+                    if custom_color_lookup is None
+                    else custom_color_lookup
+                ),
+            )
+            if labels is not None:
+                text = labels[detection_idx]
+            elif detections[CLASS_NAME_DATA_FIELD] is not None:
+                text = detections[CLASS_NAME_DATA_FIELD][detection_idx]
+            elif detections.class_id is not None:
+                text = str(detections.class_id[detection_idx])
+            else:
+                text = str(detection_idx)
+
+            left, top, right, bottom = draw.textbbox((0, 0), text, font=self.font)
+            text_width = right - left
+            text_height = bottom - top
+            text_w_padded = text_width + 2 * self.text_padding
+            text_h_padded = text_height + 2 * self.text_padding
+            text_background_xyxy = resolve_text_background_xyxy(
+                center_coordinates=tuple(center_coordinates),
+                text_wh=(text_w_padded, text_h_padded),
+                position=self.text_anchor,
+            )
+
+            text_x = text_background_xyxy[0] + self.text_padding - left
+            text_y = text_background_xyxy[1] + self.text_padding - top
+
+            draw.rounded_rectangle(
+                text_background_xyxy,
+                radius=self.border_radius,
+                fill=color.as_rgb(),
+                outline=None,
+            )
+            draw.text(
+                xy=(text_x, text_y),
+                text=text,
+                font=self.font,
+                fill=self.text_color.as_rgb(),
+            )
+
         return scene
 
 
@@ -1111,7 +1282,7 @@ class BlurAnnotator(BaseAnnotator):
         """
         self.kernel_size: int = kernel_size
 
-    @scene_to_annotator_img_type
+    @convert_for_annotation_method
     def annotate(
         self,
         scene: ImageType,
@@ -1196,7 +1367,7 @@ class TraceAnnotator:
         self.thickness = thickness
         self.color_lookup: ColorLookup = color_lookup
 
-    @scene_to_annotator_img_type
+    @convert_for_annotation_method
     def annotate(
         self,
         scene: ImageType,
@@ -1303,7 +1474,7 @@ class HeatMapAnnotator:
         self.top_hue = top_hue
         self.low_hue = low_hue
 
-    @scene_to_annotator_img_type
+    @convert_for_annotation_method
     def annotate(self, scene: ImageType, detections: Detections) -> ImageType:
         """
         Annotates the scene with a heatmap based on the provided detections.
@@ -1379,7 +1550,7 @@ class PixelateAnnotator(BaseAnnotator):
         """
         self.pixel_size: int = pixel_size
 
-    @scene_to_annotator_img_type
+    @convert_for_annotation_method
     def annotate(
         self,
         scene: ImageType,
@@ -1450,6 +1621,7 @@ class TriangleAnnotator(BaseAnnotator):
         height: int = 10,
         position: Position = Position.TOP_CENTER,
         color_lookup: ColorLookup = ColorLookup.CLASS,
+        outline_thickness: int = 0,
     ):
         """
         Args:
@@ -1460,14 +1632,16 @@ class TriangleAnnotator(BaseAnnotator):
             position (Position): The anchor position for placing the triangle.
             color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
+            outline_thickness (int): Thickness of the outline of the triangle.
         """
         self.color: Union[Color, ColorPalette] = color
         self.base: int = base
         self.height: int = height
         self.position: Position = position
         self.color_lookup: ColorLookup = color_lookup
+        self.outline_thickness: int = outline_thickness
 
-    @scene_to_annotator_img_type
+    @convert_for_annotation_method
     def annotate(
         self,
         scene: ImageType,
@@ -1527,7 +1701,10 @@ class TriangleAnnotator(BaseAnnotator):
             )
 
             cv2.fillPoly(scene, [vertices], color.as_bgr())
-
+            if self.outline_thickness:
+                cv2.polylines(
+                    scene, [vertices], True, (0, 0, 0), thickness=self.outline_thickness
+                )
         return scene
 
 
@@ -1563,7 +1740,7 @@ class RoundBoxAnnotator(BaseAnnotator):
             raise ValueError("roundness attribute must be float between (0, 1.0]")
         self.roundness: float = roundness
 
-    @scene_to_annotator_img_type
+    @convert_for_annotation_method
     def annotate(
         self,
         scene: ImageType,
@@ -1700,7 +1877,7 @@ class PercentageBarAnnotator(BaseAnnotator):
         if border_thickness is None:
             self.border_thickness = int(0.15 * self.height)
 
-    @scene_to_annotator_img_type
+    @convert_for_annotation_method
     def annotate(
         self,
         scene: ImageType,
@@ -1839,3 +2016,150 @@ class PercentageBarAnnotator(BaseAnnotator):
 
             if not all(0 <= value <= 1 for value in custom_values):
                 raise ValueError("All values in custom_values must be between 0 and 1.")
+
+
+class CropAnnotator(BaseAnnotator):
+    """
+    A class for drawing scaled up crops of detections on the scene.
+    """
+
+    def __init__(
+        self,
+        position: Position = Position.TOP_CENTER,
+        scale_factor: int = 2,
+        border_color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
+        border_thickness: int = 2,
+        border_color_lookup: ColorLookup = ColorLookup.CLASS,
+    ):
+        """
+        Args:
+            position (Position): The anchor position for placing the cropped and scaled
+                part of the detection in the scene.
+            scale_factor (int): The factor by which to scale the cropped image part. A
+                factor of 2, for example, would double the size of the cropped area,
+                allowing for a closer view of the detection.
+            border_color (Union[Color, ColorPalette]): The color or color palette to
+                use for annotating border around the cropped area.
+            border_thickness (int): The thickness of the border around the cropped area.
+            border_color_lookup (ColorLookup): Strategy for mapping colors to
+                annotations. Options are `INDEX`, `CLASS`, `TRACK`.
+        """
+        self.position: Position = position
+        self.scale_factor: int = scale_factor
+        self.border_color: Union[Color, ColorPalette] = border_color
+        self.border_thickness: int = border_thickness
+        self.border_color_lookup: ColorLookup = border_color_lookup
+
+    @convert_for_annotation_method
+    def annotate(
+        self,
+        scene: ImageType,
+        detections: Detections,
+        custom_color_lookup: Optional[np.ndarray] = None,
+    ) -> ImageType:
+        """
+        Annotates the provided scene with scaled and cropped parts of the image based
+        on the provided detections. Each detection is cropped from the original scene
+        and scaled according to the annotator's scale factor before being placed back
+        onto the scene at the specified position.
+
+
+        Args:
+            scene (ImageType): The image where cropped detection will be placed.
+                `ImageType` is a flexible type, accepting either `numpy.ndarray`
+                or `PIL.Image.Image`.
+            detections (Detections): Object detections to annotate.
+            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
+                Allows to override the default color mapping strategy.
+
+        Returns:
+            The annotated image.
+
+        Example:
+            ```python
+            import supervision as sv
+
+            image = ...
+            detections = sv.Detections(...)
+
+            crop_annotator = sv.CropAnnotator()
+            annotated_frame = crop_annotator.annotate(
+                scene=image.copy(),
+                detections=detections
+            )
+            ```
+        """
+        crops = [
+            crop_image(image=scene, xyxy=xyxy) for xyxy in detections.xyxy.astype(int)
+        ]
+        resized_crops = [
+            scale_image(image=crop, scale_factor=self.scale_factor) for crop in crops
+        ]
+        anchors = detections.get_anchors_coordinates(anchor=self.position).astype(int)
+
+        for idx, (resized_crop, anchor) in enumerate(zip(resized_crops, anchors)):
+            crop_wh = resized_crop.shape[1], resized_crop.shape[0]
+            (x1, y1), (x2, y2) = self.calculate_crop_coordinates(
+                anchor=anchor, crop_wh=crop_wh, position=self.position
+            )
+            scene = overlay_image(
+                scene=scene, inserted_image=resized_crop, anchor=(x1, y1)
+            )
+            color = resolve_color(
+                color=self.border_color,
+                detections=detections,
+                detection_idx=idx,
+                color_lookup=self.border_color_lookup
+                if custom_color_lookup is None
+                else custom_color_lookup,
+            )
+            cv2.rectangle(
+                img=scene,
+                pt1=(x1, y1),
+                pt2=(x2, y2),
+                color=color.as_bgr(),
+                thickness=self.border_thickness,
+            )
+
+        return scene
+
+    @staticmethod
+    def calculate_crop_coordinates(
+        anchor: Tuple[int, int], crop_wh: Tuple[int, int], position: Position
+    ) -> Tuple[Tuple[int, int], Tuple[int, int]]:
+        anchor_x, anchor_y = anchor
+        width, height = crop_wh
+
+        if position == Position.TOP_LEFT:
+            return (anchor_x - width, anchor_y - height), (anchor_x, anchor_y)
+        elif position == Position.TOP_CENTER:
+            return (
+                (anchor_x - width // 2, anchor_y - height),
+                (anchor_x + width // 2, anchor_y),
+            )
+        elif position == Position.TOP_RIGHT:
+            return (anchor_x, anchor_y - height), (anchor_x + width, anchor_y)
+        elif position == Position.CENTER_LEFT:
+            return (
+                (anchor_x - width, anchor_y - height // 2),
+                (anchor_x, anchor_y + height // 2),
+            )
+        elif position == Position.CENTER or position == Position.CENTER_OF_MASS:
+            return (
+                (anchor_x - width // 2, anchor_y - height // 2),
+                (anchor_x + width // 2, anchor_y + height // 2),
+            )
+        elif position == Position.CENTER_RIGHT:
+            return (
+                (anchor_x, anchor_y - height // 2),
+                (anchor_x + width, anchor_y + height // 2),
+            )
+        elif position == Position.BOTTOM_LEFT:
+            return (anchor_x - width, anchor_y), (anchor_x, anchor_y + height)
+        elif position == Position.BOTTOM_CENTER:
+            return (
+                (anchor_x - width // 2, anchor_y),
+                (anchor_x + width // 2, anchor_y + height),
+            )
+        elif position == Position.BOTTOM_RIGHT:
+            return (anchor_x, anchor_y), (anchor_x + width, anchor_y + height)

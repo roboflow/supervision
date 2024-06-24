@@ -63,7 +63,9 @@ FRAME_RESOLUTION = (300, 300)
         (
             DETECTIONS,
             sv.PolygonZone(
-                POLYGON, FRAME_RESOLUTION, triggering_position=sv.Position.BOTTOM_CENTER
+                POLYGON,
+                FRAME_RESOLUTION,
+                triggering_anchors=[sv.Position.BOTTOM_CENTER],
             ),
             np.array(
                 [False, False, True, True, True, True, False, False, False], dtype=bool
@@ -90,3 +92,19 @@ def test_polygon_zone_trigger(
     with exception:
         in_zone = polygon_zone.trigger(detections)
         assert np.all(in_zone == expected_results)
+
+
+@pytest.mark.parametrize(
+    "polygon, triggering_anchors, exception",
+    [
+        (POLYGON, [sv.Position.CENTER], DoesNotRaise()),
+        (
+            POLYGON,
+            [],
+            pytest.raises(ValueError),
+        ),
+    ],
+)
+def test_polygon_zone_initialization(polygon, triggering_anchors, exception):
+    with exception:
+        sv.PolygonZone(polygon, FRAME_RESOLUTION, triggering_anchors=triggering_anchors)
