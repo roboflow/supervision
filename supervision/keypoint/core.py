@@ -446,17 +446,20 @@ class KeyPoints:
             keypoints = sv.Keypoints.from_detectron2(result)
             ```
         """
-
-        return cls(
-            xy=detectron2_results["instances"].pred_keypoints.cpu().numpy()[:, :, :2],
-            confidence=detectron2_results["instances"]
-            .pred_keypoints.cpu()
-            .numpy()[:, :, 2:],
-            class_id=detectron2_results["instances"]
-            .pred_classes.cpu()
-            .numpy()
-            .astype(int),
-        )
+        
+        if hasattr(detectron2_results["instances"], "pred_keypoints"):
+            return cls(
+                xy=detectron2_results["instances"].pred_keypoints.cpu().numpy()[:, :, :2],
+                confidence=detectron2_results["instances"]
+                .pred_keypoints.cpu()
+                .numpy()[:, :, 2:],
+                class_id=detectron2_results["instances"]
+                .pred_classes.cpu()
+                .numpy()
+                .astype(int),
+            )
+        else:
+            return cls.empty()
 
     def __getitem__(
         self, index: Union[int, slice, List[int], np.ndarray, str]
