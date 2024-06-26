@@ -454,7 +454,7 @@ class KeyPoints:
                 .numpy()[:, :, :2],
                 confidence=detectron2_results["instances"]
                 .pred_keypoints.cpu()
-                .numpy()[:, :, 2:],
+                .numpy()[:, :, 2],
                 class_id=detectron2_results["instances"]
                 .pred_classes.cpu()
                 .numpy()
