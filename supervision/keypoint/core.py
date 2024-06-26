@@ -414,6 +414,50 @@ class KeyPoints:
             data=data,
         )
 
+    @classmethod
+    def from_detectron2(cls, detectron2_results) -> KeyPoints:
+        """
+        Create a `sv.KeyPoints` object from the
+        [Detectron2](https://github.com/facebookresearch/detectron2) inference result.
+
+        Args:
+            detectron2_results: The output of a
+                Detectron2 model containing instances with prediction data.
+
+        Returns:
+            A `sv.KeyPoints` object containing the keypoint coordinates, class IDs,
+                and class names, and confidences of each keypoint.
+
+        Example:
+            ```python
+            import cv2
+            import supervision as sv
+            from detectron2.engine import DefaultPredictor
+            from detectron2.config import get_cfg
+
+
+            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            cfg = get_cfg()
+            cfg.merge_from_file(<CONFIG_PATH>)
+            cfg.MODEL.WEIGHTS = <WEIGHTS_PATH>
+            predictor = DefaultPredictor(cfg)
+
+            result = predictor(image)
+            keypoints = sv.Keypoints.from_detectron2(result)
+            ```
+        """
+
+        return cls(
+            xy=detectron2_results["instances"].pred_keypoints.cpu().numpy()[:, :, :2],
+            confidence=detectron2_results["instances"]
+            .pred_keypoints.cpu()
+            .numpy()[:, :, 2:],
+            class_id=detectron2_results["instances"]
+            .pred_classes.cpu()
+            .numpy()
+            .astype(int),
+        )
+
     def __getitem__(
         self, index: Union[int, slice, List[int], np.ndarray, str]
     ) -> Union[KeyPoints, List, np.ndarray, None]:
