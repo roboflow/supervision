@@ -443,13 +443,15 @@ class KeyPoints:
             predictor = DefaultPredictor(cfg)
 
             result = predictor(image)
-            keypoints = sv.Keypoints.from_detectron2(result)
+            keypoints = sv.KeyPoints.from_detectron2(result)
             ```
         """
-        
+
         if hasattr(detectron2_results["instances"], "pred_keypoints"):
             return cls(
-                xy=detectron2_results["instances"].pred_keypoints.cpu().numpy()[:, :, :2],
+                xy=detectron2_results["instances"]
+                .pred_keypoints.cpu()
+                .numpy()[:, :, :2],
                 confidence=detectron2_results["instances"]
                 .pred_keypoints.cpu()
                 .numpy()[:, :, 2:],
