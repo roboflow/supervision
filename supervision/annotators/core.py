@@ -2088,9 +2088,7 @@ class CropAnnotator(BaseAnnotator):
             (x1, y1), (x2, y2) = self.calculate_crop_coordinates(
                 anchor=anchor, crop_wh=crop_wh, position=self.position
             )
-            scene = overlay_image(
-                image=scene, overlay=resized_crop, anchor=(x1, y1)
-            )
+            scene = overlay_image(image=scene, overlay=resized_crop, anchor=(x1, y1))
             color = resolve_color(
                 color=self.border_color,
                 detections=detections,
