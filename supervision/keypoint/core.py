@@ -284,14 +284,25 @@ class KeyPoints:
                 pose_landmarker_result, (image_width, image_height))
             ```
         """  # noqa: E501 // docs
-        results = mediapipe_results.pose_landmarks
-        if not isinstance(mediapipe_results.pose_landmarks, list):
-            if mediapipe_results.pose_landmarks is None:
-                results = []
-            else:
-                results = [
-                    [landmark for landmark in mediapipe_results.pose_landmarks.landmark]
-                ]
+        if hasattr(mediapipe_results, "pose_landmarks"):
+            results = mediapipe_results.pose_landmarks
+            if not isinstance(mediapipe_results.pose_landmarks, list):
+                if mediapipe_results.pose_landmarks is None:
+                    results = []
+                else:
+                    results = [
+                        [
+                            landmark
+                            for landmark in mediapipe_results.pose_landmarks.landmark
+                        ]
+                    ]
+        elif hasattr(mediapipe_results, "face_landmarks"):
+            results = mediapipe_results.face_landmarks
+        elif hasattr(mediapipe_results, "multi_face_landmarks"):
+            results = [
+                face_landmark.landmark
+                for face_landmark in mediapipe_results.multi_face_landmarks
+            ]
 
         if len(results) == 0:
             return cls.empty()
