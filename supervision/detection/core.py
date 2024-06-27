@@ -545,6 +545,9 @@ class Detections:
         return cls(
             xyxy=detectron2_results["instances"].pred_boxes.tensor.cpu().numpy(),
             confidence=detectron2_results["instances"].scores.cpu().numpy(),
+            mask=detectron2_results["instances"].pred_masks.cpu().numpy()
+            if hasattr(detectron2_results["instances"], "pred_masks")
+            else None,
             class_id=detectron2_results["instances"]
             .pred_classes.cpu()
             .numpy()
