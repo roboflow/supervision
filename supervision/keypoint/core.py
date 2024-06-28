@@ -299,10 +299,13 @@ class KeyPoints:
         elif hasattr(mediapipe_results, "face_landmarks"):
             results = mediapipe_results.face_landmarks
         elif hasattr(mediapipe_results, "multi_face_landmarks"):
-            results = [
-                face_landmark.landmark
-                for face_landmark in mediapipe_results.multi_face_landmarks
-            ]
+            if mediapipe_results.multi_face_landmarks is None:
+                results = []
+            else:
+                results = [
+                    face_landmark.landmark
+                    for face_landmark in mediapipe_results.multi_face_landmarks
+                ]
 
         if len(results) == 0:
             return cls.empty()
