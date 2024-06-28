@@ -243,9 +243,10 @@ class KeyPoints:
         pose landmark detection inference result.
 
         Args:
-            mediapipe_results (Union[PoseLandmarkerResult, SolutionOutputs]):
-                The output results from Mediapipe. It supports both: the inference
-                result `PoseLandmarker` and the legacy one from `Pose`.
+            mediapipe_results (Union[PoseLandmarkerResult, FaceLandmarkerResult, SolutionOutputs]):
+                The output results from Mediapipe. It support pose and face landmarks
+                from `PoseLandmaker`, `FaceLandmarker` and the legacy ones
+                from `Pose` and `FaceMesh`.
             resolution_wh (Tuple[int, int]): A tuple of the form `(width, height)`
                 representing the resolution of the frame.
 
@@ -282,6 +283,33 @@ class KeyPoints:
 
             key_points = sv.KeyPoints.from_mediapipe(
                 pose_landmarker_result, (image_width, image_height))
+            ```
+
+            ```
+            import cv2
+            import mediapipe as mp
+            import supervision as sv
+
+            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            image_height, image_width, _ = image.shape
+            mediapipe_image = mp.Image(
+                image_format=mp.ImageFormat.SRGB,
+                data=cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+
+            options = mp.tasks.vision.FaceLandmarkerOptions(
+                base_options=mp.tasks.BaseOptions(
+                    model_asset_path="face_landmarker.task"
+                ),
+                output_face_blendshapes=True,
+                output_facial_transformation_matrixes=True,
+                num_faces=2)
+
+            FaceLandmarker = mp.tasks.vision.FaceLandmarker
+            with FaceLandmarker.create_from_options(options) as landmarker:
+                face_landmarker_result = landmarker.detect(mediapipe_image)
+
+            key_points = sv.KeyPoints.from_mediapipe(
+                face_landmarker_result, (image_width, image_height))
             ```
         """  # noqa: E501 // docs
         if hasattr(mediapipe_results, "pose_landmarks"):
