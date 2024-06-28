@@ -32,7 +32,7 @@ classifiers=[
 
 [tool.poetry.dependencies]
 python = "^3.8"
-numpy = ">=1.21.2,<2.0.0"
+numpy = ">=1.21.2"
 scipy = [
     { version = "1.10.0", python = "<3.9" },
     { version = "^1.10.0", python = ">=3.9" }
@@ -51,7 +51,7 @@ desktop = ["opencv-python"]
 assets = ["requests","tqdm"]
 
 [tool.poetry.group.dev.dependencies]
-twine = ">=4.0.2,<6.0.0"
+twine = "^5.1.1"
 pytest = ">=7.2.2,<9.0.0"
 wheel = ">=0.40,<0.44"
 build = ">=0.10,<1.3"
@@ -63,6 +63,10 @@ notebook = ">=6.5.3,<8.0.0"
 ipywidgets = "^8.1.1"
 jupytext = "^1.16.1"
 nbconvert = "^7.14.2"
+docutils = [
+    { version = "^0.20.1", python = "<3.9" },
+    { version = "^0.21.1", python = ">=3.9" }
+]
 
 
 [tool.poetry.group.docs.dependencies]
