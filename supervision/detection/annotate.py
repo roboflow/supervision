@@ -5,7 +5,7 @@ import cv2
 from supervision.annotators.base import ImageType
 from supervision.detection.core import Detections
 from supervision.draw.color import Color, ColorPalette
-from supervision.utils.conversion import convert_for_annotation_method
+from supervision.utils.conversion import ensure_cv2_image_for_annotation
 from supervision.utils.internal import deprecated
 
 
@@ -46,7 +46,7 @@ class BoxAnnotator:
         "`BoxAnnotator` is deprecated and will be removed in "
         "`supervision-0.22.0`. Use `BoundingBoxAnnotator` and `LabelAnnotator` instead"
     )
-    @convert_for_annotation_method
+    @ensure_cv2_image_for_annotation
     def annotate(
         self,
         scene: ImageType,
