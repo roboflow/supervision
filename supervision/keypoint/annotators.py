@@ -11,7 +11,7 @@ from supervision.draw.color import Color
 from supervision.draw.utils import draw_rounded_rectangle
 from supervision.keypoint.core import KeyPoints
 from supervision.keypoint.skeletons import SKELETONS_BY_VERTEX_COUNT
-from supervision.utils.conversion import convert_for_annotation_method
+from supervision.utils.conversion import ensure_cv2_image_for_annotation
 
 
 class BaseKeyPointAnnotator(ABC):
@@ -41,7 +41,7 @@ class VertexAnnotator(BaseKeyPointAnnotator):
         self.color = color
         self.radius = radius
 
-    @convert_for_annotation_method
+    @ensure_cv2_image_for_annotation
     def annotate(self, scene: ImageType, key_points: KeyPoints) -> ImageType:
         """
         Annotates the given scene with skeleton vertices based on the provided key
@@ -117,7 +117,7 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
         self.thickness = thickness
         self.edges = edges
 
-    @convert_for_annotation_method
+    @ensure_cv2_image_for_annotation
     def annotate(self, scene: ImageType, key_points: KeyPoints) -> ImageType:
         """
         Annotates the given scene by drawing lines between specified key points to form
