@@ -2213,7 +2213,7 @@ drawn.</p>
 <a id="__codelineno-0-41" name="__codelineno-0-41"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">color</span> <span class="o">=</span> <span class="n">color</span>
 <a id="__codelineno-0-42" name="__codelineno-0-42"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">radius</span> <span class="o">=</span> <span class="n">radius</span>
 <a id="__codelineno-0-43" name="__codelineno-0-43"></a>
-<a id="__codelineno-0-44" name="__codelineno-0-44"></a>    <span class="nd">@convert_for_annotation_method</span>
+<a id="__codelineno-0-44" name="__codelineno-0-44"></a>    <span class="nd">@ensure_cv2_image_for_annotation</span>
 <a id="__codelineno-0-45" name="__codelineno-0-45"></a>    <span class="k">def</span> <span class="nf">annotate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scene</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">key_points</span><span class="p">:</span> <span class="n">KeyPoints</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageType</span><span class="p">:</span>
 <a id="__codelineno-0-46" name="__codelineno-0-46"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-47" name="__codelineno-0-47"></a><span class="sd">        Annotates the given scene with skeleton vertices based on the provided key</span>
@@ -2524,7 +2524,7 @@ supervision-annotator-examples/vertex-annotator-example.png" /></p>
 <span class="normal"><a href="#__codelineno-0-91">91</a></span>
 <span class="normal"><a href="#__codelineno-0-92">92</a></span>
 <span class="normal"><a href="#__codelineno-0-93">93</a></span>
-<span class="normal"><a href="#__codelineno-0-94">94</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-44" name="__codelineno-0-44"></a><span class="nd">@convert_for_annotation_method</span>
+<span class="normal"><a href="#__codelineno-0-94">94</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-44" name="__codelineno-0-44"></a><span class="nd">@ensure_cv2_image_for_annotation</span>
 <a id="__codelineno-0-45" name="__codelineno-0-45"></a><span class="k">def</span> <span class="nf">annotate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scene</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">key_points</span><span class="p">:</span> <span class="n">KeyPoints</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageType</span><span class="p">:</span>
 <a id="__codelineno-0-46" name="__codelineno-0-46"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-47" name="__codelineno-0-47"></a><span class="sd">    Annotates the given scene with skeleton vertices based on the provided key</span>
@@ -2719,7 +2719,7 @@ points. It connects key points with lines to form the skeleton structure.</p>
 <a id="__codelineno-0-117" name="__codelineno-0-117"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">thickness</span> <span class="o">=</span> <span class="n">thickness</span>
 <a id="__codelineno-0-118" name="__codelineno-0-118"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">edges</span> <span class="o">=</span> <span class="n">edges</span>
 <a id="__codelineno-0-119" name="__codelineno-0-119"></a>
-<a id="__codelineno-0-120" name="__codelineno-0-120"></a>    <span class="nd">@convert_for_annotation_method</span>
+<a id="__codelineno-0-120" name="__codelineno-0-120"></a>    <span class="nd">@ensure_cv2_image_for_annotation</span>
 <a id="__codelineno-0-121" name="__codelineno-0-121"></a>    <span class="k">def</span> <span class="nf">annotate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scene</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">key_points</span><span class="p">:</span> <span class="n">KeyPoints</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageType</span><span class="p">:</span>
 <a id="__codelineno-0-122" name="__codelineno-0-122"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-123" name="__codelineno-0-123"></a><span class="sd">        Annotates the given scene by drawing lines between specified key points to form</span>
@@ -3080,7 +3080,7 @@ supervision-annotator-examples/edge-annotator-example.png" /></p>
 <span class="normal"><a href="#__codelineno-0-182">182</a></span>
 <span class="normal"><a href="#__codelineno-0-183">183</a></span>
 <span class="normal"><a href="#__codelineno-0-184">184</a></span>
-<span class="normal"><a href="#__codelineno-0-185">185</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-120" name="__codelineno-0-120"></a><span class="nd">@convert_for_annotation_method</span>
+<span class="normal"><a href="#__codelineno-0-185">185</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-120" name="__codelineno-0-120"></a><span class="nd">@ensure_cv2_image_for_annotation</span>
 <a id="__codelineno-0-121" name="__codelineno-0-121"></a><span class="k">def</span> <span class="nf">annotate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scene</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">key_points</span><span class="p">:</span> <span class="n">KeyPoints</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageType</span><span class="p">:</span>
 <a id="__codelineno-0-122" name="__codelineno-0-122"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-123" name="__codelineno-0-123"></a><span class="sd">    Annotates the given scene by drawing lines between specified key points to form</span>
