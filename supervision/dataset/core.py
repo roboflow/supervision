@@ -3,8 +3,9 @@ from __future__ import annotations
 import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from itertools import chain
 from pathlib import Path
-from typing import Dict, Iterator, List, Optional, Tuple
+from typing import Dict, Iterator, List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
@@ -27,13 +28,13 @@ from supervision.dataset.utils import (
     build_class_index_mapping,
     map_detections_class_id,
     merge_class_lists,
-    save_dataset_images,
     train_test_split,
 )
 from supervision.detection.core import Detections
+from supervision.utils.internal import deprecated, warn_deprecated
+from supervision.utils.iterables import find_duplicates
 
 
-@dataclass
 class BaseDataset(ABC):
     @abstractmethod
     def __len__(self) -> int:
@@ -46,21 +47,68 @@ class BaseDataset(ABC):
         pass
 
 
-@dataclass
 class DetectionDataset(BaseDataset):
     """
     Dataclass containing information about object detection dataset.
 
     Attributes:
         classes (List[str]): List containing dataset class names.
-        images (Dict[str, np.ndarray]): Dictionary mapping image name to image.
+        images (Union[List[str], Dict[str, np.ndarray]]):
+            Accepts a list of image paths, or dictionaries of loaded cv2 images
+            with paths as keys. If you pass a list of paths, the dataset will
+            lazily load images on demand, which is much more memory-efficient.
         annotations (Dict[str, Detections]): Dictionary mapping
-            image name to annotations.
+            image path to detections.
     """
 
-    classes: List[str]
-    images: Dict[str, np.ndarray]
-    annotations: Dict[str, Detections]
+    def __init__(
+        self,
+        classes: List[str],
+        images: Union[List[str], Dict[str, np.ndarray]],
+        annotations: Dict[str, Detections],
+    ) -> None:
+        self.classes = classes
+        self.annotations = annotations
+
+        self._image_paths_as_unique_keys = dict.fromkeys(images)
+        self.image_paths = list(self._image_paths_as_unique_keys)
+
+        self._images_in_memory: Dict[str, np.ndarray] = {}
+        if isinstance(images, dict):
+            self._images_in_memory = images
+            warn_deprecated(
+                "Passing a `Dict[str, np.ndarray]` into `DetectionDataset` is deprecated and "
+                "will be removed in `supervision-0.26.0`. Use a list of paths `List[str]` "
+                "instead."
+            )
+            # TODO: when supervision-0.26.0 is released, and images: Dict[str, np.ndarray] is
+            #       no longer supported, also simplify the rest of the code. E.g. list(images)
+            #       is no longer needed, and merge can be simplified.
+
+    @property
+    @deprecated(
+        "`DetectionDataset.images` property is deprecated and will be removed in "
+        "`supervision-0.26.0`. Iterate with `for path, image, annotation in dataset:` instead."
+    )
+    def images(self) -> Dict[str, np.ndarray]:
+        """
+        Load all images to memory and return them as a dictionary.
+
+        Warning: only use this when you need all images at once.
+        It is much more memory-efficient to initialize dataset with
+        image paths and use `for image in dataset:`.
+        """
+        if self._images_in_memory:
+            return self._images_in_memory
+
+        images = {image_path: cv2.imread(image_path) for image_path in self.image_paths}
+        return images
+
+    def _get_image(self, image_path: str) -> np.ndarray:
+        """Assumes that image is in dataset"""
+        if self._images_in_memory:
+            return self._images_in_memory[image_path]
+        return cv2.imread(image_path)
 
     def __len__(self) -> int:
         """
@@ -69,7 +117,13 @@ class DetectionDataset(BaseDataset):
         Returns:
             int: The number of images.
         """
-        return len(self.images)
+        return len(self._images_in_memory) or len(self.image_paths)
+
+    def __getitem__(self, i: int) -> Tuple[str, np.ndarray, Detections]:
+        image_path = self.image_paths[i]
+        image = self._get_image(image_path)
+        annotation = self.annotations[image_path]
+        return image_path, image, annotation
 
     def __iter__(self) -> Iterator[Tuple[str, np.ndarray, Detections]]:
         """
@@ -80,21 +134,30 @@ class DetectionDataset(BaseDataset):
                 An iterator that yields tuples containing the image name,
                 the image data, and its corresponding annotation.
         """
-        for image_name, image in self.images.items():
-            yield image_name, image, self.annotations.get(image_name, None)
+        for i in range(len(self)):
+            image_path, image, annotation = self[i]
+            yield image_path, image, annotation
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         if not isinstance(other, DetectionDataset):
             return False
 
         if set(self.classes) != set(other.classes):
             return False
 
-        for key in self.images:
-            if not np.array_equal(self.images[key], other.images[key]):
-                return False
-            if not self.annotations[key] == other.annotations[key]:
-                return False
+        if self.image_paths != other.image_paths:
+            return False
+
+        try:
+            for self_values, other_values in zip(self, other):
+                _, image_self, annotation_self = self_values
+                _, image_other, annotation_other = other_values
+                if not np.array_equal(image_self, image_other):
+                    return False
+                if not annotation_self == annotation_other:
+                    return False
+        except KeyError:
+            return False
 
         return True
 
@@ -127,25 +190,130 @@ class DetectionDataset(BaseDataset):
             ```
         """
 
-        image_names = list(self.images.keys())
-        train_names, test_names = train_test_split(
-            data=image_names,
+        train_paths, test_paths = train_test_split(
+            data=self.image_paths,
             train_ratio=split_ratio,
             random_state=random_state,
             shuffle=shuffle,
         )
 
+        train_input: Union[List[str], Dict[str, np.ndarray]]
+        test_input: Union[List[str], Dict[str, np.ndarray]]
+        if self._images_in_memory:
+            train_input = {path: self._images_in_memory[path] for path in train_paths}
+            test_input = {path: self._images_in_memory[path] for path in test_paths}
+        else:
+            train_input = train_paths
+            test_input = test_paths
+        train_annotations = {path: self.annotations[path] for path in train_paths}
+        test_annotations = {path: self.annotations[path] for path in test_paths}
+
         train_dataset = DetectionDataset(
             classes=self.classes,
-            images={name: self.images[name] for name in train_names},
-            annotations={name: self.annotations[name] for name in train_names},
+            images=train_input,
+            annotations=train_annotations,
         )
         test_dataset = DetectionDataset(
             classes=self.classes,
-            images={name: self.images[name] for name in test_names},
-            annotations={name: self.annotations[name] for name in test_names},
+            images=test_input,
+            annotations=test_annotations,
         )
         return train_dataset, test_dataset
+
+    @classmethod
+    def merge(cls, dataset_list: List[DetectionDataset]) -> DetectionDataset:
+        """
+        Merge a list of `DetectionDataset` objects into a single
+            `DetectionDataset` object.
+
+        This method takes a list of `DetectionDataset` objects and combines
+        their respective fields (`classes`, `images`,
+        `annotations`) into a single `DetectionDataset` object.
+
+        Args:
+            dataset_list (List[DetectionDataset]): A list of `DetectionDataset`
+                objects to merge.
+
+        Returns:
+            (DetectionDataset): A single `DetectionDataset` object containing
+            the merged data from the input list.
+
+        Examples:
+            ```python
+            import supervision as sv
+
+            ds_1 = sv.DetectionDataset(...)
+            len(ds_1)
+            # 100
+            ds_1.classes
+            # ['dog', 'person']
+
+            ds_2 = sv.DetectionDataset(...)
+            len(ds_2)
+            # 200
+            ds_2.classes
+            # ['cat']
+
+            ds_merged = sv.DetectionDataset.merge([ds_1, ds_2])
+            len(ds_merged)
+            # 300
+            ds_merged.classes
+            # ['cat', 'dog', 'person']
+            ```
+        """
+
+        def is_in_memory(dataset: DetectionDataset) -> bool:
+            return len(dataset._images_in_memory) > 0 or len(dataset.image_paths) == 0
+
+        def is_lazy(dataset: DetectionDataset) -> bool:
+            return not is_in_memory(dataset) or len(dataset._images_in_memory) == 0
+
+        all_in_memory = all([is_in_memory(dataset) for dataset in dataset_list])
+        all_lazy = all([is_lazy(dataset) for dataset in dataset_list])
+        if not all_in_memory and not all_lazy:
+            raise ValueError(
+                "Merging lazy and in-memory DetectionDatasets is not supported."
+            )
+
+        images_in_memory = {}
+        for dataset in dataset_list:
+            images_in_memory.update(dataset._images_in_memory)
+
+        image_paths: List[str] = []
+        if not images_in_memory:
+            image_paths = list(
+                chain.from_iterable(dataset.image_paths for dataset in dataset_list)
+            )
+            image_paths_unique = list(dict.fromkeys(image_paths))
+            if len(image_paths) != len(image_paths_unique):
+                duplicates = find_duplicates(image_paths)
+                raise ValueError(
+                    f"Image paths {duplicates} are not unique across datasets."
+                )
+            image_paths = image_paths_unique
+
+        classes = merge_class_lists(
+            class_lists=[dataset.classes for dataset in dataset_list]
+        )
+
+        annotations = {}
+        for dataset in dataset_list:
+            annotations.update(dataset.annotations)
+        for dataset in dataset_list:
+            class_index_mapping = build_class_index_mapping(
+                source_classes=dataset.classes, target_classes=classes
+            )
+            for image_path in dataset.image_paths:
+                annotations[image_path] = map_detections_class_id(
+                    source_to_target_mapping=class_index_mapping,
+                    detections=annotations[image_path],
+                )
+
+        return cls(
+            classes=classes,
+            images=images_in_memory or image_paths,
+            annotations=annotations,
+        )
 
     def as_pascal_voc(
         self,
@@ -179,23 +347,19 @@ class DetectionDataset(BaseDataset):
                 in the range [0, 1). Argument is used only for segmentation datasets.
         """
         if images_directory_path:
-            save_dataset_images(
-                images_directory_path=images_directory_path, images=self.images
+            self._save_images(
+                images_directory_path=images_directory_path,
             )
         if annotations_directory_path:
             Path(annotations_directory_path).mkdir(parents=True, exist_ok=True)
-
-        for image_path, image in self.images.items():
-            detections = self.annotations[image_path]
-
-            if annotations_directory_path:
+            for image_path, image, annotations in self.images.items():
                 annotation_name = Path(image_path).stem
                 annotations_path = os.path.join(
                     annotations_directory_path, f"{annotation_name}.xml"
                 )
                 image_name = Path(image_path).name
                 pascal_voc_xml = detections_to_pascal_voc(
-                    detections=detections,
+                    detections=annotations,
                     classes=self.classes,
                     filename=image_name,
                     image_shape=image.shape,
@@ -358,9 +522,7 @@ class DetectionDataset(BaseDataset):
                 Argument is used only for segmentation datasets.
         """
         if images_directory_path is not None:
-            save_dataset_images(
-                images_directory_path=images_directory_path, images=self.images
-            )
+            self._save_images(images_directory_path=images_directory_path)
         if annotations_directory_path is not None:
             save_yolo_annotations(
                 annotations_directory_path=annotations_directory_path,
@@ -482,70 +644,11 @@ class DetectionDataset(BaseDataset):
                 approximation_percentage=approximation_percentage,
             )
 
-    @classmethod
-    def merge(cls, dataset_list: List[DetectionDataset]) -> DetectionDataset:
-        """
-        Merge a list of `DetectionDataset` objects into a single
-            `DetectionDataset` object.
-
-        This method takes a list of `DetectionDataset` objects and combines
-        their respective fields (`classes`, `images`,
-        `annotations`) into a single `DetectionDataset` object.
-
-        Args:
-            dataset_list (List[DetectionDataset]): A list of `DetectionDataset`
-                objects to merge.
-
-        Returns:
-            (DetectionDataset): A single `DetectionDataset` object containing
-            the merged data from the input list.
-
-        Examples:
-            ```python
-            import supervision as sv
-
-            ds_1 = sv.DetectionDataset(...)
-            len(ds_1)
-            # 100
-            ds_1.classes
-            # ['dog', 'person']
-
-            ds_2 = sv.DetectionDataset(...)
-            len(ds_2)
-            # 200
-            ds_2.classes
-            # ['cat']
-
-            ds_merged = sv.DetectionDataset.merge([ds_1, ds_2])
-            len(ds_merged)
-            # 300
-            ds_merged.classes
-            # ['cat', 'dog', 'person']
-            ```
-        """
-        merged_images, merged_annotations = {}, {}
-        class_lists = [dataset.classes for dataset in dataset_list]
-        merged_classes = merge_class_lists(class_lists=class_lists)
-
-        for dataset in dataset_list:
-            class_index_mapping = build_class_index_mapping(
-                source_classes=dataset.classes, target_classes=merged_classes
-            )
-            for image_name, image, detections in dataset:
-                if image_name in merged_annotations:
-                    raise ValueError(
-                        f"Image name {image_name} is not unique across datasets."
-                    )
-
-                merged_images[image_name] = image
-                merged_annotations[image_name] = map_detections_class_id(
-                    source_to_target_mapping=class_index_mapping,
-                    detections=detections,
-                )
-
-        return cls(
-            classes=merged_classes, images=merged_images, annotations=merged_annotations
-        )
+    def _save_images(self, images_directory_path: str) -> None:
+        Path(images_directory_path).mkdir(parents=True, exist_ok=True)
+        for image_path, image, _ in self:
+            final_path = os.path.join(images_directory_path, image_path)
+            cv2.imwrite(final_path, image)
 
 
 @dataclass

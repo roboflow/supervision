@@ -1,10 +1,7 @@
 import copy
-import os
 import random
-from pathlib import Path
 from typing import Dict, List, Optional, Tuple, TypeVar, Union
 
-import cv2
 import numpy as np
 import numpy.typing as npt
 
@@ -59,6 +56,7 @@ def merge_class_lists(class_lists: List[List[str]]) -> List[str]:
 def build_class_index_mapping(
     source_classes: List[str], target_classes: List[str]
 ) -> Dict[int, int]:
+    """Returns the index map of source classes -> target classes."""
     index_mapping = {}
 
     for i, class_name in enumerate(source_classes):
@@ -91,17 +89,6 @@ def map_detections_class_id(
         )
 
     return detections_copy
-
-
-def save_dataset_images(
-    images_directory_path: str, images: Dict[str, np.ndarray]
-) -> None:
-    Path(images_directory_path).mkdir(parents=True, exist_ok=True)
-
-    for image_path, image in images.items():
-        image_name = Path(image_path).name
-        target_image_path = os.path.join(images_directory_path, image_name)
-        cv2.imwrite(target_image_path, image)
 
 
 def train_test_split(
