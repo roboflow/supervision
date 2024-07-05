@@ -311,6 +311,32 @@ class KeyPoints:
             key_points = sv.KeyPoints.from_mediapipe(
                 face_landmarker_result, (image_width, image_height))
             ```
+
+            ```python
+            import cv2
+            import mediapipe as mp
+            import supervision as sv
+
+            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            image_height, image_width, _ = image.shape
+            mediapipe_image = mp.Image(
+                image_format=mp.ImageFormat.SRGB,
+                data=cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+
+            options = mp.tasks.vision.HandLandmarkerOptions(
+                base_options=mp.tasks.BaseOptions(
+                    model_asset_path="hand_landmarker.task"
+                ),
+                num_hands=2)
+
+            HandLandmarker = mp.tasks.vision.HandLandmarker
+            with HandLandmarker.create_from_options(options) as landmarker:
+                hand_landmarker_result = landmarker.detect(mediapipe_image)
+
+            key_points = sv.KeyPoints.from_mediapipe(
+                hand_landmarker_result, (image_width, image_height))
+            ```
+
         """  # noqa: E501 // docs
         if hasattr(mediapipe_results, "pose_landmarks"):
             results = mediapipe_results.pose_landmarks
@@ -334,6 +360,12 @@ class KeyPoints:
                     face_landmark.landmark
                     for face_landmark in mediapipe_results.multi_face_landmarks
                 ]
+        elif hasattr(mediapipe_results, "handedness"):
+            if mediapipe_results.handedness is None:
+                results = []
+            results = [
+                [hand_landmark for hand_landmark in mediapipe_results.hand_landmarks]
+            ]
 
         if len(results) == 0:
             return cls.empty()
