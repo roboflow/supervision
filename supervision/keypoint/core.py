@@ -285,7 +285,7 @@ class KeyPoints:
                 pose_landmarker_result, (image_width, image_height))
             ```
 
-            ```
+            ```python
             import cv2
             import mediapipe as mp
             import supervision as sv
