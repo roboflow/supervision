@@ -75,6 +75,7 @@ nav:
         - Geometry: utils/geometry.md
     - Assets: assets.md
   - Cookbooks: cookbooks.md
+  - Cheatsheet: https://roboflow.github.io/cheatsheet-supervision/
   - Contribute:
     - Contributing: contributing.md
     - Code of Conduct: code_of_conduct.md
