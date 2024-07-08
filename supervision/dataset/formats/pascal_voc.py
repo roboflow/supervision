@@ -167,9 +167,8 @@ def load_pascal_voc_annotations(
     annotations = {}
 
     for image_path in image_paths:
-        image_name = Path(image_path).stem
-
-        annotation_path = os.path.join(annotations_directory_path, f"{image_name}.xml")
+        image_stem = Path(image_path).stem
+        annotation_path = os.path.join(annotations_directory_path, f"{image_stem}.xml")
         if not os.path.exists(annotation_path):
             annotations[image_path] = Detections.empty()
             continue
@@ -183,6 +182,8 @@ def load_pascal_voc_annotations(
             root, classes, resolution_wh, force_masks
         )
         annotations[image_path] = annotation
+
+    # TODO: classes are wrong
 
     return classes, image_paths, annotations
 

@@ -5,8 +5,8 @@ import numpy as np
 import pytest
 
 from supervision.dataset.formats.yolo import (
-    _image_name_to_annotation_name,
     _with_mask,
+    image_name_to_annotation_name,
     object_to_yolo,
     yolo_annotations_to_detections,
 )
@@ -205,7 +205,7 @@ def test_image_name_to_annotation_name(
     image_name: str, expected_result: Optional[str], exception: Exception
 ) -> None:
     with exception:
-        result = _image_name_to_annotation_name(image_name=image_name)
+        result = image_name_to_annotation_name(image_name=image_name)
         assert result == expected_result
 
 

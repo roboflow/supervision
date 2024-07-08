@@ -20,9 +20,10 @@ from supervision.dataset.formats.pascal_voc import (
     load_pascal_voc_annotations,
 )
 from supervision.dataset.formats.yolo import (
+    detections_to_yolo_annotations,
+    image_name_to_annotation_name,
     load_yolo_annotations,
     save_data_yaml,
-    save_yolo_annotations,
 )
 from supervision.dataset.utils import (
     build_class_index_mapping,
@@ -31,6 +32,7 @@ from supervision.dataset.utils import (
     train_test_split,
 )
 from supervision.detection.core import Detections
+from supervision.utils.file import save_text_file
 from supervision.utils.internal import deprecated, warn_deprecated
 from supervision.utils.iterables import find_duplicates
 
@@ -49,7 +51,9 @@ class BaseDataset(ABC):
 
 class DetectionDataset(BaseDataset):
     """
-    Dataclass containing information about object detection dataset.
+    Contains information about a detection dataset. Handles lazy image loading
+    and annotation retrieval, dataset splitting, conversions into multiple
+    formats.
 
     Attributes:
         classes (List[str]): List containing dataset class names.
@@ -58,7 +62,9 @@ class DetectionDataset(BaseDataset):
             with paths as keys. If you pass a list of paths, the dataset will
             lazily load images on demand, which is much more memory-efficient.
         annotations (Dict[str, Detections]): Dictionary mapping
-            image path to detections.
+            image path to annotations. The dictionary keys match
+            match the keys in `images` or entries in the list of
+            image paths.
     """
 
     def __init__(
@@ -68,35 +74,44 @@ class DetectionDataset(BaseDataset):
         annotations: Dict[str, Detections],
     ) -> None:
         self.classes = classes
+
+        if set(images) != set(annotations):
+            raise ValueError(
+                "The keys of the images and annotations dictionaries must match."
+            )
         self.annotations = annotations
 
-        self._image_paths_as_unique_keys = dict.fromkeys(images)
-        self.image_paths = list(self._image_paths_as_unique_keys)
+        # Eliminate duplicates while preserving order
+        self.image_paths = list(dict.fromkeys(images))
 
         self._images_in_memory: Dict[str, np.ndarray] = {}
         if isinstance(images, dict):
             self._images_in_memory = images
             warn_deprecated(
-                "Passing a `Dict[str, np.ndarray]` into `DetectionDataset` is deprecated and "
-                "will be removed in `supervision-0.26.0`. Use a list of paths `List[str]` "
-                "instead."
+                "Passing a `Dict[str, np.ndarray]` into `DetectionDataset` is "
+                "deprecated and will be removed in `supervision-0.26.0`. Use "
+                "a list of paths `List[str]` instead."
             )
-            # TODO: when supervision-0.26.0 is released, and images: Dict[str, np.ndarray] is
-            #       no longer supported, also simplify the rest of the code. E.g. list(images)
-            #       is no longer needed, and merge can be simplified.
+            # TODO: when supervision-0.26.0 is released, and Dict[str, np.ndarray]
+            #       for images is no longer supported, also simplify the rest of
+            #       the code. E.g. list(images) is no longer needed, and merge can
+            #       be simplified.
 
     @property
     @deprecated(
         "`DetectionDataset.images` property is deprecated and will be removed in "
-        "`supervision-0.26.0`. Iterate with `for path, image, annotation in dataset:` instead."
+        "`supervision-0.26.0`. Iterate with `for path, image, annotation in dataset:` "
+        "instead."
     )
     def images(self) -> Dict[str, np.ndarray]:
         """
         Load all images to memory and return them as a dictionary.
 
-        Warning: only use this when you need all images at once.
-        It is much more memory-efficient to initialize dataset with
-        image paths and use `for image in dataset:`.
+        !!! warning
+
+            Only use this when you need all images at once.
+            It is much more memory-efficient to initialize dataset with
+            image paths and use `for path, image, annotation in dataset:`.
         """
         if self._images_in_memory:
             return self._images_in_memory
@@ -120,6 +135,11 @@ class DetectionDataset(BaseDataset):
         return len(self._images_in_memory) or len(self.image_paths)
 
     def __getitem__(self, i: int) -> Tuple[str, np.ndarray, Detections]:
+        """
+        Returns:
+            Tuple[str, np.ndarray, Detections]: The image path, image data,
+                and its corresponding annotation at index i.
+        """
         image_path = self.image_paths[i]
         image = self._get_image(image_path)
         annotation = self.annotations[image_path]
@@ -131,7 +151,7 @@ class DetectionDataset(BaseDataset):
 
         Yields:
             Iterator[Tuple[str, np.ndarray, Detections]]:
-                An iterator that yields tuples containing the image name,
+                An iterator that yields tuples containing the image path,
                 the image data, and its corresponding annotation.
         """
         for i in range(len(self)):
@@ -148,15 +168,14 @@ class DetectionDataset(BaseDataset):
         if self.image_paths != other.image_paths:
             return False
 
-        try:
-            for self_values, other_values in zip(self, other):
-                _, image_self, annotation_self = self_values
-                _, image_other, annotation_other = other_values
-                if not np.array_equal(image_self, image_other):
-                    return False
-                if not annotation_self == annotation_other:
-                    return False
-        except KeyError:
+        if self._images_in_memory or other._images_in_memory:
+            if not np.array_equal(
+                list(self._images_in_memory.values()),
+                list(other._images_in_memory.values()),
+            ):
+                return False
+
+        if not self.annotations == other.annotations:
             return False
 
         return True
@@ -266,7 +285,7 @@ class DetectionDataset(BaseDataset):
             return len(dataset._images_in_memory) > 0 or len(dataset.image_paths) == 0
 
         def is_lazy(dataset: DetectionDataset) -> bool:
-            return not is_in_memory(dataset) or len(dataset._images_in_memory) == 0
+            return len(dataset._images_in_memory) == 0
 
         all_in_memory = all([is_in_memory(dataset) for dataset in dataset_list])
         all_lazy = all([is_lazy(dataset) for dataset in dataset_list])
@@ -279,18 +298,16 @@ class DetectionDataset(BaseDataset):
         for dataset in dataset_list:
             images_in_memory.update(dataset._images_in_memory)
 
-        image_paths: List[str] = []
-        if not images_in_memory:
-            image_paths = list(
-                chain.from_iterable(dataset.image_paths for dataset in dataset_list)
+        image_paths = list(
+            chain.from_iterable(dataset.image_paths for dataset in dataset_list)
+        )
+        image_paths_unique = list(dict.fromkeys(image_paths))
+        if len(image_paths) != len(image_paths_unique):
+            duplicates = find_duplicates(image_paths)
+            raise ValueError(
+                f"Image paths {duplicates} are not unique across datasets."
             )
-            image_paths_unique = list(dict.fromkeys(image_paths))
-            if len(image_paths) != len(image_paths_unique):
-                duplicates = find_duplicates(image_paths)
-                raise ValueError(
-                    f"Image paths {duplicates} are not unique across datasets."
-                )
-            image_paths = image_paths_unique
+        image_paths = image_paths_unique
 
         classes = merge_class_lists(
             class_lists=[dataset.classes for dataset in dataset_list]
@@ -352,7 +369,7 @@ class DetectionDataset(BaseDataset):
             )
         if annotations_directory_path:
             Path(annotations_directory_path).mkdir(parents=True, exist_ok=True)
-            for image_path, image, annotations in self.images.items():
+            for image_path, image, annotations in self:
                 annotation_name = Path(image_path).stem
                 annotations_path = os.path.join(
                     annotations_directory_path, f"{annotation_name}.xml"
@@ -362,7 +379,7 @@ class DetectionDataset(BaseDataset):
                     detections=annotations,
                     classes=self.classes,
                     filename=image_name,
-                    image_shape=image.shape,
+                    image_shape=image.shape,  # type: ignore
                     min_image_area_percentage=min_image_area_percentage,
                     max_image_area_percentage=max_image_area_percentage,
                     approximation_percentage=approximation_percentage,
@@ -415,13 +432,15 @@ class DetectionDataset(BaseDataset):
             ```
         """
 
-        classes, images, annotations = load_pascal_voc_annotations(
+        classes, image_paths, annotations = load_pascal_voc_annotations(
             images_directory_path=images_directory_path,
             annotations_directory_path=annotations_directory_path,
             force_masks=force_masks,
         )
 
-        return DetectionDataset(classes=classes, images=images, annotations=annotations)
+        return DetectionDataset(
+            classes=classes, images=image_paths, annotations=annotations
+        )
 
     @classmethod
     def from_yolo(
@@ -475,14 +494,16 @@ class DetectionDataset(BaseDataset):
             # ['dog', 'person']
             ```
         """
-        classes, images, annotations = load_yolo_annotations(
+        classes, image_paths, annotations = load_yolo_annotations(
             images_directory_path=images_directory_path,
             annotations_directory_path=annotations_directory_path,
             data_yaml_path=data_yaml_path,
             force_masks=force_masks,
             is_obb=is_obb,
         )
-        return DetectionDataset(classes=classes, images=images, annotations=annotations)
+        return DetectionDataset(
+            classes=classes, images=image_paths, annotations=annotations
+        )
 
     def as_yolo(
         self,
@@ -524,10 +545,8 @@ class DetectionDataset(BaseDataset):
         if images_directory_path is not None:
             self._save_images(images_directory_path=images_directory_path)
         if annotations_directory_path is not None:
-            save_yolo_annotations(
+            self._save_yolo_annotations(
                 annotations_directory_path=annotations_directory_path,
-                images=self.images,
-                annotations=self.annotations,
                 min_image_area_percentage=min_image_area_percentage,
                 max_image_area_percentage=max_image_area_percentage,
                 approximation_percentage=approximation_percentage,
@@ -630,9 +649,7 @@ class DetectionDataset(BaseDataset):
                 Argument is used only for segmentation datasets.
         """
         if images_directory_path is not None:
-            save_dataset_images(
-                images_directory_path=images_directory_path, images=self.images
-            )
+            self._save_images(images_directory_path=images_directory_path)
         if annotations_path is not None:
             save_coco_annotations(
                 annotation_path=annotations_path,
@@ -649,6 +666,29 @@ class DetectionDataset(BaseDataset):
         for image_path, image, _ in self:
             final_path = os.path.join(images_directory_path, image_path)
             cv2.imwrite(final_path, image)
+
+    def _save_yolo_annotations(
+        self,
+        annotations_directory_path: str,
+        min_image_area_percentage: float = 0.0,
+        max_image_area_percentage: float = 1.0,
+        approximation_percentage: float = 0.75,
+    ) -> None:
+        Path(annotations_directory_path).mkdir(parents=True, exist_ok=True)
+        for image_path, image, annotation in self:
+            image_name = Path(image_path).name
+            yolo_annotations_name = image_name_to_annotation_name(image_name=image_name)
+            yolo_annotations_path = os.path.join(
+                annotations_directory_path, yolo_annotations_name
+            )
+            lines = detections_to_yolo_annotations(
+                detections=annotation,
+                image_shape=image.shape,  # type: ignore
+                min_image_area_percentage=min_image_area_percentage,
+                max_image_area_percentage=max_image_area_percentage,
+                approximation_percentage=approximation_percentage,
+            )
+            save_text_file(lines=lines, file_path=yolo_annotations_path)
 
 
 @dataclass

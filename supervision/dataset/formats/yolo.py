@@ -13,7 +13,6 @@ from supervision.utils.file import (
     list_files_with_extensions,
     read_txt_file,
     read_yaml_file,
-    save_text_file,
     save_yaml_file,
 )
 
@@ -65,7 +64,7 @@ def _extract_class_names(file_path: str) -> List[str]:
     return names
 
 
-def _image_name_to_annotation_name(image_name: str) -> str:
+def image_name_to_annotation_name(image_name: str) -> str:
     base_name, _ = os.path.splitext(image_name)
     return base_name + ".txt"
 
@@ -124,7 +123,7 @@ def load_yolo_annotations(
     data_yaml_path: str,
     force_masks: bool = False,
     is_obb: bool = False,
-) -> Tuple[List[str], Dict[str, np.ndarray], Dict[str, Detections]]:
+) -> Tuple[List[str], List[str], Dict[str, Detections]]:
     """
     Loads YOLO annotations and returns class names, images,
         and their corresponding detections.
@@ -142,30 +141,29 @@ def load_yolo_annotations(
             where pairs of [x, y] are box corners.
 
     Returns:
-        Tuple[List[str], Dict[str, np.ndarray], Dict[str, Detections]]:
+        Tuple[List[str], List[str], Dict[str, Detections]]:
             A tuple containing a list of class names, a dictionary with
             image names as keys and images as values, and a dictionary
             with image names as keys and corresponding Detections instances as values.
     """
-    image_paths = list_files_with_extensions(
-        directory=images_directory_path, extensions=["jpg", "jpeg", "png"]
-    )
+    image_paths = [
+        str(path)
+        for path in list_files_with_extensions(
+            directory=images_directory_path, extensions=["jpg", "jpeg", "png"]
+        )
+    ]
 
     classes = _extract_class_names(file_path=data_yaml_path)
-    images = {}
     annotations = {}
 
     for image_path in image_paths:
         image_stem = Path(image_path).stem
-        image_path = str(image_path)
-        image = cv2.imread(image_path)
-
         annotation_path = os.path.join(annotations_directory_path, f"{image_stem}.txt")
         if not os.path.exists(annotation_path):
-            images[image_path] = image
             annotations[image_path] = Detections.empty()
             continue
 
+        image = cv2.imread(image_path)
         lines = read_txt_file(file_path=annotation_path, skip_empty=True)
         h, w, _ = image.shape
         resolution_wh = (w, h)
@@ -178,9 +176,8 @@ def load_yolo_annotations(
             with_masks=with_masks,
             is_obb=is_obb,
         )
-        images[image_path] = image
         annotations[image_path] = annotation
-    return classes, images, annotations
+    return classes, image_paths, annotations
 
 
 def object_to_yolo(
@@ -214,6 +211,9 @@ def detections_to_yolo_annotations(
 ) -> List[str]:
     annotation = []
     for xyxy, mask, _, class_id, _, _ in detections:
+        if class_id is None:
+            raise ValueError("Class ID is required for YOLO annotations.")
+
         if mask is not None:
             polygons = approximate_mask_with_polygons(
                 mask=mask,
@@ -236,32 +236,6 @@ def detections_to_yolo_annotations(
             )
             annotation.append(next_object)
     return annotation
-
-
-def save_yolo_annotations(
-    annotations_directory_path: str,
-    images: Dict[str, np.ndarray],
-    annotations: Dict[str, Detections],
-    min_image_area_percentage: float = 0.0,
-    max_image_area_percentage: float = 1.0,
-    approximation_percentage: float = 0.75,
-) -> None:
-    Path(annotations_directory_path).mkdir(parents=True, exist_ok=True)
-    for image_path, image in images.items():
-        detections = annotations[image_path]
-        image_name = Path(image_path).name
-        yolo_annotations_name = _image_name_to_annotation_name(image_name=image_name)
-        yolo_annotations_path = os.path.join(
-            annotations_directory_path, yolo_annotations_name
-        )
-        lines = detections_to_yolo_annotations(
-            detections=detections,
-            image_shape=image.shape,
-            min_image_area_percentage=min_image_area_percentage,
-            max_image_area_percentage=max_image_area_percentage,
-            approximation_percentage=approximation_percentage,
-        )
-        save_text_file(lines=lines, file_path=yolo_annotations_path)
 
 
 def save_data_yaml(data_yaml_path: str, classes: List[str]) -> None:
