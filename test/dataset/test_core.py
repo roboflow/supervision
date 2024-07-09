@@ -13,7 +13,7 @@ from supervision import DetectionDataset
     [
         (
             [],
-            DetectionDataset(classes=[], images={}, annotations={}),
+            DetectionDataset(classes=[], images=[], annotations={}),
             DoesNotRaise(),
         ),  # empty dataset list
         (

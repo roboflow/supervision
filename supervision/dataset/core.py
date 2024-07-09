@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from datetime import datetime
 from itertools import chain
 from pathlib import Path
 from typing import Dict, Iterator, List, Optional, Tuple, Union
@@ -12,8 +13,9 @@ import numpy as np
 
 from supervision.classification.core import Classifications
 from supervision.dataset.formats.coco import (
+    classes_to_coco_categories,
+    detections_to_coco_annotations,
     load_coco_annotations,
-    save_coco_annotations,
 )
 from supervision.dataset.formats.pascal_voc import (
     detections_to_pascal_voc,
@@ -32,7 +34,7 @@ from supervision.dataset.utils import (
     train_test_split,
 )
 from supervision.detection.core import Detections
-from supervision.utils.file import save_text_file
+from supervision.utils.file import save_json_file, save_text_file
 from supervision.utils.internal import deprecated, warn_deprecated
 from supervision.utils.iterables import find_duplicates
 
@@ -126,12 +128,6 @@ class DetectionDataset(BaseDataset):
         return cv2.imread(image_path)
 
     def __len__(self) -> int:
-        """
-        Return the number of images in the dataset.
-
-        Returns:
-            int: The number of images.
-        """
         return len(self._images_in_memory) or len(self.image_paths)
 
     def __getitem__(self, i: int) -> Tuple[str, np.ndarray, Detections]:
@@ -175,7 +171,7 @@ class DetectionDataset(BaseDataset):
             ):
                 return False
 
-        if not self.annotations == other.annotations:
+        if self.annotations != other.annotations:
             return False
 
         return True
@@ -651,11 +647,8 @@ class DetectionDataset(BaseDataset):
         if images_directory_path is not None:
             self._save_images(images_directory_path=images_directory_path)
         if annotations_path is not None:
-            save_coco_annotations(
+            self._save_coco_annotations(
                 annotation_path=annotations_path,
-                images=self.images,
-                annotations=self.annotations,
-                classes=self.classes,
                 min_image_area_percentage=min_image_area_percentage,
                 max_image_area_percentage=max_image_area_percentage,
                 approximation_percentage=approximation_percentage,
@@ -666,6 +659,61 @@ class DetectionDataset(BaseDataset):
         for image_path, image, _ in self:
             final_path = os.path.join(images_directory_path, image_path)
             cv2.imwrite(final_path, image)
+
+    def _save_coco_annotations(
+        self,
+        annotation_path: str,
+        min_image_area_percentage: float = 0.0,
+        max_image_area_percentage: float = 1.0,
+        approximation_percentage: float = 0.75,
+    ) -> None:
+        Path(annotation_path).parent.mkdir(parents=True, exist_ok=True)
+        licenses = [
+            {
+                "id": 1,
+                "url": "https://creativecommons.org/licenses/by/4.0/",
+                "name": "CC BY 4.0",
+            }
+        ]
+
+        coco_annotations = []
+        coco_images = []
+        coco_categories = classes_to_coco_categories(classes=self.classes)
+
+        image_id, annotation_id = 1, 1
+        for image_path, image, annotation in self:
+            image_height, image_width, _ = image.shape
+            image_name = f"{Path(image_path).stem}{Path(image_path).suffix}"
+            coco_image = {
+                "id": image_id,
+                "license": 1,
+                "file_name": image_name,
+                "height": image_height,
+                "width": image_width,
+                "date_captured": datetime.now().strftime("%m/%d/%Y,%H:%M:%S"),
+            }
+
+            coco_images.append(coco_image)
+            coco_annotation, annotation_id = detections_to_coco_annotations(
+                detections=annotation,
+                image_id=image_id,
+                annotation_id=annotation_id,
+                min_image_area_percentage=min_image_area_percentage,
+                max_image_area_percentage=max_image_area_percentage,
+                approximation_percentage=approximation_percentage,
+            )
+
+            coco_annotations.extend(coco_annotation)
+            image_id += 1
+
+        annotation_dict = {
+            "info": {},
+            "licenses": licenses,
+            "categories": coco_categories,
+            "images": coco_images,
+            "annotations": coco_annotations,
+        }
+        save_json_file(annotation_dict, file_path=annotation_path)
 
     def _save_yolo_annotations(
         self,
@@ -694,21 +742,119 @@ class DetectionDataset(BaseDataset):
 @dataclass
 class ClassificationDataset(BaseDataset):
     """
-    Dataclass containing information about a classification dataset.
+    Contains information about a classification dataset, handles lazy image
+    loading, dataset splitting.
 
     Attributes:
         classes (List[str]): List containing dataset class names.
-        images (Dict[str, np.ndarray]): Dictionary mapping image name to image.
-        annotations (Dict[str, Detections]): Dictionary mapping
+        images (Union[List[str], Dict[str, np.ndarray]]):
+            List of image paths or dictionary mapping image name to image data.
+        annotations (Dict[str, Classifications]): Dictionary mapping
             image name to annotations.
     """
 
-    classes: List[str]
-    images: Dict[str, np.ndarray]
-    annotations: Dict[str, Classifications]
+    def __init__(
+        self,
+        classes: List[str],
+        images: Union[List[str], Dict[str, np.ndarray]],
+        annotations: Dict[str, Classifications],
+    ) -> None:
+        self.classes = classes
+
+        if set(images) != set(annotations):
+            raise ValueError(
+                "The keys of the images and annotations dictionaries must match."
+            )
+        self.annotations = annotations
+
+        # Eliminate duplicates while preserving order
+        self.image_paths = list(dict.fromkeys(images))
+
+        self._images_in_memory: Dict[str, np.ndarray] = {}
+        if isinstance(images, dict):
+            self._images_in_memory = images
+            warn_deprecated(
+                "Passing a `Dict[str, np.ndarray]` into `ClassificationDataset` is "
+                "deprecated and will be removed in a future release. Use "
+                "a list of paths `List[str]` instead."
+            )
+
+    @property
+    @deprecated(
+        "`DetectionDataset.images` property is deprecated and will be removed in "
+        "`supervision-0.26.0`. Iterate with `for path, image, annotation in dataset:` "
+        "instead."
+    )
+    def images(self) -> Dict[str, np.ndarray]:
+        """
+        Load all images to memory and return them as a dictionary.
+
+        !!! warning
+
+            Only use this when you need all images at once.
+            It is much more memory-efficient to initialize dataset with
+            image paths and use `for path, image, annotation in dataset:`.
+        """
+        if self._images_in_memory:
+            return self._images_in_memory
+
+        images = {image_path: cv2.imread(image_path) for image_path in self.image_paths}
+        return images
+
+    def _get_image(self, image_path: str) -> np.ndarray:
+        """Assumes that image is in dataset"""
+        if self._images_in_memory:
+            return self._images_in_memory[image_path]
+        return cv2.imread(image_path)
 
     def __len__(self) -> int:
-        return len(self.images)
+        return len(self._images_in_memory) or len(self.image_paths)
+
+    def __getitem__(self, i: int) -> Tuple[str, np.ndarray, Classifications]:
+        """
+        Returns:
+            Tuple[str, np.ndarray, Classifications]: The image path, image data,
+                and its corresponding annotation at index i.
+        """
+        image_path = self.image_paths[i]
+        image = self._get_image(image_path)
+        annotation = self.annotations[image_path]
+        return image_path, image, annotation
+
+    def __iter__(self) -> Iterator[Tuple[str, np.ndarray, Classifications]]:
+        """
+        Iterate over the images and annotations in the dataset.
+
+        Yields:
+            Iterator[Tuple[str, np.ndarray, Detections]]:
+                An iterator that yields tuples containing the image path,
+                the image data, and its corresponding annotation.
+        """
+        for i in range(len(self)):
+            image_path, image, annotation = self[i]
+            yield image_path, image, annotation
+
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, ClassificationDataset):
+            return False
+
+        if set(self.classes) != set(other.classes):
+            return False
+
+        if self.image_paths != other.image_paths:
+            return False
+
+        if self._images_in_memory or other._images_in_memory:
+            if not np.array_equal(
+                list(self._images_in_memory.values()),
+                list(other._images_in_memory.values()),
+            ):
+                return False
+
+        if self.annotations != other.annotations:
+            return False
+
+        return True
 
     def split(
         self, split_ratio=0.8, random_state=None, shuffle: bool = True
@@ -738,24 +884,35 @@ class ClassificationDataset(BaseDataset):
             # (700, 300)
             ```
         """
-        image_names = list(self.images.keys())
-        train_names, test_names = train_test_split(
-            data=image_names,
+        train_paths, test_paths = train_test_split(
+            data=self.image_paths,
             train_ratio=split_ratio,
             random_state=random_state,
             shuffle=shuffle,
         )
 
+        train_input: Union[List[str], Dict[str, np.ndarray]]
+        test_input: Union[List[str], Dict[str, np.ndarray]]
+        if self._images_in_memory:
+            train_input = {path: self._images_in_memory[path] for path in train_paths}
+            test_input = {path: self._images_in_memory[path] for path in test_paths}
+        else:
+            train_input = train_paths
+            test_input = test_paths
+        train_annotations = {path: self.annotations[path] for path in train_paths}
+        test_annotations = {path: self.annotations[path] for path in test_paths}
+
         train_dataset = ClassificationDataset(
             classes=self.classes,
-            images={name: self.images[name] for name in train_names},
-            annotations={name: self.annotations[name] for name in train_names},
+            images=train_input,
+            annotations=train_annotations,
         )
         test_dataset = ClassificationDataset(
             classes=self.classes,
-            images={name: self.images[name] for name in test_names},
-            annotations={name: self.annotations[name] for name in test_names},
+            images=test_input,
+            annotations=test_annotations,
         )
+
         return train_dataset, test_dataset
 
     def as_folder_structure(self, root_directory_path: str) -> None:
@@ -771,18 +928,16 @@ class ClassificationDataset(BaseDataset):
         for class_name in self.classes:
             os.makedirs(os.path.join(root_directory_path, class_name), exist_ok=True)
 
-        for image_path in self.images:
-            classification = self.annotations[image_path]
-            image = self.images[image_path]
-            image_name = Path(image_path).name
+        for image_save_path, image, annotation in self:
+            image_name = Path(image_save_path).name
             class_id = (
-                classification.class_id[0]
-                if classification.confidence is None
-                else classification.get_top_k(1)[0][0]
+                annotation.class_id[0]
+                if annotation.confidence is None
+                else annotation.get_top_k(1)[0][0]
             )
             class_name = self.classes[class_id]
-            image_path = os.path.join(root_directory_path, class_name, image_name)
-            cv2.imwrite(image_path, image)
+            image_save_path = os.path.join(root_directory_path, class_name, image_name)
+            cv2.imwrite(image_save_path, image)
 
     @classmethod
     def from_folder_structure(cls, root_directory_path: str) -> ClassificationDataset:
@@ -815,7 +970,7 @@ class ClassificationDataset(BaseDataset):
         classes = os.listdir(root_directory_path)
         classes = sorted(set(classes))
 
-        images = {}
+        image_paths = []
         annotations = {}
 
         for class_name in classes:
@@ -823,13 +978,13 @@ class ClassificationDataset(BaseDataset):
 
             for image in os.listdir(os.path.join(root_directory_path, class_name)):
                 image_path = str(os.path.join(root_directory_path, class_name, image))
-                images[image_path] = cv2.imread(image_path)
+                image_paths.append(image_path)
                 annotations[image_path] = Classifications(
                     class_id=np.array([class_id]),
                 )
 
         return cls(
             classes=classes,
-            images=images,
+            images=image_paths,
             annotations=annotations,
         )

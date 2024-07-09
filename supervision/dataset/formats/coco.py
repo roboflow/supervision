@@ -1,6 +1,4 @@
 import os
-from datetime import datetime
-from pathlib import Path
 from typing import Dict, List, Tuple
 
 import cv2
@@ -19,7 +17,7 @@ from supervision.detection.utils import (
     contains_multiple_segments,
     polygon_to_mask,
 )
-from supervision.utils.file import read_json_file, save_json_file
+from supervision.utils.file import read_json_file
 
 
 def coco_categories_to_classes(coco_categories: List[dict]) -> List[str]:
@@ -199,64 +197,3 @@ def load_coco_annotations(
         annotations[image_path] = annotation
 
     return classes, images, annotations
-
-
-def save_coco_annotations(
-    annotation_path: str,
-    images: Dict[str, np.ndarray],
-    annotations: Dict[str, Detections],
-    classes: List[str],
-    min_image_area_percentage: float = 0.0,
-    max_image_area_percentage: float = 1.0,
-    approximation_percentage: float = 0.75,
-) -> None:
-    Path(annotation_path).parent.mkdir(parents=True, exist_ok=True)
-    info = {}
-    licenses = [
-        {
-            "id": 1,
-            "url": "https://creativecommons.org/licenses/by/4.0/",
-            "name": "CC BY 4.0",
-        }
-    ]
-
-    coco_annotations = []
-    coco_images = []
-    coco_categories = classes_to_coco_categories(classes=classes)
-
-    image_id, annotation_id = 1, 1
-    for image_path, image in images.items():
-        image_height, image_width, _ = image.shape
-        image_name = f"{Path(image_path).stem}{Path(image_path).suffix}"
-        coco_image = {
-            "id": image_id,
-            "license": 1,
-            "file_name": image_name,
-            "height": image_height,
-            "width": image_width,
-            "date_captured": datetime.now().strftime("%m/%d/%Y,%H:%M:%S"),
-        }
-
-        coco_images.append(coco_image)
-        detections = annotations[image_path]
-
-        coco_annotation, annotation_id = detections_to_coco_annotations(
-            detections=detections,
-            image_id=image_id,
-            annotation_id=annotation_id,
-            min_image_area_percentage=min_image_area_percentage,
-            max_image_area_percentage=max_image_area_percentage,
-            approximation_percentage=approximation_percentage,
-        )
-
-        coco_annotations.extend(coco_annotation)
-        image_id += 1
-
-    annotation_dict = {
-        "info": info,
-        "licenses": licenses,
-        "categories": coco_categories,
-        "images": coco_images,
-        "annotations": coco_annotations,
-    }
-    save_json_file(annotation_dict, file_path=annotation_path)
