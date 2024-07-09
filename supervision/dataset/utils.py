@@ -1,9 +1,9 @@
 import copy
 import os
 import random
+import shutil
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, TypeVar, Union
-import shutil
 
 import cv2
 import numpy as np
@@ -109,6 +109,7 @@ def save_dataset_images(
             cv2.imwrite(final_path, image)
         else:
             shutil.copyfile(image_path, final_path)
+
 
 def train_test_split(
     data: List[T],
