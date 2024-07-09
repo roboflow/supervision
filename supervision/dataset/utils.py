@@ -3,6 +3,7 @@ import os
 import random
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, TypeVar, Union
+import shutil
 
 import cv2
 import numpy as np
@@ -101,10 +102,13 @@ def save_dataset_images(
     dataset: "DetectionDataset", images_directory_path: str
 ) -> None:
     Path(images_directory_path).mkdir(parents=True, exist_ok=True)
-    for image_path, image, _ in dataset:
-        final_path = os.path.join(images_directory_path, image_path)
-        cv2.imwrite(final_path, image)
-
+    for image_path in dataset.image_paths:
+        final_path = os.path.join(images_directory_path, Path(image_path).name)
+        if image_path in dataset._images_in_memory:
+            image = dataset._images_in_memory[image_path]
+            cv2.imwrite(final_path, image)
+        else:
+            shutil.copyfile(image_path, final_path)
 
 def train_test_split(
     data: List[T],
