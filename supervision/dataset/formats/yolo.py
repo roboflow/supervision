@@ -68,7 +68,7 @@ def _extract_class_names(file_path: str) -> List[str]:
     return names
 
 
-def image_name_to_annotation_name(image_name: str) -> str:
+def _image_name_to_annotation_name(image_name: str) -> str:
     base_name, _ = os.path.splitext(image_name)
     return base_name + ".txt"
 
@@ -242,12 +242,6 @@ def detections_to_yolo_annotations(
     return annotation
 
 
-def save_data_yaml(data_yaml_path: str, classes: List[str]) -> None:
-    data = {"nc": len(classes), "names": classes}
-    Path(data_yaml_path).parent.mkdir(parents=True, exist_ok=True)
-    save_yaml_file(data=data, file_path=data_yaml_path)
-
-
 def save_yolo_annotations(
     dataset: "DetectionDataset",
     annotations_directory_path: str,
@@ -258,7 +252,7 @@ def save_yolo_annotations(
     Path(annotations_directory_path).mkdir(parents=True, exist_ok=True)
     for image_path, image, annotation in dataset:
         image_name = Path(image_path).name
-        yolo_annotations_name = image_name_to_annotation_name(image_name=image_name)
+        yolo_annotations_name = _image_name_to_annotation_name(image_name=image_name)
         yolo_annotations_path = os.path.join(
             annotations_directory_path, yolo_annotations_name
         )
@@ -270,3 +264,9 @@ def save_yolo_annotations(
             approximation_percentage=approximation_percentage,
         )
         save_text_file(lines=lines, file_path=yolo_annotations_path)
+
+
+def save_data_yaml(data_yaml_path: str, classes: List[str]) -> None:
+    data = {"nc": len(classes), "names": classes}
+    Path(data_yaml_path).parent.mkdir(parents=True, exist_ok=True)
+    save_yaml_file(data=data, file_path=data_yaml_path)

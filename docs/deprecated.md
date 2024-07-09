@@ -5,7 +5,7 @@ status: deprecated
 
 These features are phased out due to better alternatives or potential issues in future versions. Deprecated functionalities are supported for **three subsequent releases**, providing time for users to transition to updated methods.
 
-- [`Detections.from_froboflow`](detection/core.md/#supervision.detection.core.Detections.from_roboflow) is deprecated and will be removed in `supervision-0.22.0`. Use [`Detections.from_inference`](detection/core.md/#supervision.detection.core.Detections.from_inference) instead.
+- [`Detections.from_roboflow`](detection/core.md/#supervision.detection.core.Detections.from_roboflow) is deprecated and will be removed in `supervision-0.22.0`. Use [`Detections.from_inference`](detection/core.md/#supervision.detection.core.Detections.from_inference) instead.
 - The method `Color.white()` is deprecated and will be removed in `supervision-0.22.0`. Use the constant `Color.WHITE` instead.
 - The method `Color.black()` is deprecated and will be removed in `supervision-0.22.0`. Use the constant `Color.BLACK` instead.
 - The method `Color.red()` is deprecated and will be removed in `supervision-0.22.0`. Use the constant `Color.RED` instead.

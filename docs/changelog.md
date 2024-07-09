@@ -176,8 +176,6 @@ with csv_sink:
 
 - Added [#819](https://github.com/roboflow/supervision/pull/819): [`sv.JSONSink`](/0.19.0/detection/tools/save_detections/#supervision.detection.tools.csv_sink.JSONSink) allowing for the straightforward saving of image, video, or stream inference results in a `.json` file.
 
-````python
-
 ```python
 import supervision as sv
 from ultralytics import YOLO
@@ -191,7 +189,7 @@ with json_sink:
         result = model(frame)[0]
         detections = sv.Detections.from_ultralytics(result)
         json_sink.append(detections, custom_data={<CUSTOM_LABEL>:<CUSTOM_DATA>})
-````
+```
 
 - Added [#847](https://github.com/roboflow/supervision/pull/847): [`sv.mask_iou_batch`](/0.19.0/detection/utils/#supervision.detection.utils.mask_iou_batch) allowing to compute Intersection over Union (IoU) of two sets of masks.
 

@@ -183,8 +183,6 @@ def load_pascal_voc_annotations(
         )
         annotations[image_path] = annotation
 
-    # TODO: classes are wrong
-
     return classes, image_paths, annotations
 
 
