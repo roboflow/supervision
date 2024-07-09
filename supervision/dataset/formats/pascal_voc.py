@@ -5,7 +5,8 @@ from xml.etree.ElementTree import Element, SubElement
 
 import cv2
 import numpy as np
-from defusedxml.ElementTree import fromstring, parse, tostring
+from defusedxml.ElementTree import parse, tostring
+from defusedxml.minidom import parseString
 
 from supervision.dataset.utils import approximate_mask_with_polygons
 from supervision.detection.core import Detections
@@ -129,8 +130,7 @@ def detections_to_pascal_voc(
             annotation.append(next_object)
 
     # Generate XML string
-    xml_string = fromstring(tostring(annotation)).toprettyxml(indent="  ")
-
+    xml_string = parseString(tostring(annotation)).toprettyxml(indent="  ")
     return xml_string
 
 
