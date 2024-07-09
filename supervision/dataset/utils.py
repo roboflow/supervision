@@ -1,7 +1,10 @@
 import copy
+import os
 import random
-from typing import Dict, List, Optional, Tuple, TypeVar, Union
+from pathlib import Path
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, TypeVar, Union
 
+import cv2
 import numpy as np
 import numpy.typing as npt
 
@@ -11,6 +14,9 @@ from supervision.detection.utils import (
     filter_polygons_by_area,
     mask_to_polygons,
 )
+
+if TYPE_CHECKING:
+    from supervision.dataset.core import DetectionDataset
 
 T = TypeVar("T")
 
@@ -89,6 +95,15 @@ def map_detections_class_id(
         )
 
     return detections_copy
+
+
+def save_dataset_images(
+    dataset: "DetectionDataset", images_directory_path: str
+) -> None:
+    Path(images_directory_path).mkdir(parents=True, exist_ok=True)
+    for image_path, image, _ in dataset:
+        final_path = os.path.join(images_directory_path, image_path)
+        cv2.imwrite(final_path, image)
 
 
 def train_test_split(

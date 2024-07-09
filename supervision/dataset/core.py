@@ -28,6 +28,7 @@ from supervision.dataset.utils import (
     build_class_index_mapping,
     map_detections_class_id,
     merge_class_lists,
+    save_dataset_images,
     train_test_split,
 )
 from supervision.detection.core import Detections
@@ -356,7 +357,8 @@ class DetectionDataset(BaseDataset):
                 in the range [0, 1). Argument is used only for segmentation datasets.
         """
         if images_directory_path:
-            self._save_images(
+            save_dataset_images(
+                dataset=self,
                 images_directory_path=images_directory_path,
             )
         if annotations_directory_path:
@@ -535,7 +537,9 @@ class DetectionDataset(BaseDataset):
                 Argument is used only for segmentation datasets.
         """
         if images_directory_path is not None:
-            self._save_images(images_directory_path=images_directory_path)
+            save_dataset_images(
+                dataset=self, images_directory_path=images_directory_path
+            )
         if annotations_directory_path is not None:
             save_yolo_annotations(
                 dataset=self,
@@ -642,7 +646,9 @@ class DetectionDataset(BaseDataset):
                 Argument is used only for segmentation datasets.
         """
         if images_directory_path is not None:
-            self._save_images(images_directory_path=images_directory_path)
+            save_dataset_images(
+                dataset=self, images_directory_path=images_directory_path
+            )
         if annotations_path is not None:
             save_coco_annotations(
                 dataset=self,
@@ -651,12 +657,6 @@ class DetectionDataset(BaseDataset):
                 max_image_area_percentage=max_image_area_percentage,
                 approximation_percentage=approximation_percentage,
             )
-
-    def _save_images(self, images_directory_path: str) -> None:
-        Path(images_directory_path).mkdir(parents=True, exist_ok=True)
-        for image_path, image, _ in self:
-            final_path = os.path.join(images_directory_path, image_path)
-            cv2.imwrite(final_path, image)
 
 
 @dataclass
