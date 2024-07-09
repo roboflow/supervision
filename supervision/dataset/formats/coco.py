@@ -3,7 +3,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Tuple
 
-import cv2
 import numpy as np
 import numpy.typing as npt
 
@@ -164,7 +163,7 @@ def load_coco_annotations(
     images_directory_path: str,
     annotations_path: str,
     force_masks: bool = False,
-) -> Tuple[List[str], Dict[str, np.ndarray], Dict[str, Detections]]:
+) -> Tuple[List[str], List[str], Dict[str, Detections]]:
     coco_data = read_json_file(file_path=annotations_path)
     classes = coco_categories_to_classes(coco_categories=coco_data["categories"])
     class_index_mapping = build_coco_class_index_mapping(
@@ -175,7 +174,7 @@ def load_coco_annotations(
         coco_annotations=coco_data["annotations"]
     )
 
-    images = {}
+    images = []
     annotations = {}
 
     for coco_image in coco_images:
@@ -187,7 +186,6 @@ def load_coco_annotations(
         image_annotations = coco_annotations_groups.get(coco_image["id"], [])
         image_path = os.path.join(images_directory_path, image_name)
 
-        image = cv2.imread(image_path)
         annotation = coco_annotations_to_detections(
             image_annotations=image_annotations,
             resolution_wh=(image_width, image_height),
@@ -198,7 +196,7 @@ def load_coco_annotations(
             detections=annotation,
         )
 
-        images[image_path] = image
+        images.append(image_path)
         annotations[image_path] = annotation
 
     return classes, images, annotations
