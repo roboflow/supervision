@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
 import cv2
 import numpy as np
@@ -13,8 +13,12 @@ from supervision.utils.file import (
     list_files_with_extensions,
     read_txt_file,
     read_yaml_file,
+    save_text_file,
     save_yaml_file,
 )
+
+if TYPE_CHECKING:
+    from supervision.dataset.core import DetectionDataset
 
 
 def _parse_box(values: List[str]) -> np.ndarray:
@@ -242,3 +246,27 @@ def save_data_yaml(data_yaml_path: str, classes: List[str]) -> None:
     data = {"nc": len(classes), "names": classes}
     Path(data_yaml_path).parent.mkdir(parents=True, exist_ok=True)
     save_yaml_file(data=data, file_path=data_yaml_path)
+
+
+def save_yolo_annotations(
+    dataset: "DetectionDataset",
+    annotations_directory_path: str,
+    min_image_area_percentage: float = 0.0,
+    max_image_area_percentage: float = 1.0,
+    approximation_percentage: float = 0.75,
+) -> None:
+    Path(annotations_directory_path).mkdir(parents=True, exist_ok=True)
+    for image_path, image, annotation in dataset:
+        image_name = Path(image_path).name
+        yolo_annotations_name = image_name_to_annotation_name(image_name=image_name)
+        yolo_annotations_path = os.path.join(
+            annotations_directory_path, yolo_annotations_name
+        )
+        lines = detections_to_yolo_annotations(
+            detections=annotation,
+            image_shape=image.shape,  # type: ignore
+            min_image_area_percentage=min_image_area_percentage,
+            max_image_area_percentage=max_image_area_percentage,
+            approximation_percentage=approximation_percentage,
+        )
+        save_text_file(lines=lines, file_path=yolo_annotations_path)

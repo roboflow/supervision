@@ -3,7 +3,6 @@ from __future__ import annotations
 import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from datetime import datetime
 from itertools import chain
 from pathlib import Path
 from typing import Dict, Iterator, List, Optional, Tuple, Union
@@ -13,19 +12,17 @@ import numpy as np
 
 from supervision.classification.core import Classifications
 from supervision.dataset.formats.coco import (
-    classes_to_coco_categories,
-    detections_to_coco_annotations,
     load_coco_annotations,
+    save_coco_annotations,
 )
 from supervision.dataset.formats.pascal_voc import (
     detections_to_pascal_voc,
     load_pascal_voc_annotations,
 )
 from supervision.dataset.formats.yolo import (
-    detections_to_yolo_annotations,
-    image_name_to_annotation_name,
     load_yolo_annotations,
     save_data_yaml,
+    save_yolo_annotations,
 )
 from supervision.dataset.utils import (
     build_class_index_mapping,
@@ -34,7 +31,6 @@ from supervision.dataset.utils import (
     train_test_split,
 )
 from supervision.detection.core import Detections
-from supervision.utils.file import save_json_file, save_text_file
 from supervision.utils.internal import deprecated, warn_deprecated
 from supervision.utils.iterables import find_duplicates
 
@@ -541,7 +537,8 @@ class DetectionDataset(BaseDataset):
         if images_directory_path is not None:
             self._save_images(images_directory_path=images_directory_path)
         if annotations_directory_path is not None:
-            self._save_yolo_annotations(
+            save_yolo_annotations(
+                dataset=self,
                 annotations_directory_path=annotations_directory_path,
                 min_image_area_percentage=min_image_area_percentage,
                 max_image_area_percentage=max_image_area_percentage,
@@ -647,7 +644,8 @@ class DetectionDataset(BaseDataset):
         if images_directory_path is not None:
             self._save_images(images_directory_path=images_directory_path)
         if annotations_path is not None:
-            self._save_coco_annotations(
+            save_coco_annotations(
+                dataset=self,
                 annotation_path=annotations_path,
                 min_image_area_percentage=min_image_area_percentage,
                 max_image_area_percentage=max_image_area_percentage,
@@ -659,84 +657,6 @@ class DetectionDataset(BaseDataset):
         for image_path, image, _ in self:
             final_path = os.path.join(images_directory_path, image_path)
             cv2.imwrite(final_path, image)
-
-    def _save_coco_annotations(
-        self,
-        annotation_path: str,
-        min_image_area_percentage: float = 0.0,
-        max_image_area_percentage: float = 1.0,
-        approximation_percentage: float = 0.75,
-    ) -> None:
-        Path(annotation_path).parent.mkdir(parents=True, exist_ok=True)
-        licenses = [
-            {
-                "id": 1,
-                "url": "https://creativecommons.org/licenses/by/4.0/",
-                "name": "CC BY 4.0",
-            }
-        ]
-
-        coco_annotations = []
-        coco_images = []
-        coco_categories = classes_to_coco_categories(classes=self.classes)
-
-        image_id, annotation_id = 1, 1
-        for image_path, image, annotation in self:
-            image_height, image_width, _ = image.shape
-            image_name = f"{Path(image_path).stem}{Path(image_path).suffix}"
-            coco_image = {
-                "id": image_id,
-                "license": 1,
-                "file_name": image_name,
-                "height": image_height,
-                "width": image_width,
-                "date_captured": datetime.now().strftime("%m/%d/%Y,%H:%M:%S"),
-            }
-
-            coco_images.append(coco_image)
-            coco_annotation, annotation_id = detections_to_coco_annotations(
-                detections=annotation,
-                image_id=image_id,
-                annotation_id=annotation_id,
-                min_image_area_percentage=min_image_area_percentage,
-                max_image_area_percentage=max_image_area_percentage,
-                approximation_percentage=approximation_percentage,
-            )
-
-            coco_annotations.extend(coco_annotation)
-            image_id += 1
-
-        annotation_dict = {
-            "info": {},
-            "licenses": licenses,
-            "categories": coco_categories,
-            "images": coco_images,
-            "annotations": coco_annotations,
-        }
-        save_json_file(annotation_dict, file_path=annotation_path)
-
-    def _save_yolo_annotations(
-        self,
-        annotations_directory_path: str,
-        min_image_area_percentage: float = 0.0,
-        max_image_area_percentage: float = 1.0,
-        approximation_percentage: float = 0.75,
-    ) -> None:
-        Path(annotations_directory_path).mkdir(parents=True, exist_ok=True)
-        for image_path, image, annotation in self:
-            image_name = Path(image_path).name
-            yolo_annotations_name = image_name_to_annotation_name(image_name=image_name)
-            yolo_annotations_path = os.path.join(
-                annotations_directory_path, yolo_annotations_name
-            )
-            lines = detections_to_yolo_annotations(
-                detections=annotation,
-                image_shape=image.shape,  # type: ignore
-                min_image_area_percentage=min_image_area_percentage,
-                max_image_area_percentage=max_image_area_percentage,
-                approximation_percentage=approximation_percentage,
-            )
-            save_text_file(lines=lines, file_path=yolo_annotations_path)
 
 
 @dataclass
