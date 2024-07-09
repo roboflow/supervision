@@ -242,8 +242,7 @@ def detections_from_xml_obj(
 
         xyxy.append([x1, y1, x2, y2])
 
-        with_masks = obj.find("polygon") is not None
-        with_masks = force_masks if force_masks else with_masks
+        with_masks = force_masks if force_masks else _with_mask(obj)
 
         for polygon in obj.findall("polygon"):
             polygon = parse_polygon_points(polygon)
@@ -275,6 +274,10 @@ def detections_from_xml_obj(
     )
 
     return annotation, extended_classes
+
+
+def _with_mask(obj: Element):
+    return obj.find("polygon") is not None
 
 
 def parse_polygon_points(polygon: Element) -> np.ndarray:
