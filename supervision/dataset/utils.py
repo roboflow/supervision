@@ -1,8 +1,9 @@
 import copy
 import os
 import random
+import shutil
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, TypeVar, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, TypeVar, Union
 
 import cv2
 import numpy as np
@@ -14,6 +15,9 @@ from supervision.detection.utils import (
     filter_polygons_by_area,
     mask_to_polygons,
 )
+
+if TYPE_CHECKING:
+    from supervision.dataset.core import DetectionDataset
 
 T = TypeVar("T")
 
@@ -59,6 +63,7 @@ def merge_class_lists(class_lists: List[List[str]]) -> List[str]:
 def build_class_index_mapping(
     source_classes: List[str], target_classes: List[str]
 ) -> Dict[int, int]:
+    """Returns the index map of source classes -> target classes."""
     index_mapping = {}
 
     for i, class_name in enumerate(source_classes):
@@ -94,14 +99,16 @@ def map_detections_class_id(
 
 
 def save_dataset_images(
-    images_directory_path: str, images: Dict[str, np.ndarray]
+    dataset: "DetectionDataset", images_directory_path: str
 ) -> None:
     Path(images_directory_path).mkdir(parents=True, exist_ok=True)
-
-    for image_path, image in images.items():
-        image_name = Path(image_path).name
-        target_image_path = os.path.join(images_directory_path, image_name)
-        cv2.imwrite(target_image_path, image)
+    for image_path in dataset.image_paths:
+        final_path = os.path.join(images_directory_path, Path(image_path).name)
+        if image_path in dataset._images_in_memory:
+            image = dataset._images_in_memory[image_path]
+            cv2.imwrite(final_path, image)
+        else:
+            shutil.copyfile(image_path, final_path)
 
 
 def train_test_split(

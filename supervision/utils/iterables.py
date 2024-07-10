@@ -68,3 +68,17 @@ def fill(sequence: List[V], desired_size: int, content: V) -> List[V]:
     missing_size = max(0, desired_size - len(sequence))
     sequence.extend([content] * missing_size)
     return sequence
+
+
+def find_duplicates(sequence: List) -> List:
+    """
+    Find all duplicate elements in the input sequence.
+    """
+    seen = set()
+    duplicates = set()
+    for element in sequence:
+        if element in seen:
+            duplicates.add(element)
+        else:
+            seen.add(element)
+    return list(duplicates)
