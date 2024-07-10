@@ -16,7 +16,7 @@ from supervision.detection.utils import (
     merge_data,
     move_boxes,
     process_roboflow_result,
-    scale_boxes,
+    scale_boxes, xcycwh_to_xyxy, xywh_to_xyxy,
 )
 
 TEST_MASK = np.zeros((1, 1000, 1000), dtype=bool)
@@ -1090,3 +1090,79 @@ def test_contains_multiple_segments(
     with exception:
         result = contains_multiple_segments(mask=mask, connectivity=connectivity)
         assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    "xywh, expected_result",
+    [
+        (
+            np.array([[10, 20, 30, 40]]),
+            np.array([[10, 20, 40, 60]])
+        ),  # standard case
+        (
+            np.array([[0, 0, 0, 0]]),
+            np.array([[0, 0, 0, 0]])
+        ),  # zero size bounding box
+        (
+            np.array([[50, 50, 100, 100]]),
+            np.array([[50, 50, 150, 150]])
+        ),  # large bounding box
+        (
+            np.array([[-10, -20, 30, 40]]),
+            np.array([[-10, -20, 20, 20]])
+        ),  # negative coordinates
+        (
+            np.array([[50, 50, 0, 30]]),
+            np.array([[50, 50, 50, 80]])
+        ),  # zero width
+        (
+            np.array([[50, 50, 20, 0]]),
+            np.array([[50, 50, 70, 50]])
+        ),  # zero height
+        (
+            np.array([]).reshape(0, 4),
+            np.array([]).reshape(0, 4)
+        ),  # empty array
+    ]
+)
+def test_xywh_to_xyxy(xywh: np.ndarray, expected_result: np.ndarray) -> None:
+    result = xywh_to_xyxy(xywh)
+    np.testing.assert_array_equal(result, expected_result)
+
+
+@pytest.mark.parametrize(
+    "xcycwh, expected_result",
+    [
+        (
+            np.array([[50, 50, 20, 30]]),
+            np.array([[40, 35, 60, 65]])
+        ),  # standard case
+        (
+            np.array([[0, 0, 0, 0]]),
+            np.array([[0, 0, 0, 0]])
+        ),  # zero size bounding box
+        (
+            np.array([[50, 50, 100, 100]]),
+            np.array([[0, 0, 100, 100]])
+        ),  # large bounding box centered at (50, 50)
+        (
+            np.array([[-10, -10, 20, 30]]),
+            np.array([[-20, -25, 0, 5]])
+        ),  # negative coordinates
+        (
+            np.array([[50, 50, 0, 30]]),
+            np.array([[50, 35, 50, 65]])
+        ),  # zero width
+        (
+            np.array([[50, 50, 20, 0]]),
+            np.array([[40, 50, 60, 50]])
+        ),  # zero height
+        (
+            np.array([]).reshape(0, 4),
+            np.array([]).reshape(0, 4)
+        ),  # empty array
+    ]
+)
+def test_xcycwh_to_xyxy(xcycwh: np.ndarray, expected_result: np.ndarray) -> None:
+    result = xcycwh_to_xyxy(xcycwh)
+    np.testing.assert_array_equal(result, expected_result)

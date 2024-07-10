@@ -686,7 +686,7 @@ class Detections:
         if np.asarray(xywh).shape[0] == 0:
             return cls.empty()
 
-        xyxy = xywh_to_xyxy(boxes_xywh=xywh)
+        xyxy = xywh_to_xyxy(xywh=xywh)
         return cls(xyxy=xyxy, mask=mask)
 
     @classmethod

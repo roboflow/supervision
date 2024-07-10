@@ -67,6 +67,8 @@ from supervision.detection.utils import (
     polygon_to_mask,
     polygon_to_xyxy,
     scale_boxes,
+    xywh_to_xyxy,
+    xcycwh_to_xyxy,
 )
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import (
