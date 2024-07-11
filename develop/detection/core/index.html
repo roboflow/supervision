@@ -4410,7 +4410,7 @@ is either a NumPy array or a list of corresponding data.</p>
 <a id="__codelineno-0-686" name="__codelineno-0-686"></a>        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">xywh</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
 <a id="__codelineno-0-687" name="__codelineno-0-687"></a>            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">empty</span><span class="p">()</span>
 <a id="__codelineno-0-688" name="__codelineno-0-688"></a>
-<a id="__codelineno-0-689" name="__codelineno-0-689"></a>        <span class="n">xyxy</span> <span class="o">=</span> <span class="n">xywh_to_xyxy</span><span class="p">(</span><span class="n">boxes_xywh</span><span class="o">=</span><span class="n">xywh</span><span class="p">)</span>
+<a id="__codelineno-0-689" name="__codelineno-0-689"></a>        <span class="n">xyxy</span> <span class="o">=</span> <span class="n">xywh_to_xyxy</span><span class="p">(</span><span class="n">xywh</span><span class="o">=</span><span class="n">xywh</span><span class="p">)</span>
 <a id="__codelineno-0-690" name="__codelineno-0-690"></a>        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">xyxy</span><span class="o">=</span><span class="n">xyxy</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span>
 <a id="__codelineno-0-691" name="__codelineno-0-691"></a>
 <a id="__codelineno-0-692" name="__codelineno-0-692"></a>    <span class="nd">@classmethod</span>
@@ -7482,7 +7482,7 @@ inference result.</p>
 <a id="__codelineno-0-686" name="__codelineno-0-686"></a>    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">xywh</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
 <a id="__codelineno-0-687" name="__codelineno-0-687"></a>        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">empty</span><span class="p">()</span>
 <a id="__codelineno-0-688" name="__codelineno-0-688"></a>
-<a id="__codelineno-0-689" name="__codelineno-0-689"></a>    <span class="n">xyxy</span> <span class="o">=</span> <span class="n">xywh_to_xyxy</span><span class="p">(</span><span class="n">boxes_xywh</span><span class="o">=</span><span class="n">xywh</span><span class="p">)</span>
+<a id="__codelineno-0-689" name="__codelineno-0-689"></a>    <span class="n">xyxy</span> <span class="o">=</span> <span class="n">xywh_to_xyxy</span><span class="p">(</span><span class="n">xywh</span><span class="o">=</span><span class="n">xywh</span><span class="p">)</span>
 <a id="__codelineno-0-690" name="__codelineno-0-690"></a>    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">xyxy</span><span class="o">=</span><span class="n">xyxy</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
