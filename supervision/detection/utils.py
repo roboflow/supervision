@@ -595,6 +595,7 @@ def move_boxes(
     """
     return xyxy + np.hstack([offset, offset])
 
+
 def move_obb_boxes(xyxyxyxy, offset):
     """
     Parameters:
@@ -604,7 +605,7 @@ def move_obb_boxes(xyxyxyxy, offset):
             is `[dx, dy]`.
 
     Returns:
-        npt.NDArray[np.float64]: Repositioned oriented bounding boxes. 
+        npt.NDArray[np.float64]: Repositioned oriented bounding boxes.
 
     Examples:
         ```python
@@ -622,6 +623,7 @@ def move_obb_boxes(xyxyxyxy, offset):
     """
 
     return xyxyxyxy + np.hstack([offset, offset, offset, offset])
+
 
 def move_masks(
     masks: npt.NDArray[np.bool_],
