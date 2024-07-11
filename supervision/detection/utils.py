@@ -612,17 +612,23 @@ def move_obb_boxes(xyxyxyxy, offset):
         import numpy as np
         import supervision as sv
 
-        xyxyxyxy: np.array([[10, 10, 20, 20, 30, 30, 40, 40],
-                            [20, 20, 30, 30, 40, 40, 50, 50]])
+        xyxyxyxy: np.array([[[10., 10.],
+                            [20., 20.],
+                            [30., 30.],
+                            [40., 40.]]])
         offset = np.array([5, 10])
 
         sv.move_obb_boxes(xyxyxyxy=xyxyxyxy, offset=offset)
-        #[[15 20 25 30 35 40 45 50]
-        #[25 30 35 40 45 50 55 60]]
+        #[[[15., 20.],
+        #[25., 30.],
+        #[35., 40.],
+        #[45., 50.]]]
         ```
     """
 
-    return xyxyxyxy + np.hstack([offset, offset, offset, offset])
+    return xyxyxyxy + np.hstack([offset, offset, offset, offset]).reshape(
+        xyxyxyxy.shape
+    )
 
 
 def move_masks(
