@@ -955,6 +955,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#supervision.keypoint.core.KeyPoints.from_detectron2" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;from_detectron2
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#supervision.keypoint.core.KeyPoints.from_inference" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;from_inference
@@ -1929,6 +1938,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#supervision.keypoint.core.KeyPoints.from_detectron2" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;from_detectron2
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#supervision.keypoint.core.KeyPoints.from_inference" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;from_inference
@@ -2683,7 +2701,58 @@ is either a NumPy array or a list of corresponding data.</p>
 <span class="normal"><a href="#__codelineno-0-558">558</a></span>
 <span class="normal"><a href="#__codelineno-0-559">559</a></span>
 <span class="normal"><a href="#__codelineno-0-560">560</a></span>
-<span class="normal"><a href="#__codelineno-0-561">561</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-15" name="__codelineno-0-15"></a><span class="nd">@dataclass</span>
+<span class="normal"><a href="#__codelineno-0-561">561</a></span>
+<span class="normal"><a href="#__codelineno-0-562">562</a></span>
+<span class="normal"><a href="#__codelineno-0-563">563</a></span>
+<span class="normal"><a href="#__codelineno-0-564">564</a></span>
+<span class="normal"><a href="#__codelineno-0-565">565</a></span>
+<span class="normal"><a href="#__codelineno-0-566">566</a></span>
+<span class="normal"><a href="#__codelineno-0-567">567</a></span>
+<span class="normal"><a href="#__codelineno-0-568">568</a></span>
+<span class="normal"><a href="#__codelineno-0-569">569</a></span>
+<span class="normal"><a href="#__codelineno-0-570">570</a></span>
+<span class="normal"><a href="#__codelineno-0-571">571</a></span>
+<span class="normal"><a href="#__codelineno-0-572">572</a></span>
+<span class="normal"><a href="#__codelineno-0-573">573</a></span>
+<span class="normal"><a href="#__codelineno-0-574">574</a></span>
+<span class="normal"><a href="#__codelineno-0-575">575</a></span>
+<span class="normal"><a href="#__codelineno-0-576">576</a></span>
+<span class="normal"><a href="#__codelineno-0-577">577</a></span>
+<span class="normal"><a href="#__codelineno-0-578">578</a></span>
+<span class="normal"><a href="#__codelineno-0-579">579</a></span>
+<span class="normal"><a href="#__codelineno-0-580">580</a></span>
+<span class="normal"><a href="#__codelineno-0-581">581</a></span>
+<span class="normal"><a href="#__codelineno-0-582">582</a></span>
+<span class="normal"><a href="#__codelineno-0-583">583</a></span>
+<span class="normal"><a href="#__codelineno-0-584">584</a></span>
+<span class="normal"><a href="#__codelineno-0-585">585</a></span>
+<span class="normal"><a href="#__codelineno-0-586">586</a></span>
+<span class="normal"><a href="#__codelineno-0-587">587</a></span>
+<span class="normal"><a href="#__codelineno-0-588">588</a></span>
+<span class="normal"><a href="#__codelineno-0-589">589</a></span>
+<span class="normal"><a href="#__codelineno-0-590">590</a></span>
+<span class="normal"><a href="#__codelineno-0-591">591</a></span>
+<span class="normal"><a href="#__codelineno-0-592">592</a></span>
+<span class="normal"><a href="#__codelineno-0-593">593</a></span>
+<span class="normal"><a href="#__codelineno-0-594">594</a></span>
+<span class="normal"><a href="#__codelineno-0-595">595</a></span>
+<span class="normal"><a href="#__codelineno-0-596">596</a></span>
+<span class="normal"><a href="#__codelineno-0-597">597</a></span>
+<span class="normal"><a href="#__codelineno-0-598">598</a></span>
+<span class="normal"><a href="#__codelineno-0-599">599</a></span>
+<span class="normal"><a href="#__codelineno-0-600">600</a></span>
+<span class="normal"><a href="#__codelineno-0-601">601</a></span>
+<span class="normal"><a href="#__codelineno-0-602">602</a></span>
+<span class="normal"><a href="#__codelineno-0-603">603</a></span>
+<span class="normal"><a href="#__codelineno-0-604">604</a></span>
+<span class="normal"><a href="#__codelineno-0-605">605</a></span>
+<span class="normal"><a href="#__codelineno-0-606">606</a></span>
+<span class="normal"><a href="#__codelineno-0-607">607</a></span>
+<span class="normal"><a href="#__codelineno-0-608">608</a></span>
+<span class="normal"><a href="#__codelineno-0-609">609</a></span>
+<span class="normal"><a href="#__codelineno-0-610">610</a></span>
+<span class="normal"><a href="#__codelineno-0-611">611</a></span>
+<span class="normal"><a href="#__codelineno-0-612">612</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-15" name="__codelineno-0-15"></a><span class="nd">@dataclass</span>
 <a id="__codelineno-0-16" name="__codelineno-0-16"></a><span class="k">class</span> <span class="nc">KeyPoints</span><span class="p">:</span>
 <a id="__codelineno-0-17" name="__codelineno-0-17"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-18" name="__codelineno-0-18"></a><span class="sd">    The `sv.KeyPoints` class in the Supervision library standardizes results from</span>
@@ -3127,109 +3196,160 @@ is either a NumPy array or a list of corresponding data.</p>
 <a id="__codelineno-0-456" name="__codelineno-0-456"></a>            <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
 <a id="__codelineno-0-457" name="__codelineno-0-457"></a>        <span class="p">)</span>
 <a id="__codelineno-0-458" name="__codelineno-0-458"></a>
-<a id="__codelineno-0-459" name="__codelineno-0-459"></a>    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span>
-<a id="__codelineno-0-460" name="__codelineno-0-460"></a>        <span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">slice</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
-<a id="__codelineno-0-461" name="__codelineno-0-461"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">KeyPoints</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
-<a id="__codelineno-0-462" name="__codelineno-0-462"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-463" name="__codelineno-0-463"></a><span class="sd">        Get a subset of the `sv.KeyPoints` object or access an item from its data field.</span>
+<a id="__codelineno-0-459" name="__codelineno-0-459"></a>    <span class="nd">@classmethod</span>
+<a id="__codelineno-0-460" name="__codelineno-0-460"></a>    <span class="k">def</span> <span class="nf">from_detectron2</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">detectron2_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyPoints</span><span class="p">:</span>
+<a id="__codelineno-0-461" name="__codelineno-0-461"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-462" name="__codelineno-0-462"></a><span class="sd">        Create a `sv.KeyPoints` object from the</span>
+<a id="__codelineno-0-463" name="__codelineno-0-463"></a><span class="sd">        [Detectron2](https://github.com/facebookresearch/detectron2) inference result.</span>
 <a id="__codelineno-0-464" name="__codelineno-0-464"></a>
-<a id="__codelineno-0-465" name="__codelineno-0-465"></a><span class="sd">        When provided with an integer, slice, list of integers, or a numpy array, this</span>
-<a id="__codelineno-0-466" name="__codelineno-0-466"></a><span class="sd">        method returns a new `sv.KeyPoints` object that represents a subset of the</span>
-<a id="__codelineno-0-467" name="__codelineno-0-467"></a><span class="sd">        original `sv.KeyPoints`. When provided with a string, it accesses the</span>
-<a id="__codelineno-0-468" name="__codelineno-0-468"></a><span class="sd">        corresponding item in the data dictionary.</span>
-<a id="__codelineno-0-469" name="__codelineno-0-469"></a>
-<a id="__codelineno-0-470" name="__codelineno-0-470"></a><span class="sd">        Args:</span>
-<a id="__codelineno-0-471" name="__codelineno-0-471"></a><span class="sd">            index (Union[int, slice, List[int], np.ndarray, str]): The index, indices,</span>
-<a id="__codelineno-0-472" name="__codelineno-0-472"></a><span class="sd">                or key to access a subset of the `sv.KeyPoints` or an item from the</span>
-<a id="__codelineno-0-473" name="__codelineno-0-473"></a><span class="sd">                data.</span>
-<a id="__codelineno-0-474" name="__codelineno-0-474"></a>
-<a id="__codelineno-0-475" name="__codelineno-0-475"></a><span class="sd">        Returns:</span>
-<a id="__codelineno-0-476" name="__codelineno-0-476"></a><span class="sd">            A subset of the `sv.KeyPoints` object or an item from the data field.</span>
-<a id="__codelineno-0-477" name="__codelineno-0-477"></a>
-<a id="__codelineno-0-478" name="__codelineno-0-478"></a><span class="sd">        Examples:</span>
-<a id="__codelineno-0-479" name="__codelineno-0-479"></a><span class="sd">            ```python</span>
-<a id="__codelineno-0-480" name="__codelineno-0-480"></a><span class="sd">            import supervision as sv</span>
-<a id="__codelineno-0-481" name="__codelineno-0-481"></a>
-<a id="__codelineno-0-482" name="__codelineno-0-482"></a><span class="sd">            key_points = sv.KeyPoints()</span>
-<a id="__codelineno-0-483" name="__codelineno-0-483"></a>
-<a id="__codelineno-0-484" name="__codelineno-0-484"></a><span class="sd">            # access the first keypoint using an integer index</span>
-<a id="__codelineno-0-485" name="__codelineno-0-485"></a><span class="sd">            key_points[0]</span>
+<a id="__codelineno-0-465" name="__codelineno-0-465"></a><span class="sd">        Args:</span>
+<a id="__codelineno-0-466" name="__codelineno-0-466"></a><span class="sd">            detectron2_results: The output of a</span>
+<a id="__codelineno-0-467" name="__codelineno-0-467"></a><span class="sd">                Detectron2 model containing instances with prediction data.</span>
+<a id="__codelineno-0-468" name="__codelineno-0-468"></a>
+<a id="__codelineno-0-469" name="__codelineno-0-469"></a><span class="sd">        Returns:</span>
+<a id="__codelineno-0-470" name="__codelineno-0-470"></a><span class="sd">            A `sv.KeyPoints` object containing the keypoint coordinates, class IDs,</span>
+<a id="__codelineno-0-471" name="__codelineno-0-471"></a><span class="sd">                and class names, and confidences of each keypoint.</span>
+<a id="__codelineno-0-472" name="__codelineno-0-472"></a>
+<a id="__codelineno-0-473" name="__codelineno-0-473"></a><span class="sd">        Example:</span>
+<a id="__codelineno-0-474" name="__codelineno-0-474"></a><span class="sd">            ```python</span>
+<a id="__codelineno-0-475" name="__codelineno-0-475"></a><span class="sd">            import cv2</span>
+<a id="__codelineno-0-476" name="__codelineno-0-476"></a><span class="sd">            import supervision as sv</span>
+<a id="__codelineno-0-477" name="__codelineno-0-477"></a><span class="sd">            from detectron2.engine import DefaultPredictor</span>
+<a id="__codelineno-0-478" name="__codelineno-0-478"></a><span class="sd">            from detectron2.config import get_cfg</span>
+<a id="__codelineno-0-479" name="__codelineno-0-479"></a>
+<a id="__codelineno-0-480" name="__codelineno-0-480"></a>
+<a id="__codelineno-0-481" name="__codelineno-0-481"></a><span class="sd">            image = cv2.imread(&lt;SOURCE_IMAGE_PATH&gt;)</span>
+<a id="__codelineno-0-482" name="__codelineno-0-482"></a><span class="sd">            cfg = get_cfg()</span>
+<a id="__codelineno-0-483" name="__codelineno-0-483"></a><span class="sd">            cfg.merge_from_file(&lt;CONFIG_PATH&gt;)</span>
+<a id="__codelineno-0-484" name="__codelineno-0-484"></a><span class="sd">            cfg.MODEL.WEIGHTS = &lt;WEIGHTS_PATH&gt;</span>
+<a id="__codelineno-0-485" name="__codelineno-0-485"></a><span class="sd">            predictor = DefaultPredictor(cfg)</span>
 <a id="__codelineno-0-486" name="__codelineno-0-486"></a>
-<a id="__codelineno-0-487" name="__codelineno-0-487"></a><span class="sd">            # access the first 10 keypoints using index slice</span>
-<a id="__codelineno-0-488" name="__codelineno-0-488"></a><span class="sd">            key_points[0:10]</span>
-<a id="__codelineno-0-489" name="__codelineno-0-489"></a>
-<a id="__codelineno-0-490" name="__codelineno-0-490"></a><span class="sd">            # access selected keypoints using a list of indices</span>
-<a id="__codelineno-0-491" name="__codelineno-0-491"></a><span class="sd">            key_points[[0, 2, 4]]</span>
-<a id="__codelineno-0-492" name="__codelineno-0-492"></a>
-<a id="__codelineno-0-493" name="__codelineno-0-493"></a><span class="sd">            # access keypoints with selected class_id</span>
-<a id="__codelineno-0-494" name="__codelineno-0-494"></a><span class="sd">            key_points[key_points.class_id == 0]</span>
-<a id="__codelineno-0-495" name="__codelineno-0-495"></a>
-<a id="__codelineno-0-496" name="__codelineno-0-496"></a><span class="sd">            # access keypoints with confidence greater than 0.5</span>
-<a id="__codelineno-0-497" name="__codelineno-0-497"></a><span class="sd">            key_points[key_points.confidence &gt; 0.5]</span>
-<a id="__codelineno-0-498" name="__codelineno-0-498"></a><span class="sd">            ```</span>
-<a id="__codelineno-0-499" name="__codelineno-0-499"></a><span class="sd">        &quot;&quot;&quot;</span>
-<a id="__codelineno-0-500" name="__codelineno-0-500"></a>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-<a id="__codelineno-0-501" name="__codelineno-0-501"></a>            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
-<a id="__codelineno-0-502" name="__codelineno-0-502"></a>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
-<a id="__codelineno-0-503" name="__codelineno-0-503"></a>            <span class="n">index</span> <span class="o">=</span> <span class="p">[</span><span class="n">index</span><span class="p">]</span>
-<a id="__codelineno-0-504" name="__codelineno-0-504"></a>        <span class="k">return</span> <span class="n">KeyPoints</span><span class="p">(</span>
-<a id="__codelineno-0-505" name="__codelineno-0-505"></a>            <span class="n">xy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">xy</span><span class="p">[</span><span class="n">index</span><span class="p">],</span>
-<a id="__codelineno-0-506" name="__codelineno-0-506"></a>            <span class="n">confidence</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-507" name="__codelineno-0-507"></a>            <span class="n">class_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">class_id</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-508" name="__codelineno-0-508"></a>            <span class="n">data</span><span class="o">=</span><span class="n">get_data_item</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">index</span><span class="p">),</span>
-<a id="__codelineno-0-509" name="__codelineno-0-509"></a>        <span class="p">)</span>
-<a id="__codelineno-0-510" name="__codelineno-0-510"></a>
-<a id="__codelineno-0-511" name="__codelineno-0-511"></a>    <span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">List</span><span class="p">]):</span>
-<a id="__codelineno-0-512" name="__codelineno-0-512"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-513" name="__codelineno-0-513"></a><span class="sd">        Set a value in the data dictionary of the `sv.KeyPoints` object.</span>
-<a id="__codelineno-0-514" name="__codelineno-0-514"></a>
-<a id="__codelineno-0-515" name="__codelineno-0-515"></a><span class="sd">        Args:</span>
-<a id="__codelineno-0-516" name="__codelineno-0-516"></a><span class="sd">            key (str): The key in the data dictionary to set.</span>
-<a id="__codelineno-0-517" name="__codelineno-0-517"></a><span class="sd">            value (Union[np.ndarray, List]): The value to set for the key.</span>
-<a id="__codelineno-0-518" name="__codelineno-0-518"></a>
-<a id="__codelineno-0-519" name="__codelineno-0-519"></a><span class="sd">        Examples:</span>
-<a id="__codelineno-0-520" name="__codelineno-0-520"></a><span class="sd">            ```python</span>
-<a id="__codelineno-0-521" name="__codelineno-0-521"></a><span class="sd">            import cv2</span>
-<a id="__codelineno-0-522" name="__codelineno-0-522"></a><span class="sd">            import supervision as sv</span>
-<a id="__codelineno-0-523" name="__codelineno-0-523"></a><span class="sd">            from ultralytics import YOLO</span>
-<a id="__codelineno-0-524" name="__codelineno-0-524"></a>
-<a id="__codelineno-0-525" name="__codelineno-0-525"></a><span class="sd">            image = cv2.imread(&lt;SOURCE_IMAGE_PATH&gt;)</span>
-<a id="__codelineno-0-526" name="__codelineno-0-526"></a><span class="sd">            model = YOLO(&#39;yolov8s.pt&#39;)</span>
-<a id="__codelineno-0-527" name="__codelineno-0-527"></a>
-<a id="__codelineno-0-528" name="__codelineno-0-528"></a><span class="sd">            result = model(image)[0]</span>
-<a id="__codelineno-0-529" name="__codelineno-0-529"></a><span class="sd">            keypoints = sv.KeyPoints.from_ultralytics(result)</span>
-<a id="__codelineno-0-530" name="__codelineno-0-530"></a>
-<a id="__codelineno-0-531" name="__codelineno-0-531"></a><span class="sd">            keypoints[&#39;class_name&#39;] = [</span>
-<a id="__codelineno-0-532" name="__codelineno-0-532"></a><span class="sd">                 model.model.names[class_id]</span>
-<a id="__codelineno-0-533" name="__codelineno-0-533"></a><span class="sd">                 for class_id</span>
-<a id="__codelineno-0-534" name="__codelineno-0-534"></a><span class="sd">                 in keypoints.class_id</span>
-<a id="__codelineno-0-535" name="__codelineno-0-535"></a><span class="sd">             ]</span>
-<a id="__codelineno-0-536" name="__codelineno-0-536"></a><span class="sd">            ```</span>
-<a id="__codelineno-0-537" name="__codelineno-0-537"></a><span class="sd">        &quot;&quot;&quot;</span>
-<a id="__codelineno-0-538" name="__codelineno-0-538"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
-<a id="__codelineno-0-539" name="__codelineno-0-539"></a>            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Value must be a np.ndarray or a list&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-487" name="__codelineno-0-487"></a><span class="sd">            result = predictor(image)</span>
+<a id="__codelineno-0-488" name="__codelineno-0-488"></a><span class="sd">            keypoints = sv.KeyPoints.from_detectron2(result)</span>
+<a id="__codelineno-0-489" name="__codelineno-0-489"></a><span class="sd">            ```</span>
+<a id="__codelineno-0-490" name="__codelineno-0-490"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-491" name="__codelineno-0-491"></a>
+<a id="__codelineno-0-492" name="__codelineno-0-492"></a>        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">detectron2_results</span><span class="p">[</span><span class="s2">&quot;instances&quot;</span><span class="p">],</span> <span class="s2">&quot;pred_keypoints&quot;</span><span class="p">):</span>
+<a id="__codelineno-0-493" name="__codelineno-0-493"></a>            <span class="k">if</span> <span class="n">detectron2_results</span><span class="p">[</span><span class="s2">&quot;instances&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">pred_keypoints</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+<a id="__codelineno-0-494" name="__codelineno-0-494"></a>                <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">empty</span><span class="p">()</span>
+<a id="__codelineno-0-495" name="__codelineno-0-495"></a>            <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+<a id="__codelineno-0-496" name="__codelineno-0-496"></a>                <span class="n">xy</span><span class="o">=</span><span class="n">detectron2_results</span><span class="p">[</span><span class="s2">&quot;instances&quot;</span><span class="p">]</span>
+<a id="__codelineno-0-497" name="__codelineno-0-497"></a>                <span class="o">.</span><span class="n">pred_keypoints</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+<a id="__codelineno-0-498" name="__codelineno-0-498"></a>                <span class="o">.</span><span class="n">numpy</span><span class="p">()[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">],</span>
+<a id="__codelineno-0-499" name="__codelineno-0-499"></a>                <span class="n">confidence</span><span class="o">=</span><span class="n">detectron2_results</span><span class="p">[</span><span class="s2">&quot;instances&quot;</span><span class="p">]</span>
+<a id="__codelineno-0-500" name="__codelineno-0-500"></a>                <span class="o">.</span><span class="n">pred_keypoints</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+<a id="__codelineno-0-501" name="__codelineno-0-501"></a>                <span class="o">.</span><span class="n">numpy</span><span class="p">()[:,</span> <span class="p">:,</span> <span class="mi">2</span><span class="p">],</span>
+<a id="__codelineno-0-502" name="__codelineno-0-502"></a>                <span class="n">class_id</span><span class="o">=</span><span class="n">detectron2_results</span><span class="p">[</span><span class="s2">&quot;instances&quot;</span><span class="p">]</span>
+<a id="__codelineno-0-503" name="__codelineno-0-503"></a>                <span class="o">.</span><span class="n">pred_classes</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+<a id="__codelineno-0-504" name="__codelineno-0-504"></a>                <span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+<a id="__codelineno-0-505" name="__codelineno-0-505"></a>                <span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">),</span>
+<a id="__codelineno-0-506" name="__codelineno-0-506"></a>            <span class="p">)</span>
+<a id="__codelineno-0-507" name="__codelineno-0-507"></a>        <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-0-508" name="__codelineno-0-508"></a>            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">empty</span><span class="p">()</span>
+<a id="__codelineno-0-509" name="__codelineno-0-509"></a>
+<a id="__codelineno-0-510" name="__codelineno-0-510"></a>    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span>
+<a id="__codelineno-0-511" name="__codelineno-0-511"></a>        <span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">slice</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
+<a id="__codelineno-0-512" name="__codelineno-0-512"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">KeyPoints</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+<a id="__codelineno-0-513" name="__codelineno-0-513"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-514" name="__codelineno-0-514"></a><span class="sd">        Get a subset of the `sv.KeyPoints` object or access an item from its data field.</span>
+<a id="__codelineno-0-515" name="__codelineno-0-515"></a>
+<a id="__codelineno-0-516" name="__codelineno-0-516"></a><span class="sd">        When provided with an integer, slice, list of integers, or a numpy array, this</span>
+<a id="__codelineno-0-517" name="__codelineno-0-517"></a><span class="sd">        method returns a new `sv.KeyPoints` object that represents a subset of the</span>
+<a id="__codelineno-0-518" name="__codelineno-0-518"></a><span class="sd">        original `sv.KeyPoints`. When provided with a string, it accesses the</span>
+<a id="__codelineno-0-519" name="__codelineno-0-519"></a><span class="sd">        corresponding item in the data dictionary.</span>
+<a id="__codelineno-0-520" name="__codelineno-0-520"></a>
+<a id="__codelineno-0-521" name="__codelineno-0-521"></a><span class="sd">        Args:</span>
+<a id="__codelineno-0-522" name="__codelineno-0-522"></a><span class="sd">            index (Union[int, slice, List[int], np.ndarray, str]): The index, indices,</span>
+<a id="__codelineno-0-523" name="__codelineno-0-523"></a><span class="sd">                or key to access a subset of the `sv.KeyPoints` or an item from the</span>
+<a id="__codelineno-0-524" name="__codelineno-0-524"></a><span class="sd">                data.</span>
+<a id="__codelineno-0-525" name="__codelineno-0-525"></a>
+<a id="__codelineno-0-526" name="__codelineno-0-526"></a><span class="sd">        Returns:</span>
+<a id="__codelineno-0-527" name="__codelineno-0-527"></a><span class="sd">            A subset of the `sv.KeyPoints` object or an item from the data field.</span>
+<a id="__codelineno-0-528" name="__codelineno-0-528"></a>
+<a id="__codelineno-0-529" name="__codelineno-0-529"></a><span class="sd">        Examples:</span>
+<a id="__codelineno-0-530" name="__codelineno-0-530"></a><span class="sd">            ```python</span>
+<a id="__codelineno-0-531" name="__codelineno-0-531"></a><span class="sd">            import supervision as sv</span>
+<a id="__codelineno-0-532" name="__codelineno-0-532"></a>
+<a id="__codelineno-0-533" name="__codelineno-0-533"></a><span class="sd">            key_points = sv.KeyPoints()</span>
+<a id="__codelineno-0-534" name="__codelineno-0-534"></a>
+<a id="__codelineno-0-535" name="__codelineno-0-535"></a><span class="sd">            # access the first keypoint using an integer index</span>
+<a id="__codelineno-0-536" name="__codelineno-0-536"></a><span class="sd">            key_points[0]</span>
+<a id="__codelineno-0-537" name="__codelineno-0-537"></a>
+<a id="__codelineno-0-538" name="__codelineno-0-538"></a><span class="sd">            # access the first 10 keypoints using index slice</span>
+<a id="__codelineno-0-539" name="__codelineno-0-539"></a><span class="sd">            key_points[0:10]</span>
 <a id="__codelineno-0-540" name="__codelineno-0-540"></a>
-<a id="__codelineno-0-541" name="__codelineno-0-541"></a>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-<a id="__codelineno-0-542" name="__codelineno-0-542"></a>            <span class="n">value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+<a id="__codelineno-0-541" name="__codelineno-0-541"></a><span class="sd">            # access selected keypoints using a list of indices</span>
+<a id="__codelineno-0-542" name="__codelineno-0-542"></a><span class="sd">            key_points[[0, 2, 4]]</span>
 <a id="__codelineno-0-543" name="__codelineno-0-543"></a>
-<a id="__codelineno-0-544" name="__codelineno-0-544"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
-<a id="__codelineno-0-545" name="__codelineno-0-545"></a>
-<a id="__codelineno-0-546" name="__codelineno-0-546"></a>    <span class="nd">@classmethod</span>
-<a id="__codelineno-0-547" name="__codelineno-0-547"></a>    <span class="k">def</span> <span class="nf">empty</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyPoints</span><span class="p">:</span>
-<a id="__codelineno-0-548" name="__codelineno-0-548"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-549" name="__codelineno-0-549"></a><span class="sd">        Create an empty Keypoints object with no keypoints.</span>
-<a id="__codelineno-0-550" name="__codelineno-0-550"></a>
-<a id="__codelineno-0-551" name="__codelineno-0-551"></a><span class="sd">        Returns:</span>
-<a id="__codelineno-0-552" name="__codelineno-0-552"></a><span class="sd">            An empty `sv.KeyPoints` object.</span>
-<a id="__codelineno-0-553" name="__codelineno-0-553"></a>
-<a id="__codelineno-0-554" name="__codelineno-0-554"></a><span class="sd">        Examples:</span>
-<a id="__codelineno-0-555" name="__codelineno-0-555"></a><span class="sd">            ```python</span>
-<a id="__codelineno-0-556" name="__codelineno-0-556"></a><span class="sd">            import supervision as sv</span>
-<a id="__codelineno-0-557" name="__codelineno-0-557"></a>
-<a id="__codelineno-0-558" name="__codelineno-0-558"></a><span class="sd">            key_points = sv.KeyPoints.empty()</span>
-<a id="__codelineno-0-559" name="__codelineno-0-559"></a><span class="sd">            ```</span>
-<a id="__codelineno-0-560" name="__codelineno-0-560"></a><span class="sd">        &quot;&quot;&quot;</span>
-<a id="__codelineno-0-561" name="__codelineno-0-561"></a>        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">xy</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+<a id="__codelineno-0-544" name="__codelineno-0-544"></a><span class="sd">            # access keypoints with selected class_id</span>
+<a id="__codelineno-0-545" name="__codelineno-0-545"></a><span class="sd">            key_points[key_points.class_id == 0]</span>
+<a id="__codelineno-0-546" name="__codelineno-0-546"></a>
+<a id="__codelineno-0-547" name="__codelineno-0-547"></a><span class="sd">            # access keypoints with confidence greater than 0.5</span>
+<a id="__codelineno-0-548" name="__codelineno-0-548"></a><span class="sd">            key_points[key_points.confidence &gt; 0.5]</span>
+<a id="__codelineno-0-549" name="__codelineno-0-549"></a><span class="sd">            ```</span>
+<a id="__codelineno-0-550" name="__codelineno-0-550"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-551" name="__codelineno-0-551"></a>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+<a id="__codelineno-0-552" name="__codelineno-0-552"></a>            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+<a id="__codelineno-0-553" name="__codelineno-0-553"></a>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+<a id="__codelineno-0-554" name="__codelineno-0-554"></a>            <span class="n">index</span> <span class="o">=</span> <span class="p">[</span><span class="n">index</span><span class="p">]</span>
+<a id="__codelineno-0-555" name="__codelineno-0-555"></a>        <span class="k">return</span> <span class="n">KeyPoints</span><span class="p">(</span>
+<a id="__codelineno-0-556" name="__codelineno-0-556"></a>            <span class="n">xy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">xy</span><span class="p">[</span><span class="n">index</span><span class="p">],</span>
+<a id="__codelineno-0-557" name="__codelineno-0-557"></a>            <span class="n">confidence</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-558" name="__codelineno-0-558"></a>            <span class="n">class_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">class_id</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-559" name="__codelineno-0-559"></a>            <span class="n">data</span><span class="o">=</span><span class="n">get_data_item</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">index</span><span class="p">),</span>
+<a id="__codelineno-0-560" name="__codelineno-0-560"></a>        <span class="p">)</span>
+<a id="__codelineno-0-561" name="__codelineno-0-561"></a>
+<a id="__codelineno-0-562" name="__codelineno-0-562"></a>    <span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">List</span><span class="p">]):</span>
+<a id="__codelineno-0-563" name="__codelineno-0-563"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-564" name="__codelineno-0-564"></a><span class="sd">        Set a value in the data dictionary of the `sv.KeyPoints` object.</span>
+<a id="__codelineno-0-565" name="__codelineno-0-565"></a>
+<a id="__codelineno-0-566" name="__codelineno-0-566"></a><span class="sd">        Args:</span>
+<a id="__codelineno-0-567" name="__codelineno-0-567"></a><span class="sd">            key (str): The key in the data dictionary to set.</span>
+<a id="__codelineno-0-568" name="__codelineno-0-568"></a><span class="sd">            value (Union[np.ndarray, List]): The value to set for the key.</span>
+<a id="__codelineno-0-569" name="__codelineno-0-569"></a>
+<a id="__codelineno-0-570" name="__codelineno-0-570"></a><span class="sd">        Examples:</span>
+<a id="__codelineno-0-571" name="__codelineno-0-571"></a><span class="sd">            ```python</span>
+<a id="__codelineno-0-572" name="__codelineno-0-572"></a><span class="sd">            import cv2</span>
+<a id="__codelineno-0-573" name="__codelineno-0-573"></a><span class="sd">            import supervision as sv</span>
+<a id="__codelineno-0-574" name="__codelineno-0-574"></a><span class="sd">            from ultralytics import YOLO</span>
+<a id="__codelineno-0-575" name="__codelineno-0-575"></a>
+<a id="__codelineno-0-576" name="__codelineno-0-576"></a><span class="sd">            image = cv2.imread(&lt;SOURCE_IMAGE_PATH&gt;)</span>
+<a id="__codelineno-0-577" name="__codelineno-0-577"></a><span class="sd">            model = YOLO(&#39;yolov8s.pt&#39;)</span>
+<a id="__codelineno-0-578" name="__codelineno-0-578"></a>
+<a id="__codelineno-0-579" name="__codelineno-0-579"></a><span class="sd">            result = model(image)[0]</span>
+<a id="__codelineno-0-580" name="__codelineno-0-580"></a><span class="sd">            keypoints = sv.KeyPoints.from_ultralytics(result)</span>
+<a id="__codelineno-0-581" name="__codelineno-0-581"></a>
+<a id="__codelineno-0-582" name="__codelineno-0-582"></a><span class="sd">            keypoints[&#39;class_name&#39;] = [</span>
+<a id="__codelineno-0-583" name="__codelineno-0-583"></a><span class="sd">                 model.model.names[class_id]</span>
+<a id="__codelineno-0-584" name="__codelineno-0-584"></a><span class="sd">                 for class_id</span>
+<a id="__codelineno-0-585" name="__codelineno-0-585"></a><span class="sd">                 in keypoints.class_id</span>
+<a id="__codelineno-0-586" name="__codelineno-0-586"></a><span class="sd">             ]</span>
+<a id="__codelineno-0-587" name="__codelineno-0-587"></a><span class="sd">            ```</span>
+<a id="__codelineno-0-588" name="__codelineno-0-588"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-589" name="__codelineno-0-589"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+<a id="__codelineno-0-590" name="__codelineno-0-590"></a>            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Value must be a np.ndarray or a list&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-591" name="__codelineno-0-591"></a>
+<a id="__codelineno-0-592" name="__codelineno-0-592"></a>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+<a id="__codelineno-0-593" name="__codelineno-0-593"></a>            <span class="n">value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+<a id="__codelineno-0-594" name="__codelineno-0-594"></a>
+<a id="__codelineno-0-595" name="__codelineno-0-595"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+<a id="__codelineno-0-596" name="__codelineno-0-596"></a>
+<a id="__codelineno-0-597" name="__codelineno-0-597"></a>    <span class="nd">@classmethod</span>
+<a id="__codelineno-0-598" name="__codelineno-0-598"></a>    <span class="k">def</span> <span class="nf">empty</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyPoints</span><span class="p">:</span>
+<a id="__codelineno-0-599" name="__codelineno-0-599"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-600" name="__codelineno-0-600"></a><span class="sd">        Create an empty Keypoints object with no keypoints.</span>
+<a id="__codelineno-0-601" name="__codelineno-0-601"></a>
+<a id="__codelineno-0-602" name="__codelineno-0-602"></a><span class="sd">        Returns:</span>
+<a id="__codelineno-0-603" name="__codelineno-0-603"></a><span class="sd">            An empty `sv.KeyPoints` object.</span>
+<a id="__codelineno-0-604" name="__codelineno-0-604"></a>
+<a id="__codelineno-0-605" name="__codelineno-0-605"></a><span class="sd">        Examples:</span>
+<a id="__codelineno-0-606" name="__codelineno-0-606"></a><span class="sd">            ```python</span>
+<a id="__codelineno-0-607" name="__codelineno-0-607"></a><span class="sd">            import supervision as sv</span>
+<a id="__codelineno-0-608" name="__codelineno-0-608"></a>
+<a id="__codelineno-0-609" name="__codelineno-0-609"></a><span class="sd">            key_points = sv.KeyPoints.empty()</span>
+<a id="__codelineno-0-610" name="__codelineno-0-610"></a><span class="sd">            ```</span>
+<a id="__codelineno-0-611" name="__codelineno-0-611"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-612" name="__codelineno-0-612"></a>        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">xy</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
 </code></pre></div></td></tr></table></div>
               </details>
 
@@ -3340,107 +3460,107 @@ data.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/keypoint/core.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-459">459</a></span>
-<span class="normal"><a href="#__codelineno-0-460">460</a></span>
-<span class="normal"><a href="#__codelineno-0-461">461</a></span>
-<span class="normal"><a href="#__codelineno-0-462">462</a></span>
-<span class="normal"><a href="#__codelineno-0-463">463</a></span>
-<span class="normal"><a href="#__codelineno-0-464">464</a></span>
-<span class="normal"><a href="#__codelineno-0-465">465</a></span>
-<span class="normal"><a href="#__codelineno-0-466">466</a></span>
-<span class="normal"><a href="#__codelineno-0-467">467</a></span>
-<span class="normal"><a href="#__codelineno-0-468">468</a></span>
-<span class="normal"><a href="#__codelineno-0-469">469</a></span>
-<span class="normal"><a href="#__codelineno-0-470">470</a></span>
-<span class="normal"><a href="#__codelineno-0-471">471</a></span>
-<span class="normal"><a href="#__codelineno-0-472">472</a></span>
-<span class="normal"><a href="#__codelineno-0-473">473</a></span>
-<span class="normal"><a href="#__codelineno-0-474">474</a></span>
-<span class="normal"><a href="#__codelineno-0-475">475</a></span>
-<span class="normal"><a href="#__codelineno-0-476">476</a></span>
-<span class="normal"><a href="#__codelineno-0-477">477</a></span>
-<span class="normal"><a href="#__codelineno-0-478">478</a></span>
-<span class="normal"><a href="#__codelineno-0-479">479</a></span>
-<span class="normal"><a href="#__codelineno-0-480">480</a></span>
-<span class="normal"><a href="#__codelineno-0-481">481</a></span>
-<span class="normal"><a href="#__codelineno-0-482">482</a></span>
-<span class="normal"><a href="#__codelineno-0-483">483</a></span>
-<span class="normal"><a href="#__codelineno-0-484">484</a></span>
-<span class="normal"><a href="#__codelineno-0-485">485</a></span>
-<span class="normal"><a href="#__codelineno-0-486">486</a></span>
-<span class="normal"><a href="#__codelineno-0-487">487</a></span>
-<span class="normal"><a href="#__codelineno-0-488">488</a></span>
-<span class="normal"><a href="#__codelineno-0-489">489</a></span>
-<span class="normal"><a href="#__codelineno-0-490">490</a></span>
-<span class="normal"><a href="#__codelineno-0-491">491</a></span>
-<span class="normal"><a href="#__codelineno-0-492">492</a></span>
-<span class="normal"><a href="#__codelineno-0-493">493</a></span>
-<span class="normal"><a href="#__codelineno-0-494">494</a></span>
-<span class="normal"><a href="#__codelineno-0-495">495</a></span>
-<span class="normal"><a href="#__codelineno-0-496">496</a></span>
-<span class="normal"><a href="#__codelineno-0-497">497</a></span>
-<span class="normal"><a href="#__codelineno-0-498">498</a></span>
-<span class="normal"><a href="#__codelineno-0-499">499</a></span>
-<span class="normal"><a href="#__codelineno-0-500">500</a></span>
-<span class="normal"><a href="#__codelineno-0-501">501</a></span>
-<span class="normal"><a href="#__codelineno-0-502">502</a></span>
-<span class="normal"><a href="#__codelineno-0-503">503</a></span>
-<span class="normal"><a href="#__codelineno-0-504">504</a></span>
-<span class="normal"><a href="#__codelineno-0-505">505</a></span>
-<span class="normal"><a href="#__codelineno-0-506">506</a></span>
-<span class="normal"><a href="#__codelineno-0-507">507</a></span>
-<span class="normal"><a href="#__codelineno-0-508">508</a></span>
-<span class="normal"><a href="#__codelineno-0-509">509</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-459" name="__codelineno-0-459"></a><span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span>
-<a id="__codelineno-0-460" name="__codelineno-0-460"></a>    <span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">slice</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
-<a id="__codelineno-0-461" name="__codelineno-0-461"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">KeyPoints</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
-<a id="__codelineno-0-462" name="__codelineno-0-462"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-463" name="__codelineno-0-463"></a><span class="sd">    Get a subset of the `sv.KeyPoints` object or access an item from its data field.</span>
-<a id="__codelineno-0-464" name="__codelineno-0-464"></a>
-<a id="__codelineno-0-465" name="__codelineno-0-465"></a><span class="sd">    When provided with an integer, slice, list of integers, or a numpy array, this</span>
-<a id="__codelineno-0-466" name="__codelineno-0-466"></a><span class="sd">    method returns a new `sv.KeyPoints` object that represents a subset of the</span>
-<a id="__codelineno-0-467" name="__codelineno-0-467"></a><span class="sd">    original `sv.KeyPoints`. When provided with a string, it accesses the</span>
-<a id="__codelineno-0-468" name="__codelineno-0-468"></a><span class="sd">    corresponding item in the data dictionary.</span>
-<a id="__codelineno-0-469" name="__codelineno-0-469"></a>
-<a id="__codelineno-0-470" name="__codelineno-0-470"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-471" name="__codelineno-0-471"></a><span class="sd">        index (Union[int, slice, List[int], np.ndarray, str]): The index, indices,</span>
-<a id="__codelineno-0-472" name="__codelineno-0-472"></a><span class="sd">            or key to access a subset of the `sv.KeyPoints` or an item from the</span>
-<a id="__codelineno-0-473" name="__codelineno-0-473"></a><span class="sd">            data.</span>
-<a id="__codelineno-0-474" name="__codelineno-0-474"></a>
-<a id="__codelineno-0-475" name="__codelineno-0-475"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-476" name="__codelineno-0-476"></a><span class="sd">        A subset of the `sv.KeyPoints` object or an item from the data field.</span>
-<a id="__codelineno-0-477" name="__codelineno-0-477"></a>
-<a id="__codelineno-0-478" name="__codelineno-0-478"></a><span class="sd">    Examples:</span>
-<a id="__codelineno-0-479" name="__codelineno-0-479"></a><span class="sd">        ```python</span>
-<a id="__codelineno-0-480" name="__codelineno-0-480"></a><span class="sd">        import supervision as sv</span>
-<a id="__codelineno-0-481" name="__codelineno-0-481"></a>
-<a id="__codelineno-0-482" name="__codelineno-0-482"></a><span class="sd">        key_points = sv.KeyPoints()</span>
-<a id="__codelineno-0-483" name="__codelineno-0-483"></a>
-<a id="__codelineno-0-484" name="__codelineno-0-484"></a><span class="sd">        # access the first keypoint using an integer index</span>
-<a id="__codelineno-0-485" name="__codelineno-0-485"></a><span class="sd">        key_points[0]</span>
-<a id="__codelineno-0-486" name="__codelineno-0-486"></a>
-<a id="__codelineno-0-487" name="__codelineno-0-487"></a><span class="sd">        # access the first 10 keypoints using index slice</span>
-<a id="__codelineno-0-488" name="__codelineno-0-488"></a><span class="sd">        key_points[0:10]</span>
-<a id="__codelineno-0-489" name="__codelineno-0-489"></a>
-<a id="__codelineno-0-490" name="__codelineno-0-490"></a><span class="sd">        # access selected keypoints using a list of indices</span>
-<a id="__codelineno-0-491" name="__codelineno-0-491"></a><span class="sd">        key_points[[0, 2, 4]]</span>
-<a id="__codelineno-0-492" name="__codelineno-0-492"></a>
-<a id="__codelineno-0-493" name="__codelineno-0-493"></a><span class="sd">        # access keypoints with selected class_id</span>
-<a id="__codelineno-0-494" name="__codelineno-0-494"></a><span class="sd">        key_points[key_points.class_id == 0]</span>
-<a id="__codelineno-0-495" name="__codelineno-0-495"></a>
-<a id="__codelineno-0-496" name="__codelineno-0-496"></a><span class="sd">        # access keypoints with confidence greater than 0.5</span>
-<a id="__codelineno-0-497" name="__codelineno-0-497"></a><span class="sd">        key_points[key_points.confidence &gt; 0.5]</span>
-<a id="__codelineno-0-498" name="__codelineno-0-498"></a><span class="sd">        ```</span>
-<a id="__codelineno-0-499" name="__codelineno-0-499"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-500" name="__codelineno-0-500"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-<a id="__codelineno-0-501" name="__codelineno-0-501"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
-<a id="__codelineno-0-502" name="__codelineno-0-502"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
-<a id="__codelineno-0-503" name="__codelineno-0-503"></a>        <span class="n">index</span> <span class="o">=</span> <span class="p">[</span><span class="n">index</span><span class="p">]</span>
-<a id="__codelineno-0-504" name="__codelineno-0-504"></a>    <span class="k">return</span> <span class="n">KeyPoints</span><span class="p">(</span>
-<a id="__codelineno-0-505" name="__codelineno-0-505"></a>        <span class="n">xy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">xy</span><span class="p">[</span><span class="n">index</span><span class="p">],</span>
-<a id="__codelineno-0-506" name="__codelineno-0-506"></a>        <span class="n">confidence</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-507" name="__codelineno-0-507"></a>        <span class="n">class_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">class_id</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-508" name="__codelineno-0-508"></a>        <span class="n">data</span><span class="o">=</span><span class="n">get_data_item</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">index</span><span class="p">),</span>
-<a id="__codelineno-0-509" name="__codelineno-0-509"></a>    <span class="p">)</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-510">510</a></span>
+<span class="normal"><a href="#__codelineno-0-511">511</a></span>
+<span class="normal"><a href="#__codelineno-0-512">512</a></span>
+<span class="normal"><a href="#__codelineno-0-513">513</a></span>
+<span class="normal"><a href="#__codelineno-0-514">514</a></span>
+<span class="normal"><a href="#__codelineno-0-515">515</a></span>
+<span class="normal"><a href="#__codelineno-0-516">516</a></span>
+<span class="normal"><a href="#__codelineno-0-517">517</a></span>
+<span class="normal"><a href="#__codelineno-0-518">518</a></span>
+<span class="normal"><a href="#__codelineno-0-519">519</a></span>
+<span class="normal"><a href="#__codelineno-0-520">520</a></span>
+<span class="normal"><a href="#__codelineno-0-521">521</a></span>
+<span class="normal"><a href="#__codelineno-0-522">522</a></span>
+<span class="normal"><a href="#__codelineno-0-523">523</a></span>
+<span class="normal"><a href="#__codelineno-0-524">524</a></span>
+<span class="normal"><a href="#__codelineno-0-525">525</a></span>
+<span class="normal"><a href="#__codelineno-0-526">526</a></span>
+<span class="normal"><a href="#__codelineno-0-527">527</a></span>
+<span class="normal"><a href="#__codelineno-0-528">528</a></span>
+<span class="normal"><a href="#__codelineno-0-529">529</a></span>
+<span class="normal"><a href="#__codelineno-0-530">530</a></span>
+<span class="normal"><a href="#__codelineno-0-531">531</a></span>
+<span class="normal"><a href="#__codelineno-0-532">532</a></span>
+<span class="normal"><a href="#__codelineno-0-533">533</a></span>
+<span class="normal"><a href="#__codelineno-0-534">534</a></span>
+<span class="normal"><a href="#__codelineno-0-535">535</a></span>
+<span class="normal"><a href="#__codelineno-0-536">536</a></span>
+<span class="normal"><a href="#__codelineno-0-537">537</a></span>
+<span class="normal"><a href="#__codelineno-0-538">538</a></span>
+<span class="normal"><a href="#__codelineno-0-539">539</a></span>
+<span class="normal"><a href="#__codelineno-0-540">540</a></span>
+<span class="normal"><a href="#__codelineno-0-541">541</a></span>
+<span class="normal"><a href="#__codelineno-0-542">542</a></span>
+<span class="normal"><a href="#__codelineno-0-543">543</a></span>
+<span class="normal"><a href="#__codelineno-0-544">544</a></span>
+<span class="normal"><a href="#__codelineno-0-545">545</a></span>
+<span class="normal"><a href="#__codelineno-0-546">546</a></span>
+<span class="normal"><a href="#__codelineno-0-547">547</a></span>
+<span class="normal"><a href="#__codelineno-0-548">548</a></span>
+<span class="normal"><a href="#__codelineno-0-549">549</a></span>
+<span class="normal"><a href="#__codelineno-0-550">550</a></span>
+<span class="normal"><a href="#__codelineno-0-551">551</a></span>
+<span class="normal"><a href="#__codelineno-0-552">552</a></span>
+<span class="normal"><a href="#__codelineno-0-553">553</a></span>
+<span class="normal"><a href="#__codelineno-0-554">554</a></span>
+<span class="normal"><a href="#__codelineno-0-555">555</a></span>
+<span class="normal"><a href="#__codelineno-0-556">556</a></span>
+<span class="normal"><a href="#__codelineno-0-557">557</a></span>
+<span class="normal"><a href="#__codelineno-0-558">558</a></span>
+<span class="normal"><a href="#__codelineno-0-559">559</a></span>
+<span class="normal"><a href="#__codelineno-0-560">560</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-510" name="__codelineno-0-510"></a><span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span>
+<a id="__codelineno-0-511" name="__codelineno-0-511"></a>    <span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">slice</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
+<a id="__codelineno-0-512" name="__codelineno-0-512"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">KeyPoints</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+<a id="__codelineno-0-513" name="__codelineno-0-513"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-514" name="__codelineno-0-514"></a><span class="sd">    Get a subset of the `sv.KeyPoints` object or access an item from its data field.</span>
+<a id="__codelineno-0-515" name="__codelineno-0-515"></a>
+<a id="__codelineno-0-516" name="__codelineno-0-516"></a><span class="sd">    When provided with an integer, slice, list of integers, or a numpy array, this</span>
+<a id="__codelineno-0-517" name="__codelineno-0-517"></a><span class="sd">    method returns a new `sv.KeyPoints` object that represents a subset of the</span>
+<a id="__codelineno-0-518" name="__codelineno-0-518"></a><span class="sd">    original `sv.KeyPoints`. When provided with a string, it accesses the</span>
+<a id="__codelineno-0-519" name="__codelineno-0-519"></a><span class="sd">    corresponding item in the data dictionary.</span>
+<a id="__codelineno-0-520" name="__codelineno-0-520"></a>
+<a id="__codelineno-0-521" name="__codelineno-0-521"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-522" name="__codelineno-0-522"></a><span class="sd">        index (Union[int, slice, List[int], np.ndarray, str]): The index, indices,</span>
+<a id="__codelineno-0-523" name="__codelineno-0-523"></a><span class="sd">            or key to access a subset of the `sv.KeyPoints` or an item from the</span>
+<a id="__codelineno-0-524" name="__codelineno-0-524"></a><span class="sd">            data.</span>
+<a id="__codelineno-0-525" name="__codelineno-0-525"></a>
+<a id="__codelineno-0-526" name="__codelineno-0-526"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-527" name="__codelineno-0-527"></a><span class="sd">        A subset of the `sv.KeyPoints` object or an item from the data field.</span>
+<a id="__codelineno-0-528" name="__codelineno-0-528"></a>
+<a id="__codelineno-0-529" name="__codelineno-0-529"></a><span class="sd">    Examples:</span>
+<a id="__codelineno-0-530" name="__codelineno-0-530"></a><span class="sd">        ```python</span>
+<a id="__codelineno-0-531" name="__codelineno-0-531"></a><span class="sd">        import supervision as sv</span>
+<a id="__codelineno-0-532" name="__codelineno-0-532"></a>
+<a id="__codelineno-0-533" name="__codelineno-0-533"></a><span class="sd">        key_points = sv.KeyPoints()</span>
+<a id="__codelineno-0-534" name="__codelineno-0-534"></a>
+<a id="__codelineno-0-535" name="__codelineno-0-535"></a><span class="sd">        # access the first keypoint using an integer index</span>
+<a id="__codelineno-0-536" name="__codelineno-0-536"></a><span class="sd">        key_points[0]</span>
+<a id="__codelineno-0-537" name="__codelineno-0-537"></a>
+<a id="__codelineno-0-538" name="__codelineno-0-538"></a><span class="sd">        # access the first 10 keypoints using index slice</span>
+<a id="__codelineno-0-539" name="__codelineno-0-539"></a><span class="sd">        key_points[0:10]</span>
+<a id="__codelineno-0-540" name="__codelineno-0-540"></a>
+<a id="__codelineno-0-541" name="__codelineno-0-541"></a><span class="sd">        # access selected keypoints using a list of indices</span>
+<a id="__codelineno-0-542" name="__codelineno-0-542"></a><span class="sd">        key_points[[0, 2, 4]]</span>
+<a id="__codelineno-0-543" name="__codelineno-0-543"></a>
+<a id="__codelineno-0-544" name="__codelineno-0-544"></a><span class="sd">        # access keypoints with selected class_id</span>
+<a id="__codelineno-0-545" name="__codelineno-0-545"></a><span class="sd">        key_points[key_points.class_id == 0]</span>
+<a id="__codelineno-0-546" name="__codelineno-0-546"></a>
+<a id="__codelineno-0-547" name="__codelineno-0-547"></a><span class="sd">        # access keypoints with confidence greater than 0.5</span>
+<a id="__codelineno-0-548" name="__codelineno-0-548"></a><span class="sd">        key_points[key_points.confidence &gt; 0.5]</span>
+<a id="__codelineno-0-549" name="__codelineno-0-549"></a><span class="sd">        ```</span>
+<a id="__codelineno-0-550" name="__codelineno-0-550"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-551" name="__codelineno-0-551"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+<a id="__codelineno-0-552" name="__codelineno-0-552"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+<a id="__codelineno-0-553" name="__codelineno-0-553"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+<a id="__codelineno-0-554" name="__codelineno-0-554"></a>        <span class="n">index</span> <span class="o">=</span> <span class="p">[</span><span class="n">index</span><span class="p">]</span>
+<a id="__codelineno-0-555" name="__codelineno-0-555"></a>    <span class="k">return</span> <span class="n">KeyPoints</span><span class="p">(</span>
+<a id="__codelineno-0-556" name="__codelineno-0-556"></a>        <span class="n">xy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">xy</span><span class="p">[</span><span class="n">index</span><span class="p">],</span>
+<a id="__codelineno-0-557" name="__codelineno-0-557"></a>        <span class="n">confidence</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-558" name="__codelineno-0-558"></a>        <span class="n">class_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">class_id</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-559" name="__codelineno-0-559"></a>        <span class="n">data</span><span class="o">=</span><span class="n">get_data_item</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">index</span><span class="p">),</span>
+<a id="__codelineno-0-560" name="__codelineno-0-560"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3621,73 +3741,73 @@ data.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/keypoint/core.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-511">511</a></span>
-<span class="normal"><a href="#__codelineno-0-512">512</a></span>
-<span class="normal"><a href="#__codelineno-0-513">513</a></span>
-<span class="normal"><a href="#__codelineno-0-514">514</a></span>
-<span class="normal"><a href="#__codelineno-0-515">515</a></span>
-<span class="normal"><a href="#__codelineno-0-516">516</a></span>
-<span class="normal"><a href="#__codelineno-0-517">517</a></span>
-<span class="normal"><a href="#__codelineno-0-518">518</a></span>
-<span class="normal"><a href="#__codelineno-0-519">519</a></span>
-<span class="normal"><a href="#__codelineno-0-520">520</a></span>
-<span class="normal"><a href="#__codelineno-0-521">521</a></span>
-<span class="normal"><a href="#__codelineno-0-522">522</a></span>
-<span class="normal"><a href="#__codelineno-0-523">523</a></span>
-<span class="normal"><a href="#__codelineno-0-524">524</a></span>
-<span class="normal"><a href="#__codelineno-0-525">525</a></span>
-<span class="normal"><a href="#__codelineno-0-526">526</a></span>
-<span class="normal"><a href="#__codelineno-0-527">527</a></span>
-<span class="normal"><a href="#__codelineno-0-528">528</a></span>
-<span class="normal"><a href="#__codelineno-0-529">529</a></span>
-<span class="normal"><a href="#__codelineno-0-530">530</a></span>
-<span class="normal"><a href="#__codelineno-0-531">531</a></span>
-<span class="normal"><a href="#__codelineno-0-532">532</a></span>
-<span class="normal"><a href="#__codelineno-0-533">533</a></span>
-<span class="normal"><a href="#__codelineno-0-534">534</a></span>
-<span class="normal"><a href="#__codelineno-0-535">535</a></span>
-<span class="normal"><a href="#__codelineno-0-536">536</a></span>
-<span class="normal"><a href="#__codelineno-0-537">537</a></span>
-<span class="normal"><a href="#__codelineno-0-538">538</a></span>
-<span class="normal"><a href="#__codelineno-0-539">539</a></span>
-<span class="normal"><a href="#__codelineno-0-540">540</a></span>
-<span class="normal"><a href="#__codelineno-0-541">541</a></span>
-<span class="normal"><a href="#__codelineno-0-542">542</a></span>
-<span class="normal"><a href="#__codelineno-0-543">543</a></span>
-<span class="normal"><a href="#__codelineno-0-544">544</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-511" name="__codelineno-0-511"></a><span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">List</span><span class="p">]):</span>
-<a id="__codelineno-0-512" name="__codelineno-0-512"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-513" name="__codelineno-0-513"></a><span class="sd">    Set a value in the data dictionary of the `sv.KeyPoints` object.</span>
-<a id="__codelineno-0-514" name="__codelineno-0-514"></a>
-<a id="__codelineno-0-515" name="__codelineno-0-515"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-516" name="__codelineno-0-516"></a><span class="sd">        key (str): The key in the data dictionary to set.</span>
-<a id="__codelineno-0-517" name="__codelineno-0-517"></a><span class="sd">        value (Union[np.ndarray, List]): The value to set for the key.</span>
-<a id="__codelineno-0-518" name="__codelineno-0-518"></a>
-<a id="__codelineno-0-519" name="__codelineno-0-519"></a><span class="sd">    Examples:</span>
-<a id="__codelineno-0-520" name="__codelineno-0-520"></a><span class="sd">        ```python</span>
-<a id="__codelineno-0-521" name="__codelineno-0-521"></a><span class="sd">        import cv2</span>
-<a id="__codelineno-0-522" name="__codelineno-0-522"></a><span class="sd">        import supervision as sv</span>
-<a id="__codelineno-0-523" name="__codelineno-0-523"></a><span class="sd">        from ultralytics import YOLO</span>
-<a id="__codelineno-0-524" name="__codelineno-0-524"></a>
-<a id="__codelineno-0-525" name="__codelineno-0-525"></a><span class="sd">        image = cv2.imread(&lt;SOURCE_IMAGE_PATH&gt;)</span>
-<a id="__codelineno-0-526" name="__codelineno-0-526"></a><span class="sd">        model = YOLO(&#39;yolov8s.pt&#39;)</span>
-<a id="__codelineno-0-527" name="__codelineno-0-527"></a>
-<a id="__codelineno-0-528" name="__codelineno-0-528"></a><span class="sd">        result = model(image)[0]</span>
-<a id="__codelineno-0-529" name="__codelineno-0-529"></a><span class="sd">        keypoints = sv.KeyPoints.from_ultralytics(result)</span>
-<a id="__codelineno-0-530" name="__codelineno-0-530"></a>
-<a id="__codelineno-0-531" name="__codelineno-0-531"></a><span class="sd">        keypoints[&#39;class_name&#39;] = [</span>
-<a id="__codelineno-0-532" name="__codelineno-0-532"></a><span class="sd">             model.model.names[class_id]</span>
-<a id="__codelineno-0-533" name="__codelineno-0-533"></a><span class="sd">             for class_id</span>
-<a id="__codelineno-0-534" name="__codelineno-0-534"></a><span class="sd">             in keypoints.class_id</span>
-<a id="__codelineno-0-535" name="__codelineno-0-535"></a><span class="sd">         ]</span>
-<a id="__codelineno-0-536" name="__codelineno-0-536"></a><span class="sd">        ```</span>
-<a id="__codelineno-0-537" name="__codelineno-0-537"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-538" name="__codelineno-0-538"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
-<a id="__codelineno-0-539" name="__codelineno-0-539"></a>        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Value must be a np.ndarray or a list&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-540" name="__codelineno-0-540"></a>
-<a id="__codelineno-0-541" name="__codelineno-0-541"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-<a id="__codelineno-0-542" name="__codelineno-0-542"></a>        <span class="n">value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
-<a id="__codelineno-0-543" name="__codelineno-0-543"></a>
-<a id="__codelineno-0-544" name="__codelineno-0-544"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-562">562</a></span>
+<span class="normal"><a href="#__codelineno-0-563">563</a></span>
+<span class="normal"><a href="#__codelineno-0-564">564</a></span>
+<span class="normal"><a href="#__codelineno-0-565">565</a></span>
+<span class="normal"><a href="#__codelineno-0-566">566</a></span>
+<span class="normal"><a href="#__codelineno-0-567">567</a></span>
+<span class="normal"><a href="#__codelineno-0-568">568</a></span>
+<span class="normal"><a href="#__codelineno-0-569">569</a></span>
+<span class="normal"><a href="#__codelineno-0-570">570</a></span>
+<span class="normal"><a href="#__codelineno-0-571">571</a></span>
+<span class="normal"><a href="#__codelineno-0-572">572</a></span>
+<span class="normal"><a href="#__codelineno-0-573">573</a></span>
+<span class="normal"><a href="#__codelineno-0-574">574</a></span>
+<span class="normal"><a href="#__codelineno-0-575">575</a></span>
+<span class="normal"><a href="#__codelineno-0-576">576</a></span>
+<span class="normal"><a href="#__codelineno-0-577">577</a></span>
+<span class="normal"><a href="#__codelineno-0-578">578</a></span>
+<span class="normal"><a href="#__codelineno-0-579">579</a></span>
+<span class="normal"><a href="#__codelineno-0-580">580</a></span>
+<span class="normal"><a href="#__codelineno-0-581">581</a></span>
+<span class="normal"><a href="#__codelineno-0-582">582</a></span>
+<span class="normal"><a href="#__codelineno-0-583">583</a></span>
+<span class="normal"><a href="#__codelineno-0-584">584</a></span>
+<span class="normal"><a href="#__codelineno-0-585">585</a></span>
+<span class="normal"><a href="#__codelineno-0-586">586</a></span>
+<span class="normal"><a href="#__codelineno-0-587">587</a></span>
+<span class="normal"><a href="#__codelineno-0-588">588</a></span>
+<span class="normal"><a href="#__codelineno-0-589">589</a></span>
+<span class="normal"><a href="#__codelineno-0-590">590</a></span>
+<span class="normal"><a href="#__codelineno-0-591">591</a></span>
+<span class="normal"><a href="#__codelineno-0-592">592</a></span>
+<span class="normal"><a href="#__codelineno-0-593">593</a></span>
+<span class="normal"><a href="#__codelineno-0-594">594</a></span>
+<span class="normal"><a href="#__codelineno-0-595">595</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-562" name="__codelineno-0-562"></a><span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">List</span><span class="p">]):</span>
+<a id="__codelineno-0-563" name="__codelineno-0-563"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-564" name="__codelineno-0-564"></a><span class="sd">    Set a value in the data dictionary of the `sv.KeyPoints` object.</span>
+<a id="__codelineno-0-565" name="__codelineno-0-565"></a>
+<a id="__codelineno-0-566" name="__codelineno-0-566"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-567" name="__codelineno-0-567"></a><span class="sd">        key (str): The key in the data dictionary to set.</span>
+<a id="__codelineno-0-568" name="__codelineno-0-568"></a><span class="sd">        value (Union[np.ndarray, List]): The value to set for the key.</span>
+<a id="__codelineno-0-569" name="__codelineno-0-569"></a>
+<a id="__codelineno-0-570" name="__codelineno-0-570"></a><span class="sd">    Examples:</span>
+<a id="__codelineno-0-571" name="__codelineno-0-571"></a><span class="sd">        ```python</span>
+<a id="__codelineno-0-572" name="__codelineno-0-572"></a><span class="sd">        import cv2</span>
+<a id="__codelineno-0-573" name="__codelineno-0-573"></a><span class="sd">        import supervision as sv</span>
+<a id="__codelineno-0-574" name="__codelineno-0-574"></a><span class="sd">        from ultralytics import YOLO</span>
+<a id="__codelineno-0-575" name="__codelineno-0-575"></a>
+<a id="__codelineno-0-576" name="__codelineno-0-576"></a><span class="sd">        image = cv2.imread(&lt;SOURCE_IMAGE_PATH&gt;)</span>
+<a id="__codelineno-0-577" name="__codelineno-0-577"></a><span class="sd">        model = YOLO(&#39;yolov8s.pt&#39;)</span>
+<a id="__codelineno-0-578" name="__codelineno-0-578"></a>
+<a id="__codelineno-0-579" name="__codelineno-0-579"></a><span class="sd">        result = model(image)[0]</span>
+<a id="__codelineno-0-580" name="__codelineno-0-580"></a><span class="sd">        keypoints = sv.KeyPoints.from_ultralytics(result)</span>
+<a id="__codelineno-0-581" name="__codelineno-0-581"></a>
+<a id="__codelineno-0-582" name="__codelineno-0-582"></a><span class="sd">        keypoints[&#39;class_name&#39;] = [</span>
+<a id="__codelineno-0-583" name="__codelineno-0-583"></a><span class="sd">             model.model.names[class_id]</span>
+<a id="__codelineno-0-584" name="__codelineno-0-584"></a><span class="sd">             for class_id</span>
+<a id="__codelineno-0-585" name="__codelineno-0-585"></a><span class="sd">             in keypoints.class_id</span>
+<a id="__codelineno-0-586" name="__codelineno-0-586"></a><span class="sd">         ]</span>
+<a id="__codelineno-0-587" name="__codelineno-0-587"></a><span class="sd">        ```</span>
+<a id="__codelineno-0-588" name="__codelineno-0-588"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-589" name="__codelineno-0-589"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+<a id="__codelineno-0-590" name="__codelineno-0-590"></a>        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Value must be a np.ndarray or a list&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-591" name="__codelineno-0-591"></a>
+<a id="__codelineno-0-592" name="__codelineno-0-592"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+<a id="__codelineno-0-593" name="__codelineno-0-593"></a>        <span class="n">value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+<a id="__codelineno-0-594" name="__codelineno-0-594"></a>
+<a id="__codelineno-0-595" name="__codelineno-0-595"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3743,37 +3863,234 @@ data.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/keypoint/core.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-546">546</a></span>
-<span class="normal"><a href="#__codelineno-0-547">547</a></span>
-<span class="normal"><a href="#__codelineno-0-548">548</a></span>
-<span class="normal"><a href="#__codelineno-0-549">549</a></span>
-<span class="normal"><a href="#__codelineno-0-550">550</a></span>
-<span class="normal"><a href="#__codelineno-0-551">551</a></span>
-<span class="normal"><a href="#__codelineno-0-552">552</a></span>
-<span class="normal"><a href="#__codelineno-0-553">553</a></span>
-<span class="normal"><a href="#__codelineno-0-554">554</a></span>
-<span class="normal"><a href="#__codelineno-0-555">555</a></span>
-<span class="normal"><a href="#__codelineno-0-556">556</a></span>
-<span class="normal"><a href="#__codelineno-0-557">557</a></span>
-<span class="normal"><a href="#__codelineno-0-558">558</a></span>
-<span class="normal"><a href="#__codelineno-0-559">559</a></span>
-<span class="normal"><a href="#__codelineno-0-560">560</a></span>
-<span class="normal"><a href="#__codelineno-0-561">561</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-546" name="__codelineno-0-546"></a><span class="nd">@classmethod</span>
-<a id="__codelineno-0-547" name="__codelineno-0-547"></a><span class="k">def</span> <span class="nf">empty</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyPoints</span><span class="p">:</span>
-<a id="__codelineno-0-548" name="__codelineno-0-548"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-549" name="__codelineno-0-549"></a><span class="sd">    Create an empty Keypoints object with no keypoints.</span>
-<a id="__codelineno-0-550" name="__codelineno-0-550"></a>
-<a id="__codelineno-0-551" name="__codelineno-0-551"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-552" name="__codelineno-0-552"></a><span class="sd">        An empty `sv.KeyPoints` object.</span>
-<a id="__codelineno-0-553" name="__codelineno-0-553"></a>
-<a id="__codelineno-0-554" name="__codelineno-0-554"></a><span class="sd">    Examples:</span>
-<a id="__codelineno-0-555" name="__codelineno-0-555"></a><span class="sd">        ```python</span>
-<a id="__codelineno-0-556" name="__codelineno-0-556"></a><span class="sd">        import supervision as sv</span>
-<a id="__codelineno-0-557" name="__codelineno-0-557"></a>
-<a id="__codelineno-0-558" name="__codelineno-0-558"></a><span class="sd">        key_points = sv.KeyPoints.empty()</span>
-<a id="__codelineno-0-559" name="__codelineno-0-559"></a><span class="sd">        ```</span>
-<a id="__codelineno-0-560" name="__codelineno-0-560"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-561" name="__codelineno-0-561"></a>    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">xy</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-597">597</a></span>
+<span class="normal"><a href="#__codelineno-0-598">598</a></span>
+<span class="normal"><a href="#__codelineno-0-599">599</a></span>
+<span class="normal"><a href="#__codelineno-0-600">600</a></span>
+<span class="normal"><a href="#__codelineno-0-601">601</a></span>
+<span class="normal"><a href="#__codelineno-0-602">602</a></span>
+<span class="normal"><a href="#__codelineno-0-603">603</a></span>
+<span class="normal"><a href="#__codelineno-0-604">604</a></span>
+<span class="normal"><a href="#__codelineno-0-605">605</a></span>
+<span class="normal"><a href="#__codelineno-0-606">606</a></span>
+<span class="normal"><a href="#__codelineno-0-607">607</a></span>
+<span class="normal"><a href="#__codelineno-0-608">608</a></span>
+<span class="normal"><a href="#__codelineno-0-609">609</a></span>
+<span class="normal"><a href="#__codelineno-0-610">610</a></span>
+<span class="normal"><a href="#__codelineno-0-611">611</a></span>
+<span class="normal"><a href="#__codelineno-0-612">612</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-597" name="__codelineno-0-597"></a><span class="nd">@classmethod</span>
+<a id="__codelineno-0-598" name="__codelineno-0-598"></a><span class="k">def</span> <span class="nf">empty</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyPoints</span><span class="p">:</span>
+<a id="__codelineno-0-599" name="__codelineno-0-599"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-600" name="__codelineno-0-600"></a><span class="sd">    Create an empty Keypoints object with no keypoints.</span>
+<a id="__codelineno-0-601" name="__codelineno-0-601"></a>
+<a id="__codelineno-0-602" name="__codelineno-0-602"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-603" name="__codelineno-0-603"></a><span class="sd">        An empty `sv.KeyPoints` object.</span>
+<a id="__codelineno-0-604" name="__codelineno-0-604"></a>
+<a id="__codelineno-0-605" name="__codelineno-0-605"></a><span class="sd">    Examples:</span>
+<a id="__codelineno-0-606" name="__codelineno-0-606"></a><span class="sd">        ```python</span>
+<a id="__codelineno-0-607" name="__codelineno-0-607"></a><span class="sd">        import supervision as sv</span>
+<a id="__codelineno-0-608" name="__codelineno-0-608"></a>
+<a id="__codelineno-0-609" name="__codelineno-0-609"></a><span class="sd">        key_points = sv.KeyPoints.empty()</span>
+<a id="__codelineno-0-610" name="__codelineno-0-610"></a><span class="sd">        ```</span>
+<a id="__codelineno-0-611" name="__codelineno-0-611"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-612" name="__codelineno-0-612"></a>    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">xy</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="supervision.keypoint.core.KeyPoints.from_detectron2" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_detectron2</span><span class="p">(</span><span class="n">detectron2_results</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#supervision.keypoint.core.KeyPoints.from_detectron2" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Create a <code>sv.KeyPoints</code> object from the
+<a href="https://github.com/facebookresearch/detectron2">Detectron2</a> inference result.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>detectron2_results</code></td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The output of a
+Detectron2 model containing instances with prediction data.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="supervision.keypoint.core.KeyPoints" href="#supervision.keypoint.core.KeyPoints">KeyPoints</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A <code>sv.KeyPoints</code> object containing the keypoint coordinates, class IDs,
+and class names, and confidences of each keypoint.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="example" open>
+  <summary>Example</summary>
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span> <span class="nn">cv2</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span> <span class="nn">detectron2.engine</span> <span class="kn">import</span> <span class="n">DefaultPredictor</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="kn">from</span> <span class="nn">detectron2.config</span> <span class="kn">import</span> <span class="n">get_cfg</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="o">&lt;</span><span class="n">SOURCE_IMAGE_PATH</span><span class="o">&gt;</span><span class="p">)</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">cfg</span> <span class="o">=</span> <span class="n">get_cfg</span><span class="p">()</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">cfg</span><span class="o">.</span><span class="n">merge_from_file</span><span class="p">(</span><span class="o">&lt;</span><span class="n">CONFIG_PATH</span><span class="o">&gt;</span><span class="p">)</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="n">cfg</span><span class="o">.</span><span class="n">MODEL</span><span class="o">.</span><span class="n">WEIGHTS</span> <span class="o">=</span> <span class="o">&lt;</span><span class="n">WEIGHTS_PATH</span><span class="o">&gt;</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="n">predictor</span> <span class="o">=</span> <span class="n">DefaultPredictor</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="n">result</span> <span class="o">=</span> <span class="n">predictor</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="n">keypoints</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">KeyPoints</span><span class="o">.</span><span class="n">from_detectron2</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+</code></pre></div>
+</details>
+            <details class="quote">
+              <summary>Source code in <code>supervision/keypoint/core.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-459">459</a></span>
+<span class="normal"><a href="#__codelineno-0-460">460</a></span>
+<span class="normal"><a href="#__codelineno-0-461">461</a></span>
+<span class="normal"><a href="#__codelineno-0-462">462</a></span>
+<span class="normal"><a href="#__codelineno-0-463">463</a></span>
+<span class="normal"><a href="#__codelineno-0-464">464</a></span>
+<span class="normal"><a href="#__codelineno-0-465">465</a></span>
+<span class="normal"><a href="#__codelineno-0-466">466</a></span>
+<span class="normal"><a href="#__codelineno-0-467">467</a></span>
+<span class="normal"><a href="#__codelineno-0-468">468</a></span>
+<span class="normal"><a href="#__codelineno-0-469">469</a></span>
+<span class="normal"><a href="#__codelineno-0-470">470</a></span>
+<span class="normal"><a href="#__codelineno-0-471">471</a></span>
+<span class="normal"><a href="#__codelineno-0-472">472</a></span>
+<span class="normal"><a href="#__codelineno-0-473">473</a></span>
+<span class="normal"><a href="#__codelineno-0-474">474</a></span>
+<span class="normal"><a href="#__codelineno-0-475">475</a></span>
+<span class="normal"><a href="#__codelineno-0-476">476</a></span>
+<span class="normal"><a href="#__codelineno-0-477">477</a></span>
+<span class="normal"><a href="#__codelineno-0-478">478</a></span>
+<span class="normal"><a href="#__codelineno-0-479">479</a></span>
+<span class="normal"><a href="#__codelineno-0-480">480</a></span>
+<span class="normal"><a href="#__codelineno-0-481">481</a></span>
+<span class="normal"><a href="#__codelineno-0-482">482</a></span>
+<span class="normal"><a href="#__codelineno-0-483">483</a></span>
+<span class="normal"><a href="#__codelineno-0-484">484</a></span>
+<span class="normal"><a href="#__codelineno-0-485">485</a></span>
+<span class="normal"><a href="#__codelineno-0-486">486</a></span>
+<span class="normal"><a href="#__codelineno-0-487">487</a></span>
+<span class="normal"><a href="#__codelineno-0-488">488</a></span>
+<span class="normal"><a href="#__codelineno-0-489">489</a></span>
+<span class="normal"><a href="#__codelineno-0-490">490</a></span>
+<span class="normal"><a href="#__codelineno-0-491">491</a></span>
+<span class="normal"><a href="#__codelineno-0-492">492</a></span>
+<span class="normal"><a href="#__codelineno-0-493">493</a></span>
+<span class="normal"><a href="#__codelineno-0-494">494</a></span>
+<span class="normal"><a href="#__codelineno-0-495">495</a></span>
+<span class="normal"><a href="#__codelineno-0-496">496</a></span>
+<span class="normal"><a href="#__codelineno-0-497">497</a></span>
+<span class="normal"><a href="#__codelineno-0-498">498</a></span>
+<span class="normal"><a href="#__codelineno-0-499">499</a></span>
+<span class="normal"><a href="#__codelineno-0-500">500</a></span>
+<span class="normal"><a href="#__codelineno-0-501">501</a></span>
+<span class="normal"><a href="#__codelineno-0-502">502</a></span>
+<span class="normal"><a href="#__codelineno-0-503">503</a></span>
+<span class="normal"><a href="#__codelineno-0-504">504</a></span>
+<span class="normal"><a href="#__codelineno-0-505">505</a></span>
+<span class="normal"><a href="#__codelineno-0-506">506</a></span>
+<span class="normal"><a href="#__codelineno-0-507">507</a></span>
+<span class="normal"><a href="#__codelineno-0-508">508</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-459" name="__codelineno-0-459"></a><span class="nd">@classmethod</span>
+<a id="__codelineno-0-460" name="__codelineno-0-460"></a><span class="k">def</span> <span class="nf">from_detectron2</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">detectron2_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyPoints</span><span class="p">:</span>
+<a id="__codelineno-0-461" name="__codelineno-0-461"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-462" name="__codelineno-0-462"></a><span class="sd">    Create a `sv.KeyPoints` object from the</span>
+<a id="__codelineno-0-463" name="__codelineno-0-463"></a><span class="sd">    [Detectron2](https://github.com/facebookresearch/detectron2) inference result.</span>
+<a id="__codelineno-0-464" name="__codelineno-0-464"></a>
+<a id="__codelineno-0-465" name="__codelineno-0-465"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-466" name="__codelineno-0-466"></a><span class="sd">        detectron2_results: The output of a</span>
+<a id="__codelineno-0-467" name="__codelineno-0-467"></a><span class="sd">            Detectron2 model containing instances with prediction data.</span>
+<a id="__codelineno-0-468" name="__codelineno-0-468"></a>
+<a id="__codelineno-0-469" name="__codelineno-0-469"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-470" name="__codelineno-0-470"></a><span class="sd">        A `sv.KeyPoints` object containing the keypoint coordinates, class IDs,</span>
+<a id="__codelineno-0-471" name="__codelineno-0-471"></a><span class="sd">            and class names, and confidences of each keypoint.</span>
+<a id="__codelineno-0-472" name="__codelineno-0-472"></a>
+<a id="__codelineno-0-473" name="__codelineno-0-473"></a><span class="sd">    Example:</span>
+<a id="__codelineno-0-474" name="__codelineno-0-474"></a><span class="sd">        ```python</span>
+<a id="__codelineno-0-475" name="__codelineno-0-475"></a><span class="sd">        import cv2</span>
+<a id="__codelineno-0-476" name="__codelineno-0-476"></a><span class="sd">        import supervision as sv</span>
+<a id="__codelineno-0-477" name="__codelineno-0-477"></a><span class="sd">        from detectron2.engine import DefaultPredictor</span>
+<a id="__codelineno-0-478" name="__codelineno-0-478"></a><span class="sd">        from detectron2.config import get_cfg</span>
+<a id="__codelineno-0-479" name="__codelineno-0-479"></a>
+<a id="__codelineno-0-480" name="__codelineno-0-480"></a>
+<a id="__codelineno-0-481" name="__codelineno-0-481"></a><span class="sd">        image = cv2.imread(&lt;SOURCE_IMAGE_PATH&gt;)</span>
+<a id="__codelineno-0-482" name="__codelineno-0-482"></a><span class="sd">        cfg = get_cfg()</span>
+<a id="__codelineno-0-483" name="__codelineno-0-483"></a><span class="sd">        cfg.merge_from_file(&lt;CONFIG_PATH&gt;)</span>
+<a id="__codelineno-0-484" name="__codelineno-0-484"></a><span class="sd">        cfg.MODEL.WEIGHTS = &lt;WEIGHTS_PATH&gt;</span>
+<a id="__codelineno-0-485" name="__codelineno-0-485"></a><span class="sd">        predictor = DefaultPredictor(cfg)</span>
+<a id="__codelineno-0-486" name="__codelineno-0-486"></a>
+<a id="__codelineno-0-487" name="__codelineno-0-487"></a><span class="sd">        result = predictor(image)</span>
+<a id="__codelineno-0-488" name="__codelineno-0-488"></a><span class="sd">        keypoints = sv.KeyPoints.from_detectron2(result)</span>
+<a id="__codelineno-0-489" name="__codelineno-0-489"></a><span class="sd">        ```</span>
+<a id="__codelineno-0-490" name="__codelineno-0-490"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-491" name="__codelineno-0-491"></a>
+<a id="__codelineno-0-492" name="__codelineno-0-492"></a>    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">detectron2_results</span><span class="p">[</span><span class="s2">&quot;instances&quot;</span><span class="p">],</span> <span class="s2">&quot;pred_keypoints&quot;</span><span class="p">):</span>
+<a id="__codelineno-0-493" name="__codelineno-0-493"></a>        <span class="k">if</span> <span class="n">detectron2_results</span><span class="p">[</span><span class="s2">&quot;instances&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">pred_keypoints</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+<a id="__codelineno-0-494" name="__codelineno-0-494"></a>            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">empty</span><span class="p">()</span>
+<a id="__codelineno-0-495" name="__codelineno-0-495"></a>        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+<a id="__codelineno-0-496" name="__codelineno-0-496"></a>            <span class="n">xy</span><span class="o">=</span><span class="n">detectron2_results</span><span class="p">[</span><span class="s2">&quot;instances&quot;</span><span class="p">]</span>
+<a id="__codelineno-0-497" name="__codelineno-0-497"></a>            <span class="o">.</span><span class="n">pred_keypoints</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+<a id="__codelineno-0-498" name="__codelineno-0-498"></a>            <span class="o">.</span><span class="n">numpy</span><span class="p">()[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">],</span>
+<a id="__codelineno-0-499" name="__codelineno-0-499"></a>            <span class="n">confidence</span><span class="o">=</span><span class="n">detectron2_results</span><span class="p">[</span><span class="s2">&quot;instances&quot;</span><span class="p">]</span>
+<a id="__codelineno-0-500" name="__codelineno-0-500"></a>            <span class="o">.</span><span class="n">pred_keypoints</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+<a id="__codelineno-0-501" name="__codelineno-0-501"></a>            <span class="o">.</span><span class="n">numpy</span><span class="p">()[:,</span> <span class="p">:,</span> <span class="mi">2</span><span class="p">],</span>
+<a id="__codelineno-0-502" name="__codelineno-0-502"></a>            <span class="n">class_id</span><span class="o">=</span><span class="n">detectron2_results</span><span class="p">[</span><span class="s2">&quot;instances&quot;</span><span class="p">]</span>
+<a id="__codelineno-0-503" name="__codelineno-0-503"></a>            <span class="o">.</span><span class="n">pred_classes</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+<a id="__codelineno-0-504" name="__codelineno-0-504"></a>            <span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+<a id="__codelineno-0-505" name="__codelineno-0-505"></a>            <span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">),</span>
+<a id="__codelineno-0-506" name="__codelineno-0-506"></a>        <span class="p">)</span>
+<a id="__codelineno-0-507" name="__codelineno-0-507"></a>    <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-0-508" name="__codelineno-0-508"></a>        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">empty</span><span class="p">()</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
