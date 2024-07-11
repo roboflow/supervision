@@ -448,6 +448,8 @@ class KeyPoints:
         """
 
         if hasattr(detectron2_results["instances"], "pred_keypoints"):
+            if detectron2_results["instances"].pred_keypoints.cpu().numpy().size == 0:
+                return cls.empty()
             return cls(
                 xy=detectron2_results["instances"]
                 .pred_keypoints.cpu()
