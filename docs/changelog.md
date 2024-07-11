@@ -67,7 +67,7 @@ train_ds = sv.DetectionDataset.from_yolo(
 
 - Added [#975](https://github.com/roboflow/supervision/pull/975) 📝 New Cookbooks: serialize detections into [json](https://github.com/roboflow/supervision/blob/de896189b83a1f9434c0a37dd9192ee00d2a1283/docs/notebooks/serialise-detections-to-json.ipynb) and [csv](https://github.com/roboflow/supervision/blob/de896189b83a1f9434c0a37dd9192ee00d2a1283/docs/notebooks/serialise-detections-to-csv.ipynb).
 
-- Fixed [#1312]: Fixed [`CropAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.TraceAnnotator.annotate).
+- Fixed [#1312](https://github.com/roboflow/supervision/pull/1312): Fixed [`CropAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.TraceAnnotator.annotate).
 
 - Added [#1290](https://github.com/roboflow/supervision/pull/1290): Mostly an internal change, our file utility function now support both `str` and `pathlib` paths.
 
