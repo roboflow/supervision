@@ -595,6 +595,33 @@ def move_boxes(
     """
     return xyxy + np.hstack([offset, offset])
 
+def move_obb_boxes(xyxyxyxy, offset):
+    """
+    Parameters:
+        xyxyxyxy (npt.NDArray[np.float64]): An array of shape `(n, 8)` containing the
+            bounding boxes coordinates in format `[x1, y1, x2, y2,x3, y3, x4, y4]`
+        offset (np.array): An array of shape `(2,)` containing offset values in format
+            is `[dx, dy]`.
+
+    Returns:
+        npt.NDArray[np.float64]: Repositioned oriented bounding boxes. 
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        xyxyxyxy: np.array([[10, 10, 20, 20, 30, 30, 40, 40],
+                            [20, 20, 30, 30, 40, 40, 50, 50]])
+        offset = np.array([5, 10])
+
+        sv.move_obb_boxes(xyxyxyxy=xyxyxyxy, offset=offset)
+        #[[15 20 25 30 35 40 45 50]
+        #[25 30 35 40 45 50 55 60]]
+        ```
+    """
+
+    return xyxyxyxy + np.hstack([offset, offset, offset, offset])
 
 def move_masks(
     masks: npt.NDArray[np.bool_],
