@@ -1,0 +1,31 @@
+:root {
+  /* Default to light theme */
+  --md-primary-fg-color:        #8315F9;
+  --md-accent-fg-color:         #00FFCE;
+}
+
+body.light {
+  /* Light theme */
+  --md-text-color:              #000000;
+  --md-h2-color:                #000000;
+}
+
+body.dark {
+  /* Dark theme */
+  --md-text-color:              #FFFFFF;
+  --md-h2-color:                #add8e6;
+}
+
+body.light .md-content *, body.dark .md-content * {
+  color: var(--md-text-color) !important;
+}
+
+body[data-md-url$="/cookbooks/"] .md-sidebar--primary,
+body[data-md-url$="/cookbooks/"] .md-sidebar--secondary {
+    display: none;
+}
+
+body[data-md-url$="/cookbooks/"] .md-content {
+    margin-left: 0;
+    width: 100%;
+}

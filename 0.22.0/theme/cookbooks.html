@@ -1,0 +1,28 @@
+{% extends "main.html" %}
+{% block libs %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js"></script>
+<link rel="stylesheet" href="/stylesheets/cookbooks-card.css">
+<script src="/javascripts/cookbooks-card.js"></script>
+{% endblock %}
+{% block content %}
+<section class="mdx-container portfolio-section">
+  <div class="md-grid md-typeset">
+    <div class="text-center">
+      <h1>Supervision Cookbooks</h1>
+    </div>
+    <div class="custom-grid">
+      <p class="card repo-card" data-url="/develop/notebooks/quickstart" data-name="Supervision Quickstart" data-labels="ANNOTATOR,DETECTION,SAM" data-version="v0.18.0" data-author="SkalskiP,onuralpszr"></p>
+      <p class="card repo-card" data-url="/develop/notebooks/count-objects-crossing-the-line" data-name="Count Objects Crossing the Line" data-labels="ANNOTATORS,LINE ZONE,TRACKING" data-version="v0.18.0" data-author="SkalskiP"></p>
+      <p class="card repo-card" data-url="/develop/notebooks/zero-shot-object-detection-with-yolo-world" data-name="Zero-Shot Object Detection with YOLO-World" data-labels="ANNOTATORS,DETECTION,INFERENCE" data-version="v0.19.0" data-author="SkalskiP"></p>
+      <p class="card repo-card" data-url="/develop/notebooks/download-supervision-assets" data-name="Downloading Supervision Assets" data-labels="ASSETS" data-version="v0.18.0" data-author="nickherrig"></p>
+      <p class="card repo-card" data-url="/develop/notebooks/annotate-video-with-detections" data-name="Annotate Video with Detections" data-labels="INFERENCE,YOLOV8" data-version="v0.18.0" data-author="nickherrig"></p>
+      <p class="card repo-card" data-url="/develop/notebooks/object-tracking" data-name="Object Tracking"  data-labels="TRACKING, ANNOTATOR" data-version="v0.18.0" data-author="nickherrig"></p>
+      <p class="card repo-card" data-url="/develop/notebooks/occupancy_analytics" data-name="Analyzing Zone Occupancy"  data-labels="ANNOTATOR,DETECTION,ZONES" data-version="v0.19.0" data-author="stellasphere"></p>
+      <p class="card repo-card" data-url="/develop/notebooks/evaluating-alignment-of-text-to-image-diffusion-models" data-name="Evaluating Alignment of Text-to-image Diffusion Models"  data-labels="ANNOTATORS,YOLO WORLD" data-version="v0.19.0rc5" data-author="iamhatesz"></p>
+      <p class="card repo-card" data-url="/develop/notebooks/serialise-detections-to-csv" data-name="Serialise Detections to a CSV File"  data-labels="DETECTIONS,CSV SINK,INFERENCE" data-version="v0.21.0" data-author="onuralpszr"></p>
+      <p class="card repo-card" data-url="/develop/notebooks/serialise-detections-to-json" data-name="Serialise Detections to a JSON File"  data-labels="DETECTIONS,JSON SINK,INFERENCE" data-version="v0.21.0" data-author="onuralpszr"></p>
+
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,107 @@
+.custom-grid {
+    display: grid;
+    grid-gap: 1rem;
+    /* Start with a single column layout */
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+/* Medium screens (640px and up) */
+@media (min-width: 640px) {
+    .custom-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* Large screens (1024px and up) */
+@media (min-width: 1024px) {
+    .custom-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+.repo-card {
+    background: radial-gradient(at right top, #A351FB25, #A5F9EA25);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    transition: transform 0.2s ease-in-out; /* Smooth transition for the transform */
+    cursor: pointer;
+}
+
+.repo-card:hover {
+    transform: translateY(-0.125rem); /* Move up by -0.125rem on hover */
+}
+
+.authors {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    margin-bottom: 1rem;
+    margin-top: 1rem;
+    font-size: 0.75rem;
+    line-height: 1rem;
+}
+
+.author-names {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    margin-bottom: 1rem;
+    margin-top: 1rem;
+    margin-left: 0.5rem;
+}
+
+.author-container {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    margin: 0;
+    transition: transform 0.2s;
+}
+
+.author-container.hover {
+    transform: translateY(-0.125rem);
+}
+
+.author-container:hover {
+    transform: translateY(-0.125rem);
+}
+
+.author-container a {
+    padding: 0;
+    margin: 0;
+    display: block;
+}
+
+.author-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: block;
+}
+
+.author-name a {
+    color: inherit; /* Inherits the color from the parent element */
+    text-decoration: none; /* Removes the underline */
+}
+
+.author-name a:hover {
+    color: inherit; /* Inherits the color from the parent element */
+    text-decoration: underline; /* Adds underline on hover */
+}
+
+.label {
+    color: #fff;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-right: 4px;
+}
+
+.non-selectable-text {
+    -webkit-user-select: none; /* Safari */
+    -moz-user-select: none; /* Firefox */
+    -ms-user-select: none; /* Internet Explorer/Edge */
+    user-select: none; /* Non-prefixed version, currently supported by Chrome, Opera, and Edge */
+}
