@@ -9,6 +9,7 @@ except importlib_metadata.PackageNotFoundError:
 from supervision.annotators.core import (
     BlurAnnotator,
     BoundingBoxAnnotator,
+    BoxAnnotator,
     BoxCornerAnnotator,
     CircleAnnotator,
     ColorAnnotator,
@@ -36,7 +37,6 @@ from supervision.dataset.core import (
     DetectionDataset,
 )
 from supervision.dataset.utils import mask_to_rle, rle_to_mask
-from supervision.detection.annotate import BoxAnnotator
 from supervision.detection.core import Detections
 from supervision.detection.line_zone import LineZone, LineZoneAnnotator
 from supervision.detection.lmm import LMM

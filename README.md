@@ -95,8 +95,8 @@ import supervision as sv
 image = cv2.imread(...)
 detections = sv.Detections(...)
 
-bounding_box_annotator = sv.BoundingBoxAnnotator()
-annotated_frame = bounding_box_annotator.annotate(
+box_annotator = sv.BoxAnnotator()
+annotated_frame = box_annotator.annotate(
     scene=image.copy(),
     detections=detections
 )
