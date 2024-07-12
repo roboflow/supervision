@@ -237,7 +237,7 @@ from supervision.detection.lmm import from_florence_2
             DoesNotRaise(),
         ),
         (  # Region to Category: detected
-            {"<REGION_TO_CATEGORY>": "some object<loc_3><loc_4><loc_5><loc_6>"},
+            {"<REGION_TO_CATEGORY>": "some object<loc_300><loc_400><loc_500><loc_600>"},
             (10, 10),
             (
                 np.array([[3, 4, 5, 6]], dtype=np.float32),
@@ -254,11 +254,11 @@ from supervision.detection.lmm import from_florence_2
             DoesNotRaise(),
         ),
         (  # Region to Description: detected
-            {"<REGION_TO_DESCRIPTION>": "some description<loc_3><loc_4><loc_5><loc_6>"},
+            {"<REGION_TO_DESCRIPTION>": "descr<loc_300><loc_400><loc_500><loc_600>"},
             (10, 10),
             (
                 np.array([[3, 4, 5, 6]], dtype=np.float32),
-                np.array(["some description"]),
+                np.array(["descr"]),
                 None,
                 None,
             ),
