@@ -551,13 +551,6 @@
     Detect Small Objects
   </span>
   
-    
-  
-  
-    <span class="md-status md-status--new"></span>
-  
-
-  
 
       </a>
     </li>
@@ -716,6 +709,13 @@
     Annotators
   </span>
   
+    
+  
+  
+    <span class="md-status md-status--new"></span>
+  
+
+  
 
       </a>
     </li>
@@ -758,13 +758,6 @@
     Double Detection Filter
   </span>
   
-    
-  
-  
-    <span class="md-status md-status--new"></span>
-  
-
-  
 
       </a>
     </li>
@@ -785,6 +778,13 @@
   <span class="md-ellipsis">
     Utils
   </span>
+  
+    
+  
+  
+    <span class="md-status md-status--new"></span>
+  
+
   
 
       </a>
@@ -880,13 +880,6 @@
   <span class="md-ellipsis">
     Annotators
   </span>
-  
-    
-  
-  
-    <span class="md-status md-status--new"></span>
-  
-
   
 
       </a>
@@ -1022,13 +1015,6 @@
     Line Zone
   </span>
   
-    
-  
-  
-    <span class="md-status md-status--new"></span>
-  
-
-  
 
       </a>
     </li>
@@ -1070,13 +1056,6 @@
   <span class="md-ellipsis">
     Inference Slicer
   </span>
-  
-    
-  
-  
-    <span class="md-status md-status--new"></span>
-  
-
   
 
       </a>
@@ -1327,13 +1306,6 @@
     Utils
   </span>
   
-    
-  
-  
-    <span class="md-status md-status--new"></span>
-  
-
-  
 
       </a>
     </li>
@@ -1484,6 +1456,13 @@
   <span class="md-ellipsis">
     File
   </span>
+  
+    
+  
+  
+    <span class="md-status md-status--new"></span>
+  
+
   
 
       </a>
@@ -2421,7 +2400,7 @@ false detection or double detection, but risks missing shorter tracks.</p>
 <a id="__codelineno-0-276" name="__codelineno-0-276"></a><span class="sd">            model = YOLO(&lt;MODEL_PATH&gt;)</span>
 <a id="__codelineno-0-277" name="__codelineno-0-277"></a><span class="sd">            tracker = sv.ByteTrack()</span>
 <a id="__codelineno-0-278" name="__codelineno-0-278"></a>
-<a id="__codelineno-0-279" name="__codelineno-0-279"></a><span class="sd">            bounding_box_annotator = sv.BoundingBoxAnnotator()</span>
+<a id="__codelineno-0-279" name="__codelineno-0-279"></a><span class="sd">            box_annotator = sv.BoxAnnotator()</span>
 <a id="__codelineno-0-280" name="__codelineno-0-280"></a><span class="sd">            label_annotator = sv.LabelAnnotator()</span>
 <a id="__codelineno-0-281" name="__codelineno-0-281"></a>
 <a id="__codelineno-0-282" name="__codelineno-0-282"></a><span class="sd">            def callback(frame: np.ndarray, index: int) -&gt; np.ndarray:</span>
@@ -2431,7 +2410,7 @@ false detection or double detection, but risks missing shorter tracks.</p>
 <a id="__codelineno-0-286" name="__codelineno-0-286"></a>
 <a id="__codelineno-0-287" name="__codelineno-0-287"></a><span class="sd">                labels = [f&quot;#{tracker_id}&quot; for tracker_id in detections.tracker_id]</span>
 <a id="__codelineno-0-288" name="__codelineno-0-288"></a>
-<a id="__codelineno-0-289" name="__codelineno-0-289"></a><span class="sd">                annotated_frame = bounding_box_annotator.annotate(</span>
+<a id="__codelineno-0-289" name="__codelineno-0-289"></a><span class="sd">                annotated_frame = box_annotator.annotate(</span>
 <a id="__codelineno-0-290" name="__codelineno-0-290"></a><span class="sd">                    scene=frame.copy(), detections=detections)</span>
 <a id="__codelineno-0-291" name="__codelineno-0-291"></a><span class="sd">                annotated_frame = label_annotator.annotate(</span>
 <a id="__codelineno-0-292" name="__codelineno-0-292"></a><span class="sd">                    scene=annotated_frame, detections=detections, labels=labels)</span>
@@ -2760,7 +2739,7 @@ detection results.</p>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">model</span> <span class="o">=</span> <span class="n">YOLO</span><span class="p">(</span><span class="o">&lt;</span><span class="n">MODEL_PATH</span><span class="o">&gt;</span><span class="p">)</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">tracker</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">ByteTrack</span><span class="p">()</span>
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">bounding_box_annotator</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">BoundingBoxAnnotator</span><span class="p">()</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">box_annotator</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">BoxAnnotator</span><span class="p">()</span>
 <a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">label_annotator</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">LabelAnnotator</span><span class="p">()</span>
 <a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
 <a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="k">def</span> <span class="nf">callback</span><span class="p">(</span><span class="n">frame</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
@@ -2770,7 +2749,7 @@ detection results.</p>
 <a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>
 <a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;#</span><span class="si">{</span><span class="n">tracker_id</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">tracker_id</span> <span class="ow">in</span> <span class="n">detections</span><span class="o">.</span><span class="n">tracker_id</span><span class="p">]</span>
 <a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>    <span class="n">annotated_frame</span> <span class="o">=</span> <span class="n">bounding_box_annotator</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>    <span class="n">annotated_frame</span> <span class="o">=</span> <span class="n">box_annotator</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
 <a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>        <span class="n">scene</span><span class="o">=</span><span class="n">frame</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="n">detections</span><span class="o">=</span><span class="n">detections</span><span class="p">)</span>
 <a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>    <span class="n">annotated_frame</span> <span class="o">=</span> <span class="n">label_annotator</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
 <a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>        <span class="n">scene</span><span class="o">=</span><span class="n">annotated_frame</span><span class="p">,</span> <span class="n">detections</span><span class="o">=</span><span class="n">detections</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">)</span>
@@ -2865,7 +2844,7 @@ detection results.</p>
 <a id="__codelineno-0-276" name="__codelineno-0-276"></a><span class="sd">        model = YOLO(&lt;MODEL_PATH&gt;)</span>
 <a id="__codelineno-0-277" name="__codelineno-0-277"></a><span class="sd">        tracker = sv.ByteTrack()</span>
 <a id="__codelineno-0-278" name="__codelineno-0-278"></a>
-<a id="__codelineno-0-279" name="__codelineno-0-279"></a><span class="sd">        bounding_box_annotator = sv.BoundingBoxAnnotator()</span>
+<a id="__codelineno-0-279" name="__codelineno-0-279"></a><span class="sd">        box_annotator = sv.BoxAnnotator()</span>
 <a id="__codelineno-0-280" name="__codelineno-0-280"></a><span class="sd">        label_annotator = sv.LabelAnnotator()</span>
 <a id="__codelineno-0-281" name="__codelineno-0-281"></a>
 <a id="__codelineno-0-282" name="__codelineno-0-282"></a><span class="sd">        def callback(frame: np.ndarray, index: int) -&gt; np.ndarray:</span>
@@ -2875,7 +2854,7 @@ detection results.</p>
 <a id="__codelineno-0-286" name="__codelineno-0-286"></a>
 <a id="__codelineno-0-287" name="__codelineno-0-287"></a><span class="sd">            labels = [f&quot;#{tracker_id}&quot; for tracker_id in detections.tracker_id]</span>
 <a id="__codelineno-0-288" name="__codelineno-0-288"></a>
-<a id="__codelineno-0-289" name="__codelineno-0-289"></a><span class="sd">            annotated_frame = bounding_box_annotator.annotate(</span>
+<a id="__codelineno-0-289" name="__codelineno-0-289"></a><span class="sd">            annotated_frame = box_annotator.annotate(</span>
 <a id="__codelineno-0-290" name="__codelineno-0-290"></a><span class="sd">                scene=frame.copy(), detections=detections)</span>
 <a id="__codelineno-0-291" name="__codelineno-0-291"></a><span class="sd">            annotated_frame = label_annotator.annotate(</span>
 <a id="__codelineno-0-292" name="__codelineno-0-292"></a><span class="sd">                scene=annotated_frame, detections=detections, labels=labels)</span>
