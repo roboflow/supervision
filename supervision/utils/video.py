@@ -127,7 +127,6 @@ def _validate_and_setup_video(source_path: str, start: int, end: Optional[int]):
         raise Exception("Requested frames are outbound")
     start = max(start, 0)
     end = min(end, total_frames) if end is not None else total_frames
-    video.set(cv2.CAP_PROP_POS_FRAMES, start)
     return video, start, end
 
 
@@ -159,9 +158,12 @@ def get_video_frames_generator(
         ```
     """
     video, start, end = _validate_and_setup_video(source_path, start, end)
-    frame_position = start
+    frame_position = 0
     while True:
         success, frame = video.read()
+        if frame_position < start:
+            frame_position += 1
+            continue
         if not success or frame_position >= end:
             break
         yield frame
