@@ -1,7 +1,14 @@
 ### 0.22.0 <small>Jul 12, 2024</small>
 
-- Added [#1326](https://github.com/roboflow/supervision/pull/1326): [`DetectionsDataset`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset) now accepts a list of image paths, lazy-loading images when needed. This enables use cases when you have a large dataset and don't want to load all images into memory at once. [`ClassificationDataset`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.ClassificationDataset) supports lazy-loading with a similar mechanism. Calling `Dataset.images` is now deprecated.
-- DetectionsDataset methods [`from_coco`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.from_coco), [`as_coco`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.as_coco), [`from_yolo`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.from_yolo), [`as_yolo`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.as_yolo), [`from_pascal_voc`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.from_pascal_voc), [`as_pascal_voc`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.as_pascal_voc) now use lazy-loading by default.
+- Added [#1326](https://github.com/roboflow/supervision/pull/1326): [`sv.DetectionsDataset`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset) and [`sv.ClassificationDataset`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.ClassificationDataset) allowing to load the images into memory only when necessary (lazy loading).
+
+!!! failure "Deprecated"
+
+    Constructing `DetectionDataset` with parameter `images` as `Dict[str, np.ndarray]` is deprecated and will be removed in `supervision-0.26.0`. Please pass a list of paths `List[str]` instead.
+
+!!! failure "Deprecated"
+
+    The `DetectionDataset.images` property is deprecated and will be removed in `supervision-0.26.0`. Please loop over images with `for path, image, annotation in dataset:`, as that does not require loading all images into memory.
 
 ```python
 import roboflow
@@ -20,19 +27,11 @@ ds_train = sv.DetectionDataset.from_coco(
 )
 
 path, image, annotation = ds_train[0]
-# loads image on demand
+    # loads image on demand
 
 for path, image, annotation in ds_train:
     # loads image on demand
 ```
-
-!!! failure "Deprecated"
-
-    Constructing `DetectionDataset` with parameter `images` as `Dict[str, np.ndarray]` is deprecated and will be removed in `supervision-0.26.0`. Please pass a list of paths `List[str]` instead.
-
-!!! failure "Deprecated"
-
-    The `DetectionDataset.images` property is deprecated and will be removed in `supervision-0.26.0`. Please loop over images with `for path, image, annotation in dataset:`, as that does not require loading all images into memory.
 
 - Added [#1296](https://github.com/roboflow/supervision/pull/1296): [`sv.Detections.from_lmm`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_lmm) now supports parsing results from the [Florence 2](https://huggingface.co/microsoft/Florence-2-large) model, extending the capability to handle outputs from this Large Multimodal Model (LMM). This includes detailed object detection, OCR with region proposals, segmentation, and more. Find out more in our [Colab notebook](https://colab.research.google.com/github/roboflow-ai/notebooks/blob/main/notebooks/how-to-finetune-florence-2-on-detection-dataset.ipynb).
 
