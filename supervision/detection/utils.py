@@ -601,7 +601,7 @@ def move_obb_boxes(xyxyxyxy, offset):
     Parameters:
         xyxyxyxy (npt.NDArray[np.float64]): An array of shape `(n, 4, 2)` containing the
         bounding boxes coordinates in format
-        `n * [[x1, y1], [x2, y2],[x3, y3], [x4, y4]]`
+        `n[[x1, y1], [x2, y2],[x3, y3], [x4, y4]]`
         offset (np.array): An array of shape `(2,)` containing offset values
         in format is `[dx, dy]`.
 
