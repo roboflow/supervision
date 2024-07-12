@@ -5,7 +5,7 @@ status: new
 
 # Annotators
 
-=== "BoundingBox"
+=== "Box"
 
     ```python
     import supervision as sv
@@ -13,8 +13,8 @@ status: new
     image = ...
     detections = sv.Detections(...)
 
-    bounding_box_annotator = sv.BoundingBoxAnnotator()
-    annotated_frame = bounding_box_annotator.annotate(
+    box_annotator = sv.BoxAnnotator()
+    annotated_frame = box_annotator.annotate(
         scene=image.copy(),
         detections=detections
     )
@@ -434,10 +434,10 @@ status: new
     </div>
 
 <div class="md-typeset">
-    <h2><a href="#supervision.annotators.core.BoundingBoxAnnotator">BoundingBoxAnnotator</a></h2>
+    <h2><a href="#supervision.annotators.core.BoxAnnotator">BoxAnnotator</a></h2>
 </div>
 
-:::supervision.annotators.core.BoundingBoxAnnotator
+:::supervision.annotators.core.BoxAnnotator
 
 <div class="md-typeset">
     <h2><a href="#supervision.annotators.core.RoundBoxAnnotator">RoundBoxAnnotator</a></h2>

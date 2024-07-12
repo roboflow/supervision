@@ -81,7 +81,7 @@ if __name__ == "__main__":
         resolution_wh=video_info.resolution_wh
     )
     text_scale = sv.calculate_optimal_text_scale(resolution_wh=video_info.resolution_wh)
-    bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=thickness)
+    box_annotator = sv.BoxAnnotator(thickness=thickness)
     label_annotator = sv.LabelAnnotator(
         text_scale=text_scale,
         text_thickness=thickness,
@@ -132,7 +132,7 @@ if __name__ == "__main__":
             annotated_frame = trace_annotator.annotate(
                 scene=annotated_frame, detections=detections
             )
-            annotated_frame = bounding_box_annotator.annotate(
+            annotated_frame = box_annotator.annotate(
                 scene=annotated_frame, detections=detections
             )
             annotated_frame = label_annotator.annotate(

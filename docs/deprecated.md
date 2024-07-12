@@ -12,6 +12,7 @@ These features are phased out due to better alternatives or potential issues in 
 - The `frame_resolution_wh ` parameter in [`sv.PolygonZone`](detection/tools/polygon_zone.md/#supervision.detection.tools.polygon_zone.PolygonZone) will be removed in `supervision-0.24.0`.
 - Constructing `DetectionDataset` and `ClassificationDataset` with parameter `images` as `Dict[str, np.ndarray]` will be removed in `supervision-0.26.0`. Please pass a list of paths `List[str]` instead.
 - The `DetectionDataset.images` property will be removed in `supervision-0.26.0`. Please loop over images with `for path, image, annotation in dataset:`, as that does not require loading all images into memory.
+- `BoundingBoxAnnotator` has been renamed to `BoxAnnotator` after the old implementation of `BoxAnnotator` has been removed. `BoundingBoxAnnotator` will be removed in `supervision-0.26.0`.
 
 # Removed
 
@@ -22,5 +23,5 @@ These features are phased out due to better alternatives or potential issues in 
 - The method `Color.green()` was removed as of `supervision-0.22.0`. Use the constant `Color.GREEN` instead.
 - The method `Color.blue()` was removed as of `supervision-0.22.0`. Use the constant `Color.BLUE` instead.
 - The method [`ColorPalette.default()`](draw/color.md/#supervision.draw.color.ColorPalette.default) was removed as of `supervision-0.22.0`. Use the constant [`ColorPalette.DEFAULT`](draw/color.md/#supervision.draw.color.ColorPalette.DEFAULT) instead.
-- `BoxAnnotator` was removed as of `supervision-0.22.0`. Use [`BoundingBoxAnnotator`](detection/annotators.md/#supervision.annotators.core.BoundingBoxAnnotator) and [`LabelAnnotator`](detection/annotators.md/#supervision.annotators.core.LabelAnnotator) instead.
+- `BoxAnnotator` was removed as of `supervision-0.22.0`, however `BoundingBoxAnnotator` was immediately renamed to `BoxAnnotator`. Use [`BoxAnnotator`](detection/annotators.md/#supervision.annotators.core.BoxAnnotator) and [`LabelAnnotator`](detection/annotators.md/#supervision.annotators.core.LabelAnnotator) instead of the old `BoxAnnotator`.
 - The method [`FPSMonitor.__call__`](utils/video.md/#supervision.utils.video.FPSMonitor.__call__) was removed as of `supervision-0.22.0`. Use the attribute [`FPSMonitor.fps`](utils/video.md/#supervision.utils.video.FPSMonitor.fps) instead.
