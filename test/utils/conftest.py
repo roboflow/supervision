@@ -11,7 +11,7 @@ ALL_IMAGES_LIST = [os.path.join(ASSETS_DIR, f"{i}.jpg") for i in range(1, 6)]
 
 
 @fixture(scope="function")
-def empty_opencv_image() -> np.ndarray:
+def empty_cv2_image() -> np.ndarray:
     return np.zeros((128, 128, 3), dtype=np.uint8)
 
 

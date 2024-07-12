@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 import supervision as sv
 
-COLORS = sv.ColorPalette.default()
+COLORS = sv.ColorPalette.DEFAULT
 
 
 def load_zones_config(file_path: str) -> List[np.ndarray]:

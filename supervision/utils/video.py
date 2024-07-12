@@ -8,8 +8,6 @@ from typing import Callable, Generator, Optional, Tuple
 import cv2
 import numpy as np
 
-from supervision.utils.internal import deprecated
-
 
 @dataclass
 class VideoInfo:
@@ -238,24 +236,6 @@ class FPSMonitor:
             ```
         """  # noqa: E501 // docs
         self.all_timestamps = deque(maxlen=sample_size)
-
-    @deprecated(
-        "`FPSMonitor.__call__` is deprecated and will be removed in "
-        "`supervision-0.22.0`. Use `FPSMonitor.fps` instead."
-    )
-    def __call__(self) -> float:
-        """
-        !!! failure "Deprecated"
-
-            `FPSMonitor.__call__` is deprecated and will be removed in
-            `supervision-0.22.0`. Use `FPSMonitor.fps` instead.
-
-        Computes and returns the average FPS based on the stored time stamps.
-
-        Returns:
-            float: The average FPS. Returns 0.0 if no time stamps are stored.
-        """
-        return self.fps
 
     @property
     def fps(self) -> float:

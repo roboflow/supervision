@@ -7,7 +7,12 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 import numpy as np
 
 from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES
-from supervision.detection.lmm import LMM, from_paligemma, validate_lmm_and_kwargs
+from supervision.detection.lmm import (
+    LMM,
+    from_florence_2,
+    from_paligemma,
+    validate_lmm_parameters,
+)
 from supervision.detection.overlap_filter import (
     box_non_max_merge,
     box_non_max_suppression,
@@ -25,7 +30,7 @@ from supervision.detection.utils import (
     xywh_to_xyxy,
 )
 from supervision.geometry.core import Position
-from supervision.utils.internal import deprecated, get_instance_variables
+from supervision.utils.internal import get_instance_variables
 from supervision.validators import validate_detections_fields
 
 
@@ -540,6 +545,9 @@ class Detections:
         return cls(
             xyxy=detectron2_results["instances"].pred_boxes.tensor.cpu().numpy(),
             confidence=detectron2_results["instances"].scores.cpu().numpy(),
+            mask=detectron2_results["instances"].pred_masks.cpu().numpy()
+            if hasattr(detectron2_results["instances"], "pred_masks")
+            else None,
             class_id=detectron2_results["instances"]
             .pred_classes.cpu()
             .numpy()
@@ -601,45 +609,6 @@ class Detections:
         )
 
     @classmethod
-    @deprecated(
-        "`Detections.from_roboflow` is deprecated and will be removed in "
-        "`supervision-0.22.0`. Use `Detections.from_inference` instead."
-    )
-    def from_roboflow(cls, roboflow_result: Union[dict, Any]) -> Detections:
-        """
-        !!! failure "Deprecated"
-
-            `Detections.from_roboflow` is deprecated and will be removed in
-            `supervision-0.22.0`. Use `Detections.from_inference` instead.
-
-        Create a Detections object from the [Roboflow](https://roboflow.com/)
-            API inference result or the [Inference](https://inference.roboflow.com/)
-            package results.
-
-        Args:
-            roboflow_result (dict): The result from the
-                Roboflow API containing predictions.
-
-        Returns:
-            (Detections): A Detections object containing the bounding boxes, class IDs,
-                and confidences of the predictions.
-
-        Example:
-            ```python
-            import cv2
-            import supervision as sv
-            from inference import get_model
-
-            image = cv2.imread(<SOURCE_IMAGE_PATH>)
-            model = get_model(model_id="yolov8s-640")
-
-            result = model.infer(image)[0]
-            detections = sv.Detections.from_roboflow(result)
-            ```
-        """
-        return cls.from_inference(roboflow_result)
-
-    @classmethod
     def from_sam(cls, sam_result: List[dict]) -> Detections:
         """
         Creates a Detections instance from
@@ -678,7 +647,7 @@ class Detections:
         if np.asarray(xywh).shape[0] == 0:
             return cls.empty()
 
-        xyxy = xywh_to_xyxy(boxes_xywh=xywh)
+        xyxy = xywh_to_xyxy(xywh=xywh)
         return cls(xyxy=xyxy, mask=mask)
 
     @classmethod
@@ -811,7 +780,9 @@ class Detections:
         )
 
     @classmethod
-    def from_lmm(cls, lmm: Union[LMM, str], result: str, **kwargs) -> Detections:
+    def from_lmm(
+        cls, lmm: Union[LMM, str], result: Union[str, dict], **kwargs
+    ) -> Detections:
         """
         Creates a Detections object from the given result string based on the specified
         Large Multimodal Model (LMM).
@@ -847,12 +818,27 @@ class Detections:
             # array([0])
             ```
         """
-        lmm = validate_lmm_and_kwargs(lmm, kwargs)
+        lmm = validate_lmm_parameters(lmm, result, kwargs)
 
         if lmm == LMM.PALIGEMMA:
+            assert isinstance(result, str)
             xyxy, class_id, class_name = from_paligemma(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             return cls(xyxy=xyxy, class_id=class_id, data=data)
+
+        if lmm == LMM.FLORENCE_2:
+            assert isinstance(result, dict)
+            xyxy, labels, mask, xyxyxyxy = from_florence_2(result, **kwargs)
+            if len(xyxy) == 0:
+                return cls.empty()
+
+            data = {}
+            if labels is not None:
+                data[CLASS_NAME_DATA_FIELD] = labels
+            if xyxyxyxy is not None:
+                data[ORIENTED_BOX_COORDINATES] = xyxyxyxy
+
+            return cls(xyxy=xyxy, mask=mask, data=data)
 
         raise ValueError(f"Unsupported LMM: {lmm}")
 

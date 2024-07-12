@@ -75,6 +75,7 @@ nav:
         - Geometry: utils/geometry.md
     - Assets: assets.md
   - Cookbooks: cookbooks.md
+  - Cheatsheet: https://roboflow.github.io/cheatsheet-supervision/
   - Contribute:
     - Contributing: contributing.md
     - Code of Conduct: code_of_conduct.md
@@ -178,3 +179,12 @@ extra_javascript:
   - "javascripts/init_kapa_widget.js"
   - "javascripts/cookbooks-card.js"
   - "https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js"
+
+# Messages shown during document build
+# Reference: https://www.mkdocs.org/user-guide/configuration/#validation
+# Values: [warn, info, ignore]
+validation:
+  nav:
+    absolute_links: ignore
+  links:
+    absolute_links: ignore
