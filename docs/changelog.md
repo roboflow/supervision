@@ -19,6 +19,14 @@ for path, image, annotation in dataset:
     # Loads images one at-a-time
 ```
 
+!!! failure "Deprecated"
+
+    Constructing `DetectionDataset` with parameter `images` as `Dict[str, np.ndarray]` is deprecated and will be removed in `supervision-0.26.0`. Please pass a list of paths `List[str]` instead.
+
+!!! failure "Deprecated"
+
+    The `DetectionDataset.images` property is deprecated and will be removed in `supervision-0.26.0`. Please loop over images with `for path, image, annotation in dataset:`, as that does not require loading all images into memory.
+
 - Added [#1296](https://github.com/roboflow/supervision/pull/1296): [`sv.Detections.from_lmm`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_lmm) now supports parsing results from the [Florence 2](https://huggingface.co/microsoft/Florence-2-large) model, extending the capability to handle outputs from this Large Multimodal Model (LMM). This includes detailed object detection, OCR with region proposals, segmentation, and more. Find out more in our [Colab notebook](https://colab.research.google.com/github/roboflow-ai/notebooks/blob/main/notebooks/how-to-finetune-florence-2-on-detection-dataset.ipynb).
 
 - Added [#1232](https://github.com/roboflow/supervision/pull/1232) to support keypoint detection with Mediapipe. Both [legacy](https://colab.research.google.com/github/googlesamples/mediapipe/blob/main/examples/pose_landmarker/python/%5BMediaPipe_Python_Tasks%5D_Pose_Landmarker.ipynb) and [modern](https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker/python) pipelines are supported. See [`sv.KeyPoints.from_mediapipe`](https://supervision.roboflow.com/latest/keypoint/core/#supervision.keypoint.core.KeyPoints.from_mediapipe) for more.
@@ -65,25 +73,17 @@ train_ds = sv.DetectionDataset.from_yolo(
 )
 ```
 
-- Added [#975](https://github.com/roboflow/supervision/pull/975) 📝 New Cookbooks: serialize detections into [json](https://github.com/roboflow/supervision/blob/de896189b83a1f9434c0a37dd9192ee00d2a1283/docs/notebooks/serialise-detections-to-json.ipynb) and [csv](https://github.com/roboflow/supervision/blob/de896189b83a1f9434c0a37dd9192ee00d2a1283/docs/notebooks/serialise-detections-to-csv.ipynb).
-
 - Fixed [#1312](https://github.com/roboflow/supervision/pull/1312): Fixed [`CropAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.TraceAnnotator.annotate).
-
-- Added [#1290](https://github.com/roboflow/supervision/pull/1290): Mostly an internal change, our file utility function now support both `str` and `pathlib` paths.
-
-- Added [#1340](https://github.com/roboflow/supervision/pull/1340): Two new methods for converting between bounding box formats - [`xywh_to_xyxy`](https://supervision.roboflow.com/latest/detection/utils/#supervision.detection.utils.xywh_to_xyxy) and [`xcycwh_to_xyxy`](https://supervision.roboflow.com/latest/detection/utils/#supervision.detection.utils.xcycwh_to_xyxy)
-
-!!! failure "Deprecated"
-
-    Constructing `DetectionDataset` with parameter `images` as `Dict[str, np.ndarray]` is deprecated and will be removed in `supervision-0.26.0`. Please pass a list of paths `List[str]` instead.
-
-!!! failure "Deprecated"
-
-    The `DetectionDataset.images` property is deprecated and will be removed in `supervision-0.26.0`. Please loop over images with `for path, image, annotation in dataset:`, as that does not require loading all images into memory.
 
 !!! failure "Removed"
 
     `BoxAnnotator` has been removed due to deprecation. Use a combination of [BoundingBoxAnnotator](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.BoundingBoxAnnotator) and [LabelAnnotator](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.LabelAnnotator) instead.
+
+- Added [#975](https://github.com/roboflow/supervision/pull/975) 📝 New Cookbooks: serialize detections into [json](https://github.com/roboflow/supervision/blob/de896189b83a1f9434c0a37dd9192ee00d2a1283/docs/notebooks/serialise-detections-to-json.ipynb) and [csv](https://github.com/roboflow/supervision/blob/de896189b83a1f9434c0a37dd9192ee00d2a1283/docs/notebooks/serialise-detections-to-csv.ipynb).
+
+- Added [#1290](https://github.com/roboflow/supervision/pull/1290): Mostly an internal change, our file utility function now support both `str` and `pathlib` paths.
+
+- Added [#1340](https://github.com/roboflow/supervision/pull/1340): Two new methods for converting between bounding box formats - [`xywh_to_xyxy`](https://supervision.roboflow.com/latest/detection/utils/#supervision.detection.utils.xywh_to_xyxy) and [`xcycwh_to_xyxy`](https://supervision.roboflow.com/latest/detection/utils/#supervision.detection.utils.xcycwh_to_xyxy)
 
 !!! failure "Removed"
 
