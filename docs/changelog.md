@@ -4,19 +4,26 @@
 - DetectionsDataset methods [`from_coco`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.from_coco), [`as_coco`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.as_coco), [`from_yolo`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.from_yolo), [`as_yolo`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.as_yolo), [`from_pascal_voc`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.from_pascal_voc), [`as_pascal_voc`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.as_pascal_voc) now use lazy-loading by default.
 
 ```python
+import roboflow
+from roboflow import Roboflow
 import supervision as sv
 
-images = [path_to_image_1, path_to_image_2, ...]
-detections = sv.Detections.from_inference(...)
+roboflow.login()
+rf = Roboflow()
 
-dataset = sv.DetectionDataset(
-    classes=["dog", "cat", "raccoon"],
-    images=images,
-    annotations=detections,
+project = rf.workspace(<WORKSPACE_ID>).project(<PROJECT_ID>)
+dataset = project.version(<PROJECT_VERSION>).download("coco")
+
+ds_train = sv.DetectionDataset.from_coco(
+    images_directory_path=f"{dataset.location}/train",
+    annotations_path=f"{dataset.location}/train/_annotations.coco.json",
 )
 
-for path, image, annotation in dataset:
-    # Loads images one at-a-time
+path, image, annotation = ds_train[0]
+# loads image on demand
+
+for path, image, annotation in ds_train:
+    # loads image on demand
 ```
 
 !!! failure "Deprecated"
@@ -39,13 +46,22 @@ for path, image, annotation in dataset:
 
 ```python
 import supervision as sv
+from detectron2 import model_zoo
+from detectron2.engine import DefaultPredictor
+from detectron2.config import get_cfg
+import cv2
 
-detections = sv.Detections.from_detectron2(...)
+image = cv2.imread(<SOURCE_IMAGE_PATH>)
+cfg = get_cfg()
+cfg.merge_from_file(model_zoo.get_config_file("COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml"))
+cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url("COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml")
+predictor = DefaultPredictor(cfg)
+
+result = predictor(image)
+detections = sv.Detections.from_detectron2(result)
+
 mask_annotator = sv.MaskAnnotator()
-annotated_frame = mask_annotator.annotate(
-    scene=img.copy(),
-    detections=detections,
-)
+annotated_frame = mask_annotator.annotate(scene=image.copy(), detections=detections)
 ```
 
 - Added [#1277](https://github.com/roboflow/supervision/pull/1277): if you provide a font that supports symbols of a language, [`sv.RichLabelAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.LabelAnnotator.annotate) will draw them on your images.
@@ -54,23 +70,34 @@ annotated_frame = mask_annotator.annotate(
 ```python
 import cv2
 import supervision as sv
+import
 
 image = cv2.imread(<SOURCE_IMAGE_PATH>)
-detections = sv.Detections.from_inference(...)
 
-rich_label_annotator = sv.RichLabelAnnotator(font_path="<TTF_FONT_PATH>")
+model = get_model(model_id="yolov8n-640")
+results = model.infer(image)[0]
+detections = sv.Detections.from_inference(results)
+
+rich_label_annotator = sv.RichLabelAnnotator(font_path=<TTF_FONT_PATH>)
 annotated_image = rich_label_annotator.annotate(scene=image.copy(), detections=detections)
 ```
 
 - Added [#1227](https://github.com/roboflow/supervision/pull/1227): Added support for loading Oriented Bounding Boxes dataset in YOLO format.
 
 ```python
+import supervision as sv
+
 train_ds = sv.DetectionDataset.from_yolo(
     images_directory_path="/content/dataset/train/images",
     annotations_directory_path="/content/dataset/train/labels",
     data_yaml_path="/content/dataset/data.yaml",
     is_obb=True
 )
+
+_, image, detections in train_ds[0]
+
+obb_annotator = OrientedBoxAnnotator()
+annotated_image = obb_annotator.annotate(scene=image.copy(), detections=detections)
 ```
 
 - Fixed [#1312](https://github.com/roboflow/supervision/pull/1312): Fixed [`CropAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.TraceAnnotator.annotate).
