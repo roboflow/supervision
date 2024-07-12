@@ -300,7 +300,7 @@ status: new
     ]
 
     rich_label_annotator = sv.RichLabelAnnotator(
-        font_path=".../font.ttf",
+        font_path="<TTF_FONT_PATH>",
         text_position=sv.Position.CENTER
     )
     annotated_frame = label_annotator.annotate(

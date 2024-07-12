@@ -50,7 +50,7 @@ import supervision as sv
 image = cv2.imread(<SOURCE_IMAGE_PATH>)
 detections = sv.Detections.from_inference(...)
 
-rich_label_annotator = sv.RichLabelAnnotator(font_path="path/to/font.ttf")
+rich_label_annotator = sv.RichLabelAnnotator(font_path="<TTF_FONT_PATH>")
 annotated_image = rich_label_annotator.annotate(scene=image.copy(), detections=detections)
 ```
 
