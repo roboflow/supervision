@@ -28,9 +28,9 @@ def move_detections(
         (sv.Detections) repositioned Detections object.
     """
     detections.xyxy = move_boxes(xyxy=detections.xyxy, offset=offset)
-    if "xyxyxyxy" in detections.data:
-        detections.data["xyxyxyxy"] = move_obb_boxes(
-            xyxyxyxy=detections.data["xyxyxyxy"], offset=offset
+    if "ORIENTED_BOX_COORDINATES" in detections.data:
+        detections.data["ORIENTED_BOX_COORDINATES"] = move_obb_boxes(
+            xyss=detections.data["ORIENTED_BOX_COORDINATES"], offset=offset
         )
     if detections.mask is not None:
         if resolution_wh is None:
