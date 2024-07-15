@@ -547,7 +547,7 @@ def sub_tracks(track_list_a: List, track_list_b: List) -> List[int]:
 
 def remove_duplicate_tracks(tracks_a: List, tracks_b: List) -> Tuple[List, List]:
     pairwise_distance = matching.iou_distance(tracks_a, tracks_b)
-    matching_pairs = np.where(pairwise_distance < 0.01)
+    matching_pairs = np.where(pairwise_distance < 0.05)
 
     duplicates_a, duplicates_b = set(), set()
     for track_index_a, track_index_b in zip(*matching_pairs):
