@@ -1,7 +1,12 @@
-from typing import List, Optional, Tuple
+from itertools import chain
+from typing import Dict, List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
+import numpy.typing as npt
+
+from supervision.config import CLASS_NAME_DATA_FIELD
+from supervision.geometry.core import Vector
 
 MIN_POLYGON_POINT_COUNT = 3
 
@@ -53,92 +58,248 @@ def box_iou_batch(boxes_true: np.ndarray, boxes_detection: np.ndarray) -> np.nda
     bottom_right = np.minimum(boxes_true[:, None, 2:], boxes_detection[:, 2:])
 
     area_inter = np.prod(np.clip(bottom_right - top_left, a_min=0, a_max=None), 2)
-    return area_inter / (area_true[:, None] + area_detection - area_inter)
+    ious = area_inter / (area_true[:, None] + area_detection - area_inter)
+    ious = np.nan_to_num(ious)
+    return ious
 
 
-def non_max_suppression(
-    predictions: np.ndarray, iou_threshold: float = 0.5
+def _mask_iou_batch_split(
+    masks_true: np.ndarray, masks_detection: np.ndarray
 ) -> np.ndarray:
     """
-    Perform Non-Maximum Suppression (NMS) on object detection predictions.
+    Internal function.
+    Compute Intersection over Union (IoU) of two sets of masks -
+        `masks_true` and `masks_detection`.
 
     Args:
-        predictions (np.ndarray): An array of object detection predictions in
-            the format of `(x_min, y_min, x_max, y_max, score)`
-            or `(x_min, y_min, x_max, y_max, score, class)`.
-        iou_threshold (float, optional): The intersection-over-union threshold
-            to use for non-maximum suppression.
+        masks_true (np.ndarray): 3D `np.ndarray` representing ground-truth masks.
+        masks_detection (np.ndarray): 3D `np.ndarray` representing detection masks.
 
     Returns:
-        np.ndarray: A boolean array indicating which predictions to keep after n
-            on-maximum suppression.
-
-    Raises:
-        AssertionError: If `iou_threshold` is not within the
-            closed range from `0` to `1`.
+        np.ndarray: Pairwise IoU of masks from `masks_true` and `masks_detection`.
     """
-    assert 0 <= iou_threshold <= 1, (
-        "Value of `iou_threshold` must be in the closed range from 0 to 1, "
-        f"{iou_threshold} given."
+    intersection_area = np.logical_and(masks_true[:, None], masks_detection).sum(
+        axis=(2, 3)
     )
-    rows, columns = predictions.shape
 
-    # add column #5 - category filled with zeros for agnostic nms
-    if columns == 5:
-        predictions = np.c_[predictions, np.zeros(rows)]
+    masks_true_area = masks_true.sum(axis=(1, 2))
+    masks_detection_area = masks_detection.sum(axis=(1, 2))
+    union_area = masks_true_area[:, None] + masks_detection_area - intersection_area
 
-    # sort predictions column #4 - score
-    sort_index = np.flip(predictions[:, 4].argsort())
-    predictions = predictions[sort_index]
-
-    boxes = predictions[:, :4]
-    categories = predictions[:, 5]
-    ious = box_iou_batch(boxes, boxes)
-    ious = ious - np.eye(rows)
-
-    keep = np.ones(rows, dtype=bool)
-
-    for index, (iou, category) in enumerate(zip(ious, categories)):
-        if not keep[index]:
-            continue
-
-        # drop detections with iou > iou_threshold and
-        # same category as current detections
-        condition = (iou > iou_threshold) & (categories == category)
-        keep = keep & ~condition
-
-    return keep[sort_index.argsort()]
+    return np.divide(
+        intersection_area,
+        union_area,
+        out=np.zeros_like(intersection_area, dtype=float),
+        where=union_area != 0,
+    )
 
 
-def clip_boxes(
-    boxes_xyxy: np.ndarray, frame_resolution_wh: Tuple[int, int]
+def mask_iou_batch(
+    masks_true: np.ndarray,
+    masks_detection: np.ndarray,
+    memory_limit: int = 1024 * 5,
 ) -> np.ndarray:
+    """
+    Compute Intersection over Union (IoU) of two sets of masks -
+        `masks_true` and `masks_detection`.
+
+    Args:
+        masks_true (np.ndarray): 3D `np.ndarray` representing ground-truth masks.
+        masks_detection (np.ndarray): 3D `np.ndarray` representing detection masks.
+        memory_limit (int, optional): memory limit in MB, default is 1024 * 5 MB (5GB).
+
+    Returns:
+        np.ndarray: Pairwise IoU of masks from `masks_true` and `masks_detection`.
+    """
+    memory = (
+        masks_true.shape[0]
+        * masks_true.shape[1]
+        * masks_true.shape[2]
+        * masks_detection.shape[0]
+        / 1024
+        / 1024
+    )
+    if memory <= memory_limit:
+        return _mask_iou_batch_split(masks_true, masks_detection)
+
+    ious = []
+    step = max(
+        memory_limit
+        * 1024
+        * 1024
+        // (
+            masks_detection.shape[0]
+            * masks_detection.shape[1]
+            * masks_detection.shape[2]
+        ),
+        1,
+    )
+    for i in range(0, masks_true.shape[0], step):
+        ious.append(_mask_iou_batch_split(masks_true[i : i + step], masks_detection))
+
+    return np.vstack(ious)
+
+
+def clip_boxes(xyxy: np.ndarray, resolution_wh: Tuple[int, int]) -> np.ndarray:
     """
     Clips bounding boxes coordinates to fit within the frame resolution.
 
     Args:
-        boxes_xyxy (np.ndarray): A numpy array of shape `(N, 4)` where each
+        xyxy (np.ndarray): A numpy array of shape `(N, 4)` where each
             row corresponds to a bounding box in
         the format `(x_min, y_min, x_max, y_max)`.
-        frame_resolution_wh (Tuple[int, int]): A tuple of the form `(width, height)`
+        resolution_wh (Tuple[int, int]): A tuple of the form `(width, height)`
             representing the resolution of the frame.
 
     Returns:
         np.ndarray: A numpy array of shape `(N, 4)` where each row
             corresponds to a bounding box with coordinates clipped to fit
             within the frame resolution.
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        xyxy = np.array([
+            [10, 20, 300, 200],
+            [15, 25, 350, 450],
+            [-10, -20, 30, 40]
+        ])
+
+        sv.clip_boxes(xyxy=xyxy, resolution_wh=(320, 240))
+        # array([
+        #     [ 10,  20, 300, 200],
+        #     [ 15,  25, 320, 240],
+        #     [  0,   0,  30,  40]
+        # ])
+        ```
     """
-    result = np.copy(boxes_xyxy)
-    width, height = frame_resolution_wh
+    result = np.copy(xyxy)
+    width, height = resolution_wh
     result[:, [0, 2]] = result[:, [0, 2]].clip(0, width)
     result[:, [1, 3]] = result[:, [1, 3]].clip(0, height)
     return result
 
 
-def xywh_to_xyxy(boxes_xywh: np.ndarray) -> np.ndarray:
-    xyxy = boxes_xywh.copy()
-    xyxy[:, 2] = boxes_xywh[:, 0] + boxes_xywh[:, 2]
-    xyxy[:, 3] = boxes_xywh[:, 1] + boxes_xywh[:, 3]
+def pad_boxes(xyxy: np.ndarray, px: int, py: Optional[int] = None) -> np.ndarray:
+    """
+    Pads bounding boxes coordinates with a constant padding.
+
+    Args:
+        xyxy (np.ndarray): A numpy array of shape `(N, 4)` where each
+            row corresponds to a bounding box in the format
+            `(x_min, y_min, x_max, y_max)`.
+        px (int): The padding value to be added to both the left and right sides of
+            each bounding box.
+        py (Optional[int]): The padding value to be added to both the top and bottom
+            sides of each bounding box. If not provided, `px` will be used for both
+            dimensions.
+
+    Returns:
+        np.ndarray: A numpy array of shape `(N, 4)` where each row corresponds to a
+            bounding box with coordinates padded according to the provided padding
+            values.
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        xyxy = np.array([
+            [10, 20, 30, 40],
+            [15, 25, 35, 45]
+        ])
+
+        sv.pad_boxes(xyxy=xyxy, px=5, py=10)
+        # array([
+        #     [ 5, 10, 35, 50],
+        #     [10, 15, 40, 55]
+        # ])
+        ```
+    """
+    if py is None:
+        py = px
+
+    result = xyxy.copy()
+    result[:, [0, 1]] -= [px, py]
+    result[:, [2, 3]] += [px, py]
+
+    return result
+
+
+def xywh_to_xyxy(xywh: np.ndarray) -> np.ndarray:
+    """
+    Converts bounding box coordinates from `(x, y, width, height)`
+    format to `(x_min, y_min, x_max, y_max)` format.
+
+    Args:
+        xywh (np.ndarray): A numpy array of shape `(N, 4)` where each row
+            corresponds to a bounding box in the format `(x, y, width, height)`.
+
+    Returns:
+        np.ndarray: A numpy array of shape `(N, 4)` where each row corresponds
+            to a bounding box in the format `(x_min, y_min, x_max, y_max)`.
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        xywh = np.array([
+            [10, 20, 30, 40],
+            [15, 25, 35, 45]
+        ])
+
+        sv.xywh_to_xyxy(xywh=xywh)
+        # array([
+        #     [10, 20, 40, 60],
+        #     [15, 25, 50, 70]
+        # ])
+        ```
+    """
+    xyxy = xywh.copy()
+    xyxy[:, 2] = xywh[:, 0] + xywh[:, 2]
+    xyxy[:, 3] = xywh[:, 1] + xywh[:, 3]
+    return xyxy
+
+
+def xcycwh_to_xyxy(xcycwh: np.ndarray) -> np.ndarray:
+    """
+    Converts bounding box coordinates from `(center_x, center_y, width, height)`
+    format to `(x_min, y_min, x_max, y_max)` format.
+
+    Args:
+        xcycwh (np.ndarray): A numpy array of shape `(N, 4)` where each row
+            corresponds to a bounding box in the format `(center_x, center_y, width,
+            height)`.
+
+    Returns:
+        np.ndarray: A numpy array of shape `(N, 4)` where each row corresponds
+            to a bounding box in the format `(x_min, y_min, x_max, y_max)`.
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        xcycwh = np.array([
+            [50, 50, 20, 30],
+            [30, 40, 10, 15]
+        ])
+
+        sv.xcycwh_to_xyxy(xcycwh=xcycwh)
+        # array([
+        #     [40, 35, 60, 65],
+        #     [25, 32.5, 35, 47.5]
+        # ])
+        ```
+    """
+    xyxy = xcycwh.copy()
+    xyxy[:, 0] = xcycwh[:, 0] - xcycwh[:, 2] / 2
+    xyxy[:, 1] = xcycwh[:, 1] - xcycwh[:, 3] / 2
+    xyxy[:, 2] = xcycwh[:, 0] + xcycwh[:, 2] / 2
+    xyxy[:, 3] = xcycwh[:, 1] + xcycwh[:, 3] / 2
     return xyxy
 
 
@@ -155,7 +316,7 @@ def mask_to_xyxy(masks: np.ndarray) -> np.ndarray:
             `(x_min, y_min, x_max, y_max)` for each mask
     """
     n = masks.shape[0]
-    bboxes = np.zeros((n, 4), dtype=int)
+    xyxy = np.zeros((n, 4), dtype=int)
 
     for i, mask in enumerate(masks):
         rows, cols = np.where(mask)
@@ -163,9 +324,9 @@ def mask_to_xyxy(masks: np.ndarray) -> np.ndarray:
         if len(rows) > 0 and len(cols) > 0:
             x_min, x_max = np.min(cols), np.max(cols)
             y_min, y_max = np.min(rows), np.max(rows)
-            bboxes[i, :] = [x_min, y_min, x_max, y_max]
+            xyxy[i, :] = [x_min, y_min, x_max, y_max]
 
-    return bboxes
+    return xyxy
 
 
 def mask_to_polygons(mask: np.ndarray) -> List[np.ndarray]:
@@ -301,7 +462,6 @@ def extract_ultralytics_masks(yolov8_results) -> Optional[np.ndarray]:
     orig_shape = yolov8_results.orig_shape
     inference_shape = tuple(yolov8_results.masks.data.shape[1:])
 
-    gain = 0
     pad = (0, 0)
 
     if inference_shape != orig_shape:
@@ -333,13 +493,28 @@ def extract_ultralytics_masks(yolov8_results) -> Optional[np.ndarray]:
 
 def process_roboflow_result(
     roboflow_result: dict,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, Optional[np.ndarray], np.ndarray]:
+) -> Tuple[
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    Optional[np.ndarray],
+    Optional[np.ndarray],
+    Dict[str, Union[List[np.ndarray], np.ndarray]],
+]:
     if not roboflow_result["predictions"]:
-        return np.empty((0, 4)), np.empty(0), np.empty(0), None, None
+        return (
+            np.empty((0, 4)),
+            np.empty(0),
+            np.empty(0),
+            None,
+            None,
+            {CLASS_NAME_DATA_FIELD: np.empty(0)},
+        )
 
     xyxy = []
     confidence = []
     class_id = []
+    class_name = []
     masks = []
     tracker_ids = []
 
@@ -359,6 +534,7 @@ def process_roboflow_result(
         if "points" not in prediction:
             xyxy.append([x_min, y_min, x_max, y_max])
             class_id.append(prediction["class_id"])
+            class_name.append(prediction["class"])
             confidence.append(prediction["confidence"])
             if "tracker_id" in prediction:
                 tracker_ids.append(prediction["tracker_id"])
@@ -369,6 +545,7 @@ def process_roboflow_result(
             mask = polygon_to_mask(polygon, resolution_wh=(image_width, image_height))
             xyxy.append([x_min, y_min, x_max, y_max])
             class_id.append(prediction["class_id"])
+            class_name.append(prediction["class"])
             confidence.append(prediction["confidence"])
             masks.append(mask)
             if "tracker_id" in prediction:
@@ -377,21 +554,394 @@ def process_roboflow_result(
     xyxy = np.array(xyxy) if len(xyxy) > 0 else np.empty((0, 4))
     confidence = np.array(confidence) if len(confidence) > 0 else np.empty(0)
     class_id = np.array(class_id).astype(int) if len(class_id) > 0 else np.empty(0)
+    class_name = np.array(class_name) if len(class_name) > 0 else np.empty(0)
     masks = np.array(masks, dtype=bool) if len(masks) > 0 else None
     tracker_id = np.array(tracker_ids).astype(int) if len(tracker_ids) > 0 else None
+    data = {CLASS_NAME_DATA_FIELD: class_name}
 
-    return xyxy, confidence, class_id, masks, tracker_id
+    return xyxy, confidence, class_id, masks, tracker_id, data
 
 
-def move_boxes(xyxy: np.ndarray, offset: np.ndarray) -> np.ndarray:
+def move_boxes(
+    xyxy: npt.NDArray[np.float64], offset: npt.NDArray[np.int32]
+) -> npt.NDArray[np.float64]:
     """
-    Args:
-        xyxy (np.ndarray): An array of shape `(n, 4)` containing the bounding boxes
-            coordinates in format `[x1, y1, x2, y2]`
+    Parameters:
+        xyxy (npt.NDArray[np.float64]): An array of shape `(n, 4)` containing the
+            bounding boxes coordinates in format `[x1, y1, x2, y2]`
         offset (np.array): An array of shape `(2,)` containing offset values in format
             is `[dx, dy]`.
 
     Returns:
-        (np.ndarray) repositioned bounding boxes
+        npt.NDArray[np.float64]: Repositioned bounding boxes.
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        xyxy = np.array([
+            [10, 10, 20, 20],
+            [30, 30, 40, 40]
+        ])
+        offset = np.array([5, 5])
+
+        sv.move_boxes(xyxy=xyxy, offset=offset)
+        # array([
+        #    [15, 15, 25, 25],
+        #    [35, 35, 45, 45]
+        # ])
+        ```
     """
     return xyxy + np.hstack([offset, offset])
+
+
+def move_masks(
+    masks: npt.NDArray[np.bool_],
+    offset: npt.NDArray[np.int32],
+    resolution_wh: Tuple[int, int],
+) -> npt.NDArray[np.bool_]:
+    """
+    Offset the masks in an array by the specified (x, y) amount.
+
+    Args:
+        masks (npt.NDArray[np.bool_]): A 3D array of binary masks corresponding to the
+            predictions. Shape: `(N, H, W)`, where N is the number of predictions, and
+            H, W are the dimensions of each mask.
+        offset (npt.NDArray[np.int32]): An array of shape `(2,)` containing non-negative
+            int values `[dx, dy]`.
+        resolution_wh (Tuple[int, int]): The width and height of the desired mask
+            resolution.
+
+    Returns:
+        (npt.NDArray[np.bool_]) repositioned masks, optionally padded to the specified
+            shape.
+    """
+
+    if offset[0] < 0 or offset[1] < 0:
+        raise ValueError(f"Offset values must be non-negative integers. Got: {offset}")
+
+    mask_array = np.full((masks.shape[0], resolution_wh[1], resolution_wh[0]), False)
+    mask_array[
+        :,
+        offset[1] : masks.shape[1] + offset[1],
+        offset[0] : masks.shape[2] + offset[0],
+    ] = masks
+
+    return mask_array
+
+
+def scale_boxes(
+    xyxy: npt.NDArray[np.float64], factor: float
+) -> npt.NDArray[np.float64]:
+    """
+    Scale the dimensions of bounding boxes.
+
+    Parameters:
+        xyxy (npt.NDArray[np.float64]): An array of shape `(n, 4)` containing the
+            bounding boxes coordinates in format `[x1, y1, x2, y2]`
+        factor (float): A float value representing the factor by which the box
+            dimensions are scaled. A factor greater than 1 enlarges the boxes, while a
+            factor less than 1 shrinks them.
+
+    Returns:
+        npt.NDArray[np.float64]: Scaled bounding boxes.
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        xyxy = np.array([
+            [10, 10, 20, 20],
+            [30, 30, 40, 40]
+        ])
+
+        sv.scale_boxes(xyxy=xyxy, factor=1.5)
+        # array([
+        #    [ 7.5,  7.5, 22.5, 22.5],
+        #    [27.5, 27.5, 42.5, 42.5]
+        # ])
+        ```
+    """
+    centers = (xyxy[:, :2] + xyxy[:, 2:]) / 2
+    new_sizes = (xyxy[:, 2:] - xyxy[:, :2]) * factor
+    return np.concatenate((centers - new_sizes / 2, centers + new_sizes / 2), axis=1)
+
+
+def calculate_masks_centroids(masks: np.ndarray) -> np.ndarray:
+    """
+    Calculate the centroids of binary masks in a tensor.
+
+    Parameters:
+        masks (np.ndarray): A 3D NumPy array of shape (num_masks, height, width).
+            Each 2D array in the tensor represents a binary mask.
+
+    Returns:
+        A 2D NumPy array of shape (num_masks, 2), where each row contains the x and y
+            coordinates (in that order) of the centroid of the corresponding mask.
+    """
+    num_masks, height, width = masks.shape
+    total_pixels = masks.sum(axis=(1, 2))
+
+    # offset for 1-based indexing
+    vertical_indices, horizontal_indices = np.indices((height, width)) + 0.5
+    # avoid division by zero for empty masks
+    total_pixels[total_pixels == 0] = 1
+
+    def sum_over_mask(indices: np.ndarray, axis: tuple) -> np.ndarray:
+        return np.tensordot(masks, indices, axes=axis)
+
+    aggregation_axis = ([1, 2], [0, 1])
+    centroid_x = sum_over_mask(horizontal_indices, aggregation_axis) / total_pixels
+    centroid_y = sum_over_mask(vertical_indices, aggregation_axis) / total_pixels
+
+    return np.column_stack((centroid_x, centroid_y)).astype(int)
+
+
+def is_data_equal(data_a: Dict[str, np.ndarray], data_b: Dict[str, np.ndarray]) -> bool:
+    """
+    Compares the data payloads of two Detections instances.
+
+    Args:
+        data_a, data_b: The data payloads of the instances.
+
+    Returns:
+        True if the data payloads are equal, False otherwise.
+    """
+    return set(data_a.keys()) == set(data_b.keys()) and all(
+        np.array_equal(data_a[key], data_b[key]) for key in data_a
+    )
+
+
+def merge_data(
+    data_list: List[Dict[str, Union[npt.NDArray[np.generic], List]]],
+) -> Dict[str, Union[npt.NDArray[np.generic], List]]:
+    """
+    Merges the data payloads of a list of Detections instances.
+
+    Args:
+        data_list: The data payloads of the Detections instances. Each data payload
+            is a dictionary with the same keys, and the values are either lists or
+            npt.NDArray[np.generic].
+
+    Returns:
+        A single data payload containing the merged data, preserving the original data
+            types (list or npt.NDArray[np.generic]).
+
+    Raises:
+        ValueError: If data values within a single object have different lengths or if
+            dictionaries have different keys.
+    """
+    if not data_list:
+        return {}
+
+    all_keys_sets = [set(data.keys()) for data in data_list]
+    if not all(keys_set == all_keys_sets[0] for keys_set in all_keys_sets):
+        raise ValueError("All data dictionaries must have the same keys to merge.")
+
+    for data in data_list:
+        lengths = [len(value) for value in data.values()]
+        if len(set(lengths)) > 1:
+            raise ValueError(
+                "All data values within a single object must have equal length."
+            )
+
+    merged_data = {key: [] for key in all_keys_sets[0]}
+    for data in data_list:
+        for key in data:
+            merged_data[key].append(data[key])
+
+    for key in merged_data:
+        if all(isinstance(item, list) for item in merged_data[key]):
+            merged_data[key] = list(chain.from_iterable(merged_data[key]))
+        elif all(isinstance(item, np.ndarray) for item in merged_data[key]):
+            ndim = merged_data[key][0].ndim
+            if ndim == 1:
+                merged_data[key] = np.hstack(merged_data[key])
+            elif ndim > 1:
+                merged_data[key] = np.vstack(merged_data[key])
+            else:
+                raise ValueError(f"Unexpected array dimension for key '{key}'.")
+        else:
+            raise ValueError(
+                f"Inconsistent data types for key '{key}'. Only np.ndarray and list "
+                f"types are allowed."
+            )
+
+    return merged_data
+
+
+def get_data_item(
+    data: Dict[str, Union[np.ndarray, List]],
+    index: Union[int, slice, List[int], np.ndarray],
+) -> Dict[str, Union[np.ndarray, List]]:
+    """
+    Retrieve a subset of the data dictionary based on the given index.
+
+    Args:
+        data: The data dictionary of the Detections object.
+        index: The index or indices specifying the subset to retrieve.
+
+    Returns:
+        A subset of the data dictionary corresponding to the specified index.
+    """
+    subset_data = {}
+    for key, value in data.items():
+        if isinstance(value, np.ndarray):
+            subset_data[key] = value[index]
+        elif isinstance(value, list):
+            if isinstance(index, slice):
+                subset_data[key] = value[index]
+            elif isinstance(index, list):
+                subset_data[key] = [value[i] for i in index]
+            elif isinstance(index, np.ndarray):
+                if index.dtype == bool:
+                    subset_data[key] = [
+                        value[i] for i, index_value in enumerate(index) if index_value
+                    ]
+                else:
+                    subset_data[key] = [value[i] for i in index]
+            elif isinstance(index, int):
+                subset_data[key] = [value[index]]
+            else:
+                raise TypeError(f"Unsupported index type: {type(index)}")
+        else:
+            raise TypeError(f"Unsupported data type for key '{key}': {type(value)}")
+
+    return subset_data
+
+
+def contains_holes(mask: npt.NDArray[np.bool_]) -> bool:
+    """
+    Checks if the binary mask contains holes (background pixels fully enclosed by
+    foreground pixels).
+
+    Args:
+        mask (npt.NDArray[np.bool_]): 2D binary mask where `True` indicates foreground
+            object and `False` indicates background.
+
+    Returns:
+        True if holes are detected, False otherwise.
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        mask = np.array([
+            [0, 0, 0, 0, 0],
+            [0, 1, 1, 1, 0],
+            [0, 1, 0, 1, 0],
+            [0, 1, 1, 1, 0],
+            [0, 0, 0, 0, 0]
+        ]).astype(bool)
+
+        sv.contains_holes(mask=mask)
+        # True
+
+        mask = np.array([
+            [0, 0, 0, 0, 0],
+            [0, 1, 1, 1, 0],
+            [0, 1, 1, 1, 0],
+            [0, 1, 1, 1, 0],
+            [0, 0, 0, 0, 0]
+        ]).astype(bool)
+
+        sv.contains_holes(mask=mask)
+        # False
+        ```
+
+    ![contains_holes](https://media.roboflow.com/supervision-docs/contains-holes.png){ align=center width="800" }
+    """  # noqa E501 // docs
+    mask_uint8 = mask.astype(np.uint8)
+    _, hierarchy = cv2.findContours(mask_uint8, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+
+    if hierarchy is not None:
+        parent_contour_index = 3
+        for h in hierarchy[0]:
+            if h[parent_contour_index] != -1:
+                return True
+    return False
+
+
+def contains_multiple_segments(
+    mask: npt.NDArray[np.bool_], connectivity: int = 4
+) -> bool:
+    """
+    Checks if the binary mask contains multiple unconnected foreground segments.
+
+    Args:
+        mask (npt.NDArray[np.bool_]): 2D binary mask where `True` indicates foreground
+            object and `False` indicates background.
+        connectivity (int) : Default: 4 is 4-way connectivity, which means that
+            foreground pixels are the part of the same segment/component
+            if their edges touch.
+            Alternatively: 8 for 8-way connectivity, when foreground pixels are
+            connected by their edges or corners touch.
+
+    Returns:
+        True when the mask contains multiple not connected components, False otherwise.
+
+    Raises:
+        ValueError: If connectivity(int) parameter value is not 4 or 8.
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        mask = np.array([
+            [0, 0, 0, 0, 0, 0],
+            [0, 1, 1, 0, 1, 1],
+            [0, 1, 1, 0, 1, 1],
+            [0, 0, 0, 0, 0, 0],
+            [0, 1, 1, 1, 0, 0],
+            [0, 1, 1, 1, 0, 0]
+        ]).astype(bool)
+
+        sv.contains_multiple_segments(mask=mask, connectivity=4)
+        # True
+
+        mask = np.array([
+            [0, 0, 0, 0, 0, 0],
+            [0, 1, 1, 1, 1, 1],
+            [0, 1, 1, 1, 1, 1],
+            [0, 1, 1, 1, 1, 1],
+            [0, 1, 1, 1, 1, 1],
+            [0, 0, 0, 0, 0, 0]
+        ]).astype(bool)
+
+        sv.contains_multiple_segments(mask=mask, connectivity=4)
+        # False
+        ```
+
+    ![contains_multiple_segments](https://media.roboflow.com/supervision-docs/contains-multiple-segments.png){ align=center width="800" }
+    """  # noqa E501 // docs
+    if connectivity != 4 and connectivity != 8:
+        raise ValueError(
+            "Incorrect connectivity value. Possible connectivity values: 4 or 8."
+        )
+    mask_uint8 = mask.astype(np.uint8)
+    labels = np.zeros_like(mask_uint8, dtype=np.int32)
+    number_of_labels, _ = cv2.connectedComponents(
+        mask_uint8, labels, connectivity=connectivity
+    )
+    return number_of_labels > 2
+
+
+def cross_product(anchors: np.ndarray, vector: Vector) -> np.ndarray:
+    """
+    Get array of cross products of each anchor with a vector.
+    Args:
+        anchors: Array of anchors of shape (number of anchors, detections, 2)
+        vector: Vector to calculate cross product with
+
+    Returns:
+        Array of cross products of shape (number of anchors, detections)
+    """
+    vector_at_zero = np.array(
+        [vector.end.x - vector.start.x, vector.end.y - vector.start.y]
+    )
+    vector_start = np.array([vector.start.x, vector.start.y])
+    return np.cross(vector_at_zero, anchors - vector_start)

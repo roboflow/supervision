@@ -1,11 +1,12 @@
 import os
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
-from xml.dom.minidom import parseString
-from xml.etree.ElementTree import Element, SubElement, parse, tostring
+from xml.etree.ElementTree import Element, SubElement
 
 import cv2
 import numpy as np
+from defusedxml.ElementTree import parse, tostring
+from defusedxml.minidom import parseString
 
 from supervision.dataset.utils import approximate_mask_with_polygons
 from supervision.detection.core import Detections
@@ -109,7 +110,7 @@ def detections_to_pascal_voc(
     segmented.text = "0"
 
     # Add object elements
-    for xyxy, mask, _, class_id, _ in detections:
+    for xyxy, mask, _, class_id, _, _ in detections:
         name = classes[class_id]
         if mask is not None:
             polygons = approximate_mask_with_polygons(
@@ -130,7 +131,6 @@ def detections_to_pascal_voc(
 
     # Generate XML string
     xml_string = parseString(tostring(annotation)).toprettyxml(indent="  ")
-
     return xml_string
 
 
@@ -138,7 +138,7 @@ def load_pascal_voc_annotations(
     images_directory_path: str,
     annotations_directory_path: str,
     force_masks: bool = False,
-) -> Tuple[List[str], Dict[str, np.ndarray], Dict[str, Detections]]:
+) -> Tuple[List[str], List[str], Dict[str, Detections]]:
     """
     Loads PASCAL VOC XML annotations and returns the image name,
         a Detections instance, and a list of class names.
@@ -151,44 +151,39 @@ def load_pascal_voc_annotations(
             annotations, regardless of whether they are present.
 
     Returns:
-        Tuple[List[str], Dict[str, np.ndarray], Dict[str, Detections]]: A tuple
-            containing a list of class names,
-            a dictionary with image names as keys and
-            images as values, and a dictionary with image names as
-            keys and corresponding Detections instances as values.
+        Tuple[List[str], List[str], Dict[str, Detections]]: A tuple with a list
+            of class names, a list of paths to images, and a dictionary with image
+            paths as keys and corresponding Detections instances as values.
     """
 
-    image_paths = list_files_with_extensions(
-        directory=images_directory_path, extensions=["jpg", "jpeg", "png"]
-    )
+    image_paths = [
+        str(path)
+        for path in list_files_with_extensions(
+            directory=images_directory_path, extensions=["jpg", "jpeg", "png"]
+        )
+    ]
 
-    classes = []
-    images = {}
+    classes: List[str] = []
     annotations = {}
 
     for image_path in image_paths:
-        image_name = Path(image_path).stem
-        image_path = str(image_path)
-        image = cv2.imread(image_path)
-
-        annotation_path = os.path.join(annotations_directory_path, f"{image_name}.xml")
+        image_stem = Path(image_path).stem
+        annotation_path = os.path.join(annotations_directory_path, f"{image_stem}.xml")
         if not os.path.exists(annotation_path):
-            images[image_path] = image
             annotations[image_path] = Detections.empty()
             continue
 
         tree = parse(annotation_path)
         root = tree.getroot()
 
+        image = cv2.imread(image_path)
         resolution_wh = (image.shape[1], image.shape[0])
         annotation, classes = detections_from_xml_obj(
             root, classes, resolution_wh, force_masks
         )
-
-        images[image_path] = image
         annotations[image_path] = annotation
 
-    return classes, images, annotations
+    return classes, image_paths, annotations
 
 
 def detections_from_xml_obj(
@@ -268,12 +263,12 @@ def detections_from_xml_obj(
         [extended_classes.index(class_name) for class_name in class_names]
     )
 
-    if with_masks:
-        annotation = Detections(
-            xyxy=xyxy, mask=np.array(masks).astype(bool), class_id=class_id
-        )
-    else:
-        annotation = Detections(xyxy=xyxy, class_id=class_id)
+    annotation = Detections(
+        xyxy=xyxy.astype(np.float32),
+        mask=np.array(masks).astype(bool) if with_masks else None,
+        class_id=class_id,
+    )
+
     return annotation, extended_classes
 
 

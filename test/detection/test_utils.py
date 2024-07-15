@@ -1,15 +1,24 @@
 from contextlib import ExitStack as DoesNotRaise
-from typing import List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
+import numpy.typing as npt
 import pytest
 
+from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.utils import (
+    calculate_masks_centroids,
     clip_boxes,
+    contains_holes,
+    contains_multiple_segments,
     filter_polygons_by_area,
+    get_data_item,
+    merge_data,
     move_boxes,
-    non_max_suppression,
     process_roboflow_result,
+    scale_boxes,
+    xcycwh_to_xyxy,
+    xywh_to_xyxy,
 )
 
 TEST_MASK = np.zeros((1, 1000, 1000), dtype=bool)
@@ -17,112 +26,7 @@ TEST_MASK[:, 300:351, 200:251] = True
 
 
 @pytest.mark.parametrize(
-    "predictions, iou_threshold, expected_result, exception",
-    [
-        (
-            np.empty(shape=(0, 5)),
-            0.5,
-            np.array([]),
-            DoesNotRaise(),
-        ),  # single box with no category
-        (
-            np.array([[10.0, 10.0, 40.0, 40.0, 0.8]]),
-            0.5,
-            np.array([True]),
-            DoesNotRaise(),
-        ),  # single box with no category
-        (
-            np.array([[10.0, 10.0, 40.0, 40.0, 0.8, 0]]),
-            0.5,
-            np.array([True]),
-            DoesNotRaise(),
-        ),  # single box with category
-        (
-            np.array(
-                [
-                    [10.0, 10.0, 40.0, 40.0, 0.8],
-                    [15.0, 15.0, 40.0, 40.0, 0.9],
-                ]
-            ),
-            0.5,
-            np.array([False, True]),
-            DoesNotRaise(),
-        ),  # two boxes with no category
-        (
-            np.array(
-                [
-                    [10.0, 10.0, 40.0, 40.0, 0.8, 0],
-                    [15.0, 15.0, 40.0, 40.0, 0.9, 1],
-                ]
-            ),
-            0.5,
-            np.array([True, True]),
-            DoesNotRaise(),
-        ),  # two boxes with different category
-        (
-            np.array(
-                [
-                    [10.0, 10.0, 40.0, 40.0, 0.8, 0],
-                    [15.0, 15.0, 40.0, 40.0, 0.9, 0],
-                ]
-            ),
-            0.5,
-            np.array([False, True]),
-            DoesNotRaise(),
-        ),  # two boxes with same category
-        (
-            np.array(
-                [
-                    [0.0, 0.0, 30.0, 40.0, 0.8],
-                    [5.0, 5.0, 35.0, 45.0, 0.9],
-                    [10.0, 10.0, 40.0, 50.0, 0.85],
-                ]
-            ),
-            0.5,
-            np.array([False, True, False]),
-            DoesNotRaise(),
-        ),  # three boxes with no category
-        (
-            np.array(
-                [
-                    [0.0, 0.0, 30.0, 40.0, 0.8, 0],
-                    [5.0, 5.0, 35.0, 45.0, 0.9, 1],
-                    [10.0, 10.0, 40.0, 50.0, 0.85, 2],
-                ]
-            ),
-            0.5,
-            np.array([True, True, True]),
-            DoesNotRaise(),
-        ),  # three boxes with same category
-        (
-            np.array(
-                [
-                    [0.0, 0.0, 30.0, 40.0, 0.8, 0],
-                    [5.0, 5.0, 35.0, 45.0, 0.9, 0],
-                    [10.0, 10.0, 40.0, 50.0, 0.85, 1],
-                ]
-            ),
-            0.5,
-            np.array([False, True, True]),
-            DoesNotRaise(),
-        ),  # three boxes with different category
-    ],
-)
-def test_non_max_suppression(
-    predictions: np.ndarray,
-    iou_threshold: float,
-    expected_result: Optional[np.ndarray],
-    exception: Exception,
-) -> None:
-    with exception:
-        result = non_max_suppression(
-            predictions=predictions, iou_threshold=iou_threshold
-        )
-        assert np.array_equal(result, expected_result)
-
-
-@pytest.mark.parametrize(
-    "boxes_xyxy, frame_resolution_wh, expected_result",
+    "xyxy, resolution_wh, expected_result",
     [
         (
             np.empty(shape=(0, 4)),
@@ -157,11 +61,11 @@ def test_non_max_suppression(
     ],
 )
 def test_clip_boxes(
-    boxes_xyxy: np.ndarray,
-    frame_resolution_wh: Tuple[int, int],
+    xyxy: np.ndarray,
+    resolution_wh: Tuple[int, int],
     expected_result: np.ndarray,
 ) -> None:
-    result = clip_boxes(boxes_xyxy=boxes_xyxy, frame_resolution_wh=frame_resolution_wh)
+    result = clip_boxes(xyxy=xyxy, resolution_wh=resolution_wh)
     assert np.array_equal(result, expected_result)
 
 
@@ -264,7 +168,14 @@ def test_filter_polygons_by_area(
     [
         (
             {"predictions": [], "image": {"width": 1000, "height": 1000}},
-            (np.empty((0, 4)), np.empty(0), np.empty(0), None, None),
+            (
+                np.empty((0, 4)),
+                np.empty(0),
+                np.empty(0),
+                None,
+                None,
+                {CLASS_NAME_DATA_FIELD: np.empty(0)},
+            ),
             DoesNotRaise(),
         ),  # empty result
         (
@@ -288,6 +199,7 @@ def test_filter_polygons_by_area(
                 np.array([0]),
                 None,
                 None,
+                {CLASS_NAME_DATA_FIELD: np.array(["person"])},
             ),
             DoesNotRaise(),
         ),  # single correct object detection result
@@ -323,6 +235,7 @@ def test_filter_polygons_by_area(
                 np.array([0, 7]),
                 None,
                 np.array([1, 2]),
+                {CLASS_NAME_DATA_FIELD: np.array(["person", "truck"])},
             ),
             DoesNotRaise(),
         ),  # two correct object detection result
@@ -343,7 +256,14 @@ def test_filter_polygons_by_area(
                 ],
                 "image": {"width": 1000, "height": 1000},
             },
-            (np.empty((0, 4)), np.empty(0), np.empty(0), None, None),
+            (
+                np.empty((0, 4)),
+                np.empty(0),
+                np.empty(0),
+                None,
+                None,
+                {CLASS_NAME_DATA_FIELD: np.empty(0)},
+            ),
             DoesNotRaise(),
         ),  # single incorrect instance segmentation result with no points
         (
@@ -362,7 +282,14 @@ def test_filter_polygons_by_area(
                 ],
                 "image": {"width": 1000, "height": 1000},
             },
-            (np.empty((0, 4)), np.empty(0), np.empty(0), None, None),
+            (
+                np.empty((0, 4)),
+                np.empty(0),
+                np.empty(0),
+                None,
+                None,
+                {CLASS_NAME_DATA_FIELD: np.empty(0)},
+            ),
             DoesNotRaise(),
         ),  # single incorrect instance segmentation result with no enough points
         (
@@ -392,6 +319,7 @@ def test_filter_polygons_by_area(
                 np.array([0]),
                 TEST_MASK,
                 None,
+                {CLASS_NAME_DATA_FIELD: np.array(["person"])},
             ),
             DoesNotRaise(),
         ),  # single incorrect instance segmentation result with no enough points
@@ -432,6 +360,7 @@ def test_filter_polygons_by_area(
                 np.array([0]),
                 TEST_MASK,
                 None,
+                {CLASS_NAME_DATA_FIELD: np.array(["person"])},
             ),
             DoesNotRaise(),
         ),  # two instance segmentation results - one correct, one incorrect
@@ -455,6 +384,15 @@ def test_process_roboflow_result(
         assert (result[4] is None and expected_result[4] is None) or (
             np.array_equal(result[4], expected_result[4])
         )
+        for key in result[5]:
+            if isinstance(result[5][key], np.ndarray):
+                assert np.array_equal(
+                    result[5][key], expected_result[5][key]
+                ), f"Mismatch in arrays for key {key}"
+            else:
+                assert (
+                    result[5][key] == expected_result[5][key]
+                ), f"Mismatch in non-array data for key {key}"
 
 
 @pytest.mark.parametrize(
@@ -498,5 +436,705 @@ def test_move_boxes(
     expected_result: np.ndarray,
     exception: Exception,
 ) -> None:
-    result = move_boxes(xyxy=xyxy, offset=offset)
-    assert np.array_equal(result, expected_result)
+    with exception:
+        result = move_boxes(xyxy=xyxy, offset=offset)
+        assert np.array_equal(result, expected_result)
+
+
+@pytest.mark.parametrize(
+    "xyxy, factor, expected_result, exception",
+    [
+        (
+            np.empty(shape=(0, 4)),
+            2.0,
+            np.empty(shape=(0, 4)),
+            DoesNotRaise(),
+        ),  # empty xyxy array
+        (
+            np.array([[0, 0, 10, 10]]),
+            1.0,
+            np.array([[0, 0, 10, 10]]),
+            DoesNotRaise(),
+        ),  # single box with factor equal to 1.0
+        (
+            np.array([[0, 0, 10, 10]]),
+            2.0,
+            np.array([[-5, -5, 15, 15]]),
+            DoesNotRaise(),
+        ),  # single box with factor equal to 2.0
+        (
+            np.array([[0, 0, 10, 10]]),
+            0.5,
+            np.array([[2.5, 2.5, 7.5, 7.5]]),
+            DoesNotRaise(),
+        ),  # single box with factor equal to 0.5
+        (
+            np.array([[0, 0, 10, 10], [10, 10, 30, 30]]),
+            2.0,
+            np.array([[-5, -5, 15, 15], [0, 0, 40, 40]]),
+            DoesNotRaise(),
+        ),  # two boxes with factor equal to 2.0
+    ],
+)
+def test_scale_boxes(
+    xyxy: np.ndarray,
+    factor: float,
+    expected_result: np.ndarray,
+    exception: Exception,
+) -> None:
+    with exception:
+        result = scale_boxes(xyxy=xyxy, factor=factor)
+        assert np.array_equal(result, expected_result)
+
+
+@pytest.mark.parametrize(
+    "masks, expected_result, exception",
+    [
+        (
+            np.array(
+                [
+                    [
+                        [0, 0, 0, 0],
+                        [0, 0, 0, 0],
+                        [0, 0, 0, 0],
+                        [0, 0, 0, 0],
+                    ]
+                ]
+            ),
+            np.array([[0, 0]]),
+            DoesNotRaise(),
+        ),  # single mask with all zeros
+        (
+            np.array(
+                [
+                    [
+                        [1, 1, 1, 1],
+                        [1, 1, 1, 1],
+                        [1, 1, 1, 1],
+                        [1, 1, 1, 1],
+                    ]
+                ]
+            ),
+            np.array([[2, 2]]),
+            DoesNotRaise(),
+        ),  # single mask with all ones
+        (
+            np.array(
+                [
+                    [
+                        [0, 1, 1, 0],
+                        [1, 1, 1, 1],
+                        [1, 1, 1, 1],
+                        [0, 1, 1, 0],
+                    ]
+                ]
+            ),
+            np.array([[2, 2]]),
+            DoesNotRaise(),
+        ),  # single mask with symmetric ones
+        (
+            np.array(
+                [
+                    [
+                        [0, 0, 0, 0],
+                        [0, 0, 1, 1],
+                        [0, 0, 1, 1],
+                        [0, 0, 0, 0],
+                    ]
+                ]
+            ),
+            np.array([[3, 2]]),
+            DoesNotRaise(),
+        ),  # single mask with asymmetric ones
+        (
+            np.array(
+                [
+                    [
+                        [0, 1, 1, 0],
+                        [1, 1, 1, 1],
+                        [1, 1, 1, 1],
+                        [0, 1, 1, 0],
+                    ],
+                    [
+                        [0, 0, 0, 0],
+                        [0, 0, 1, 1],
+                        [0, 0, 1, 1],
+                        [0, 0, 0, 0],
+                    ],
+                ]
+            ),
+            np.array([[2, 2], [3, 2]]),
+            DoesNotRaise(),
+        ),  # two masks
+    ],
+)
+def test_calculate_masks_centroids(
+    masks: np.ndarray,
+    expected_result: np.ndarray,
+    exception: Exception,
+) -> None:
+    with exception:
+        result = calculate_masks_centroids(masks=masks)
+        assert np.array_equal(result, expected_result)
+
+
+@pytest.mark.parametrize(
+    "data_list, expected_result, exception",
+    [
+        (
+            [],
+            {},
+            DoesNotRaise(),
+        ),  # empty data list
+        (
+            [{}],
+            {},
+            DoesNotRaise(),
+        ),  # single empty data dict
+        (
+            [{}, {}],
+            {},
+            DoesNotRaise(),
+        ),  # two empty data dicts
+        (
+            [
+                {"test_1": []},
+            ],
+            {"test_1": []},
+            DoesNotRaise(),
+        ),  # single data dict with a single field name and empty list values
+        (
+            [
+                {"test_1": []},
+                {"test_1": []},
+            ],
+            {"test_1": []},
+            DoesNotRaise(),
+        ),  # two data dicts with the same field name and empty list values
+        (
+            [
+                {"test_1": np.array([])},
+            ],
+            {"test_1": np.array([])},
+            DoesNotRaise(),
+        ),  # single data dict with a single field name and empty np.array values
+        (
+            [
+                {"test_1": np.array([])},
+                {"test_1": np.array([])},
+            ],
+            {"test_1": np.array([])},
+            DoesNotRaise(),
+        ),  # two data dicts with the same field name and empty np.array values
+        (
+            [
+                {"test_1": [1, 2, 3]},
+            ],
+            {"test_1": [1, 2, 3]},
+            DoesNotRaise(),
+        ),  # single data dict with a single field name and list values
+        (
+            [
+                {"test_1": []},
+                {"test_1": [3, 2, 1]},
+            ],
+            {"test_1": [3, 2, 1]},
+            DoesNotRaise(),
+        ),  # two data dicts with the same field name; one of with empty list as value
+        (
+            [
+                {"test_1": [1, 2, 3]},
+                {"test_1": [3, 2, 1]},
+            ],
+            {"test_1": [1, 2, 3, 3, 2, 1]},
+            DoesNotRaise(),
+        ),  # two data dicts with the same field name and list values
+        (
+            [
+                {"test_1": [1, 2, 3]},
+                {"test_1": [3, 2, 1]},
+                {"test_1": [1, 2, 3]},
+            ],
+            {"test_1": [1, 2, 3, 3, 2, 1, 1, 2, 3]},
+            DoesNotRaise(),
+        ),  # three data dicts with the same field name and list values
+        (
+            [
+                {"test_1": [1, 2, 3]},
+                {"test_2": [3, 2, 1]},
+            ],
+            None,
+            pytest.raises(ValueError),
+        ),  # two data dicts with different field names
+        (
+            [
+                {"test_1": np.array([1, 2, 3])},
+                {"test_1": np.array([3, 2, 1])},
+            ],
+            {"test_1": np.array([1, 2, 3, 3, 2, 1])},
+            DoesNotRaise(),
+        ),  # two data dicts with the same field name and np.array values as 1D arrays
+        (
+            [
+                {"test_1": np.array([[1, 2, 3]])},
+                {"test_1": np.array([[3, 2, 1]])},
+            ],
+            {"test_1": np.array([[1, 2, 3], [3, 2, 1]])},
+            DoesNotRaise(),
+        ),  # two data dicts with the same field name and np.array values as 2D arrays
+        (
+            [
+                {"test_1": np.array([1, 2, 3]), "test_2": np.array(["a", "b", "c"])},
+                {"test_1": np.array([3, 2, 1]), "test_2": np.array(["c", "b", "a"])},
+            ],
+            {
+                "test_1": np.array([1, 2, 3, 3, 2, 1]),
+                "test_2": np.array(["a", "b", "c", "c", "b", "a"]),
+            },
+            DoesNotRaise(),
+        ),  # two data dicts with the same field names and np.array values
+        (
+            [
+                {"test_1": [1, 2, 3], "test_2": np.array(["a", "b", "c"])},
+                {"test_1": [3, 2, 1], "test_2": np.array(["c", "b", "a"])},
+            ],
+            {
+                "test_1": [1, 2, 3, 3, 2, 1],
+                "test_2": np.array(["a", "b", "c", "c", "b", "a"]),
+            },
+            DoesNotRaise(),
+        ),  # two data dicts with the same field names and mixed values
+        (
+            [
+                {"test_1": np.array([1, 2, 3])},
+                {"test_1": np.array([[3, 2, 1]])},
+            ],
+            None,
+            pytest.raises(ValueError),
+        ),  # two data dicts with the same field name and 1D and 2D arrays values
+        (
+            [
+                {"test_1": np.array([1, 2, 3]), "test_2": np.array(["a", "b"])},
+                {"test_1": np.array([3, 2, 1]), "test_2": np.array(["c", "b", "a"])},
+            ],
+            None,
+            pytest.raises(ValueError),
+        ),  # two data dicts with the same field name and different length arrays values
+        (
+            [{}, {"test_1": [1, 2, 3]}],
+            None,
+            pytest.raises(ValueError),
+        ),  # two data dicts; one empty and one non-empty dict
+        (
+            [{"test_1": [], "test_2": []}, {"test_1": [1, 2, 3], "test_2": [1, 2, 3]}],
+            {"test_1": [1, 2, 3], "test_2": [1, 2, 3]},
+            DoesNotRaise(),
+        ),  # two data dicts; one empty and one non-empty dict; same keys
+        (
+            [{"test_1": []}, {"test_1": [1, 2, 3], "test_2": [4, 5, 6]}],
+            None,
+            pytest.raises(ValueError),
+        ),  # two data dicts; one empty and one non-empty dict; different keys
+        (
+            [
+                {
+                    "test_1": [1, 2, 3],
+                    "test_2": [4, 5, 6],
+                    "test_3": [7, 8, 9],
+                },
+                {"test_1": [1, 2, 3], "test_2": [4, 5, 6]},
+            ],
+            None,
+            pytest.raises(ValueError),
+        ),  # two data dicts; one with three keys, one with two keys
+        (
+            [
+                {"test_1": [1, 2, 3]},
+                {"test_1": [1, 2, 3], "test_2": [1, 2, 3]},
+            ],
+            None,
+            pytest.raises(ValueError),
+        ),  # some keys missing in one dict
+        (
+            [
+                {"test_1": [1, 2, 3], "test_2": ["a", "b"]},
+                {"test_1": [4, 5], "test_2": ["c", "d", "e"]},
+            ],
+            None,
+            pytest.raises(ValueError),
+        ),  # different value lengths for the same key
+    ],
+)
+def test_merge_data(
+    data_list: List[Dict[str, Any]],
+    expected_result: Optional[Dict[str, Any]],
+    exception: Exception,
+):
+    with exception:
+        result = merge_data(data_list=data_list)
+        if expected_result is None:
+            assert False, f"Expected an error, but got result {result}"
+
+        for key in result:
+            if isinstance(result[key], np.ndarray):
+                assert np.array_equal(
+                    result[key], expected_result[key]
+                ), f"Mismatch in arrays for key {key}"
+            else:
+                assert (
+                    result[key] == expected_result[key]
+                ), f"Mismatch in non-array data for key {key}"
+
+
+@pytest.mark.parametrize(
+    "data, index, expected_result, exception",
+    [
+        ({}, 0, {}, DoesNotRaise()),  # empty data dict
+        (
+            {
+                "test_1": [1, 2, 3],
+            },
+            0,
+            {
+                "test_1": [1],
+            },
+            DoesNotRaise(),
+        ),  # data dict with a single list field and integer index
+        (
+            {
+                "test_1": np.array([1, 2, 3]),
+            },
+            0,
+            {
+                "test_1": np.array([1]),
+            },
+            DoesNotRaise(),
+        ),  # data dict with a single np.array field and integer index
+        (
+            {
+                "test_1": [1, 2, 3],
+            },
+            slice(0, 2),
+            {
+                "test_1": [1, 2],
+            },
+            DoesNotRaise(),
+        ),  # data dict with a single list field and slice index
+        (
+            {
+                "test_1": np.array([1, 2, 3]),
+            },
+            slice(0, 2),
+            {
+                "test_1": np.array([1, 2]),
+            },
+            DoesNotRaise(),
+        ),  # data dict with a single np.array field and slice index
+        (
+            {
+                "test_1": [1, 2, 3],
+            },
+            -1,
+            {
+                "test_1": [3],
+            },
+            DoesNotRaise(),
+        ),  # data dict with a single list field and negative integer index
+        (
+            {
+                "test_1": np.array([1, 2, 3]),
+            },
+            -1,
+            {
+                "test_1": np.array([3]),
+            },
+            DoesNotRaise(),
+        ),  # data dict with a single np.array field and negative integer index
+        (
+            {
+                "test_1": [1, 2, 3],
+            },
+            [0, 2],
+            {
+                "test_1": [1, 3],
+            },
+            DoesNotRaise(),
+        ),  # data dict with a single list field and integer list index
+        (
+            {
+                "test_1": np.array([1, 2, 3]),
+            },
+            [0, 2],
+            {
+                "test_1": np.array([1, 3]),
+            },
+            DoesNotRaise(),
+        ),  # data dict with a single np.array field and integer list index
+        (
+            {
+                "test_1": [1, 2, 3],
+            },
+            np.array([0, 2]),
+            {
+                "test_1": [1, 3],
+            },
+            DoesNotRaise(),
+        ),  # data dict with a single list field and integer np.array index
+        (
+            {
+                "test_1": np.array([1, 2, 3]),
+            },
+            np.array([0, 2]),
+            {
+                "test_1": np.array([1, 3]),
+            },
+            DoesNotRaise(),
+        ),  # data dict with a single np.array field and integer np.array index
+        (
+            {
+                "test_1": np.array([1, 2, 3]),
+            },
+            np.array([True, True, True]),
+            {
+                "test_1": np.array([1, 2, 3]),
+            },
+            DoesNotRaise(),
+        ),  # data dict with a single np.array field and all-true bool np.array index
+        (
+            {
+                "test_1": np.array([1, 2, 3]),
+            },
+            np.array([False, False, False]),
+            {
+                "test_1": np.array([]),
+            },
+            DoesNotRaise(),
+        ),  # data dict with a single np.array field and all-false bool np.array index
+        (
+            {
+                "test_1": np.array([1, 2, 3]),
+            },
+            np.array([False, True, False]),
+            {
+                "test_1": np.array([2]),
+            },
+            DoesNotRaise(),
+        ),  # data dict with a single np.array field and mixed bool np.array index
+        (
+            {"test_1": np.array([1, 2, 3]), "test_2": ["a", "b", "c"]},
+            0,
+            {"test_1": np.array([1]), "test_2": ["a"]},
+            DoesNotRaise(),
+        ),  # data dict with two fields and integer index
+        (
+            {"test_1": np.array([1, 2, 3]), "test_2": ["a", "b", "c"]},
+            -1,
+            {"test_1": np.array([3]), "test_2": ["c"]},
+            DoesNotRaise(),
+        ),  # data dict with two fields and negative integer index
+        (
+            {"test_1": np.array([1, 2, 3]), "test_2": ["a", "b", "c"]},
+            np.array([False, True, False]),
+            {"test_1": np.array([2]), "test_2": ["b"]},
+            DoesNotRaise(),
+        ),  # data dict with two fields and mixed bool np.array index
+    ],
+)
+def test_get_data_item(
+    data: Dict[str, Any],
+    index: Any,
+    expected_result: Optional[Dict[str, Any]],
+    exception: Exception,
+):
+    with exception:
+        result = get_data_item(data=data, index=index)
+        for key in result:
+            if isinstance(result[key], np.ndarray):
+                assert np.array_equal(
+                    result[key], expected_result[key]
+                ), f"Mismatch in arrays for key {key}"
+            else:
+                assert (
+                    result[key] == expected_result[key]
+                ), f"Mismatch in non-array data for key {key}"
+
+
+@pytest.mark.parametrize(
+    "mask, expected_result, exception",
+    [
+        (
+            np.array([[0, 0, 0, 0], [0, 1, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0]]).astype(
+                bool
+            ),
+            False,
+            DoesNotRaise(),
+        ),  # foreground object in one continuous piece
+        (
+            np.array([[1, 0, 0, 0], [1, 0, 0, 0], [0, 0, 0, 0], [0, 1, 1, 0]]).astype(
+                bool
+            ),
+            False,
+            DoesNotRaise(),
+        ),  # foreground object in 2 seperate elements
+        (
+            np.array([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]).astype(
+                bool
+            ),
+            False,
+            DoesNotRaise(),
+        ),  # no foreground pixels in mask
+        (
+            np.array([[1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1]]).astype(
+                bool
+            ),
+            False,
+            DoesNotRaise(),
+        ),  # only foreground pixels in mask
+        (
+            np.array([[1, 1, 1, 0], [1, 0, 1, 0], [1, 1, 1, 0], [0, 0, 0, 0]]).astype(
+                bool
+            ),
+            True,
+            DoesNotRaise(),
+        ),  # foreground object has 1 hole
+        (
+            np.array([[1, 1, 1, 0], [1, 0, 1, 1], [1, 1, 0, 1], [0, 1, 1, 1]]).astype(
+                bool
+            ),
+            True,
+            DoesNotRaise(),
+        ),  # foreground object has 2 holes
+    ],
+)
+def test_contains_holes(
+    mask: npt.NDArray[np.bool_], expected_result: bool, exception: Exception
+) -> None:
+    with exception:
+        result = contains_holes(mask)
+        assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    "mask, connectivity, expected_result, exception",
+    [
+        (
+            np.array([[0, 0, 0, 0], [0, 1, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0]]).astype(
+                bool
+            ),
+            4,
+            False,
+            DoesNotRaise(),
+        ),  # foreground object in one continuous piece
+        (
+            np.array([[1, 0, 0, 0], [1, 0, 0, 0], [0, 0, 0, 0], [0, 1, 1, 0]]).astype(
+                bool
+            ),
+            4,
+            True,
+            DoesNotRaise(),
+        ),  # foreground object in 2 seperate elements
+        (
+            np.array([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]).astype(
+                bool
+            ),
+            4,
+            False,
+            DoesNotRaise(),
+        ),  # no foreground pixels in mask
+        (
+            np.array([[1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1]]).astype(
+                bool
+            ),
+            4,
+            False,
+            DoesNotRaise(),
+        ),  # only foreground pixels in mask
+        (
+            np.array([[1, 1, 1, 0], [1, 0, 1, 1], [1, 1, 0, 1], [0, 1, 1, 1]]).astype(
+                bool
+            ),
+            4,
+            False,
+            DoesNotRaise(),
+        ),  # foreground object has 2 holes, but is in single piece
+        (
+            np.array([[1, 1, 0, 0], [1, 1, 0, 1], [1, 0, 1, 1], [0, 0, 1, 1]]).astype(
+                bool
+            ),
+            4,
+            True,
+            DoesNotRaise(),
+        ),  # foreground object in 2 elements with respect to 4-way connectivity
+        (
+            np.array([[1, 1, 0, 0], [1, 1, 0, 1], [1, 0, 1, 1], [0, 0, 1, 1]]).astype(
+                bool
+            ),
+            8,
+            False,
+            DoesNotRaise(),
+        ),  # foreground object in single piece with respect to 8-way connectivity
+        (
+            np.array([[1, 1, 0, 0], [1, 1, 0, 1], [1, 0, 1, 1], [0, 0, 1, 1]]).astype(
+                bool
+            ),
+            5,
+            None,
+            pytest.raises(ValueError),
+        ),  # Incorrect connectivity parameter value, raises ValueError
+    ],
+)
+def test_contains_multiple_segments(
+    mask: npt.NDArray[np.bool_],
+    connectivity: int,
+    expected_result: bool,
+    exception: Exception,
+) -> None:
+    with exception:
+        result = contains_multiple_segments(mask=mask, connectivity=connectivity)
+        assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    "xywh, expected_result",
+    [
+        (np.array([[10, 20, 30, 40]]), np.array([[10, 20, 40, 60]])),  # standard case
+        (np.array([[0, 0, 0, 0]]), np.array([[0, 0, 0, 0]])),  # zero size bounding box
+        (
+            np.array([[50, 50, 100, 100]]),
+            np.array([[50, 50, 150, 150]]),
+        ),  # large bounding box
+        (
+            np.array([[-10, -20, 30, 40]]),
+            np.array([[-10, -20, 20, 20]]),
+        ),  # negative coordinates
+        (np.array([[50, 50, 0, 30]]), np.array([[50, 50, 50, 80]])),  # zero width
+        (np.array([[50, 50, 20, 0]]), np.array([[50, 50, 70, 50]])),  # zero height
+        (np.array([]).reshape(0, 4), np.array([]).reshape(0, 4)),  # empty array
+    ],
+)
+def test_xywh_to_xyxy(xywh: np.ndarray, expected_result: np.ndarray) -> None:
+    result = xywh_to_xyxy(xywh)
+    np.testing.assert_array_equal(result, expected_result)
+
+
+@pytest.mark.parametrize(
+    "xcycwh, expected_result",
+    [
+        (np.array([[50, 50, 20, 30]]), np.array([[40, 35, 60, 65]])),  # standard case
+        (np.array([[0, 0, 0, 0]]), np.array([[0, 0, 0, 0]])),  # zero size bounding box
+        (
+            np.array([[50, 50, 100, 100]]),
+            np.array([[0, 0, 100, 100]]),
+        ),  # large bounding box centered at (50, 50)
+        (
+            np.array([[-10, -10, 20, 30]]),
+            np.array([[-20, -25, 0, 5]]),
+        ),  # negative coordinates
+        (np.array([[50, 50, 0, 30]]), np.array([[50, 35, 50, 65]])),  # zero width
+        (np.array([[50, 50, 20, 0]]), np.array([[40, 50, 60, 50]])),  # zero height
+        (np.array([]).reshape(0, 4), np.array([]).reshape(0, 4)),  # empty array
+    ],
+)
+def test_xcycwh_to_xyxy(xcycwh: np.ndarray, expected_result: np.ndarray) -> None:
+    result = xcycwh_to_xyxy(xcycwh)
+    np.testing.assert_array_equal(result, expected_result)

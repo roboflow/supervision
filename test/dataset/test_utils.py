@@ -1,14 +1,18 @@
 from contextlib import ExitStack as DoesNotRaise
-from test.utils import mock_detections
+from test.test_utils import mock_detections
 from typing import Dict, List, Optional, Tuple, TypeVar
 
+import numpy as np
+import numpy.typing as npt
 import pytest
 
 from supervision import Detections
 from supervision.dataset.utils import (
     build_class_index_mapping,
     map_detections_class_id,
+    mask_to_rle,
     merge_class_lists,
+    rle_to_mask,
     train_test_split,
 )
 
@@ -229,3 +233,131 @@ def test_map_detections_class_id(
             source_to_target_mapping=source_to_target_mapping, detections=detections
         )
         assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    "mask, expected_rle, exception",
+    [
+        (
+            np.zeros((3, 3)).astype(bool),
+            [9],
+            DoesNotRaise(),
+        ),  # mask with background only (mask with only False values)
+        (
+            np.ones((3, 3)).astype(bool),
+            [0, 9],
+            DoesNotRaise(),
+        ),  # mask with foreground only (mask with only True values)
+        (
+            np.array(
+                [
+                    [0, 0, 0, 0, 0],
+                    [0, 1, 1, 1, 0],
+                    [0, 1, 0, 1, 0],
+                    [0, 1, 1, 1, 0],
+                    [0, 0, 0, 0, 0],
+                ]
+            ).astype(bool),
+            [6, 3, 2, 1, 1, 1, 2, 3, 6],
+            DoesNotRaise(),
+        ),  # mask where foreground object has hole
+        (
+            np.array(
+                [
+                    [1, 0, 1, 0, 1],
+                    [1, 0, 1, 0, 1],
+                    [1, 0, 1, 0, 1],
+                    [1, 0, 1, 0, 1],
+                    [1, 0, 1, 0, 1],
+                ]
+            ).astype(bool),
+            [0, 5, 5, 5, 5, 5],
+            DoesNotRaise(),
+        ),  # mask where foreground consists of 3 separate components
+        (
+            np.array([[[]]]).astype(bool),
+            None,
+            pytest.raises(AssertionError),
+        ),  # raises AssertionError because mask dimentionality is not 2D
+        (
+            np.array([[]]).astype(bool),
+            None,
+            pytest.raises(AssertionError),
+        ),  # raises AssertionError because mask is empty
+    ],
+)
+def test_mask_to_rle(
+    mask: npt.NDArray[np.bool_], expected_rle: List[int], exception: Exception
+) -> None:
+    with exception:
+        result = mask_to_rle(mask=mask)
+        assert result == expected_rle
+
+
+@pytest.mark.parametrize(
+    "rle, resolution_wh, expected_mask, exception",
+    [
+        (
+            np.array([9]),
+            [3, 3],
+            np.zeros((3, 3)).astype(bool),
+            DoesNotRaise(),
+        ),  # mask with background only (mask with only False values); rle as array
+        (
+            [9],
+            [3, 3],
+            np.zeros((3, 3)).astype(bool),
+            DoesNotRaise(),
+        ),  # mask with background only (mask with only False values); rle as list
+        (
+            np.array([0, 9]),
+            [3, 3],
+            np.ones((3, 3)).astype(bool),
+            DoesNotRaise(),
+        ),  # mask with foreground only (mask with only True values)
+        (
+            np.array([6, 3, 2, 1, 1, 1, 2, 3, 6]),
+            [5, 5],
+            np.array(
+                [
+                    [0, 0, 0, 0, 0],
+                    [0, 1, 1, 1, 0],
+                    [0, 1, 0, 1, 0],
+                    [0, 1, 1, 1, 0],
+                    [0, 0, 0, 0, 0],
+                ]
+            ).astype(bool),
+            DoesNotRaise(),
+        ),  # mask where foreground object has hole
+        (
+            np.array([0, 5, 5, 5, 5, 5]),
+            [5, 5],
+            np.array(
+                [
+                    [1, 0, 1, 0, 1],
+                    [1, 0, 1, 0, 1],
+                    [1, 0, 1, 0, 1],
+                    [1, 0, 1, 0, 1],
+                    [1, 0, 1, 0, 1],
+                ]
+            ).astype(bool),
+            DoesNotRaise(),
+        ),  # mask where foreground consists of 3 separate components
+        (
+            np.array([0, 5, 5, 5, 5, 5]),
+            [2, 2],
+            None,
+            pytest.raises(AssertionError),
+        ),  # raises AssertionError because number of pixels in RLE does not match
+        # number of pixels in expected mask (width x height).
+    ],
+)
+def test_rle_to_mask(
+    rle: npt.NDArray[np.int_],
+    resolution_wh: Tuple[int, int],
+    expected_mask: npt.NDArray[np.bool_],
+    exception: Exception,
+) -> None:
+    with exception:
+        result = rle_to_mask(rle=rle, resolution_wh=resolution_wh)
+        assert np.all(result == expected_mask)

@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Optional, Union
+from typing import Optional, Tuple, Union
 
 import numpy as np
 
@@ -34,14 +34,14 @@ def resolve_color_idx(
 ) -> int:
     if detection_idx >= len(detections):
         raise ValueError(
-            f"Detection index {detection_idx}"
+            f"Detection index {detection_idx} "
             f"is out of bounds for detections of length {len(detections)}"
         )
 
     if isinstance(color_lookup, np.ndarray):
         if len(color_lookup) != len(detections):
             raise ValueError(
-                f"Length of color lookup {len(color_lookup)}"
+                f"Length of color lookup {len(color_lookup)} "
                 f"does not match length of detections {len(detections)}"
             )
         return color_lookup[detection_idx]
@@ -50,17 +50,70 @@ def resolve_color_idx(
     elif color_lookup == ColorLookup.CLASS:
         if detections.class_id is None:
             raise ValueError(
-                "Could not resolve color by class because"
+                "Could not resolve color by class because "
                 "Detections do not have class_id"
             )
         return detections.class_id[detection_idx]
     elif color_lookup == ColorLookup.TRACK:
         if detections.tracker_id is None:
             raise ValueError(
-                "Could not resolve color by track because"
+                "Could not resolve color by track because "
                 "Detections do not have tracker_id"
             )
         return detections.tracker_id[detection_idx]
+
+
+def resolve_text_background_xyxy(
+    center_coordinates: Tuple[int, int],
+    text_wh: Tuple[int, int],
+    position: Position,
+) -> Tuple[int, int, int, int]:
+    center_x, center_y = center_coordinates
+    text_w, text_h = text_wh
+
+    if position == Position.TOP_LEFT:
+        return center_x, center_y - text_h, center_x + text_w, center_y
+    elif position == Position.TOP_RIGHT:
+        return center_x - text_w, center_y - text_h, center_x, center_y
+    elif position == Position.TOP_CENTER:
+        return (
+            center_x - text_w // 2,
+            center_y - text_h,
+            center_x + text_w // 2,
+            center_y,
+        )
+    elif position == Position.CENTER or position == Position.CENTER_OF_MASS:
+        return (
+            center_x - text_w // 2,
+            center_y - text_h // 2,
+            center_x + text_w // 2,
+            center_y + text_h // 2,
+        )
+    elif position == Position.BOTTOM_LEFT:
+        return center_x, center_y, center_x + text_w, center_y + text_h
+    elif position == Position.BOTTOM_RIGHT:
+        return center_x - text_w, center_y, center_x, center_y + text_h
+    elif position == Position.BOTTOM_CENTER:
+        return (
+            center_x - text_w // 2,
+            center_y,
+            center_x + text_w // 2,
+            center_y + text_h,
+        )
+    elif position == Position.CENTER_LEFT:
+        return (
+            center_x - text_w,
+            center_y - text_h // 2,
+            center_x,
+            center_y + text_h // 2,
+        )
+    elif position == Position.CENTER_RIGHT:
+        return (
+            center_x,
+            center_y - text_h // 2,
+            center_x + text_w,
+            center_y + text_h // 2,
+        )
 
 
 def get_color_by_index(color: Union[Color, ColorPalette], idx: int) -> Color:
@@ -102,7 +155,7 @@ class Trace:
         frame_id = np.full(len(detections), self.current_frame_id, dtype=int)
         self.frame_id = np.concatenate([self.frame_id, frame_id])
         self.xy = np.concatenate(
-            [self.xy, detections.get_anchor_coordinates(self.anchor)]
+            [self.xy, detections.get_anchors_coordinates(self.anchor)]
         )
         self.tracker_id = np.concatenate([self.tracker_id, detections.tracker_id])
 

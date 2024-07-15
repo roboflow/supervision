@@ -1,0 +1,6 @@
+supervision>=0.20.0
+tqdm==4.66.3
+requests
+ultralytics==8.0.237
+super-gradients==3.5.0
+inference==0.9.17
