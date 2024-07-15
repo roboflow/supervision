@@ -15,10 +15,10 @@ It assumes you already have the code changes, as well as a draft of the release 
    - Check with `git log`.
    - Run `git push origin --tags`
    - Upon pushing the tag, the [PyPi](https://pypi.org/project/supervision/) should update to the new version. Check this!
-5. Open and merge a PR, merging `main` into `develop`.
-6. Update the docs by running the [Supervision Release Documentation Workflow 📚](https://github.com/roboflow/supervision/actions/workflows/publish-release-docs.yml) workflow from GitHub.
+4. Open and merge a PR, merging `main` into `develop`.
+5. Update the docs by running the [Supervision Release Documentation Workflow 📚](https://github.com/roboflow/supervision/actions/workflows/publish-release-docs.yml) workflow from GitHub.
    - Select the `main` branch from the dropdown.
-7. Create a release on GitHub.
+6. Create a release on GitHub.
    - Go to releases
    - Assign the release notes to the tag created in step 3.
    - Publish the release.
