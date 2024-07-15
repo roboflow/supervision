@@ -208,8 +208,8 @@ class ByteTrack:
             reducing the likelihood of track fragmentation or disappearance caused
             by brief detection gaps.
         minimum_matching_threshold (float, optional): Threshold for matching tracks with detections.
-            Increasing minimum_matching_threshold improves accuracy but risks fragmentation.
-            Decreasing it improves completeness but risks false positives and drift.
+            Decreasing minimum_matching_threshold improves accuracy but risks fragmentation.
+            Increasing it improves completeness but risks false positives and drift.
         frame_rate (int, optional): The frame rate of the video.
         minimum_consecutive_frames (int, optional): Number of consecutive frames that an object must
             be tracked before it is considered a 'valid' track.
