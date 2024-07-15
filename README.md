@@ -110,18 +110,21 @@ Supervision provides a set of [utils](https://supervision.roboflow.com/latest/da
 
 ```python
 import supervision as sv
+from roboflow import Roboflow
 
-dataset = sv.DetectionDataset.from_yolo(
-    images_directory_path=...,
-    annotations_directory_path=...,
-    data_yaml_path=...
+project = Roboflow().workspace(<WORKSPACE_ID>).project(<PROJECT_ID>)
+dataset = project.version(<PROJECT_VERSION>).download("coco")
+
+ds = sv.DetectionDataset.from_coco(
+    images_directory_path=f"{dataset.location}/train",
+    annotations_path=f"{dataset.location}/train/_annotations.coco.json",
 )
 
-dataset.classes
-['dog', 'person']
+path, image, annotation = ds[0]
+    # loads image on demand
 
-len(dataset)
-# 1000
+for path, image, annotation in ds:
+    # loads image on demand
 ```
 
 <details close>
