@@ -228,10 +228,78 @@ def pad_boxes(xyxy: np.ndarray, px: int, py: Optional[int] = None) -> np.ndarray
     return result
 
 
-def xywh_to_xyxy(boxes_xywh: np.ndarray) -> np.ndarray:
-    xyxy = boxes_xywh.copy()
-    xyxy[:, 2] = boxes_xywh[:, 0] + boxes_xywh[:, 2]
-    xyxy[:, 3] = boxes_xywh[:, 1] + boxes_xywh[:, 3]
+def xywh_to_xyxy(xywh: np.ndarray) -> np.ndarray:
+    """
+    Converts bounding box coordinates from `(x, y, width, height)`
+    format to `(x_min, y_min, x_max, y_max)` format.
+
+    Args:
+        xywh (np.ndarray): A numpy array of shape `(N, 4)` where each row
+            corresponds to a bounding box in the format `(x, y, width, height)`.
+
+    Returns:
+        np.ndarray: A numpy array of shape `(N, 4)` where each row corresponds
+            to a bounding box in the format `(x_min, y_min, x_max, y_max)`.
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        xywh = np.array([
+            [10, 20, 30, 40],
+            [15, 25, 35, 45]
+        ])
+
+        sv.xywh_to_xyxy(xywh=xywh)
+        # array([
+        #     [10, 20, 40, 60],
+        #     [15, 25, 50, 70]
+        # ])
+        ```
+    """
+    xyxy = xywh.copy()
+    xyxy[:, 2] = xywh[:, 0] + xywh[:, 2]
+    xyxy[:, 3] = xywh[:, 1] + xywh[:, 3]
+    return xyxy
+
+
+def xcycwh_to_xyxy(xcycwh: np.ndarray) -> np.ndarray:
+    """
+    Converts bounding box coordinates from `(center_x, center_y, width, height)`
+    format to `(x_min, y_min, x_max, y_max)` format.
+
+    Args:
+        xcycwh (np.ndarray): A numpy array of shape `(N, 4)` where each row
+            corresponds to a bounding box in the format `(center_x, center_y, width,
+            height)`.
+
+    Returns:
+        np.ndarray: A numpy array of shape `(N, 4)` where each row corresponds
+            to a bounding box in the format `(x_min, y_min, x_max, y_max)`.
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        xcycwh = np.array([
+            [50, 50, 20, 30],
+            [30, 40, 10, 15]
+        ])
+
+        sv.xcycwh_to_xyxy(xcycwh=xcycwh)
+        # array([
+        #     [40, 35, 60, 65],
+        #     [25, 32.5, 35, 47.5]
+        # ])
+        ```
+    """
+    xyxy = xcycwh.copy()
+    xyxy[:, 0] = xcycwh[:, 0] - xcycwh[:, 2] / 2
+    xyxy[:, 1] = xcycwh[:, 1] - xcycwh[:, 3] / 2
+    xyxy[:, 2] = xcycwh[:, 0] + xcycwh[:, 2] / 2
+    xyxy[:, 3] = xcycwh[:, 1] + xcycwh[:, 3] / 2
     return xyxy
 
 

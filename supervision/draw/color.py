@@ -5,7 +5,7 @@ from typing import List, Tuple, Union
 
 import matplotlib.pyplot as plt
 
-from supervision.utils.internal import classproperty, deprecated
+from supervision.utils.internal import classproperty
 
 DEFAULT_COLOR_PALETTE = [
     "A351FB",
@@ -255,46 +255,6 @@ class Color:
     def ROBOFLOW(cls) -> Color:
         return Color.from_hex("#A351FB")
 
-    @classmethod
-    @deprecated(
-        "`Color.white()` is deprecated and will be removed in "
-        "`supervision-0.22.0`. Use `Color.WHITE` instead."
-    )
-    def white(cls) -> Color:
-        return Color.from_hex(color_hex="#ffffff")
-
-    @classmethod
-    @deprecated(
-        "`Color.black()` is deprecated and will be removed in "
-        "`supervision-0.22.0`. Use `Color.BLACK` instead."
-    )
-    def black(cls) -> Color:
-        return Color.from_hex(color_hex="#000000")
-
-    @classmethod
-    @deprecated(
-        "`Color.red()` is deprecated and will be removed in "
-        "`supervision-0.22.0`. Use `Color.RED` instead."
-    )
-    def red(cls) -> Color:
-        return Color.from_hex(color_hex="#ff0000")
-
-    @classmethod
-    @deprecated(
-        "`Color.green()` is deprecated and will be removed in "
-        "`supervision-0.22.0`. Use `Color.GREEN` instead."
-    )
-    def green(cls) -> Color:
-        return Color.from_hex(color_hex="#00ff00")
-
-    @classmethod
-    @deprecated(
-        "`Color.blue()` is deprecated and will be removed in "
-        "`supervision-0.22.0`. Use `Color.BLUE` instead."
-    )
-    def blue(cls) -> Color:
-        return Color.from_hex(color_hex="#0000ff")
-
 
 @dataclass
 class ColorPalette:
@@ -345,33 +305,6 @@ class ColorPalette:
     @classproperty
     def LEGACY(cls) -> ColorPalette:
         return ColorPalette.from_hex(color_hex_list=LEGACY_COLOR_PALETTE)
-
-    @classmethod
-    @deprecated(
-        "`ColorPalette.default()` is deprecated and will be removed in "
-        "`supervision-0.22.0`. Use `Color.DEFAULT` instead."
-    )
-    def default(cls) -> ColorPalette:
-        """
-        !!! failure "Deprecated"
-
-            `ColorPalette.default()` is deprecated and will be removed in
-            `supervision-0.22.0`. Use `Color.DEFAULT` instead.
-
-        Returns a default color palette.
-
-        Returns:
-            ColorPalette: A ColorPalette instance with default colors.
-
-        Example:
-            ```python
-            import supervision as sv
-
-            sv.ColorPalette.default()
-            # ColorPalette(colors=[Color(r=255, g=64, b=64), Color(r=255, g=161, b=160), ...])
-            ```
-        """  # noqa: E501 // docs
-        return ColorPalette.from_hex(color_hex_list=DEFAULT_COLOR_PALETTE)
 
     @classmethod
     def from_hex(cls, color_hex_list: List[str]) -> ColorPalette:

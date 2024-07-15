@@ -295,8 +295,8 @@ def calculate_optimal_text_scale(resolution_wh: Tuple[int, int]) -> float:
     Calculate font scale based on the resolution of an image.
 
     Parameters:
-         resolution_wh (Tuple[int, int]): A tuple representing the width and height
-             of the image.
+        resolution_wh (Tuple[int, int]): A tuple representing the width and height
+            of the image.
 
     Returns:
          float: The calculated font scale factor.

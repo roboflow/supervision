@@ -62,8 +62,7 @@ def validate_keypoint_confidence(confidence: Any, n: int, m: int) -> None:
         if not is_valid:
             raise ValueError(
                 f"confidence must be a 1D np.ndarray with shape {expected_shape}, but "
-                "got"
-                f"shape {actual_shape}"
+                f"got shape {actual_shape}"
             )
 
 

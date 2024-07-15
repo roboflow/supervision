@@ -1,18 +1,26 @@
 [tool.poetry]
 name = "supervision"
-version = "0.22.0rc1"
+version = "0.22.0"
 description = "A set of easy-to-use utils that will come in handy in any Computer Vision project"
 authors = ["Piotr Skalski <piotr.skalski92@gmail.com>"]
 maintainers = ["Piotr Skalski <piotr.skalski92@gmail.com>"]
 readme = "README.md"
 license = "MIT"
-packages = [{include = "supervision"}]
+packages = [{ include = "supervision" }]
 homepage = "https://github.com/roboflow/supervision"
 repository = "https://github.com/roboflow/supervision"
 documentation = "https://github.com/roboflow/supervision/blob/main/README.md"
-keywords = ["machine-learning", "deep-learning", "vision", "ML", "DL", "AI", "Roboflow"]
+keywords = [
+    "machine-learning",
+    "deep-learning",
+    "vision",
+    "ML",
+    "DL",
+    "AI",
+    "Roboflow",
+]
 
-classifiers=[
+classifiers = [
     'Development Status :: 4 - Beta',
     'Intended Audience :: Developers',
     'Intended Audience :: Education',
@@ -27,7 +35,7 @@ classifiers=[
     'Typing :: Typed',
     'Operating System :: Microsoft :: Windows',
     'Operating System :: POSIX :: Linux',
-    'Operating System :: MacOS'
+    'Operating System :: MacOS',
 ]
 
 [tool.poetry.dependencies]
@@ -35,7 +43,7 @@ python = "^3.8"
 numpy = ">=1.21.2"
 scipy = [
     { version = "1.10.0", python = "<3.9" },
-    { version = "^1.10.0", python = ">=3.9" }
+    { version = "^1.10.0", python = ">=3.9" },
 ]
 matplotlib = ">=3.6.0"
 pyyaml = ">=5.3"
@@ -48,7 +56,7 @@ pillow = ">=9.4"
 
 [tool.poetry.extras]
 desktop = ["opencv-python"]
-assets = ["requests","tqdm"]
+assets = ["requests", "tqdm"]
 
 [tool.poetry.group.dev.dependencies]
 twine = "^5.1.1"
@@ -65,21 +73,19 @@ jupytext = "^1.16.1"
 nbconvert = "^7.14.2"
 docutils = [
     { version = "^0.20.1", python = "<3.9" },
-    { version = "^0.21.1", python = ">=3.9" }
+    { version = "^0.21.1", python = ">=3.9" },
 ]
 
 
 [tool.poetry.group.docs.dependencies]
-mkdocs-material = {extras = ["imaging"], version = "^9.5.5"}
-mkdocstrings = {extras = ["python"], version = ">=0.20,<0.26"}
+mkdocs-material = { extras = ["imaging"], version = "^9.5.5" }
+mkdocstrings = { extras = ["python"], version = ">=0.20,<0.26" }
 mike = "^2.0.0"
 # For Documentation Development use Python 3.10 or above
 # Use Latest mkdocs-jupyter min 0.24.6 for Jupyter Notebook Theme support
 mkdocs-jupyter = "^0.24.3"
 mkdocs-git-committers-plugin-2 = "^2.2.3"
 mkdocs-git-revision-date-localized-plugin = "^1.2.4"
-
-
 
 [tool.isort]
 line_length = 88
@@ -92,7 +98,6 @@ tests = ["B201", "B301", "B318", "B314", "B303", "B413", "B412", "B410"]
 [tool.autoflake]
 check = true
 imports = ["cv2", "supervision"]
-
 
 [tool.black]
 target-version = ["py38"]
@@ -152,7 +157,52 @@ indent-width = 4
 select = ["E", "F"]
 ignore = []
 # Allow autofix for all enabled rules (when `--fix`) is provided.
-fixable = ["A", "B", "C", "D", "E", "F", "G", "I", "N", "Q", "S", "T", "W", "ANN", "ARG", "BLE", "COM", "DJ", "DTZ", "EM", "ERA", "EXE", "FBT", "ICN", "INP", "ISC", "NPY", "PD", "PGH", "PIE", "PL", "PT", "PTH", "PYI", "RET", "RSE", "RUF", "SIM", "SLF", "TCH", "TID", "TRY", "UP", "YTT"]
+fixable = [
+    "A",
+    "B",
+    "C",
+    "D",
+    "E",
+    "F",
+    "G",
+    "I",
+    "N",
+    "Q",
+    "S",
+    "T",
+    "W",
+    "ANN",
+    "ARG",
+    "BLE",
+    "COM",
+    "DJ",
+    "DTZ",
+    "EM",
+    "ERA",
+    "EXE",
+    "FBT",
+    "ICN",
+    "INP",
+    "ISC",
+    "NPY",
+    "PD",
+    "PGH",
+    "PIE",
+    "PL",
+    "PT",
+    "PTH",
+    "PYI",
+    "RET",
+    "RSE",
+    "RUF",
+    "SIM",
+    "SLF",
+    "TCH",
+    "TID",
+    "TRY",
+    "UP",
+    "YTT",
+]
 unfixable = []
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
@@ -167,7 +217,7 @@ docstring-quotes = "double"
 convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
-"__init__.py" = ["E402","F401"]
+"__init__.py" = ["E402", "F401"]
 
 [tool.ruff.lint.mccabe]
 # Flag errors (`C901`) whenever the complexity level exceeds 5.
@@ -190,7 +240,7 @@ line-ending = "auto"
 include-package-data = false
 
 [tool.setuptools.packages.find]
-exclude = ["docs*", "test*","examples*"]
+exclude = ["docs*", "test*", "examples*"]
 
 [build-system]
 requires = ["poetry-core"]
