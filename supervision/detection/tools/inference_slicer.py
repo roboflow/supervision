@@ -4,12 +4,12 @@ from typing import Callable, Optional, Tuple, Union
 
 import numpy as np
 
+from supervision import config
 from supervision.detection.core import Detections
 from supervision.detection.overlap_filter import OverlapFilter, validate_overlap_filter
 from supervision.detection.utils import move_boxes, move_masks, move_obb_boxes
 from supervision.utils.image import crop_image
 from supervision.utils.internal import SupervisionWarnings
-from supervision import config
 
 
 def move_detections(
