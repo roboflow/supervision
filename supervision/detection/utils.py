@@ -596,9 +596,8 @@ def move_boxes(
     return xyxy + np.hstack([offset, offset])
 
 
-def move_obb_boxes(
-    xyss: npt.NDArray[np.float64], offset: npt.NDArray[np.int32]
-) -> npt.NDArray[np.float64]:
+def move_obb_boxes(xyxyxyxy: npt.NDArray[np.float64], offset: npt.NDArray[np.int32]
+                  ) -> npt.NDArray[np.float64]:
     """
     Parameters:
         xyxyxyxy (npt.NDArray[np.float64]): An array of shape `(n, 4, 2)` containing the
@@ -630,7 +629,7 @@ def move_obb_boxes(
     """
     return [
         xys + np.hstack([offset, offset, offset, offset]).reshape(xys.shape)
-        for xys in xyss
+        for xys in xyxyxyxy
     ]
 
 

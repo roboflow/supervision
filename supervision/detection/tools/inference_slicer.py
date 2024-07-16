@@ -9,6 +9,7 @@ from supervision.detection.overlap_filter import OverlapFilter, validate_overlap
 from supervision.detection.utils import move_boxes, move_masks, move_obb_boxes
 from supervision.utils.image import crop_image
 from supervision.utils.internal import SupervisionWarnings
+from supervision import config
 
 
 def move_detections(
@@ -28,9 +29,9 @@ def move_detections(
         (sv.Detections) repositioned Detections object.
     """
     detections.xyxy = move_boxes(xyxy=detections.xyxy, offset=offset)
-    if "ORIENTED_BOX_COORDINATES" in detections.data:
-        detections.data["ORIENTED_BOX_COORDINATES"] = move_obb_boxes(
-            xyss=detections.data["ORIENTED_BOX_COORDINATES"], offset=offset
+    if config.ORIENTED_BOX_COORDINATES in detections.data:
+        detections.data[config.ORIENTED_BOX_COORDINATES] = move_obb_boxes(
+            xyxyxyxy=detections.data[config.ORIENTED_BOX_COORDINATES], offset=offset
         )
     if detections.mask is not None:
         if resolution_wh is None:
