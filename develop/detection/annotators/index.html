@@ -3953,7 +3953,7 @@
 <a id="__codelineno-0-42" name="__codelineno-0-42"></a><span class="sd">            color (Union[Color, ColorPalette]): The color or color palette to use for</span>
 <a id="__codelineno-0-43" name="__codelineno-0-43"></a><span class="sd">                annotating detections.</span>
 <a id="__codelineno-0-44" name="__codelineno-0-44"></a><span class="sd">            thickness (int): Thickness of the bounding box lines.</span>
-<a id="__codelineno-0-45" name="__codelineno-0-45"></a><span class="sd">            color_lookup (str): Strategy for mapping colors to annotations.</span>
+<a id="__codelineno-0-45" name="__codelineno-0-45"></a><span class="sd">            color_lookup (ColorLookup): Strategy for mapping colors to annotations.</span>
 <a id="__codelineno-0-46" name="__codelineno-0-46"></a><span class="sd">                Options are `INDEX`, `CLASS`, `TRACK`.</span>
 <a id="__codelineno-0-47" name="__codelineno-0-47"></a><span class="sd">        &quot;&quot;&quot;</span>
 <a id="__codelineno-0-48" name="__codelineno-0-48"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">color</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Color</span><span class="p">,</span> <span class="n">ColorPalette</span><span class="p">]</span> <span class="o">=</span> <span class="n">color</span>
@@ -4087,7 +4087,7 @@ annotating detections.</p>
           <tr class="doc-section-item">
             <td><code>color_lookup</code></td>
             <td>
-                  <code>str</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.annotators.utils.ColorLookup" href="#supervision.annotators.utils.ColorLookup">ColorLookup</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4131,7 +4131,7 @@ Options are <code>INDEX</code>, <code>CLASS</code>, <code>TRACK</code>.</p>
 <a id="__codelineno-0-42" name="__codelineno-0-42"></a><span class="sd">        color (Union[Color, ColorPalette]): The color or color palette to use for</span>
 <a id="__codelineno-0-43" name="__codelineno-0-43"></a><span class="sd">            annotating detections.</span>
 <a id="__codelineno-0-44" name="__codelineno-0-44"></a><span class="sd">        thickness (int): Thickness of the bounding box lines.</span>
-<a id="__codelineno-0-45" name="__codelineno-0-45"></a><span class="sd">        color_lookup (str): Strategy for mapping colors to annotations.</span>
+<a id="__codelineno-0-45" name="__codelineno-0-45"></a><span class="sd">        color_lookup (ColorLookup): Strategy for mapping colors to annotations.</span>
 <a id="__codelineno-0-46" name="__codelineno-0-46"></a><span class="sd">            Options are `INDEX`, `CLASS`, `TRACK`.</span>
 <a id="__codelineno-0-47" name="__codelineno-0-47"></a><span class="sd">    &quot;&quot;&quot;</span>
 <a id="__codelineno-0-48" name="__codelineno-0-48"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">color</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Color</span><span class="p">,</span> <span class="n">ColorPalette</span><span class="p">]</span> <span class="o">=</span> <span class="n">color</span>
@@ -4548,7 +4548,7 @@ using provided detections.</p>
 <a id="__codelineno-0-1824" name="__codelineno-0-1824"></a><span class="sd">            color (Union[Color, ColorPalette]): The color or color palette to use for</span>
 <a id="__codelineno-0-1825" name="__codelineno-0-1825"></a><span class="sd">                annotating detections.</span>
 <a id="__codelineno-0-1826" name="__codelineno-0-1826"></a><span class="sd">            thickness (int): Thickness of the bounding box lines.</span>
-<a id="__codelineno-0-1827" name="__codelineno-0-1827"></a><span class="sd">            color_lookup (str): Strategy for mapping colors to annotations.</span>
+<a id="__codelineno-0-1827" name="__codelineno-0-1827"></a><span class="sd">            color_lookup (ColorLookup): Strategy for mapping colors to annotations.</span>
 <a id="__codelineno-0-1828" name="__codelineno-0-1828"></a><span class="sd">                Options are `INDEX`, `CLASS`, `TRACK`.</span>
 <a id="__codelineno-0-1829" name="__codelineno-0-1829"></a><span class="sd">            roundness (float): Percent of roundness for edges of bounding box.</span>
 <a id="__codelineno-0-1830" name="__codelineno-0-1830"></a><span class="sd">                Value must be float 0 &lt; roundness &lt;= 1.0</span>
@@ -4731,7 +4731,7 @@ annotating detections.</p>
           <tr class="doc-section-item">
             <td><code>color_lookup</code></td>
             <td>
-                  <code>str</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.annotators.utils.ColorLookup" href="#supervision.annotators.utils.ColorLookup">ColorLookup</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4801,7 +4801,7 @@ length (width or height).</p>
 <a id="__codelineno-0-1824" name="__codelineno-0-1824"></a><span class="sd">        color (Union[Color, ColorPalette]): The color or color palette to use for</span>
 <a id="__codelineno-0-1825" name="__codelineno-0-1825"></a><span class="sd">            annotating detections.</span>
 <a id="__codelineno-0-1826" name="__codelineno-0-1826"></a><span class="sd">        thickness (int): Thickness of the bounding box lines.</span>
-<a id="__codelineno-0-1827" name="__codelineno-0-1827"></a><span class="sd">        color_lookup (str): Strategy for mapping colors to annotations.</span>
+<a id="__codelineno-0-1827" name="__codelineno-0-1827"></a><span class="sd">        color_lookup (ColorLookup): Strategy for mapping colors to annotations.</span>
 <a id="__codelineno-0-1828" name="__codelineno-0-1828"></a><span class="sd">            Options are `INDEX`, `CLASS`, `TRACK`.</span>
 <a id="__codelineno-0-1829" name="__codelineno-0-1829"></a><span class="sd">        roundness (float): Percent of roundness for edges of bounding box.</span>
 <a id="__codelineno-0-1830" name="__codelineno-0-1830"></a><span class="sd">            Value must be float 0 &lt; roundness &lt;= 1.0</span>
@@ -5269,7 +5269,7 @@ supervision-annotator-examples/round-box-annotator-example-purple.png" /></p>
 <a id="__codelineno-0-755" name="__codelineno-0-755"></a><span class="sd">                annotating detections.</span>
 <a id="__codelineno-0-756" name="__codelineno-0-756"></a><span class="sd">            thickness (int): Thickness of the corner lines.</span>
 <a id="__codelineno-0-757" name="__codelineno-0-757"></a><span class="sd">            corner_length (int): Length of each corner line.</span>
-<a id="__codelineno-0-758" name="__codelineno-0-758"></a><span class="sd">            color_lookup (str): Strategy for mapping colors to annotations.</span>
+<a id="__codelineno-0-758" name="__codelineno-0-758"></a><span class="sd">            color_lookup (ColorLookup): Strategy for mapping colors to annotations.</span>
 <a id="__codelineno-0-759" name="__codelineno-0-759"></a><span class="sd">                Options are `INDEX`, `CLASS`, `TRACK`.</span>
 <a id="__codelineno-0-760" name="__codelineno-0-760"></a><span class="sd">        &quot;&quot;&quot;</span>
 <a id="__codelineno-0-761" name="__codelineno-0-761"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">color</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Color</span><span class="p">,</span> <span class="n">ColorPalette</span><span class="p">]</span> <span class="o">=</span> <span class="n">color</span>
@@ -5424,7 +5424,7 @@ annotating detections.</p>
           <tr class="doc-section-item">
             <td><code>color_lookup</code></td>
             <td>
-                  <code>str</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.annotators.utils.ColorLookup" href="#supervision.annotators.utils.ColorLookup">ColorLookup</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5473,7 +5473,7 @@ Options are <code>INDEX</code>, <code>CLASS</code>, <code>TRACK</code>.</p>
 <a id="__codelineno-0-755" name="__codelineno-0-755"></a><span class="sd">            annotating detections.</span>
 <a id="__codelineno-0-756" name="__codelineno-0-756"></a><span class="sd">        thickness (int): Thickness of the corner lines.</span>
 <a id="__codelineno-0-757" name="__codelineno-0-757"></a><span class="sd">        corner_length (int): Length of each corner line.</span>
-<a id="__codelineno-0-758" name="__codelineno-0-758"></a><span class="sd">        color_lookup (str): Strategy for mapping colors to annotations.</span>
+<a id="__codelineno-0-758" name="__codelineno-0-758"></a><span class="sd">        color_lookup (ColorLookup): Strategy for mapping colors to annotations.</span>
 <a id="__codelineno-0-759" name="__codelineno-0-759"></a><span class="sd">            Options are `INDEX`, `CLASS`, `TRACK`.</span>
 <a id="__codelineno-0-760" name="__codelineno-0-760"></a><span class="sd">    &quot;&quot;&quot;</span>
 <a id="__codelineno-0-761" name="__codelineno-0-761"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">color</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Color</span><span class="p">,</span> <span class="n">ColorPalette</span><span class="p">]</span> <span class="o">=</span> <span class="n">color</span>
@@ -5854,7 +5854,7 @@ supervision-annotator-examples/box-corner-annotator-example-purple.png" /></p>
 <a id="__codelineno-0-208" name="__codelineno-0-208"></a><span class="sd">            color (Union[Color, ColorPalette]): The color or color palette to use for</span>
 <a id="__codelineno-0-209" name="__codelineno-0-209"></a><span class="sd">                annotating detections.</span>
 <a id="__codelineno-0-210" name="__codelineno-0-210"></a><span class="sd">            thickness (int): Thickness of the bounding box lines.</span>
-<a id="__codelineno-0-211" name="__codelineno-0-211"></a><span class="sd">            color_lookup (str): Strategy for mapping colors to annotations.</span>
+<a id="__codelineno-0-211" name="__codelineno-0-211"></a><span class="sd">            color_lookup (ColorLookup): Strategy for mapping colors to annotations.</span>
 <a id="__codelineno-0-212" name="__codelineno-0-212"></a><span class="sd">                Options are `INDEX`, `CLASS`, `TRACK`.</span>
 <a id="__codelineno-0-213" name="__codelineno-0-213"></a><span class="sd">        &quot;&quot;&quot;</span>
 <a id="__codelineno-0-214" name="__codelineno-0-214"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">color</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Color</span><span class="p">,</span> <span class="n">ColorPalette</span><span class="p">]</span> <span class="o">=</span> <span class="n">color</span>
@@ -5991,7 +5991,7 @@ annotating detections.</p>
           <tr class="doc-section-item">
             <td><code>color_lookup</code></td>
             <td>
-                  <code>str</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.annotators.utils.ColorLookup" href="#supervision.annotators.utils.ColorLookup">ColorLookup</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6035,7 +6035,7 @@ Options are <code>INDEX</code>, <code>CLASS</code>, <code>TRACK</code>.</p>
 <a id="__codelineno-0-208" name="__codelineno-0-208"></a><span class="sd">        color (Union[Color, ColorPalette]): The color or color palette to use for</span>
 <a id="__codelineno-0-209" name="__codelineno-0-209"></a><span class="sd">            annotating detections.</span>
 <a id="__codelineno-0-210" name="__codelineno-0-210"></a><span class="sd">        thickness (int): Thickness of the bounding box lines.</span>
-<a id="__codelineno-0-211" name="__codelineno-0-211"></a><span class="sd">        color_lookup (str): Strategy for mapping colors to annotations.</span>
+<a id="__codelineno-0-211" name="__codelineno-0-211"></a><span class="sd">        color_lookup (ColorLookup): Strategy for mapping colors to annotations.</span>
 <a id="__codelineno-0-212" name="__codelineno-0-212"></a><span class="sd">            Options are `INDEX`, `CLASS`, `TRACK`.</span>
 <a id="__codelineno-0-213" name="__codelineno-0-213"></a><span class="sd">    &quot;&quot;&quot;</span>
 <a id="__codelineno-0-214" name="__codelineno-0-214"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">color</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Color</span><span class="p">,</span> <span class="n">ColorPalette</span><span class="p">]</span> <span class="o">=</span> <span class="n">color</span>
@@ -6415,7 +6415,7 @@ or <code>PIL.Image.Image</code>)</p>
 <a id="__codelineno-0-471" name="__codelineno-0-471"></a><span class="sd">            color (Union[Color, ColorPalette]): The color or color palette to use for</span>
 <a id="__codelineno-0-472" name="__codelineno-0-472"></a><span class="sd">                annotating detections.</span>
 <a id="__codelineno-0-473" name="__codelineno-0-473"></a><span class="sd">            opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.</span>
-<a id="__codelineno-0-474" name="__codelineno-0-474"></a><span class="sd">            color_lookup (str): Strategy for mapping colors to annotations.</span>
+<a id="__codelineno-0-474" name="__codelineno-0-474"></a><span class="sd">            color_lookup (ColorLookup): Strategy for mapping colors to annotations.</span>
 <a id="__codelineno-0-475" name="__codelineno-0-475"></a><span class="sd">                Options are `INDEX`, `CLASS`, `TRACK`.</span>
 <a id="__codelineno-0-476" name="__codelineno-0-476"></a><span class="sd">        &quot;&quot;&quot;</span>
 <a id="__codelineno-0-477" name="__codelineno-0-477"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">color</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Color</span><span class="p">,</span> <span class="n">ColorPalette</span><span class="p">]</span> <span class="o">=</span> <span class="n">color</span>
@@ -6555,7 +6555,7 @@ annotating detections.</p>
           <tr class="doc-section-item">
             <td><code>color_lookup</code></td>
             <td>
-                  <code>str</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.annotators.utils.ColorLookup" href="#supervision.annotators.utils.ColorLookup">ColorLookup</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6599,7 +6599,7 @@ Options are <code>INDEX</code>, <code>CLASS</code>, <code>TRACK</code>.</p>
 <a id="__codelineno-0-471" name="__codelineno-0-471"></a><span class="sd">        color (Union[Color, ColorPalette]): The color or color palette to use for</span>
 <a id="__codelineno-0-472" name="__codelineno-0-472"></a><span class="sd">            annotating detections.</span>
 <a id="__codelineno-0-473" name="__codelineno-0-473"></a><span class="sd">        opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.</span>
-<a id="__codelineno-0-474" name="__codelineno-0-474"></a><span class="sd">        color_lookup (str): Strategy for mapping colors to annotations.</span>
+<a id="__codelineno-0-474" name="__codelineno-0-474"></a><span class="sd">        color_lookup (ColorLookup): Strategy for mapping colors to annotations.</span>
 <a id="__codelineno-0-475" name="__codelineno-0-475"></a><span class="sd">            Options are `INDEX`, `CLASS`, `TRACK`.</span>
 <a id="__codelineno-0-476" name="__codelineno-0-476"></a><span class="sd">    &quot;&quot;&quot;</span>
 <a id="__codelineno-0-477" name="__codelineno-0-477"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">color</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Color</span><span class="p">,</span> <span class="n">ColorPalette</span><span class="p">]</span> <span class="o">=</span> <span class="n">color</span>
@@ -6982,7 +6982,7 @@ supervision-annotator-examples/box-mask-annotator-example-purple.png" /></p>
 <a id="__codelineno-0-843" name="__codelineno-0-843"></a><span class="sd">            color (Union[Color, ColorPalette]): The color or color palette to use for</span>
 <a id="__codelineno-0-844" name="__codelineno-0-844"></a><span class="sd">                annotating detections.</span>
 <a id="__codelineno-0-845" name="__codelineno-0-845"></a><span class="sd">            thickness (int): Thickness of the circle line.</span>
-<a id="__codelineno-0-846" name="__codelineno-0-846"></a><span class="sd">            color_lookup (str): Strategy for mapping colors to annotations.</span>
+<a id="__codelineno-0-846" name="__codelineno-0-846"></a><span class="sd">            color_lookup (ColorLookup): Strategy for mapping colors to annotations.</span>
 <a id="__codelineno-0-847" name="__codelineno-0-847"></a><span class="sd">                Options are `INDEX`, `CLASS`, `TRACK`.</span>
 <a id="__codelineno-0-848" name="__codelineno-0-848"></a><span class="sd">        &quot;&quot;&quot;</span>
 <a id="__codelineno-0-849" name="__codelineno-0-849"></a>
@@ -7122,7 +7122,7 @@ annotating detections.</p>
           <tr class="doc-section-item">
             <td><code>color_lookup</code></td>
             <td>
-                  <code>str</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.annotators.utils.ColorLookup" href="#supervision.annotators.utils.ColorLookup">ColorLookup</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -7167,7 +7167,7 @@ Options are <code>INDEX</code>, <code>CLASS</code>, <code>TRACK</code>.</p>
 <a id="__codelineno-0-843" name="__codelineno-0-843"></a><span class="sd">        color (Union[Color, ColorPalette]): The color or color palette to use for</span>
 <a id="__codelineno-0-844" name="__codelineno-0-844"></a><span class="sd">            annotating detections.</span>
 <a id="__codelineno-0-845" name="__codelineno-0-845"></a><span class="sd">        thickness (int): Thickness of the circle line.</span>
-<a id="__codelineno-0-846" name="__codelineno-0-846"></a><span class="sd">        color_lookup (str): Strategy for mapping colors to annotations.</span>
+<a id="__codelineno-0-846" name="__codelineno-0-846"></a><span class="sd">        color_lookup (ColorLookup): Strategy for mapping colors to annotations.</span>
 <a id="__codelineno-0-847" name="__codelineno-0-847"></a><span class="sd">            Options are `INDEX`, `CLASS`, `TRACK`.</span>
 <a id="__codelineno-0-848" name="__codelineno-0-848"></a><span class="sd">    &quot;&quot;&quot;</span>
 <a id="__codelineno-0-849" name="__codelineno-0-849"></a>
@@ -8822,7 +8822,7 @@ supervision-annotator-examples/triangle-annotator-example.png" /></p>
 <a id="__codelineno-0-663" name="__codelineno-0-663"></a><span class="sd">            thickness (int): Thickness of the ellipse lines.</span>
 <a id="__codelineno-0-664" name="__codelineno-0-664"></a><span class="sd">            start_angle (int): Starting angle of the ellipse.</span>
 <a id="__codelineno-0-665" name="__codelineno-0-665"></a><span class="sd">            end_angle (int): Ending angle of the ellipse.</span>
-<a id="__codelineno-0-666" name="__codelineno-0-666"></a><span class="sd">            color_lookup (str): Strategy for mapping colors to annotations.</span>
+<a id="__codelineno-0-666" name="__codelineno-0-666"></a><span class="sd">            color_lookup (ColorLookup): Strategy for mapping colors to annotations.</span>
 <a id="__codelineno-0-667" name="__codelineno-0-667"></a><span class="sd">                Options are `INDEX`, `CLASS`, `TRACK`.</span>
 <a id="__codelineno-0-668" name="__codelineno-0-668"></a><span class="sd">        &quot;&quot;&quot;</span>
 <a id="__codelineno-0-669" name="__codelineno-0-669"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">color</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Color</span><span class="p">,</span> <span class="n">ColorPalette</span><span class="p">]</span> <span class="o">=</span> <span class="n">color</span>
@@ -8993,7 +8993,7 @@ annotating detections.</p>
           <tr class="doc-section-item">
             <td><code>color_lookup</code></td>
             <td>
-                  <code>str</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.annotators.utils.ColorLookup" href="#supervision.annotators.utils.ColorLookup">ColorLookup</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -9047,7 +9047,7 @@ Options are <code>INDEX</code>, <code>CLASS</code>, <code>TRACK</code>.</p>
 <a id="__codelineno-0-663" name="__codelineno-0-663"></a><span class="sd">        thickness (int): Thickness of the ellipse lines.</span>
 <a id="__codelineno-0-664" name="__codelineno-0-664"></a><span class="sd">        start_angle (int): Starting angle of the ellipse.</span>
 <a id="__codelineno-0-665" name="__codelineno-0-665"></a><span class="sd">        end_angle (int): Ending angle of the ellipse.</span>
-<a id="__codelineno-0-666" name="__codelineno-0-666"></a><span class="sd">        color_lookup (str): Strategy for mapping colors to annotations.</span>
+<a id="__codelineno-0-666" name="__codelineno-0-666"></a><span class="sd">        color_lookup (ColorLookup): Strategy for mapping colors to annotations.</span>
 <a id="__codelineno-0-667" name="__codelineno-0-667"></a><span class="sd">            Options are `INDEX`, `CLASS`, `TRACK`.</span>
 <a id="__codelineno-0-668" name="__codelineno-0-668"></a><span class="sd">    &quot;&quot;&quot;</span>
 <a id="__codelineno-0-669" name="__codelineno-0-669"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">color</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Color</span><span class="p">,</span> <span class="n">ColorPalette</span><span class="p">]</span> <span class="o">=</span> <span class="n">color</span>
@@ -9459,7 +9459,7 @@ supervision-annotator-examples/ellipse-annotator-example-purple.png" /></p>
 <a id="__codelineno-0-565" name="__codelineno-0-565"></a><span class="sd">            opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.</span>
 <a id="__codelineno-0-566" name="__codelineno-0-566"></a><span class="sd">            kernel_size (int): The size of the average pooling kernel used for creating</span>
 <a id="__codelineno-0-567" name="__codelineno-0-567"></a><span class="sd">                the halo.</span>
-<a id="__codelineno-0-568" name="__codelineno-0-568"></a><span class="sd">            color_lookup (str): Strategy for mapping colors to annotations.</span>
+<a id="__codelineno-0-568" name="__codelineno-0-568"></a><span class="sd">            color_lookup (ColorLookup): Strategy for mapping colors to annotations.</span>
 <a id="__codelineno-0-569" name="__codelineno-0-569"></a><span class="sd">                Options are `INDEX`, `CLASS`, `TRACK`.</span>
 <a id="__codelineno-0-570" name="__codelineno-0-570"></a><span class="sd">        &quot;&quot;&quot;</span>
 <a id="__codelineno-0-571" name="__codelineno-0-571"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">color</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Color</span><span class="p">,</span> <span class="n">ColorPalette</span><span class="p">]</span> <span class="o">=</span> <span class="n">color</span>
@@ -9621,7 +9621,7 @@ the halo.</p>
           <tr class="doc-section-item">
             <td><code>color_lookup</code></td>
             <td>
-                  <code>str</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.annotators.utils.ColorLookup" href="#supervision.annotators.utils.ColorLookup">ColorLookup</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -9672,7 +9672,7 @@ Options are <code>INDEX</code>, <code>CLASS</code>, <code>TRACK</code>.</p>
 <a id="__codelineno-0-565" name="__codelineno-0-565"></a><span class="sd">        opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.</span>
 <a id="__codelineno-0-566" name="__codelineno-0-566"></a><span class="sd">        kernel_size (int): The size of the average pooling kernel used for creating</span>
 <a id="__codelineno-0-567" name="__codelineno-0-567"></a><span class="sd">            the halo.</span>
-<a id="__codelineno-0-568" name="__codelineno-0-568"></a><span class="sd">        color_lookup (str): Strategy for mapping colors to annotations.</span>
+<a id="__codelineno-0-568" name="__codelineno-0-568"></a><span class="sd">        color_lookup (ColorLookup): Strategy for mapping colors to annotations.</span>
 <a id="__codelineno-0-569" name="__codelineno-0-569"></a><span class="sd">            Options are `INDEX`, `CLASS`, `TRACK`.</span>
 <a id="__codelineno-0-570" name="__codelineno-0-570"></a><span class="sd">    &quot;&quot;&quot;</span>
 <a id="__codelineno-0-571" name="__codelineno-0-571"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">color</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Color</span><span class="p">,</span> <span class="n">ColorPalette</span><span class="p">]</span> <span class="o">=</span> <span class="n">color</span>
@@ -10166,7 +10166,7 @@ supervision-annotator-examples/halo-annotator-example-purple.png" /></p>
 <a id="__codelineno-0-1961" name="__codelineno-0-1961"></a><span class="sd">                annotating detections.</span>
 <a id="__codelineno-0-1962" name="__codelineno-0-1962"></a><span class="sd">            border_color (Color): The color of the border lines.</span>
 <a id="__codelineno-0-1963" name="__codelineno-0-1963"></a><span class="sd">            position (Position): The anchor position of drawing the percentage bar.</span>
-<a id="__codelineno-0-1964" name="__codelineno-0-1964"></a><span class="sd">            color_lookup (str): Strategy for mapping colors to annotations.</span>
+<a id="__codelineno-0-1964" name="__codelineno-0-1964"></a><span class="sd">            color_lookup (ColorLookup): Strategy for mapping colors to annotations.</span>
 <a id="__codelineno-0-1965" name="__codelineno-0-1965"></a><span class="sd">                Options are `INDEX`, `CLASS`, `TRACK`.</span>
 <a id="__codelineno-0-1966" name="__codelineno-0-1966"></a><span class="sd">            border_thickness (int): The thickness of the border lines.</span>
 <a id="__codelineno-0-1967" name="__codelineno-0-1967"></a><span class="sd">        &quot;&quot;&quot;</span>
@@ -10432,7 +10432,7 @@ annotating detections.</p>
           <tr class="doc-section-item">
             <td><code>color_lookup</code></td>
             <td>
-                  <code>str</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.annotators.utils.ColorLookup" href="#supervision.annotators.utils.ColorLookup">ColorLookup</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -10511,7 +10511,7 @@ Options are <code>INDEX</code>, <code>CLASS</code>, <code>TRACK</code>.</p>
 <a id="__codelineno-0-1961" name="__codelineno-0-1961"></a><span class="sd">            annotating detections.</span>
 <a id="__codelineno-0-1962" name="__codelineno-0-1962"></a><span class="sd">        border_color (Color): The color of the border lines.</span>
 <a id="__codelineno-0-1963" name="__codelineno-0-1963"></a><span class="sd">        position (Position): The anchor position of drawing the percentage bar.</span>
-<a id="__codelineno-0-1964" name="__codelineno-0-1964"></a><span class="sd">        color_lookup (str): Strategy for mapping colors to annotations.</span>
+<a id="__codelineno-0-1964" name="__codelineno-0-1964"></a><span class="sd">        color_lookup (ColorLookup): Strategy for mapping colors to annotations.</span>
 <a id="__codelineno-0-1965" name="__codelineno-0-1965"></a><span class="sd">            Options are `INDEX`, `CLASS`, `TRACK`.</span>
 <a id="__codelineno-0-1966" name="__codelineno-0-1966"></a><span class="sd">        border_thickness (int): The thickness of the border lines.</span>
 <a id="__codelineno-0-1967" name="__codelineno-0-1967"></a><span class="sd">    &quot;&quot;&quot;</span>
@@ -11634,7 +11634,7 @@ supervision-annotator-examples/heat-map-annotator-example-purple.png" /></p>
 <a id="__codelineno-0-296" name="__codelineno-0-296"></a><span class="sd">            color (Union[Color, ColorPalette]): The color or color palette to use for</span>
 <a id="__codelineno-0-297" name="__codelineno-0-297"></a><span class="sd">                annotating detections.</span>
 <a id="__codelineno-0-298" name="__codelineno-0-298"></a><span class="sd">            opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.</span>
-<a id="__codelineno-0-299" name="__codelineno-0-299"></a><span class="sd">            color_lookup (str): Strategy for mapping colors to annotations.</span>
+<a id="__codelineno-0-299" name="__codelineno-0-299"></a><span class="sd">            color_lookup (ColorLookup): Strategy for mapping colors to annotations.</span>
 <a id="__codelineno-0-300" name="__codelineno-0-300"></a><span class="sd">                Options are `INDEX`, `CLASS`, `TRACK`.</span>
 <a id="__codelineno-0-301" name="__codelineno-0-301"></a><span class="sd">        &quot;&quot;&quot;</span>
 <a id="__codelineno-0-302" name="__codelineno-0-302"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">color</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Color</span><span class="p">,</span> <span class="n">ColorPalette</span><span class="p">]</span> <span class="o">=</span> <span class="n">color</span>
@@ -11772,7 +11772,7 @@ annotating detections.</p>
           <tr class="doc-section-item">
             <td><code>color_lookup</code></td>
             <td>
-                  <code>str</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.annotators.utils.ColorLookup" href="#supervision.annotators.utils.ColorLookup">ColorLookup</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -11816,7 +11816,7 @@ Options are <code>INDEX</code>, <code>CLASS</code>, <code>TRACK</code>.</p>
 <a id="__codelineno-0-296" name="__codelineno-0-296"></a><span class="sd">        color (Union[Color, ColorPalette]): The color or color palette to use for</span>
 <a id="__codelineno-0-297" name="__codelineno-0-297"></a><span class="sd">            annotating detections.</span>
 <a id="__codelineno-0-298" name="__codelineno-0-298"></a><span class="sd">        opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.</span>
-<a id="__codelineno-0-299" name="__codelineno-0-299"></a><span class="sd">        color_lookup (str): Strategy for mapping colors to annotations.</span>
+<a id="__codelineno-0-299" name="__codelineno-0-299"></a><span class="sd">        color_lookup (ColorLookup): Strategy for mapping colors to annotations.</span>
 <a id="__codelineno-0-300" name="__codelineno-0-300"></a><span class="sd">            Options are `INDEX`, `CLASS`, `TRACK`.</span>
 <a id="__codelineno-0-301" name="__codelineno-0-301"></a><span class="sd">    &quot;&quot;&quot;</span>
 <a id="__codelineno-0-302" name="__codelineno-0-302"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">color</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Color</span><span class="p">,</span> <span class="n">ColorPalette</span><span class="p">]</span> <span class="o">=</span> <span class="n">color</span>
@@ -12206,7 +12206,7 @@ supervision-annotator-examples/mask-annotator-example-purple.png" /></p>
 <a id="__codelineno-0-385" name="__codelineno-0-385"></a><span class="sd">            color (Union[Color, ColorPalette]): The color or color palette to use for</span>
 <a id="__codelineno-0-386" name="__codelineno-0-386"></a><span class="sd">                annotating detections.</span>
 <a id="__codelineno-0-387" name="__codelineno-0-387"></a><span class="sd">            thickness (int): Thickness of the polygon lines.</span>
-<a id="__codelineno-0-388" name="__codelineno-0-388"></a><span class="sd">            color_lookup (str): Strategy for mapping colors to annotations.</span>
+<a id="__codelineno-0-388" name="__codelineno-0-388"></a><span class="sd">            color_lookup (ColorLookup): Strategy for mapping colors to annotations.</span>
 <a id="__codelineno-0-389" name="__codelineno-0-389"></a><span class="sd">                Options are `INDEX`, `CLASS`, `TRACK`.</span>
 <a id="__codelineno-0-390" name="__codelineno-0-390"></a><span class="sd">        &quot;&quot;&quot;</span>
 <a id="__codelineno-0-391" name="__codelineno-0-391"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">color</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Color</span><span class="p">,</span> <span class="n">ColorPalette</span><span class="p">]</span> <span class="o">=</span> <span class="n">color</span>
@@ -12345,7 +12345,7 @@ annotating detections.</p>
           <tr class="doc-section-item">
             <td><code>color_lookup</code></td>
             <td>
-                  <code>str</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.annotators.utils.ColorLookup" href="#supervision.annotators.utils.ColorLookup">ColorLookup</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -12389,7 +12389,7 @@ Options are <code>INDEX</code>, <code>CLASS</code>, <code>TRACK</code>.</p>
 <a id="__codelineno-0-385" name="__codelineno-0-385"></a><span class="sd">        color (Union[Color, ColorPalette]): The color or color palette to use for</span>
 <a id="__codelineno-0-386" name="__codelineno-0-386"></a><span class="sd">            annotating detections.</span>
 <a id="__codelineno-0-387" name="__codelineno-0-387"></a><span class="sd">        thickness (int): Thickness of the polygon lines.</span>
-<a id="__codelineno-0-388" name="__codelineno-0-388"></a><span class="sd">        color_lookup (str): Strategy for mapping colors to annotations.</span>
+<a id="__codelineno-0-388" name="__codelineno-0-388"></a><span class="sd">        color_lookup (ColorLookup): Strategy for mapping colors to annotations.</span>
 <a id="__codelineno-0-389" name="__codelineno-0-389"></a><span class="sd">            Options are `INDEX`, `CLASS`, `TRACK`.</span>
 <a id="__codelineno-0-390" name="__codelineno-0-390"></a><span class="sd">    &quot;&quot;&quot;</span>
 <a id="__codelineno-0-391" name="__codelineno-0-391"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">color</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Color</span><span class="p">,</span> <span class="n">ColorPalette</span><span class="p">]</span> <span class="o">=</span> <span class="n">color</span>
@@ -12891,7 +12891,7 @@ supervision-annotator-examples/polygon-annotator-example-purple.png" /></p>
 <a id="__codelineno-0-1029" name="__codelineno-0-1029"></a><span class="sd">            text_padding (int): Padding around the text within its background box.</span>
 <a id="__codelineno-0-1030" name="__codelineno-0-1030"></a><span class="sd">            text_position (Position): Position of the text relative to the detection.</span>
 <a id="__codelineno-0-1031" name="__codelineno-0-1031"></a><span class="sd">                Possible values are defined in the `Position` enum.</span>
-<a id="__codelineno-0-1032" name="__codelineno-0-1032"></a><span class="sd">            color_lookup (str): Strategy for mapping colors to annotations.</span>
+<a id="__codelineno-0-1032" name="__codelineno-0-1032"></a><span class="sd">            color_lookup (ColorLookup): Strategy for mapping colors to annotations.</span>
 <a id="__codelineno-0-1033" name="__codelineno-0-1033"></a><span class="sd">                Options are `INDEX`, `CLASS`, `TRACK`.</span>
 <a id="__codelineno-0-1034" name="__codelineno-0-1034"></a><span class="sd">            border_radius (int): The radius to apply round edges. If the selected</span>
 <a id="__codelineno-0-1035" name="__codelineno-0-1035"></a><span class="sd">                value is higher than the lower dimension, width or height, is clipped.</span>
@@ -13189,7 +13189,7 @@ Possible values are defined in the <code>Position</code> enum.</p>
           <tr class="doc-section-item">
             <td><code>color_lookup</code></td>
             <td>
-                  <code>str</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.annotators.utils.ColorLookup" href="#supervision.annotators.utils.ColorLookup">ColorLookup</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -13275,7 +13275,7 @@ value is higher than the lower dimension, width or height, is clipped.</p>
 <a id="__codelineno-0-1029" name="__codelineno-0-1029"></a><span class="sd">        text_padding (int): Padding around the text within its background box.</span>
 <a id="__codelineno-0-1030" name="__codelineno-0-1030"></a><span class="sd">        text_position (Position): Position of the text relative to the detection.</span>
 <a id="__codelineno-0-1031" name="__codelineno-0-1031"></a><span class="sd">            Possible values are defined in the `Position` enum.</span>
-<a id="__codelineno-0-1032" name="__codelineno-0-1032"></a><span class="sd">        color_lookup (str): Strategy for mapping colors to annotations.</span>
+<a id="__codelineno-0-1032" name="__codelineno-0-1032"></a><span class="sd">        color_lookup (ColorLookup): Strategy for mapping colors to annotations.</span>
 <a id="__codelineno-0-1033" name="__codelineno-0-1033"></a><span class="sd">            Options are `INDEX`, `CLASS`, `TRACK`.</span>
 <a id="__codelineno-0-1034" name="__codelineno-0-1034"></a><span class="sd">        border_radius (int): The radius to apply round edges. If the selected</span>
 <a id="__codelineno-0-1035" name="__codelineno-0-1035"></a><span class="sd">            value is higher than the lower dimension, width or height, is clipped.</span>
@@ -15656,7 +15656,7 @@ tracking into your inference pipeline.</p>
 <a id="__codelineno-0-1457" name="__codelineno-0-1457"></a><span class="sd">            trace_length (int): The maximum length of the trace in terms of historical</span>
 <a id="__codelineno-0-1458" name="__codelineno-0-1458"></a><span class="sd">                points. Defaults to `30`.</span>
 <a id="__codelineno-0-1459" name="__codelineno-0-1459"></a><span class="sd">            thickness (int): The thickness of the trace lines. Defaults to `2`.</span>
-<a id="__codelineno-0-1460" name="__codelineno-0-1460"></a><span class="sd">            color_lookup (str): Strategy for mapping colors to annotations.</span>
+<a id="__codelineno-0-1460" name="__codelineno-0-1460"></a><span class="sd">            color_lookup (ColorLookup): Strategy for mapping colors to annotations.</span>
 <a id="__codelineno-0-1461" name="__codelineno-0-1461"></a><span class="sd">                Options are `INDEX`, `CLASS`, `TRACK`.</span>
 <a id="__codelineno-0-1462" name="__codelineno-0-1462"></a><span class="sd">        &quot;&quot;&quot;</span>
 <a id="__codelineno-0-1463" name="__codelineno-0-1463"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">color</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Color</span><span class="p">,</span> <span class="n">ColorPalette</span><span class="p">]</span> <span class="o">=</span> <span class="n">color</span>
@@ -15836,7 +15836,7 @@ points. Defaults to <code>30</code>.</p>
           <tr class="doc-section-item">
             <td><code>color_lookup</code></td>
             <td>
-                  <code>str</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.annotators.utils.ColorLookup" href="#supervision.annotators.utils.ColorLookup">ColorLookup</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -15893,7 +15893,7 @@ Options are <code>INDEX</code>, <code>CLASS</code>, <code>TRACK</code>.</p>
 <a id="__codelineno-0-1457" name="__codelineno-0-1457"></a><span class="sd">        trace_length (int): The maximum length of the trace in terms of historical</span>
 <a id="__codelineno-0-1458" name="__codelineno-0-1458"></a><span class="sd">            points. Defaults to `30`.</span>
 <a id="__codelineno-0-1459" name="__codelineno-0-1459"></a><span class="sd">        thickness (int): The thickness of the trace lines. Defaults to `2`.</span>
-<a id="__codelineno-0-1460" name="__codelineno-0-1460"></a><span class="sd">        color_lookup (str): Strategy for mapping colors to annotations.</span>
+<a id="__codelineno-0-1460" name="__codelineno-0-1460"></a><span class="sd">        color_lookup (ColorLookup): Strategy for mapping colors to annotations.</span>
 <a id="__codelineno-0-1461" name="__codelineno-0-1461"></a><span class="sd">            Options are `INDEX`, `CLASS`, `TRACK`.</span>
 <a id="__codelineno-0-1462" name="__codelineno-0-1462"></a><span class="sd">    &quot;&quot;&quot;</span>
 <a id="__codelineno-0-1463" name="__codelineno-0-1463"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">color</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Color</span><span class="p">,</span> <span class="n">ColorPalette</span><span class="p">]</span> <span class="o">=</span> <span class="n">color</span>
