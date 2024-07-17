@@ -1152,7 +1152,7 @@ class LabelAnnotator(BaseAnnotator):
                 org=(text_x, text_y),
                 fontFace=font,
                 fontScale=self.text_scale,
-                color=self.text_color.as_rgb(),
+                color=self.text_color.as_bgr(),
                 thickness=self.text_thickness,
                 lineType=cv2.LINE_AA,
             )
