@@ -9,20 +9,20 @@ visualize, and augment datasets in Supervision.
 
 ## Download Dataset
 
-In this tutorial, we will use a dataset from 
-[Roboflow Universe](https://universe.roboflow.com/), a public repository of 
-thousands of computer vision datasets. If you already have your dataset in 
-[COCO](https://roboflow.com/formats/coco-json), 
-[YOLO](https://roboflow.com/formats/yolov8-pytorch-txt), 
-or [Pascal VOC](https://roboflow.com/formats/pascal-voc-xml) format, you can skip this 
+In this tutorial, we will use a dataset from
+[Roboflow Universe](https://universe.roboflow.com/), a public repository of
+thousands of computer vision datasets. If you already have your dataset in
+[COCO](https://roboflow.com/formats/coco-json),
+[YOLO](https://roboflow.com/formats/yolov8-pytorch-txt),
+or [Pascal VOC](https://roboflow.com/formats/pascal-voc-xml) format, you can skip this
 section.
 
 ```bash
 pip install roboflow
 ```
 
-Next, log into your Roboflow account and download the dataset of your choice in the 
-COCO, YOLO, or Pascal VOC format. You can customize the following code snippet with 
+Next, log into your Roboflow account and download the dataset of your choice in the
+COCO, YOLO, or Pascal VOC format. You can customize the following code snippet with
 your workspace ID, project ID, and version number.
 
 === "COCO"
@@ -31,7 +31,7 @@ your workspace ID, project ID, and version number.
     import roboflow
 
     roboflow.login()
-    
+
     rf = roboflow.Roboflow()
     project = rf.workspace(<WORKSPACE_ID>).project(<PROJECT_ID>)
     dataset = project.version(<PROJECT_VERSION>).download("coco")
@@ -43,7 +43,7 @@ your workspace ID, project ID, and version number.
     import roboflow
 
     roboflow.login()
-    
+
     rf = roboflow.Roboflow()
     project = rf.workspace(<WORKSPACE_ID>).project(<PROJECT_ID>)
     dataset = project.version(<PROJECT_VERSION>).download("yolov8")
@@ -55,7 +55,7 @@ your workspace ID, project ID, and version number.
     import roboflow
 
     roboflow.login()
-    
+
     rf = roboflow.Roboflow()
     project = rf.workspace(<WORKSPACE_ID>).project(<PROJECT_ID>)
     dataset = project.version(<PROJECT_VERSION>).download("voc")
@@ -63,9 +63,9 @@ your workspace ID, project ID, and version number.
 
 ## Load Dataset
 
-The Supervision library provides convenient functions to load datasets in various 
-formats. If your dataset is already split into train, test, and valid subsets, you can 
-load each of those as separate [`sv.DetectionDataset`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset) 
+The Supervision library provides convenient functions to load datasets in various
+formats. If your dataset is already split into train, test, and valid subsets, you can
+load each of those as separate [`sv.DetectionDataset`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset)
 instances.
 
 === "COCO"
@@ -74,7 +74,7 @@ instances.
 
     ```python
     import supervision as sv
-    
+
     ds_train = sv.DetectionDataset.from_coco(
         images_directory_path=f"{dataset.location}/train",
         annotations_path=f"{dataset.location}/train/_annotations.coco.json",
@@ -90,7 +90,7 @@ instances.
 
     ds_train.classes
     # ['person', 'bicycle', 'car', ...]
-    
+
     len(ds_train), len(ds_valid), len(ds_test)
     # 800, 100, 100
     ```
@@ -120,7 +120,7 @@ instances.
 
     ds_train.classes
     # ['person', 'bicycle', 'car', ...]
-    
+
     len(ds_train), len(ds_valid), len(ds_test)
     # 800, 100, 100
     ```
@@ -147,16 +147,16 @@ instances.
 
     ds_train.classes
     # ['person', 'bicycle', 'car', ...]
-    
+
     len(ds_train), len(ds_valid), len(ds_test)
     # 800, 100, 100
     ```
 
 ## Split Dataset
 
-If your dataset is not already split into train, test, and valid subsets, you can 
-easily do so using the [`sv.DetectionDataset.split`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.split) 
-method. Let's assume we have a DetectionDataset named ds containing 1000 images. We 
+If your dataset is not already split into train, test, and valid subsets, you can
+easily do so using the [`sv.DetectionDataset.split`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.split)
+method. Let's assume we have a DetectionDataset named ds containing 1000 images. We
 can split it as follows, ensuring a random shuffle of the data.
 
 
@@ -179,7 +179,7 @@ len(ds_train), len(ds_valid), len(ds_test)
 
 There are two ways to loop over a `sv.DetectionDataset`:
 
-- using a direct [for loop](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.__iter__) 
+- using a direct [for loop](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.__iter__)
 called on the `sv.DetectionDataset` instance
 - loading `sv.DetectionDataset` entries [by index](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.__getitem__).
 
@@ -191,7 +191,7 @@ ds = sv.DetectionDataset(...)
 # Option 1
 for image_path, image, annotations in ds:
     ... # Process each image and its annotations
-    
+
 # Option 2
 for idx in range(len(ds)):
     image_path, image, annotations = ds[idx]
@@ -200,12 +200,12 @@ for idx in range(len(ds)):
 
 ## Visualize Dataset
 
-The Supervision library provides tools for easily visualizing your detection dataset. 
-You can create a grid of annotated images to quickly inspect your data and labels. 
-First, initialize the [`sv.BoxAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.BoxAnnotator) 
-and [`sv.LabelAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.LabelAnnotator). 
-Then, iterate through a subset of the dataset (e.g., the first 25 images), drawing 
-bounding boxes and class labels on each image. Finally, combine the annotated images 
+The Supervision library provides tools for easily visualizing your detection dataset.
+You can create a grid of annotated images to quickly inspect your data and labels.
+First, initialize the [`sv.BoxAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.BoxAnnotator)
+and [`sv.LabelAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.LabelAnnotator).
+Then, iterate through a subset of the dataset (e.g., the first 25 images), drawing
+bounding boxes and class labels on each image. Finally, combine the annotated images
 into a grid for display.
 
 ```python
