@@ -70,9 +70,6 @@ class STrack(BaseTrack):
             if self.minimum_consecutive_frames == 1:
                 self.external_track_id = self.next_external_id()
 
-        # if self.minimum_consecutive_frames == 1:
-        #     self.external_track_id = self.next_external_id()
-
         self.frame_id = frame_id
         self.start_frame = frame_id
 
