@@ -353,16 +353,14 @@ class ColorPalette:
         """  # noqa: E501 // docs
         mpl_palette = plt.get_cmap(palette_name, color_count)
 
-        if hasattr(mpl_palette, 'colors'):
+        if hasattr(mpl_palette, "colors"):
             colors = mpl_palette.colors
         else:
             colors = [mpl_palette(i / (color_count - 1)) for i in range(color_count)]
 
-        return cls([
-            Color(int(r * 255), int(g * 255), int(b * 255))
-            for r, g, b, _
-            in colors
-        ])
+        return cls(
+            [Color(int(r * 255), int(g * 255), int(b * 255)) for r, g, b, _ in colors]
+        )
 
     def by_idx(self, idx: int) -> Color:
         """
