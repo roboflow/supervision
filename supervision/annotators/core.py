@@ -42,7 +42,7 @@ class BoxAnnotator(BaseAnnotator):
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating detections.
             thickness (int): Thickness of the bounding box lines.
-            color_lookup (str): Strategy for mapping colors to annotations.
+            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
@@ -127,7 +127,7 @@ class BoundingBoxAnnotator(BaseAnnotator):
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating detections.
             thickness (int): Thickness of the bounding box lines.
-            color_lookup (str): Strategy for mapping colors to annotations.
+            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
@@ -208,7 +208,7 @@ class OrientedBoxAnnotator(BaseAnnotator):
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating detections.
             thickness (int): Thickness of the bounding box lines.
-            color_lookup (str): Strategy for mapping colors to annotations.
+            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
@@ -296,7 +296,7 @@ class MaskAnnotator(BaseAnnotator):
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating detections.
             opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.
-            color_lookup (str): Strategy for mapping colors to annotations.
+            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
@@ -385,7 +385,7 @@ class PolygonAnnotator(BaseAnnotator):
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating detections.
             thickness (int): Thickness of the polygon lines.
-            color_lookup (str): Strategy for mapping colors to annotations.
+            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
@@ -471,7 +471,7 @@ class ColorAnnotator(BaseAnnotator):
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating detections.
             opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.
-            color_lookup (str): Strategy for mapping colors to annotations.
+            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
@@ -565,7 +565,7 @@ class HaloAnnotator(BaseAnnotator):
             opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.
             kernel_size (int): The size of the average pooling kernel used for creating
                 the halo.
-            color_lookup (str): Strategy for mapping colors to annotations.
+            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
@@ -663,7 +663,7 @@ class EllipseAnnotator(BaseAnnotator):
             thickness (int): Thickness of the ellipse lines.
             start_angle (int): Starting angle of the ellipse.
             end_angle (int): Ending angle of the ellipse.
-            color_lookup (str): Strategy for mapping colors to annotations.
+            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
@@ -755,7 +755,7 @@ class BoxCornerAnnotator(BaseAnnotator):
                 annotating detections.
             thickness (int): Thickness of the corner lines.
             corner_length (int): Length of each corner line.
-            color_lookup (str): Strategy for mapping colors to annotations.
+            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
@@ -843,7 +843,7 @@ class CircleAnnotator(BaseAnnotator):
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating detections.
             thickness (int): Thickness of the circle line.
-            color_lookup (str): Strategy for mapping colors to annotations.
+            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
 
@@ -1029,7 +1029,7 @@ class LabelAnnotator(BaseAnnotator):
             text_padding (int): Padding around the text within its background box.
             text_position (Position): Position of the text relative to the detection.
                 Possible values are defined in the `Position` enum.
-            color_lookup (str): Strategy for mapping colors to annotations.
+            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
             border_radius (int): The radius to apply round edges. If the selected
                 value is higher than the lower dimension, width or height, is clipped.
@@ -1457,7 +1457,7 @@ class TraceAnnotator(BaseAnnotator):
             trace_length (int): The maximum length of the trace in terms of historical
                 points. Defaults to `30`.
             thickness (int): The thickness of the trace lines. Defaults to `2`.
-            color_lookup (str): Strategy for mapping colors to annotations.
+            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
@@ -1824,7 +1824,7 @@ class RoundBoxAnnotator(BaseAnnotator):
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating detections.
             thickness (int): Thickness of the bounding box lines.
-            color_lookup (str): Strategy for mapping colors to annotations.
+            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
             roundness (float): Percent of roundness for edges of bounding box.
                 Value must be float 0 < roundness <= 1.0
@@ -1961,7 +1961,7 @@ class PercentageBarAnnotator(BaseAnnotator):
                 annotating detections.
             border_color (Color): The color of the border lines.
             position (Position): The anchor position of drawing the percentage bar.
-            color_lookup (str): Strategy for mapping colors to annotations.
+            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
             border_thickness (int): The thickness of the border lines.
         """
