@@ -16355,7 +16355,7 @@ supervision-annotator-examples/trace-annotator-example-purple.png" /></p>
 <a id="__codelineno-0-2124" name="__codelineno-0-2124"></a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
 <a id="__codelineno-0-2125" name="__codelineno-0-2125"></a>        <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-2126" name="__codelineno-0-2126"></a>        <span class="n">position</span><span class="p">:</span> <span class="n">Position</span> <span class="o">=</span> <span class="n">Position</span><span class="o">.</span><span class="n">TOP_CENTER</span><span class="p">,</span>
-<a id="__codelineno-0-2127" name="__codelineno-0-2127"></a>        <span class="n">scale_factor</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+<a id="__codelineno-0-2127" name="__codelineno-0-2127"></a>        <span class="n">scale_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span>
 <a id="__codelineno-0-2128" name="__codelineno-0-2128"></a>        <span class="n">border_color</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Color</span><span class="p">,</span> <span class="n">ColorPalette</span><span class="p">]</span> <span class="o">=</span> <span class="n">ColorPalette</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span>
 <a id="__codelineno-0-2129" name="__codelineno-0-2129"></a>        <span class="n">border_thickness</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
 <a id="__codelineno-0-2130" name="__codelineno-0-2130"></a>        <span class="n">border_color_lookup</span><span class="p">:</span> <span class="n">ColorLookup</span> <span class="o">=</span> <span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">,</span>
@@ -16364,7 +16364,7 @@ supervision-annotator-examples/trace-annotator-example-purple.png" /></p>
 <a id="__codelineno-0-2133" name="__codelineno-0-2133"></a><span class="sd">        Args:</span>
 <a id="__codelineno-0-2134" name="__codelineno-0-2134"></a><span class="sd">            position (Position): The anchor position for placing the cropped and scaled</span>
 <a id="__codelineno-0-2135" name="__codelineno-0-2135"></a><span class="sd">                part of the detection in the scene.</span>
-<a id="__codelineno-0-2136" name="__codelineno-0-2136"></a><span class="sd">            scale_factor (int): The factor by which to scale the cropped image part. A</span>
+<a id="__codelineno-0-2136" name="__codelineno-0-2136"></a><span class="sd">            scale_factor (float): The factor by which to scale the cropped image part. A</span>
 <a id="__codelineno-0-2137" name="__codelineno-0-2137"></a><span class="sd">                factor of 2, for example, would double the size of the cropped area,</span>
 <a id="__codelineno-0-2138" name="__codelineno-0-2138"></a><span class="sd">                allowing for a closer view of the detection.</span>
 <a id="__codelineno-0-2139" name="__codelineno-0-2139"></a><span class="sd">            border_color (Union[Color, ColorPalette]): The color or color palette to</span>
@@ -16374,7 +16374,7 @@ supervision-annotator-examples/trace-annotator-example-purple.png" /></p>
 <a id="__codelineno-0-2143" name="__codelineno-0-2143"></a><span class="sd">                annotations. Options are `INDEX`, `CLASS`, `TRACK`.</span>
 <a id="__codelineno-0-2144" name="__codelineno-0-2144"></a><span class="sd">        &quot;&quot;&quot;</span>
 <a id="__codelineno-0-2145" name="__codelineno-0-2145"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">position</span><span class="p">:</span> <span class="n">Position</span> <span class="o">=</span> <span class="n">position</span>
-<a id="__codelineno-0-2146" name="__codelineno-0-2146"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">scale_factor</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">scale_factor</span>
+<a id="__codelineno-0-2146" name="__codelineno-0-2146"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">scale_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">scale_factor</span>
 <a id="__codelineno-0-2147" name="__codelineno-0-2147"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">border_color</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Color</span><span class="p">,</span> <span class="n">ColorPalette</span><span class="p">]</span> <span class="o">=</span> <span class="n">border_color</span>
 <a id="__codelineno-0-2148" name="__codelineno-0-2148"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">border_thickness</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">border_thickness</span>
 <a id="__codelineno-0-2149" name="__codelineno-0-2149"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">border_color_lookup</span><span class="p">:</span> <span class="n">ColorLookup</span> <span class="o">=</span> <span class="n">border_color_lookup</span>
@@ -16509,7 +16509,7 @@ supervision-annotator-examples/trace-annotator-example-purple.png" /></p>
 
 
 <h3 id="supervision.annotators.core.CropAnnotator.__init__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">position</span><span class="o">=</span><span class="n">Position</span><span class="o">.</span><span class="n">TOP_CENTER</span><span class="p">,</span> <span class="n">scale_factor</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">border_color</span><span class="o">=</span><span class="n">ColorPalette</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span> <span class="n">border_thickness</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">border_color_lookup</span><span class="o">=</span><span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">position</span><span class="o">=</span><span class="n">Position</span><span class="o">.</span><span class="n">TOP_CENTER</span><span class="p">,</span> <span class="n">scale_factor</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">border_color</span><span class="o">=</span><span class="n">ColorPalette</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span> <span class="n">border_thickness</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">border_color_lookup</span><span class="o">=</span><span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">)</span></code>
 
 <a href="#supervision.annotators.core.CropAnnotator.__init__" class="headerlink" title="Permanent link">&para;</a></h3>
 
@@ -16547,7 +16547,7 @@ part of the detection in the scene.</p>
           <tr class="doc-section-item">
             <td><code>scale_factor</code></td>
             <td>
-                  <code>int</code>
+                  <code>float</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -16557,7 +16557,7 @@ allowing for a closer view of the detection.</p>
               </div>
             </td>
             <td>
-                  <code>2</code>
+                  <code>2.0</code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -16637,7 +16637,7 @@ annotations. Options are <code>INDEX</code>, <code>CLASS</code>, <code>TRACK</co
 <span class="normal"><a href="#__codelineno-0-2149">2149</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-2124" name="__codelineno-0-2124"></a><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
 <a id="__codelineno-0-2125" name="__codelineno-0-2125"></a>    <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-2126" name="__codelineno-0-2126"></a>    <span class="n">position</span><span class="p">:</span> <span class="n">Position</span> <span class="o">=</span> <span class="n">Position</span><span class="o">.</span><span class="n">TOP_CENTER</span><span class="p">,</span>
-<a id="__codelineno-0-2127" name="__codelineno-0-2127"></a>    <span class="n">scale_factor</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+<a id="__codelineno-0-2127" name="__codelineno-0-2127"></a>    <span class="n">scale_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span>
 <a id="__codelineno-0-2128" name="__codelineno-0-2128"></a>    <span class="n">border_color</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Color</span><span class="p">,</span> <span class="n">ColorPalette</span><span class="p">]</span> <span class="o">=</span> <span class="n">ColorPalette</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span>
 <a id="__codelineno-0-2129" name="__codelineno-0-2129"></a>    <span class="n">border_thickness</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
 <a id="__codelineno-0-2130" name="__codelineno-0-2130"></a>    <span class="n">border_color_lookup</span><span class="p">:</span> <span class="n">ColorLookup</span> <span class="o">=</span> <span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">,</span>
@@ -16646,7 +16646,7 @@ annotations. Options are <code>INDEX</code>, <code>CLASS</code>, <code>TRACK</co
 <a id="__codelineno-0-2133" name="__codelineno-0-2133"></a><span class="sd">    Args:</span>
 <a id="__codelineno-0-2134" name="__codelineno-0-2134"></a><span class="sd">        position (Position): The anchor position for placing the cropped and scaled</span>
 <a id="__codelineno-0-2135" name="__codelineno-0-2135"></a><span class="sd">            part of the detection in the scene.</span>
-<a id="__codelineno-0-2136" name="__codelineno-0-2136"></a><span class="sd">        scale_factor (int): The factor by which to scale the cropped image part. A</span>
+<a id="__codelineno-0-2136" name="__codelineno-0-2136"></a><span class="sd">        scale_factor (float): The factor by which to scale the cropped image part. A</span>
 <a id="__codelineno-0-2137" name="__codelineno-0-2137"></a><span class="sd">            factor of 2, for example, would double the size of the cropped area,</span>
 <a id="__codelineno-0-2138" name="__codelineno-0-2138"></a><span class="sd">            allowing for a closer view of the detection.</span>
 <a id="__codelineno-0-2139" name="__codelineno-0-2139"></a><span class="sd">        border_color (Union[Color, ColorPalette]): The color or color palette to</span>
@@ -16656,7 +16656,7 @@ annotations. Options are <code>INDEX</code>, <code>CLASS</code>, <code>TRACK</co
 <a id="__codelineno-0-2143" name="__codelineno-0-2143"></a><span class="sd">            annotations. Options are `INDEX`, `CLASS`, `TRACK`.</span>
 <a id="__codelineno-0-2144" name="__codelineno-0-2144"></a><span class="sd">    &quot;&quot;&quot;</span>
 <a id="__codelineno-0-2145" name="__codelineno-0-2145"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">position</span><span class="p">:</span> <span class="n">Position</span> <span class="o">=</span> <span class="n">position</span>
-<a id="__codelineno-0-2146" name="__codelineno-0-2146"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">scale_factor</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">scale_factor</span>
+<a id="__codelineno-0-2146" name="__codelineno-0-2146"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">scale_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">scale_factor</span>
 <a id="__codelineno-0-2147" name="__codelineno-0-2147"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">border_color</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Color</span><span class="p">,</span> <span class="n">ColorPalette</span><span class="p">]</span> <span class="o">=</span> <span class="n">border_color</span>
 <a id="__codelineno-0-2148" name="__codelineno-0-2148"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">border_thickness</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">border_thickness</span>
 <a id="__codelineno-0-2149" name="__codelineno-0-2149"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">border_color_lookup</span><span class="p">:</span> <span class="n">ColorLookup</span> <span class="o">=</span> <span class="n">border_color_lookup</span>
