@@ -40,7 +40,10 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "^3.8"
-numpy = ">=1.21.2"
+numpy = [
+    { version = ">=1.21.2,<1.23.3", python = "<=3.10" },
+    { version = ">=1.23.3", python = ">3.10" },
+]
 scipy = [
     { version = "1.10.0", python = "<3.9" },
     { version = "^1.10.0", python = ">=3.9" },
