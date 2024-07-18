@@ -2124,7 +2124,7 @@ class CropAnnotator(BaseAnnotator):
     def __init__(
         self,
         position: Position = Position.TOP_CENTER,
-        scale_factor: int = 2,
+        scale_factor: float = 2.0,
         border_color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
         border_thickness: int = 2,
         border_color_lookup: ColorLookup = ColorLookup.CLASS,
@@ -2133,7 +2133,7 @@ class CropAnnotator(BaseAnnotator):
         Args:
             position (Position): The anchor position for placing the cropped and scaled
                 part of the detection in the scene.
-            scale_factor (int): The factor by which to scale the cropped image part. A
+            scale_factor (float): The factor by which to scale the cropped image part. A
                 factor of 2, for example, would double the size of the cropped area,
                 allowing for a closer view of the detection.
             border_color (Union[Color, ColorPalette]): The color or color palette to
@@ -2143,7 +2143,7 @@ class CropAnnotator(BaseAnnotator):
                 annotations. Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.position: Position = position
-        self.scale_factor: int = scale_factor
+        self.scale_factor: float = scale_factor
         self.border_color: Union[Color, ColorPalette] = border_color
         self.border_thickness: int = border_thickness
         self.border_color_lookup: ColorLookup = border_color_lookup
