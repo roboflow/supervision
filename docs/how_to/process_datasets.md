@@ -9,20 +9,20 @@ visualize, and augment datasets in Supervision.
 
 ## Download Dataset
 
-In this tutorial, we will use a dataset from 
-[Roboflow Universe](https://universe.roboflow.com/), a public repository of 
-thousands of computer vision datasets. If you already have your dataset in 
-[COCO](https://roboflow.com/formats/coco-json), 
-[YOLO](https://roboflow.com/formats/yolov8-pytorch-txt), 
-or [Pascal VOC](https://roboflow.com/formats/pascal-voc-xml) format, you can skip this 
+In this tutorial, we will use a dataset from
+[Roboflow Universe](https://universe.roboflow.com/), a public repository of
+thousands of computer vision datasets. If you already have your dataset in
+[COCO](https://roboflow.com/formats/coco-json),
+[YOLO](https://roboflow.com/formats/yolov8-pytorch-txt),
+or [Pascal VOC](https://roboflow.com/formats/pascal-voc-xml) format, you can skip this
 section.
 
 ```bash
 pip install roboflow
 ```
 
-Next, log into your Roboflow account and download the dataset of your choice in the 
-COCO, YOLO, or Pascal VOC format. You can customize the following code snippet with 
+Next, log into your Roboflow account and download the dataset of your choice in the
+COCO, YOLO, or Pascal VOC format. You can customize the following code snippet with
 your workspace ID, project ID, and version number.
 
 === "COCO"
@@ -31,7 +31,7 @@ your workspace ID, project ID, and version number.
     import roboflow
 
     roboflow.login()
-    
+
     rf = roboflow.Roboflow()
     project = rf.workspace('<WORKSPACE_ID>').project('<PROJECT_ID>')
     dataset = project.version('<PROJECT_VERSION>').download("coco")
@@ -43,7 +43,7 @@ your workspace ID, project ID, and version number.
     import roboflow
 
     roboflow.login()
-    
+
     rf = roboflow.Roboflow()
     project = rf.workspace('<WORKSPACE_ID>').project('<PROJECT_ID>')
     dataset = project.version('<PROJECT_VERSION>').download("yolov8")
@@ -55,7 +55,7 @@ your workspace ID, project ID, and version number.
     import roboflow
 
     roboflow.login()
-    
+
     rf = roboflow.Roboflow()
     project = rf.workspace('<WORKSPACE_ID>').project('<PROJECT_ID>')
     dataset = project.version('<PROJECT_VERSION>').download("voc")
@@ -63,9 +63,9 @@ your workspace ID, project ID, and version number.
 
 ## Load Dataset
 
-The Supervision library provides convenient functions to load datasets in various 
-formats. If your dataset is already split into train, test, and valid subsets, you can 
-load each of those as separate [`sv.DetectionDataset`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset) 
+The Supervision library provides convenient functions to load datasets in various
+formats. If your dataset is already split into train, test, and valid subsets, you can
+load each of those as separate [`sv.DetectionDataset`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset)
 instances.
 
 === "COCO"
@@ -74,7 +74,7 @@ instances.
 
     ```python
     import supervision as sv
-    
+
     ds_train = sv.DetectionDataset.from_coco(
         images_directory_path=f'{dataset.location}/train',
         annotations_path=f'{dataset.location}/train/_annotations.coco.json',
@@ -90,7 +90,7 @@ instances.
 
     ds_train.classes
     # ['person', 'bicycle', 'car', ...]
-    
+
     len(ds_train), len(ds_valid), len(ds_test)
     # 800, 100, 100
     ```
@@ -120,7 +120,7 @@ instances.
 
     ds_train.classes
     # ['person', 'bicycle', 'car', ...]
-    
+
     len(ds_train), len(ds_valid), len(ds_test)
     # 800, 100, 100
     ```
@@ -147,15 +147,15 @@ instances.
 
     ds_train.classes
     # ['person', 'bicycle', 'car', ...]
-    
+
     len(ds_train), len(ds_valid), len(ds_test)
     # 800, 100, 100
     ```
 
 ## Split Dataset
 
-If your dataset is not already split into train, test, and valid subsets, you can 
-easily do so using the [`sv.DetectionDataset.split`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.split) 
+If your dataset is not already split into train, test, and valid subsets, you can
+easily do so using the [`sv.DetectionDataset.split`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.split)
 method. We can split it as follows, ensuring a random shuffle of the data.
 
 ```python
@@ -175,15 +175,15 @@ len(ds_train), len(ds_valid), len(ds_test)
 
 ## Merge Dataset
 
-If you have multiple datasets that you would like to merge, you can do so using the 
-[`sv.DetectionDataset.merge`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.merge) 
+If you have multiple datasets that you would like to merge, you can do so using the
+[`sv.DetectionDataset.merge`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.merge)
 method.
 
 === "COCO"
 
     ```{ .py hl_lines="22-28" }
     import supervision as sv
-    
+
     ds_train = sv.DetectionDataset.from_coco(
         images_directory_path=f'{dataset.location}/train',
         annotations_path=f'{dataset.location}/train/_annotations.coco.json',
@@ -199,12 +199,12 @@ method.
 
     ds_train.classes
     # ['person', 'bicycle', 'car', ...]
-    
+
     len(ds_train), len(ds_valid), len(ds_test)
     # 800, 100, 100
 
     ds = sv.DetectionDataset.merge([ds_train, ds_valid, ds_test])
-    
+
     ds.classes
     # ['person', 'bicycle', 'car', ...]
 
@@ -235,12 +235,12 @@ method.
 
     ds_train.classes
     # ['person', 'bicycle', 'car', ...]
-    
+
     len(ds_train), len(ds_valid), len(ds_test)
     # 800, 100, 100
 
     ds = sv.DetectionDataset.merge([ds_train, ds_valid, ds_test])
-    
+
     ds.classes
     # ['person', 'bicycle', 'car', ...]
 
@@ -268,12 +268,12 @@ method.
 
     ds_train.classes
     # ['person', 'bicycle', 'car', ...]
-    
+
     len(ds_train), len(ds_valid), len(ds_test)
     # 800, 100, 100
 
     ds = sv.DetectionDataset.merge([ds_train, ds_valid, ds_test])
-    
+
     ds.classes
     # ['person', 'bicycle', 'car', ...]
 
@@ -283,9 +283,9 @@ method.
 
 ## Iterate over Dataset
 
-There are two ways to loop over a `sv.DetectionDataset`: using a direct 
-[for loop](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.__iter__) 
-called on the `sv.DetectionDataset` instance or loading `sv.DetectionDataset` entries 
+There are two ways to loop over a `sv.DetectionDataset`: using a direct
+[for loop](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.__iter__)
+called on the `sv.DetectionDataset` instance or loading `sv.DetectionDataset` entries
 [by index](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.__getitem__).
 
 ```python
@@ -296,7 +296,7 @@ ds = sv.DetectionDataset(...)
 # Option 1
 for image_path, image, annotations in ds:
     ... # Process each image and its annotations
-    
+
 # Option 2
 for idx in range(len(ds)):
     image_path, image, annotations = ds[idx]
@@ -305,12 +305,12 @@ for idx in range(len(ds)):
 
 ## Visualize Dataset
 
-The Supervision library provides tools for easily visualizing your detection dataset. 
-You can create a grid of annotated images to quickly inspect your data and labels. 
-First, initialize the [`sv.BoxAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.BoxAnnotator) 
-and [`sv.LabelAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.LabelAnnotator). 
-Then, iterate through a subset of the dataset (e.g., the first 25 images), drawing 
-bounding boxes and class labels on each image. Finally, combine the annotated images 
+The Supervision library provides tools for easily visualizing your detection dataset.
+You can create a grid of annotated images to quickly inspect your data and labels.
+First, initialize the [`sv.BoxAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.BoxAnnotator)
+and [`sv.LabelAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.LabelAnnotator).
+Then, iterate through a subset of the dataset (e.g., the first 25 images), drawing
+bounding boxes and class labels on each image. Finally, combine the annotated images
 into a grid for display.
 
 ```python
@@ -348,12 +348,12 @@ grid = sv.create_tiles(
 === "COCO"
 
     We can do so using the [`sv.DetectionDataset.as_coco`](https://supervision.roboflow.com/datasets/#supervision.dataset.core.DetectionDataset.as_coco) method to save annotations in [COCO](https://roboflow.com/formats/coco-json) format.
-    
+
     ```python
     import supervision as sv
-    
+
     ds = sv.DetectionDataset(...)
-    
+
     ds.as_coco(
         images_directory_path='<IMAGE_DIRECTORY_PATH>',
         annotations_path='<ANNOTATIONS_PATH>'
@@ -363,12 +363,12 @@ grid = sv.create_tiles(
 === "YOLO"
 
     We can do so using the [`sv.DetectionDataset.as_yolo`](https://supervision.roboflow.com/datasets/#supervision.dataset.core.DetectionDataset.as_yolo) method to save annotations in [YOLO](https://roboflow.com/formats/yolov8-pytorch-txt) format.
-    
+
     ```python
     import supervision as sv
-    
+
     ds = sv.DetectionDataset(...)
-    
+
     ds.as_yolo(
         images_directory_path='<IMAGE_DIRECTORY_PATH>',
         annotations_directory_path='<ANNOTATIONS_DIRECTORY_PATH>',
@@ -379,12 +379,12 @@ grid = sv.create_tiles(
 === "Pascal VOC"
 
     We can do so using the [`sv.DetectionDataset.as_pascal_voc`](https://supervision.roboflow.com/datasets/#supervision.dataset.core.DetectionDataset.as_pascal_voc) method to save annotations in [Pascal VOC](https://roboflow.com/formats/pascal-voc-xml) format.
-    
+
     ```python
     import supervision as sv
-    
+
     ds = sv.DetectionDataset(...)
-    
+
     ds.as_pascal_voc(
         images_directory_path='<IMAGE_DIRECTORY_PATH>',
         annotations_directory_path='<ANNOTATIONS_DIRECTORY_PATH>'
@@ -393,21 +393,21 @@ grid = sv.create_tiles(
 
 ## Augment Dataset
 
-In this section, we'll explore using Supervision in combination with Albumentations to 
-augment our dataset. Data augmentation is a common technique in computer vision to 
-increase the size and diversity of training datasets, leading to improved model 
+In this section, we'll explore using Supervision in combination with Albumentations to
+augment our dataset. Data augmentation is a common technique in computer vision to
+increase the size and diversity of training datasets, leading to improved model
 performance and generalization.
 
 ```bash
 pip install augmentation
 ```
 
-Albumentations provides a flexible and powerful API for image augmentation. The core of 
-the library is the [`Compose`](https://albumentations.ai/docs/api_reference/full_reference/?h=compose#albumentations.core.composition.Compose) 
-class, which allows you to chain multiple image transformations together. Each 
-transformation is defined using a dedicated class, such as 
-[`HorizontalFlip`](https://albumentations.ai/docs/api_reference/full_reference/?h=horizontalflip#albumentations.augmentations.geometric.transforms.HorizontalFlip), 
-[`RandomBrightnessContrast`](https://albumentations.ai/docs/api_reference/full_reference/?h=horizontalflip#albumentations.augmentations.transforms.RandomBrightnessContrast), 
+Albumentations provides a flexible and powerful API for image augmentation. The core of
+the library is the [`Compose`](https://albumentations.ai/docs/api_reference/full_reference/?h=compose#albumentations.core.composition.Compose)
+class, which allows you to chain multiple image transformations together. Each
+transformation is defined using a dedicated class, such as
+[`HorizontalFlip`](https://albumentations.ai/docs/api_reference/full_reference/?h=horizontalflip#albumentations.augmentations.geometric.transforms.HorizontalFlip),
+[`RandomBrightnessContrast`](https://albumentations.ai/docs/api_reference/full_reference/?h=horizontalflip#albumentations.augmentations.transforms.RandomBrightnessContrast),
 or [`Perspective`](https://albumentations.ai/docs/api_reference/full_reference/?h=horizontalflip#albumentations.augmentations.geometric.transforms.Perspective).
 
 ```python
@@ -426,7 +426,7 @@ augmentation = A.Compose(
 )
 ```
 
-The key is to set `format='pascal_voc'`, which corresponds to the 
+The key is to set `format='pascal_voc'`, which corresponds to the
 `[x_min, y_min, x_max, y_max]` bounding box format used in Supervision.
 
 ```python
