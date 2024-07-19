@@ -126,6 +126,11 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
+         <loc>https://supervision.roboflow.com/develop/how_to/process_datasets/</loc>
+         <lastmod>2024-07-19</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
          <loc>https://supervision.roboflow.com/develop/how_to/save_detections/</loc>
          <lastmod>2024-07-19</lastmod>
          <changefreq>daily</changefreq>
