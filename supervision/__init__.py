@@ -28,6 +28,7 @@ from supervision.annotators.core import (
     RoundBoxAnnotator,
     TraceAnnotator,
     TriangleAnnotator,
+    BackgroundColorAnnotator
 )
 from supervision.annotators.utils import ColorLookup
 from supervision.classification.core import Classifications
@@ -110,3 +111,5 @@ from supervision.utils.video import (
     get_video_frames_generator,
     process_video,
 )
+
+print('test!')
