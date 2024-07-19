@@ -2286,11 +2286,7 @@ class BackgroundColorAnnotator(BaseAnnotator):
         self.force_box = force_box
 
     @ensure_cv2_image_for_annotation
-    def annotate(
-        self,
-        scene: ImageType,
-        detections: Detections
-    ) -> ImageType:
+    def annotate(self, scene: ImageType, detections: Detections) -> ImageType:
         """
         Annotates the given scene with masks based on the provided detections.
 
@@ -2324,7 +2320,9 @@ class BackgroundColorAnnotator(BaseAnnotator):
 
         colored_mask = np.full_like(scene, self.color.as_bgr(), dtype=np.uint8)
 
-        cv2.addWeighted(scene, 1 - self.opacity, colored_mask, self.opacity, 0, dst=colored_mask)
+        cv2.addWeighted(
+            scene, 1 - self.opacity, colored_mask, self.opacity, 0, dst=colored_mask
+        )
 
         if detections.mask is None or self.force_box:
             for detection_idx in range(len(detections)):
@@ -2335,4 +2333,3 @@ class BackgroundColorAnnotator(BaseAnnotator):
                 colored_mask[mask] = scene[mask]
 
         return colored_mask
-    

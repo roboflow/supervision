@@ -7,6 +7,7 @@ except importlib_metadata.PackageNotFoundError:
     __version__ = "development"
 
 from supervision.annotators.core import (
+    BackgroundColorAnnotator,
     BlurAnnotator,
     BoundingBoxAnnotator,
     BoxAnnotator,
@@ -28,7 +29,6 @@ from supervision.annotators.core import (
     RoundBoxAnnotator,
     TraceAnnotator,
     TriangleAnnotator,
-    BackgroundColorAnnotator
 )
 from supervision.annotators.utils import ColorLookup
 from supervision.classification.core import Classifications
@@ -112,4 +112,4 @@ from supervision.utils.video import (
     process_video,
 )
 
-print('test!')
+print("test!")
