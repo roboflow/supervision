@@ -111,5 +111,3 @@ from supervision.utils.video import (
     get_video_frames_generator,
     process_video,
 )
-
-print("test!")
