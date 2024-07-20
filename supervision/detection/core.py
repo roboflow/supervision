@@ -483,11 +483,33 @@ class Detections:
             Class names values can be accessed using `detections["class_name"]`.
         """  # noqa: E501 // docs
 
-        class_ids = transformers_results["labels"].cpu().detach().numpy().astype(int)
         data = {}
-        if id2label is not None:
-            class_names = np.array([id2label[class_id] for class_id in class_ids])
-            data[CLASS_NAME_DATA_FIELD] = class_names
+
+        if transformers_results.__class__.__name__ == 'Tensor':
+
+            segmentation_array = transformers_results.cpu().numpy()
+
+            class_ids = np.unique(segmentation_array)
+  
+            masks = np.stack([(segmentation_array == class_id).astype(bool) for class_id in class_ids], axis=0)
+
+            if id2label is not None:
+                class_names = np.array([id2label[class_id] for class_id in class_ids])
+                data[CLASS_NAME_DATA_FIELD] = class_names
+
+            return cls(
+                xyxy=mask_to_xyxy(masks),
+                mask=masks,
+                class_id=class_ids,
+                data=data,
+            )
+
+        if "labels" in transformers_results:
+            class_ids = transformers_results["labels"].cpu().detach().numpy().astype(int)
+            if id2label is not None:
+                class_names = np.array([id2label[class_id] for class_id in class_ids])
+                data[CLASS_NAME_DATA_FIELD] = class_names
+        
         if "boxes" in transformers_results:
             return cls(
                 xyxy=transformers_results["boxes"].cpu().detach().numpy(),
