@@ -1023,7 +1023,8 @@ class LabelAnnotator(BaseAnnotator):
         Args:
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating the text background.
-            text_color (Union[Color, ColorPalette]): The color or color palette to use for the text.
+            text_color (Union[Color, ColorPalette]): The color or color palette to use 
+                for the text.
             text_scale (float): Font scale for the text.
             text_thickness (int): Thickness of the text characters.
             text_padding (int): Padding around the text within its background box.
