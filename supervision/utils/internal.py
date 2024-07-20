@@ -31,6 +31,16 @@ else:
     warnings.simplefilter("always", SupervisionWarnings)
 
 
+def warn_deprecated(message: str):
+    """
+    Issue a warning that a function is deprecated.
+
+    Args:
+        message (str): The message to display when the function is called.
+    """
+    warnings.warn(message, category=SupervisionWarnings, stacklevel=2)
+
+
 def deprecated_parameter(
     old_parameter: str,
     new_parameter: str,
@@ -82,15 +92,13 @@ def deprecated_parameter(
                 else:
                     function_name = func.__name__
 
-                warnings.warn(
+                warn_deprecated(
                     message=warning_message.format(
                         function_name=function_name,
                         old_parameter=old_parameter,
                         new_parameter=new_parameter,
                         **message_kwargs,
-                    ),
-                    category=SupervisionWarnings,
-                    stacklevel=2,
+                    )
                 )
 
                 kwargs[new_parameter] = map_function(kwargs.pop(old_parameter))
@@ -106,11 +114,7 @@ def deprecated(reason: str):
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            warnings.warn(
-                f"{func.__name__} is deprecated: {reason}",
-                category=SupervisionWarnings,
-                stacklevel=2,
-            )
+            warn_deprecated(f"{func.__name__} is deprecated: {reason}")
             return func(*args, **kwargs)
 
         return wrapper

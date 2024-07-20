@@ -135,7 +135,7 @@ You can load predictions from other computer vision frameworks and libraries usi
 
 ## Annotate Image with Detections
 
-Finally, we can annotate the image with the predictions. Since we are working with an object detection model, we will use the [`sv.BoundingBoxAnnotator`](/latest/annotators/#supervision.annotators.core.BoundingBoxAnnotator) and [`sv.LabelAnnotator`](/latest/annotators/#supervision.annotators.core.LabelAnnotator) classes.
+Finally, we can annotate the image with the predictions. Since we are working with an object detection model, we will use the [`sv.BoxAnnotator`](/latest/annotators/#supervision.annotators.core.BoxAnnotator) and [`sv.LabelAnnotator`](/latest/annotators/#supervision.annotators.core.LabelAnnotator) classes.
 
 === "Inference"
 
@@ -149,10 +149,10 @@ Finally, we can annotate the image with the predictions. Since we are working wi
     results = model.infer(image)[0]
     detections = sv.Detections.from_inference(results)
 
-    bounding_box_annotator = sv.BoundingBoxAnnotator()
+    box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
 
-    annotated_image = bounding_box_annotator.annotate(
+    annotated_image = box_annotator.annotate(
         scene=image, detections=detections)
     annotated_image = label_annotator.annotate(
         scene=annotated_image, detections=detections)
@@ -170,10 +170,10 @@ Finally, we can annotate the image with the predictions. Since we are working wi
     results = model(image)[0]
     detections = sv.Detections.from_ultralytics(results)
 
-    bounding_box_annotator = sv.BoundingBoxAnnotator()
+    box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
 
-    annotated_image = bounding_box_annotator.annotate(
+    annotated_image = box_annotator.annotate(
         scene=image, detections=detections)
     annotated_image = label_annotator.annotate(
         scene=annotated_image, detections=detections)
@@ -204,10 +204,10 @@ Finally, we can annotate the image with the predictions. Since we are working wi
         transformers_results=results,
         id2label=model.config.id2label)
 
-    bounding_box_annotator = sv.BoundingBoxAnnotator()
+    box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
 
-    annotated_image = bounding_box_annotator.annotate(
+    annotated_image = box_annotator.annotate(
         scene=image, detections=detections)
     annotated_image = label_annotator.annotate(
         scene=annotated_image, detections=detections)
@@ -233,7 +233,7 @@ override this behavior by passing a list of custom `labels` to the `annotate` me
     results = model.infer(image)[0]
     detections = sv.Detections.from_inference(results)
 
-    bounding_box_annotator = sv.BoundingBoxAnnotator()
+    box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
 
     labels = [
@@ -242,7 +242,7 @@ override this behavior by passing a list of custom `labels` to the `annotate` me
         in zip(detections['class_name'], detections.confidence)
     ]
 
-    annotated_image = bounding_box_annotator.annotate(
+    annotated_image = box_annotator.annotate(
         scene=image, detections=detections)
     annotated_image = label_annotator.annotate(
         scene=annotated_image, detections=detections, labels=labels)
@@ -260,7 +260,7 @@ override this behavior by passing a list of custom `labels` to the `annotate` me
     results = model(image)[0]
     detections = sv.Detections.from_ultralytics(results)
 
-    bounding_box_annotator = sv.BoundingBoxAnnotator()
+    box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
 
     labels = [
@@ -269,7 +269,7 @@ override this behavior by passing a list of custom `labels` to the `annotate` me
         in zip(detections['class_name'], detections.confidence)
     ]
 
-    annotated_image = bounding_box_annotator.annotate(
+    annotated_image = box_annotator.annotate(
         scene=image, detections=detections)
     annotated_image = label_annotator.annotate(
         scene=annotated_image, detections=detections, labels=labels)
@@ -300,7 +300,7 @@ override this behavior by passing a list of custom `labels` to the `annotate` me
         transformers_results=results,
         id2label=model.config.id2label)
 
-    bounding_box_annotator = sv.BoundingBoxAnnotator()
+    box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
 
     labels = [
@@ -309,7 +309,7 @@ override this behavior by passing a list of custom `labels` to the `annotate` me
         in zip(detections['class_name'], detections.confidence)
     ]
 
-    annotated_image = bounding_box_annotator.annotate(
+    annotated_image = box_annotator.annotate(
         scene=image, detections=detections)
     annotated_image = label_annotator.annotate(
         scene=annotated_image, detections=detections, labels=labels)
@@ -322,7 +322,7 @@ override this behavior by passing a list of custom `labels` to the `annotate` me
 If you are running the segmentation model
 [`sv.MaskAnnotator`](/latest/annotators/#supervision.annotators.core.MaskAnnotator)
 is a drop-in replacement for
-[`sv.BoundingBoxAnnotator`](/latest/annotators/#supervision.annotators.core.BoundingBoxAnnotator)
+[`sv.BoxAnnotator`](/latest/annotators/#supervision.annotators.core.BoxAnnotator)
 that will allow you to draw masks instead of boxes.
 
 === "Inference"

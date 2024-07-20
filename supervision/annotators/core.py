@@ -23,8 +23,94 @@ from supervision.utils.conversion import (
     ensure_pil_image_for_annotation,
 )
 from supervision.utils.image import crop_image, overlay_image, scale_image
+from supervision.utils.internal import deprecated
 
 
+class BoxAnnotator(BaseAnnotator):
+    """
+    A class for drawing bounding boxes on an image using provided detections.
+    """
+
+    def __init__(
+        self,
+        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
+        thickness: int = 2,
+        color_lookup: ColorLookup = ColorLookup.CLASS,
+    ):
+        """
+        Args:
+            color (Union[Color, ColorPalette]): The color or color palette to use for
+                annotating detections.
+            thickness (int): Thickness of the bounding box lines.
+            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
+                Options are `INDEX`, `CLASS`, `TRACK`.
+        """
+        self.color: Union[Color, ColorPalette] = color
+        self.thickness: int = thickness
+        self.color_lookup: ColorLookup = color_lookup
+
+    @ensure_cv2_image_for_annotation
+    def annotate(
+        self,
+        scene: ImageType,
+        detections: Detections,
+        custom_color_lookup: Optional[np.ndarray] = None,
+    ) -> ImageType:
+        """
+        Annotates the given scene with bounding boxes based on the provided detections.
+
+        Args:
+            scene (ImageType): The image where bounding boxes will be drawn. `ImageType`
+            is a flexible type, accepting either `numpy.ndarray` or `PIL.Image.Image`.
+            detections (Detections): Object detections to annotate.
+            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
+                Allows to override the default color mapping strategy.
+
+        Returns:
+            The annotated image, matching the type of `scene` (`numpy.ndarray`
+                or `PIL.Image.Image`)
+
+        Example:
+            ```python
+            import supervision as sv
+
+            image = ...
+            detections = sv.Detections(...)
+
+            box_annotator = sv.BoxAnnotator()
+            annotated_frame = box_annotator.annotate(
+                scene=image.copy(),
+                detections=detections
+            )
+            ```
+
+        ![bounding-box-annotator-example](https://media.roboflow.com/
+        supervision-annotator-examples/bounding-box-annotator-example-purple.png)
+        """
+        for detection_idx in range(len(detections)):
+            x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
+            color = resolve_color(
+                color=self.color,
+                detections=detections,
+                detection_idx=detection_idx,
+                color_lookup=self.color_lookup
+                if custom_color_lookup is None
+                else custom_color_lookup,
+            )
+            cv2.rectangle(
+                img=scene,
+                pt1=(x1, y1),
+                pt2=(x2, y2),
+                color=color.as_bgr(),
+                thickness=self.thickness,
+            )
+        return scene
+
+
+@deprecated(
+    "`BoundingBoxAnnotator` is deprecated and has been renamed to `BoxAnnotator`."
+    " `BoundingBoxAnnotator` will be removed in supervision-0.26.0."
+)
 class BoundingBoxAnnotator(BaseAnnotator):
     """
     A class for drawing bounding boxes on an image using provided detections.
@@ -41,7 +127,7 @@ class BoundingBoxAnnotator(BaseAnnotator):
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating detections.
             thickness (int): Thickness of the bounding box lines.
-            color_lookup (str): Strategy for mapping colors to annotations.
+            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
@@ -122,7 +208,7 @@ class OrientedBoxAnnotator(BaseAnnotator):
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating detections.
             thickness (int): Thickness of the bounding box lines.
-            color_lookup (str): Strategy for mapping colors to annotations.
+            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
@@ -210,7 +296,7 @@ class MaskAnnotator(BaseAnnotator):
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating detections.
             opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.
-            color_lookup (str): Strategy for mapping colors to annotations.
+            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
@@ -299,7 +385,7 @@ class PolygonAnnotator(BaseAnnotator):
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating detections.
             thickness (int): Thickness of the polygon lines.
-            color_lookup (str): Strategy for mapping colors to annotations.
+            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
@@ -385,7 +471,7 @@ class ColorAnnotator(BaseAnnotator):
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating detections.
             opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.
-            color_lookup (str): Strategy for mapping colors to annotations.
+            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
@@ -479,7 +565,7 @@ class HaloAnnotator(BaseAnnotator):
             opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.
             kernel_size (int): The size of the average pooling kernel used for creating
                 the halo.
-            color_lookup (str): Strategy for mapping colors to annotations.
+            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
@@ -577,7 +663,7 @@ class EllipseAnnotator(BaseAnnotator):
             thickness (int): Thickness of the ellipse lines.
             start_angle (int): Starting angle of the ellipse.
             end_angle (int): Ending angle of the ellipse.
-            color_lookup (str): Strategy for mapping colors to annotations.
+            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
@@ -669,7 +755,7 @@ class BoxCornerAnnotator(BaseAnnotator):
                 annotating detections.
             thickness (int): Thickness of the corner lines.
             corner_length (int): Length of each corner line.
-            color_lookup (str): Strategy for mapping colors to annotations.
+            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
@@ -757,7 +843,7 @@ class CircleAnnotator(BaseAnnotator):
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating detections.
             thickness (int): Thickness of the circle line.
-            color_lookup (str): Strategy for mapping colors to annotations.
+            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
 
@@ -943,7 +1029,7 @@ class LabelAnnotator(BaseAnnotator):
             text_padding (int): Padding around the text within its background box.
             text_position (Position): Position of the text relative to the detection.
                 Possible values are defined in the `Position` enum.
-            color_lookup (str): Strategy for mapping colors to annotations.
+            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
             border_radius (int): The radius to apply round edges. If the selected
                 value is higher than the lower dimension, width or height, is clipped.
@@ -1066,7 +1152,7 @@ class LabelAnnotator(BaseAnnotator):
                 org=(text_x, text_y),
                 fontFace=font,
                 fontScale=self.text_scale,
-                color=self.text_color.as_rgb(),
+                color=self.text_color.as_bgr(),
                 thickness=self.text_thickness,
                 lineType=cv2.LINE_AA,
             )
@@ -1371,7 +1457,7 @@ class TraceAnnotator(BaseAnnotator):
             trace_length (int): The maximum length of the trace in terms of historical
                 points. Defaults to `30`.
             thickness (int): The thickness of the trace lines. Defaults to `2`.
-            color_lookup (str): Strategy for mapping colors to annotations.
+            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
@@ -1738,7 +1824,7 @@ class RoundBoxAnnotator(BaseAnnotator):
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating detections.
             thickness (int): Thickness of the bounding box lines.
-            color_lookup (str): Strategy for mapping colors to annotations.
+            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
             roundness (float): Percent of roundness for edges of bounding box.
                 Value must be float 0 < roundness <= 1.0
@@ -1875,7 +1961,7 @@ class PercentageBarAnnotator(BaseAnnotator):
                 annotating detections.
             border_color (Color): The color of the border lines.
             position (Position): The anchor position of drawing the percentage bar.
-            color_lookup (str): Strategy for mapping colors to annotations.
+            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
             border_thickness (int): The thickness of the border lines.
         """
@@ -2038,7 +2124,7 @@ class CropAnnotator(BaseAnnotator):
     def __init__(
         self,
         position: Position = Position.TOP_CENTER,
-        scale_factor: int = 2,
+        scale_factor: float = 2.0,
         border_color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
         border_thickness: int = 2,
         border_color_lookup: ColorLookup = ColorLookup.CLASS,
@@ -2047,7 +2133,7 @@ class CropAnnotator(BaseAnnotator):
         Args:
             position (Position): The anchor position for placing the cropped and scaled
                 part of the detection in the scene.
-            scale_factor (int): The factor by which to scale the cropped image part. A
+            scale_factor (float): The factor by which to scale the cropped image part. A
                 factor of 2, for example, would double the size of the cropped area,
                 allowing for a closer view of the detection.
             border_color (Union[Color, ColorPalette]): The color or color palette to
@@ -2057,7 +2143,7 @@ class CropAnnotator(BaseAnnotator):
                 annotations. Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.position: Position = position
-        self.scale_factor: int = scale_factor
+        self.scale_factor: float = scale_factor
         self.border_color: Union[Color, ColorPalette] = border_color
         self.border_thickness: int = border_thickness
         self.border_color_lookup: ColorLookup = border_color_lookup

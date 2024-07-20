@@ -276,7 +276,7 @@ class ByteTrack:
             model = YOLO(<MODEL_PATH>)
             tracker = sv.ByteTrack()
 
-            bounding_box_annotator = sv.BoundingBoxAnnotator()
+            box_annotator = sv.BoxAnnotator()
             label_annotator = sv.LabelAnnotator()
 
             def callback(frame: np.ndarray, index: int) -> np.ndarray:
@@ -286,7 +286,7 @@ class ByteTrack:
 
                 labels = [f"#{tracker_id}" for tracker_id in detections.tracker_id]
 
-                annotated_frame = bounding_box_annotator.annotate(
+                annotated_frame = box_annotator.annotate(
                     scene=frame.copy(), detections=detections)
                 annotated_frame = label_annotator.annotate(
                     scene=annotated_frame, detections=detections, labels=labels)

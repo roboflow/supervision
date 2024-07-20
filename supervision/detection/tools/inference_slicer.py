@@ -4,9 +4,10 @@ from typing import Callable, Optional, Tuple, Union
 
 import numpy as np
 
+from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
 from supervision.detection.overlap_filter import OverlapFilter, validate_overlap_filter
-from supervision.detection.utils import move_boxes, move_masks
+from supervision.detection.utils import move_boxes, move_masks, move_oriented_boxes
 from supervision.utils.image import crop_image
 from supervision.utils.internal import SupervisionWarnings
 
@@ -28,6 +29,10 @@ def move_detections(
         (sv.Detections) repositioned Detections object.
     """
     detections.xyxy = move_boxes(xyxy=detections.xyxy, offset=offset)
+    if ORIENTED_BOX_COORDINATES in detections.data:
+        detections.data[ORIENTED_BOX_COORDINATES] = move_oriented_boxes(
+            xyxyxyxy=detections.data[ORIENTED_BOX_COORDINATES], offset=offset
+        )
     if detections.mask is not None:
         if resolution_wh is None:
             raise ValueError(

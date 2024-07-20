@@ -90,7 +90,7 @@ class VideoProcessor:
         self.zones_in = initiate_polygon_zones(ZONE_IN_POLYGONS, [sv.Position.CENTER])
         self.zones_out = initiate_polygon_zones(ZONE_OUT_POLYGONS, [sv.Position.CENTER])
 
-        self.bounding_box_annotator = sv.BoundingBoxAnnotator(color=COLORS)
+        self.box_annotator = sv.BoxAnnotator(color=COLORS)
         self.label_annotator = sv.LabelAnnotator(
             color=COLORS, text_color=sv.Color.BLACK
         )
@@ -131,9 +131,7 @@ class VideoProcessor:
 
         labels = [f"#{tracker_id}" for tracker_id in detections.tracker_id]
         annotated_frame = self.trace_annotator.annotate(annotated_frame, detections)
-        annotated_frame = self.bounding_box_annotator.annotate(
-            annotated_frame, detections
-        )
+        annotated_frame = self.box_annotator.annotate(annotated_frame, detections)
         annotated_frame = self.label_annotator.annotate(
             annotated_frame, detections, labels
         )

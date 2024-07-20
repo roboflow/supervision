@@ -243,9 +243,10 @@ class KeyPoints:
         pose landmark detection inference result.
 
         Args:
-            mediapipe_results (Union[PoseLandmarkerResult, SolutionOutputs]):
-                The output results from Mediapipe. It supports both: the inference
-                result `PoseLandmarker` and the legacy one from `Pose`.
+            mediapipe_results (Union[PoseLandmarkerResult, FaceLandmarkerResult, SolutionOutputs]):
+                The output results from Mediapipe. It support pose and face landmarks
+                from `PoseLandmaker`, `FaceLandmarker` and the legacy ones
+                from `Pose` and `FaceMesh`.
             resolution_wh (Tuple[int, int]): A tuple of the form `(width, height)`
                 representing the resolution of the frame.
 
@@ -283,14 +284,55 @@ class KeyPoints:
             key_points = sv.KeyPoints.from_mediapipe(
                 pose_landmarker_result, (image_width, image_height))
             ```
+
+            ```python
+            import cv2
+            import mediapipe as mp
+            import supervision as sv
+
+            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            image_height, image_width, _ = image.shape
+            mediapipe_image = mp.Image(
+                image_format=mp.ImageFormat.SRGB,
+                data=cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+
+            options = mp.tasks.vision.FaceLandmarkerOptions(
+                base_options=mp.tasks.BaseOptions(
+                    model_asset_path="face_landmarker.task"
+                ),
+                output_face_blendshapes=True,
+                output_facial_transformation_matrixes=True,
+                num_faces=2)
+
+            FaceLandmarker = mp.tasks.vision.FaceLandmarker
+            with FaceLandmarker.create_from_options(options) as landmarker:
+                face_landmarker_result = landmarker.detect(mediapipe_image)
+
+            key_points = sv.KeyPoints.from_mediapipe(
+                face_landmarker_result, (image_width, image_height))
+            ```
         """  # noqa: E501 // docs
-        results = mediapipe_results.pose_landmarks
-        if not isinstance(mediapipe_results.pose_landmarks, list):
-            if mediapipe_results.pose_landmarks is None:
+        if hasattr(mediapipe_results, "pose_landmarks"):
+            results = mediapipe_results.pose_landmarks
+            if not isinstance(mediapipe_results.pose_landmarks, list):
+                if mediapipe_results.pose_landmarks is None:
+                    results = []
+                else:
+                    results = [
+                        [
+                            landmark
+                            for landmark in mediapipe_results.pose_landmarks.landmark
+                        ]
+                    ]
+        elif hasattr(mediapipe_results, "face_landmarks"):
+            results = mediapipe_results.face_landmarks
+        elif hasattr(mediapipe_results, "multi_face_landmarks"):
+            if mediapipe_results.multi_face_landmarks is None:
                 results = []
             else:
                 results = [
-                    [landmark for landmark in mediapipe_results.pose_landmarks.landmark]
+                    face_landmark.landmark
+                    for face_landmark in mediapipe_results.multi_face_landmarks
                 ]
 
         if len(results) == 0:
@@ -413,6 +455,57 @@ class KeyPoints:
             class_id=class_id,
             data=data,
         )
+
+    @classmethod
+    def from_detectron2(cls, detectron2_results) -> KeyPoints:
+        """
+        Create a `sv.KeyPoints` object from the
+        [Detectron2](https://github.com/facebookresearch/detectron2) inference result.
+
+        Args:
+            detectron2_results: The output of a
+                Detectron2 model containing instances with prediction data.
+
+        Returns:
+            A `sv.KeyPoints` object containing the keypoint coordinates, class IDs,
+                and class names, and confidences of each keypoint.
+
+        Example:
+            ```python
+            import cv2
+            import supervision as sv
+            from detectron2.engine import DefaultPredictor
+            from detectron2.config import get_cfg
+
+
+            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            cfg = get_cfg()
+            cfg.merge_from_file(<CONFIG_PATH>)
+            cfg.MODEL.WEIGHTS = <WEIGHTS_PATH>
+            predictor = DefaultPredictor(cfg)
+
+            result = predictor(image)
+            keypoints = sv.KeyPoints.from_detectron2(result)
+            ```
+        """
+
+        if hasattr(detectron2_results["instances"], "pred_keypoints"):
+            if detectron2_results["instances"].pred_keypoints.cpu().numpy().size == 0:
+                return cls.empty()
+            return cls(
+                xy=detectron2_results["instances"]
+                .pred_keypoints.cpu()
+                .numpy()[:, :, :2],
+                confidence=detectron2_results["instances"]
+                .pred_keypoints.cpu()
+                .numpy()[:, :, 2],
+                class_id=detectron2_results["instances"]
+                .pred_classes.cpu()
+                .numpy()
+                .astype(int),
+            )
+        else:
+            return cls.empty()
 
     def __getitem__(
         self, index: Union[int, slice, List[int], np.ndarray, str]

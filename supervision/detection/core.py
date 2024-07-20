@@ -30,7 +30,7 @@ from supervision.detection.utils import (
     xywh_to_xyxy,
 )
 from supervision.geometry.core import Position
-from supervision.utils.internal import deprecated, get_instance_variables
+from supervision.utils.internal import get_instance_variables
 from supervision.validators import validate_detections_fields
 
 
@@ -631,45 +631,6 @@ class Detections:
         )
 
     @classmethod
-    @deprecated(
-        "`Detections.from_roboflow` is deprecated and will be removed in "
-        "`supervision-0.22.0`. Use `Detections.from_inference` instead."
-    )
-    def from_roboflow(cls, roboflow_result: Union[dict, Any]) -> Detections:
-        """
-        !!! failure "Deprecated"
-
-            `Detections.from_roboflow` is deprecated and will be removed in
-            `supervision-0.22.0`. Use `Detections.from_inference` instead.
-
-        Create a Detections object from the [Roboflow](https://roboflow.com/)
-            API inference result or the [Inference](https://inference.roboflow.com/)
-            package results.
-
-        Args:
-            roboflow_result (dict): The result from the
-                Roboflow API containing predictions.
-
-        Returns:
-            (Detections): A Detections object containing the bounding boxes, class IDs,
-                and confidences of the predictions.
-
-        Example:
-            ```python
-            import cv2
-            import supervision as sv
-            from inference import get_model
-
-            image = cv2.imread(<SOURCE_IMAGE_PATH>)
-            model = get_model(model_id="yolov8s-640")
-
-            result = model.infer(image)[0]
-            detections = sv.Detections.from_roboflow(result)
-            ```
-        """
-        return cls.from_inference(roboflow_result)
-
-    @classmethod
     def from_sam(cls, sam_result: List[dict]) -> Detections:
         """
         Creates a Detections instance from
@@ -708,7 +669,7 @@ class Detections:
         if np.asarray(xywh).shape[0] == 0:
             return cls.empty()
 
-        xyxy = xywh_to_xyxy(boxes_xywh=xywh)
+        xyxy = xywh_to_xyxy(xywh=xywh)
         return cls(xyxy=xyxy, mask=mask)
 
     @classmethod
