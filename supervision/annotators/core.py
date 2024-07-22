@@ -1068,8 +1068,8 @@ class LabelAnnotator(BaseAnnotator):
             labels (Optional[List[str]]): Custom labels for each detection.
             custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
                 Allows to override the default color mapping strategy.
-            custom_text_color_lookup (Optional[np.ndarray]): Custom text color lookup array.
-                Allows to override the default text color mapping strategy.
+            custom_text_color_lookup (Optional[np.ndarray]): Custom text color lookup
+                array. Allows to override the default text color mapping strategy.
 
         Returns:
             The annotated image, matching the type of `scene` (`numpy.ndarray`
