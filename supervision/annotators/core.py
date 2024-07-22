@@ -1017,6 +1017,7 @@ class LabelAnnotator(BaseAnnotator):
         text_padding: int = 10,
         text_position: Position = Position.TOP_LEFT,
         color_lookup: ColorLookup = ColorLookup.CLASS,
+        text_color_lookup: ColorLookup = ColorLookup.CLASS,
         border_radius: int = 0,
     ):
         """
@@ -1032,6 +1033,8 @@ class LabelAnnotator(BaseAnnotator):
                 Possible values are defined in the `Position` enum.
             color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
+            text_color_lookup (ColorLookup): Strategy for mapping text colors to 
+                annotations. Options are `INDEX`, `CLASS`, `TRACK`.
             border_radius (int): The radius to apply round edges. If the selected
                 value is higher than the lower dimension, width or height, is clipped.
         """
@@ -1043,6 +1046,7 @@ class LabelAnnotator(BaseAnnotator):
         self.text_padding: int = text_padding
         self.text_anchor: Position = text_position
         self.color_lookup: ColorLookup = color_lookup
+        self.text_color_lookup: ColorLookup = text_color_lookup
 
     @ensure_cv2_image_for_annotation
     def annotate(
@@ -1051,6 +1055,7 @@ class LabelAnnotator(BaseAnnotator):
         detections: Detections,
         labels: Optional[List[str]] = None,
         custom_color_lookup: Optional[np.ndarray] = None,
+        custom_text_color_lookup: Optional[np.ndarray] = None,
     ) -> ImageType:
         """
         Annotates the given scene with labels based on the provided detections.
@@ -1063,6 +1068,8 @@ class LabelAnnotator(BaseAnnotator):
             labels (Optional[List[str]]): Custom labels for each detection.
             custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
                 Allows to override the default color mapping strategy.
+            custom_text_color_lookup (Optional[np.ndarray]): Custom text color lookup array.
+                Allows to override the default text color mapping strategy.
 
         Returns:
             The annotated image, matching the type of `scene` (`numpy.ndarray`
@@ -1120,9 +1127,9 @@ class LabelAnnotator(BaseAnnotator):
                 detections=detections,
                 detection_idx=detection_idx,
                 color_lookup=(
-                    self.color_lookup
-                    if custom_color_lookup is None
-                    else custom_color_lookup
+                    self.text_color_lookup
+                    if custom_text_color_lookup is None
+                    else custom_text_color_lookup
                 ),
             )
 
