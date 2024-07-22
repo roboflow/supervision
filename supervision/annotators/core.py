@@ -1011,7 +1011,7 @@ class LabelAnnotator(BaseAnnotator):
     def __init__(
         self,
         color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
-        text_color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
+        text_color: Union[Color, ColorPalette] = ColorPalette.LEGACY,
         text_scale: float = 0.5,
         text_thickness: int = 1,
         text_padding: int = 10,
