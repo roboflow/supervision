@@ -1033,7 +1033,7 @@ class LabelAnnotator(BaseAnnotator):
                 Possible values are defined in the `Position` enum.
             color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
-            text_color_lookup (ColorLookup): Strategy for mapping text colors to 
+            text_color_lookup (ColorLookup): Strategy for mapping text colors to
                 annotations. Options are `INDEX`, `CLASS`, `TRACK`.
             border_radius (int): The radius to apply round edges. If the selected
                 value is higher than the lower dimension, width or height, is clipped.
