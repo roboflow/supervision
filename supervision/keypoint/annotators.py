@@ -354,7 +354,7 @@ class VertexLabelAnnotator:
             cv2.putText(
                 img=scene,
                 text=text,
-                org=(box[0], box[3] + self.text_padding),
+                org=(box[0], box[3]),
                 fontFace=font,
                 fontScale=self.text_scale,
                 color=self.text_color.as_rgb(),
