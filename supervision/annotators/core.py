@@ -1055,7 +1055,6 @@ class LabelAnnotator(BaseAnnotator):
         detections: Detections,
         labels: Optional[List[str]] = None,
         custom_color_lookup: Optional[np.ndarray] = None,
-        custom_text_color_lookup: Optional[np.ndarray] = None,
     ) -> ImageType:
         """
         Annotates the given scene with labels based on the provided detections.
@@ -1068,9 +1067,7 @@ class LabelAnnotator(BaseAnnotator):
             labels (Optional[List[str]]): Custom labels for each detection.
             custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
                 Allows to override the default color mapping strategy.
-            custom_text_color_lookup (Optional[np.ndarray]): Custom text color lookup
-                array. Allows to override the default text color mapping strategy.
-
+            
         Returns:
             The annotated image, matching the type of `scene` (`numpy.ndarray`
                 or `PIL.Image.Image`)
@@ -1128,8 +1125,8 @@ class LabelAnnotator(BaseAnnotator):
                 detection_idx=detection_idx,
                 color_lookup=(
                     self.text_color_lookup
-                    if custom_text_color_lookup is None
-                    else custom_text_color_lookup
+                    if custom_color_lookup is None
+                    else custom_color_lookup
                 ),
             )
 
@@ -1235,6 +1232,7 @@ class RichLabelAnnotator(BaseAnnotator):
         text_padding: int = 10,
         text_position: Position = Position.TOP_LEFT,
         color_lookup: ColorLookup = ColorLookup.CLASS,
+        text_color_lookup: ColorLookup = ColorLookup.CLASS,
         border_radius: int = 0,
     ):
         """
@@ -1250,6 +1248,8 @@ class RichLabelAnnotator(BaseAnnotator):
                 Possible values are defined in the `Position` enum.
             color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
+            text_color_lookup (ColorLookup): Strategy for mapping text colors to
+                annotations. Options are `INDEX`, `CLASS`, `TRACK`.
             border_radius (int): The radius to apply round edges. If the selected
                 value is higher than the lower dimension, width or height, is clipped.
         """
@@ -1258,6 +1258,7 @@ class RichLabelAnnotator(BaseAnnotator):
         self.text_padding = text_padding
         self.text_anchor = text_position
         self.color_lookup = color_lookup
+        self.text_color_lookup: ColorLookup = text_color_lookup
         self.border_radius = border_radius
         if font_path is not None:
             try:
@@ -1336,6 +1337,18 @@ class RichLabelAnnotator(BaseAnnotator):
                     else custom_color_lookup
                 ),
             )
+
+            text_color = resolve_color(
+                color=self.text_color,
+                detections=detections,
+                detection_idx=detection_idx,
+                color_lookup=(
+                    self.text_color_lookup
+                    if custom_color_lookup is None
+                    else custom_color_lookup
+                ),
+            )
+
             if labels is not None:
                 text = labels[detection_idx]
             elif detections[CLASS_NAME_DATA_FIELD] is not None:
@@ -1369,7 +1382,7 @@ class RichLabelAnnotator(BaseAnnotator):
                 xy=(text_x, text_y),
                 text=text,
                 font=self.font,
-                fill=self.text_color.as_rgb(),
+                fill=text_color.as_rgb(),
             )
         return scene
 
