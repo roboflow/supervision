@@ -1011,7 +1011,7 @@ class LabelAnnotator(BaseAnnotator):
     def __init__(
         self,
         color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
-        text_color: Union[Color, ColorPalette] = ColorPalette.LEGACY,
+        text_color: Union[Color, ColorPalette] = Color.WHITE,
         text_scale: float = 0.5,
         text_thickness: int = 1,
         text_padding: int = 10,
@@ -1226,7 +1226,7 @@ class RichLabelAnnotator(BaseAnnotator):
     def __init__(
         self,
         color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
-        text_color: Color = Color.WHITE,
+        text_color: Union[Color, ColorPalette] = Color.WHITE,
         font_path: Optional[str] = None,
         font_size: int = 10,
         text_padding: int = 10,
@@ -1239,7 +1239,7 @@ class RichLabelAnnotator(BaseAnnotator):
         Args:
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating the text background.
-            text_color (Color): The color to use for the text.
+            text_color (Union[Color, ColorPalette]): The color to use for the text.
             font_path (Optional[str]): Path to the font file (e.g., ".ttf" or ".otf")
                 to use for rendering text. If `None`, the default PIL font will be used.
             font_size (int): Font size for the text.
