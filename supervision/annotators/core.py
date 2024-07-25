@@ -1017,7 +1017,6 @@ class LabelAnnotator(BaseAnnotator):
         text_padding: int = 10,
         text_position: Position = Position.TOP_LEFT,
         color_lookup: ColorLookup = ColorLookup.CLASS,
-        text_color_lookup: ColorLookup = ColorLookup.CLASS,
         border_radius: int = 0,
     ):
         """
@@ -1033,8 +1032,6 @@ class LabelAnnotator(BaseAnnotator):
                 Possible values are defined in the `Position` enum.
             color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
-            text_color_lookup (ColorLookup): Strategy for mapping text colors to
-                annotations. Options are `INDEX`, `CLASS`, `TRACK`.
             border_radius (int): The radius to apply round edges. If the selected
                 value is higher than the lower dimension, width or height, is clipped.
         """
@@ -1046,7 +1043,6 @@ class LabelAnnotator(BaseAnnotator):
         self.text_padding: int = text_padding
         self.text_anchor: Position = text_position
         self.color_lookup: ColorLookup = color_lookup
-        self.text_color_lookup: ColorLookup = text_color_lookup
 
     @ensure_cv2_image_for_annotation
     def annotate(
@@ -1124,7 +1120,7 @@ class LabelAnnotator(BaseAnnotator):
                 detections=detections,
                 detection_idx=detection_idx,
                 color_lookup=(
-                    self.text_color_lookup
+                    self.color_lookup
                     if custom_color_lookup is None
                     else custom_color_lookup
                 ),
@@ -1232,7 +1228,6 @@ class RichLabelAnnotator(BaseAnnotator):
         text_padding: int = 10,
         text_position: Position = Position.TOP_LEFT,
         color_lookup: ColorLookup = ColorLookup.CLASS,
-        text_color_lookup: ColorLookup = ColorLookup.CLASS,
         border_radius: int = 0,
     ):
         """
@@ -1248,8 +1243,6 @@ class RichLabelAnnotator(BaseAnnotator):
                 Possible values are defined in the `Position` enum.
             color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
-            text_color_lookup (ColorLookup): Strategy for mapping text colors to
-                annotations. Options are `INDEX`, `CLASS`, `TRACK`.
             border_radius (int): The radius to apply round edges. If the selected
                 value is higher than the lower dimension, width or height, is clipped.
         """
@@ -1258,7 +1251,6 @@ class RichLabelAnnotator(BaseAnnotator):
         self.text_padding = text_padding
         self.text_anchor = text_position
         self.color_lookup = color_lookup
-        self.text_color_lookup: ColorLookup = text_color_lookup
         self.border_radius = border_radius
         if font_path is not None:
             try:
@@ -1343,7 +1335,7 @@ class RichLabelAnnotator(BaseAnnotator):
                 detections=detections,
                 detection_idx=detection_idx,
                 color_lookup=(
-                    self.text_color_lookup
+                    self.color_lookup
                     if custom_color_lookup is None
                     else custom_color_lookup
                 ),
