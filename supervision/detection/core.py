@@ -423,7 +423,10 @@ class Detections:
             detections = sv.Detections.from_mmdetection(result)
             ```
         """  # noqa: E501 // docs
-        if hasattr(mmdet_results, "pred_track_instances") and mmdet_results.pred_track_instances is not None:
+        if (
+            hasattr(mmdet_results, "pred_track_instances")
+            and mmdet_results.pred_track_instances is not None
+        ):
             return cls(
                 xyxy=mmdet_results.pred_track_instances.bboxes.cpu().numpy(),
                 confidence=mmdet_results.pred_track_instances.scores.cpu().numpy(),
@@ -431,7 +434,7 @@ class Detections:
                 mask=mmdet_results.pred_track_instances.masks.cpu().numpy()
                 if "masks" in mmdet_results.pred_track_instances
                 else None,
-                tracker_id=mmdet_results.pred_track_instances.instances_id.cpu().numpy()
+                tracker_id=mmdet_results.pred_track_instances.instances_id.cpu().numpy(),
             )
 
         return cls(
