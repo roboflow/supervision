@@ -205,7 +205,7 @@ class VertexLabelAnnotator:
             color (Union[Color, List[Color]], optional): The color to use for each
                 keypoint label. If a list is provided, the colors will be used in order
                 for each keypoint.
-            text_color (Union[Color, ColorPalette], optional): The color to use 
+            text_color (Union[Color, ColorPalette], optional): The color to use
                 for the labels.
             text_scale (float, optional): The scale of the text.
             text_thickness (int, optional): The thickness of the text.
@@ -417,4 +417,3 @@ class VertexLabelAnnotator:
             if isinstance(colors, list)
             else np.array([colors] * points_count * skeletons_count)
         )
-    
