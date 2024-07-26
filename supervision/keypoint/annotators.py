@@ -7,7 +7,7 @@ import numpy as np
 
 from supervision import Rect, pad_boxes
 from supervision.annotators.base import ImageType
-from supervision.draw.color import Color
+from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import draw_rounded_rectangle
 from supervision.keypoint.core import KeyPoints
 from supervision.keypoint.skeletons import SKELETONS_BY_VERTEX_COUNT
@@ -194,7 +194,7 @@ class VertexLabelAnnotator:
     def __init__(
         self,
         color: Union[Color, List[Color]] = Color.ROBOFLOW,
-        text_color: Color = Color.WHITE,
+        text_color: Union[Color, ColorPalette] = Color.WHITE,
         text_scale: float = 0.5,
         text_thickness: int = 1,
         text_padding: int = 10,
@@ -205,7 +205,8 @@ class VertexLabelAnnotator:
             color (Union[Color, List[Color]], optional): The color to use for each
                 keypoint label. If a list is provided, the colors will be used in order
                 for each keypoint.
-            text_color (Color, optional): The color to use for the labels.
+            text_color (Union[Color, ColorPalette], optional): The color to use 
+                for the labels.
             text_scale (float, optional): The scale of the text.
             text_thickness (int, optional): The thickness of the text.
             text_padding (int, optional): The padding around the text.
@@ -214,7 +215,7 @@ class VertexLabelAnnotator:
         """
         self.border_radius: int = border_radius
         self.color: Union[Color, List[Color]] = color
-        self.text_color: Color = text_color
+        self.text_color: Union[Color, ColorPalette] = text_color
         self.text_scale: float = text_scale
         self.text_thickness: int = text_thickness
         self.text_padding: int = text_padding
@@ -416,3 +417,4 @@ class VertexLabelAnnotator:
             if isinstance(colors, list)
             else np.array([colors] * points_count * skeletons_count)
         )
+    
