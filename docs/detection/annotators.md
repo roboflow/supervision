@@ -303,7 +303,7 @@ status: new
         font_path="<TTF_FONT_PATH>",
         text_position=sv.Position.CENTER
     )
-    annotated_frame = label_annotator.annotate(
+    annotated_frame = rich_label_annotator.annotate(
         scene=image.copy(),
         detections=detections,
         labels=labels

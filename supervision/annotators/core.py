@@ -1011,7 +1011,7 @@ class LabelAnnotator(BaseAnnotator):
     def __init__(
         self,
         color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
-        text_color: Color = Color.WHITE,
+        text_color: Union[Color, ColorPalette] = Color.WHITE,
         text_scale: float = 0.5,
         text_thickness: int = 1,
         text_padding: int = 10,
@@ -1023,7 +1023,8 @@ class LabelAnnotator(BaseAnnotator):
         Args:
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating the text background.
-            text_color (Color): The color to use for the text.
+            text_color (Union[Color, ColorPalette]): The color or color palette to use
+                for the text.
             text_scale (float): Font scale for the text.
             text_thickness (int): Thickness of the text characters.
             text_padding (int): Padding around the text within its background box.
@@ -1036,7 +1037,7 @@ class LabelAnnotator(BaseAnnotator):
         """
         self.border_radius: int = border_radius
         self.color: Union[Color, ColorPalette] = color
-        self.text_color: Color = text_color
+        self.text_color: Union[Color, ColorPalette] = text_color
         self.text_scale: float = text_scale
         self.text_thickness: int = text_thickness
         self.text_padding: int = text_padding
@@ -1114,6 +1115,17 @@ class LabelAnnotator(BaseAnnotator):
                 ),
             )
 
+            text_color = resolve_color(
+                color=self.text_color,
+                detections=detections,
+                detection_idx=detection_idx,
+                color_lookup=(
+                    self.color_lookup
+                    if custom_color_lookup is None
+                    else custom_color_lookup
+                ),
+            )
+
             if labels is not None:
                 text = labels[detection_idx]
             elif detections[CLASS_NAME_DATA_FIELD] is not None:
@@ -1152,7 +1164,7 @@ class LabelAnnotator(BaseAnnotator):
                 org=(text_x, text_y),
                 fontFace=font,
                 fontScale=self.text_scale,
-                color=self.text_color.as_bgr(),
+                color=text_color.as_bgr(),
                 thickness=self.text_thickness,
                 lineType=cv2.LINE_AA,
             )
@@ -1210,7 +1222,7 @@ class RichLabelAnnotator(BaseAnnotator):
     def __init__(
         self,
         color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
-        text_color: Color = Color.WHITE,
+        text_color: Union[Color, ColorPalette] = Color.WHITE,
         font_path: Optional[str] = None,
         font_size: int = 10,
         text_padding: int = 10,
@@ -1222,7 +1234,7 @@ class RichLabelAnnotator(BaseAnnotator):
         Args:
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating the text background.
-            text_color (Color): The color to use for the text.
+            text_color (Union[Color, ColorPalette]): The color to use for the text.
             font_path (Optional[str]): Path to the font file (e.g., ".ttf" or ".otf")
                 to use for rendering text. If `None`, the default PIL font will be used.
             font_size (int): Font size for the text.
@@ -1317,6 +1329,18 @@ class RichLabelAnnotator(BaseAnnotator):
                     else custom_color_lookup
                 ),
             )
+
+            text_color = resolve_color(
+                color=self.text_color,
+                detections=detections,
+                detection_idx=detection_idx,
+                color_lookup=(
+                    self.color_lookup
+                    if custom_color_lookup is None
+                    else custom_color_lookup
+                ),
+            )
+
             if labels is not None:
                 text = labels[detection_idx]
             elif detections[CLASS_NAME_DATA_FIELD] is not None:
@@ -1350,7 +1374,7 @@ class RichLabelAnnotator(BaseAnnotator):
                 xy=(text_x, text_y),
                 text=text,
                 font=self.font,
-                fill=self.text_color.as_rgb(),
+                fill=text_color.as_rgb(),
             )
         return scene
 
