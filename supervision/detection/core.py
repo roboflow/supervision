@@ -26,6 +26,7 @@ from supervision.detection.utils import (
     is_data_equal,
     mask_to_xyxy,
     merge_data,
+    png_to_mask,
     process_roboflow_result,
     xywh_to_xyxy,
 )
@@ -486,7 +487,7 @@ class Detections:
         data = {}
 
         if transformers_results.__class__.__name__ == "Tensor":
-            segmentation_array = transformers_results.cpu().numpy()
+            segmentation_array = transformers_results.cpu().detach().numpy()
 
             class_ids = np.unique(segmentation_array)
 
@@ -533,6 +534,43 @@ class Detections:
                 class_id=class_ids,
                 data=data,
             )
+        elif "segments_info" in transformers_results:
+            
+            segments_info = transformers_results["segments_info"]
+
+            if "segmentation" in transformers_results:
+                scores = np.array([segment['score'] for segment in segments_info])
+                class_ids = np.array([segment['label_id'] for segment in segments_info])
+                segmentation_array = transformers_results["segmentation"].cpu().detach().numpy()
+                masks = np.array([(segmentation_array == segment['id']).astype(bool) for segment in segments_info])
+
+                if id2label is not None:
+                    class_names = np.array([id2label[class_id] for class_id in class_ids])
+                    data[CLASS_NAME_DATA_FIELD] = class_names
+
+                return cls(
+                    xyxy=mask_to_xyxy(masks),
+                    mask=masks,
+                    confidence=scores,
+                    class_id=class_ids,
+                    data=data,
+            )
+
+            elif "png_string" in transformers_results:
+                class_ids = np.array([segment['category_id'] for segment in segments_info])
+                segmentation_array = png_to_mask(transformers_results["png_string"])
+                masks = np.array([(segmentation_array == segment['id']).astype(bool) for segment in segments_info])
+
+                if id2label is not None:
+                    class_names = np.array([id2label[class_id] for class_id in class_ids])
+                    data[CLASS_NAME_DATA_FIELD] = class_names
+
+                return cls(
+                    xyxy=mask_to_xyxy(masks),
+                    mask=masks,
+                    class_id=class_ids,
+                    data=data,
+            ) 
         else:
             raise NotImplementedError(
                 "Only object detection and semantic segmentation results are supported."
