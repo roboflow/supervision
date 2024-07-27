@@ -1,10 +1,10 @@
+import io
 from itertools import chain
 from typing import Dict, List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
 import numpy.typing as npt
-import io
 from PIL import Image
 
 from supervision.config import CLASS_NAME_DATA_FIELD
@@ -1003,6 +1003,7 @@ def cross_product(anchors: np.ndarray, vector: Vector) -> np.ndarray:
     vector_start = np.array([vector.start.x, vector.start.y])
     return np.cross(vector_at_zero, anchors - vector_start)
 
+
 def png_to_mask(png_string):
     """
     Convert a PNG byte string to a binary mask array.
@@ -1015,6 +1016,6 @@ def png_to_mask(png_string):
       of the image.
     """
     image = Image.open(io.BytesIO(png_string))
-    mask = np.array(image, dtype= np.uint8)
+    mask = np.array(image, dtype=np.uint8)
 
-    return mask[:,:,0]
+    return mask[:, :, 0]
