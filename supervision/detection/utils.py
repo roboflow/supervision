@@ -1012,8 +1012,8 @@ def png_to_mask(png_string):
     - png_string (bytes): A byte string representing the PNG image.
 
     Returns:
-    - np.ndarray: A binary mask array with shape (H, W), where H and W are the height and width
-      of the image.
+    - np.ndarray: A binary mask array with shape (H, W), where H and W
+        are the height and width of the image.
     """
     image = Image.open(io.BytesIO(png_string))
     mask = np.array(image, dtype=np.uint8)
