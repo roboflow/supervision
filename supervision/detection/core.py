@@ -434,7 +434,9 @@ class Detections:
                 mask=mmdet_results.pred_track_instances.masks.cpu().numpy()
                 if "masks" in mmdet_results.pred_track_instances
                 else None,
-                tracker_id=mmdet_results.pred_track_instances.instances_id.cpu().numpy(),
+                tracker_id=mmdet_results.pred_track_instances.instances_id.cpu().numpy()
+                if "instances_id" in mmdet_results.pred_track_instances
+                else None,
             )
 
         return cls(
