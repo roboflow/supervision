@@ -279,11 +279,13 @@ class Detections:
             else None,
             data={CLASS_NAME_DATA_FIELD: class_names},
         )
-    
+
     @classmethod
-    def from_rtdetr(cls, rtdetr_results, id2label: Optional[Dict[int, str]] = None) -> Detections:
+    def from_rtdetr(
+        cls, rtdetr_results, id2label: Optional[Dict[int, str]] = None
+    ) -> Detections:
         """
-        Creates a Detections instance from a 
+        Creates a Detections instance from a
         [RT-DETR](https://github.com/lyuwenyu/RT-DETR)
         inference result.
 
@@ -318,8 +320,8 @@ class Detections:
                 outputs = model(**inputs)
 
             results = image_processor.post_process_object_detection(
-                outputs, 
-                target_sizes=torch.tensor([image.size[::-1]]), 
+                outputs,
+                target_sizes=torch.tensor([image.size[::-1]]),
                 threshold=0.3
             )[0]
 
@@ -334,11 +336,11 @@ class Detections:
             class_names = np.array([id2label[class_id] for class_id in class_ids])
             data[CLASS_NAME_DATA_FIELD] = class_names
         return cls(
-                xyxy=rtdetr_results["boxes"].cpu().detach().numpy(),
-                confidence=rtdetr_results["scores"].cpu().detach().numpy(),
-                class_id=class_ids,
-                data=data,
-            )
+            xyxy=rtdetr_results["boxes"].cpu().detach().numpy(),
+            confidence=rtdetr_results["scores"].cpu().detach().numpy(),
+            class_id=class_ids,
+            data=data,
+        )
 
     @classmethod
     def from_yolo_nas(cls, yolo_nas_results) -> Detections:
