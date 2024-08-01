@@ -1007,15 +1007,13 @@ def cross_product(anchors: np.ndarray, vector: Vector) -> np.ndarray:
 def png_to_mask(png_string):
     """
     Convert a PNG byte string to a binary mask array.
-
     Args:
-    - png_string (bytes): A byte string representing the PNG image.
+        png_string (bytes): A byte string representing the PNG image.
 
     Returns:
-    - np.ndarray: A binary mask array with shape (H, W), where H and W
+        np.ndarray: A binary mask array with shape (H, W), where H and W
         are the height and width of the image.
     """
     image = Image.open(io.BytesIO(png_string))
     mask = np.array(image, dtype=np.uint8)
-
     return mask[:, :, 0]

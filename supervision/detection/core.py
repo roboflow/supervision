@@ -18,6 +18,11 @@ from supervision.detection.overlap_filter import (
     box_non_max_suppression,
     mask_non_max_suppression,
 )
+from supervision.detection.tools.transformers import (
+    process_detection_result, 
+    process_transformers_v4_segmentation_result, 
+    process_transformers_v5_segmentation_result
+)
 from supervision.detection.utils import (
     box_iou_batch,
     calculate_masks_centroids,
@@ -443,8 +448,11 @@ class Detections:
         [Transformer](https://github.com/huggingface/transformers) inference result.
 
         Args:
-            transformers_results (dict): The output of Transformers model inference. A
-                dictionary containing the `scores`, `labels`, `boxes` and `masks` keys.
+            transformers_results (Union[dict, torch.Tensor]): The output of
+                Transformers model inference. This can either be:
+                - A dictionary containing keys such as `scores`, `labels`, `boxes`,
+                `masks`, `segments_info`, and `segmentation`.
+                - A `torch.Tensor` representing a segmentation map with class IDs.
             id2label (Optional[Dict[int, str]]): A dictionary mapping class IDs to
                 class names. If provided, the resulting Detections object will contain
                 `class_name` data field with the class names.
@@ -484,114 +492,13 @@ class Detections:
             Class names values can be accessed using `detections["class_name"]`.
         """  # noqa: E501 // docs
 
-        data = {}
-
-        if transformers_results.__class__.__name__ == "Tensor":
-            segmentation_array = transformers_results.cpu().detach().numpy()
-
-            class_ids = np.unique(segmentation_array)
-
-            masks = np.stack(
-                [
-                    (segmentation_array == class_id).astype(bool)
-                    for class_id in class_ids
-                ],
-                axis=0,
-            )
-
-            if id2label is not None:
-                class_names = np.array([id2label[class_id] for class_id in class_ids])
-                data[CLASS_NAME_DATA_FIELD] = class_names
-
-            return cls(
-                xyxy=mask_to_xyxy(masks),
-                mask=masks,
-                class_id=class_ids,
-                data=data,
-            )
-
-        if "labels" in transformers_results:
-            class_ids = (
-                transformers_results["labels"].cpu().detach().numpy().astype(int)
-            )
-            if id2label is not None:
-                class_names = np.array([id2label[class_id] for class_id in class_ids])
-                data[CLASS_NAME_DATA_FIELD] = class_names
-
         if "boxes" in transformers_results:
-            return cls(
-                xyxy=transformers_results["boxes"].cpu().detach().numpy(),
-                confidence=transformers_results["scores"].cpu().detach().numpy(),
-                class_id=class_ids,
-                data=data,
-            )
-        elif "masks" in transformers_results:
-            masks = transformers_results["masks"].cpu().detach().numpy().astype(bool)
-            return cls(
-                xyxy=mask_to_xyxy(masks),
-                mask=masks,
-                confidence=transformers_results["scores"].cpu().detach().numpy(),
-                class_id=class_ids,
-                data=data,
-            )
-        elif "segments_info" in transformers_results:
-            segments_info = transformers_results["segments_info"]
-
-            if "segmentation" in transformers_results:
-                scores = np.array([segment["score"] for segment in segments_info])
-                class_ids = np.array([segment["label_id"] for segment in segments_info])
-                segmentation_array = (
-                    transformers_results["segmentation"].cpu().detach().numpy()
-                )
-                masks = np.array(
-                    [
-                        (segmentation_array == segment["id"]).astype(bool)
-                        for segment in segments_info
-                    ]
-                )
-
-                if id2label is not None:
-                    class_names = np.array(
-                        [id2label[class_id] for class_id in class_ids]
-                    )
-                    data[CLASS_NAME_DATA_FIELD] = class_names
-
-                return cls(
-                    xyxy=mask_to_xyxy(masks),
-                    mask=masks,
-                    confidence=scores,
-                    class_id=class_ids,
-                    data=data,
-                )
-
-            elif "png_string" in transformers_results:
-                class_ids = np.array(
-                    [segment["category_id"] for segment in segments_info]
-                )
-                segmentation_array = png_to_mask(transformers_results["png_string"])
-                masks = np.array(
-                    [
-                        (segmentation_array == segment["id"]).astype(bool)
-                        for segment in segments_info
-                    ]
-                )
-
-                if id2label is not None:
-                    class_names = np.array(
-                        [id2label[class_id] for class_id in class_ids]
-                    )
-                    data[CLASS_NAME_DATA_FIELD] = class_names
-
-                return cls(
-                    xyxy=mask_to_xyxy(masks),
-                    mask=masks,
-                    class_id=class_ids,
-                    data=data,
-                )
+            return process_detection_result(transformers_results, id2label)
+        
+        if "masks" in transformers_results or "png_string" in transformers_results:
+            return process_transformers_v4_segmentation_result(transformers_results, id2label)
         else:
-            raise NotImplementedError(
-                "Only object detection and semantic segmentation results are supported."
-            )
+            return process_transformers_v5_segmentation_result(transformers_results, id2label)
 
     @classmethod
     def from_detectron2(cls, detectron2_results) -> Detections:
