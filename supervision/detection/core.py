@@ -314,7 +314,7 @@ class Detections:
             )
 
             image = Image.open(<SOURCE_IMAGE_PATH>)
-            inputs = processor(images=image, return_tensors="pt")
+            inputs = image_processor(images=image, return_tensors="pt")
 
             with torch.no_grad():
                 outputs = model(**inputs)
