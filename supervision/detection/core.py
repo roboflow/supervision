@@ -304,8 +304,12 @@ class Detections:
             from PIL import Image
             from transformers import RTDetrForObjectDetection, RTDetrImageProcessor
 
-            image_processor = RTDetrImageProcessor.from_pretrained("PekingU/rtdetr_r50vd")
-            model = RTDetrForObjectDetection.from_pretrained("PekingU/rtdetr_r50vd")
+            image_processor = RTDetrImageProcessor.from_pretrained(
+                "PekingU/rtdetr_r50vd"
+            )
+            model = RTDetrForObjectDetection.from_pretrained(
+                "PekingU/rtdetr_r50vd"
+            )
 
             image = Image.open(<SOURCE_IMAGE_PATH>)
             inputs = processor(images=image, return_tensors="pt")
