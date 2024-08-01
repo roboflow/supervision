@@ -19,9 +19,9 @@ from supervision.detection.overlap_filter import (
     mask_non_max_suppression,
 )
 from supervision.detection.tools.transformers import (
-    process_detection_result, 
-    process_transformers_v4_segmentation_result, 
-    process_transformers_v5_segmentation_result
+    process_detection_result,
+    process_transformers_v4_segmentation_result,
+    process_transformers_v5_segmentation_result,
 )
 from supervision.detection.utils import (
     box_iou_batch,
@@ -29,9 +29,7 @@ from supervision.detection.utils import (
     extract_ultralytics_masks,
     get_data_item,
     is_data_equal,
-    mask_to_xyxy,
     merge_data,
-    png_to_mask,
     process_roboflow_result,
     xywh_to_xyxy,
 )
@@ -494,11 +492,15 @@ class Detections:
 
         if "boxes" in transformers_results:
             return process_detection_result(transformers_results, id2label)
-        
+
         if "masks" in transformers_results or "png_string" in transformers_results:
-            return process_transformers_v4_segmentation_result(transformers_results, id2label)
+            return process_transformers_v4_segmentation_result(
+                transformers_results, id2label
+            )
         else:
-            return process_transformers_v5_segmentation_result(transformers_results, id2label)
+            return process_transformers_v5_segmentation_result(
+                transformers_results, id2label
+            )
 
     @classmethod
     def from_detectron2(cls, detectron2_results) -> Detections:
