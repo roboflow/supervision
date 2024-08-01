@@ -267,6 +267,12 @@ def save_yolo_annotations(
 
 
 def save_data_yaml(data_yaml_path: str, classes: List[str]) -> None:
-    data = {"nc": len(classes), "names": classes}
+    data = {
+        "nc": len(classes),
+        "names": classes,
+        "train": "train/images",
+        "val": "valid/images",
+        "test": "test/images"
+    }
     Path(data_yaml_path).parent.mkdir(parents=True, exist_ok=True)
     save_yaml_file(data=data, file_path=data_yaml_path)
