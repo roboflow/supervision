@@ -279,6 +279,62 @@ class Detections:
             else None,
             data={CLASS_NAME_DATA_FIELD: class_names},
         )
+    
+    @classmethod
+    def from_rtdetr(cls, rtdetr_results, id2label: Optional[Dict[int, str]] = None) -> Detections:
+        """
+        Creates a Detections instance from a 
+        [RT-DETR](https://github.com/lyuwenyu/RT-DETR)
+        inference result.
+
+        Args:
+            rtdetr_results (dict):
+                The output results instance from RTDETR
+            id2label (Optional[Dict[int, str]]): A dictionary mapping class IDs to
+                class names. If provided, the resulting Detections object will contain
+                `class_name` data field with the class names.
+
+        Returns:
+            Detections: A new Detections object.
+
+        Example:
+            ```python
+            import torch
+            import supervision as sv
+            from PIL import Image
+            from transformers import RTDetrForObjectDetection, RTDetrImageProcessor
+
+            image_processor = RTDetrImageProcessor.from_pretrained("PekingU/rtdetr_r50vd")
+            model = RTDetrForObjectDetection.from_pretrained("PekingU/rtdetr_r50vd")
+
+            image = Image.open(<SOURCE_IMAGE_PATH>)
+            inputs = processor(images=image, return_tensors="pt")
+
+            with torch.no_grad():
+                outputs = model(**inputs)
+
+            results = image_processor.post_process_object_detection(
+                outputs, 
+                target_sizes=torch.tensor([image.size[::-1]]), 
+                threshold=0.3
+            )[0]
+
+            detections = sv.Detections.from_rtdetr(
+                rtdetr_results=results,
+                id2label=model.config.id2label
+            )
+        """
+        class_ids = rtdetr_results["labels"].cpu().detach().numpy().astype(int)
+        data = {}
+        if id2label is not None:
+            class_names = np.array([id2label[class_id] for class_id in class_ids])
+            data[CLASS_NAME_DATA_FIELD] = class_names
+        return cls(
+                xyxy=rtdetr_results["boxes"].cpu().detach().numpy(),
+                confidence=rtdetr_results["scores"].cpu().detach().numpy(),
+                class_id=class_ids,
+                data=data,
+            )
 
     @classmethod
     def from_yolo_nas(cls, yolo_nas_results) -> Detections:
