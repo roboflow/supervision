@@ -1651,13 +1651,13 @@ files = [
 
 [[package]]
 name = "jupytext"
-version = "1.16.3"
+version = "1.16.4"
 description = "Jupyter notebooks as Markdown documents, Julia, Python or R scripts"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "jupytext-1.16.3-py3-none-any.whl", hash = "sha256:870e0d7a716dcb1303df6ad1cec65e3315a20daedd808a55cb3dae2d56e4ed20"},
-    {file = "jupytext-1.16.3.tar.gz", hash = "sha256:1ebac990461dd9f477ff7feec9e3003fa1acc89f3c16ba01b73f79fd76f01a98"},
+    {file = "jupytext-1.16.4-py3-none-any.whl", hash = "sha256:76989d2690e65667ea6fb411d8056abe7cd0437c07bd774660b83d62acf9490a"},
+    {file = "jupytext-1.16.4.tar.gz", hash = "sha256:28e33f46f2ce7a41fb9d677a4a2c95327285579b64ca104437c4b9eb1e4174e9"},
 ]
 
 [package.dependencies]
