@@ -46,9 +46,7 @@ def process_tensor_result(
     )
     data = get_data(class_ids, id2label)
 
-    return dict(
-        xyxy=mask_to_xyxy(masks), mask=masks, class_id=class_ids, data=data
-    )
+    return dict(xyxy=mask_to_xyxy(masks), mask=masks, class_id=class_ids, data=data)
 
 
 def process_detection_result(
