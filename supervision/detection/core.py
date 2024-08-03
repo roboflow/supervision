@@ -504,8 +504,8 @@ class Detections:
             """
             return Detections(
                 xyxy=processed_result["xyxy"],
-                mask=processed_result["mask"],
-                class_id=processed_result["class_id"],
+                mask=processed_result.get("mask"),
+                class_id=processed_result.get("class_id"),
                 data=processed_result["data"],
                 confidence=processed_result.get("confidence"),
             )
