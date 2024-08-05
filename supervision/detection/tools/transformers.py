@@ -58,7 +58,8 @@ def process_transformers_v4_segmentation_result(
     """
     if "png_string" in segmentation_result:
         return process_transformers_v4_panoptic_segmentation_result(
-            segmentation_result, id2label)
+            segmentation_result, id2label
+        )
     else:
         boxes = None
         if "boxes" in segmentation_result:
@@ -97,10 +98,12 @@ def process_transformers_v5_segmentation_result(
     if segmentation_result.__class__.__name__ == "Tensor":
         segmentation_array = segmentation_result.cpu().detach().numpy()
         return process_transformers_v5_panoptic_segmentation_result(
-            segmentation_array, id2label)
+            segmentation_array, id2label
+        )
 
     return process_transformers_v5_semantic_or_instance_segmentation_result(
-        segmentation_result, id2label)
+        segmentation_result, id2label
+    )
 
 
 def process_transformers_v5_semantic_or_instance_segmentation_result(
@@ -125,11 +128,9 @@ def process_transformers_v5_semantic_or_instance_segmentation_result(
     scores = np.array([segment["score"] for segment in segments_info])
     class_ids = np.array([segment["label_id"] for segment in segments_info])
     segmentation_array = segmentation_result["segmentation"].cpu().detach().numpy()
-    masks = np.array([
-        segmentation_array == segment["id"]
-        for segment
-        in segments_info
-    ]).astype(bool)
+    masks = np.array(
+        [segmentation_array == segment["id"] for segment in segments_info]
+    ).astype(bool)
     data = append_class_names_to_data(class_ids, id2label, {})
 
     return dict(
@@ -162,11 +163,9 @@ def process_transformers_v4_panoptic_segmentation_result(
     png_string = segmentation_result["png_string"]
     class_ids = np.array([segment["category_id"] for segment in segments_info])
     segmentation_array = png_string_to_segmentation_array(png_string=png_string)
-    masks = np.array([
-        segmentation_array == segment["id"]
-        for segment
-        in segments_info
-    ]).astype(bool)
+    masks = np.array(
+        [segmentation_array == segment["id"] for segment in segments_info]
+    ).astype(bool)
     data = append_class_names_to_data(class_ids, id2label, {})
 
     return dict(
@@ -195,11 +194,9 @@ def process_transformers_v5_panoptic_segmentation_result(
               class IDs, and data.
     """
     class_ids = np.unique(segmentation_array)
-    masks = np.stack([
-        segmentation_array == class_id
-        for class_id
-        in class_ids
-    ], axis=0).astype(bool)
+    masks = np.stack(
+        [segmentation_array == class_id for class_id in class_ids], axis=0
+    ).astype(bool)
     data = append_class_names_to_data(class_ids, id2label, {})
     return dict(xyxy=mask_to_xyxy(masks), mask=masks, class_id=class_ids, data=data)
 
@@ -248,4 +245,3 @@ def append_class_names_to_data(
         data[CLASS_NAME_DATA_FIELD] = class_names
 
     return data
-

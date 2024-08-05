@@ -443,13 +443,13 @@ class Detections:
         [Transformer](https://github.com/huggingface/transformers) inference result.
 
         Args:
-            transformers_results (Union[dict, torch.Tensor]):  Inference results from 
-                your Transformers model. This can be either a dictionary containing 
-                valuable outputs like `scores`, `labels`, `boxes`, `masks`, 
-                `segments_info`, and `segmentation`, or a `torch.Tensor` holding a 
+            transformers_results (Union[dict, torch.Tensor]):  Inference results from
+                your Transformers model. This can be either a dictionary containing
+                valuable outputs like `scores`, `labels`, `boxes`, `masks`,
+                `segments_info`, and `segmentation`, or a `torch.Tensor` holding a
                 segmentation map where values represent class IDs.
-            id2label (Optional[Dict[int, str]]): A dictionary mapping class IDs to 
-                labels, typically part of the `transformers` model configuration. If 
+            id2label (Optional[Dict[int, str]]): A dictionary mapping class IDs to
+                labels, typically part of the `transformers` model configuration. If
                 provided, the resulting dictionary will include class names.
 
         Returns:
@@ -502,9 +502,7 @@ class Detections:
 
         if "boxes" in transformers_results:
             return cls(
-                **process_transformers_detection_result(
-                    transformers_results, id2label
-                )
+                **process_transformers_detection_result(transformers_results, id2label)
             )
 
     @classmethod
