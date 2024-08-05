@@ -248,10 +248,6 @@ class Detections:
             results = model(image)[0]
             detections = sv.Detections.from_ultralytics(results)
             ```
-
-        !!! tip
-
-            Class names values can be accessed using `detections["class_name"]`.
         """  # noqa: E501 // docs
 
         if hasattr(ultralytics_results, "obb") and ultralytics_results.obb is not None:
@@ -447,14 +443,14 @@ class Detections:
         [Transformer](https://github.com/huggingface/transformers) inference result.
 
         Args:
-            transformers_results (Union[dict, torch.Tensor]): The output of
-                Transformers model inference. This can either be:
-                - A dictionary containing keys such as `scores`, `labels`, `boxes`,
-                `masks`, `segments_info`, and `segmentation`.
-                - A `torch.Tensor` representing a segmentation map with class IDs.
-            id2label (Optional[Dict[int, str]]): A dictionary mapping class IDs to
-                class names. If provided, the resulting Detections object will contain
-                `class_name` data field with the class names.
+            transformers_results (Union[dict, torch.Tensor]):  Inference results from 
+                your Transformers model. This can be either a dictionary containing 
+                valuable outputs like `scores`, `labels`, `boxes`, `masks`, 
+                `segments_info`, and `segmentation`, or a `torch.Tensor` holding a 
+                segmentation map where values represent class IDs.
+            id2label (Optional[Dict[int, str]]): A map from index to label. Typically 
+                part of `transformers` model configuration. If provided, each detection 
+                will include the associated class name.
 
         Returns:
             Detections: A new Detections object.
@@ -485,10 +481,6 @@ class Detections:
                 id2label=model.config.id2label
             )
             ```
-
-        !!! tip
-
-            Class names values can be accessed using `detections["class_name"]`.
         """  # noqa: E501 // docs
 
         if (
@@ -579,10 +571,6 @@ class Detections:
             result = model.infer(image)[0]
             detections = sv.Detections.from_inference(result)
             ```
-
-        !!! tip
-
-            Class names values can be accessed using `detections["class_name"]`.
         """
         with suppress(AttributeError):
             roboflow_result = roboflow_result.dict(exclude_none=True, by_alias=True)
