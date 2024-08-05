@@ -487,12 +487,18 @@ class Detections:
             transformers_results.__class__.__name__ == "Tensor"
             or "segmentation" in transformers_results
         ):
-            return cls(**process_transformers_v5_segmentation_result(
-                transformers_results, id2label))
+            return cls(
+                **process_transformers_v5_segmentation_result(
+                    transformers_results, id2label
+                )
+            )
 
         if "masks" in transformers_results or "png_string" in transformers_results:
-            return cls(**process_transformers_v4_segmentation_result(
-                    transformers_results, id2label))
+            return cls(
+                **process_transformers_v4_segmentation_result(
+                    transformers_results, id2label
+                )
+            )
 
         if "boxes" in transformers_results:
             return cls(**process_detection_result(transformers_results, id2label))
