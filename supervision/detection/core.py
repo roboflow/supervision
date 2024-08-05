@@ -19,7 +19,7 @@ from supervision.detection.overlap_filter import (
     mask_non_max_suppression,
 )
 from supervision.detection.tools.transformers import (
-    process_detection_result,
+    process_transformers_detection_result,
     process_transformers_v4_segmentation_result,
     process_transformers_v5_segmentation_result,
 )
@@ -443,14 +443,14 @@ class Detections:
         [Transformer](https://github.com/huggingface/transformers) inference result.
 
         Args:
-            transformers_results (Union[dict, torch.Tensor]):  Inference results from
-                your Transformers model. This can be either a dictionary containing
-                valuable outputs like `scores`, `labels`, `boxes`, `masks`,
-                `segments_info`, and `segmentation`, or a `torch.Tensor` holding a
+            transformers_results (Union[dict, torch.Tensor]):  Inference results from 
+                your Transformers model. This can be either a dictionary containing 
+                valuable outputs like `scores`, `labels`, `boxes`, `masks`, 
+                `segments_info`, and `segmentation`, or a `torch.Tensor` holding a 
                 segmentation map where values represent class IDs.
-            id2label (Optional[Dict[int, str]]): A map from index to label. Typically
-                part of `transformers` model configuration. If provided, each detection
-                will include the associated class name.
+            id2label (Optional[Dict[int, str]]): A dictionary mapping class IDs to 
+                labels, typically part of the `transformers` model configuration. If 
+                provided, the resulting dictionary will include class names.
 
         Returns:
             Detections: A new Detections object.
@@ -501,7 +501,11 @@ class Detections:
             )
 
         if "boxes" in transformers_results:
-            return cls(**process_detection_result(transformers_results, id2label))
+            return cls(
+                **process_transformers_detection_result(
+                    transformers_results, id2label
+                )
+            )
 
     @classmethod
     def from_detectron2(cls, detectron2_results) -> Detections:
