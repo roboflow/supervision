@@ -1,11 +1,9 @@
-import io
 from itertools import chain
 from typing import Dict, List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
 import numpy.typing as npt
-from PIL import Image
 
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.geometry.core import Vector
@@ -1002,18 +1000,3 @@ def cross_product(anchors: np.ndarray, vector: Vector) -> np.ndarray:
     )
     vector_start = np.array([vector.start.x, vector.start.y])
     return np.cross(vector_at_zero, anchors - vector_start)
-
-
-def png_to_mask(png_string):
-    """
-    Convert a PNG byte string to a binary mask array.
-    Args:
-        png_string (bytes): A byte string representing the PNG image.
-
-    Returns:
-        np.ndarray: A binary mask array with shape (H, W), where H and W
-        are the height and width of the image.
-    """
-    image = Image.open(io.BytesIO(png_string))
-    mask = np.array(image, dtype=np.uint8)
-    return mask[:, :, 0]

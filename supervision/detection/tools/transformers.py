@@ -1,26 +1,38 @@
-from typing import Dict, Optional
+import io
+from typing import Dict, Optional, Any
 
 import numpy as np
+from PIL import Image
 
 from supervision.config import CLASS_NAME_DATA_FIELD
-from supervision.detection.utils import mask_to_xyxy, png_to_mask
+from supervision.detection.utils import mask_to_xyxy
 
 
-def get_data(class_ids: np.ndarray, id2label: Optional[Dict[int, str]]) -> dict:
+def append_class_names_to_data(
+    class_ids: np.ndarray,
+    id2label: Optional[Dict[int, str]],
+    data: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
     """
-    Helper function to create data dictionary with class names if available.
+    Helper function to create or append to a data dictionary with class names if
+    available.
 
     Args:
         class_ids (np.ndarray): Array of class IDs.
-        id2label (Optional[Dict[int, str]]): Dictionary mapping class IDs to class names.
+        id2label (Optional[Dict[int, str]]): A map from index to label. Typically part
+            of `transformers` model configuration.
+        data (Optional[Dict[str, Any]]): An existing data dictionary to append to.
 
     Returns:
-        dict: Dictionary containing class names if id2label is provided.
+        Dict[str, Any]: Dictionary containing class names if id2label is provided.
     """
-    data = {}
+    if data is None:
+        data = {}
+
     if id2label is not None:
         class_names = np.array([id2label[class_id] for class_id in class_ids])
         data[CLASS_NAME_DATA_FIELD] = class_names
+
     return data
 
 
@@ -44,7 +56,7 @@ def process_tensor_result(
         [(segmentation_array == class_id).astype(bool) for class_id in class_ids],
         axis=0,
     )
-    data = get_data(class_ids, id2label)
+    data = append_class_names_to_data(class_ids, id2label, {})
 
     return dict(xyxy=mask_to_xyxy(masks), mask=masks, class_id=class_ids, data=data)
 
@@ -66,7 +78,7 @@ def process_detection_result(
               class IDs, and data.
     """
     class_ids = detection_result["labels"].cpu().detach().numpy().astype(int)
-    data = get_data(class_ids, id2label)
+    data = append_class_names_to_data(class_ids, id2label, {})
 
     return dict(
         xyxy=detection_result["boxes"].cpu().detach().numpy(),
@@ -107,7 +119,7 @@ def process_transformers_v4_segmentation_result(
             mask=np.squeeze(masks, axis=1) if boxes is not None else masks,
             confidence=segmentation_result["scores"].cpu().detach().numpy(),
             class_id=class_ids,
-            data=get_data(class_ids, id2label),
+            data=append_class_names_to_data(class_ids, id2label ,{}),
         )
 
 
@@ -161,7 +173,7 @@ def process_segmentation_result(
             for segment in segments_info
         ]
     )
-    data = get_data(class_ids, id2label)
+    data = append_class_names_to_data(class_ids, id2label, {})
 
     return dict(
         xyxy=mask_to_xyxy(masks),
@@ -188,14 +200,14 @@ def process_png_segmentation_result(
     """
     segments_info = segmentation_result["segments_info"]
     class_ids = np.array([segment["category_id"] for segment in segments_info])
-    segmentation_array = png_to_mask(segmentation_result["png_string"])
+    label_mask = png_string_to_label_mask(segmentation_result["png_string"])
     masks = np.array(
         [
-            (segmentation_array == segment["id"]).astype(bool)
+            (label_mask == segment["id"]).astype(bool)
             for segment in segments_info
         ]
     )
-    data = get_data(class_ids, id2label)
+    data = append_class_names_to_data(class_ids, id2label, {})
 
     return dict(
         xyxy=mask_to_xyxy(masks),
@@ -203,3 +215,20 @@ def process_png_segmentation_result(
         class_id=class_ids,
         data=data,
     )
+
+
+def png_string_to_label_mask(png_string: bytes) -> np.ndarray:
+    """
+    Convert a PNG byte string to a label mask array.
+
+    Args:
+        png_string (bytes): A byte string representing the PNG image.
+
+    Returns:
+        np.ndarray: A label mask array with shape (H, W), where H and W
+        are the height and width of the image. Each unique value in the array
+        represents a different object or category.
+    """
+    image = Image.open(io.BytesIO(png_string))
+    mask = np.array(image, dtype=np.uint8)
+    return mask[:, :, 0]

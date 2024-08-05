@@ -491,46 +491,19 @@ class Detections:
             Class names values can be accessed using `detections["class_name"]`.
         """  # noqa: E501 // docs
 
-        def convert_to_detections(processed_result: dict) -> Detections:
-            """
-            Convert a processed result dictionary into a Detections object.
-
-            Args:
-                processed_result (dict): The processed result dictionary containing the keys
-                'xyxy', 'mask', 'class_id', 'data', and 'confidence'.
-
-            Returns:
-                Detections: A Detections object created from the processed result.
-            """
-            return Detections(
-                xyxy=processed_result["xyxy"],
-                mask=processed_result.get("mask"),
-                class_id=processed_result.get("class_id"),
-                data=processed_result["data"],
-                confidence=processed_result.get("confidence"),
-            )
-
         if (
             transformers_results.__class__.__name__ == "Tensor"
             or "segmentation" in transformers_results
         ):
-            return convert_to_detections(
-                process_transformers_v5_segmentation_result(
-                    transformers_results, id2label
-                )
-            )
+            return cls(**process_transformers_v5_segmentation_result(
+                transformers_results, id2label))
 
         if "masks" in transformers_results or "png_string" in transformers_results:
-            return convert_to_detections(
-                process_transformers_v4_segmentation_result(
-                    transformers_results, id2label
-                )
-            )
+            return cls(**process_transformers_v4_segmentation_result(
+                    transformers_results, id2label))
 
         if "boxes" in transformers_results:
-            return convert_to_detections(
-                process_detection_result(transformers_results, id2label)
-            )
+            return cls(**process_detection_result(transformers_results, id2label))
 
     @classmethod
     def from_detectron2(cls, detectron2_results) -> Detections:
