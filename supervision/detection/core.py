@@ -18,13 +18,17 @@ from supervision.detection.overlap_filter import (
     box_non_max_suppression,
     mask_non_max_suppression,
 )
+from supervision.detection.tools.transformers import (
+    process_transformers_detection_result,
+    process_transformers_v4_segmentation_result,
+    process_transformers_v5_segmentation_result,
+)
 from supervision.detection.utils import (
     box_iou_batch,
     calculate_masks_centroids,
     extract_ultralytics_masks,
     get_data_item,
     is_data_equal,
-    mask_to_xyxy,
     merge_data,
     process_roboflow_result,
     xywh_to_xyxy,
@@ -244,10 +248,6 @@ class Detections:
             results = model(image)[0]
             detections = sv.Detections.from_ultralytics(results)
             ```
-
-        !!! tip
-
-            Class names values can be accessed using `detections["class_name"]`.
         """  # noqa: E501 // docs
 
         if hasattr(ultralytics_results, "obb") and ultralytics_results.obb is not None:
@@ -438,15 +438,19 @@ class Detections:
         cls, transformers_results: dict, id2label: Optional[Dict[int, str]] = None
     ) -> Detections:
         """
-        Creates a Detections instance from object detection or segmentation
+        Creates a Detections instance from object detection or panoptic, semantic
+        and instance segmentation
         [Transformer](https://github.com/huggingface/transformers) inference result.
 
         Args:
-            transformers_results (dict): The output of Transformers model inference. A
-                dictionary containing the `scores`, `labels`, `boxes` and `masks` keys.
+            transformers_results (Union[dict, torch.Tensor]):  Inference results from
+                your Transformers model. This can be either a dictionary containing
+                valuable outputs like `scores`, `labels`, `boxes`, `masks`,
+                `segments_info`, and `segmentation`, or a `torch.Tensor` holding a
+                segmentation map where values represent class IDs.
             id2label (Optional[Dict[int, str]]): A dictionary mapping class IDs to
-                class names. If provided, the resulting Detections object will contain
-                `class_name` data field with the class names.
+                labels, typically part of the `transformers` model configuration. If
+                provided, the resulting dictionary will include class names.
 
         Returns:
             Detections: A new Detections object.
@@ -477,36 +481,28 @@ class Detections:
                 id2label=model.config.id2label
             )
             ```
-
-        !!! tip
-
-            Class names values can be accessed using `detections["class_name"]`.
         """  # noqa: E501 // docs
 
-        class_ids = transformers_results["labels"].cpu().detach().numpy().astype(int)
-        data = {}
-        if id2label is not None:
-            class_names = np.array([id2label[class_id] for class_id in class_ids])
-            data[CLASS_NAME_DATA_FIELD] = class_names
+        if (
+            transformers_results.__class__.__name__ == "Tensor"
+            or "segmentation" in transformers_results
+        ):
+            return cls(
+                **process_transformers_v5_segmentation_result(
+                    transformers_results, id2label
+                )
+            )
+
+        if "masks" in transformers_results or "png_string" in transformers_results:
+            return cls(
+                **process_transformers_v4_segmentation_result(
+                    transformers_results, id2label
+                )
+            )
+
         if "boxes" in transformers_results:
             return cls(
-                xyxy=transformers_results["boxes"].cpu().detach().numpy(),
-                confidence=transformers_results["scores"].cpu().detach().numpy(),
-                class_id=class_ids,
-                data=data,
-            )
-        elif "masks" in transformers_results:
-            masks = transformers_results["masks"].cpu().detach().numpy().astype(bool)
-            return cls(
-                xyxy=mask_to_xyxy(masks),
-                mask=masks,
-                confidence=transformers_results["scores"].cpu().detach().numpy(),
-                class_id=class_ids,
-                data=data,
-            )
-        else:
-            raise NotImplementedError(
-                "Only object detection and semantic segmentation results are supported."
+                **process_transformers_detection_result(transformers_results, id2label)
             )
 
     @classmethod
@@ -583,10 +579,6 @@ class Detections:
             result = model.infer(image)[0]
             detections = sv.Detections.from_inference(result)
             ```
-
-        !!! tip
-
-            Class names values can be accessed using `detections["class_name"]`.
         """
         with suppress(AttributeError):
             roboflow_result = roboflow_result.dict(exclude_none=True, by_alias=True)
