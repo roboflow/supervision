@@ -1,5 +1,5 @@
 import io
-from typing import Dict, Optional, Any
+from typing import Any, Dict, Optional
 
 import numpy as np
 from PIL import Image
@@ -11,7 +11,7 @@ from supervision.detection.utils import mask_to_xyxy
 def append_class_names_to_data(
     class_ids: np.ndarray,
     id2label: Optional[Dict[int, str]],
-    data: Optional[Dict[str, Any]] = None
+    data: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
     Helper function to create or append to a data dictionary with class names if
@@ -119,7 +119,7 @@ def process_transformers_v4_segmentation_result(
             mask=np.squeeze(masks, axis=1) if boxes is not None else masks,
             confidence=segmentation_result["scores"].cpu().detach().numpy(),
             class_id=class_ids,
-            data=append_class_names_to_data(class_ids, id2label ,{}),
+            data=append_class_names_to_data(class_ids, id2label, {}),
         )
 
 
@@ -202,10 +202,7 @@ def process_png_segmentation_result(
     class_ids = np.array([segment["category_id"] for segment in segments_info])
     label_mask = png_string_to_label_mask(segmentation_result["png_string"])
     masks = np.array(
-        [
-            (label_mask == segment["id"]).astype(bool)
-            for segment in segments_info
-        ]
+        [(label_mask == segment["id"]).astype(bool) for segment in segments_info]
     )
     data = append_class_names_to_data(class_ids, id2label, {})
 
