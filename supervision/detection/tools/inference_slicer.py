@@ -100,7 +100,7 @@ class InferenceSlicer:
         iou_threshold: float = 0.5,
         thread_workers: int = 1,
     ):
-        if overlap_ratio_wh is None:
+        if overlap_ratio_wh is not None:
             warn_deprecated(
                 "`overlap_ratio_wh` in `InferenceSlicer.__init__` is deprecated and "
                 "will be remove in `supervision-0.27.0`. Use `overlap_wh` instead."
