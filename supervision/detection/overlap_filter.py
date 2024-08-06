@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from enum import Enum
 from typing import List, Union
 
@@ -248,16 +250,23 @@ class OverlapFilter(Enum):
     NON_MAX_SUPPRESSION = "non_max_suppression"
     NON_MAX_MERGE = "non_max_merge"
 
+    @classmethod
+    def list(cls):
+        return list(map(lambda c: c.value, cls))
 
-def validate_overlap_filter(
-    strategy: Union[OverlapFilter, str],
-) -> OverlapFilter:
-    if isinstance(strategy, str):
-        try:
-            strategy = OverlapFilter(strategy.lower())
-        except ValueError:
-            raise ValueError(
-                f"Invalid strategy value: {strategy}. Must be one of "
-                f"{[e.value for e in OverlapFilter]}"
-            )
-    return strategy
+    @classmethod
+    def from_value(cls, value: Union[OverlapFilter, str]) -> OverlapFilter:
+        if isinstance(value, cls):
+            return value
+        if isinstance(value, str):
+            value = value.lower()
+            try:
+                return cls(value)
+            except ValueError:
+                raise ValueError(
+                    f"Invalid value: {value}. Must be one of {cls.list()}"
+                )
+        raise ValueError(
+            f"Invalid value type: {type(value)}. Must be an instance of "
+            f"{cls.__name__} or str."
+        )
