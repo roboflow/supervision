@@ -3989,17 +3989,17 @@ files = [
 
 [[package]]
 name = "tox"
-version = "4.16.0"
+version = "4.17.0"
 description = "tox is a generic virtualenv management and test command line tool"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "tox-4.16.0-py3-none-any.whl", hash = "sha256:61e101061b977b46cf00093d4319438055290ad0009f84497a07bf2d2d7a06d0"},
-    {file = "tox-4.16.0.tar.gz", hash = "sha256:43499656f9949edb681c0f907f86fbfee98677af9919d8b11ae5ad77cb800748"},
+    {file = "tox-4.17.0-py3-none-any.whl", hash = "sha256:82ef41e7e54182e2143daf0b2920d9030c2e1c4291e12091ebad66860c7be7a4"},
+    {file = "tox-4.17.0.tar.gz", hash = "sha256:b1e2e1dfbfdc174d9be95ae78ec2c4d2cf4800d4c15571deddb197a2c90d2de6"},
 ]
 
 [package.dependencies]
-cachetools = ">=5.3.3"
+cachetools = ">=5.4"
 chardet = ">=5.2"
 colorama = ">=0.4.6"
 filelock = ">=3.15.4"
@@ -4011,8 +4011,8 @@ tomli = {version = ">=2.0.1", markers = "python_version < \"3.11\""}
 virtualenv = ">=20.26.3"
 
 [package.extras]
-docs = ["furo (>=2024.5.6)", "sphinx (>=7.3.7)", "sphinx-argparse-cli (>=1.16)", "sphinx-autodoc-typehints (>=2.2.2)", "sphinx-copybutton (>=0.5.2)", "sphinx-inline-tabs (>=2023.4.21)", "sphinxcontrib-towncrier (>=0.2.1a0)", "towncrier (>=23.11)"]
-testing = ["build[virtualenv] (>=1.2.1)", "covdefaults (>=2.3)", "detect-test-pollution (>=1.2)", "devpi-process (>=1)", "diff-cover (>=9.1)", "distlib (>=0.3.8)", "flaky (>=3.8.1)", "hatch-vcs (>=0.4)", "hatchling (>=1.25)", "psutil (>=6)", "pytest (>=8.2.2)", "pytest-cov (>=5)", "pytest-mock (>=3.14)", "pytest-xdist (>=3.6.1)", "re-assert (>=1.1)", "setuptools (>=70.2)", "time-machine (>=2.14.2)", "wheel (>=0.43)"]
+docs = ["furo (>=2024.7.18)", "sphinx (>=7.4.7)", "sphinx-argparse-cli (>=1.16)", "sphinx-autodoc-typehints (>=2.2.3)", "sphinx-copybutton (>=0.5.2)", "sphinx-inline-tabs (>=2023.4.21)", "sphinxcontrib-towncrier (>=0.2.1a0)", "towncrier (>=23.11)"]
+testing = ["build[virtualenv] (>=1.2.1)", "covdefaults (>=2.3)", "detect-test-pollution (>=1.2)", "devpi-process (>=1)", "diff-cover (>=9.1.1)", "distlib (>=0.3.8)", "flaky (>=3.8.1)", "hatch-vcs (>=0.4)", "hatchling (>=1.25)", "psutil (>=6)", "pytest (>=8.3.2)", "pytest-cov (>=5)", "pytest-mock (>=3.14)", "pytest-xdist (>=3.6.1)", "re-assert (>=1.1)", "setuptools (>=70.3)", "time-machine (>=2.14.2)", "wheel (>=0.43)"]
 
 [[package]]
 name = "tqdm"
