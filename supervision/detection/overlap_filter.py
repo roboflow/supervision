@@ -263,9 +263,7 @@ class OverlapFilter(Enum):
             try:
                 return cls(value)
             except ValueError:
-                raise ValueError(
-                    f"Invalid value: {value}. Must be one of {cls.list()}"
-                )
+                raise ValueError(f"Invalid value: {value}. Must be one of {cls.list()}")
         raise ValueError(
             f"Invalid value type: {type(value)}. Must be an instance of "
             f"{cls.__name__} or str."
