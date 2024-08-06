@@ -58,15 +58,15 @@ class InferenceSlicer:
     slice, and then merging the detections.
 
     Args:
-        slice_wh (Tuple[int, int]): Dimensions of each slice in the format
-            `(width, height)`.
+        slice_wh (Tuple[int, int]): Dimensions of each slice measured in pixels. The
+            tuple should be in the format `(width, height)`.
         overlap_ratio_wh (Optional[Tuple[float, float]]): A tuple representing the
             desired overlap ratio for width and height between consecutive slices.
             Each value should be in the range [0, 1), where 0 means no overlap and
             a value close to 1 means high overlap.
         overlap_wh (Optional[Tuple[int, int]]): A tuple representing the desired
-            overlap for width and height between consecutive slices. Each value
-            should be greater than 0.
+            overlap for width and height between consecutive slices measured in pixels.
+            Each value should be greater than or equal to 0.
         overlap_filter (Union[OverlapFilter, str]): Strategy for
             filtering or merging overlapping detections in slices.
         iou_threshold (float): Intersection over Union (IoU) threshold
@@ -216,15 +216,15 @@ class InferenceSlicer:
         Args:
             resolution_wh (Tuple[int, int]): A tuple representing the width and height
                 of the image to be sliced.
-            slice_wh (Tuple[int, int]): A tuple representing the desired width and
-                height of each slice.
+            slice_wh (Tuple[int, int]): Dimensions of each slice measured in pixels. The
+            tuple should be in the format `(width, height)`.
             overlap_ratio_wh (Optional[Tuple[float, float]]): A tuple representing the
                 desired overlap ratio for width and height between consecutive slices.
                 Each value should be in the range [0, 1), where 0 means no overlap and
                 a value close to 1 means high overlap.
             overlap_wh (Optional[Tuple[int, int]]): A tuple representing the desired
-                overlap for width and height between consecutive slices. Each value
-                should be greater than 0.
+                overlap for width and height between consecutive slices measured in
+                pixels. Each value should be greater than or equal to 0.
 
         Returns:
             np.ndarray: An array of shape `(n, 4)` containing coordinates for each
@@ -281,7 +281,8 @@ class InferenceSlicer:
                     f"Received: {overlap_ratio_wh}"
                 )
         if overlap_wh is not None:
-            if not (overlap_wh[0] > 0 and overlap_wh[1] > 0):
+            if not (overlap_wh[0] >= 0 and overlap_wh[1] >= 0):
                 raise ValueError(
-                    "Overlap values must be greater than 0. " f"Received: {overlap_wh}"
+                    "Overlap values must be greater than or equal to 0. " 
+                    f"Received: {overlap_wh}"
                 )
