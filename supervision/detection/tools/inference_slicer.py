@@ -283,6 +283,6 @@ class InferenceSlicer:
         if overlap_wh is not None:
             if not (overlap_wh[0] >= 0 and overlap_wh[1] >= 0):
                 raise ValueError(
-                    "Overlap values must be greater than or equal to 0. " 
+                    "Overlap values must be greater than or equal to 0. "
                     f"Received: {overlap_wh}"
                 )
