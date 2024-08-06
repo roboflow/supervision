@@ -157,6 +157,7 @@ class InferenceSlicer:
             resolution_wh=resolution_wh,
             slice_wh=self.slice_wh,
             overlap_ratio_wh=self.overlap_ratio_wh,
+            overlap_wh=self.overlap_wh
         )
 
         with ThreadPoolExecutor(max_workers=self.thread_workers) as executor:
