@@ -274,6 +274,12 @@ class InferenceSlicer:
                 "Both `overlap_ratio_wh` and `overlap_wh` cannot be provided. "
                 "Please provide only one of them."
             )
+        if overlap_ratio_wh is None and overlap_wh is None:
+            raise ValueError(
+                "Either `overlap_ratio_wh` or `overlap_wh` must be provided. "
+                "Please provide one of them."
+            )
+
         if overlap_ratio_wh is not None:
             if not (0 <= overlap_ratio_wh[0] < 1 and 0 <= overlap_ratio_wh[1] < 1):
                 raise ValueError(
