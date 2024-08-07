@@ -555,7 +555,11 @@ class DetectionDataset(BaseDataset):
                 approximation_percentage=approximation_percentage,
             )
         if data_yaml_path is not None:
-            save_data_yaml(data_yaml_path=data_yaml_path, classes=self.classes)
+            save_data_yaml(
+                data_yaml_path=data_yaml_path,
+                classes=self.classes,
+                subset_type=subset_type,
+            )
 
     @classmethod
     def from_coco(
