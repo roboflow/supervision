@@ -434,7 +434,8 @@ class VertexLabelAnnotator:
     ) -> np.array:
         if isinstance(text_colors, list) and len(text_colors) != points_count:
             raise ValueError(
-                f"Number of colors ({len(text_colors)}) must match number of key points "
+                f"Number of colors ({len(text_colors)}) must match number of key 
+                    points "
                 f"({points_count})."
             )
         return (
