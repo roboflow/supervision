@@ -433,6 +433,26 @@ status: new
 
     </div>
 
+=== "Background Color"
+
+    ```python
+    import supervision as sv
+
+    image = ...
+    detections = sv.Detections(...)
+
+    blur_annotator = sv.BackgroundColorAnnotator()
+    annotated_frame = blur_annotator.annotate(
+        scene=image.copy(),
+        detections=detections
+    )
+    ```
+
+    <div class="result" markdown>
+
+        ![background-color-annotator-example](https://media.roboflow.com/supervision-annotator-examples/background-color-annotator-example-purple.png)
+    </div>
+
 <div class="md-typeset">
     <h2><a href="#supervision.annotators.core.BoxAnnotator">BoxAnnotator</a></h2>
 </div>
@@ -552,6 +572,12 @@ status: new
 </div>
 
 :::supervision.annotators.core.CropAnnotator
+
+<div class="md-typeset">
+    <h2><a href="#supervision.annotators.core.BackgroundColorAnnotator">BackgroundColorAnnotator</a></h2>
+</div>
+
+:::supervision.annotators.core.BackgroundColorAnnotator
 
 <div class="md-typeset">
     <h2><a href="#supervision.annotators.core.ColorLookup">ColorLookup</a></h2>
