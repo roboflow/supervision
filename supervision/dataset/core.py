@@ -504,6 +504,7 @@ class DetectionDataset(BaseDataset):
         images_directory_path: Optional[str] = None,
         annotations_directory_path: Optional[str] = None,
         data_yaml_path: Optional[str] = None,
+        subset_type: Optional[str] = None,
         min_image_area_percentage: float = 0.0,
         max_image_area_percentage: float = 1.0,
         approximation_percentage: float = 0.0,
@@ -523,6 +524,11 @@ class DetectionDataset(BaseDataset):
             data_yaml_path (Optional[str]): The path where the data.yaml
                 file should be saved.
                 If not provided, the file will not be saved.
+            subset_type (Optional[str]): The subset type of the exported
+                dataset.
+                Accepted values: "train", "val", "test"
+                If not provided, the subset dataset path will not be
+                added or modified in data yaml file.
             min_image_area_percentage (float): The minimum percentage of
                 detection area relative to
                 the image area for a detection to be included.
