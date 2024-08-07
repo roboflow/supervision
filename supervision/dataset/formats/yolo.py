@@ -266,13 +266,15 @@ def save_yolo_annotations(
         save_text_file(lines=lines, file_path=yolo_annotations_path)
 
 
-def save_data_yaml(data_yaml_path: str, classes: List[str], subset_type: Union[str, None]) -> None:
+def save_data_yaml(
+    data_yaml_path: str, classes: List[str], subset_type: Union[str, None]
+) -> None:
     if Path(data_yaml_path).exists():
         data = read_yaml_file(data_yaml_path)
     else:
         data = {}
     data["nc"] = len(classes)
-    data["names"] = classes 
+    data["names"] = classes
     if subset_type is not None:
         data[subset_type] = f"{subset_type}/images"
     Path(data_yaml_path).parent.mkdir(parents=True, exist_ok=True)
