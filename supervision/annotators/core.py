@@ -2261,7 +2261,7 @@ class CropAnnotator(BaseAnnotator):
             return (anchor_x, anchor_y), (anchor_x + width, anchor_y + height)
 
 
-class BackgroundColorAnnotator(BaseAnnotator):
+class BackgroundOverlayAnnotator(BaseAnnotator):
     """
     A class for drawing a colored overlay on the background of an image outside
     the region of detections.
@@ -2315,17 +2315,16 @@ class BackgroundColorAnnotator(BaseAnnotator):
             image = ...
             detections = sv.Detections(...)
 
-            background_color_annotator = sv.BackgroundColorAnnotator()
-            annotated_frame = background_color_annotator.annotate(
+            background_overlay_annotator = sv.BackgroundOverlayAnnotator()
+            annotated_frame = background_overlay_annotator.annotate(
                 scene=image.copy(),
                 detections=detections
             )
             ```
 
-        ![background-color-annotator-example](https://media.roboflow.com/
+        ![background-overlay-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/background-color-annotator-example-purple.png)
         """
-
         colored_mask = np.full_like(scene, self.color.as_bgr(), dtype=np.uint8)
 
         cv2.addWeighted(
@@ -2339,4 +2338,5 @@ class BackgroundColorAnnotator(BaseAnnotator):
             for mask in detections.mask:
                 colored_mask[mask] = scene[mask]
 
-        return np.copyto(scene, colored_mask)
+        np.copyto(scene, colored_mask)
+        return scene

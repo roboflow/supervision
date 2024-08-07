@@ -441,8 +441,8 @@ status: new
     image = ...
     detections = sv.Detections(...)
 
-    blur_annotator = sv.BackgroundColorAnnotator()
-    annotated_frame = blur_annotator.annotate(
+    background_overlay_annotator = sv.BackgroundOverlayAnnotator()
+    annotated_frame = background_overlay_annotator.annotate(
         scene=image.copy(),
         detections=detections
     )
@@ -450,7 +450,7 @@ status: new
 
     <div class="result" markdown>
 
-        ![background-color-annotator-example](https://media.roboflow.com/supervision-annotator-examples/background-color-annotator-example-purple.png)
+        ![background-overlay-annotator-example](https://media.roboflow.com/supervision-annotator-examples/background-color-annotator-example-purple.png)
     </div>
 
 <div class="md-typeset">
@@ -574,10 +574,10 @@ status: new
 :::supervision.annotators.core.CropAnnotator
 
 <div class="md-typeset">
-    <h2><a href="#supervision.annotators.core.BackgroundColorAnnotator">BackgroundColorAnnotator</a></h2>
+    <h2><a href="#supervision.annotators.core.BackgroundOverlayAnnotator">BackgroundOverlayAnnotator</a></h2>
 </div>
 
-:::supervision.annotators.core.BackgroundColorAnnotator
+:::supervision.annotators.core.BackgroundOverlayAnnotator
 
 <div class="md-typeset">
     <h2><a href="#supervision.annotators.core.ColorLookup">ColorLookup</a></h2>
