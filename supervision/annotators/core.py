@@ -2263,7 +2263,13 @@ class CropAnnotator(BaseAnnotator):
 
 class BackgroundColorAnnotator(BaseAnnotator):
     """
-    A class for drawing background colors outside of detected box or mask regions.
+    A class for drawing a colored overlay on the background of an image outside
+    the region of detections.
+
+    If masks are provided, the background is colored outside the masks.
+    If masks are not provided, the background is colored outside the bounding boxes.
+
+    You can use the `force_box` parameter to force the annotator to use bounding boxes.
 
     !!! warning
 
@@ -2280,6 +2286,8 @@ class BackgroundColorAnnotator(BaseAnnotator):
         Args:
             color (Color): The color to use for annotating detections.
             opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.
+            force_box (bool): If `True`, forces the annotator to use bounding boxes when
+                masks are provided in the supplied sv.Detections.
         """
         self.color: Color = color
         self.opacity = opacity
@@ -2288,7 +2296,7 @@ class BackgroundColorAnnotator(BaseAnnotator):
     @ensure_cv2_image_for_annotation
     def annotate(self, scene: ImageType, detections: Detections) -> ImageType:
         """
-        Annotates the given scene with masks based on the provided detections.
+        Applies a colored overlay to the scene outside of the detected regions.
 
         Args:
             scene (ImageType): The image where masks will be drawn.
@@ -2325,8 +2333,7 @@ class BackgroundColorAnnotator(BaseAnnotator):
         )
 
         if detections.mask is None or self.force_box:
-            for detection_idx in range(len(detections)):
-                x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
+            for x1, y1, x2, y2 in detections.xyxy.astype(int):
                 colored_mask[y1:y2, x1:x2] = scene[y1:y2, x1:x2]
         else:
             for mask in detections.mask:
