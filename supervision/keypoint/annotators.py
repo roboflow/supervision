@@ -7,7 +7,7 @@ import numpy as np
 
 from supervision import Rect, pad_boxes
 from supervision.annotators.base import ImageType
-from supervision.draw.color import Color, ColorPalette
+from supervision.draw.color import Color
 from supervision.draw.utils import draw_rounded_rectangle
 from supervision.keypoint.core import KeyPoints
 from supervision.keypoint.skeletons import SKELETONS_BY_VERTEX_COUNT
@@ -353,7 +353,9 @@ class VertexLabelAnnotator:
 
         xyxy_padded = pad_boxes(xyxy=xyxy, px=self.text_padding)
 
-        for text, color, text_color, box, box_padded in zip(labels, colors, text_colors, xyxy, xyxy_padded):
+        for text, color, text_color, box, box_padded in zip(
+            labels, colors, text_colors, xyxy, xyxy_padded
+        ):
             draw_rounded_rectangle(
                 scene=scene,
                 rect=Rect.from_xyxy(box_padded),
