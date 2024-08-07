@@ -450,7 +450,8 @@ status: new
 
     <div class="result" markdown>
 
-        ![background-overlay-annotator-example](https://media.roboflow.com/supervision-annotator-examples/background-color-annotator-example-purple.png)
+    ![background-overlay-annotator-example](https://media.roboflow.com/supervision-annotator-examples/background-color-annotator-example-purple.png)
+
     </div>
 
 <div class="md-typeset">
