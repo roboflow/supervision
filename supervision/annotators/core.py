@@ -2339,4 +2339,4 @@ class BackgroundColorAnnotator(BaseAnnotator):
             for mask in detections.mask:
                 colored_mask[mask] = scene[mask]
 
-        return Image.fromarray(colored_mask[:, :, ::-1])
+        return np.copyto(scene, colored_mask)
