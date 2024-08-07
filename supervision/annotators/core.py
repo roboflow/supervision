@@ -3,7 +3,7 @@ from typing import List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
-from PIL import ImageDraw, ImageFont
+from PIL import ImageDraw, ImageFont, Image
 
 from supervision.annotators.base import BaseAnnotator, ImageType
 from supervision.annotators.utils import (
@@ -2339,4 +2339,4 @@ class BackgroundColorAnnotator(BaseAnnotator):
             for mask in detections.mask:
                 colored_mask[mask] = scene[mask]
 
-        return colored_mask
+        return Image.fromarray(colored_mask)
