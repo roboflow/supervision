@@ -87,7 +87,7 @@ class InferenceSlicer:
         new_parameter="overlap_filter",
         map_function=lambda x: x,
         warning_message="`{old_parameter}` in `{function_name}` is deprecated and will "
-        "be remove in `supervision-0.27.0`. Use '{new_parameter}' "
+        "be removed in `supervision-0.27.0`. Use '{new_parameter}' "
         "instead.",
     )
     def __init__(
@@ -103,7 +103,7 @@ class InferenceSlicer:
         if overlap_ratio_wh is not None:
             warn_deprecated(
                 "`overlap_ratio_wh` in `InferenceSlicer.__init__` is deprecated and "
-                "will be remove in `supervision-0.27.0`. Use `overlap_wh` instead."
+                "will be removed in `supervision-0.27.0`. Use `overlap_wh` instead."
             )
 
         self._validate_overlap(overlap_ratio_wh, overlap_wh)
