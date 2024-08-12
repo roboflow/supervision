@@ -123,7 +123,6 @@ class InternalMetricDataStore:
         class_ids_2 = self._get_class_ids(data_2)
         self._validate_class_ids(class_ids_1)
         self._validate_class_ids(class_ids_2)
-
         if content_1 is not None and len(content_1) > 0:
             assert len(content_1) == len(class_ids_1)
             for class_id in set(class_ids_1):

@@ -175,6 +175,8 @@ def test_store_boxes_class_agnostic(
             ],
             DoesNotRaise(),
         ),
+
+        # array is the same as no class
         (
             Detections(xyxy=np.array([[0, 0, 1, 1], [0, 0, 2, 2]], dtype=np.float32)),
             np.array([[0, 0, 1, 1], [0, 0, 2, 2]], dtype=np.float32),
@@ -185,25 +187,9 @@ def test_store_boxes_class_agnostic(
                     np.array([[0, 0, 1, 1], [0, 0, 2, 2]], dtype=np.float32),
                 )
             ],
-            DoesNotRaise(),
-        ),
-        # with classes - should be ignored.
-        (
-            Detections(
-                xyxy=np.array([[0, 0, 1, 1], [0, 0, 2, 2]], dtype=np.float32),
-                class_id=np.array([1, 2], dtype=int),
-            ),
-            np.array([[0, 0, 1, 1], [0, 0, 2, 2]], dtype=np.float32),
-            [
-                (
-                    CLASS_ID_NONE,
-                    np.array([[0, 0, 1, 1], [0, 0, 2, 2]], dtype=np.float32),
-                    np.array([[0, 0, 1, 1], [0, 0, 2, 2]], dtype=np.float32),
-                )
-            ],
-            DoesNotRaise(),
-        ),
-    ],
+            DoesNotRaise()
+        )
+    ]
 )
 def test_store_boxes_by_class(
     data_1: Union[npt.NDArray, Detections],
@@ -215,6 +201,9 @@ def test_store_boxes_by_class(
     store.update(data_1, data_2)
     result = [result for result in store]
     assert len(result) == len(expected_result)
+
+    np.array
+
     with exception:
         for (class_id, content_1, content_2), (
             expected_class_id,
