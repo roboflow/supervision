@@ -1,14 +1,13 @@
-from typing import Dict, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, Union
 
 import numpy as np
 import numpy.typing as npt
 
-import supervision.config as config
 from supervision.detection.core import Detections
 from supervision.metrics.core import InternalMetricDataStore, Metric, MetricTarget
 
 if TYPE_CHECKING:
-    import pandas as pd
+    pass
 
 
 class IntersectionOverUnion(Metric):

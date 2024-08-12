@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any, Dict, Iterator, Optional, Tuple, Union
@@ -11,6 +12,7 @@ from supervision.detection.core import Detections
 
 """Used by metrics module as class ID, when none is present"""
 CLASS_ID_NONE = -1
+
 
 class Metric(ABC):
     """
@@ -43,7 +45,7 @@ class Metric(ABC):
         Compute the metric from the internal state and return the result.
         """
         raise NotImplementedError
-    
+
     # TODO: determine if this is necessary.
     # @abstractmethod
     # def to_pandas(self, *args, **kwargs) -> Any:
@@ -91,11 +93,7 @@ class InternalMetricDataStore:
     * Provides iteration by class
     """
 
-    def __init__(
-        self,
-        metric_target: MetricTarget,
-        class_agnostic: bool
-    ):
+    def __init__(self, metric_target: MetricTarget, class_agnostic: bool):
         self._metric_target = metric_target
         self._class_agnostic = class_agnostic
         self._data_1: Dict[int, npt.NDArray]
@@ -133,8 +131,10 @@ class InternalMetricDataStore:
                 if class_id not in self._data_1:
                     self._data_1[class_id] = content_of_class
                     continue
-                self._data_1[class_id] = np.vstack((self._data_1[class_id], content_of_class))
-                
+                self._data_1[class_id] = np.vstack(
+                    (self._data_1[class_id], content_of_class)
+                )
+
         if content_2 is not None and len(content_2) > 0:
             assert len(content_2) == len(class_ids_2)
             for class_id in set(class_ids_2):
@@ -142,17 +142,26 @@ class InternalMetricDataStore:
                 if class_id not in self._data_2:
                     self._data_2[class_id] = content_of_class
                     continue
-                self._data_2[class_id] = np.vstack((self._data_2[class_id], content_of_class))
+                self._data_2[class_id] = np.vstack(
+                    (self._data_2[class_id], content_of_class)
+                )
 
-    def __iter__(self) -> Iterator[Tuple[int, Optional[npt.NDArray], Optional[npt.NDArray]]]:
-        class_ids = sorted(set.union(
-            set(self._data_1.keys()),
-            set(self._data_2.keys())
-        ))
+    def __iter__(
+        self,
+    ) -> Iterator[Tuple[int, Optional[npt.NDArray], Optional[npt.NDArray]]]:
+        class_ids = sorted(
+            set.union(set(self._data_1.keys()), set(self._data_2.keys()))
+        )
         for class_id in class_ids:
-            yield class_id, self._data_1.get(class_id, None), self._data_2.get(class_id, None)
+            yield (
+                class_id,
+                self._data_1.get(class_id, None),
+                self._data_2.get(class_id, None),
+            )
 
-    def _get_content(self, data: Union[npt.NDArray, Detections]) -> Optional[npt.NDArray]:
+    def _get_content(
+        self, data: Union[npt.NDArray, Detections]
+    ) -> Optional[npt.NDArray]:
         """Return boxes, masks or oriented bounding boxes from the data."""
         if isinstance(data, np.ndarray):
             return data
@@ -169,7 +178,9 @@ class InternalMetricDataStore:
             return obb
         raise ValueError(f"Invalid metric target: {self._metric_target}")
 
-    def _get_class_ids(self, data: Union[npt.NDArray, Detections]) -> npt.NDArray[np.int_]:
+    def _get_class_ids(
+        self, data: Union[npt.NDArray, Detections]
+    ) -> npt.NDArray[np.int_]:
         if self._class_agnostic or isinstance(data, np.ndarray):
             return np.array([CLASS_ID_NONE] * len(data), dtype=int)
         assert isinstance(data, Detections)
@@ -180,7 +191,9 @@ class InternalMetricDataStore:
     def _validate_class_ids(self, class_id: npt.NDArray[np.int_]) -> None:
         class_set = set(class_id)
         if len(class_set) >= 2 and -1 in class_set:
-            raise ValueError("Metrics store received results with partially defined classes.")
+            raise ValueError(
+                "Metrics store received results with partially defined classes."
+            )
 
     def _validate_shape(self, data: npt.NDArray) -> None:
         if self._datapoint_shape is None:
