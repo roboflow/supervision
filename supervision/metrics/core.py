@@ -57,11 +57,12 @@ class Metric(ABC):
 
     def _ensure_pandas_installed(self):
         try:
-            import pandas
+            import pandas  # noqa
         except ImportError:
             raise ImportError(
                 "Function `to_pandas` requires the `metrics` extra to be installed."
-                " Run `pip install 'supervision[metrics]'` or `poetry add supervision -E metrics`."
+                " Run `pip install 'supervision[metrics]'` or"
+                " `poetry add supervision -E metrics`."
             )
 
 
@@ -201,5 +202,6 @@ class InternalMetricDataStore:
             return
         if data.shape[1:] != self._datapoint_shape:
             raise ValueError(
-                f"Invalid data shape: {data.shape}. Expected: (N, {self._datapoint_shape})"
+                f"Invalid data shape: {data.shape}."
+                f" Expected: (N, {self._datapoint_shape})"
             )

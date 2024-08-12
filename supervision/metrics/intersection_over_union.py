@@ -77,7 +77,8 @@ class IntersectionOverUnion(Metric):
 
             else:
                 raise NotImplementedError(
-                    f"Intersection over union is not implemented for {self._metric_target}."
+                    "Intersection over union is not implemented"
+                    " for {self._metric_target}."
                 )
             ious[class_id] = iou
         return ious
@@ -108,7 +109,8 @@ class IntersectionOverUnion(Metric):
     #     stacked_ious = np.vstack(arrays)
     #     combined = np.column_stack((stacked_class_ids, stacked_ious))
 
-    #     column_names = ['class_id'] + [f'col_{i+1}' for i in range(stacked_ious.shape[1])]
+    #     column_names = \
+    # ['class_id'] + [f'col_{i+1}' for i in range(stacked_ious.shape[1])]
     #     result = pd.DataFrame(combined, columns=column_names)
 
     #     return result

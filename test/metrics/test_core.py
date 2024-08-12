@@ -13,83 +13,90 @@ from supervision.metrics.core import (
 )
 
 
-# Boxes, class-agnostic
+def mock_xyxy(*box_index: int, box_width=10) -> npt.NDArray[np.float32]:
+    """
+    Quickly generate a list of boxes.
+    For each index in `box_index`, a box is generated with the top-left corner at
+    (i, i) and the bottom-right corner at (i + box_width, i + box_width).
+    """
+    box_list = []
+    for i in box_index:
+        x0 = y0 = i
+        x1 = y1 = i + box_width
+        box_list.append([x0, y0, x1, y1])
+    return np.array(box_list, dtype=np.float32)
+
+
+def mock_detections(*box_indices: int, class_id: Optional[List[int]] = None):
+    """Mock detections with xyxy and class_ids"""
+    if len(box_indices) == 0:
+        if class_id is not None and len(class_id) > 0:
+            raise ValueError("class_id should be None or empty if box_indices is empty")
+        return Detections.empty()
+
+    return Detections(
+        xyxy=mock_xyxy(*box_indices),
+        class_id=None if class_id is None else np.array(class_id, dtype=int),
+    )
+
+
 @pytest.mark.parametrize(
     "data_1, data_2, expected_result, exception",
     [
-        # Empty
-        (Detections.empty(), Detections.empty(), [], DoesNotRaise()),
+        (mock_detections(), mock_detections(), [], DoesNotRaise()),
         (
-            np.empty((0, 4), dtype=np.float32),
-            np.empty((0, 4), dtype=np.float32),
+            mock_xyxy(),
+            mock_xyxy(),
             [],
             DoesNotRaise(),
         ),
-        (Detections.empty(), np.empty((0, 4), dtype=np.float32), [], DoesNotRaise()),
-        # Single box + Empty
+        (mock_detections(), mock_xyxy(), [], DoesNotRaise()),
         (
-            Detections(xyxy=np.array([[0, 0, 1, 1]], dtype=np.float32)),
-            Detections.empty(),
-            [(CLASS_ID_NONE, np.array([[0, 0, 1, 1]], dtype=np.float32), None)],
+            mock_detections(1),
+            mock_detections(),
+            [(CLASS_ID_NONE, mock_xyxy(1), None)],
             DoesNotRaise(),
         ),
         (
-            Detections.empty(),
-            Detections(xyxy=np.array([[0, 0, 1, 1]], dtype=np.float32)),
-            [(CLASS_ID_NONE, None, np.array([[0, 0, 1, 1]], dtype=np.float32))],
+            mock_detections(),
+            mock_detections(1),
+            [(CLASS_ID_NONE, None, mock_xyxy(1))],
             DoesNotRaise(),
         ),
-        # Multiple boxes
         (
-            Detections(xyxy=np.array([[0, 0, 1, 1], [0, 0, 2, 2]], dtype=np.float32)),
-            Detections.empty(),
+            mock_detections(1, 2),
+            mock_detections(),
             [
                 (
                     CLASS_ID_NONE,
-                    np.array([[0, 0, 1, 1], [0, 0, 2, 2]], dtype=np.float32),
+                    mock_xyxy(1, 2),
                     None,
                 )
             ],
             DoesNotRaise(),
         ),
         (
-            Detections(xyxy=np.array([[0, 0, 1, 1], [0, 0, 2, 2]], dtype=np.float32)),
-            Detections(xyxy=np.array([[0, 0, 1, 1], [0, 0, 2, 2]], dtype=np.float32)),
+            mock_detections(1, 2),
+            mock_detections(3, 4),
             [
                 (
                     CLASS_ID_NONE,
-                    np.array([[0, 0, 1, 1], [0, 0, 2, 2]], dtype=np.float32),
-                    np.array([[0, 0, 1, 1], [0, 0, 2, 2]], dtype=np.float32),
+                    mock_xyxy(1, 2),
+                    mock_xyxy(3, 4),
                 )
             ],
             DoesNotRaise(),
         ),
         (
-            Detections(xyxy=np.array([[0, 0, 1, 1], [0, 0, 2, 2]], dtype=np.float32)),
-            np.array([[0, 0, 1, 1], [0, 0, 2, 2]], dtype=np.float32),
-            [
-                (
-                    CLASS_ID_NONE,
-                    np.array([[0, 0, 1, 1], [0, 0, 2, 2]], dtype=np.float32),
-                    np.array([[0, 0, 1, 1], [0, 0, 2, 2]], dtype=np.float32),
-                )
-            ],
+            mock_detections(1, 2),
+            mock_xyxy(3, 4),
+            [(CLASS_ID_NONE, mock_xyxy(1, 2), mock_xyxy(3, 4))],
             DoesNotRaise(),
         ),
-        # with classes - should be ignored.
-        (
-            Detections(
-                xyxy=np.array([[0, 0, 1, 1], [0, 0, 2, 2]], dtype=np.float32),
-                class_id=np.array([1, 2], dtype=int),
-            ),
-            np.array([[0, 0, 1, 1], [0, 0, 2, 2]], dtype=np.float32),
-            [
-                (
-                    CLASS_ID_NONE,
-                    np.array([[0, 0, 1, 1], [0, 0, 2, 2]], dtype=np.float32),
-                    np.array([[0, 0, 1, 1], [0, 0, 2, 2]], dtype=np.float32),
-                )
-            ],
+        (  # with classes - should be ignored.
+            mock_detections(1, 2, class_id=[1, 2]),
+            mock_xyxy(3, 4),
+            [(CLASS_ID_NONE, mock_xyxy(1, 2), mock_xyxy(3, 4))],
             DoesNotRaise(),
         ),
     ],
@@ -125,67 +132,46 @@ def test_store_boxes_class_agnostic(
     [
         # Single box + Empty
         (
-            Detections(
-                xyxy=np.array([[0, 0, 1, 1]], dtype=np.float32),
-                class_id=np.array([1], dtype=int),
-            ),
-            Detections.empty(),
-            [(1, np.array([[0, 0, 1, 1]], dtype=np.float32), None)],
+            mock_detections(1, class_id=[1]),
+            mock_detections(),
+            [(1, mock_xyxy(1), None)],
             DoesNotRaise(),
         ),
         (
-            Detections.empty(),
-            Detections(
-                xyxy=np.array([[0, 0, 1, 1]], dtype=np.float32),
-                class_id=np.array([1], dtype=int),
-            ),
-            [(1, None, np.array([[0, 0, 1, 1]], dtype=np.float32))],
+            mock_detections(),
+            mock_detections(1, class_id=[1]),
+            [(1, None, mock_xyxy(1))],
             DoesNotRaise(),
         ),
         # Multiple classes
         (
-            Detections(
-                xyxy=np.array([[0, 0, 1, 1], [0, 0, 2, 2]], dtype=np.float32),
-                class_id=np.array([1, 2], dtype=int),
-            ),
-            Detections.empty(),
+            mock_detections(1, 2, class_id=[1, 2]),
+            mock_detections(),
             [
-                (1, np.array([[0, 0, 1, 1]], dtype=np.float32), None),
-                (2, np.array([[0, 0, 2, 2]], dtype=np.float32), None),
+                (1, mock_xyxy(1), None),
+                (2, mock_xyxy(2), None),
             ],
             DoesNotRaise(),
         ),
         (
-            Detections(
-                xyxy=np.array([[0, 0, 1, 1], [0, 0, 2, 2]], dtype=np.float32),
-                class_id=np.array([1, 2], dtype=int),
-            ),
-            Detections(
-                xyxy=np.array([[0, 0, 1, 1], [0, 0, 2, 2]], dtype=np.float32),
-                class_id=np.array([2, 3], dtype=int),
-            ),
+            mock_detections(1, 2, class_id=[1, 2]),
+            mock_detections(3, 4, class_id=[2, 3]),
             [
-                (1, np.array([[0, 0, 1, 1]], dtype=np.float32), None),
+                (1, mock_xyxy(1), None),
                 (
                     2,
-                    np.array([[0, 0, 2, 2]], dtype=np.float32),
-                    np.array([[0, 0, 1, 1]], dtype=np.float32),
+                    mock_xyxy(2),
+                    mock_xyxy(3),
                 ),
-                (3, None, np.array([[0, 0, 2, 2]], dtype=np.float32)),
+                (3, None, mock_xyxy(4)),
             ],
             DoesNotRaise(),
         ),
         # array is the same as no class
         (
-            Detections(xyxy=np.array([[0, 0, 1, 1], [0, 0, 2, 2]], dtype=np.float32)),
-            np.array([[0, 0, 1, 1], [0, 0, 2, 2]], dtype=np.float32),
-            [
-                (
-                    CLASS_ID_NONE,
-                    np.array([[0, 0, 1, 1], [0, 0, 2, 2]], dtype=np.float32),
-                    np.array([[0, 0, 1, 1], [0, 0, 2, 2]], dtype=np.float32),
-                )
-            ],
+            mock_detections(1, 2, class_id=None),
+            mock_xyxy(3, 4),
+            [(CLASS_ID_NONE, mock_xyxy(1, 2), mock_xyxy(3, 4))],
             DoesNotRaise(),
         ),
     ],
