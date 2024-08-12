@@ -1,4 +1,5 @@
-from contextlib import ExitStack as DoesNotRaise, AbstractContextManager as PytestExceptionType
+from contextlib import AbstractContextManager as PytestExceptionType
+from contextlib import ExitStack as DoesNotRaise
 from typing import List, Optional, Tuple, Union
 
 import numpy as np
@@ -204,10 +205,7 @@ def test_store_boxes_by_class(
 ) -> None:
     with exception:
         helper_test_store(
-            data_1,
-            data_2,
-            class_agnostic=False,
-            expected_result=expected_result
+            data_1, data_2, class_agnostic=False, expected_result=expected_result
         )
 
 
@@ -243,4 +241,3 @@ def test_store_invalid_args(
             class_agnostic=False,
             expected_result=expected_result,
         )
-
