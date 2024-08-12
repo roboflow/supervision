@@ -1,4 +1,4 @@
-from contextlib import ExitStack as DoesNotRaise
+from contextlib import ExitStack as DoesNotRaise, AbstractContextManager as PytestExceptionType
 from typing import List, Optional, Tuple, Union
 
 import numpy as np
@@ -40,17 +40,40 @@ def mock_detections(*box_indices: int, class_id: Optional[List[int]] = None):
     )
 
 
+def helper_test_store(
+    data_1: Union[npt.NDArray, Detections],
+    data_2: Union[npt.NDArray, Detections],
+    class_agnostic: bool,
+    expected_result: List[Tuple[int, Optional[npt.NDArray], Optional[npt.NDArray]]],
+):
+    store = InternalMetricDataStore(MetricTarget.BOXES, class_agnostic=class_agnostic)
+    store.update(data_1, data_2)
+    result = [result for result in store]
+    assert len(result) == len(expected_result)
+
+    for (class_id, content_1, content_2), (
+        expected_class_id,
+        expected_content_1,
+        expected_content_2,
+    ) in zip(result, expected_result):
+        assert class_id == expected_class_id
+        assert (content_1 is None and expected_content_1 is None) or np.array_equal(
+            content_1, expected_content_1
+        )
+        assert (content_2 is None and expected_content_2 is None) or np.array_equal(
+            content_2, expected_content_2
+        )
+
+
 @pytest.mark.parametrize(
     "data_1, data_2, expected_result, exception",
     [
+        # Empty
         (mock_detections(), mock_detections(), [], DoesNotRaise()),
-        (
-            mock_xyxy(),
-            mock_xyxy(),
-            [],
-            DoesNotRaise(),
-        ),
+        (mock_xyxy(), mock_xyxy(), [], DoesNotRaise()),
         (mock_detections(), mock_xyxy(), [], DoesNotRaise()),
+        (mock_xyxy(), mock_detections(), [], DoesNotRaise()),
+        # With boxes
         (
             mock_detections(1),
             mock_detections(),
@@ -93,7 +116,14 @@ def mock_detections(*box_indices: int, class_id: Optional[List[int]] = None):
             [(CLASS_ID_NONE, mock_xyxy(1, 2), mock_xyxy(3, 4))],
             DoesNotRaise(),
         ),
-        (  # with classes - should be ignored.
+        # With classes (that are ignored)
+        (
+            mock_detections(1, 2, class_id=[1, 2]),
+            mock_detections(),
+            [(CLASS_ID_NONE, mock_xyxy(1, 2), None)],
+            DoesNotRaise(),
+        ),
+        (
             mock_detections(1, 2, class_id=[1, 2]),
             mock_xyxy(3, 4),
             [(CLASS_ID_NONE, mock_xyxy(1, 2), mock_xyxy(3, 4))],
@@ -105,25 +135,15 @@ def test_store_boxes_class_agnostic(
     data_1: Union[npt.NDArray, Detections],
     data_2: Union[npt.NDArray, Detections],
     expected_result: List[Tuple[int, Optional[npt.NDArray], Optional[npt.NDArray]]],
-    exception: Exception,
+    exception: PytestExceptionType,
 ) -> None:
-    store = InternalMetricDataStore(MetricTarget.BOXES, class_agnostic=True)
-    store.update(data_1, data_2)
-    result = [result for result in store]
-    assert len(result) == len(expected_result)
     with exception:
-        for (class_id, content_1, content_2), (
-            expected_class_id,
-            expected_content_1,
-            expected_content_2,
-        ) in zip(result, expected_result):
-            assert class_id == expected_class_id
-            assert (content_1 is None and expected_content_1 is None) or np.array_equal(
-                content_1, expected_content_1
-            )
-            assert (content_2 is None and expected_content_2 is None) or np.array_equal(
-                content_2, expected_content_2
-            )
+        helper_test_store(
+            data_1,
+            data_2,
+            class_agnostic=True,
+            expected_result=expected_result,
+        )
 
 
 # Boxes, by-class
@@ -155,7 +175,7 @@ def test_store_boxes_class_agnostic(
         ),
         (
             mock_detections(1, 2, class_id=[1, 2]),
-            mock_detections(3, 4, class_id=[2, 3]),
+            mock_detections(3, 4, 5, class_id=[2, 3, 3]),
             [
                 (1, mock_xyxy(1), None),
                 (
@@ -163,7 +183,7 @@ def test_store_boxes_class_agnostic(
                     mock_xyxy(2),
                     mock_xyxy(3),
                 ),
-                (3, None, mock_xyxy(4)),
+                (3, None, mock_xyxy(4, 5)),
             ],
             DoesNotRaise(),
         ),
@@ -180,25 +200,47 @@ def test_store_boxes_by_class(
     data_1: Union[npt.NDArray, Detections],
     data_2: Union[npt.NDArray, Detections],
     expected_result: List[Tuple[int, Optional[npt.NDArray], Optional[npt.NDArray]]],
-    exception: Exception,
+    exception: PytestExceptionType,
 ) -> None:
-    store = InternalMetricDataStore(MetricTarget.BOXES, class_agnostic=False)
-    store.update(data_1, data_2)
-    result = [result for result in store]
-    assert len(result) == len(expected_result)
-
-    np.array
-
     with exception:
-        for (class_id, content_1, content_2), (
-            expected_class_id,
-            expected_content_1,
-            expected_content_2,
-        ) in zip(result, expected_result):
-            assert class_id == expected_class_id
-            assert (content_1 is None and expected_content_1 is None) or np.array_equal(
-                content_1, expected_content_1
-            )
-            assert (content_2 is None and expected_content_2 is None) or np.array_equal(
-                content_2, expected_content_2
-            )
+        helper_test_store(
+            data_1,
+            data_2,
+            class_agnostic=False,
+            expected_result=expected_result
+        )
+
+
+# Boxes, by-class
+@pytest.mark.parametrize(
+    "data_1, data_2, expected_result, exception",
+    [
+        # Single box + Empty
+        (
+            [],
+            mock_detections(),
+            [(1, mock_xyxy(), None)],
+            pytest.raises(ValueError),
+        ),
+        (
+            mock_detections(),
+            [],
+            [(1, None, mock_xyxy())],
+            pytest.raises(ValueError),
+        ),
+    ],
+)
+def test_store_invalid_args(
+    data_1: Union[npt.NDArray, Detections],
+    data_2: Union[npt.NDArray, Detections],
+    expected_result: List[Tuple[int, Optional[npt.NDArray], Optional[npt.NDArray]]],
+    exception: PytestExceptionType,
+) -> None:
+    with exception:
+        helper_test_store(
+            data_1,
+            data_2,
+            class_agnostic=False,
+            expected_result=expected_result,
+        )
+

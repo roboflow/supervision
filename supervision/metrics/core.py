@@ -163,9 +163,10 @@ class InternalMetricDataStore:
         self, data: Union[npt.NDArray, Detections]
     ) -> Optional[npt.NDArray]:
         """Return boxes, masks or oriented bounding boxes from the data."""
+        if not isinstance(data, (Detections, np.ndarray)):
+            raise ValueError(f"Invalid data type: {type(data)}. Only Detections or np.ndarray are supported.")
         if isinstance(data, np.ndarray):
             return data
-        assert isinstance(data, Detections)
 
         if self._metric_target == MetricTarget.BOXES:
             return data.xyxy
