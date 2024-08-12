@@ -1,11 +1,11 @@
-from typing import Any, Dict, Iterator, Optional, Tuple, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, Iterator, Optional, Tuple, Union
 
 import numpy as np
 import numpy.typing as npt
 
+import supervision.config as config
 from supervision.detection.core import Detections
 from supervision.metrics.core import Metric, MetricTarget
-import supervision.config as config
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -15,6 +15,7 @@ CLASS_ID_NONE = -1
 
 Data = Union[npt.NDArray, Detections]
 
+
 class InternalMetricDataStore:
     """
     Stores internal data of IntersectionOverUnion metric:
@@ -23,11 +24,7 @@ class InternalMetricDataStore:
     * Provides iteration by class
     """
 
-    def __init__(
-        self,
-        metric_target: MetricTarget,
-        class_agnostic: bool
-    ):
+    def __init__(self, metric_target: MetricTarget, class_agnostic: bool):
         self._metric_target = metric_target
         self._class_agnostic = class_agnostic
         self._data_1: Dict[int, npt.NDArray]
@@ -90,7 +87,6 @@ class InternalMetricDataStore:
     #             assert isinstance(data_2_of_class, Detections)
     #             self._update(self._get_detections_content(data_2_of_class), class_id=class_id, data_id=2)
 
-
     def update(
         self,
         data_1: Union[npt.NDArray, Detections],
@@ -110,8 +106,10 @@ class InternalMetricDataStore:
                 if class_id not in self._data_1:
                     self._data_1[class_id] = content_of_class
                     continue
-                self._data_1[class_id] = np.vstack((self._data_1[class_id], content_of_class))
-                
+                self._data_1[class_id] = np.vstack(
+                    (self._data_1[class_id], content_of_class)
+                )
+
         if content_2 is not None and len(content_2) > 0:
             assert len(content_2) == len(class_ids_2)
             for class_id in set(class_ids_2):
@@ -119,15 +117,22 @@ class InternalMetricDataStore:
                 if class_id not in self._data_2:
                     self._data_2[class_id] = content_of_class
                     continue
-                self._data_2[class_id] = np.vstack((self._data_2[class_id], content_of_class))
+                self._data_2[class_id] = np.vstack(
+                    (self._data_2[class_id], content_of_class)
+                )
 
-    def __iter__(self) -> Iterator[Tuple[int, Optional[npt.NDArray], Optional[npt.NDArray]]]:
-        class_ids = sorted(set.union(
-            set(self._data_1.keys()),
-            set(self._data_2.keys())
-        ))
+    def __iter__(
+        self,
+    ) -> Iterator[Tuple[int, Optional[npt.NDArray], Optional[npt.NDArray]]]:
+        class_ids = sorted(
+            set.union(set(self._data_1.keys()), set(self._data_2.keys()))
+        )
         for class_id in class_ids:
-            yield class_id, self._data_1.get(class_id, None), self._data_2.get(class_id, None)
+            yield (
+                class_id,
+                self._data_1.get(class_id, None),
+                self._data_2.get(class_id, None),
+            )
 
     def _get_content(self, data: Data) -> Optional[npt.NDArray]:
         """Return boxes, masks or oriented bounding boxes from the data."""
@@ -169,7 +174,9 @@ class InternalMetricDataStore:
     def _validate_class_ids(self, class_id: npt.NDArray[np.int_]) -> None:
         class_set = set(class_id)
         if len(class_set) >= 2 and -1 in class_set:
-            raise ValueError("Metrics store received results with partially defined classes.")
+            raise ValueError(
+                "Metrics store received results with partially defined classes."
+            )
 
     def _validate_shape(self, data: npt.NDArray) -> None:
         if self._datapoint_shape is None:
@@ -181,12 +188,13 @@ class InternalMetricDataStore:
                 f"Invalid data shape: {data.shape}. Expected: (N, {self._datapoint_shape})"
             )
 
+
 class IntersectionOverUnion(Metric):
     def __init__(
         self,
         metric_target: MetricTarget = MetricTarget.BOXES,
         class_agnostic: bool = False,
-        iou_threshold: float = 0.25
+        iou_threshold: float = 0.25,
     ):
         # TODO: implement for masks and oriented bounding boxes
         if metric_target in [MetricTarget.MASKS, MetricTarget.ORIENTED_BOUNDING_BOXES]:
@@ -206,7 +214,7 @@ class IntersectionOverUnion(Metric):
     def update(
         self,
         data_1: Union[npt.NDArray, Detections],
-        data_2: Union[npt.NDArray, Detections]
+        data_2: Union[npt.NDArray, Detections],
     ) -> Metric:
         """
         Add data to the metric, without computing the result.
@@ -245,14 +253,14 @@ class IntersectionOverUnion(Metric):
                     ious[class_id] = np.empty((0, 4), dtype=np.float32)
                     continue
                 iou = self._compute_box_iou(array_1, array_2)
-            
+
             else:
                 raise NotImplementedError(
                     f"Intersection over union is not implemented for {self._metric_target}."
                 )
             ious[class_id] = iou
         return ious
-    
+
     def to_pandas(self) -> pd.DataFrame:
         """
         Return a pandas DataFrame representation of the metric.
@@ -262,7 +270,7 @@ class IntersectionOverUnion(Metric):
 
         # TODO: use cache results instead
         ious = self.compute()
-        
+
         # TODO: continue
 
         # data_frame = pd.DataFrame()
@@ -271,8 +279,11 @@ class IntersectionOverUnion(Metric):
         return pd.DataFrame()
 
     @staticmethod
-    def _compute_box_iou(array_1: npt.NDArray, array_2: npt.NDArray) -> npt.NDArray[np.float32]:
+    def _compute_box_iou(
+        array_1: npt.NDArray, array_2: npt.NDArray
+    ) -> npt.NDArray[np.float32]:
         """Computes the pairwise intersection-over-union between two sets of boxes."""
+
         def box_area(box):
             return (box[2] - box[0]) * (box[3] - box[1])
 

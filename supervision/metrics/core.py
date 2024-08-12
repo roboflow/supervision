@@ -1,5 +1,6 @@
-from abc import ABC, abstractmethod
 from __future__ import annotations
+
+from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any
 
@@ -35,7 +36,7 @@ class Metric(ABC):
         Compute the metric from the internal state and return the result.
         """
         raise NotImplementedError
-    
+
     @abstractmethod
     def to_pandas(self, *args, **kwargs) -> Any:
         """
@@ -50,7 +51,9 @@ class Metric(ABC):
         except ImportError:
             raise ImportError(
                 "Function `to_pandas` requires the `metrics` extra to be installed."
-                " Run `pip install 'supervision[metrics]'` or `poetry add supervision -E metrics`.")
+                " Run `pip install 'supervision[metrics]'` or `poetry add supervision -E metrics`."
+            )
+
 
 class MetricTarget(Enum):
     """
@@ -67,5 +70,6 @@ class UnsupportedMetricTargetError(Exception):
     Raised when a metric does not support the specified target. (and never will!)
     If the support might be added in the future, raise `NotImplementedError` instead.
     """
+
     def __init__(self, metric: Metric, target: MetricTarget):
         super().__init__(f"Metric {metric} does not support target {target}")
