@@ -175,7 +175,6 @@ def test_store_boxes_class_agnostic(
             ],
             DoesNotRaise(),
         ),
-
         # array is the same as no class
         (
             Detections(xyxy=np.array([[0, 0, 1, 1], [0, 0, 2, 2]], dtype=np.float32)),
@@ -187,9 +186,9 @@ def test_store_boxes_class_agnostic(
                     np.array([[0, 0, 1, 1], [0, 0, 2, 2]], dtype=np.float32),
                 )
             ],
-            DoesNotRaise()
-        )
-    ]
+            DoesNotRaise(),
+        ),
+    ],
 )
 def test_store_boxes_by_class(
     data_1: Union[npt.NDArray, Detections],
