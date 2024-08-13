@@ -427,4 +427,3 @@ class VertexLabelAnnotator:
             if isinstance(colors, list)
             else np.array([colors] * points_count * skeletons_count)
         )
-
