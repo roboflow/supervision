@@ -118,7 +118,7 @@ class VideoSink:
         self.__writer.release()
 
 
-def _validate_and_setup_video(source_path: str, start: int, end: Optional[int]):
+def _validate_and_setup_video(source_path: str, start: int, end: Optional[int], manual_seek: bool = False):
     video = cv2.VideoCapture(source_path)
     if not video.isOpened():
         raise Exception(f"Could not open video at {source_path}")
@@ -127,11 +127,21 @@ def _validate_and_setup_video(source_path: str, start: int, end: Optional[int]):
         raise Exception("Requested frames are outbound")
     start = max(start, 0)
     end = min(end, total_frames) if end is not None else total_frames
+    
+    if manual_seek:
+        while start > 0:
+            success = video.grab()
+            if not success:
+                break
+            start -= 1
+    elif start > 0:
+        video.set(cv2.CAP_PROP_POS_FRAMES, start)
+    
     return video, start, end
 
 
 def get_video_frames_generator(
-    source_path: str, stride: int = 1, start: int = 0, end: Optional[int] = None
+    source_path: str, stride: int = 1, start: int = 0, end: Optional[int] = None, manual_seek: bool = False
 ) -> Generator[np.ndarray, None, None]:
     """
     Get a generator that yields the frames of the video.
@@ -144,6 +154,9 @@ def get_video_frames_generator(
             video should generate frames
         end (Optional[int]): Indicates the ending position at which video
             should stop generating frames. If None, video will be read to the end.
+        manual_seek (bool): If True, the generator will manually seek to the
+            `start` frame by grabbing each frame, which is much slower. This is a
+            workaround for videos that don't open at all when you set the 'start' value.
 
     Returns:
         (Generator[np.ndarray, None, None]): A generator that yields the
@@ -157,13 +170,10 @@ def get_video_frames_generator(
             ...
         ```
     """
-    video, start, end = _validate_and_setup_video(source_path, start, end)
-    frame_position = 0
+    video, start, end = _validate_and_setup_video(source_path, start, end, manual_seek)
+    frame_position = start
     while True:
         success, frame = video.read()
-        if frame_position < start:
-            frame_position += 1
-            continue
         if not success or frame_position >= end:
             break
         yield frame
