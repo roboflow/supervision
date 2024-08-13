@@ -323,8 +323,8 @@ class VertexLabelAnnotator:
             skeletons_count=skeletons_count,
         )
 
-        text_colors = self.preprocess_and_validate_text_colors(
-            text_colors=self.text_color,
+        text_colors = self.preprocess_and_validate_colors(
+            colors=self.text_color,
             points_count=points_count,
             skeletons_count=skeletons_count,
         )
@@ -428,20 +428,3 @@ class VertexLabelAnnotator:
             else np.array([colors] * points_count * skeletons_count)
         )
 
-    @staticmethod
-    def preprocess_and_validate_text_colors(
-        text_colors: Optional[Union[Color, List[Color]]],
-        points_count: int,
-        skeletons_count: int,
-    ) -> np.array:
-        if isinstance(text_colors, list) and len(text_colors) != points_count:
-            raise ValueError(
-                f"Number of colors ({len(text_colors)}) \
-                    must match number of key points "
-                f"({points_count})."
-            )
-        return (
-            np.array(text_colors * skeletons_count)
-            if isinstance(text_colors, list)
-            else np.array([text_colors] * points_count * skeletons_count)
-        )
