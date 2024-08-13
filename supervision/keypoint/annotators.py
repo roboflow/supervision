@@ -368,7 +368,7 @@ class VertexLabelAnnotator:
                 org=(box[0], box[3]),
                 fontFace=font,
                 fontScale=self.text_scale,
-                color=text_color.as_rgb(),
+                color=text_color.as_bgr(),
                 thickness=self.text_thickness,
                 lineType=cv2.LINE_AA,
             )
