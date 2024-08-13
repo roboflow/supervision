@@ -162,7 +162,7 @@ def get_video_frames_generator(
             should stop generating frames. If None, video will be read to the end.
         manual_seek (bool): If True, the generator will manually seek to the
             `start` frame by grabbing each frame, which is much slower. This is a
-            workaround for videos that don't open at all when you set the 'start' value.
+            workaround for videos that don't open at all when you set the `start` value.
 
     Returns:
         (Generator[np.ndarray, None, None]): A generator that yields the
