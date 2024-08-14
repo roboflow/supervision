@@ -2,7 +2,7 @@ import functools
 import inspect
 import os
 import warnings
-from typing import Any, Callable, Set
+from typing import Any, Callable, Generic, Optional, Set, TypeVar
 
 
 class SupervisionWarnings(Warning):
@@ -121,8 +121,9 @@ def deprecated(reason: str):
 
     return decorator
 
+T = TypeVar('T')
 
-class classproperty(property):
+class classproperty(Generic[T]):
     """
     A decorator that combines @classmethod and @property.
     It allows a method to be accessed as a property of the class,
@@ -133,18 +134,27 @@ class classproperty(property):
         def my_method(cls):
             ...
     """
+    def __init__(self, fget: Callable[..., T]):
+        """
+        Args:
+            The function that is called when the property is accessed.
+        """
+        self.fget = fget
 
-    def __get__(self, owner_self: object, owner_cls: type) -> object:
+    def __get__(self, owner_self: Any, owner_cls: Optional[type] = None) -> T:
         """
         Override the __get__ method to return the result of the function call.
 
         Args:
-        owner_self: The instance through which the attribute was accessed, or None.
-        owner_cls: The class through which the attribute was accessed.
+            owner_self: The instance through which the attribute was accessed, or None.
+                Irrelevant for class properties.
+            owner_cls: The class through which the attribute was accessed.
 
         Returns:
-        The result of calling the function stored in 'fget' with 'owner_cls'.
+            The result of calling the function stored in 'fget' with 'owner_cls'.
         """
+        if self.fget is None:
+            raise AttributeError("unreadable attribute")
         return self.fget(owner_cls)
 
 
