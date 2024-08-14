@@ -1641,7 +1641,7 @@ class HeatMapAnnotator(BaseAnnotator):
             heat_map_annotator = sv.HeatMapAnnotator()
 
             video_info = sv.VideoInfo.from_video_path(video_path='...')
-            frames_generator = get_video_frames_generator(source_path='...')
+            frames_generator = sv.get_video_frames_generator(source_path='...')
 
             with sv.VideoSink(target_path='...', video_info=video_info) as sink:
                for frame in frames_generator:
