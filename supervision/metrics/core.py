@@ -11,8 +11,8 @@ from typing_extensions import Self
 from supervision import config
 from supervision.detection.core import Detections
 
-"""Used by metrics module as class ID, when none is present"""
 CLASS_ID_NONE = -1
+"""Used by metrics module as class ID, when none is present"""
 
 
 class Metric(ABC):
@@ -187,7 +187,9 @@ class InternalMetricDataStore:
             return np.array([CLASS_ID_NONE] * len(data), dtype=int)
         return data.class_id
 
-    def _validate_class_ids(self, class_id_1: npt.NDArray[np.int_], class_id_2) -> None:
+    def _validate_class_ids(
+        self, class_id_1: npt.NDArray[np.int_], class_id_2: npt.NDArray[np.int_]
+    ) -> None:
         class_set = set(class_id_1) | set(class_id_2)
         if len(class_set) >= 2 and CLASS_ID_NONE in class_set:
             raise ValueError(
