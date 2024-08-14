@@ -1,13 +1,11 @@
-from typing import TYPE_CHECKING, Dict, Union
+from typing import Dict, Union
 
 import numpy as np
 import numpy.typing as npt
+from typing_extensions import Self
 
 from supervision.detection.core import Detections
 from supervision.metrics.core import InternalMetricDataStore, Metric, MetricTarget
-
-if TYPE_CHECKING:
-    pass
 
 
 class IntersectionOverUnion(Metric):
@@ -36,14 +34,15 @@ class IntersectionOverUnion(Metric):
         self,
         data_1: Union[npt.NDArray, Detections],
         data_2: Union[npt.NDArray, Detections],
-    ) -> Metric:
+    ) -> Self:
         """
         Add data to the metric, without computing the result.
 
         The arguments can be:
-        * Boxes of shape (N, 4), float32,
-        * Masks of shape (N, H, W), bool
-        * Oriented bounding boxes of shape (N, 8), float32.
+
+        * Boxes of shape `(N, 4)`, `float32`,
+        * Masks of shape `(N, H, W)`, `bool`
+        * Oriented bounding boxes of shape `(N, 8)`, `float32`.
         * Detections object.
 
         Args:

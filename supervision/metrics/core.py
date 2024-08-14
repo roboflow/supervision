@@ -6,6 +6,7 @@ from typing import Any, Dict, Iterator, Optional, Tuple, Union
 
 import numpy as np
 import numpy.typing as npt
+from typing_extensions import Self
 
 from supervision import config
 from supervision.detection.core import Detections
@@ -20,15 +21,10 @@ class Metric(ABC):
     """
 
     @abstractmethod
-    def update(self, *args, **kwargs) -> Metric:
+    def update(self, *args, **kwargs) -> Self:
         """
         Add data to the metric, without computing the result.
-        Return the metric itself to allow method chaining, for example:
-
-        Example:
-            ```python
-            result = metric.update(data).compute()
-            ```
+        Return the metric itself to allow method chaining.
         """
         raise NotImplementedError
 
