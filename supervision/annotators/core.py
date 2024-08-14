@@ -3,6 +3,7 @@ from typing import List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
+import numpy.typing as npt
 from PIL import Image, ImageDraw, ImageFont
 
 from supervision.annotators.base import BaseAnnotator, ImageType
@@ -263,7 +264,7 @@ class OrientedBoxAnnotator(BaseAnnotator):
             return scene
 
         for detection_idx in range(len(detections)):
-            bbox = np.intp(detections.data.get(ORIENTED_BOX_COORDINATES)[detection_idx])
+            bbox = detections.xyxy[detection_idx].astype(int)
             color = resolve_color(
                 color=self.color,
                 detections=detections,
@@ -1139,8 +1140,8 @@ class LabelAnnotator(BaseAnnotator):
 
             if labels is not None:
                 text = labels[detection_idx]
-            elif detections[CLASS_NAME_DATA_FIELD] is not None:
-                text = detections[CLASS_NAME_DATA_FIELD][detection_idx]
+            elif CLASS_NAME_DATA_FIELD in detections.data:
+                text = detections.data[CLASS_NAME_DATA_FIELD][detection_idx]
             elif detections.class_id is not None:
                 text = str(detections.class_id[detection_idx])
             else:
@@ -1355,8 +1356,8 @@ class RichLabelAnnotator(BaseAnnotator):
 
             if labels is not None:
                 text = labels[detection_idx]
-            elif detections[CLASS_NAME_DATA_FIELD] is not None:
-                text = detections[CLASS_NAME_DATA_FIELD][detection_idx]
+            elif CLASS_NAME_DATA_FIELD in detections.data:
+                text = detections.data[CLASS_NAME_DATA_FIELD][detection_idx]
             elif detections.class_id is not None:
                 text = str(detections.class_id[detection_idx])
             else:
@@ -1552,8 +1553,13 @@ class TraceAnnotator(BaseAnnotator):
         supervision-annotator-examples/trace-annotator-example-purple.png)
         """
         assert isinstance(scene, np.ndarray), "MyPy type hint"
-        self.trace.put(detections)
+        if detections.tracker_id is None:
+            raise ValueError(
+                "The `tracker_id` field is missing in the provided detections."
+                " See more: https://supervision.roboflow.com/latest/how_to/track_objects"
+            )
 
+        self.trace.put(detections)
         for detection_idx in range(len(detections)):
             tracker_id = int(detections.tracker_id[detection_idx])
             color = resolve_color(
@@ -1606,9 +1612,9 @@ class HeatMapAnnotator(BaseAnnotator):
         self.opacity = opacity
         self.radius = radius
         self.kernel_size = kernel_size
-        self.heat_mask = None
         self.top_hue = top_hue
         self.low_hue = low_hue
+        self.heat_mask: Optional[npt.NDArray[np.float32]] = None
 
     @ensure_cv2_image_for_annotation
     def annotate(self, scene: ImageType, detections: Detections) -> ImageType:
@@ -1652,10 +1658,18 @@ class HeatMapAnnotator(BaseAnnotator):
         """
         assert isinstance(scene, np.ndarray), "MyPy type hint"
         if self.heat_mask is None:
-            self.heat_mask = np.zeros(scene.shape[:2])
+            self.heat_mask = np.zeros(scene.shape[:2], dtype=np.float32)
+
         mask = np.zeros(scene.shape[:2])
         for xy in detections.get_anchors_coordinates(self.position):
-            cv2.circle(mask, (int(xy[0]), int(xy[1])), self.radius, 1, -1)
+            x, y = int(xy[0]), int(xy[1])
+            cv2.circle(
+                img=mask,
+                center=(x, y),
+                radius=self.radius,
+                color=(1,),
+                thickness=-1,  # fill
+            )
         self.heat_mask = mask + self.heat_mask
         temp = self.heat_mask.copy()
         temp = self.low_hue - temp / temp.max() * (self.low_hue - self.top_hue)
@@ -2063,9 +2077,8 @@ class PercentageBarAnnotator(BaseAnnotator):
         supervision-annotator-examples/percentage-bar-annotator-example-purple.png)
         """
         assert isinstance(scene, np.ndarray), "MyPy type hint"
-        self.validate_custom_values(
-            custom_values=custom_values, detections_count=len(detections)
-        )
+        self.validate_custom_values(custom_values=custom_values, detections=detections)
+
         anchors = detections.get_anchors_coordinates(anchor=self.position)
         for detection_idx in range(len(detections)):
             anchor = anchors[detection_idx]
@@ -2076,11 +2089,11 @@ class PercentageBarAnnotator(BaseAnnotator):
             )
             border_width = border_coordinates[1][0] - border_coordinates[0][0]
 
-            value = (
-                custom_values[detection_idx]
-                if custom_values is not None
-                else detections.confidence[detection_idx]
-            )
+            if custom_values is not None:
+                value = custom_values[detection_idx]
+            else:
+                assert detections.confidence is not None  # MyPy type hint
+                value = detections.confidence[detection_idx]
 
             color = resolve_color(
                 color=self.color,
@@ -2140,15 +2153,23 @@ class PercentageBarAnnotator(BaseAnnotator):
 
     @staticmethod
     def validate_custom_values(
-        custom_values: Optional[Union[np.ndarray, List[float]]], detections_count: int
+        custom_values: Optional[Union[np.ndarray, List[float]]], detections: Detections
     ) -> None:
-        if custom_values is not None:
+        if custom_values is None:
+            if detections.confidence is None:
+                raise ValueError(
+                    "The provided detections do not contain confidence values. "
+                    "Please provide `custom_values` or ensure that the detections "
+                    "contain confidence values (e.g. by using a different model)."
+                )
+
+        else:
             if not isinstance(custom_values, (np.ndarray, list)):
                 raise TypeError(
                     "custom_values must be either a numpy array or a list of floats."
                 )
 
-            if len(custom_values) != detections_count:
+            if len(custom_values) != len(detections):
                 raise ValueError(
                     "The length of custom_values must match the number of detections."
                 )
