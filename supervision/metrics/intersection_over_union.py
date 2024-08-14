@@ -5,6 +5,7 @@ import numpy.typing as npt
 from typing_extensions import Self
 
 from supervision.detection.core import Detections
+from supervision.detection.utils import box_iou_batch
 from supervision.metrics.core import InternalMetricDataStore, Metric, MetricTarget
 
 
@@ -72,7 +73,7 @@ class IntersectionOverUnion(Metric):
                 if array_1 is None or array_2 is None:
                     ious[class_id] = np.empty((0, 4), dtype=np.float32)
                     continue
-                iou = self._compute_box_iou(array_1, array_2)
+                iou = box_iou_batch(array_1, array_2)
 
             else:
                 raise NotImplementedError(
@@ -113,23 +114,3 @@ class IntersectionOverUnion(Metric):
     #     result = pd.DataFrame(combined, columns=column_names)
 
     #     return result
-
-    @staticmethod
-    def _compute_box_iou(
-        array_1: npt.NDArray, array_2: npt.NDArray
-    ) -> npt.NDArray[np.float32]:
-        """Computes the pairwise intersection-over-union between two sets of boxes."""
-
-        def box_area(box):
-            return (box[2] - box[0]) * (box[3] - box[1])
-
-        area_true = box_area(array_1.T)
-        area_detection = box_area(array_2.T)
-
-        top_left = np.maximum(array_1[:, None, :2], array_2[:, :2])
-        bottom_right = np.minimum(array_1[:, None, 2:], array_2[:, 2:])
-
-        area_inter = np.prod(np.clip(bottom_right - top_left, a_min=0, a_max=None), 2)
-        ious = area_inter / (area_true[:, None] + area_detection - area_inter)
-        ious = np.nan_to_num(ious)
-        return ious
