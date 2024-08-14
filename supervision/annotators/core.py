@@ -1975,7 +1975,7 @@ class PercentageBarAnnotator(BaseAnnotator):
         border_color: Color = Color.BLACK,
         position: Position = Position.TOP_CENTER,
         color_lookup: ColorLookup = ColorLookup.CLASS,
-        border_thickness: int = None,
+        border_thickness: Optional[int] = None,
     ):
         """
         Args:

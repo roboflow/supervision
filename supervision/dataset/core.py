@@ -181,11 +181,11 @@ class DetectionDataset(BaseDataset):
             using the provided split_ratio.
 
         Args:
-            split_ratio (float, optional): The ratio of the training
+            split_ratio (float): The ratio of the training
                 set to the entire dataset.
-            random_state (int, optional): The seed for the random number generator.
+            random_state (Optional[int]): The seed for the random number generator.
                 This is used for reproducibility.
-            shuffle (bool, optional): Whether to shuffle the data before splitting.
+            shuffle (bool): Whether to shuffle the data before splitting.
 
         Returns:
             Tuple[DetectionDataset, DetectionDataset]: A tuple containing
@@ -396,7 +396,7 @@ class DetectionDataset(BaseDataset):
             images_directory_path (str): Path to the directory containing the images.
             annotations_directory_path (str): Path to the directory
                 containing the PASCAL VOC XML annotations.
-            force_masks (bool, optional): If True, forces masks to
+            force_masks (bool): If True, forces masks to
                 be loaded for all annotations, regardless of whether they are present.
 
         Returns:
@@ -455,10 +455,10 @@ class DetectionDataset(BaseDataset):
                 containing the YOLO annotation files.
             data_yaml_path (str): The path to the data
                 YAML file containing class information.
-            force_masks (bool, optional): If True, forces
+            force_masks (bool): If True, forces
                 masks to be loaded for all annotations,
                 regardless of whether they are present.
-            is_obb (bool, optional): If True, loads the annotations in OBB format.
+            is_obb (bool): If True, loads the annotations in OBB format.
                 OBB annotations are defined as `[class_id, x, y, x, y, x, y, x, y]`,
                 where pairs of [x, y] are box corners.
 
@@ -565,7 +565,7 @@ class DetectionDataset(BaseDataset):
             images_directory_path (str): The path to the
                 directory containing the images.
             annotations_path (str): The path to the json annotation files.
-            force_masks (bool, optional): If True,
+            force_masks (bool): If True,
                 forces masks to be loaded for all annotations,
                 regardless of whether they are present.
 
@@ -784,11 +784,11 @@ class ClassificationDataset(BaseDataset):
             using the provided split_ratio.
 
         Args:
-            split_ratio (float, optional): The ratio of the training
+            split_ratio (float): The ratio of the training
                 set to the entire dataset.
-            random_state (int, optional): The seed for the
+            random_state (Optional[int]): The seed for the
                 random number generator. This is used for reproducibility.
-            shuffle (bool, optional): Whether to shuffle the data before splitting.
+            shuffle (bool): Whether to shuffle the data before splitting.
 
         Returns:
             Tuple[ClassificationDataset, ClassificationDataset]: A tuple containing

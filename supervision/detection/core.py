@@ -1149,10 +1149,10 @@ class Detections:
         from a segmentation model, the IoU mask is applied. Otherwise, box IoU is used.
 
         Args:
-            threshold (float, optional): The intersection-over-union threshold
+            threshold (float): The intersection-over-union threshold
                 to use for non-maximum suppression. I'm the lower the value the more
                 restrictive the NMS becomes. Defaults to 0.5.
-            class_agnostic (bool, optional): Whether to perform class-agnostic
+            class_agnostic (bool): Whether to perform class-agnostic
                 non-maximum suppression. If True, the class_id of each detection
                 will be ignored. Defaults to False.
 
@@ -1204,9 +1204,9 @@ class Detections:
         Perform non-maximum merging on the current set of object detections.
 
         Args:
-            threshold (float, optional): The intersection-over-union threshold
+            threshold (float): The intersection-over-union threshold
                 to use for non-maximum merging. Defaults to 0.5.
-            class_agnostic (bool, optional): Whether to perform class-agnostic
+            class_agnostic (bool): Whether to perform class-agnostic
                 non-maximum merging. If True, the class_id of each detection
                 will be ignored. Defaults to False.
 

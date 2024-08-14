@@ -34,8 +34,8 @@ class VertexAnnotator(BaseKeyPointAnnotator):
     ) -> None:
         """
         Args:
-            color (Color, optional): The color to use for annotating key points.
-            radius (int, optional): The radius of the circles used to represent the key
+            color (Color): The color to use for annotating key points.
+            radius (int): The radius of the circles used to represent the key
                 points.
         """
         self.color = color
@@ -108,8 +108,8 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
     ) -> None:
         """
         Args:
-            color (Color, optional): The color to use for the edges.
-            thickness (int, optional): The thickness of the edges.
+            color (Color): The color to use for the edges.
+            thickness (int): The thickness of the edges.
             edges (Optional[List[Tuple[int, int]]]): The edges to draw.
                 If set to `None`, will attempt to select automatically.
         """
@@ -202,16 +202,16 @@ class VertexLabelAnnotator:
     ):
         """
         Args:
-            color (Union[Color, List[Color]], optional): The color to use for each
+            color (Union[Color, List[Color]]): The color to use for each
                 keypoint label. If a list is provided, the colors will be used in order
                 for each keypoint.
-            text_color (Union[Color, List[Color]], optional): The color to use
+            text_color (Union[Color, List[Color]]): The color to use
                 for the labels. If a list is provided, the colors will be used in order
                 for each keypoint.
-            text_scale (float, optional): The scale of the text.
-            text_thickness (int, optional): The thickness of the text.
-            text_padding (int, optional): The padding around the text.
-            border_radius (int, optional): The radius of the rounded corners of the
+            text_scale (float): The scale of the text.
+            text_thickness (int): The thickness of the text.
+            text_padding (int): The padding around the text.
+            border_radius (int): The radius of the rounded corners of the
                 boxes. Set to a high value to produce circles.
         """
         self.border_radius: int = border_radius
@@ -222,7 +222,10 @@ class VertexLabelAnnotator:
         self.text_padding: int = text_padding
 
     def annotate(
-        self, scene: ImageType, key_points: KeyPoints, labels: List[str] = None
+        self,
+        scene: ImageType,
+        key_points: KeyPoints,
+        labels: Optional[List[str]] = None,
     ) -> ImageType:
         """
         A class that draws labels of skeleton vertices on images. It uses specified key
@@ -234,7 +237,7 @@ class VertexLabelAnnotator:
                 `PIL.Image.Image`.
             key_points (KeyPoints): A collection of key points where each key point
                 consists of x and y coordinates.
-            labels (List[str], optional): A list of labels to be displayed on the
+            labels (Optional[List[str]]): A list of labels to be displayed on the
                 annotated image. If not provided, keypoint indices will be used.
 
         Returns:

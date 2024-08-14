@@ -56,9 +56,9 @@ def deprecated_parameter(
     Parameters:
         old_parameter (str): The name of the deprecated parameter.
         new_parameter (str): The name of the parameter that should be used instead.
-        map_function (Callable, optional): A function used to map the value of the old
+        map_function (Callable): A function used to map the value of the old
             parameter to the new parameter. Defaults to the identity function.
-        warning_message (str, optional): The warning message to be displayed when the
+        warning_message (str): The warning message to be displayed when the
             deprecated parameter is used. Defaults to a generic warning message with
             placeholders for the old parameter, new parameter, and function name.
         **message_kwargs: Additional keyword arguments that can be used to customize
@@ -121,7 +121,9 @@ def deprecated(reason: str):
 
     return decorator
 
-T = TypeVar('T')
+
+T = TypeVar("T")
+
 
 class classproperty(Generic[T]):
     """
@@ -134,6 +136,7 @@ class classproperty(Generic[T]):
         def my_method(cls):
             ...
     """
+
     def __init__(self, fget: Callable[..., T]):
         """
         Args:
