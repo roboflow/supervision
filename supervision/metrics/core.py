@@ -118,8 +118,7 @@ class InternalMetricDataStore:
         content_2 = self._get_content(data_2)
         class_ids_1 = self._get_class_ids(data_1)
         class_ids_2 = self._get_class_ids(data_2)
-        self._validate_class_ids(class_ids_1)
-        self._validate_class_ids(class_ids_2)
+        self._validate_class_ids(class_ids_1, class_ids_2)
         if content_1 is not None and len(content_1) > 0:
             assert len(content_1) == len(class_ids_1)
             for class_id in set(class_ids_1):
@@ -188,11 +187,11 @@ class InternalMetricDataStore:
             return np.array([CLASS_ID_NONE] * len(data), dtype=int)
         return data.class_id
 
-    def _validate_class_ids(self, class_id: npt.NDArray[np.int_]) -> None:
-        class_set = set(class_id)
-        if len(class_set) >= 2 and -1 in class_set:
+    def _validate_class_ids(self, class_id_1: npt.NDArray[np.int_], class_id_2) -> None:
+        class_set = set(class_id_1) | set(class_id_2)
+        if len(class_set) >= 2 and CLASS_ID_NONE in class_set:
             raise ValueError(
-                "Metrics store received results with partially defined classes."
+                "Metrics cannot mix data with class ID and data without class ID."
             )
 
     def _validate_shape(self, data: npt.NDArray) -> None:
