@@ -400,7 +400,7 @@ class VertexLabelAnnotator:
     @staticmethod
     def preprocess_and_validate_labels(
         labels: Optional[List[str]], points_count: int, skeletons_count: int
-    ) -> np.array:
+    ) -> np.ndarray:
         if labels and len(labels) != points_count:
             raise ValueError(
                 f"Number of labels ({len(labels)}) must match number of key points "
@@ -416,7 +416,7 @@ class VertexLabelAnnotator:
         colors: Optional[Union[Color, List[Color]]],
         points_count: int,
         skeletons_count: int,
-    ) -> np.array:
+    ) -> np.ndarray:
         if isinstance(colors, list) and len(colors) != points_count:
             raise ValueError(
                 f"Number of colors ({len(colors)}) must match number of key points "
