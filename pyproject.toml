@@ -59,6 +59,7 @@ tqdm = { version = ">=4.62.3,<=4.66.5", optional = true }
 # pandas: picked lowest major version that supports Python 3.8
 pandas = { version = ">=2.0.0", optional = true }
 pandas-stubs = { version = ">=2.0.0.230412", optional = true }
+typing-extensions = "^4.12.2"
 
 [tool.poetry.extras]
 desktop = ["opencv-python"]
