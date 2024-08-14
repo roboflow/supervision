@@ -3444,7 +3444,18 @@ points to determine the locations where the vertices should be drawn.</p>
 <span class="normal"><a href="#__codelineno-0-415">415</a></span>
 <span class="normal"><a href="#__codelineno-0-416">416</a></span>
 <span class="normal"><a href="#__codelineno-0-417">417</a></span>
-<span class="normal"><a href="#__codelineno-0-418">418</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-188" name="__codelineno-0-188"></a><span class="k">class</span> <span class="nc">VertexLabelAnnotator</span><span class="p">:</span>
+<span class="normal"><a href="#__codelineno-0-418">418</a></span>
+<span class="normal"><a href="#__codelineno-0-419">419</a></span>
+<span class="normal"><a href="#__codelineno-0-420">420</a></span>
+<span class="normal"><a href="#__codelineno-0-421">421</a></span>
+<span class="normal"><a href="#__codelineno-0-422">422</a></span>
+<span class="normal"><a href="#__codelineno-0-423">423</a></span>
+<span class="normal"><a href="#__codelineno-0-424">424</a></span>
+<span class="normal"><a href="#__codelineno-0-425">425</a></span>
+<span class="normal"><a href="#__codelineno-0-426">426</a></span>
+<span class="normal"><a href="#__codelineno-0-427">427</a></span>
+<span class="normal"><a href="#__codelineno-0-428">428</a></span>
+<span class="normal"><a href="#__codelineno-0-429">429</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-188" name="__codelineno-0-188"></a><span class="k">class</span> <span class="nc">VertexLabelAnnotator</span><span class="p">:</span>
 <a id="__codelineno-0-189" name="__codelineno-0-189"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-190" name="__codelineno-0-190"></a><span class="sd">    A class that draws labels of skeleton vertices on images. It uses specified key</span>
 <a id="__codelineno-0-191" name="__codelineno-0-191"></a><span class="sd">    points to determine the locations where the vertices should be drawn.</span>
@@ -3453,7 +3464,7 @@ points to determine the locations where the vertices should be drawn.</p>
 <a id="__codelineno-0-194" name="__codelineno-0-194"></a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
 <a id="__codelineno-0-195" name="__codelineno-0-195"></a>        <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-196" name="__codelineno-0-196"></a>        <span class="n">color</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Color</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Color</span><span class="p">]]</span> <span class="o">=</span> <span class="n">Color</span><span class="o">.</span><span class="n">ROBOFLOW</span><span class="p">,</span>
-<a id="__codelineno-0-197" name="__codelineno-0-197"></a>        <span class="n">text_color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">=</span> <span class="n">Color</span><span class="o">.</span><span class="n">WHITE</span><span class="p">,</span>
+<a id="__codelineno-0-197" name="__codelineno-0-197"></a>        <span class="n">text_color</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Color</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Color</span><span class="p">]]</span> <span class="o">=</span> <span class="n">Color</span><span class="o">.</span><span class="n">WHITE</span><span class="p">,</span>
 <a id="__codelineno-0-198" name="__codelineno-0-198"></a>        <span class="n">text_scale</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
 <a id="__codelineno-0-199" name="__codelineno-0-199"></a>        <span class="n">text_thickness</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
 <a id="__codelineno-0-200" name="__codelineno-0-200"></a>        <span class="n">text_padding</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
@@ -3464,217 +3475,228 @@ points to determine the locations where the vertices should be drawn.</p>
 <a id="__codelineno-0-205" name="__codelineno-0-205"></a><span class="sd">            color (Union[Color, List[Color]], optional): The color to use for each</span>
 <a id="__codelineno-0-206" name="__codelineno-0-206"></a><span class="sd">                keypoint label. If a list is provided, the colors will be used in order</span>
 <a id="__codelineno-0-207" name="__codelineno-0-207"></a><span class="sd">                for each keypoint.</span>
-<a id="__codelineno-0-208" name="__codelineno-0-208"></a><span class="sd">            text_color (Color, optional): The color to use for the labels.</span>
-<a id="__codelineno-0-209" name="__codelineno-0-209"></a><span class="sd">            text_scale (float, optional): The scale of the text.</span>
-<a id="__codelineno-0-210" name="__codelineno-0-210"></a><span class="sd">            text_thickness (int, optional): The thickness of the text.</span>
-<a id="__codelineno-0-211" name="__codelineno-0-211"></a><span class="sd">            text_padding (int, optional): The padding around the text.</span>
-<a id="__codelineno-0-212" name="__codelineno-0-212"></a><span class="sd">            border_radius (int, optional): The radius of the rounded corners of the</span>
-<a id="__codelineno-0-213" name="__codelineno-0-213"></a><span class="sd">                boxes. Set to a high value to produce circles.</span>
-<a id="__codelineno-0-214" name="__codelineno-0-214"></a><span class="sd">        &quot;&quot;&quot;</span>
-<a id="__codelineno-0-215" name="__codelineno-0-215"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">border_radius</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">border_radius</span>
-<a id="__codelineno-0-216" name="__codelineno-0-216"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">color</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Color</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Color</span><span class="p">]]</span> <span class="o">=</span> <span class="n">color</span>
-<a id="__codelineno-0-217" name="__codelineno-0-217"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">text_color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">=</span> <span class="n">text_color</span>
-<a id="__codelineno-0-218" name="__codelineno-0-218"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">text_scale</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">text_scale</span>
-<a id="__codelineno-0-219" name="__codelineno-0-219"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">text_thickness</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">text_thickness</span>
-<a id="__codelineno-0-220" name="__codelineno-0-220"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">text_padding</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">text_padding</span>
-<a id="__codelineno-0-221" name="__codelineno-0-221"></a>
-<a id="__codelineno-0-222" name="__codelineno-0-222"></a>    <span class="k">def</span> <span class="nf">annotate</span><span class="p">(</span>
-<a id="__codelineno-0-223" name="__codelineno-0-223"></a>        <span class="bp">self</span><span class="p">,</span> <span class="n">scene</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">key_points</span><span class="p">:</span> <span class="n">KeyPoints</span><span class="p">,</span> <span class="n">labels</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-224" name="__codelineno-0-224"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageType</span><span class="p">:</span>
-<a id="__codelineno-0-225" name="__codelineno-0-225"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-226" name="__codelineno-0-226"></a><span class="sd">        A class that draws labels of skeleton vertices on images. It uses specified key</span>
-<a id="__codelineno-0-227" name="__codelineno-0-227"></a><span class="sd">            points to determine the locations where the vertices should be drawn.</span>
-<a id="__codelineno-0-228" name="__codelineno-0-228"></a>
-<a id="__codelineno-0-229" name="__codelineno-0-229"></a><span class="sd">        Args:</span>
-<a id="__codelineno-0-230" name="__codelineno-0-230"></a><span class="sd">            scene (ImageType): The image where vertex labels will be drawn. `ImageType`</span>
-<a id="__codelineno-0-231" name="__codelineno-0-231"></a><span class="sd">                is a flexible type, accepting either `numpy.ndarray` or</span>
-<a id="__codelineno-0-232" name="__codelineno-0-232"></a><span class="sd">                `PIL.Image.Image`.</span>
-<a id="__codelineno-0-233" name="__codelineno-0-233"></a><span class="sd">            key_points (KeyPoints): A collection of key points where each key point</span>
-<a id="__codelineno-0-234" name="__codelineno-0-234"></a><span class="sd">                consists of x and y coordinates.</span>
-<a id="__codelineno-0-235" name="__codelineno-0-235"></a><span class="sd">            labels (List[str], optional): A list of labels to be displayed on the</span>
-<a id="__codelineno-0-236" name="__codelineno-0-236"></a><span class="sd">                annotated image. If not provided, keypoint indices will be used.</span>
-<a id="__codelineno-0-237" name="__codelineno-0-237"></a>
-<a id="__codelineno-0-238" name="__codelineno-0-238"></a><span class="sd">        Returns:</span>
-<a id="__codelineno-0-239" name="__codelineno-0-239"></a><span class="sd">            The annotated image, matching the type of `scene` (`numpy.ndarray`</span>
-<a id="__codelineno-0-240" name="__codelineno-0-240"></a><span class="sd">                or `PIL.Image.Image`)</span>
-<a id="__codelineno-0-241" name="__codelineno-0-241"></a>
-<a id="__codelineno-0-242" name="__codelineno-0-242"></a><span class="sd">        Example:</span>
-<a id="__codelineno-0-243" name="__codelineno-0-243"></a><span class="sd">            ```python</span>
-<a id="__codelineno-0-244" name="__codelineno-0-244"></a><span class="sd">            import supervision as sv</span>
-<a id="__codelineno-0-245" name="__codelineno-0-245"></a>
-<a id="__codelineno-0-246" name="__codelineno-0-246"></a><span class="sd">            image = ...</span>
-<a id="__codelineno-0-247" name="__codelineno-0-247"></a><span class="sd">            key_points = sv.KeyPoints(...)</span>
-<a id="__codelineno-0-248" name="__codelineno-0-248"></a>
-<a id="__codelineno-0-249" name="__codelineno-0-249"></a><span class="sd">            vertex_label_annotator = sv.VertexLabelAnnotator(</span>
-<a id="__codelineno-0-250" name="__codelineno-0-250"></a><span class="sd">                color=sv.Color.GREEN,</span>
-<a id="__codelineno-0-251" name="__codelineno-0-251"></a><span class="sd">                text_color=sv.Color.BLACK,</span>
-<a id="__codelineno-0-252" name="__codelineno-0-252"></a><span class="sd">                border_radius=5</span>
-<a id="__codelineno-0-253" name="__codelineno-0-253"></a><span class="sd">            )</span>
-<a id="__codelineno-0-254" name="__codelineno-0-254"></a><span class="sd">            annotated_frame = vertex_label_annotator.annotate(</span>
-<a id="__codelineno-0-255" name="__codelineno-0-255"></a><span class="sd">                scene=image.copy(),</span>
-<a id="__codelineno-0-256" name="__codelineno-0-256"></a><span class="sd">                key_points=key_points</span>
-<a id="__codelineno-0-257" name="__codelineno-0-257"></a><span class="sd">            )</span>
-<a id="__codelineno-0-258" name="__codelineno-0-258"></a><span class="sd">            ```</span>
-<a id="__codelineno-0-259" name="__codelineno-0-259"></a>
-<a id="__codelineno-0-260" name="__codelineno-0-260"></a><span class="sd">        ![vertex-label-annotator-example](https://media.roboflow.com/</span>
-<a id="__codelineno-0-261" name="__codelineno-0-261"></a><span class="sd">        supervision-annotator-examples/vertex-label-annotator-example.png)</span>
-<a id="__codelineno-0-262" name="__codelineno-0-262"></a>
-<a id="__codelineno-0-263" name="__codelineno-0-263"></a><span class="sd">        !!! tip</span>
+<a id="__codelineno-0-208" name="__codelineno-0-208"></a><span class="sd">            text_color (Union[Color, List[Color]], optional): The color to use</span>
+<a id="__codelineno-0-209" name="__codelineno-0-209"></a><span class="sd">                for the labels. If a list is provided, the colors will be used in order</span>
+<a id="__codelineno-0-210" name="__codelineno-0-210"></a><span class="sd">                for each keypoint.</span>
+<a id="__codelineno-0-211" name="__codelineno-0-211"></a><span class="sd">            text_scale (float, optional): The scale of the text.</span>
+<a id="__codelineno-0-212" name="__codelineno-0-212"></a><span class="sd">            text_thickness (int, optional): The thickness of the text.</span>
+<a id="__codelineno-0-213" name="__codelineno-0-213"></a><span class="sd">            text_padding (int, optional): The padding around the text.</span>
+<a id="__codelineno-0-214" name="__codelineno-0-214"></a><span class="sd">            border_radius (int, optional): The radius of the rounded corners of the</span>
+<a id="__codelineno-0-215" name="__codelineno-0-215"></a><span class="sd">                boxes. Set to a high value to produce circles.</span>
+<a id="__codelineno-0-216" name="__codelineno-0-216"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-217" name="__codelineno-0-217"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">border_radius</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">border_radius</span>
+<a id="__codelineno-0-218" name="__codelineno-0-218"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">color</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Color</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Color</span><span class="p">]]</span> <span class="o">=</span> <span class="n">color</span>
+<a id="__codelineno-0-219" name="__codelineno-0-219"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">text_color</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Color</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Color</span><span class="p">]]</span> <span class="o">=</span> <span class="n">text_color</span>
+<a id="__codelineno-0-220" name="__codelineno-0-220"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">text_scale</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">text_scale</span>
+<a id="__codelineno-0-221" name="__codelineno-0-221"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">text_thickness</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">text_thickness</span>
+<a id="__codelineno-0-222" name="__codelineno-0-222"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">text_padding</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">text_padding</span>
+<a id="__codelineno-0-223" name="__codelineno-0-223"></a>
+<a id="__codelineno-0-224" name="__codelineno-0-224"></a>    <span class="k">def</span> <span class="nf">annotate</span><span class="p">(</span>
+<a id="__codelineno-0-225" name="__codelineno-0-225"></a>        <span class="bp">self</span><span class="p">,</span> <span class="n">scene</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">key_points</span><span class="p">:</span> <span class="n">KeyPoints</span><span class="p">,</span> <span class="n">labels</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-226" name="__codelineno-0-226"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageType</span><span class="p">:</span>
+<a id="__codelineno-0-227" name="__codelineno-0-227"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-228" name="__codelineno-0-228"></a><span class="sd">        A class that draws labels of skeleton vertices on images. It uses specified key</span>
+<a id="__codelineno-0-229" name="__codelineno-0-229"></a><span class="sd">            points to determine the locations where the vertices should be drawn.</span>
+<a id="__codelineno-0-230" name="__codelineno-0-230"></a>
+<a id="__codelineno-0-231" name="__codelineno-0-231"></a><span class="sd">        Args:</span>
+<a id="__codelineno-0-232" name="__codelineno-0-232"></a><span class="sd">            scene (ImageType): The image where vertex labels will be drawn. `ImageType`</span>
+<a id="__codelineno-0-233" name="__codelineno-0-233"></a><span class="sd">                is a flexible type, accepting either `numpy.ndarray` or</span>
+<a id="__codelineno-0-234" name="__codelineno-0-234"></a><span class="sd">                `PIL.Image.Image`.</span>
+<a id="__codelineno-0-235" name="__codelineno-0-235"></a><span class="sd">            key_points (KeyPoints): A collection of key points where each key point</span>
+<a id="__codelineno-0-236" name="__codelineno-0-236"></a><span class="sd">                consists of x and y coordinates.</span>
+<a id="__codelineno-0-237" name="__codelineno-0-237"></a><span class="sd">            labels (List[str], optional): A list of labels to be displayed on the</span>
+<a id="__codelineno-0-238" name="__codelineno-0-238"></a><span class="sd">                annotated image. If not provided, keypoint indices will be used.</span>
+<a id="__codelineno-0-239" name="__codelineno-0-239"></a>
+<a id="__codelineno-0-240" name="__codelineno-0-240"></a><span class="sd">        Returns:</span>
+<a id="__codelineno-0-241" name="__codelineno-0-241"></a><span class="sd">            The annotated image, matching the type of `scene` (`numpy.ndarray`</span>
+<a id="__codelineno-0-242" name="__codelineno-0-242"></a><span class="sd">                or `PIL.Image.Image`)</span>
+<a id="__codelineno-0-243" name="__codelineno-0-243"></a>
+<a id="__codelineno-0-244" name="__codelineno-0-244"></a><span class="sd">        Example:</span>
+<a id="__codelineno-0-245" name="__codelineno-0-245"></a><span class="sd">            ```python</span>
+<a id="__codelineno-0-246" name="__codelineno-0-246"></a><span class="sd">            import supervision as sv</span>
+<a id="__codelineno-0-247" name="__codelineno-0-247"></a>
+<a id="__codelineno-0-248" name="__codelineno-0-248"></a><span class="sd">            image = ...</span>
+<a id="__codelineno-0-249" name="__codelineno-0-249"></a><span class="sd">            key_points = sv.KeyPoints(...)</span>
+<a id="__codelineno-0-250" name="__codelineno-0-250"></a>
+<a id="__codelineno-0-251" name="__codelineno-0-251"></a><span class="sd">            vertex_label_annotator = sv.VertexLabelAnnotator(</span>
+<a id="__codelineno-0-252" name="__codelineno-0-252"></a><span class="sd">                color=sv.Color.GREEN,</span>
+<a id="__codelineno-0-253" name="__codelineno-0-253"></a><span class="sd">                text_color=sv.Color.BLACK,</span>
+<a id="__codelineno-0-254" name="__codelineno-0-254"></a><span class="sd">                border_radius=5</span>
+<a id="__codelineno-0-255" name="__codelineno-0-255"></a><span class="sd">            )</span>
+<a id="__codelineno-0-256" name="__codelineno-0-256"></a><span class="sd">            annotated_frame = vertex_label_annotator.annotate(</span>
+<a id="__codelineno-0-257" name="__codelineno-0-257"></a><span class="sd">                scene=image.copy(),</span>
+<a id="__codelineno-0-258" name="__codelineno-0-258"></a><span class="sd">                key_points=key_points</span>
+<a id="__codelineno-0-259" name="__codelineno-0-259"></a><span class="sd">            )</span>
+<a id="__codelineno-0-260" name="__codelineno-0-260"></a><span class="sd">            ```</span>
+<a id="__codelineno-0-261" name="__codelineno-0-261"></a>
+<a id="__codelineno-0-262" name="__codelineno-0-262"></a><span class="sd">        ![vertex-label-annotator-example](https://media.roboflow.com/</span>
+<a id="__codelineno-0-263" name="__codelineno-0-263"></a><span class="sd">        supervision-annotator-examples/vertex-label-annotator-example.png)</span>
 <a id="__codelineno-0-264" name="__codelineno-0-264"></a>
-<a id="__codelineno-0-265" name="__codelineno-0-265"></a><span class="sd">            `VertexLabelAnnotator` allows to customize the color of each keypoint label</span>
-<a id="__codelineno-0-266" name="__codelineno-0-266"></a><span class="sd">            values.</span>
-<a id="__codelineno-0-267" name="__codelineno-0-267"></a>
-<a id="__codelineno-0-268" name="__codelineno-0-268"></a><span class="sd">        Example:</span>
-<a id="__codelineno-0-269" name="__codelineno-0-269"></a><span class="sd">            ```python</span>
-<a id="__codelineno-0-270" name="__codelineno-0-270"></a><span class="sd">            import supervision as sv</span>
-<a id="__codelineno-0-271" name="__codelineno-0-271"></a>
-<a id="__codelineno-0-272" name="__codelineno-0-272"></a><span class="sd">            image = ...</span>
-<a id="__codelineno-0-273" name="__codelineno-0-273"></a><span class="sd">            key_points = sv.KeyPoints(...)</span>
-<a id="__codelineno-0-274" name="__codelineno-0-274"></a>
-<a id="__codelineno-0-275" name="__codelineno-0-275"></a><span class="sd">            LABELS = [</span>
-<a id="__codelineno-0-276" name="__codelineno-0-276"></a><span class="sd">                &quot;nose&quot;, &quot;left eye&quot;, &quot;right eye&quot;, &quot;left ear&quot;,</span>
-<a id="__codelineno-0-277" name="__codelineno-0-277"></a><span class="sd">                &quot;right ear&quot;, &quot;left shoulder&quot;, &quot;right shoulder&quot;, &quot;left elbow&quot;,</span>
-<a id="__codelineno-0-278" name="__codelineno-0-278"></a><span class="sd">                &quot;right elbow&quot;, &quot;left wrist&quot;, &quot;right wrist&quot;, &quot;left hip&quot;,</span>
-<a id="__codelineno-0-279" name="__codelineno-0-279"></a><span class="sd">                &quot;right hip&quot;, &quot;left knee&quot;, &quot;right knee&quot;, &quot;left ankle&quot;,</span>
-<a id="__codelineno-0-280" name="__codelineno-0-280"></a><span class="sd">                &quot;right ankle&quot;</span>
-<a id="__codelineno-0-281" name="__codelineno-0-281"></a><span class="sd">            ]</span>
-<a id="__codelineno-0-282" name="__codelineno-0-282"></a>
-<a id="__codelineno-0-283" name="__codelineno-0-283"></a><span class="sd">            COLORS = [</span>
-<a id="__codelineno-0-284" name="__codelineno-0-284"></a><span class="sd">                &quot;#FF6347&quot;, &quot;#FF6347&quot;, &quot;#FF6347&quot;, &quot;#FF6347&quot;,</span>
-<a id="__codelineno-0-285" name="__codelineno-0-285"></a><span class="sd">                &quot;#FF6347&quot;, &quot;#FF1493&quot;, &quot;#00FF00&quot;, &quot;#FF1493&quot;,</span>
-<a id="__codelineno-0-286" name="__codelineno-0-286"></a><span class="sd">                &quot;#00FF00&quot;, &quot;#FF1493&quot;, &quot;#00FF00&quot;, &quot;#FFD700&quot;,</span>
-<a id="__codelineno-0-287" name="__codelineno-0-287"></a><span class="sd">                &quot;#00BFFF&quot;, &quot;#FFD700&quot;, &quot;#00BFFF&quot;, &quot;#FFD700&quot;,</span>
-<a id="__codelineno-0-288" name="__codelineno-0-288"></a><span class="sd">                &quot;#00BFFF&quot;</span>
-<a id="__codelineno-0-289" name="__codelineno-0-289"></a><span class="sd">            ]</span>
-<a id="__codelineno-0-290" name="__codelineno-0-290"></a><span class="sd">            COLORS = [sv.Color.from_hex(color_hex=c) for c in COLORS]</span>
-<a id="__codelineno-0-291" name="__codelineno-0-291"></a>
-<a id="__codelineno-0-292" name="__codelineno-0-292"></a><span class="sd">            vertex_label_annotator = sv.VertexLabelAnnotator(</span>
-<a id="__codelineno-0-293" name="__codelineno-0-293"></a><span class="sd">                color=COLORS,</span>
-<a id="__codelineno-0-294" name="__codelineno-0-294"></a><span class="sd">                text_color=sv.Color.BLACK,</span>
-<a id="__codelineno-0-295" name="__codelineno-0-295"></a><span class="sd">                border_radius=5</span>
-<a id="__codelineno-0-296" name="__codelineno-0-296"></a><span class="sd">            )</span>
-<a id="__codelineno-0-297" name="__codelineno-0-297"></a><span class="sd">            annotated_frame = vertex_label_annotator.annotate(</span>
-<a id="__codelineno-0-298" name="__codelineno-0-298"></a><span class="sd">                scene=image.copy(),</span>
-<a id="__codelineno-0-299" name="__codelineno-0-299"></a><span class="sd">                key_points=key_points,</span>
-<a id="__codelineno-0-300" name="__codelineno-0-300"></a><span class="sd">                labels=labels</span>
-<a id="__codelineno-0-301" name="__codelineno-0-301"></a><span class="sd">            )</span>
-<a id="__codelineno-0-302" name="__codelineno-0-302"></a><span class="sd">            ```</span>
-<a id="__codelineno-0-303" name="__codelineno-0-303"></a><span class="sd">        ![vertex-label-annotator-custom-example](https://media.roboflow.com/</span>
-<a id="__codelineno-0-304" name="__codelineno-0-304"></a><span class="sd">        supervision-annotator-examples/vertex-label-annotator-custom-example.png)</span>
-<a id="__codelineno-0-305" name="__codelineno-0-305"></a><span class="sd">        &quot;&quot;&quot;</span>
-<a id="__codelineno-0-306" name="__codelineno-0-306"></a>        <span class="n">font</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">FONT_HERSHEY_SIMPLEX</span>
-<a id="__codelineno-0-307" name="__codelineno-0-307"></a>
-<a id="__codelineno-0-308" name="__codelineno-0-308"></a>        <span class="n">skeletons_count</span><span class="p">,</span> <span class="n">points_count</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">key_points</span><span class="o">.</span><span class="n">xy</span><span class="o">.</span><span class="n">shape</span>
-<a id="__codelineno-0-309" name="__codelineno-0-309"></a>        <span class="k">if</span> <span class="n">skeletons_count</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-<a id="__codelineno-0-310" name="__codelineno-0-310"></a>            <span class="k">return</span> <span class="n">scene</span>
-<a id="__codelineno-0-311" name="__codelineno-0-311"></a>
-<a id="__codelineno-0-312" name="__codelineno-0-312"></a>        <span class="n">anchors</span> <span class="o">=</span> <span class="n">key_points</span><span class="o">.</span><span class="n">xy</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">points_count</span> <span class="o">*</span> <span class="n">skeletons_count</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
-<a id="__codelineno-0-313" name="__codelineno-0-313"></a>        <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">anchors</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-<a id="__codelineno-0-314" name="__codelineno-0-314"></a>
-<a id="__codelineno-0-315" name="__codelineno-0-315"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">mask</span><span class="p">):</span>
-<a id="__codelineno-0-316" name="__codelineno-0-316"></a>            <span class="k">return</span> <span class="n">scene</span>
-<a id="__codelineno-0-317" name="__codelineno-0-317"></a>
-<a id="__codelineno-0-318" name="__codelineno-0-318"></a>        <span class="n">colors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">preprocess_and_validate_colors</span><span class="p">(</span>
-<a id="__codelineno-0-319" name="__codelineno-0-319"></a>            <span class="n">colors</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">color</span><span class="p">,</span>
-<a id="__codelineno-0-320" name="__codelineno-0-320"></a>            <span class="n">points_count</span><span class="o">=</span><span class="n">points_count</span><span class="p">,</span>
-<a id="__codelineno-0-321" name="__codelineno-0-321"></a>            <span class="n">skeletons_count</span><span class="o">=</span><span class="n">skeletons_count</span><span class="p">,</span>
-<a id="__codelineno-0-322" name="__codelineno-0-322"></a>        <span class="p">)</span>
-<a id="__codelineno-0-323" name="__codelineno-0-323"></a>
-<a id="__codelineno-0-324" name="__codelineno-0-324"></a>        <span class="n">labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">preprocess_and_validate_labels</span><span class="p">(</span>
-<a id="__codelineno-0-325" name="__codelineno-0-325"></a>            <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">points_count</span><span class="o">=</span><span class="n">points_count</span><span class="p">,</span> <span class="n">skeletons_count</span><span class="o">=</span><span class="n">skeletons_count</span>
-<a id="__codelineno-0-326" name="__codelineno-0-326"></a>        <span class="p">)</span>
-<a id="__codelineno-0-327" name="__codelineno-0-327"></a>
-<a id="__codelineno-0-328" name="__codelineno-0-328"></a>        <span class="n">anchors</span> <span class="o">=</span> <span class="n">anchors</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
-<a id="__codelineno-0-329" name="__codelineno-0-329"></a>        <span class="n">colors</span> <span class="o">=</span> <span class="n">colors</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
-<a id="__codelineno-0-330" name="__codelineno-0-330"></a>        <span class="n">labels</span> <span class="o">=</span> <span class="n">labels</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+<a id="__codelineno-0-265" name="__codelineno-0-265"></a><span class="sd">        !!! tip</span>
+<a id="__codelineno-0-266" name="__codelineno-0-266"></a>
+<a id="__codelineno-0-267" name="__codelineno-0-267"></a><span class="sd">            `VertexLabelAnnotator` allows to customize the color of each keypoint label</span>
+<a id="__codelineno-0-268" name="__codelineno-0-268"></a><span class="sd">            values.</span>
+<a id="__codelineno-0-269" name="__codelineno-0-269"></a>
+<a id="__codelineno-0-270" name="__codelineno-0-270"></a><span class="sd">        Example:</span>
+<a id="__codelineno-0-271" name="__codelineno-0-271"></a><span class="sd">            ```python</span>
+<a id="__codelineno-0-272" name="__codelineno-0-272"></a><span class="sd">            import supervision as sv</span>
+<a id="__codelineno-0-273" name="__codelineno-0-273"></a>
+<a id="__codelineno-0-274" name="__codelineno-0-274"></a><span class="sd">            image = ...</span>
+<a id="__codelineno-0-275" name="__codelineno-0-275"></a><span class="sd">            key_points = sv.KeyPoints(...)</span>
+<a id="__codelineno-0-276" name="__codelineno-0-276"></a>
+<a id="__codelineno-0-277" name="__codelineno-0-277"></a><span class="sd">            LABELS = [</span>
+<a id="__codelineno-0-278" name="__codelineno-0-278"></a><span class="sd">                &quot;nose&quot;, &quot;left eye&quot;, &quot;right eye&quot;, &quot;left ear&quot;,</span>
+<a id="__codelineno-0-279" name="__codelineno-0-279"></a><span class="sd">                &quot;right ear&quot;, &quot;left shoulder&quot;, &quot;right shoulder&quot;, &quot;left elbow&quot;,</span>
+<a id="__codelineno-0-280" name="__codelineno-0-280"></a><span class="sd">                &quot;right elbow&quot;, &quot;left wrist&quot;, &quot;right wrist&quot;, &quot;left hip&quot;,</span>
+<a id="__codelineno-0-281" name="__codelineno-0-281"></a><span class="sd">                &quot;right hip&quot;, &quot;left knee&quot;, &quot;right knee&quot;, &quot;left ankle&quot;,</span>
+<a id="__codelineno-0-282" name="__codelineno-0-282"></a><span class="sd">                &quot;right ankle&quot;</span>
+<a id="__codelineno-0-283" name="__codelineno-0-283"></a><span class="sd">            ]</span>
+<a id="__codelineno-0-284" name="__codelineno-0-284"></a>
+<a id="__codelineno-0-285" name="__codelineno-0-285"></a><span class="sd">            COLORS = [</span>
+<a id="__codelineno-0-286" name="__codelineno-0-286"></a><span class="sd">                &quot;#FF6347&quot;, &quot;#FF6347&quot;, &quot;#FF6347&quot;, &quot;#FF6347&quot;,</span>
+<a id="__codelineno-0-287" name="__codelineno-0-287"></a><span class="sd">                &quot;#FF6347&quot;, &quot;#FF1493&quot;, &quot;#00FF00&quot;, &quot;#FF1493&quot;,</span>
+<a id="__codelineno-0-288" name="__codelineno-0-288"></a><span class="sd">                &quot;#00FF00&quot;, &quot;#FF1493&quot;, &quot;#00FF00&quot;, &quot;#FFD700&quot;,</span>
+<a id="__codelineno-0-289" name="__codelineno-0-289"></a><span class="sd">                &quot;#00BFFF&quot;, &quot;#FFD700&quot;, &quot;#00BFFF&quot;, &quot;#FFD700&quot;,</span>
+<a id="__codelineno-0-290" name="__codelineno-0-290"></a><span class="sd">                &quot;#00BFFF&quot;</span>
+<a id="__codelineno-0-291" name="__codelineno-0-291"></a><span class="sd">            ]</span>
+<a id="__codelineno-0-292" name="__codelineno-0-292"></a><span class="sd">            COLORS = [sv.Color.from_hex(color_hex=c) for c in COLORS]</span>
+<a id="__codelineno-0-293" name="__codelineno-0-293"></a>
+<a id="__codelineno-0-294" name="__codelineno-0-294"></a><span class="sd">            vertex_label_annotator = sv.VertexLabelAnnotator(</span>
+<a id="__codelineno-0-295" name="__codelineno-0-295"></a><span class="sd">                color=COLORS,</span>
+<a id="__codelineno-0-296" name="__codelineno-0-296"></a><span class="sd">                text_color=sv.Color.BLACK,</span>
+<a id="__codelineno-0-297" name="__codelineno-0-297"></a><span class="sd">                border_radius=5</span>
+<a id="__codelineno-0-298" name="__codelineno-0-298"></a><span class="sd">            )</span>
+<a id="__codelineno-0-299" name="__codelineno-0-299"></a><span class="sd">            annotated_frame = vertex_label_annotator.annotate(</span>
+<a id="__codelineno-0-300" name="__codelineno-0-300"></a><span class="sd">                scene=image.copy(),</span>
+<a id="__codelineno-0-301" name="__codelineno-0-301"></a><span class="sd">                key_points=key_points,</span>
+<a id="__codelineno-0-302" name="__codelineno-0-302"></a><span class="sd">                labels=labels</span>
+<a id="__codelineno-0-303" name="__codelineno-0-303"></a><span class="sd">            )</span>
+<a id="__codelineno-0-304" name="__codelineno-0-304"></a><span class="sd">            ```</span>
+<a id="__codelineno-0-305" name="__codelineno-0-305"></a><span class="sd">        ![vertex-label-annotator-custom-example](https://media.roboflow.com/</span>
+<a id="__codelineno-0-306" name="__codelineno-0-306"></a><span class="sd">        supervision-annotator-examples/vertex-label-annotator-custom-example.png)</span>
+<a id="__codelineno-0-307" name="__codelineno-0-307"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-308" name="__codelineno-0-308"></a>        <span class="n">font</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">FONT_HERSHEY_SIMPLEX</span>
+<a id="__codelineno-0-309" name="__codelineno-0-309"></a>
+<a id="__codelineno-0-310" name="__codelineno-0-310"></a>        <span class="n">skeletons_count</span><span class="p">,</span> <span class="n">points_count</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">key_points</span><span class="o">.</span><span class="n">xy</span><span class="o">.</span><span class="n">shape</span>
+<a id="__codelineno-0-311" name="__codelineno-0-311"></a>        <span class="k">if</span> <span class="n">skeletons_count</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+<a id="__codelineno-0-312" name="__codelineno-0-312"></a>            <span class="k">return</span> <span class="n">scene</span>
+<a id="__codelineno-0-313" name="__codelineno-0-313"></a>
+<a id="__codelineno-0-314" name="__codelineno-0-314"></a>        <span class="n">anchors</span> <span class="o">=</span> <span class="n">key_points</span><span class="o">.</span><span class="n">xy</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">points_count</span> <span class="o">*</span> <span class="n">skeletons_count</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+<a id="__codelineno-0-315" name="__codelineno-0-315"></a>        <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">anchors</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<a id="__codelineno-0-316" name="__codelineno-0-316"></a>
+<a id="__codelineno-0-317" name="__codelineno-0-317"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">mask</span><span class="p">):</span>
+<a id="__codelineno-0-318" name="__codelineno-0-318"></a>            <span class="k">return</span> <span class="n">scene</span>
+<a id="__codelineno-0-319" name="__codelineno-0-319"></a>
+<a id="__codelineno-0-320" name="__codelineno-0-320"></a>        <span class="n">colors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">preprocess_and_validate_colors</span><span class="p">(</span>
+<a id="__codelineno-0-321" name="__codelineno-0-321"></a>            <span class="n">colors</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">color</span><span class="p">,</span>
+<a id="__codelineno-0-322" name="__codelineno-0-322"></a>            <span class="n">points_count</span><span class="o">=</span><span class="n">points_count</span><span class="p">,</span>
+<a id="__codelineno-0-323" name="__codelineno-0-323"></a>            <span class="n">skeletons_count</span><span class="o">=</span><span class="n">skeletons_count</span><span class="p">,</span>
+<a id="__codelineno-0-324" name="__codelineno-0-324"></a>        <span class="p">)</span>
+<a id="__codelineno-0-325" name="__codelineno-0-325"></a>
+<a id="__codelineno-0-326" name="__codelineno-0-326"></a>        <span class="n">text_colors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">preprocess_and_validate_colors</span><span class="p">(</span>
+<a id="__codelineno-0-327" name="__codelineno-0-327"></a>            <span class="n">colors</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">text_color</span><span class="p">,</span>
+<a id="__codelineno-0-328" name="__codelineno-0-328"></a>            <span class="n">points_count</span><span class="o">=</span><span class="n">points_count</span><span class="p">,</span>
+<a id="__codelineno-0-329" name="__codelineno-0-329"></a>            <span class="n">skeletons_count</span><span class="o">=</span><span class="n">skeletons_count</span><span class="p">,</span>
+<a id="__codelineno-0-330" name="__codelineno-0-330"></a>        <span class="p">)</span>
 <a id="__codelineno-0-331" name="__codelineno-0-331"></a>
-<a id="__codelineno-0-332" name="__codelineno-0-332"></a>        <span class="n">xyxy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
-<a id="__codelineno-0-333" name="__codelineno-0-333"></a>            <span class="p">[</span>
-<a id="__codelineno-0-334" name="__codelineno-0-334"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">get_text_bounding_box</span><span class="p">(</span>
-<a id="__codelineno-0-335" name="__codelineno-0-335"></a>                    <span class="n">text</span><span class="o">=</span><span class="n">label</span><span class="p">,</span>
-<a id="__codelineno-0-336" name="__codelineno-0-336"></a>                    <span class="n">font</span><span class="o">=</span><span class="n">font</span><span class="p">,</span>
-<a id="__codelineno-0-337" name="__codelineno-0-337"></a>                    <span class="n">text_scale</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">text_scale</span><span class="p">,</span>
-<a id="__codelineno-0-338" name="__codelineno-0-338"></a>                    <span class="n">text_thickness</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">text_thickness</span><span class="p">,</span>
-<a id="__codelineno-0-339" name="__codelineno-0-339"></a>                    <span class="n">center_coordinates</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">anchor</span><span class="p">),</span>
-<a id="__codelineno-0-340" name="__codelineno-0-340"></a>                <span class="p">)</span>
-<a id="__codelineno-0-341" name="__codelineno-0-341"></a>                <span class="k">for</span> <span class="n">anchor</span><span class="p">,</span> <span class="n">label</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">anchors</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
-<a id="__codelineno-0-342" name="__codelineno-0-342"></a>            <span class="p">]</span>
-<a id="__codelineno-0-343" name="__codelineno-0-343"></a>        <span class="p">)</span>
-<a id="__codelineno-0-344" name="__codelineno-0-344"></a>
-<a id="__codelineno-0-345" name="__codelineno-0-345"></a>        <span class="n">xyxy_padded</span> <span class="o">=</span> <span class="n">pad_boxes</span><span class="p">(</span><span class="n">xyxy</span><span class="o">=</span><span class="n">xyxy</span><span class="p">,</span> <span class="n">px</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">text_padding</span><span class="p">)</span>
-<a id="__codelineno-0-346" name="__codelineno-0-346"></a>
-<a id="__codelineno-0-347" name="__codelineno-0-347"></a>        <span class="k">for</span> <span class="n">text</span><span class="p">,</span> <span class="n">color</span><span class="p">,</span> <span class="n">box</span><span class="p">,</span> <span class="n">box_padded</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">colors</span><span class="p">,</span> <span class="n">xyxy</span><span class="p">,</span> <span class="n">xyxy_padded</span><span class="p">):</span>
-<a id="__codelineno-0-348" name="__codelineno-0-348"></a>            <span class="n">draw_rounded_rectangle</span><span class="p">(</span>
-<a id="__codelineno-0-349" name="__codelineno-0-349"></a>                <span class="n">scene</span><span class="o">=</span><span class="n">scene</span><span class="p">,</span>
-<a id="__codelineno-0-350" name="__codelineno-0-350"></a>                <span class="n">rect</span><span class="o">=</span><span class="n">Rect</span><span class="o">.</span><span class="n">from_xyxy</span><span class="p">(</span><span class="n">box_padded</span><span class="p">),</span>
-<a id="__codelineno-0-351" name="__codelineno-0-351"></a>                <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
-<a id="__codelineno-0-352" name="__codelineno-0-352"></a>                <span class="n">border_radius</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">border_radius</span><span class="p">,</span>
-<a id="__codelineno-0-353" name="__codelineno-0-353"></a>            <span class="p">)</span>
-<a id="__codelineno-0-354" name="__codelineno-0-354"></a>            <span class="n">cv2</span><span class="o">.</span><span class="n">putText</span><span class="p">(</span>
-<a id="__codelineno-0-355" name="__codelineno-0-355"></a>                <span class="n">img</span><span class="o">=</span><span class="n">scene</span><span class="p">,</span>
-<a id="__codelineno-0-356" name="__codelineno-0-356"></a>                <span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">,</span>
-<a id="__codelineno-0-357" name="__codelineno-0-357"></a>                <span class="n">org</span><span class="o">=</span><span class="p">(</span><span class="n">box</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">box</span><span class="p">[</span><span class="mi">3</span><span class="p">]),</span>
-<a id="__codelineno-0-358" name="__codelineno-0-358"></a>                <span class="n">fontFace</span><span class="o">=</span><span class="n">font</span><span class="p">,</span>
-<a id="__codelineno-0-359" name="__codelineno-0-359"></a>                <span class="n">fontScale</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">text_scale</span><span class="p">,</span>
-<a id="__codelineno-0-360" name="__codelineno-0-360"></a>                <span class="n">color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">text_color</span><span class="o">.</span><span class="n">as_rgb</span><span class="p">(),</span>
-<a id="__codelineno-0-361" name="__codelineno-0-361"></a>                <span class="n">thickness</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">text_thickness</span><span class="p">,</span>
-<a id="__codelineno-0-362" name="__codelineno-0-362"></a>                <span class="n">lineType</span><span class="o">=</span><span class="n">cv2</span><span class="o">.</span><span class="n">LINE_AA</span><span class="p">,</span>
-<a id="__codelineno-0-363" name="__codelineno-0-363"></a>            <span class="p">)</span>
-<a id="__codelineno-0-364" name="__codelineno-0-364"></a>
-<a id="__codelineno-0-365" name="__codelineno-0-365"></a>        <span class="k">return</span> <span class="n">scene</span>
-<a id="__codelineno-0-366" name="__codelineno-0-366"></a>
-<a id="__codelineno-0-367" name="__codelineno-0-367"></a>    <span class="nd">@staticmethod</span>
-<a id="__codelineno-0-368" name="__codelineno-0-368"></a>    <span class="k">def</span> <span class="nf">get_text_bounding_box</span><span class="p">(</span>
-<a id="__codelineno-0-369" name="__codelineno-0-369"></a>        <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-<a id="__codelineno-0-370" name="__codelineno-0-370"></a>        <span class="n">font</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-<a id="__codelineno-0-371" name="__codelineno-0-371"></a>        <span class="n">text_scale</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-<a id="__codelineno-0-372" name="__codelineno-0-372"></a>        <span class="n">text_thickness</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-<a id="__codelineno-0-373" name="__codelineno-0-373"></a>        <span class="n">center_coordinates</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
-<a id="__codelineno-0-374" name="__codelineno-0-374"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
-<a id="__codelineno-0-375" name="__codelineno-0-375"></a>        <span class="n">text_w</span><span class="p">,</span> <span class="n">text_h</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">getTextSize</span><span class="p">(</span>
-<a id="__codelineno-0-376" name="__codelineno-0-376"></a>            <span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">,</span>
-<a id="__codelineno-0-377" name="__codelineno-0-377"></a>            <span class="n">fontFace</span><span class="o">=</span><span class="n">font</span><span class="p">,</span>
-<a id="__codelineno-0-378" name="__codelineno-0-378"></a>            <span class="n">fontScale</span><span class="o">=</span><span class="n">text_scale</span><span class="p">,</span>
-<a id="__codelineno-0-379" name="__codelineno-0-379"></a>            <span class="n">thickness</span><span class="o">=</span><span class="n">text_thickness</span><span class="p">,</span>
-<a id="__codelineno-0-380" name="__codelineno-0-380"></a>        <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-<a id="__codelineno-0-381" name="__codelineno-0-381"></a>        <span class="n">center_x</span><span class="p">,</span> <span class="n">center_y</span> <span class="o">=</span> <span class="n">center_coordinates</span>
-<a id="__codelineno-0-382" name="__codelineno-0-382"></a>        <span class="k">return</span> <span class="p">(</span>
-<a id="__codelineno-0-383" name="__codelineno-0-383"></a>            <span class="n">center_x</span> <span class="o">-</span> <span class="n">text_w</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span>
-<a id="__codelineno-0-384" name="__codelineno-0-384"></a>            <span class="n">center_y</span> <span class="o">-</span> <span class="n">text_h</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span>
-<a id="__codelineno-0-385" name="__codelineno-0-385"></a>            <span class="n">center_x</span> <span class="o">+</span> <span class="n">text_w</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span>
-<a id="__codelineno-0-386" name="__codelineno-0-386"></a>            <span class="n">center_y</span> <span class="o">+</span> <span class="n">text_h</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span>
-<a id="__codelineno-0-387" name="__codelineno-0-387"></a>        <span class="p">)</span>
-<a id="__codelineno-0-388" name="__codelineno-0-388"></a>
-<a id="__codelineno-0-389" name="__codelineno-0-389"></a>    <span class="nd">@staticmethod</span>
-<a id="__codelineno-0-390" name="__codelineno-0-390"></a>    <span class="k">def</span> <span class="nf">preprocess_and_validate_labels</span><span class="p">(</span>
-<a id="__codelineno-0-391" name="__codelineno-0-391"></a>        <span class="n">labels</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span> <span class="n">points_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">skeletons_count</span><span class="p">:</span> <span class="nb">int</span>
-<a id="__codelineno-0-392" name="__codelineno-0-392"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">:</span>
-<a id="__codelineno-0-393" name="__codelineno-0-393"></a>        <span class="k">if</span> <span class="n">labels</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span> <span class="o">!=</span> <span class="n">points_count</span><span class="p">:</span>
-<a id="__codelineno-0-394" name="__codelineno-0-394"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-<a id="__codelineno-0-395" name="__codelineno-0-395"></a>                <span class="sa">f</span><span class="s2">&quot;Number of labels (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span><span class="si">}</span><span class="s2">) must match number of key points &quot;</span>
-<a id="__codelineno-0-396" name="__codelineno-0-396"></a>                <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="n">points_count</span><span class="si">}</span><span class="s2">).&quot;</span>
-<a id="__codelineno-0-397" name="__codelineno-0-397"></a>            <span class="p">)</span>
-<a id="__codelineno-0-398" name="__codelineno-0-398"></a>        <span class="k">if</span> <span class="n">labels</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-399" name="__codelineno-0-399"></a>            <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">points_count</span><span class="p">)]</span>
-<a id="__codelineno-0-400" name="__codelineno-0-400"></a>
-<a id="__codelineno-0-401" name="__codelineno-0-401"></a>        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">labels</span> <span class="o">*</span> <span class="n">skeletons_count</span><span class="p">)</span>
-<a id="__codelineno-0-402" name="__codelineno-0-402"></a>
-<a id="__codelineno-0-403" name="__codelineno-0-403"></a>    <span class="nd">@staticmethod</span>
-<a id="__codelineno-0-404" name="__codelineno-0-404"></a>    <span class="k">def</span> <span class="nf">preprocess_and_validate_colors</span><span class="p">(</span>
-<a id="__codelineno-0-405" name="__codelineno-0-405"></a>        <span class="n">colors</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Color</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Color</span><span class="p">]]],</span>
-<a id="__codelineno-0-406" name="__codelineno-0-406"></a>        <span class="n">points_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-<a id="__codelineno-0-407" name="__codelineno-0-407"></a>        <span class="n">skeletons_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-<a id="__codelineno-0-408" name="__codelineno-0-408"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">:</span>
-<a id="__codelineno-0-409" name="__codelineno-0-409"></a>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">colors</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">colors</span><span class="p">)</span> <span class="o">!=</span> <span class="n">points_count</span><span class="p">:</span>
-<a id="__codelineno-0-410" name="__codelineno-0-410"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-<a id="__codelineno-0-411" name="__codelineno-0-411"></a>                <span class="sa">f</span><span class="s2">&quot;Number of colors (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">colors</span><span class="p">)</span><span class="si">}</span><span class="s2">) must match number of key points &quot;</span>
-<a id="__codelineno-0-412" name="__codelineno-0-412"></a>                <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="n">points_count</span><span class="si">}</span><span class="s2">).&quot;</span>
-<a id="__codelineno-0-413" name="__codelineno-0-413"></a>            <span class="p">)</span>
-<a id="__codelineno-0-414" name="__codelineno-0-414"></a>        <span class="k">return</span> <span class="p">(</span>
-<a id="__codelineno-0-415" name="__codelineno-0-415"></a>            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">colors</span> <span class="o">*</span> <span class="n">skeletons_count</span><span class="p">)</span>
-<a id="__codelineno-0-416" name="__codelineno-0-416"></a>            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">colors</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
-<a id="__codelineno-0-417" name="__codelineno-0-417"></a>            <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">colors</span><span class="p">]</span> <span class="o">*</span> <span class="n">points_count</span> <span class="o">*</span> <span class="n">skeletons_count</span><span class="p">)</span>
-<a id="__codelineno-0-418" name="__codelineno-0-418"></a>        <span class="p">)</span>
+<a id="__codelineno-0-332" name="__codelineno-0-332"></a>        <span class="n">labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">preprocess_and_validate_labels</span><span class="p">(</span>
+<a id="__codelineno-0-333" name="__codelineno-0-333"></a>            <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">points_count</span><span class="o">=</span><span class="n">points_count</span><span class="p">,</span> <span class="n">skeletons_count</span><span class="o">=</span><span class="n">skeletons_count</span>
+<a id="__codelineno-0-334" name="__codelineno-0-334"></a>        <span class="p">)</span>
+<a id="__codelineno-0-335" name="__codelineno-0-335"></a>
+<a id="__codelineno-0-336" name="__codelineno-0-336"></a>        <span class="n">anchors</span> <span class="o">=</span> <span class="n">anchors</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+<a id="__codelineno-0-337" name="__codelineno-0-337"></a>        <span class="n">colors</span> <span class="o">=</span> <span class="n">colors</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+<a id="__codelineno-0-338" name="__codelineno-0-338"></a>        <span class="n">text_colors</span> <span class="o">=</span> <span class="n">text_colors</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+<a id="__codelineno-0-339" name="__codelineno-0-339"></a>        <span class="n">labels</span> <span class="o">=</span> <span class="n">labels</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+<a id="__codelineno-0-340" name="__codelineno-0-340"></a>
+<a id="__codelineno-0-341" name="__codelineno-0-341"></a>        <span class="n">xyxy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+<a id="__codelineno-0-342" name="__codelineno-0-342"></a>            <span class="p">[</span>
+<a id="__codelineno-0-343" name="__codelineno-0-343"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">get_text_bounding_box</span><span class="p">(</span>
+<a id="__codelineno-0-344" name="__codelineno-0-344"></a>                    <span class="n">text</span><span class="o">=</span><span class="n">label</span><span class="p">,</span>
+<a id="__codelineno-0-345" name="__codelineno-0-345"></a>                    <span class="n">font</span><span class="o">=</span><span class="n">font</span><span class="p">,</span>
+<a id="__codelineno-0-346" name="__codelineno-0-346"></a>                    <span class="n">text_scale</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">text_scale</span><span class="p">,</span>
+<a id="__codelineno-0-347" name="__codelineno-0-347"></a>                    <span class="n">text_thickness</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">text_thickness</span><span class="p">,</span>
+<a id="__codelineno-0-348" name="__codelineno-0-348"></a>                    <span class="n">center_coordinates</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">anchor</span><span class="p">),</span>
+<a id="__codelineno-0-349" name="__codelineno-0-349"></a>                <span class="p">)</span>
+<a id="__codelineno-0-350" name="__codelineno-0-350"></a>                <span class="k">for</span> <span class="n">anchor</span><span class="p">,</span> <span class="n">label</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">anchors</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
+<a id="__codelineno-0-351" name="__codelineno-0-351"></a>            <span class="p">]</span>
+<a id="__codelineno-0-352" name="__codelineno-0-352"></a>        <span class="p">)</span>
+<a id="__codelineno-0-353" name="__codelineno-0-353"></a>
+<a id="__codelineno-0-354" name="__codelineno-0-354"></a>        <span class="n">xyxy_padded</span> <span class="o">=</span> <span class="n">pad_boxes</span><span class="p">(</span><span class="n">xyxy</span><span class="o">=</span><span class="n">xyxy</span><span class="p">,</span> <span class="n">px</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">text_padding</span><span class="p">)</span>
+<a id="__codelineno-0-355" name="__codelineno-0-355"></a>
+<a id="__codelineno-0-356" name="__codelineno-0-356"></a>        <span class="k">for</span> <span class="n">text</span><span class="p">,</span> <span class="n">color</span><span class="p">,</span> <span class="n">text_color</span><span class="p">,</span> <span class="n">box</span><span class="p">,</span> <span class="n">box_padded</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+<a id="__codelineno-0-357" name="__codelineno-0-357"></a>            <span class="n">labels</span><span class="p">,</span> <span class="n">colors</span><span class="p">,</span> <span class="n">text_colors</span><span class="p">,</span> <span class="n">xyxy</span><span class="p">,</span> <span class="n">xyxy_padded</span>
+<a id="__codelineno-0-358" name="__codelineno-0-358"></a>        <span class="p">):</span>
+<a id="__codelineno-0-359" name="__codelineno-0-359"></a>            <span class="n">draw_rounded_rectangle</span><span class="p">(</span>
+<a id="__codelineno-0-360" name="__codelineno-0-360"></a>                <span class="n">scene</span><span class="o">=</span><span class="n">scene</span><span class="p">,</span>
+<a id="__codelineno-0-361" name="__codelineno-0-361"></a>                <span class="n">rect</span><span class="o">=</span><span class="n">Rect</span><span class="o">.</span><span class="n">from_xyxy</span><span class="p">(</span><span class="n">box_padded</span><span class="p">),</span>
+<a id="__codelineno-0-362" name="__codelineno-0-362"></a>                <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
+<a id="__codelineno-0-363" name="__codelineno-0-363"></a>                <span class="n">border_radius</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">border_radius</span><span class="p">,</span>
+<a id="__codelineno-0-364" name="__codelineno-0-364"></a>            <span class="p">)</span>
+<a id="__codelineno-0-365" name="__codelineno-0-365"></a>            <span class="n">cv2</span><span class="o">.</span><span class="n">putText</span><span class="p">(</span>
+<a id="__codelineno-0-366" name="__codelineno-0-366"></a>                <span class="n">img</span><span class="o">=</span><span class="n">scene</span><span class="p">,</span>
+<a id="__codelineno-0-367" name="__codelineno-0-367"></a>                <span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">,</span>
+<a id="__codelineno-0-368" name="__codelineno-0-368"></a>                <span class="n">org</span><span class="o">=</span><span class="p">(</span><span class="n">box</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">box</span><span class="p">[</span><span class="mi">3</span><span class="p">]),</span>
+<a id="__codelineno-0-369" name="__codelineno-0-369"></a>                <span class="n">fontFace</span><span class="o">=</span><span class="n">font</span><span class="p">,</span>
+<a id="__codelineno-0-370" name="__codelineno-0-370"></a>                <span class="n">fontScale</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">text_scale</span><span class="p">,</span>
+<a id="__codelineno-0-371" name="__codelineno-0-371"></a>                <span class="n">color</span><span class="o">=</span><span class="n">text_color</span><span class="o">.</span><span class="n">as_bgr</span><span class="p">(),</span>
+<a id="__codelineno-0-372" name="__codelineno-0-372"></a>                <span class="n">thickness</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">text_thickness</span><span class="p">,</span>
+<a id="__codelineno-0-373" name="__codelineno-0-373"></a>                <span class="n">lineType</span><span class="o">=</span><span class="n">cv2</span><span class="o">.</span><span class="n">LINE_AA</span><span class="p">,</span>
+<a id="__codelineno-0-374" name="__codelineno-0-374"></a>            <span class="p">)</span>
+<a id="__codelineno-0-375" name="__codelineno-0-375"></a>
+<a id="__codelineno-0-376" name="__codelineno-0-376"></a>        <span class="k">return</span> <span class="n">scene</span>
+<a id="__codelineno-0-377" name="__codelineno-0-377"></a>
+<a id="__codelineno-0-378" name="__codelineno-0-378"></a>    <span class="nd">@staticmethod</span>
+<a id="__codelineno-0-379" name="__codelineno-0-379"></a>    <span class="k">def</span> <span class="nf">get_text_bounding_box</span><span class="p">(</span>
+<a id="__codelineno-0-380" name="__codelineno-0-380"></a>        <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<a id="__codelineno-0-381" name="__codelineno-0-381"></a>        <span class="n">font</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<a id="__codelineno-0-382" name="__codelineno-0-382"></a>        <span class="n">text_scale</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+<a id="__codelineno-0-383" name="__codelineno-0-383"></a>        <span class="n">text_thickness</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<a id="__codelineno-0-384" name="__codelineno-0-384"></a>        <span class="n">center_coordinates</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
+<a id="__codelineno-0-385" name="__codelineno-0-385"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<a id="__codelineno-0-386" name="__codelineno-0-386"></a>        <span class="n">text_w</span><span class="p">,</span> <span class="n">text_h</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">getTextSize</span><span class="p">(</span>
+<a id="__codelineno-0-387" name="__codelineno-0-387"></a>            <span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">,</span>
+<a id="__codelineno-0-388" name="__codelineno-0-388"></a>            <span class="n">fontFace</span><span class="o">=</span><span class="n">font</span><span class="p">,</span>
+<a id="__codelineno-0-389" name="__codelineno-0-389"></a>            <span class="n">fontScale</span><span class="o">=</span><span class="n">text_scale</span><span class="p">,</span>
+<a id="__codelineno-0-390" name="__codelineno-0-390"></a>            <span class="n">thickness</span><span class="o">=</span><span class="n">text_thickness</span><span class="p">,</span>
+<a id="__codelineno-0-391" name="__codelineno-0-391"></a>        <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+<a id="__codelineno-0-392" name="__codelineno-0-392"></a>        <span class="n">center_x</span><span class="p">,</span> <span class="n">center_y</span> <span class="o">=</span> <span class="n">center_coordinates</span>
+<a id="__codelineno-0-393" name="__codelineno-0-393"></a>        <span class="k">return</span> <span class="p">(</span>
+<a id="__codelineno-0-394" name="__codelineno-0-394"></a>            <span class="n">center_x</span> <span class="o">-</span> <span class="n">text_w</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span>
+<a id="__codelineno-0-395" name="__codelineno-0-395"></a>            <span class="n">center_y</span> <span class="o">-</span> <span class="n">text_h</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span>
+<a id="__codelineno-0-396" name="__codelineno-0-396"></a>            <span class="n">center_x</span> <span class="o">+</span> <span class="n">text_w</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span>
+<a id="__codelineno-0-397" name="__codelineno-0-397"></a>            <span class="n">center_y</span> <span class="o">+</span> <span class="n">text_h</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span>
+<a id="__codelineno-0-398" name="__codelineno-0-398"></a>        <span class="p">)</span>
+<a id="__codelineno-0-399" name="__codelineno-0-399"></a>
+<a id="__codelineno-0-400" name="__codelineno-0-400"></a>    <span class="nd">@staticmethod</span>
+<a id="__codelineno-0-401" name="__codelineno-0-401"></a>    <span class="k">def</span> <span class="nf">preprocess_and_validate_labels</span><span class="p">(</span>
+<a id="__codelineno-0-402" name="__codelineno-0-402"></a>        <span class="n">labels</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span> <span class="n">points_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">skeletons_count</span><span class="p">:</span> <span class="nb">int</span>
+<a id="__codelineno-0-403" name="__codelineno-0-403"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">:</span>
+<a id="__codelineno-0-404" name="__codelineno-0-404"></a>        <span class="k">if</span> <span class="n">labels</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span> <span class="o">!=</span> <span class="n">points_count</span><span class="p">:</span>
+<a id="__codelineno-0-405" name="__codelineno-0-405"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+<a id="__codelineno-0-406" name="__codelineno-0-406"></a>                <span class="sa">f</span><span class="s2">&quot;Number of labels (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span><span class="si">}</span><span class="s2">) must match number of key points &quot;</span>
+<a id="__codelineno-0-407" name="__codelineno-0-407"></a>                <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="n">points_count</span><span class="si">}</span><span class="s2">).&quot;</span>
+<a id="__codelineno-0-408" name="__codelineno-0-408"></a>            <span class="p">)</span>
+<a id="__codelineno-0-409" name="__codelineno-0-409"></a>        <span class="k">if</span> <span class="n">labels</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-410" name="__codelineno-0-410"></a>            <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">points_count</span><span class="p">)]</span>
+<a id="__codelineno-0-411" name="__codelineno-0-411"></a>
+<a id="__codelineno-0-412" name="__codelineno-0-412"></a>        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">labels</span> <span class="o">*</span> <span class="n">skeletons_count</span><span class="p">)</span>
+<a id="__codelineno-0-413" name="__codelineno-0-413"></a>
+<a id="__codelineno-0-414" name="__codelineno-0-414"></a>    <span class="nd">@staticmethod</span>
+<a id="__codelineno-0-415" name="__codelineno-0-415"></a>    <span class="k">def</span> <span class="nf">preprocess_and_validate_colors</span><span class="p">(</span>
+<a id="__codelineno-0-416" name="__codelineno-0-416"></a>        <span class="n">colors</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Color</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Color</span><span class="p">]]],</span>
+<a id="__codelineno-0-417" name="__codelineno-0-417"></a>        <span class="n">points_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<a id="__codelineno-0-418" name="__codelineno-0-418"></a>        <span class="n">skeletons_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<a id="__codelineno-0-419" name="__codelineno-0-419"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">:</span>
+<a id="__codelineno-0-420" name="__codelineno-0-420"></a>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">colors</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">colors</span><span class="p">)</span> <span class="o">!=</span> <span class="n">points_count</span><span class="p">:</span>
+<a id="__codelineno-0-421" name="__codelineno-0-421"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+<a id="__codelineno-0-422" name="__codelineno-0-422"></a>                <span class="sa">f</span><span class="s2">&quot;Number of colors (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">colors</span><span class="p">)</span><span class="si">}</span><span class="s2">) must match number of key points &quot;</span>
+<a id="__codelineno-0-423" name="__codelineno-0-423"></a>                <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="n">points_count</span><span class="si">}</span><span class="s2">).&quot;</span>
+<a id="__codelineno-0-424" name="__codelineno-0-424"></a>            <span class="p">)</span>
+<a id="__codelineno-0-425" name="__codelineno-0-425"></a>        <span class="k">return</span> <span class="p">(</span>
+<a id="__codelineno-0-426" name="__codelineno-0-426"></a>            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">colors</span> <span class="o">*</span> <span class="n">skeletons_count</span><span class="p">)</span>
+<a id="__codelineno-0-427" name="__codelineno-0-427"></a>            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">colors</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
+<a id="__codelineno-0-428" name="__codelineno-0-428"></a>            <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">colors</span><span class="p">]</span> <span class="o">*</span> <span class="n">points_count</span> <span class="o">*</span> <span class="n">skeletons_count</span><span class="p">)</span>
+<a id="__codelineno-0-429" name="__codelineno-0-429"></a>        <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
               </details>
 
@@ -3733,11 +3755,13 @@ for each keypoint.</p>
           <tr class="doc-section-item">
             <td><code>text_color</code></td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="supervision.draw.color.Color" href="../../utils/draw/#supervision.draw.color.Color">Color</a></code>
+                  <code><span title="typing.Union">Union</span>[<a class="autorefs autorefs-internal" title="supervision.draw.color.Color" href="../../utils/draw/#supervision.draw.color.Color">Color</a>, <span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="supervision.draw.color.Color" href="../../utils/draw/#supervision.draw.color.Color">Color</a>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The color to use for the labels.</p>
+                <p>The color to use
+for the labels. If a list is provided, the colors will be used in order
+for each keypoint.</p>
               </div>
             </td>
             <td>
@@ -3832,10 +3856,12 @@ boxes. Set to a high value to produce circles.</p>
 <span class="normal"><a href="#__codelineno-0-217">217</a></span>
 <span class="normal"><a href="#__codelineno-0-218">218</a></span>
 <span class="normal"><a href="#__codelineno-0-219">219</a></span>
-<span class="normal"><a href="#__codelineno-0-220">220</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-194" name="__codelineno-0-194"></a><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<span class="normal"><a href="#__codelineno-0-220">220</a></span>
+<span class="normal"><a href="#__codelineno-0-221">221</a></span>
+<span class="normal"><a href="#__codelineno-0-222">222</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-194" name="__codelineno-0-194"></a><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
 <a id="__codelineno-0-195" name="__codelineno-0-195"></a>    <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-196" name="__codelineno-0-196"></a>    <span class="n">color</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Color</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Color</span><span class="p">]]</span> <span class="o">=</span> <span class="n">Color</span><span class="o">.</span><span class="n">ROBOFLOW</span><span class="p">,</span>
-<a id="__codelineno-0-197" name="__codelineno-0-197"></a>    <span class="n">text_color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">=</span> <span class="n">Color</span><span class="o">.</span><span class="n">WHITE</span><span class="p">,</span>
+<a id="__codelineno-0-197" name="__codelineno-0-197"></a>    <span class="n">text_color</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Color</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Color</span><span class="p">]]</span> <span class="o">=</span> <span class="n">Color</span><span class="o">.</span><span class="n">WHITE</span><span class="p">,</span>
 <a id="__codelineno-0-198" name="__codelineno-0-198"></a>    <span class="n">text_scale</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
 <a id="__codelineno-0-199" name="__codelineno-0-199"></a>    <span class="n">text_thickness</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
 <a id="__codelineno-0-200" name="__codelineno-0-200"></a>    <span class="n">text_padding</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
@@ -3846,19 +3872,21 @@ boxes. Set to a high value to produce circles.</p>
 <a id="__codelineno-0-205" name="__codelineno-0-205"></a><span class="sd">        color (Union[Color, List[Color]], optional): The color to use for each</span>
 <a id="__codelineno-0-206" name="__codelineno-0-206"></a><span class="sd">            keypoint label. If a list is provided, the colors will be used in order</span>
 <a id="__codelineno-0-207" name="__codelineno-0-207"></a><span class="sd">            for each keypoint.</span>
-<a id="__codelineno-0-208" name="__codelineno-0-208"></a><span class="sd">        text_color (Color, optional): The color to use for the labels.</span>
-<a id="__codelineno-0-209" name="__codelineno-0-209"></a><span class="sd">        text_scale (float, optional): The scale of the text.</span>
-<a id="__codelineno-0-210" name="__codelineno-0-210"></a><span class="sd">        text_thickness (int, optional): The thickness of the text.</span>
-<a id="__codelineno-0-211" name="__codelineno-0-211"></a><span class="sd">        text_padding (int, optional): The padding around the text.</span>
-<a id="__codelineno-0-212" name="__codelineno-0-212"></a><span class="sd">        border_radius (int, optional): The radius of the rounded corners of the</span>
-<a id="__codelineno-0-213" name="__codelineno-0-213"></a><span class="sd">            boxes. Set to a high value to produce circles.</span>
-<a id="__codelineno-0-214" name="__codelineno-0-214"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-215" name="__codelineno-0-215"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">border_radius</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">border_radius</span>
-<a id="__codelineno-0-216" name="__codelineno-0-216"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">color</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Color</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Color</span><span class="p">]]</span> <span class="o">=</span> <span class="n">color</span>
-<a id="__codelineno-0-217" name="__codelineno-0-217"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">text_color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">=</span> <span class="n">text_color</span>
-<a id="__codelineno-0-218" name="__codelineno-0-218"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">text_scale</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">text_scale</span>
-<a id="__codelineno-0-219" name="__codelineno-0-219"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">text_thickness</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">text_thickness</span>
-<a id="__codelineno-0-220" name="__codelineno-0-220"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">text_padding</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">text_padding</span>
+<a id="__codelineno-0-208" name="__codelineno-0-208"></a><span class="sd">        text_color (Union[Color, List[Color]], optional): The color to use</span>
+<a id="__codelineno-0-209" name="__codelineno-0-209"></a><span class="sd">            for the labels. If a list is provided, the colors will be used in order</span>
+<a id="__codelineno-0-210" name="__codelineno-0-210"></a><span class="sd">            for each keypoint.</span>
+<a id="__codelineno-0-211" name="__codelineno-0-211"></a><span class="sd">        text_scale (float, optional): The scale of the text.</span>
+<a id="__codelineno-0-212" name="__codelineno-0-212"></a><span class="sd">        text_thickness (int, optional): The thickness of the text.</span>
+<a id="__codelineno-0-213" name="__codelineno-0-213"></a><span class="sd">        text_padding (int, optional): The padding around the text.</span>
+<a id="__codelineno-0-214" name="__codelineno-0-214"></a><span class="sd">        border_radius (int, optional): The radius of the rounded corners of the</span>
+<a id="__codelineno-0-215" name="__codelineno-0-215"></a><span class="sd">            boxes. Set to a high value to produce circles.</span>
+<a id="__codelineno-0-216" name="__codelineno-0-216"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-217" name="__codelineno-0-217"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">border_radius</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">border_radius</span>
+<a id="__codelineno-0-218" name="__codelineno-0-218"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">color</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Color</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Color</span><span class="p">]]</span> <span class="o">=</span> <span class="n">color</span>
+<a id="__codelineno-0-219" name="__codelineno-0-219"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">text_color</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Color</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Color</span><span class="p">]]</span> <span class="o">=</span> <span class="n">text_color</span>
+<a id="__codelineno-0-220" name="__codelineno-0-220"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">text_scale</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">text_scale</span>
+<a id="__codelineno-0-221" name="__codelineno-0-221"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">text_thickness</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">text_thickness</span>
+<a id="__codelineno-0-222" name="__codelineno-0-222"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">text_padding</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">text_padding</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -4031,9 +4059,7 @@ supervision-annotator-examples/vertex-label-annotator-custom-example.png" /></p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/keypoint/annotators.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-222">222</a></span>
-<span class="normal"><a href="#__codelineno-0-223">223</a></span>
-<span class="normal"><a href="#__codelineno-0-224">224</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-224">224</a></span>
 <span class="normal"><a href="#__codelineno-0-225">225</a></span>
 <span class="normal"><a href="#__codelineno-0-226">226</a></span>
 <span class="normal"><a href="#__codelineno-0-227">227</a></span>
@@ -4174,150 +4200,170 @@ supervision-annotator-examples/vertex-label-annotator-custom-example.png" /></p>
 <span class="normal"><a href="#__codelineno-0-362">362</a></span>
 <span class="normal"><a href="#__codelineno-0-363">363</a></span>
 <span class="normal"><a href="#__codelineno-0-364">364</a></span>
-<span class="normal"><a href="#__codelineno-0-365">365</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-222" name="__codelineno-0-222"></a><span class="k">def</span> <span class="nf">annotate</span><span class="p">(</span>
-<a id="__codelineno-0-223" name="__codelineno-0-223"></a>    <span class="bp">self</span><span class="p">,</span> <span class="n">scene</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">key_points</span><span class="p">:</span> <span class="n">KeyPoints</span><span class="p">,</span> <span class="n">labels</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-224" name="__codelineno-0-224"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageType</span><span class="p">:</span>
-<a id="__codelineno-0-225" name="__codelineno-0-225"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-226" name="__codelineno-0-226"></a><span class="sd">    A class that draws labels of skeleton vertices on images. It uses specified key</span>
-<a id="__codelineno-0-227" name="__codelineno-0-227"></a><span class="sd">        points to determine the locations where the vertices should be drawn.</span>
-<a id="__codelineno-0-228" name="__codelineno-0-228"></a>
-<a id="__codelineno-0-229" name="__codelineno-0-229"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-230" name="__codelineno-0-230"></a><span class="sd">        scene (ImageType): The image where vertex labels will be drawn. `ImageType`</span>
-<a id="__codelineno-0-231" name="__codelineno-0-231"></a><span class="sd">            is a flexible type, accepting either `numpy.ndarray` or</span>
-<a id="__codelineno-0-232" name="__codelineno-0-232"></a><span class="sd">            `PIL.Image.Image`.</span>
-<a id="__codelineno-0-233" name="__codelineno-0-233"></a><span class="sd">        key_points (KeyPoints): A collection of key points where each key point</span>
-<a id="__codelineno-0-234" name="__codelineno-0-234"></a><span class="sd">            consists of x and y coordinates.</span>
-<a id="__codelineno-0-235" name="__codelineno-0-235"></a><span class="sd">        labels (List[str], optional): A list of labels to be displayed on the</span>
-<a id="__codelineno-0-236" name="__codelineno-0-236"></a><span class="sd">            annotated image. If not provided, keypoint indices will be used.</span>
-<a id="__codelineno-0-237" name="__codelineno-0-237"></a>
-<a id="__codelineno-0-238" name="__codelineno-0-238"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-239" name="__codelineno-0-239"></a><span class="sd">        The annotated image, matching the type of `scene` (`numpy.ndarray`</span>
-<a id="__codelineno-0-240" name="__codelineno-0-240"></a><span class="sd">            or `PIL.Image.Image`)</span>
-<a id="__codelineno-0-241" name="__codelineno-0-241"></a>
-<a id="__codelineno-0-242" name="__codelineno-0-242"></a><span class="sd">    Example:</span>
-<a id="__codelineno-0-243" name="__codelineno-0-243"></a><span class="sd">        ```python</span>
-<a id="__codelineno-0-244" name="__codelineno-0-244"></a><span class="sd">        import supervision as sv</span>
-<a id="__codelineno-0-245" name="__codelineno-0-245"></a>
-<a id="__codelineno-0-246" name="__codelineno-0-246"></a><span class="sd">        image = ...</span>
-<a id="__codelineno-0-247" name="__codelineno-0-247"></a><span class="sd">        key_points = sv.KeyPoints(...)</span>
-<a id="__codelineno-0-248" name="__codelineno-0-248"></a>
-<a id="__codelineno-0-249" name="__codelineno-0-249"></a><span class="sd">        vertex_label_annotator = sv.VertexLabelAnnotator(</span>
-<a id="__codelineno-0-250" name="__codelineno-0-250"></a><span class="sd">            color=sv.Color.GREEN,</span>
-<a id="__codelineno-0-251" name="__codelineno-0-251"></a><span class="sd">            text_color=sv.Color.BLACK,</span>
-<a id="__codelineno-0-252" name="__codelineno-0-252"></a><span class="sd">            border_radius=5</span>
-<a id="__codelineno-0-253" name="__codelineno-0-253"></a><span class="sd">        )</span>
-<a id="__codelineno-0-254" name="__codelineno-0-254"></a><span class="sd">        annotated_frame = vertex_label_annotator.annotate(</span>
-<a id="__codelineno-0-255" name="__codelineno-0-255"></a><span class="sd">            scene=image.copy(),</span>
-<a id="__codelineno-0-256" name="__codelineno-0-256"></a><span class="sd">            key_points=key_points</span>
-<a id="__codelineno-0-257" name="__codelineno-0-257"></a><span class="sd">        )</span>
-<a id="__codelineno-0-258" name="__codelineno-0-258"></a><span class="sd">        ```</span>
-<a id="__codelineno-0-259" name="__codelineno-0-259"></a>
-<a id="__codelineno-0-260" name="__codelineno-0-260"></a><span class="sd">    ![vertex-label-annotator-example](https://media.roboflow.com/</span>
-<a id="__codelineno-0-261" name="__codelineno-0-261"></a><span class="sd">    supervision-annotator-examples/vertex-label-annotator-example.png)</span>
-<a id="__codelineno-0-262" name="__codelineno-0-262"></a>
-<a id="__codelineno-0-263" name="__codelineno-0-263"></a><span class="sd">    !!! tip</span>
+<span class="normal"><a href="#__codelineno-0-365">365</a></span>
+<span class="normal"><a href="#__codelineno-0-366">366</a></span>
+<span class="normal"><a href="#__codelineno-0-367">367</a></span>
+<span class="normal"><a href="#__codelineno-0-368">368</a></span>
+<span class="normal"><a href="#__codelineno-0-369">369</a></span>
+<span class="normal"><a href="#__codelineno-0-370">370</a></span>
+<span class="normal"><a href="#__codelineno-0-371">371</a></span>
+<span class="normal"><a href="#__codelineno-0-372">372</a></span>
+<span class="normal"><a href="#__codelineno-0-373">373</a></span>
+<span class="normal"><a href="#__codelineno-0-374">374</a></span>
+<span class="normal"><a href="#__codelineno-0-375">375</a></span>
+<span class="normal"><a href="#__codelineno-0-376">376</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-224" name="__codelineno-0-224"></a><span class="k">def</span> <span class="nf">annotate</span><span class="p">(</span>
+<a id="__codelineno-0-225" name="__codelineno-0-225"></a>    <span class="bp">self</span><span class="p">,</span> <span class="n">scene</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">key_points</span><span class="p">:</span> <span class="n">KeyPoints</span><span class="p">,</span> <span class="n">labels</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-226" name="__codelineno-0-226"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageType</span><span class="p">:</span>
+<a id="__codelineno-0-227" name="__codelineno-0-227"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-228" name="__codelineno-0-228"></a><span class="sd">    A class that draws labels of skeleton vertices on images. It uses specified key</span>
+<a id="__codelineno-0-229" name="__codelineno-0-229"></a><span class="sd">        points to determine the locations where the vertices should be drawn.</span>
+<a id="__codelineno-0-230" name="__codelineno-0-230"></a>
+<a id="__codelineno-0-231" name="__codelineno-0-231"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-232" name="__codelineno-0-232"></a><span class="sd">        scene (ImageType): The image where vertex labels will be drawn. `ImageType`</span>
+<a id="__codelineno-0-233" name="__codelineno-0-233"></a><span class="sd">            is a flexible type, accepting either `numpy.ndarray` or</span>
+<a id="__codelineno-0-234" name="__codelineno-0-234"></a><span class="sd">            `PIL.Image.Image`.</span>
+<a id="__codelineno-0-235" name="__codelineno-0-235"></a><span class="sd">        key_points (KeyPoints): A collection of key points where each key point</span>
+<a id="__codelineno-0-236" name="__codelineno-0-236"></a><span class="sd">            consists of x and y coordinates.</span>
+<a id="__codelineno-0-237" name="__codelineno-0-237"></a><span class="sd">        labels (List[str], optional): A list of labels to be displayed on the</span>
+<a id="__codelineno-0-238" name="__codelineno-0-238"></a><span class="sd">            annotated image. If not provided, keypoint indices will be used.</span>
+<a id="__codelineno-0-239" name="__codelineno-0-239"></a>
+<a id="__codelineno-0-240" name="__codelineno-0-240"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-241" name="__codelineno-0-241"></a><span class="sd">        The annotated image, matching the type of `scene` (`numpy.ndarray`</span>
+<a id="__codelineno-0-242" name="__codelineno-0-242"></a><span class="sd">            or `PIL.Image.Image`)</span>
+<a id="__codelineno-0-243" name="__codelineno-0-243"></a>
+<a id="__codelineno-0-244" name="__codelineno-0-244"></a><span class="sd">    Example:</span>
+<a id="__codelineno-0-245" name="__codelineno-0-245"></a><span class="sd">        ```python</span>
+<a id="__codelineno-0-246" name="__codelineno-0-246"></a><span class="sd">        import supervision as sv</span>
+<a id="__codelineno-0-247" name="__codelineno-0-247"></a>
+<a id="__codelineno-0-248" name="__codelineno-0-248"></a><span class="sd">        image = ...</span>
+<a id="__codelineno-0-249" name="__codelineno-0-249"></a><span class="sd">        key_points = sv.KeyPoints(...)</span>
+<a id="__codelineno-0-250" name="__codelineno-0-250"></a>
+<a id="__codelineno-0-251" name="__codelineno-0-251"></a><span class="sd">        vertex_label_annotator = sv.VertexLabelAnnotator(</span>
+<a id="__codelineno-0-252" name="__codelineno-0-252"></a><span class="sd">            color=sv.Color.GREEN,</span>
+<a id="__codelineno-0-253" name="__codelineno-0-253"></a><span class="sd">            text_color=sv.Color.BLACK,</span>
+<a id="__codelineno-0-254" name="__codelineno-0-254"></a><span class="sd">            border_radius=5</span>
+<a id="__codelineno-0-255" name="__codelineno-0-255"></a><span class="sd">        )</span>
+<a id="__codelineno-0-256" name="__codelineno-0-256"></a><span class="sd">        annotated_frame = vertex_label_annotator.annotate(</span>
+<a id="__codelineno-0-257" name="__codelineno-0-257"></a><span class="sd">            scene=image.copy(),</span>
+<a id="__codelineno-0-258" name="__codelineno-0-258"></a><span class="sd">            key_points=key_points</span>
+<a id="__codelineno-0-259" name="__codelineno-0-259"></a><span class="sd">        )</span>
+<a id="__codelineno-0-260" name="__codelineno-0-260"></a><span class="sd">        ```</span>
+<a id="__codelineno-0-261" name="__codelineno-0-261"></a>
+<a id="__codelineno-0-262" name="__codelineno-0-262"></a><span class="sd">    ![vertex-label-annotator-example](https://media.roboflow.com/</span>
+<a id="__codelineno-0-263" name="__codelineno-0-263"></a><span class="sd">    supervision-annotator-examples/vertex-label-annotator-example.png)</span>
 <a id="__codelineno-0-264" name="__codelineno-0-264"></a>
-<a id="__codelineno-0-265" name="__codelineno-0-265"></a><span class="sd">        `VertexLabelAnnotator` allows to customize the color of each keypoint label</span>
-<a id="__codelineno-0-266" name="__codelineno-0-266"></a><span class="sd">        values.</span>
-<a id="__codelineno-0-267" name="__codelineno-0-267"></a>
-<a id="__codelineno-0-268" name="__codelineno-0-268"></a><span class="sd">    Example:</span>
-<a id="__codelineno-0-269" name="__codelineno-0-269"></a><span class="sd">        ```python</span>
-<a id="__codelineno-0-270" name="__codelineno-0-270"></a><span class="sd">        import supervision as sv</span>
-<a id="__codelineno-0-271" name="__codelineno-0-271"></a>
-<a id="__codelineno-0-272" name="__codelineno-0-272"></a><span class="sd">        image = ...</span>
-<a id="__codelineno-0-273" name="__codelineno-0-273"></a><span class="sd">        key_points = sv.KeyPoints(...)</span>
-<a id="__codelineno-0-274" name="__codelineno-0-274"></a>
-<a id="__codelineno-0-275" name="__codelineno-0-275"></a><span class="sd">        LABELS = [</span>
-<a id="__codelineno-0-276" name="__codelineno-0-276"></a><span class="sd">            &quot;nose&quot;, &quot;left eye&quot;, &quot;right eye&quot;, &quot;left ear&quot;,</span>
-<a id="__codelineno-0-277" name="__codelineno-0-277"></a><span class="sd">            &quot;right ear&quot;, &quot;left shoulder&quot;, &quot;right shoulder&quot;, &quot;left elbow&quot;,</span>
-<a id="__codelineno-0-278" name="__codelineno-0-278"></a><span class="sd">            &quot;right elbow&quot;, &quot;left wrist&quot;, &quot;right wrist&quot;, &quot;left hip&quot;,</span>
-<a id="__codelineno-0-279" name="__codelineno-0-279"></a><span class="sd">            &quot;right hip&quot;, &quot;left knee&quot;, &quot;right knee&quot;, &quot;left ankle&quot;,</span>
-<a id="__codelineno-0-280" name="__codelineno-0-280"></a><span class="sd">            &quot;right ankle&quot;</span>
-<a id="__codelineno-0-281" name="__codelineno-0-281"></a><span class="sd">        ]</span>
-<a id="__codelineno-0-282" name="__codelineno-0-282"></a>
-<a id="__codelineno-0-283" name="__codelineno-0-283"></a><span class="sd">        COLORS = [</span>
-<a id="__codelineno-0-284" name="__codelineno-0-284"></a><span class="sd">            &quot;#FF6347&quot;, &quot;#FF6347&quot;, &quot;#FF6347&quot;, &quot;#FF6347&quot;,</span>
-<a id="__codelineno-0-285" name="__codelineno-0-285"></a><span class="sd">            &quot;#FF6347&quot;, &quot;#FF1493&quot;, &quot;#00FF00&quot;, &quot;#FF1493&quot;,</span>
-<a id="__codelineno-0-286" name="__codelineno-0-286"></a><span class="sd">            &quot;#00FF00&quot;, &quot;#FF1493&quot;, &quot;#00FF00&quot;, &quot;#FFD700&quot;,</span>
-<a id="__codelineno-0-287" name="__codelineno-0-287"></a><span class="sd">            &quot;#00BFFF&quot;, &quot;#FFD700&quot;, &quot;#00BFFF&quot;, &quot;#FFD700&quot;,</span>
-<a id="__codelineno-0-288" name="__codelineno-0-288"></a><span class="sd">            &quot;#00BFFF&quot;</span>
-<a id="__codelineno-0-289" name="__codelineno-0-289"></a><span class="sd">        ]</span>
-<a id="__codelineno-0-290" name="__codelineno-0-290"></a><span class="sd">        COLORS = [sv.Color.from_hex(color_hex=c) for c in COLORS]</span>
-<a id="__codelineno-0-291" name="__codelineno-0-291"></a>
-<a id="__codelineno-0-292" name="__codelineno-0-292"></a><span class="sd">        vertex_label_annotator = sv.VertexLabelAnnotator(</span>
-<a id="__codelineno-0-293" name="__codelineno-0-293"></a><span class="sd">            color=COLORS,</span>
-<a id="__codelineno-0-294" name="__codelineno-0-294"></a><span class="sd">            text_color=sv.Color.BLACK,</span>
-<a id="__codelineno-0-295" name="__codelineno-0-295"></a><span class="sd">            border_radius=5</span>
-<a id="__codelineno-0-296" name="__codelineno-0-296"></a><span class="sd">        )</span>
-<a id="__codelineno-0-297" name="__codelineno-0-297"></a><span class="sd">        annotated_frame = vertex_label_annotator.annotate(</span>
-<a id="__codelineno-0-298" name="__codelineno-0-298"></a><span class="sd">            scene=image.copy(),</span>
-<a id="__codelineno-0-299" name="__codelineno-0-299"></a><span class="sd">            key_points=key_points,</span>
-<a id="__codelineno-0-300" name="__codelineno-0-300"></a><span class="sd">            labels=labels</span>
-<a id="__codelineno-0-301" name="__codelineno-0-301"></a><span class="sd">        )</span>
-<a id="__codelineno-0-302" name="__codelineno-0-302"></a><span class="sd">        ```</span>
-<a id="__codelineno-0-303" name="__codelineno-0-303"></a><span class="sd">    ![vertex-label-annotator-custom-example](https://media.roboflow.com/</span>
-<a id="__codelineno-0-304" name="__codelineno-0-304"></a><span class="sd">    supervision-annotator-examples/vertex-label-annotator-custom-example.png)</span>
-<a id="__codelineno-0-305" name="__codelineno-0-305"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-306" name="__codelineno-0-306"></a>    <span class="n">font</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">FONT_HERSHEY_SIMPLEX</span>
-<a id="__codelineno-0-307" name="__codelineno-0-307"></a>
-<a id="__codelineno-0-308" name="__codelineno-0-308"></a>    <span class="n">skeletons_count</span><span class="p">,</span> <span class="n">points_count</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">key_points</span><span class="o">.</span><span class="n">xy</span><span class="o">.</span><span class="n">shape</span>
-<a id="__codelineno-0-309" name="__codelineno-0-309"></a>    <span class="k">if</span> <span class="n">skeletons_count</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-<a id="__codelineno-0-310" name="__codelineno-0-310"></a>        <span class="k">return</span> <span class="n">scene</span>
-<a id="__codelineno-0-311" name="__codelineno-0-311"></a>
-<a id="__codelineno-0-312" name="__codelineno-0-312"></a>    <span class="n">anchors</span> <span class="o">=</span> <span class="n">key_points</span><span class="o">.</span><span class="n">xy</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">points_count</span> <span class="o">*</span> <span class="n">skeletons_count</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
-<a id="__codelineno-0-313" name="__codelineno-0-313"></a>    <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">anchors</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-<a id="__codelineno-0-314" name="__codelineno-0-314"></a>
-<a id="__codelineno-0-315" name="__codelineno-0-315"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">mask</span><span class="p">):</span>
-<a id="__codelineno-0-316" name="__codelineno-0-316"></a>        <span class="k">return</span> <span class="n">scene</span>
-<a id="__codelineno-0-317" name="__codelineno-0-317"></a>
-<a id="__codelineno-0-318" name="__codelineno-0-318"></a>    <span class="n">colors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">preprocess_and_validate_colors</span><span class="p">(</span>
-<a id="__codelineno-0-319" name="__codelineno-0-319"></a>        <span class="n">colors</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">color</span><span class="p">,</span>
-<a id="__codelineno-0-320" name="__codelineno-0-320"></a>        <span class="n">points_count</span><span class="o">=</span><span class="n">points_count</span><span class="p">,</span>
-<a id="__codelineno-0-321" name="__codelineno-0-321"></a>        <span class="n">skeletons_count</span><span class="o">=</span><span class="n">skeletons_count</span><span class="p">,</span>
-<a id="__codelineno-0-322" name="__codelineno-0-322"></a>    <span class="p">)</span>
-<a id="__codelineno-0-323" name="__codelineno-0-323"></a>
-<a id="__codelineno-0-324" name="__codelineno-0-324"></a>    <span class="n">labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">preprocess_and_validate_labels</span><span class="p">(</span>
-<a id="__codelineno-0-325" name="__codelineno-0-325"></a>        <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">points_count</span><span class="o">=</span><span class="n">points_count</span><span class="p">,</span> <span class="n">skeletons_count</span><span class="o">=</span><span class="n">skeletons_count</span>
-<a id="__codelineno-0-326" name="__codelineno-0-326"></a>    <span class="p">)</span>
-<a id="__codelineno-0-327" name="__codelineno-0-327"></a>
-<a id="__codelineno-0-328" name="__codelineno-0-328"></a>    <span class="n">anchors</span> <span class="o">=</span> <span class="n">anchors</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
-<a id="__codelineno-0-329" name="__codelineno-0-329"></a>    <span class="n">colors</span> <span class="o">=</span> <span class="n">colors</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
-<a id="__codelineno-0-330" name="__codelineno-0-330"></a>    <span class="n">labels</span> <span class="o">=</span> <span class="n">labels</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+<a id="__codelineno-0-265" name="__codelineno-0-265"></a><span class="sd">    !!! tip</span>
+<a id="__codelineno-0-266" name="__codelineno-0-266"></a>
+<a id="__codelineno-0-267" name="__codelineno-0-267"></a><span class="sd">        `VertexLabelAnnotator` allows to customize the color of each keypoint label</span>
+<a id="__codelineno-0-268" name="__codelineno-0-268"></a><span class="sd">        values.</span>
+<a id="__codelineno-0-269" name="__codelineno-0-269"></a>
+<a id="__codelineno-0-270" name="__codelineno-0-270"></a><span class="sd">    Example:</span>
+<a id="__codelineno-0-271" name="__codelineno-0-271"></a><span class="sd">        ```python</span>
+<a id="__codelineno-0-272" name="__codelineno-0-272"></a><span class="sd">        import supervision as sv</span>
+<a id="__codelineno-0-273" name="__codelineno-0-273"></a>
+<a id="__codelineno-0-274" name="__codelineno-0-274"></a><span class="sd">        image = ...</span>
+<a id="__codelineno-0-275" name="__codelineno-0-275"></a><span class="sd">        key_points = sv.KeyPoints(...)</span>
+<a id="__codelineno-0-276" name="__codelineno-0-276"></a>
+<a id="__codelineno-0-277" name="__codelineno-0-277"></a><span class="sd">        LABELS = [</span>
+<a id="__codelineno-0-278" name="__codelineno-0-278"></a><span class="sd">            &quot;nose&quot;, &quot;left eye&quot;, &quot;right eye&quot;, &quot;left ear&quot;,</span>
+<a id="__codelineno-0-279" name="__codelineno-0-279"></a><span class="sd">            &quot;right ear&quot;, &quot;left shoulder&quot;, &quot;right shoulder&quot;, &quot;left elbow&quot;,</span>
+<a id="__codelineno-0-280" name="__codelineno-0-280"></a><span class="sd">            &quot;right elbow&quot;, &quot;left wrist&quot;, &quot;right wrist&quot;, &quot;left hip&quot;,</span>
+<a id="__codelineno-0-281" name="__codelineno-0-281"></a><span class="sd">            &quot;right hip&quot;, &quot;left knee&quot;, &quot;right knee&quot;, &quot;left ankle&quot;,</span>
+<a id="__codelineno-0-282" name="__codelineno-0-282"></a><span class="sd">            &quot;right ankle&quot;</span>
+<a id="__codelineno-0-283" name="__codelineno-0-283"></a><span class="sd">        ]</span>
+<a id="__codelineno-0-284" name="__codelineno-0-284"></a>
+<a id="__codelineno-0-285" name="__codelineno-0-285"></a><span class="sd">        COLORS = [</span>
+<a id="__codelineno-0-286" name="__codelineno-0-286"></a><span class="sd">            &quot;#FF6347&quot;, &quot;#FF6347&quot;, &quot;#FF6347&quot;, &quot;#FF6347&quot;,</span>
+<a id="__codelineno-0-287" name="__codelineno-0-287"></a><span class="sd">            &quot;#FF6347&quot;, &quot;#FF1493&quot;, &quot;#00FF00&quot;, &quot;#FF1493&quot;,</span>
+<a id="__codelineno-0-288" name="__codelineno-0-288"></a><span class="sd">            &quot;#00FF00&quot;, &quot;#FF1493&quot;, &quot;#00FF00&quot;, &quot;#FFD700&quot;,</span>
+<a id="__codelineno-0-289" name="__codelineno-0-289"></a><span class="sd">            &quot;#00BFFF&quot;, &quot;#FFD700&quot;, &quot;#00BFFF&quot;, &quot;#FFD700&quot;,</span>
+<a id="__codelineno-0-290" name="__codelineno-0-290"></a><span class="sd">            &quot;#00BFFF&quot;</span>
+<a id="__codelineno-0-291" name="__codelineno-0-291"></a><span class="sd">        ]</span>
+<a id="__codelineno-0-292" name="__codelineno-0-292"></a><span class="sd">        COLORS = [sv.Color.from_hex(color_hex=c) for c in COLORS]</span>
+<a id="__codelineno-0-293" name="__codelineno-0-293"></a>
+<a id="__codelineno-0-294" name="__codelineno-0-294"></a><span class="sd">        vertex_label_annotator = sv.VertexLabelAnnotator(</span>
+<a id="__codelineno-0-295" name="__codelineno-0-295"></a><span class="sd">            color=COLORS,</span>
+<a id="__codelineno-0-296" name="__codelineno-0-296"></a><span class="sd">            text_color=sv.Color.BLACK,</span>
+<a id="__codelineno-0-297" name="__codelineno-0-297"></a><span class="sd">            border_radius=5</span>
+<a id="__codelineno-0-298" name="__codelineno-0-298"></a><span class="sd">        )</span>
+<a id="__codelineno-0-299" name="__codelineno-0-299"></a><span class="sd">        annotated_frame = vertex_label_annotator.annotate(</span>
+<a id="__codelineno-0-300" name="__codelineno-0-300"></a><span class="sd">            scene=image.copy(),</span>
+<a id="__codelineno-0-301" name="__codelineno-0-301"></a><span class="sd">            key_points=key_points,</span>
+<a id="__codelineno-0-302" name="__codelineno-0-302"></a><span class="sd">            labels=labels</span>
+<a id="__codelineno-0-303" name="__codelineno-0-303"></a><span class="sd">        )</span>
+<a id="__codelineno-0-304" name="__codelineno-0-304"></a><span class="sd">        ```</span>
+<a id="__codelineno-0-305" name="__codelineno-0-305"></a><span class="sd">    ![vertex-label-annotator-custom-example](https://media.roboflow.com/</span>
+<a id="__codelineno-0-306" name="__codelineno-0-306"></a><span class="sd">    supervision-annotator-examples/vertex-label-annotator-custom-example.png)</span>
+<a id="__codelineno-0-307" name="__codelineno-0-307"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-308" name="__codelineno-0-308"></a>    <span class="n">font</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">FONT_HERSHEY_SIMPLEX</span>
+<a id="__codelineno-0-309" name="__codelineno-0-309"></a>
+<a id="__codelineno-0-310" name="__codelineno-0-310"></a>    <span class="n">skeletons_count</span><span class="p">,</span> <span class="n">points_count</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">key_points</span><span class="o">.</span><span class="n">xy</span><span class="o">.</span><span class="n">shape</span>
+<a id="__codelineno-0-311" name="__codelineno-0-311"></a>    <span class="k">if</span> <span class="n">skeletons_count</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+<a id="__codelineno-0-312" name="__codelineno-0-312"></a>        <span class="k">return</span> <span class="n">scene</span>
+<a id="__codelineno-0-313" name="__codelineno-0-313"></a>
+<a id="__codelineno-0-314" name="__codelineno-0-314"></a>    <span class="n">anchors</span> <span class="o">=</span> <span class="n">key_points</span><span class="o">.</span><span class="n">xy</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">points_count</span> <span class="o">*</span> <span class="n">skeletons_count</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+<a id="__codelineno-0-315" name="__codelineno-0-315"></a>    <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">anchors</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<a id="__codelineno-0-316" name="__codelineno-0-316"></a>
+<a id="__codelineno-0-317" name="__codelineno-0-317"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">mask</span><span class="p">):</span>
+<a id="__codelineno-0-318" name="__codelineno-0-318"></a>        <span class="k">return</span> <span class="n">scene</span>
+<a id="__codelineno-0-319" name="__codelineno-0-319"></a>
+<a id="__codelineno-0-320" name="__codelineno-0-320"></a>    <span class="n">colors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">preprocess_and_validate_colors</span><span class="p">(</span>
+<a id="__codelineno-0-321" name="__codelineno-0-321"></a>        <span class="n">colors</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">color</span><span class="p">,</span>
+<a id="__codelineno-0-322" name="__codelineno-0-322"></a>        <span class="n">points_count</span><span class="o">=</span><span class="n">points_count</span><span class="p">,</span>
+<a id="__codelineno-0-323" name="__codelineno-0-323"></a>        <span class="n">skeletons_count</span><span class="o">=</span><span class="n">skeletons_count</span><span class="p">,</span>
+<a id="__codelineno-0-324" name="__codelineno-0-324"></a>    <span class="p">)</span>
+<a id="__codelineno-0-325" name="__codelineno-0-325"></a>
+<a id="__codelineno-0-326" name="__codelineno-0-326"></a>    <span class="n">text_colors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">preprocess_and_validate_colors</span><span class="p">(</span>
+<a id="__codelineno-0-327" name="__codelineno-0-327"></a>        <span class="n">colors</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">text_color</span><span class="p">,</span>
+<a id="__codelineno-0-328" name="__codelineno-0-328"></a>        <span class="n">points_count</span><span class="o">=</span><span class="n">points_count</span><span class="p">,</span>
+<a id="__codelineno-0-329" name="__codelineno-0-329"></a>        <span class="n">skeletons_count</span><span class="o">=</span><span class="n">skeletons_count</span><span class="p">,</span>
+<a id="__codelineno-0-330" name="__codelineno-0-330"></a>    <span class="p">)</span>
 <a id="__codelineno-0-331" name="__codelineno-0-331"></a>
-<a id="__codelineno-0-332" name="__codelineno-0-332"></a>    <span class="n">xyxy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
-<a id="__codelineno-0-333" name="__codelineno-0-333"></a>        <span class="p">[</span>
-<a id="__codelineno-0-334" name="__codelineno-0-334"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">get_text_bounding_box</span><span class="p">(</span>
-<a id="__codelineno-0-335" name="__codelineno-0-335"></a>                <span class="n">text</span><span class="o">=</span><span class="n">label</span><span class="p">,</span>
-<a id="__codelineno-0-336" name="__codelineno-0-336"></a>                <span class="n">font</span><span class="o">=</span><span class="n">font</span><span class="p">,</span>
-<a id="__codelineno-0-337" name="__codelineno-0-337"></a>                <span class="n">text_scale</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">text_scale</span><span class="p">,</span>
-<a id="__codelineno-0-338" name="__codelineno-0-338"></a>                <span class="n">text_thickness</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">text_thickness</span><span class="p">,</span>
-<a id="__codelineno-0-339" name="__codelineno-0-339"></a>                <span class="n">center_coordinates</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">anchor</span><span class="p">),</span>
-<a id="__codelineno-0-340" name="__codelineno-0-340"></a>            <span class="p">)</span>
-<a id="__codelineno-0-341" name="__codelineno-0-341"></a>            <span class="k">for</span> <span class="n">anchor</span><span class="p">,</span> <span class="n">label</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">anchors</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
-<a id="__codelineno-0-342" name="__codelineno-0-342"></a>        <span class="p">]</span>
-<a id="__codelineno-0-343" name="__codelineno-0-343"></a>    <span class="p">)</span>
-<a id="__codelineno-0-344" name="__codelineno-0-344"></a>
-<a id="__codelineno-0-345" name="__codelineno-0-345"></a>    <span class="n">xyxy_padded</span> <span class="o">=</span> <span class="n">pad_boxes</span><span class="p">(</span><span class="n">xyxy</span><span class="o">=</span><span class="n">xyxy</span><span class="p">,</span> <span class="n">px</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">text_padding</span><span class="p">)</span>
-<a id="__codelineno-0-346" name="__codelineno-0-346"></a>
-<a id="__codelineno-0-347" name="__codelineno-0-347"></a>    <span class="k">for</span> <span class="n">text</span><span class="p">,</span> <span class="n">color</span><span class="p">,</span> <span class="n">box</span><span class="p">,</span> <span class="n">box_padded</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">colors</span><span class="p">,</span> <span class="n">xyxy</span><span class="p">,</span> <span class="n">xyxy_padded</span><span class="p">):</span>
-<a id="__codelineno-0-348" name="__codelineno-0-348"></a>        <span class="n">draw_rounded_rectangle</span><span class="p">(</span>
-<a id="__codelineno-0-349" name="__codelineno-0-349"></a>            <span class="n">scene</span><span class="o">=</span><span class="n">scene</span><span class="p">,</span>
-<a id="__codelineno-0-350" name="__codelineno-0-350"></a>            <span class="n">rect</span><span class="o">=</span><span class="n">Rect</span><span class="o">.</span><span class="n">from_xyxy</span><span class="p">(</span><span class="n">box_padded</span><span class="p">),</span>
-<a id="__codelineno-0-351" name="__codelineno-0-351"></a>            <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
-<a id="__codelineno-0-352" name="__codelineno-0-352"></a>            <span class="n">border_radius</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">border_radius</span><span class="p">,</span>
-<a id="__codelineno-0-353" name="__codelineno-0-353"></a>        <span class="p">)</span>
-<a id="__codelineno-0-354" name="__codelineno-0-354"></a>        <span class="n">cv2</span><span class="o">.</span><span class="n">putText</span><span class="p">(</span>
-<a id="__codelineno-0-355" name="__codelineno-0-355"></a>            <span class="n">img</span><span class="o">=</span><span class="n">scene</span><span class="p">,</span>
-<a id="__codelineno-0-356" name="__codelineno-0-356"></a>            <span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">,</span>
-<a id="__codelineno-0-357" name="__codelineno-0-357"></a>            <span class="n">org</span><span class="o">=</span><span class="p">(</span><span class="n">box</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">box</span><span class="p">[</span><span class="mi">3</span><span class="p">]),</span>
-<a id="__codelineno-0-358" name="__codelineno-0-358"></a>            <span class="n">fontFace</span><span class="o">=</span><span class="n">font</span><span class="p">,</span>
-<a id="__codelineno-0-359" name="__codelineno-0-359"></a>            <span class="n">fontScale</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">text_scale</span><span class="p">,</span>
-<a id="__codelineno-0-360" name="__codelineno-0-360"></a>            <span class="n">color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">text_color</span><span class="o">.</span><span class="n">as_rgb</span><span class="p">(),</span>
-<a id="__codelineno-0-361" name="__codelineno-0-361"></a>            <span class="n">thickness</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">text_thickness</span><span class="p">,</span>
-<a id="__codelineno-0-362" name="__codelineno-0-362"></a>            <span class="n">lineType</span><span class="o">=</span><span class="n">cv2</span><span class="o">.</span><span class="n">LINE_AA</span><span class="p">,</span>
-<a id="__codelineno-0-363" name="__codelineno-0-363"></a>        <span class="p">)</span>
-<a id="__codelineno-0-364" name="__codelineno-0-364"></a>
-<a id="__codelineno-0-365" name="__codelineno-0-365"></a>    <span class="k">return</span> <span class="n">scene</span>
+<a id="__codelineno-0-332" name="__codelineno-0-332"></a>    <span class="n">labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">preprocess_and_validate_labels</span><span class="p">(</span>
+<a id="__codelineno-0-333" name="__codelineno-0-333"></a>        <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">points_count</span><span class="o">=</span><span class="n">points_count</span><span class="p">,</span> <span class="n">skeletons_count</span><span class="o">=</span><span class="n">skeletons_count</span>
+<a id="__codelineno-0-334" name="__codelineno-0-334"></a>    <span class="p">)</span>
+<a id="__codelineno-0-335" name="__codelineno-0-335"></a>
+<a id="__codelineno-0-336" name="__codelineno-0-336"></a>    <span class="n">anchors</span> <span class="o">=</span> <span class="n">anchors</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+<a id="__codelineno-0-337" name="__codelineno-0-337"></a>    <span class="n">colors</span> <span class="o">=</span> <span class="n">colors</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+<a id="__codelineno-0-338" name="__codelineno-0-338"></a>    <span class="n">text_colors</span> <span class="o">=</span> <span class="n">text_colors</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+<a id="__codelineno-0-339" name="__codelineno-0-339"></a>    <span class="n">labels</span> <span class="o">=</span> <span class="n">labels</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+<a id="__codelineno-0-340" name="__codelineno-0-340"></a>
+<a id="__codelineno-0-341" name="__codelineno-0-341"></a>    <span class="n">xyxy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+<a id="__codelineno-0-342" name="__codelineno-0-342"></a>        <span class="p">[</span>
+<a id="__codelineno-0-343" name="__codelineno-0-343"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">get_text_bounding_box</span><span class="p">(</span>
+<a id="__codelineno-0-344" name="__codelineno-0-344"></a>                <span class="n">text</span><span class="o">=</span><span class="n">label</span><span class="p">,</span>
+<a id="__codelineno-0-345" name="__codelineno-0-345"></a>                <span class="n">font</span><span class="o">=</span><span class="n">font</span><span class="p">,</span>
+<a id="__codelineno-0-346" name="__codelineno-0-346"></a>                <span class="n">text_scale</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">text_scale</span><span class="p">,</span>
+<a id="__codelineno-0-347" name="__codelineno-0-347"></a>                <span class="n">text_thickness</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">text_thickness</span><span class="p">,</span>
+<a id="__codelineno-0-348" name="__codelineno-0-348"></a>                <span class="n">center_coordinates</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">anchor</span><span class="p">),</span>
+<a id="__codelineno-0-349" name="__codelineno-0-349"></a>            <span class="p">)</span>
+<a id="__codelineno-0-350" name="__codelineno-0-350"></a>            <span class="k">for</span> <span class="n">anchor</span><span class="p">,</span> <span class="n">label</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">anchors</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
+<a id="__codelineno-0-351" name="__codelineno-0-351"></a>        <span class="p">]</span>
+<a id="__codelineno-0-352" name="__codelineno-0-352"></a>    <span class="p">)</span>
+<a id="__codelineno-0-353" name="__codelineno-0-353"></a>
+<a id="__codelineno-0-354" name="__codelineno-0-354"></a>    <span class="n">xyxy_padded</span> <span class="o">=</span> <span class="n">pad_boxes</span><span class="p">(</span><span class="n">xyxy</span><span class="o">=</span><span class="n">xyxy</span><span class="p">,</span> <span class="n">px</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">text_padding</span><span class="p">)</span>
+<a id="__codelineno-0-355" name="__codelineno-0-355"></a>
+<a id="__codelineno-0-356" name="__codelineno-0-356"></a>    <span class="k">for</span> <span class="n">text</span><span class="p">,</span> <span class="n">color</span><span class="p">,</span> <span class="n">text_color</span><span class="p">,</span> <span class="n">box</span><span class="p">,</span> <span class="n">box_padded</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+<a id="__codelineno-0-357" name="__codelineno-0-357"></a>        <span class="n">labels</span><span class="p">,</span> <span class="n">colors</span><span class="p">,</span> <span class="n">text_colors</span><span class="p">,</span> <span class="n">xyxy</span><span class="p">,</span> <span class="n">xyxy_padded</span>
+<a id="__codelineno-0-358" name="__codelineno-0-358"></a>    <span class="p">):</span>
+<a id="__codelineno-0-359" name="__codelineno-0-359"></a>        <span class="n">draw_rounded_rectangle</span><span class="p">(</span>
+<a id="__codelineno-0-360" name="__codelineno-0-360"></a>            <span class="n">scene</span><span class="o">=</span><span class="n">scene</span><span class="p">,</span>
+<a id="__codelineno-0-361" name="__codelineno-0-361"></a>            <span class="n">rect</span><span class="o">=</span><span class="n">Rect</span><span class="o">.</span><span class="n">from_xyxy</span><span class="p">(</span><span class="n">box_padded</span><span class="p">),</span>
+<a id="__codelineno-0-362" name="__codelineno-0-362"></a>            <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
+<a id="__codelineno-0-363" name="__codelineno-0-363"></a>            <span class="n">border_radius</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">border_radius</span><span class="p">,</span>
+<a id="__codelineno-0-364" name="__codelineno-0-364"></a>        <span class="p">)</span>
+<a id="__codelineno-0-365" name="__codelineno-0-365"></a>        <span class="n">cv2</span><span class="o">.</span><span class="n">putText</span><span class="p">(</span>
+<a id="__codelineno-0-366" name="__codelineno-0-366"></a>            <span class="n">img</span><span class="o">=</span><span class="n">scene</span><span class="p">,</span>
+<a id="__codelineno-0-367" name="__codelineno-0-367"></a>            <span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">,</span>
+<a id="__codelineno-0-368" name="__codelineno-0-368"></a>            <span class="n">org</span><span class="o">=</span><span class="p">(</span><span class="n">box</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">box</span><span class="p">[</span><span class="mi">3</span><span class="p">]),</span>
+<a id="__codelineno-0-369" name="__codelineno-0-369"></a>            <span class="n">fontFace</span><span class="o">=</span><span class="n">font</span><span class="p">,</span>
+<a id="__codelineno-0-370" name="__codelineno-0-370"></a>            <span class="n">fontScale</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">text_scale</span><span class="p">,</span>
+<a id="__codelineno-0-371" name="__codelineno-0-371"></a>            <span class="n">color</span><span class="o">=</span><span class="n">text_color</span><span class="o">.</span><span class="n">as_bgr</span><span class="p">(),</span>
+<a id="__codelineno-0-372" name="__codelineno-0-372"></a>            <span class="n">thickness</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">text_thickness</span><span class="p">,</span>
+<a id="__codelineno-0-373" name="__codelineno-0-373"></a>            <span class="n">lineType</span><span class="o">=</span><span class="n">cv2</span><span class="o">.</span><span class="n">LINE_AA</span><span class="p">,</span>
+<a id="__codelineno-0-374" name="__codelineno-0-374"></a>        <span class="p">)</span>
+<a id="__codelineno-0-375" name="__codelineno-0-375"></a>
+<a id="__codelineno-0-376" name="__codelineno-0-376"></a>    <span class="k">return</span> <span class="n">scene</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
