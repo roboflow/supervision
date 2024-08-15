@@ -268,9 +268,10 @@ class Detections:
             )
 
         if hasattr(ultralytics_results, "boxes") and ultralytics_results.boxes is None:
+            masks = extract_ultralytics_masks(ultralytics_results)
             return cls(
-                xyxy=np.zeros((len(ultralytics_results), 4)),
-                mask=extract_ultralytics_masks(ultralytics_results),
+                xyxy=mask_to_xyxy(masks),
+                mask=masks,
                 class_id=np.arange(len(ultralytics_results)),
             )
 
