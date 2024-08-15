@@ -1,4 +1,4 @@
-from typing import Dict, List, Union
+from typing import TYPE_CHECKING, Dict, List, Union
 
 import numpy as np
 import numpy.typing as npt
@@ -7,6 +7,9 @@ from typing_extensions import Self
 from supervision.detection.core import Detections
 from supervision.detection.utils import box_iou_batch
 from supervision.metrics.core import InternalMetricDataStore, Metric, MetricTarget
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 
 class IntersectionOverUnion(Metric):
@@ -95,34 +98,14 @@ class IntersectionOverUnion(Metric):
             ious[class_id] = iou
         return ious
 
-    # TODO: This would return dict[int, pd.DataFrame]. Do we want that?
-    #       It'd be cleaner if it returned a single DataFrame, but the sizes
-    #       differ if class_agnostic=False.
+    def to_pandas(self) -> Dict[int, "pd.DataFrame"]:
+        """
+        Return a pandas DataFrame representation of the metric.
+        """
+        self._ensure_pandas_installed()
+        import pandas as pd
 
-    # def to_pandas(self) -> 'pd.DataFrame':
-    #     """
-    #     Return a pandas DataFrame representation of the metric.
-    #     """
-    #     self._ensure_pandas_installed()
-    #     import pandas as pd
+        # TODO: use cached results
+        ious = self.compute()
 
-    #     # TODO: use cached results
-    #     ious = self.compute()
-    #     print(len(ious))
-
-    #     class_names = []
-    #     arrays = []
-
-    #     for class_id, array in ious.items():
-    #         print(array.shape)
-    #         class_names.append(np.full(array.shape[0], class_id))
-    #         arrays.append(array)
-    #     stacked_class_ids = np.concatenate(class_names)
-    #     stacked_ious = np.vstack(arrays)
-    #     combined = np.column_stack((stacked_class_ids, stacked_ious))
-
-    #     column_names = \
-    # ['class_id'] + [f'col_{i+1}' for i in range(stacked_ious.shape[1])]
-    #     result = pd.DataFrame(combined, columns=column_names)
-
-    #     return result
+        return {class_id: pd.DataFrame(data) for class_id, data in ious.items()}
