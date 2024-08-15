@@ -1402,8 +1402,7 @@ class IconAnnotator(BaseAnnotator):
         icon_path: str,
         position: Position = Position.TOP_CENTER,
         icon_scale: float = 0.2,
-        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
-        color_lookup: ColorLookup = ColorLookup.CLASS,
+        offset_xy: Tuple[int, int] = (0, 0),
     ):
         """
         Args:
@@ -1413,13 +1412,9 @@ class IconAnnotator(BaseAnnotator):
             icon_scale (float): Represents the fraction of the original icon size to
               be displayed, with a default value of 0.2 (equivalent to 20% of the
               original size).
-            color (Union[Color, ColorPalette]): The color to draw the trace, can be
-                a single color or a color palette.
-            color_lookup (str): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACE`.
+            offset_xy (Tuple[int, int]): The offset to apply to the icon position,
+                in pixels. Can be both positive and negative.
         """
-        self.color: Union[Color, ColorPalette] = color
-        self.color_lookup: ColorLookup = color_lookup
         self.position = position
         icon = cv2.imread(icon_path, cv2.IMREAD_UNCHANGED)
         if icon is None:
@@ -1432,15 +1427,15 @@ class IconAnnotator(BaseAnnotator):
             int(icon.shape[1] * icon_scale),
         )
         self.icon = cv2.resize(
-            icon, (resized_icon_h, resized_icon_w), interpolation=cv2.INTER_AREA
+            icon, (resized_icon_w, resized_icon_h), interpolation=cv2.INTER_AREA
         )
+        self.offset_xy = offset_xy
 
     @ensure_cv2_image_for_annotation
     def annotate(
         self,
         scene: ImageType,
         detections: Detections,
-        offset_xy: Tuple[int, int] = (0, 0),
     ) -> ImageType:
         """
         Annotates the given scene with icons based on the provided detections.
@@ -1450,8 +1445,6 @@ class IconAnnotator(BaseAnnotator):
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
                 or `PIL.Image.Image`.
             detections (Detections): Object detections to annotate.
-            offset_xy (Tuple[int, int]): The offset to apply to the icon position,
-                in pixels. Can be both positive and negative.
 
         Returns:
             The annotated image, matching the type of `scene` (`numpy.ndarray`
@@ -1474,6 +1467,7 @@ class IconAnnotator(BaseAnnotator):
         """
         assert isinstance(scene, np.ndarray)
         icon_h, icon_w = self.icon.shape[:2]
+        print(self.icon.shape)
 
         padded_scene = np.pad(
             scene,
@@ -1486,11 +1480,12 @@ class IconAnnotator(BaseAnnotator):
         xy += np.array([icon_w, icon_h])
 
         for detection_idx in range(len(detections)):
-            x = int(xy[detection_idx, 0] - icon_w / 2 + offset_xy[0])
-            y = int(xy[detection_idx, 1] - icon_h / 2 + offset_xy[1])
+            x = int(xy[detection_idx, 0] - icon_w / 2 + self.offset_xy[0])
+            y = int(xy[detection_idx, 1] - icon_h / 2 + self.offset_xy[1])
 
             alpha_channel = self.icon[:, :, 3]
             mask = alpha_channel != 0
+
             padded_scene[y : y + icon_h, x : x + icon_w][mask] = self.icon[:, :, :3][
                 mask
             ]
