@@ -29,6 +29,7 @@ from supervision.detection.utils import (
     extract_ultralytics_masks,
     get_data_item,
     is_data_equal,
+    mask_to_xyxy,
     merge_data,
     process_roboflow_result,
     xywh_to_xyxy,
