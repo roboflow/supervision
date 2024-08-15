@@ -2283,3 +2283,84 @@ class CropAnnotator(BaseAnnotator):
             )
         elif position == Position.BOTTOM_RIGHT:
             return (anchor_x, anchor_y), (anchor_x + width, anchor_y + height)
+
+
+class BackgroundOverlayAnnotator(BaseAnnotator):
+    """
+    A class for drawing a colored overlay on the background of an image outside
+    the region of detections.
+
+    If masks are provided, the background is colored outside the masks.
+    If masks are not provided, the background is colored outside the bounding boxes.
+
+    You can use the `force_box` parameter to force the annotator to use bounding boxes.
+
+    !!! warning
+
+        This annotator uses `sv.Detections.mask`.
+    """
+
+    def __init__(
+        self,
+        color: Color = Color.BLACK,
+        opacity: float = 0.5,
+        force_box: bool = False,
+    ):
+        """
+        Args:
+            color (Color): The color to use for annotating detections.
+            opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.
+            force_box (bool): If `True`, forces the annotator to use bounding boxes when
+                masks are provided in the supplied sv.Detections.
+        """
+        self.color: Color = color
+        self.opacity = opacity
+        self.force_box = force_box
+
+    @ensure_cv2_image_for_annotation
+    def annotate(self, scene: ImageType, detections: Detections) -> ImageType:
+        """
+        Applies a colored overlay to the scene outside of the detected regions.
+
+        Args:
+            scene (ImageType): The image where masks will be drawn.
+                `ImageType` is a flexible type, accepting either `numpy.ndarray`
+                or `PIL.Image.Image`.
+            detections (Detections): Object detections to annotate.
+
+        Returns:
+            The annotated image, matching the type of `scene` (`numpy.ndarray`
+                or `PIL.Image.Image`)
+
+        Example:
+            ```python
+            import supervision as sv
+
+            image = ...
+            detections = sv.Detections(...)
+
+            background_overlay_annotator = sv.BackgroundOverlayAnnotator()
+            annotated_frame = background_overlay_annotator.annotate(
+                scene=image.copy(),
+                detections=detections
+            )
+            ```
+
+        ![background-overlay-annotator-example](https://media.roboflow.com/
+        supervision-annotator-examples/background-color-annotator-example-purple.png)
+        """
+        colored_mask = np.full_like(scene, self.color.as_bgr(), dtype=np.uint8)
+
+        cv2.addWeighted(
+            scene, 1 - self.opacity, colored_mask, self.opacity, 0, dst=colored_mask
+        )
+
+        if detections.mask is None or self.force_box:
+            for x1, y1, x2, y2 in detections.xyxy.astype(int):
+                colored_mask[y1:y2, x1:x2] = scene[y1:y2, x1:x2]
+        else:
+            for mask in detections.mask:
+                colored_mask[mask] = scene[mask]
+
+        np.copyto(scene, colored_mask)
+        return scene
