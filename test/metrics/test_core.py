@@ -24,6 +24,9 @@ def mock_xyxy(*box_index: int, box_width=10) -> npt.NDArray[np.float32]:
     For each index in `box_index`, a box is generated with the top-left corner at
     (i, i) and the bottom-right corner at (i + box_width, i + box_width).
     """
+    if len(box_index) == 0:
+        return np.zeros((0, 4), dtype=np.float32)
+
     box_list = []
     for i in box_index:
         x0 = y0 = i
@@ -112,49 +115,49 @@ def helper_test_store(
         (
             mock_detections(1),
             mock_detections(),
-            [(CLASS_ID_NONE, mock_xyxy(1), None)],
+            [(CLASS_ID_NONE, mock_xyxy(1), mock_xyxy())],
             DoesNotRaise(),
         ),
         (
             mock_detections(1),
             mock_xyxy(),
-            [(CLASS_ID_NONE, mock_xyxy(1), None)],
+            [(CLASS_ID_NONE, mock_xyxy(1), mock_xyxy())],
             DoesNotRaise(),
         ),
         (
             mock_xyxy(1),
             mock_detections(),
-            [(CLASS_ID_NONE, mock_xyxy(1), None)],
+            [(CLASS_ID_NONE, mock_xyxy(1), mock_xyxy())],
             DoesNotRaise(),
         ),
         (
             mock_xyxy(1),
             mock_xyxy(),
-            [(CLASS_ID_NONE, mock_xyxy(1), None)],
+            [(CLASS_ID_NONE, mock_xyxy(1), mock_xyxy())],
             DoesNotRaise(),
         ),
         (
             mock_detections(),
             mock_detections(1),
-            [(CLASS_ID_NONE, None, mock_xyxy(1))],
+            [(CLASS_ID_NONE, mock_xyxy(), mock_xyxy(1))],
             DoesNotRaise(),
         ),
         (
             mock_detections(),
             mock_xyxy(1),
-            [(CLASS_ID_NONE, None, mock_xyxy(1))],
+            [(CLASS_ID_NONE, mock_xyxy(), mock_xyxy(1))],
             DoesNotRaise(),
         ),
         (
             mock_xyxy(),
             mock_detections(1),
-            [(CLASS_ID_NONE, None, mock_xyxy(1))],
+            [(CLASS_ID_NONE, mock_xyxy(), mock_xyxy(1))],
             DoesNotRaise(),
         ),
         (
             mock_xyxy(),
             mock_xyxy(1),
-            [(CLASS_ID_NONE, None, mock_xyxy(1))],
+            [(CLASS_ID_NONE, mock_xyxy(), mock_xyxy(1))],
             DoesNotRaise(),
         ),
         # More boxes
@@ -165,7 +168,7 @@ def helper_test_store(
                 (
                     CLASS_ID_NONE,
                     mock_xyxy(1, 2),
-                    None,
+                    mock_xyxy(),
                 )
             ],
             DoesNotRaise(),
@@ -192,7 +195,7 @@ def helper_test_store(
         (
             mock_detections(1, 2, class_id=[1, 2]),
             mock_detections(),
-            [(CLASS_ID_NONE, mock_xyxy(1, 2), None)],
+            [(CLASS_ID_NONE, mock_xyxy(1, 2), mock_xyxy())],
             DoesNotRaise(),
         ),
         (
@@ -231,49 +234,49 @@ def test_store_boxes_class_agnostic(
         (
             mock_detections(1),
             mock_detections(),
-            [(CLASS_ID_NONE, mock_xyxy(1), None)],
+            [(CLASS_ID_NONE, mock_xyxy(1), mock_xyxy())],
             DoesNotRaise(),
         ),
         (
             mock_detections(1),
             mock_xyxy(),
-            [(CLASS_ID_NONE, mock_xyxy(1), None)],
+            [(CLASS_ID_NONE, mock_xyxy(1), mock_xyxy())],
             DoesNotRaise(),
         ),
         (
             mock_xyxy(1),
             mock_detections(),
-            [(CLASS_ID_NONE, mock_xyxy(1), None)],
+            [(CLASS_ID_NONE, mock_xyxy(1), mock_xyxy())],
             DoesNotRaise(),
         ),
         (
             mock_xyxy(1),
             mock_xyxy(),
-            [(CLASS_ID_NONE, mock_xyxy(1), None)],
+            [(CLASS_ID_NONE, mock_xyxy(1), mock_xyxy())],
             DoesNotRaise(),
         ),
         (
             mock_detections(),
             mock_detections(1),
-            [(CLASS_ID_NONE, None, mock_xyxy(1))],
+            [(CLASS_ID_NONE, mock_xyxy(), mock_xyxy(1))],
             DoesNotRaise(),
         ),
         (
             mock_detections(),
             mock_xyxy(1),
-            [(CLASS_ID_NONE, None, mock_xyxy(1))],
+            [(CLASS_ID_NONE, mock_xyxy(), mock_xyxy(1))],
             DoesNotRaise(),
         ),
         (
             mock_xyxy(),
             mock_detections(1),
-            [(CLASS_ID_NONE, None, mock_xyxy(1))],
+            [(CLASS_ID_NONE, mock_xyxy(), mock_xyxy(1))],
             DoesNotRaise(),
         ),
         (
             mock_xyxy(),
             mock_xyxy(1),
-            [(CLASS_ID_NONE, None, mock_xyxy(1))],
+            [(CLASS_ID_NONE, mock_xyxy(), mock_xyxy(1))],
             DoesNotRaise(),
         ),
         # More boxes
@@ -284,7 +287,7 @@ def test_store_boxes_class_agnostic(
                 (
                     CLASS_ID_NONE,
                     mock_xyxy(1, 2),
-                    None,
+                    mock_xyxy(),
                 )
             ],
             DoesNotRaise(),
@@ -333,13 +336,13 @@ def test_store_boxes_by_class_regression(
         (
             mock_detections(1, class_id=[1]),
             mock_detections(),
-            [(1, mock_xyxy(1), None)],
+            [(1, mock_xyxy(1), mock_xyxy())],
             DoesNotRaise(),
         ),
         (
             mock_detections(),
             mock_detections(1, class_id=[1]),
-            [(1, None, mock_xyxy(1))],
+            [(1, mock_xyxy(), mock_xyxy(1))],
             DoesNotRaise(),
         ),
         # Multiple classes
@@ -347,8 +350,8 @@ def test_store_boxes_by_class_regression(
             mock_detections(1, 2, class_id=[1, 2]),
             mock_detections(),
             [
-                (1, mock_xyxy(1), None),
-                (2, mock_xyxy(2), None),
+                (1, mock_xyxy(1), mock_xyxy()),
+                (2, mock_xyxy(2), mock_xyxy()),
             ],
             DoesNotRaise(),
         ),
@@ -356,13 +359,13 @@ def test_store_boxes_by_class_regression(
             mock_detections(1, 2, class_id=[1, 2]),
             mock_detections(3, 4, 5, class_id=[2, 3, 3]),
             [
-                (1, mock_xyxy(1), None),
+                (1, mock_xyxy(1), mock_xyxy()),
                 (
                     2,
                     mock_xyxy(2),
                     mock_xyxy(3),
                 ),
-                (3, None, mock_xyxy(4, 5)),
+                (3, mock_xyxy(), mock_xyxy(4, 5)),
             ],
             DoesNotRaise(),
         ),
@@ -391,13 +394,13 @@ def test_store_boxes_by_class(
         (
             [],
             mock_detections(),
-            [(1, mock_xyxy(), None)],
+            [(1, mock_xyxy(), mock_xyxy())],
             pytest.raises(ValueError),
         ),
         (
             mock_detections(),
             [],
-            [(1, None, mock_xyxy())],
+            [(1, mock_xyxy(), mock_xyxy())],
             pytest.raises(ValueError),
         ),
     ],
@@ -438,49 +441,49 @@ def test_store_boxes_invalid_args(
         (
             mock_detections(1, with_mask=True),
             mock_detections(with_mask=True),
-            [(CLASS_ID_NONE, mock_mask(1), None)],
+            [(CLASS_ID_NONE, mock_mask(1), mock_mask())],
             DoesNotRaise(),
         ),
         (
             mock_detections(1, with_mask=True),
             mock_mask(),
-            [(CLASS_ID_NONE, mock_mask(1), None)],
+            [(CLASS_ID_NONE, mock_mask(1), mock_mask())],
             DoesNotRaise(),
         ),
         (
             mock_mask(1),
             mock_detections(with_mask=True),
-            [(CLASS_ID_NONE, mock_mask(1), None)],
+            [(CLASS_ID_NONE, mock_mask(1), mock_mask())],
             DoesNotRaise(),
         ),
         (
             mock_mask(1),
             mock_mask(),
-            [(CLASS_ID_NONE, mock_mask(1), None)],
+            [(CLASS_ID_NONE, mock_mask(1), mock_mask())],
             DoesNotRaise(),
         ),
         (
             mock_detections(with_mask=True),
             mock_detections(1, with_mask=True),
-            [(CLASS_ID_NONE, None, mock_mask(1))],
+            [(CLASS_ID_NONE, mock_mask(), mock_mask(1))],
             DoesNotRaise(),
         ),
         (
             mock_detections(with_mask=True),
             mock_mask(1),
-            [(CLASS_ID_NONE, None, mock_mask(1))],
+            [(CLASS_ID_NONE, mock_mask(), mock_mask(1))],
             DoesNotRaise(),
         ),
         (
             mock_mask(),
             mock_detections(1, with_mask=True),
-            [(CLASS_ID_NONE, None, mock_mask(1))],
+            [(CLASS_ID_NONE, mock_mask(), mock_mask(1))],
             DoesNotRaise(),
         ),
         (
             mock_mask(),
             mock_mask(1),
-            [(CLASS_ID_NONE, None, mock_mask(1))],
+            [(CLASS_ID_NONE, mock_mask(), mock_mask(1))],
             DoesNotRaise(),
         ),
         # More masks
@@ -491,7 +494,7 @@ def test_store_boxes_invalid_args(
                 (
                     CLASS_ID_NONE,
                     mock_mask(1, 2),
-                    None,
+                    mock_mask(),
                 )
             ],
             DoesNotRaise(),
@@ -518,7 +521,7 @@ def test_store_boxes_invalid_args(
         (
             mock_detections(1, 2, class_id=[1, 2], with_mask=True),
             mock_detections(with_mask=True),
-            [(CLASS_ID_NONE, mock_mask(1, 2), None)],
+            [(CLASS_ID_NONE, mock_mask(1, 2), mock_mask())],
             DoesNotRaise(),
         ),
         (

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Any, Dict, Iterator, Optional, Tuple, Union
+from typing import Any, Dict, Iterator, Tuple, Union
 
 import numpy as np
 import numpy.typing as npt
@@ -10,6 +10,7 @@ from typing_extensions import Self
 
 from supervision import config
 from supervision.detection.core import Detections
+from supervision.metrics.utils import len0_like, pad_mask
 
 CLASS_ID_NONE = -1
 """Used by metrics module as class ID, when none is present"""
@@ -95,19 +96,13 @@ class InternalMetricDataStore:
         self._class_agnostic = class_agnostic
         self._data_1: Dict[int, npt.NDArray]
         self._data_2: Dict[int, npt.NDArray]
-        self._datapoint_shape: Optional[Tuple[int, ...]]
+        self._mask_shape: Tuple[int, int]
         self.reset()
 
     def reset(self) -> None:
         self._data_1 = {}
         self._data_2 = {}
-        if self._metric_target == MetricTarget.BOXES:
-            self._datapoint_shape = (4,)
-        elif self._metric_target == MetricTarget.MASKS:
-            # Determined when adding data
-            self._datapoint_shape = None
-        elif self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
-            self._datapoint_shape = (8,)
+        self._mask_shape = (0, 0)
 
     def update(
         self,
@@ -116,47 +111,45 @@ class InternalMetricDataStore:
     ) -> None:
         content_1 = self._get_content(data_1)
         content_2 = self._get_content(data_2)
+        self._validate_shape(content_1)
+        self._validate_shape(content_2)
+
         class_ids_1 = self._get_class_ids(data_1)
         class_ids_2 = self._get_class_ids(data_2)
         self._validate_class_ids(class_ids_1, class_ids_2)
-        if content_1 is not None and len(content_1) > 0:
-            assert len(content_1) == len(class_ids_1)
-            for class_id in set(class_ids_1):
-                content_of_class = content_1[class_ids_1 == class_id]
-                if class_id not in self._data_1:
-                    self._data_1[class_id] = content_of_class
-                    continue
-                self._data_1[class_id] = np.vstack(
-                    (self._data_1[class_id], content_of_class)
-                )
 
-        if content_2 is not None and len(content_2) > 0:
-            assert len(content_2) == len(class_ids_2)
-            for class_id in set(class_ids_2):
-                content_of_class = content_2[class_ids_2 == class_id]
-                if class_id not in self._data_2:
-                    self._data_2[class_id] = content_of_class
-                    continue
-                self._data_2[class_id] = np.vstack(
-                    (self._data_2[class_id], content_of_class)
-                )
+        assert len(content_1) == len(class_ids_1) and len(content_2) == len(class_ids_2)
+
+        if self._metric_target == MetricTarget.MASKS:
+            content_1 = self._expand_mask_shape(content_1)
+            content_2 = self._expand_mask_shape(content_2)
+
+        for class_id in set(class_ids_1):
+            content_of_class = content_1[class_ids_1 == class_id]
+            stored_content_of_class = self._data_1.get(class_id, len0_like(content_1))
+            self._data_1[class_id] = np.vstack(
+                (stored_content_of_class, content_of_class)
+            )
+
+        for class_id in set(class_ids_2):
+            content_of_class = content_2[class_ids_2 == class_id]
+            stored_content_of_class = self._data_2.get(class_id, len0_like(content_2))
+            self._data_2[class_id] = np.vstack(
+                (stored_content_of_class, content_of_class)
+            )
 
     def __iter__(
         self,
-    ) -> Iterator[Tuple[int, Optional[npt.NDArray], Optional[npt.NDArray]]]:
-        class_ids = sorted(
-            set.union(set(self._data_1.keys()), set(self._data_2.keys()))
-        )
+    ) -> Iterator[Tuple[int, npt.NDArray, npt.NDArray]]:
+        class_ids = sorted(set(self._data_1.keys()) | set(self._data_2.keys()))
         for class_id in class_ids:
             yield (
                 class_id,
-                self._data_1.get(class_id, None),
-                self._data_2.get(class_id, None),
+                self._data_1.get(class_id, self._make_empty()),
+                self._data_2.get(class_id, self._make_empty()),
             )
 
-    def _get_content(
-        self, data: Union[npt.NDArray, Detections]
-    ) -> Optional[npt.NDArray]:
+    def _get_content(self, data: Union[npt.NDArray, Detections]) -> npt.NDArray:
         """Return boxes, masks or oriented bounding boxes from the data."""
         if not isinstance(data, (Detections, np.ndarray)):
             raise ValueError(
@@ -169,21 +162,24 @@ class InternalMetricDataStore:
         if self._metric_target == MetricTarget.BOXES:
             return data.xyxy
         if self._metric_target == MetricTarget.MASKS:
-            return data.mask
+            return (
+                data.mask if data.mask is not None else np.zeros((0, 0, 0), dtype=bool)
+            )
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
-            obb = data.data.get(config.ORIENTED_BOX_COORDINATES, None)
-            if isinstance(obb, list):
-                obb = np.array(obb, dtype=np.float32)
-            return obb
+            obb = data.data.get(
+                config.ORIENTED_BOX_COORDINATES, np.zeros((0, 8), dtype=np.float32)
+            )
+            return np.array(obb, dtype=np.float32)
         raise ValueError(f"Invalid metric target: {self._metric_target}")
 
     def _get_class_ids(
         self, data: Union[npt.NDArray, Detections]
     ) -> npt.NDArray[np.int_]:
-        if self._class_agnostic or isinstance(data, np.ndarray):
-            return np.array([CLASS_ID_NONE] * len(data), dtype=int)
-        assert isinstance(data, Detections)
-        if data.class_id is None:
+        if (
+            self._class_agnostic
+            or isinstance(data, np.ndarray)
+            or data.class_id is None
+        ):
             return np.array([CLASS_ID_NONE] * len(data), dtype=int)
         return data.class_id
 
@@ -197,12 +193,43 @@ class InternalMetricDataStore:
             )
 
     def _validate_shape(self, data: npt.NDArray) -> None:
-        if self._datapoint_shape is None:
-            assert self._metric_target == MetricTarget.MASKS
-            self._datapoint_shape = data.shape[1:]
-            return
-        if data.shape[1:] != self._datapoint_shape:
-            raise ValueError(
-                f"Invalid data shape: {data.shape}."
-                f" Expected: (N, {self._datapoint_shape})"
-            )
+        shape = data.shape
+        if self._metric_target == MetricTarget.BOXES:
+            if len(shape) != 2 or shape[1] != 4:
+                raise ValueError(f"Invalid xyxy shape: {shape}. Expected: (N, 4)")
+        elif self._metric_target == MetricTarget.MASKS:
+            if len(shape) != 3:
+                raise ValueError(f"Invalid mask shape: {shape}. Expected: (N, H, W)")
+        elif self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
+            if len(shape) != 2 or shape[1] != 8:
+                raise ValueError(f"Invalid obb shape: {shape}. Expected: (N, 8)")
+        else:
+            raise ValueError(f"Invalid metric target: {self._metric_target}")
+
+    def _expand_mask_shape(self, data: npt.NDArray) -> npt.NDArray:
+        """Pad the stored and new data to the same shape."""
+        if self._metric_target != MetricTarget.MASKS:
+            return data
+
+        new_width = max(self._mask_shape[0], data.shape[1])
+        new_height = max(self._mask_shape[1], data.shape[2])
+        self._mask_shape = (new_width, new_height)
+
+        data = pad_mask(data, self._mask_shape)
+
+        for class_id, prev_data in self._data_1.items():
+            self._data_1[class_id] = pad_mask(prev_data, self._mask_shape)
+        for class_id, prev_data in self._data_2.items():
+            self._data_2[class_id] = pad_mask(prev_data, self._mask_shape)
+
+        return data
+
+    def _make_empty(self) -> npt.NDArray:
+        """Create an empty data object with the best-known shape for the target."""
+        if self._metric_target == MetricTarget.BOXES:
+            return np.empty((0, 4), dtype=np.float32)
+        if self._metric_target == MetricTarget.MASKS:
+            return np.empty((0, *self._mask_shape), dtype=bool)
+        if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
+            return np.empty((0, 8), dtype=np.float32)
+        raise ValueError(f"Invalid metric target: {self._metric_target}")

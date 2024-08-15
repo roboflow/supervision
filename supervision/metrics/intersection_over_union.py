@@ -1,4 +1,4 @@
-from typing import Dict, Union
+from typing import Dict, List, Union
 
 import numpy as np
 import numpy.typing as npt
@@ -33,27 +33,40 @@ class IntersectionOverUnion(Metric):
 
     def update(
         self,
-        data_1: Union[npt.NDArray, Detections],
-        data_2: Union[npt.NDArray, Detections],
+        data_1: Union[Detections, List[Detections]],
+        data_2: Union[Detections, List[Detections]],
     ) -> Self:
         """
         Add data to the metric, without computing the result.
 
-        The arguments can be:
-
-        * Boxes of shape `(N, 4)`, `float32`,
-        * Masks of shape `(N, H, W)`, `bool`
-        * Oriented bounding boxes of shape `(N, 8)`, `float32`.
-        * Detections object.
-
         Args:
-            data_1 (Union[npt.NDArray, Detection]): The first set of data.
-            data_2 (Union[npt.NDArray, Detection]): The second set of data.
+            data_1 (Union[Detection, List[Detections]]): The first set of data.
+            data_2 (Union[Detection, List[Detections]]): The second set of data.
 
         Returns:
             Metric: The metric object itself. You can get the metric result
             by calling the `compute` method.
         """
+
+        if isinstance(data_1, list):
+            for d1 in data_1:
+                self.update(d1, Detections.empty())
+        else:
+            self._update(data_1, Detections.empty())
+
+        if isinstance(data_2, list):
+            for d2 in data_2:
+                self.update(Detections.empty(), d2)
+        else:
+            self._update(Detections.empty(), data_2)
+
+        return self
+
+    def _update(
+        self,
+        data_1: Union[Detections],
+        data_2: Union[Detections],
+    ) -> Self:
         self._store.update(data_1, data_2)
         return self
 
@@ -66,7 +79,6 @@ class IntersectionOverUnion(Metric):
             Dict[int, npt.NDArray[np.float32]]: A dictionary with class IDs as keys.
             If no class ID is provided, the key is the value CLASS_ID_NONE.
         """
-        # TODO: cache computed result.
         ious = {}
         for class_id, array_1, array_2 in self._store:
             if self._metric_target == MetricTarget.BOXES:
@@ -78,7 +90,7 @@ class IntersectionOverUnion(Metric):
             else:
                 raise NotImplementedError(
                     "Intersection over union is not implemented"
-                    " for {self._metric_target}."
+                    f" for {self._metric_target}."
                 )
             ious[class_id] = iou
         return ious
