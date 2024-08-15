@@ -24,7 +24,6 @@
     border-radius: 0.5rem;
     padding: 1rem;
     transition: transform 0.2s ease-in-out; /* Smooth transition for the transform */
-    cursor: pointer;
 }
 
 .repo-card:hover {
