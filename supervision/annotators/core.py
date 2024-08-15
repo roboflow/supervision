@@ -1402,17 +1402,17 @@ class IconAnnotator(BaseAnnotator):
         icon_path: str,
         position: Position = Position.TOP_CENTER,
         icon_scale: float = 0.2,
-        color: Union[Color, ColorPalette] = ColorPalette.default(),
+        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
         """
         Args:
-            icon_path (str): path of the icon in png format.
+            icon_path (str): path to the icon file, in png format.
             position (Position): The position of the icon. Defaults to
                 `TOP_CENTER`.
             icon_scale (float): Represents the fraction of the original icon size to
-              be displayed, with a default value of 0.2
-              (equivalent to 20% of the original size).
+              be displayed, with a default value of 0.2 (equivalent to 20% of the
+              original size).
             color (Union[Color, ColorPalette]): The color to draw the trace, can be
                 a single color or a color palette.
             color_lookup (str): Strategy for mapping colors to annotations.
@@ -1435,70 +1435,68 @@ class IconAnnotator(BaseAnnotator):
             icon, (resized_icon_h, resized_icon_w), interpolation=cv2.INTER_AREA
         )
 
+    @ensure_cv2_image_for_annotation
     def annotate(
         self,
-        scene: np.ndarray,
+        scene: ImageType,
         detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None,
-    ) -> np.ndarray:
+        offset_xy: Tuple[int, int] = (0, 0),
+    ) -> ImageType:
         """
         Annotates the given scene with icons based on the provided detections.
+
         Args:
-            scene (np.ndarray): The image where bounding boxes will be drawn.
+            scene (ImageType): The image where labels will be drawn.
+                `ImageType` is a flexible type, accepting either `numpy.ndarray`
+                or `PIL.Image.Image`.
             detections (Detections): Object detections to annotate.
-            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
-                Allows to override the default color mapping strategy.
+            offset_xy (Tuple[int, int]): The offset to apply to the icon position,
+                in pixels. Can be both positive and negative.
+
         Returns:
-            np.ndarray: The annotated image.
+            The annotated image, matching the type of `scene` (`numpy.ndarray`
+                or `PIL.Image.Image`)
+
         Example:
             ```python
-            >>> import supervision as sv
-            >>> image = ...
-            >>> detections = sv.Detections(...)
-            >>> icon_annotator = sv.IconAnnotator(icon_path='<PATH_TO_ICON>')
-            >>> annotated_frame = icon_annotator.annotate(
-            ...     scene=image.copy(),
-            ...     detections=detections
-            ... )
+            import supervision as sv
+
+            image = ...
+            detections = sv.Detections(...)
+
+            icon_annotator = sv.IconAnnotator(icon_path='...')
+            annotated_frame = icon_annotator.annotate(
+                scene=image.copy(),
+                detections=detections
+            )
             ```
+
         """
+        assert isinstance(scene, np.ndarray)
         icon_h, icon_w = self.icon.shape[:2]
 
+        padded_scene = np.pad(
+            scene,
+            ((icon_h, icon_h), (icon_w, icon_w), (0, 0)),
+            mode="constant",
+            constant_values=0,
+        )
+
         xy = detections.get_anchors_coordinates(anchor=self.position)
+        xy += np.array([icon_w, icon_h])
+
         for detection_idx in range(len(detections)):
-            color = resolve_color(
-                color=self.color,
-                detections=detections,
-                detection_idx=detection_idx,
-                color_lookup=(
-                    self.color_lookup
-                    if custom_color_lookup is None
-                    else custom_color_lookup
-                ),
-            )
-            color_in_bgra = list(color.as_bgr()) + [1]
-            colored_icon = np.ones_like(self.icon) * color_in_bgra
-
-            # The current positions of the anchors don't account for annotations that
-            # have mass. This visually centers the anchor, given the size of the icon
-            x_offset = 0
-            if self.position in [
-                Position.TOP_CENTER,
-                Position.CENTER,
-                Position.BOTTOM_CENTER,
-            ]:
-                x_offset = icon_w / 2
-
-            x, y = (
-                int(xy[detection_idx, 0] - x_offset),
-                int(xy[detection_idx, 1]),
-            )
+            x = int(xy[detection_idx, 0] - icon_w / 2 + offset_xy[0])
+            y = int(xy[detection_idx, 1] - icon_h / 2 + offset_xy[1])
 
             alpha_channel = self.icon[:, :, 3]
-            # Apply alpha blending to paste the icon onto the larger image
-            scene[y : y + icon_h, x : x + icon_w][alpha_channel != 0] = colored_icon[
-                :, :, :3
-            ][alpha_channel != 0]
+            mask = alpha_channel != 0
+            padded_scene[y : y + icon_h, x : x + icon_w][mask] = self.icon[:, :, :3][
+                mask
+            ]
+
+        padded_scene = padded_scene[icon_h:-icon_h, icon_w:-icon_w]
+        np.copyto(scene, padded_scene)
         return scene
 
 
