@@ -1,23 +1,51 @@
+import warnings
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Callable, Optional, Tuple
+from typing import Callable, Optional, Tuple, Union
 
 import numpy as np
 
+from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
-from supervision.detection.utils import move_boxes
+from supervision.detection.overlap_filter import OverlapFilter
+from supervision.detection.utils import move_boxes, move_masks, move_oriented_boxes
 from supervision.utils.image import crop_image
+from supervision.utils.internal import (
+    SupervisionWarnings,
+    deprecated_parameter,
+    warn_deprecated,
+)
 
 
-def move_detections(detections: Detections, offset: np.array) -> Detections:
+def move_detections(
+    detections: Detections,
+    offset: np.ndarray,
+    resolution_wh: Optional[Tuple[int, int]] = None,
+) -> Detections:
     """
     Args:
         detections (sv.Detections): Detections object to be moved.
-        offset (np.array): An array of shape `(2,)` containing offset values in format
+        offset (np.ndarray): An array of shape `(2,)` containing offset values in format
             is `[dx, dy]`.
+        resolution_wh (Tuple[int, int]): The width and height of the desired mask
+            resolution. Required for segmentation detections.
+
     Returns:
         (sv.Detections) repositioned Detections object.
     """
     detections.xyxy = move_boxes(xyxy=detections.xyxy, offset=offset)
+    if ORIENTED_BOX_COORDINATES in detections.data:
+        detections.data[ORIENTED_BOX_COORDINATES] = move_oriented_boxes(
+            xyxyxyxy=detections.data[ORIENTED_BOX_COORDINATES], offset=offset
+        )
+    if detections.mask is not None:
+        if resolution_wh is None:
+            raise ValueError(
+                "Resolution width and height are required for moving segmentation "
+                "detections. This should be the same as (width, height) of image shape."
+            )
+        detections.mask = move_masks(
+            masks=detections.mask, offset=offset, resolution_wh=resolution_wh
+        )
     return detections
 
 
@@ -30,12 +58,19 @@ class InferenceSlicer:
     slice, and then merging the detections.
 
     Args:
-        slice_wh (Tuple[int, int]): Dimensions of each slice in the format
-            `(width, height)`.
-        overlap_ratio_wh (Tuple[float, float]): Overlap ratio between consecutive
-            slices in the format `(width_ratio, height_ratio)`.
-        iou_threshold (Optional[float]): Intersection over Union (IoU) threshold
-            used for non-max suppression.
+        slice_wh (Tuple[int, int]): Dimensions of each slice measured in pixels. The
+            tuple should be in the format `(width, height)`.
+        overlap_ratio_wh (Optional[Tuple[float, float]]): A tuple representing the
+            desired overlap ratio for width and height between consecutive slices.
+            Each value should be in the range [0, 1), where 0 means no overlap and
+            a value close to 1 means high overlap.
+        overlap_wh (Optional[Tuple[int, int]]): A tuple representing the desired
+            overlap for width and height between consecutive slices measured in pixels.
+            Each value should be greater than or equal to 0.
+        overlap_filter (Union[OverlapFilter, str]): Strategy for
+            filtering or merging overlapping detections in slices.
+        iou_threshold (float): Intersection over Union (IoU) threshold
+            used when filtering by overlap.
         callback (Callable): A function that performs inference on a given image
             slice and returns detections.
         thread_workers (int): Number of threads for parallel execution.
@@ -47,17 +82,37 @@ class InferenceSlicer:
         not a multiple of the slice's width or height minus the overlap.
     """
 
+    @deprecated_parameter(
+        old_parameter="overlap_filter_strategy",
+        new_parameter="overlap_filter",
+        map_function=lambda x: x,
+        warning_message="`{old_parameter}` in `{function_name}` is deprecated and will "
+        "be removed in `supervision-0.27.0`. Use '{new_parameter}' "
+        "instead.",
+    )
     def __init__(
         self,
         callback: Callable[[np.ndarray], Detections],
         slice_wh: Tuple[int, int] = (320, 320),
-        overlap_ratio_wh: Tuple[float, float] = (0.2, 0.2),
-        iou_threshold: Optional[float] = 0.5,
+        overlap_ratio_wh: Optional[Tuple[float, float]] = (0.2, 0.2),
+        overlap_wh: Optional[Tuple[int, int]] = None,
+        overlap_filter: Union[OverlapFilter, str] = OverlapFilter.NON_MAX_SUPPRESSION,
+        iou_threshold: float = 0.5,
         thread_workers: int = 1,
     ):
-        self.slice_wh = slice_wh
+        if overlap_ratio_wh is not None:
+            warn_deprecated(
+                "`overlap_ratio_wh` in `InferenceSlicer.__init__` is deprecated and "
+                "will be removed in `supervision-0.27.0`. Use `overlap_wh` instead."
+            )
+
+        self._validate_overlap(overlap_ratio_wh, overlap_wh)
         self.overlap_ratio_wh = overlap_ratio_wh
+        self.overlap_wh = overlap_wh
+
+        self.slice_wh = slice_wh
         self.iou_threshold = iou_threshold
+        self.overlap_filter = OverlapFilter.from_value(overlap_filter)
         self.callback = callback
         self.thread_workers = thread_workers
 
@@ -88,7 +143,10 @@ class InferenceSlicer:
                 result = model(image_slice)[0]
                 return sv.Detections.from_ultralytics(result)
 
-            slicer = sv.InferenceSlicer(callback = callback)
+            slicer = sv.InferenceSlicer(
+                callback=callback,
+                overlap_filter_strategy=sv.OverlapFilter.NON_MAX_SUPPRESSION,
+            )
 
             detections = slicer(image)
             ```
@@ -99,6 +157,7 @@ class InferenceSlicer:
             resolution_wh=resolution_wh,
             slice_wh=self.slice_wh,
             overlap_ratio_wh=self.overlap_ratio_wh,
+            overlap_wh=self.overlap_wh,
         )
 
         with ThreadPoolExecutor(max_workers=self.thread_workers) as executor:
@@ -108,9 +167,19 @@ class InferenceSlicer:
             for future in as_completed(futures):
                 detections_list.append(future.result())
 
-        return Detections.merge(detections_list=detections_list).with_nms(
-            threshold=self.iou_threshold
-        )
+        merged = Detections.merge(detections_list=detections_list)
+        if self.overlap_filter == OverlapFilter.NONE:
+            return merged
+        elif self.overlap_filter == OverlapFilter.NON_MAX_SUPPRESSION:
+            return merged.with_nms(threshold=self.iou_threshold)
+        elif self.overlap_filter == OverlapFilter.NON_MAX_MERGE:
+            return merged.with_nmm(threshold=self.iou_threshold)
+        else:
+            warnings.warn(
+                f"Invalid overlap filter strategy: {self.overlap_filter}",
+                category=SupervisionWarnings,
+            )
+            return merged
 
     def _run_callback(self, image, offset) -> Detections:
         """
@@ -126,7 +195,10 @@ class InferenceSlicer:
         """
         image_slice = crop_image(image=image, xyxy=offset)
         detections = self.callback(image_slice)
-        detections = move_detections(detections=detections, offset=offset[:2])
+        resolution_wh = (image.shape[1], image.shape[0])
+        detections = move_detections(
+            detections=detections, offset=offset[:2], resolution_wh=resolution_wh
+        )
 
         return detections
 
@@ -134,7 +206,8 @@ class InferenceSlicer:
     def _generate_offset(
         resolution_wh: Tuple[int, int],
         slice_wh: Tuple[int, int],
-        overlap_ratio_wh: Tuple[float, float],
+        overlap_ratio_wh: Optional[Tuple[float, float]],
+        overlap_wh: Optional[Tuple[int, int]],
     ) -> np.ndarray:
         """
         Generate offset coordinates for slicing an image based on the given resolution,
@@ -143,12 +216,15 @@ class InferenceSlicer:
         Args:
             resolution_wh (Tuple[int, int]): A tuple representing the width and height
                 of the image to be sliced.
-            slice_wh (Tuple[int, int]): A tuple representing the desired width and
-                height of each slice.
-            overlap_ratio_wh (Tuple[float, float]): A tuple representing the desired
-                overlap ratio for width and height between consecutive slices. Each
-                value should be in the range [0, 1), where 0 means no overlap and a
-                value close to 1 means high overlap.
+            slice_wh (Tuple[int, int]): Dimensions of each slice measured in pixels. The
+            tuple should be in the format `(width, height)`.
+            overlap_ratio_wh (Optional[Tuple[float, float]]): A tuple representing the
+                desired overlap ratio for width and height between consecutive slices.
+                Each value should be in the range [0, 1), where 0 means no overlap and
+                a value close to 1 means high overlap.
+            overlap_wh (Optional[Tuple[int, int]]): A tuple representing the desired
+                overlap for width and height between consecutive slices measured in
+                pixels. Each value should be greater than or equal to 0.
 
         Returns:
             np.ndarray: An array of shape `(n, 4)` containing coordinates for each
@@ -163,10 +239,19 @@ class InferenceSlicer:
         """
         slice_width, slice_height = slice_wh
         image_width, image_height = resolution_wh
-        overlap_ratio_width, overlap_ratio_height = overlap_ratio_wh
+        overlap_width = (
+            overlap_wh[0]
+            if overlap_wh is not None
+            else int(overlap_ratio_wh[0] * slice_width)
+        )
+        overlap_height = (
+            overlap_wh[1]
+            if overlap_wh is not None
+            else int(overlap_ratio_wh[1] * slice_height)
+        )
 
-        width_stride = slice_width - int(overlap_ratio_width * slice_width)
-        height_stride = slice_height - int(overlap_ratio_height * slice_height)
+        width_stride = slice_width - overlap_width
+        height_stride = slice_height - overlap_height
 
         ws = np.arange(0, image_width, width_stride)
         hs = np.arange(0, image_height, height_stride)
@@ -178,3 +263,32 @@ class InferenceSlicer:
         offsets = np.stack([xmin, ymin, xmax, ymax], axis=-1).reshape(-1, 4)
 
         return offsets
+
+    @staticmethod
+    def _validate_overlap(
+        overlap_ratio_wh: Optional[Tuple[float, float]],
+        overlap_wh: Optional[Tuple[int, int]],
+    ) -> None:
+        if overlap_ratio_wh is not None and overlap_wh is not None:
+            raise ValueError(
+                "Both `overlap_ratio_wh` and `overlap_wh` cannot be provided. "
+                "Please provide only one of them."
+            )
+        if overlap_ratio_wh is None and overlap_wh is None:
+            raise ValueError(
+                "Either `overlap_ratio_wh` or `overlap_wh` must be provided. "
+                "Please provide one of them."
+            )
+
+        if overlap_ratio_wh is not None:
+            if not (0 <= overlap_ratio_wh[0] < 1 and 0 <= overlap_ratio_wh[1] < 1):
+                raise ValueError(
+                    "Overlap ratios must be in the range [0, 1). "
+                    f"Received: {overlap_ratio_wh}"
+                )
+        if overlap_wh is not None:
+            if not (overlap_wh[0] >= 0 and overlap_wh[1] >= 0):
+                raise ValueError(
+                    "Overlap values must be greater than or equal to 0. "
+                    f"Received: {overlap_wh}"
+                )

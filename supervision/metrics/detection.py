@@ -391,11 +391,10 @@ class ConfusionMatrix:
             ```
         """
         predictions, targets = [], []
-        for img_name, img in dataset.images.items():
-            predictions_batch = callback(img)
+        for _, image, annotation in dataset:
+            predictions_batch = callback(image)
             predictions.append(predictions_batch)
-            targets_batch = dataset.annotations[img_name]
-            targets.append(targets_batch)
+            targets.append(annotation)
         return cls.from_detections(
             predictions=predictions,
             targets=targets,
@@ -604,11 +603,10 @@ class MeanAveragePrecision:
             ```
         """
         predictions, targets = [], []
-        for img_name, img in dataset.images.items():
-            predictions_batch = callback(img)
+        for _, image, annotation in dataset:
+            predictions_batch = callback(image)
             predictions.append(predictions_batch)
-            targets_batch = dataset.annotations[img_name]
-            targets.append(targets_batch)
+            targets.append(annotation)
         return cls.from_detections(
             predictions=predictions,
             targets=targets,
@@ -836,10 +834,10 @@ class MeanAveragePrecision:
             precision = true_positives / (true_positives + false_positives)
 
             for iou_level_idx in range(matches.shape[1]):
-                average_precisions[
-                    class_idx, iou_level_idx
-                ] = MeanAveragePrecision.compute_average_precision(
-                    recall[:, iou_level_idx], precision[:, iou_level_idx]
+                average_precisions[class_idx, iou_level_idx] = (
+                    MeanAveragePrecision.compute_average_precision(
+                        recall[:, iou_level_idx], precision[:, iou_level_idx]
+                    )
                 )
 
         return average_precisions

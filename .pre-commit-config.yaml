@@ -7,14 +7,13 @@ ci:
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v4.6.0
     hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
         exclude: test/.*\.py
       - id: check-yaml
         exclude: mkdocs.yml
-      - id: check-docstring-first
       - id: check-executables-have-shebangs
       - id: check-toml
       - id: check-case-conflict
@@ -28,9 +27,8 @@ repos:
       - id: mixed-line-ending
 
 
-
   -   repo: https://github.com/PyCQA/bandit
-      rev: '1.7.7'
+      rev: '1.7.9'
       hooks:
       -   id: bandit
           args: ["-c", "pyproject.toml"]
@@ -47,7 +45,7 @@ repos:
 
 
   -   repo: https://github.com/astral-sh/ruff-pre-commit
-      rev: v0.2.1
+      rev: v0.5.7
       hooks:
       -   id: ruff
           args: [--fix, --exit-non-zero-on-fix]

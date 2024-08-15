@@ -35,18 +35,27 @@ extra_css:
 
 
 nav:
-  - Home: index.md
-  - How to:
+  - Supervision: index.md
+  - Learn:
       - Detect and Annotate: how_to/detect_and_annotate.md
-      - Track Objects: how_to/track_objects.md
+      - Save Detections: how_to/save_detections.md
       - Filter Detections: how_to/filter_detections.md
-  - API:
-    - Annotators: annotators.md
-    - Classifications:
-        - Core: classification/core.md
-    - Detections:
+      - Detect Small Objects: how_to/detect_small_objects.md
+      - Track Objects on Video: how_to/track_objects.md
+      - Process Datasets: how_to/process_datasets.md
+
+  - Reference - Code API:
+    - Detection and Segmentation:
         - Core: detection/core.md
+        - Annotators: detection/annotators.md
+        - Metrics: detection/metrics.md
+        - Double Detection Filter: detection/double_detection_filter.md
         - Utils: detection/utils.md
+    - Keypoint Detection:
+        - Core: keypoint/core.md
+        - Annotators: keypoint/annotators.md
+    - Classification:
+        - Core: classification/core.md
     - Tools:
         - Line Zone: detection/tools/line_zone.md
         - Polygon Zone: detection/tools/polygon_zone.md
@@ -54,26 +63,25 @@ nav:
         - Detection Smoother: detection/tools/smoother.md
         - Save Detections: detection/tools/save_detections.md
     - Trackers: trackers.md
-    - Datasets: datasets.md
-    - Metrics:
-      - Object Detection: metrics/detection.md
-    - Draw:
-        - Color: draw/color.md
-        - Utils: draw/utils.md
-    - Geometry:
-        - Position: geometry/core.md
+    - Datasets:
+        - Core: datasets/core.md
+        - Utils: datasets/utils.md
     - Utils:
         - Video: utils/video.md
         - Image: utils/image.md
+        - Iterables: utils/iterables.md
         - Notebook: utils/notebook.md
         - File: utils/file.md
+        - Draw: utils/draw.md
+        - Geometry: utils/geometry.md
     - Assets: assets.md
   - Cookbooks: cookbooks.md
+  - Cheatsheet: https://roboflow.github.io/cheatsheet-supervision/
   - Contribute:
     - Contributing: contributing.md
     - Code of Conduct: code_of_conduct.md
     - License: license.md
-  - Changelog:
+  - Release Notes:
         - Changelog: changelog.md
         - Deprecated: deprecated.md
 
@@ -172,3 +180,12 @@ extra_javascript:
   - "javascripts/init_kapa_widget.js"
   - "javascripts/cookbooks-card.js"
   - "https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js"
+
+# Messages shown during document build
+# Reference: https://www.mkdocs.org/user-guide/configuration/#validation
+# Values: [warn, info, ignore]
+validation:
+  nav:
+    absolute_links: ignore
+  links:
+    absolute_links: ignore

@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 import matplotlib.pyplot as plt
 
-from supervision.utils.internal import classproperty, deprecated
+from supervision.utils.internal import classproperty
 
 DEFAULT_COLOR_PALETTE = [
     "A351FB",
@@ -104,16 +104,22 @@ class Color:
         Create a Color instance from a hex string.
 
         Args:
-            color_hex (str): Hex string of the color.
+            color_hex (str): The hex string representing the color. This string can
+                start with '#' followed by either 3 or 6 hexadecimal characters. In
+                case of 3 characters, each character is repeated to form the full
+                6-character hex code.
 
         Returns:
-            Color: Instance representing the color.
+            Color: An instance representing the color.
 
         Example:
             ```python
             import supervision as sv
 
             sv.Color.from_hex('#ff00ff')
+            # Color(r=255, g=0, b=255)
+
+            sv.Color.from_hex('#f0f')
             # Color(r=255, g=0, b=255)
             ```
         """
@@ -123,6 +129,52 @@ class Color:
             color_hex = "".join(c * 2 for c in color_hex)
         r, g, b = (int(color_hex[i : i + 2], 16) for i in range(0, 6, 2))
         return cls(r, g, b)
+
+    @classmethod
+    def from_rgb_tuple(cls, color_tuple: Tuple[int, int, int]) -> Color:
+        """
+        Create a Color instance from an RGB tuple.
+
+        Args:
+            color_tuple (Tuple[int, int, int]): A tuple representing the color in RGB
+                format, where each element is an integer in the range 0-255.
+
+        Returns:
+            Color: An instance representing the color.
+
+        Example:
+            ```python
+            import supervision as sv
+
+            sv.Color.from_rgb_tuple((255, 255, 0))
+            # Color(r=255, g=255, b=0)
+            ```
+        """
+        r, g, b = color_tuple
+        return cls(r=r, g=g, b=b)
+
+    @classmethod
+    def from_bgr_tuple(cls, color_tuple: Tuple[int, int, int]) -> Color:
+        """
+        Create a Color instance from a BGR tuple.
+
+        Args:
+            color_tuple (Tuple[int, int, int]): A tuple representing the color in BGR
+                format, where each element is an integer in the range 0-255.
+
+        Returns:
+            Color: An instance representing the color.
+
+        Example:
+            ```python
+            import supervision as sv
+
+            sv.Color.from_bgr_tuple((0, 255, 255))
+            # Color(r=255, g=255, b=0)
+            ```
+        """
+        b, g, r = color_tuple
+        return cls(r=r, g=g, b=b)
 
     def as_hex(self) -> str:
         """
@@ -176,72 +228,32 @@ class Color:
         return self.b, self.g, self.r
 
     @classproperty
-    def WHITE(cls):
+    def WHITE(cls) -> Color:
         return Color.from_hex("#FFFFFF")
 
     @classproperty
-    def BLACK(cls):
+    def BLACK(cls) -> Color:
         return Color.from_hex("#000000")
 
     @classproperty
-    def RED(cls):
+    def RED(cls) -> Color:
         return Color.from_hex("#FF0000")
 
     @classproperty
-    def GREEN(cls):
+    def GREEN(cls) -> Color:
         return Color.from_hex("#00FF00")
 
     @classproperty
-    def BLUE(cls):
+    def BLUE(cls) -> Color:
         return Color.from_hex("#0000FF")
 
     @classproperty
-    def YELLOW(cls):
+    def YELLOW(cls) -> Color:
         return Color.from_hex("#FFFF00")
 
     @classproperty
-    def ROBOFLOW(cls):
+    def ROBOFLOW(cls) -> Color:
         return Color.from_hex("#A351FB")
-
-    @classmethod
-    @deprecated(
-        "`Color.white()` is deprecated and will be removed in "
-        "`supervision-0.22.0`. Use `Color.WHITE` instead."
-    )
-    def white(cls) -> Color:
-        return Color.from_hex(color_hex="#ffffff")
-
-    @classmethod
-    @deprecated(
-        "`Color.black()` is deprecated and will be removed in "
-        "`supervision-0.22.0`. Use `Color.BLACK` instead."
-    )
-    def black(cls) -> Color:
-        return Color.from_hex(color_hex="#000000")
-
-    @classmethod
-    @deprecated(
-        "`Color.red()` is deprecated and will be removed in "
-        "`supervision-0.22.0`. Use `Color.RED` instead."
-    )
-    def red(cls) -> Color:
-        return Color.from_hex(color_hex="#ff0000")
-
-    @classmethod
-    @deprecated(
-        "`Color.green()` is deprecated and will be removed in "
-        "`supervision-0.22.0`. Use `Color.GREEN` instead."
-    )
-    def green(cls) -> Color:
-        return Color.from_hex(color_hex="#00ff00")
-
-    @classmethod
-    @deprecated(
-        "`Color.blue()` is deprecated and will be removed in "
-        "`supervision-0.22.0`. Use `Color.BLUE` instead."
-    )
-    def blue(cls) -> Color:
-        return Color.from_hex(color_hex="#0000ff")
 
 
 @dataclass
@@ -295,33 +307,6 @@ class ColorPalette:
         return ColorPalette.from_hex(color_hex_list=LEGACY_COLOR_PALETTE)
 
     @classmethod
-    @deprecated(
-        "`ColorPalette.default()` is deprecated and will be removed in "
-        "`supervision-0.22.0`. Use `Color.DEFAULT` instead."
-    )
-    def default(cls) -> ColorPalette:
-        """
-        !!! failure "Deprecated"
-
-            `ColorPalette.default()` is deprecated and will be removed in
-            `supervision-0.22.0`. Use `Color.DEFAULT` instead.
-
-        Returns a default color palette.
-
-        Returns:
-            ColorPalette: A ColorPalette instance with default colors.
-
-        Example:
-            ```python
-            import supervision as sv
-
-            sv.ColorPalette.default()
-            # ColorPalette(colors=[Color(r=255, g=64, b=64), Color(r=255, g=161, b=160), ...])
-            ```
-        """  # noqa: E501 // docs
-        return ColorPalette.from_hex(color_hex_list=DEFAULT_COLOR_PALETTE)
-
-    @classmethod
     def from_hex(cls, color_hex_list: List[str]) -> ColorPalette:
         """
         Create a ColorPalette instance from a list of hex strings.
@@ -367,11 +352,15 @@ class ColorPalette:
         supervision-annotator-examples/visualized_color_palette.png)
         """  # noqa: E501 // docs
         mpl_palette = plt.get_cmap(palette_name, color_count)
-        colors = [
-            Color(int(r * 255), int(g * 255), int(b * 255))
-            for r, g, b, _ in mpl_palette.colors
-        ]
-        return cls(colors)
+
+        if hasattr(mpl_palette, "colors"):
+            colors = mpl_palette.colors
+        else:
+            colors = [mpl_palette(i / (color_count - 1)) for i in range(color_count)]
+
+        return cls(
+            [Color(int(r * 255), int(g * 255), int(b * 255)) for r, g, b, _ in colors]
+        )
 
     def by_idx(self, idx: int) -> Color:
         """
@@ -396,3 +385,19 @@ class ColorPalette:
             raise ValueError("idx argument should not be negative")
         idx = idx % len(self.colors)
         return self.colors[idx]
+
+
+def unify_to_bgr(color: Union[Tuple[int, int, int], Color]) -> Tuple[int, int, int]:
+    """
+    Converts a color input in multiple formats to a standardized BGR format.
+
+    Args:
+        color (Union[Tuple[int, int, int], Color]): The color input to be converted,
+            which can be either a tuple of RGB values or an instance of a Color class.
+
+    Returns:
+        Tuple[int, int, int]: The color in BGR format as a tuple of three integers.
+    """
+    if issubclass(type(color), Color):
+        return color.as_bgr()
+    return color

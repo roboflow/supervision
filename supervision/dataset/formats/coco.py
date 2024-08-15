@@ -1,18 +1,27 @@
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import TYPE_CHECKING, Dict, List, Tuple
 
-import cv2
 import numpy as np
+import numpy.typing as npt
 
 from supervision.dataset.utils import (
     approximate_mask_with_polygons,
     map_detections_class_id,
+    mask_to_rle,
+    rle_to_mask,
 )
 from supervision.detection.core import Detections
-from supervision.detection.utils import polygon_to_mask
+from supervision.detection.utils import (
+    contains_holes,
+    contains_multiple_segments,
+    polygon_to_mask,
+)
 from supervision.utils.file import read_json_file, save_json_file
+
+if TYPE_CHECKING:
+    from supervision.dataset.core import DetectionDataset
 
 
 def coco_categories_to_classes(coco_categories: List[dict]) -> List[str]:
@@ -57,13 +66,24 @@ def group_coco_annotations_by_image_id(
     return annotations
 
 
-def _polygons_to_masks(
-    polygons: List[np.ndarray], resolution_wh: Tuple[int, int]
-) -> np.ndarray:
+def coco_annotations_to_masks(
+    image_annotations: List[dict], resolution_wh: Tuple[int, int]
+) -> npt.NDArray[np.bool_]:
     return np.array(
         [
-            polygon_to_mask(polygon=polygon, resolution_wh=resolution_wh)
-            for polygon in polygons
+            rle_to_mask(
+                rle=np.array(image_annotation["segmentation"]["counts"]),
+                resolution_wh=resolution_wh,
+            )
+            if image_annotation["iscrowd"]
+            else polygon_to_mask(
+                polygon=np.reshape(
+                    np.asarray(image_annotation["segmentation"], dtype=np.int32),
+                    (-1, 2),
+                ),
+                resolution_wh=resolution_wh,
+            )
+            for image_annotation in image_annotations
         ],
         dtype=bool,
     )
@@ -83,13 +103,9 @@ def coco_annotations_to_detections(
     xyxy[:, 2:4] += xyxy[:, 0:2]
 
     if with_masks:
-        polygons = [
-            np.reshape(
-                np.asarray(image_annotation["segmentation"], dtype=np.int32), (-1, 2)
-            )
-            for image_annotation in image_annotations
-        ]
-        mask = _polygons_to_masks(polygons=polygons, resolution_wh=resolution_wh)
+        mask = coco_annotations_to_masks(
+            image_annotations=image_annotations, resolution_wh=resolution_wh
+        )
         return Detections(
             class_id=np.asarray(class_ids, dtype=int), xyxy=xyxy, mask=mask
         )
@@ -108,24 +124,35 @@ def detections_to_coco_annotations(
     coco_annotations = []
     for xyxy, mask, _, class_id, _, _ in detections:
         box_width, box_height = xyxy[2] - xyxy[0], xyxy[3] - xyxy[1]
-        polygon = []
+        segmentation = []
+        iscrowd = 0
         if mask is not None:
-            polygon = list(
-                approximate_mask_with_polygons(
-                    mask=mask,
-                    min_image_area_percentage=min_image_area_percentage,
-                    max_image_area_percentage=max_image_area_percentage,
-                    approximation_percentage=approximation_percentage,
-                )[0].flatten()
-            )
+            iscrowd = contains_holes(mask=mask) or contains_multiple_segments(mask=mask)
+
+            if iscrowd:
+                segmentation = {
+                    "counts": mask_to_rle(mask=mask),
+                    "size": list(mask.shape[:2]),
+                }
+            else:
+                segmentation = [
+                    list(
+                        approximate_mask_with_polygons(
+                            mask=mask,
+                            min_image_area_percentage=min_image_area_percentage,
+                            max_image_area_percentage=max_image_area_percentage,
+                            approximation_percentage=approximation_percentage,
+                        )[0].flatten()
+                    )
+                ]
         coco_annotation = {
             "id": annotation_id,
             "image_id": image_id,
             "category_id": int(class_id),
             "bbox": [xyxy[0], xyxy[1], box_width, box_height],
             "area": box_width * box_height,
-            "segmentation": [polygon] if polygon else [],
-            "iscrowd": 0,
+            "segmentation": segmentation,
+            "iscrowd": iscrowd,
         }
         coco_annotations.append(coco_annotation)
         annotation_id += 1
@@ -136,7 +163,7 @@ def load_coco_annotations(
     images_directory_path: str,
     annotations_path: str,
     force_masks: bool = False,
-) -> Tuple[List[str], Dict[str, np.ndarray], Dict[str, Detections]]:
+) -> Tuple[List[str], List[str], Dict[str, Detections]]:
     coco_data = read_json_file(file_path=annotations_path)
     classes = coco_categories_to_classes(coco_categories=coco_data["categories"])
     class_index_mapping = build_coco_class_index_mapping(
@@ -147,7 +174,7 @@ def load_coco_annotations(
         coco_annotations=coco_data["annotations"]
     )
 
-    images = {}
+    images = []
     annotations = {}
 
     for coco_image in coco_images:
@@ -159,7 +186,6 @@ def load_coco_annotations(
         image_annotations = coco_annotations_groups.get(coco_image["id"], [])
         image_path = os.path.join(images_directory_path, image_name)
 
-        image = cv2.imread(image_path)
         annotation = coco_annotations_to_detections(
             image_annotations=image_annotations,
             resolution_wh=(image_width, image_height),
@@ -170,23 +196,20 @@ def load_coco_annotations(
             detections=annotation,
         )
 
-        images[image_path] = image
+        images.append(image_path)
         annotations[image_path] = annotation
 
     return classes, images, annotations
 
 
 def save_coco_annotations(
+    dataset: "DetectionDataset",
     annotation_path: str,
-    images: Dict[str, np.ndarray],
-    annotations: Dict[str, Detections],
-    classes: List[str],
     min_image_area_percentage: float = 0.0,
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.75,
 ) -> None:
     Path(annotation_path).parent.mkdir(parents=True, exist_ok=True)
-    info = {}
     licenses = [
         {
             "id": 1,
@@ -197,10 +220,10 @@ def save_coco_annotations(
 
     coco_annotations = []
     coco_images = []
-    coco_categories = classes_to_coco_categories(classes=classes)
+    coco_categories = classes_to_coco_categories(classes=dataset.classes)
 
     image_id, annotation_id = 1, 1
-    for image_path, image in images.items():
+    for image_path, image, annotation in dataset:
         image_height, image_width, _ = image.shape
         image_name = f"{Path(image_path).stem}{Path(image_path).suffix}"
         coco_image = {
@@ -213,10 +236,8 @@ def save_coco_annotations(
         }
 
         coco_images.append(coco_image)
-        detections = annotations[image_path]
-
         coco_annotation, annotation_id = detections_to_coco_annotations(
-            detections=detections,
+            detections=annotation,
             image_id=image_id,
             annotation_id=annotation_id,
             min_image_area_percentage=min_image_area_percentage,
@@ -228,7 +249,7 @@ def save_coco_annotations(
         image_id += 1
 
     annotation_dict = {
-        "info": info,
+        "info": {},
         "licenses": licenses,
         "categories": coco_categories,
         "images": coco_images,

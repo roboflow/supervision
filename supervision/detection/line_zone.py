@@ -1,12 +1,15 @@
+import warnings
 from typing import Dict, Iterable, Optional, Tuple
 
 import cv2
 import numpy as np
 
 from supervision.detection.core import Detections
+from supervision.detection.utils import cross_product
 from supervision.draw.color import Color
 from supervision.draw.utils import draw_text
 from supervision.geometry.core import Point, Position, Vector
+from supervision.utils.internal import SupervisionWarnings
 
 
 class LineZone:
@@ -81,6 +84,8 @@ class LineZone:
         self.in_count: int = 0
         self.out_count: int = 0
         self.triggering_anchors = triggering_anchors
+        if not list(self.triggering_anchors):
+            raise ValueError("Triggering anchors cannot be empty.")
 
     @staticmethod
     def calculate_region_of_interest_limits(vector: Vector) -> Tuple[Vector, Vector]:
@@ -140,6 +145,15 @@ class LineZone:
         if len(detections) == 0:
             return crossed_in, crossed_out
 
+        if detections.tracker_id is None:
+            warnings.warn(
+                "Line zone counting skipped. LineZone requires tracker_id. Refer to "
+                "https://supervision.roboflow.com/latest/trackers for more "
+                "information.",
+                category=SupervisionWarnings,
+            )
+            return crossed_in, crossed_out
+
         all_anchors = np.array(
             [
                 detections.get_anchors_coordinates(anchor)
@@ -147,31 +161,23 @@ class LineZone:
             ]
         )
 
+        cross_products_1 = cross_product(all_anchors, self.limits[0])
+        cross_products_2 = cross_product(all_anchors, self.limits[1])
+        in_limits = (cross_products_1 > 0) == (cross_products_2 > 0)
+        in_limits = np.all(in_limits, axis=0)
+
+        triggers = cross_product(all_anchors, self.vector) < 0
+        has_any_left_trigger = np.any(triggers, axis=0)
+        has_any_right_trigger = np.any(~triggers, axis=0)
+        is_uniformly_triggered = ~(has_any_left_trigger & has_any_right_trigger)
         for i, tracker_id in enumerate(detections.tracker_id):
-            if tracker_id is None:
+            if not in_limits[i]:
                 continue
 
-            box_anchors = [Point(x=x, y=y) for x, y in all_anchors[:, i, :]]
-
-            in_limits = all(
-                [
-                    self.is_point_in_limits(point=anchor, limits=self.limits)
-                    for anchor in box_anchors
-                ]
-            )
-
-            if not in_limits:
+            if not is_uniformly_triggered[i]:
                 continue
 
-            triggers = [
-                self.vector.cross_product(point=anchor) < 0 for anchor in box_anchors
-            ]
-
-            if len(set(triggers)) == 2:
-                continue
-
-            tracker_state = triggers[0]
-
+            tracker_state = has_any_left_trigger[i]
             if tracker_id not in self.tracker_state:
                 self.tracker_state[tracker_id] = tracker_state
                 continue

@@ -9,7 +9,7 @@ from ultralytics import YOLO
 
 import supervision as sv
 
-COLORS = sv.ColorPalette.default()
+COLORS = sv.ColorPalette.DEFAULT
 
 
 def load_zones_config(file_path: str) -> List[np.ndarray]:
@@ -36,15 +36,15 @@ def initiate_annotators(
 ) -> Tuple[
     List[sv.PolygonZone], List[sv.PolygonZoneAnnotator], List[sv.BoundingBoxAnnotator]
 ]:
-    line_thickness = sv.calculate_dynamic_line_thickness(resolution_wh=resolution_wh)
-    text_scale = sv.calculate_dynamic_text_scale(resolution_wh=resolution_wh)
+    line_thickness = sv.calculate_optimal_line_thickness(resolution_wh=resolution_wh)
+    text_scale = sv.calculate_optimal_text_scale(resolution_wh=resolution_wh)
 
     zones = []
     zone_annotators = []
     box_annotators = []
 
     for index, polygon in enumerate(polygons):
-        zone = sv.PolygonZone(polygon=polygon, frame_resolution_wh=resolution_wh)
+        zone = sv.PolygonZone(polygon=polygon)
         zone_annotator = sv.PolygonZoneAnnotator(
             zone=zone,
             color=COLORS.by_idx(index),

@@ -3,15 +3,18 @@ from typing import List, Tuple
 import numpy as np
 
 from supervision.detection.core import Detections
+from supervision.detection.utils import box_iou_batch
 from supervision.tracker.byte_tracker import matching
 from supervision.tracker.byte_tracker.basetrack import BaseTrack, TrackState
 from supervision.tracker.byte_tracker.kalman_filter import KalmanFilter
+from supervision.utils.internal import deprecated_parameter
 
 
 class STrack(BaseTrack):
     shared_kalman = KalmanFilter()
+    _external_count = 0
 
-    def __init__(self, tlwh, score, class_ids):
+    def __init__(self, tlwh, score, class_ids, minimum_consecutive_frames):
         # wait activate
         self._tlwh = np.asarray(tlwh, dtype=np.float32)
         self.kalman_filter = None
@@ -21,6 +24,10 @@ class STrack(BaseTrack):
         self.score = score
         self.class_ids = class_ids
         self.tracklet_len = 0
+
+        self.external_track_id = -1
+
+        self.minimum_consecutive_frames = minimum_consecutive_frames
 
     def predict(self):
         mean_state = self.mean.copy()
@@ -51,7 +58,7 @@ class STrack(BaseTrack):
     def activate(self, kalman_filter, frame_id):
         """Start a new tracklet"""
         self.kalman_filter = kalman_filter
-        self.track_id = self.next_id()
+        self.internal_track_id = self.next_id()
         self.mean, self.covariance = self.kalman_filter.initiate(
             self.tlwh_to_xyah(self._tlwh)
         )
@@ -60,6 +67,10 @@ class STrack(BaseTrack):
         self.state = TrackState.Tracked
         if frame_id == 1:
             self.is_activated = True
+
+        if self.minimum_consecutive_frames == 1:
+            self.external_track_id = self.next_external_id()
+
         self.frame_id = frame_id
         self.start_frame = frame_id
 
@@ -69,10 +80,10 @@ class STrack(BaseTrack):
         )
         self.tracklet_len = 0
         self.state = TrackState.Tracked
-        self.is_activated = True
+
         self.frame_id = frame_id
         if new_id:
-            self.track_id = self.next_id()
+            self.internal_track_id = self.next_id()
         self.score = new_track.score
 
     def update(self, new_track, frame_id):
@@ -91,7 +102,10 @@ class STrack(BaseTrack):
             self.mean, self.covariance, self.tlwh_to_xyah(new_tlwh)
         )
         self.state = TrackState.Tracked
-        self.is_activated = True
+        if self.tracklet_len == self.minimum_consecutive_frames:
+            self.is_activated = True
+            if self.external_track_id == -1:
+                self.external_track_id = self.next_external_id()
 
         self.score = new_track.score
 
@@ -130,6 +144,15 @@ class STrack(BaseTrack):
         return self.tlwh_to_xyah(self.tlwh)
 
     @staticmethod
+    def next_external_id():
+        STrack._external_count += 1
+        return STrack._external_count
+
+    @staticmethod
+    def reset_external_counter():
+        STrack._external_count = 0
+
+    @staticmethod
     def tlbr_to_tlwh(tlbr):
         ret = np.asarray(tlbr).copy()
         ret[2:] -= ret[:2]
@@ -142,7 +165,9 @@ class STrack(BaseTrack):
         return ret
 
     def __repr__(self):
-        return "OT_{}_({}-{})".format(self.track_id, self.start_frame, self.end_frame)
+        return "OT_{}_({}-{})".format(
+            self.internal_track_id, self.start_frame, self.end_frame
+        )
 
 
 def detections2boxes(detections: Detections) -> np.ndarray:
@@ -172,26 +197,63 @@ class ByteTrack:
     </video>
 
     Parameters:
-        track_thresh (float, optional): Detection confidence threshold
-            for track activation.
-        track_buffer (int, optional): Number of frames to buffer when a track is lost.
-        match_thresh (float, optional): Threshold for matching tracks with detections.
+        track_activation_threshold (float, optional): Detection confidence threshold
+            for track activation. Increasing track_activation_threshold improves accuracy
+            and stability but might miss true detections. Decreasing it increases
+            completeness but risks introducing noise and instability.
+        lost_track_buffer (int, optional): Number of frames to buffer when a track is lost.
+            Increasing lost_track_buffer enhances occlusion handling, significantly
+            reducing the likelihood of track fragmentation or disappearance caused
+            by brief detection gaps.
+        minimum_matching_threshold (float, optional): Threshold for matching tracks with detections.
+            Increasing minimum_matching_threshold improves accuracy but risks fragmentation.
+            Decreasing it improves completeness but risks false positives and drift.
         frame_rate (int, optional): The frame rate of the video.
+        minimum_consecutive_frames (int, optional): Number of consecutive frames that an object must
+            be tracked before it is considered a 'valid' track.
+            Increasing minimum_consecutive_frames prevents the creation of accidental tracks from
+            false detection or double detection, but risks missing shorter tracks.
     """  # noqa: E501 // docs
 
+    @deprecated_parameter(
+        old_parameter="track_buffer",
+        new_parameter="lost_track_buffer",
+        map_function=lambda x: x,
+        warning_message="`{old_parameter}` in `{function_name}` is deprecated and will "
+        "be remove in `supervision-0.23.0`. Use '{new_parameter}' "
+        "instead.",
+    )
+    @deprecated_parameter(
+        old_parameter="track_thresh",
+        new_parameter="track_activation_threshold",
+        map_function=lambda x: x,
+        warning_message="`{old_parameter}` in `{function_name}` is deprecated and will "
+        "be remove in `supervision-0.23.0`. Use '{new_parameter}' "
+        "instead.",
+    )
+    @deprecated_parameter(
+        old_parameter="match_thresh",
+        new_parameter="minimum_matching_threshold",
+        map_function=lambda x: x,
+        warning_message="`{old_parameter}` in `{function_name}` is deprecated and will "
+        "be remove in `supervision-0.23.0`. Use '{new_parameter}' "
+        "instead.",
+    )
     def __init__(
         self,
-        track_thresh: float = 0.25,
-        track_buffer: int = 30,
-        match_thresh: float = 0.8,
+        track_activation_threshold: float = 0.25,
+        lost_track_buffer: int = 30,
+        minimum_matching_threshold: float = 0.8,
         frame_rate: int = 30,
+        minimum_consecutive_frames: int = 1,
     ):
-        self.track_thresh = track_thresh
-        self.match_thresh = match_thresh
+        self.track_activation_threshold = track_activation_threshold
+        self.minimum_matching_threshold = minimum_matching_threshold
 
         self.frame_id = 0
-        self.det_thresh = self.track_thresh + 0.1
-        self.max_time_lost = int(frame_rate / 30.0 * track_buffer)
+        self.det_thresh = self.track_activation_threshold + 0.1
+        self.max_time_lost = int(frame_rate / 30.0 * lost_track_buffer)
+        self.minimum_consecutive_frames = minimum_consecutive_frames
         self.kalman_filter = KalmanFilter()
 
         self.tracked_tracks: List[STrack] = []
@@ -214,7 +276,7 @@ class ByteTrack:
             model = YOLO(<MODEL_PATH>)
             tracker = sv.ByteTrack()
 
-            bounding_box_annotator = sv.BoundingBoxAnnotator()
+            box_annotator = sv.BoxAnnotator()
             label_annotator = sv.LabelAnnotator()
 
             def callback(frame: np.ndarray, index: int) -> np.ndarray:
@@ -224,7 +286,7 @@ class ByteTrack:
 
                 labels = [f"#{tracker_id}" for tracker_id in detections.tracker_id]
 
-                annotated_frame = bounding_box_annotator.annotate(
+                annotated_frame = box_annotator.annotate(
                     scene=frame.copy(), detections=detections)
                 annotated_frame = label_annotator.annotate(
                     scene=annotated_frame, detections=detections, labels=labels)
@@ -238,27 +300,31 @@ class ByteTrack:
             ```
         """
 
-        tracks = self.update_with_tensors(
-            tensors=detections2boxes(detections=detections)
-        )
-        detections = Detections.empty()
+        tensors = detections2boxes(detections=detections)
+        tracks = self.update_with_tensors(tensors=tensors)
+
         if len(tracks) > 0:
-            detections.xyxy = np.array(
-                [track.tlbr for track in tracks], dtype=np.float32
-            )
-            detections.class_id = np.array(
-                [int(t.class_ids) for t in tracks], dtype=int
-            )
-            detections.tracker_id = np.array(
-                [int(t.track_id) for t in tracks], dtype=int
-            )
-            detections.confidence = np.array(
-                [t.score for t in tracks], dtype=np.float32
-            )
+            detection_bounding_boxes = np.asarray([det[:4] for det in tensors])
+            track_bounding_boxes = np.asarray([track.tlbr for track in tracks])
+
+            ious = box_iou_batch(detection_bounding_boxes, track_bounding_boxes)
+
+            iou_costs = 1 - ious
+
+            matches, _, _ = matching.linear_assignment(iou_costs, 0.5)
+            detections.tracker_id = np.full(len(detections), -1, dtype=int)
+            for i_detection, i_track in matches:
+                detections.tracker_id[i_detection] = int(
+                    tracks[i_track].external_track_id
+                )
+
+            return detections[detections.tracker_id != -1]
+
         else:
+            detections = Detections.empty()
             detections.tracker_id = np.array([], dtype=int)
 
-        return detections
+            return detections
 
     def reset(self):
         """
@@ -274,6 +340,7 @@ class ByteTrack:
         self.lost_tracks: List[STrack] = []
         self.removed_tracks: List[STrack] = []
         BaseTrack.reset_counter()
+        STrack.reset_external_counter()
 
     def update_with_tensors(self, tensors: np.ndarray) -> List[STrack]:
         """
@@ -295,9 +362,9 @@ class ByteTrack:
         scores = tensors[:, 4]
         bboxes = tensors[:, :4]
 
-        remain_inds = scores > self.track_thresh
+        remain_inds = scores > self.track_activation_threshold
         inds_low = scores > 0.1
-        inds_high = scores < self.track_thresh
+        inds_high = scores < self.track_activation_threshold
 
         inds_second = np.logical_and(inds_low, inds_high)
         dets_second = bboxes[inds_second]
@@ -311,7 +378,7 @@ class ByteTrack:
         if len(dets) > 0:
             """Detections"""
             detections = [
-                STrack(STrack.tlbr_to_tlwh(tlbr), s, c)
+                STrack(STrack.tlbr_to_tlwh(tlbr), s, c, self.minimum_consecutive_frames)
                 for (tlbr, s, c) in zip(dets, scores_keep, class_ids_keep)
             ]
         else:
@@ -335,7 +402,7 @@ class ByteTrack:
 
         dists = matching.fuse_score(dists, detections)
         matches, u_track, u_detection = matching.linear_assignment(
-            dists, thresh=self.match_thresh
+            dists, thresh=self.minimum_matching_threshold
         )
 
         for itracked, idet in matches:
@@ -353,7 +420,7 @@ class ByteTrack:
         if len(dets_second) > 0:
             """Detections"""
             detections_second = [
-                STrack(STrack.tlbr_to_tlwh(tlbr), s, c)
+                STrack(STrack.tlbr_to_tlwh(tlbr), s, c, self.minimum_consecutive_frames)
                 for (tlbr, s, c) in zip(dets_second, scores_second, class_ids_second)
             ]
         else:
@@ -420,7 +487,7 @@ class ByteTrack:
         self.lost_tracks = sub_tracks(self.lost_tracks, self.tracked_tracks)
         self.lost_tracks.extend(lost_stracks)
         self.lost_tracks = sub_tracks(self.lost_tracks, self.removed_tracks)
-        self.removed_tracks.extend(removed_stracks)
+        self.removed_tracks = removed_stracks
         self.tracked_tracks, self.lost_tracks = remove_duplicate_tracks(
             self.tracked_tracks, self.lost_tracks
         )
@@ -434,22 +501,22 @@ def joint_tracks(
 ) -> List[STrack]:
     """
     Joins two lists of tracks, ensuring that the resulting list does not
-    contain tracks with duplicate track_id values.
+    contain tracks with duplicate internal_track_id values.
 
     Parameters:
-        track_list_a: First list of tracks (with track_id attribute).
-        track_list_b: Second list of tracks (with track_id attribute).
+        track_list_a: First list of tracks (with internal_track_id attribute).
+        track_list_b: Second list of tracks (with internal_track_id attribute).
 
     Returns:
         Combined list of tracks from track_list_a and track_list_b
-            without duplicate track_id values.
+            without duplicate internal_track_id values.
     """
     seen_track_ids = set()
     result = []
 
     for track in track_list_a + track_list_b:
-        if track.track_id not in seen_track_ids:
-            seen_track_ids.add(track.track_id)
+        if track.internal_track_id not in seen_track_ids:
+            seen_track_ids.add(track.internal_track_id)
             result.append(track)
 
     return result
@@ -458,17 +525,17 @@ def joint_tracks(
 def sub_tracks(track_list_a: List, track_list_b: List) -> List[int]:
     """
     Returns a list of tracks from track_list_a after removing any tracks
-    that share the same track_id with tracks in track_list_b.
+    that share the same internal_track_id with tracks in track_list_b.
 
     Parameters:
-        track_list_a: List of tracks (with track_id attribute).
-        track_list_b: List of tracks (with track_id attribute) to
+        track_list_a: List of tracks (with internal_track_id attribute).
+        track_list_b: List of tracks (with internal_track_id attribute) to
             be subtracted from track_list_a.
     Returns:
         List of remaining tracks from track_list_a after subtraction.
     """
-    tracks = {track.track_id: track for track in track_list_a}
-    track_ids_b = {track.track_id for track in track_list_b}
+    tracks = {track.internal_track_id: track for track in track_list_a}
+    track_ids_b = {track.internal_track_id for track in track_list_b}
 
     for track_id in track_ids_b:
         tracks.pop(track_id, None)
