@@ -43,15 +43,6 @@ class Metric(ABC):
         """
         raise NotImplementedError
 
-    # TODO: determine if this is necessary.
-    # @abstractmethod
-    # def to_pandas(self, *args, **kwargs) -> Any:
-    #     """
-    #     Return a pandas DataFrame representation of the metric.
-    #     """
-    #     self._ensure_pandas_installed()
-    #     raise NotImplementedError
-
     def _ensure_pandas_installed(self):
         try:
             import pandas  # noqa
@@ -66,6 +57,10 @@ class Metric(ABC):
 class MetricTarget(Enum):
     """
     Specifies what type of detection is used to compute the metric.
+
+    * BOXES: xyxy bounding boxes
+    * MASKS: Binary masks
+    * ORIENTED_BOUNDING_BOXES: Oriented bounding boxes (OBB)
     """
 
     BOXES = "boxes"
@@ -89,6 +84,12 @@ class InternalMetricDataStore:
     * Stores the basic data: boxes, masks, or oriented bounding boxes
     * Validates data: ensures data types and shape are consistent
     * Provides iteration by class
+
+    Provides a class-agnostic mode, where all data is treated as a single class.
+    Warning: numpy inputs are always considered as class-agnostic data.
+
+    Data here refers to content of Detections objects: boxes, masks,
+    or oriented bounding boxes.
     """
 
     def __init__(self, metric_target: MetricTarget, class_agnostic: bool):
@@ -109,6 +110,11 @@ class InternalMetricDataStore:
         data_1: Union[npt.NDArray, Detections],
         data_2: Union[npt.NDArray, Detections],
     ) -> None:
+        """
+        Add new data to the store.
+
+        Use sv.Detections.empty() if only one set of data is available.
+        """
         content_1 = self._get_content(data_1)
         content_2 = self._get_content(data_2)
         self._validate_shape(content_1)
@@ -117,8 +123,6 @@ class InternalMetricDataStore:
         class_ids_1 = self._get_class_ids(data_1)
         class_ids_2 = self._get_class_ids(data_2)
         self._validate_class_ids(class_ids_1, class_ids_2)
-
-        assert len(content_1) == len(class_ids_1) and len(content_2) == len(class_ids_2)
 
         if self._metric_target == MetricTarget.MASKS:
             content_1 = self._expand_mask_shape(content_1)
@@ -138,6 +142,12 @@ class InternalMetricDataStore:
                 (stored_content_of_class, content_of_class)
             )
 
+    def __getitem__(self, class_id: int) -> Tuple[npt.NDArray, npt.NDArray]:
+        return (
+            self._data_1.get(class_id, self._make_empty()),
+            self._data_2.get(class_id, self._make_empty()),
+        )
+
     def __iter__(
         self,
     ) -> Iterator[Tuple[int, npt.NDArray, npt.NDArray]]:
@@ -145,8 +155,7 @@ class InternalMetricDataStore:
         for class_id in class_ids:
             yield (
                 class_id,
-                self._data_1.get(class_id, self._make_empty()),
-                self._data_2.get(class_id, self._make_empty()),
+                *self[class_id],
             )
 
     def _get_content(self, data: Union[npt.NDArray, Detections]) -> npt.NDArray:
@@ -175,6 +184,10 @@ class InternalMetricDataStore:
     def _get_class_ids(
         self, data: Union[npt.NDArray, Detections]
     ) -> npt.NDArray[np.int_]:
+        """
+        Return an array of class IDs from the data. Guaranteed to
+        match the length of data.
+        """
         if (
             self._class_agnostic
             or isinstance(data, np.ndarray)

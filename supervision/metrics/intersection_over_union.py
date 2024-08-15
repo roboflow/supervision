@@ -1,5 +1,8 @@
-from typing import TYPE_CHECKING, Dict, List, Union
+from dataclasses import dataclass
+from itertools import zip_longest
+from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
+import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
 from typing_extensions import Self
@@ -7,9 +10,81 @@ from typing_extensions import Self
 from supervision.detection.core import Detections
 from supervision.detection.utils import box_iou_batch
 from supervision.metrics.core import InternalMetricDataStore, Metric, MetricTarget
+from supervision.metrics.utils import ensure_pandas_installed
 
 if TYPE_CHECKING:
     import pandas as pd
+
+
+@dataclass
+class IntersectionOverUnionResult:
+    ious: Dict[int, npt.NDArray[np.float32]]
+    metric_target: MetricTarget
+
+    @property
+    def class_ids(self) -> List[int]:
+        return list(self.ious.keys())
+
+    def __getitem__(self, class_id: int) -> npt.NDArray[np.float32]:
+        return self.ious[class_id]
+
+    def __iter__(self):
+        return iter(self.ious.items())
+
+    def to_pandas(self) -> Dict[int, "pd.DataFrame"]:
+        ensure_pandas_installed()
+        return {class_id: pd.DataFrame(iou) for class_id, iou in self.ious.items()}
+
+    def plot(self, class_id=None):
+        """
+        Visualize the IoU results.
+
+        Args:
+            class_id (Optional[int]): The class ID to visualize. If not
+                provided, all classes will be visualized.
+        """
+        if class_id:
+            self._plot_class(class_id)
+        else:
+            for cls in self.ious:
+                self._plot_class(cls)
+
+    def _plot_class(self, class_id):
+        """
+        Helper function to plot a single class IoU matrix or show
+        zero-sized information.
+
+        Args:
+            class_id (int): The class ID to plot.
+        """
+        iou_matrix = self.ious[class_id]
+
+        if iou_matrix.size == 0:
+            print(
+                f"No data for class {class_id}, with result shape"
+                f" {iou_matrix.shape}. Skipping plot."
+            )
+        else:
+            plt.figure(figsize=(6, 6))
+            plt.matshow(iou_matrix, cmap="viridis", fignum=1)
+            plt.title(f"Class {class_id} IoU Matrix", pad=20)
+            plt.gca().xaxis.set_ticks_position("bottom")
+            plt.xlabel("Target Bounding Boxes")
+            plt.ylabel("Predicted Bounding Boxes")
+            plt.colorbar()
+
+            for (i, j), val in np.ndenumerate(iou_matrix):
+                plt.text(
+                    j,
+                    i,
+                    f"{val:.2f}",
+                    ha="center",
+                    va="center",
+                    fontsize=8,
+                    color="white" if val < 0.5 else "black",
+                )
+
+            plt.show()
 
 
 class IntersectionOverUnion(Metric):
@@ -17,9 +92,20 @@ class IntersectionOverUnion(Metric):
         self,
         metric_target: MetricTarget = MetricTarget.BOXES,
         class_agnostic: bool = False,
-        iou_threshold: float = 0.25,
+        shared_data_store: Optional[InternalMetricDataStore] = None,
     ):
-        # TODO: implement for masks and oriented bounding boxes
+        """
+        Initialize the Intersection over Union metric.
+
+        Args:
+            metric_target (MetricTarget): The type of detection data to use.
+            class_agnostic (bool): Whether to treat all data as a single class.
+                Defaults to `False`.
+            shared_data_store (Optional[InternalMetricDataStore]): If you are composing
+                multiple metrics, you can pass a data store here to share data. Objects
+                UP in the hierarchy are responsible for resetting the store and updating
+                data.
+        """
         if metric_target in [MetricTarget.MASKS, MetricTarget.ORIENTED_BOUNDING_BOXES]:
             raise NotImplementedError(
                 f"Intersection over union is not implemented for {metric_target}."
@@ -27,11 +113,17 @@ class IntersectionOverUnion(Metric):
 
         self._metric_target = metric_target
         self._class_agnostic = class_agnostic
-        self._iou_threshold = iou_threshold
 
-        self._store = InternalMetricDataStore(metric_target, class_agnostic)
+        if shared_data_store:
+            self._is_store_shared = True
+            self._store = shared_data_store
+        else:
+            self._is_store_shared = False
+            self._store = InternalMetricDataStore(metric_target, class_agnostic)
 
     def reset(self) -> None:
+        if self._is_store_shared:
+            return
         self._store.reset()
 
     def update(
@@ -50,30 +142,29 @@ class IntersectionOverUnion(Metric):
             Metric: The metric object itself. You can get the metric result
             by calling the `compute` method.
         """
+        if self._is_store_shared:
+            return self
 
-        if isinstance(data_1, list):
-            for d1 in data_1:
-                self.update(d1, Detections.empty())
-        else:
-            self._update(data_1, Detections.empty())
+        if not isinstance(data_1, list):
+            data_1 = [data_1]
+        if not isinstance(data_2, list):
+            data_2 = [data_2]
 
-        if isinstance(data_2, list):
-            for d2 in data_2:
-                self.update(Detections.empty(), d2)
-        else:
-            self._update(Detections.empty(), data_2)
+        for d1, d2 in zip_longest(data_1, data_2, fillvalue=Detections.empty()):
+            self._update(d1, d2)
 
         return self
 
     def _update(
         self,
-        data_1: Union[Detections],
-        data_2: Union[Detections],
+        data_1: Detections,
+        data_2: Detections,
     ) -> Self:
+        assert not self._is_store_shared
         self._store.update(data_1, data_2)
         return self
 
-    def compute(self) -> Dict[int, npt.NDArray[np.float32]]:
+    def compute(self) -> IntersectionOverUnionResult:
         """
         Compute the Intersection over Union metric (IoU)
         Uses the data set with the `update` method.
@@ -85,27 +176,11 @@ class IntersectionOverUnion(Metric):
         ious = {}
         for class_id, array_1, array_2 in self._store:
             if self._metric_target == MetricTarget.BOXES:
-                if array_1 is None or array_2 is None:
-                    ious[class_id] = np.empty((0, 4), dtype=np.float32)
-                    continue
                 iou = box_iou_batch(array_1, array_2)
-
             else:
                 raise NotImplementedError(
-                    "Intersection over union is not implemented"
-                    f" for {self._metric_target}."
+                    f"IoU is not implemented for {self._metric_target}."
                 )
             ious[class_id] = iou
-        return ious
 
-    def to_pandas(self) -> Dict[int, "pd.DataFrame"]:
-        """
-        Return a pandas DataFrame representation of the metric.
-        """
-        self._ensure_pandas_installed()
-        import pandas as pd
-
-        # TODO: use cached results
-        ious = self.compute()
-
-        return {class_id: pd.DataFrame(data) for class_id, data in ious.items()}
+        return IntersectionOverUnionResult(ious, self._metric_target)

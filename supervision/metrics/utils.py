@@ -4,6 +4,17 @@ import numpy as np
 import numpy.typing as npt
 
 
+def ensure_pandas_installed():
+    try:
+        import pandas  # noqa
+    except ImportError:
+        raise ImportError(
+            "`metrics` extra is required to run the function."
+            " Run `pip install 'supervision[metrics]'` or"
+            " `poetry add supervision -E metrics`"
+        )
+
+
 def pad_mask(mask: npt.NDArray, new_shape: Tuple[int, int]) -> npt.NDArray:
     """Pad a mask to a new shape, inserting zeros on the right and bottom."""
     if len(mask.shape) != 3:
