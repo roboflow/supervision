@@ -29,6 +29,7 @@ from supervision.detection.utils import (
     extract_ultralytics_masks,
     get_data_item,
     is_data_equal,
+    mask_to_xyxy,
     merge_data,
     process_roboflow_result,
     xywh_to_xyxy,
@@ -265,6 +266,14 @@ class Detections:
                     ORIENTED_BOX_COORDINATES: oriented_box_coordinates,
                     CLASS_NAME_DATA_FIELD: class_names,
                 },
+            )
+
+        if hasattr(ultralytics_results, "boxes") and ultralytics_results.boxes is None:
+            masks = extract_ultralytics_masks(ultralytics_results)
+            return cls(
+                xyxy=mask_to_xyxy(masks),
+                mask=masks,
+                class_id=np.arange(len(ultralytics_results)),
             )
 
         class_id = ultralytics_results.boxes.cls.cpu().numpy().astype(int)
