@@ -41,7 +41,6 @@ def validate_mask(mask: Any, n: int) -> None:
             " creating the mask manually. If you did not create the mask manually,"
             " please report the issue to the `supervision` team."
         )
-        raise ValueError("Mask must be a boolean np.ndarray")
 
 
 def validate_class_id(class_id: Any, n: int) -> None:
