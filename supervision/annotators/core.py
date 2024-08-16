@@ -357,7 +357,7 @@ class MaskAnnotator(BaseAnnotator):
                 else custom_color_lookup,
             )
             mask = detections.mask[detection_idx]
-            colored_mask[mask.astype(bool)] = color.as_bgr()
+            colored_mask[mask] = color.as_bgr()
 
         cv2.addWeighted(
             colored_mask, self.opacity, scene, 1 - self.opacity, 0, dst=scene
