@@ -947,7 +947,7 @@ class DotAnnotator(BaseAnnotator):
         self.position: Position = position
         self.color_lookup: ColorLookup = color_lookup
         self.outline_thickness = outline_thickness
-        self.outline_color: Union[Color, ColorPalette] = outline_color
+        self.outline_color: Union[Color, ColorPalette] | None = outline_color
 
     @ensure_cv2_image_for_annotation
     def annotate(
@@ -1776,6 +1776,9 @@ class TriangleAnnotator(BaseAnnotator):
             color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
             outline_thickness (int): Thickness of the outline of the triangle.
+            outline_color (Union[Color, ColorPalette]): The color or color palette to
+            use for outline. It is activated by setting outline_thickness to a value
+            greater than 0.
         """
         self.color: Union[Color, ColorPalette] = color
         self.base: int = base
