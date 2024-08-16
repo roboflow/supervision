@@ -927,7 +927,7 @@ class DotAnnotator(BaseAnnotator):
         position: Position = Position.CENTER,
         color_lookup: ColorLookup = ColorLookup.CLASS,
         outline_thickness: int = 0,
-        outline_color: Union[Color, ColorPalette] | None = None,
+        outline_color: Union[Color, ColorPalette] = Color.BLACK,
     ):
         """
         Args:
@@ -947,7 +947,7 @@ class DotAnnotator(BaseAnnotator):
         self.position: Position = position
         self.color_lookup: ColorLookup = color_lookup
         self.outline_thickness = outline_thickness
-        self.outline_color: Union[Color, ColorPalette] | None = outline_color
+        self.outline_color: Union[Color, ColorPalette] = outline_color
 
     @ensure_cv2_image_for_annotation
     def annotate(
@@ -1002,22 +1002,19 @@ class DotAnnotator(BaseAnnotator):
 
             cv2.circle(scene, center, self.radius, color.as_bgr(), -1)
             if self.outline_thickness:
-                outline_color_bgr = (0, 0, 0)
-                if self.outline_color:
-                    outline_color = resolve_color(
-                        color=self.outline_color,
-                        detections=detections,
-                        detection_idx=detection_idx,
-                        color_lookup=self.color_lookup
-                        if custom_color_lookup is None
-                        else custom_color_lookup,
-                    )
-                    outline_color_bgr = outline_color.as_bgr()
+                outline_color = resolve_color(
+                    color=self.outline_color,
+                    detections=detections,
+                    detection_idx=detection_idx,
+                    color_lookup=self.color_lookup
+                    if custom_color_lookup is None
+                    else custom_color_lookup,
+                )
                 cv2.circle(
                     scene,
                     center,
                     self.radius,
-                    outline_color_bgr,
+                    outline_color.as_bgr(),
                     self.outline_thickness,
                 )
         return scene
@@ -1764,7 +1761,7 @@ class TriangleAnnotator(BaseAnnotator):
         position: Position = Position.TOP_CENTER,
         color_lookup: ColorLookup = ColorLookup.CLASS,
         outline_thickness: int = 0,
-        outline_color: Union[Color, ColorPalette] | None = None,
+        outline_color: Union[Color, ColorPalette] = Color.BLACK,
     ):
         """
         Args:
@@ -1786,7 +1783,7 @@ class TriangleAnnotator(BaseAnnotator):
         self.position: Position = position
         self.color_lookup: ColorLookup = color_lookup
         self.outline_thickness: int = outline_thickness
-        self.outline_color: Union[Color, ColorPalette] | None = outline_color
+        self.outline_color: Union[Color, ColorPalette] = outline_color
 
     @ensure_cv2_image_for_annotation
     def annotate(
@@ -1849,22 +1846,19 @@ class TriangleAnnotator(BaseAnnotator):
 
             cv2.fillPoly(scene, [vertices], color.as_bgr())
             if self.outline_thickness:
-                outline_color_bgr = (0, 0, 0)
-                if self.outline_color:
-                    outline_color = resolve_color(
-                        color=self.outline_color,
-                        detections=detections,
-                        detection_idx=detection_idx,
-                        color_lookup=self.color_lookup
-                        if custom_color_lookup is None
-                        else custom_color_lookup,
-                    )
-                    outline_color_bgr = outline_color.as_bgr()
+                outline_color = resolve_color(
+                    color=self.outline_color,
+                    detections=detections,
+                    detection_idx=detection_idx,
+                    color_lookup=self.color_lookup
+                    if custom_color_lookup is None
+                    else custom_color_lookup,
+                )
                 cv2.polylines(
                     scene,
                     [vertices],
                     True,
-                    outline_color_bgr,
+                    outline_color.as_bgr(),
                     thickness=self.outline_thickness,
                 )
         return scene
