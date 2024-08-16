@@ -4,4 +4,11 @@ from supervision.metrics.core import (
     MetricTarget,
     UnsupportedMetricTargetError,
 )
-from supervision.metrics.intersection_over_union import IntersectionOverUnion
+from supervision.metrics.intersection_over_union import (
+    IntersectionOverUnion,
+    IntersectionOverUnionResult,
+)
+from supervision.metrics.mean_average_precision import (
+    MeanAveragePrecision,
+    MeanAveragePrecisionResult,
+)
