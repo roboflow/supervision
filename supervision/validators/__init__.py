@@ -32,7 +32,7 @@ def validate_mask(mask: Any, n: int) -> None:
             "Mask must be a 3D np.ndarray with shape "
             + f"{expected_shape}, but got shape {actual_shape}"
         )
-    if not np.issubdtype(mask.dtype, bool):
+    if not np.issubdtype(actual_dtype, bool):
         warn_deprecated(
             f"A `Detections` object was created with a mask of type {actual_dtype}."
             " Masks of type other than `bool` are deprecated and may produce unexpected"
