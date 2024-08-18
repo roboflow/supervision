@@ -939,8 +939,8 @@ class DotAnnotator(BaseAnnotator):
                 Options are `INDEX`, `CLASS`, `TRACK`.
             outline_thickness (int): Thickness of the outline of the dot.
             outline_color (Union[Color, ColorPalette]): The color or color palette to
-            use for outline. It is activated by setting outline_thickness to a value
-            greater than 0.
+                use for outline. It is activated by setting outline_thickness to a value
+                greater than 0.
         """
         self.color: Union[Color, ColorPalette] = color
         self.radius: int = radius
@@ -1774,8 +1774,8 @@ class TriangleAnnotator(BaseAnnotator):
                 Options are `INDEX`, `CLASS`, `TRACK`.
             outline_thickness (int): Thickness of the outline of the triangle.
             outline_color (Union[Color, ColorPalette]): The color or color palette to
-            use for outline. It is activated by setting outline_thickness to a value
-            greater than 0.
+                use for outline. It is activated by setting outline_thickness to a value
+                greater than 0.
         """
         self.color: Union[Color, ColorPalette] = color
         self.base: int = base
