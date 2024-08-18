@@ -89,7 +89,6 @@ mike = "^2.0.0"
 mkdocs-jupyter = "^0.24.3"
 mkdocs-git-committers-plugin-2 = "^2.2.3"
 mkdocs-git-revision-date-localized-plugin = "^1.2.4"
-jupyterlab = "^4.2.4"
 
 [tool.isort]
 line_length = 88
