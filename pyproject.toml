@@ -82,13 +82,14 @@ docutils = [
 
 [tool.poetry.group.docs.dependencies]
 mkdocs-material = { extras = ["imaging"], version = "^9.5.5" }
-mkdocstrings = { extras = ["python"], version = ">=0.20,<0.26" }
+mkdocstrings = { extras = ["python"], version = "^0.25.2" }
 mike = "^2.0.0"
 # For Documentation Development use Python 3.10 or above
 # Use Latest mkdocs-jupyter min 0.24.6 for Jupyter Notebook Theme support
 mkdocs-jupyter = "^0.24.3"
 mkdocs-git-committers-plugin-2 = "^2.2.3"
 mkdocs-git-revision-date-localized-plugin = "^1.2.4"
+jupyterlab = "^4.2.4"
 
 [tool.isort]
 line_length = 88
