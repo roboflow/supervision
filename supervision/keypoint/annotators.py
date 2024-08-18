@@ -78,7 +78,7 @@ class VertexAnnotator(BaseKeyPointAnnotator):
         ![vertex-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/vertex-annotator-example.png)
         """
-        assert isinstance(scene, np.ndarray), "MyPy type hint"
+        assert isinstance(scene, np.ndarray)
         if len(key_points) == 0:
             return scene
 
@@ -156,7 +156,7 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
         ![edge-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/edge-annotator-example.png)
         """
-        assert isinstance(scene, np.ndarray), "MyPy type hint"
+        assert isinstance(scene, np.ndarray)
         if len(key_points) == 0:
             return scene
 
@@ -310,7 +310,7 @@ class VertexLabelAnnotator:
         ![vertex-label-annotator-custom-example](https://media.roboflow.com/
         supervision-annotator-examples/vertex-label-annotator-custom-example.png)
         """
-        assert isinstance(scene, np.ndarray), "MyPy type hint"
+        assert isinstance(scene, np.ndarray)
         font = cv2.FONT_HERSHEY_SIMPLEX
 
         skeletons_count, points_count, _ = key_points.xy.shape

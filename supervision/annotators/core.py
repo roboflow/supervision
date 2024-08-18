@@ -88,7 +88,7 @@ class BoxAnnotator(BaseAnnotator):
         ![bounding-box-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/bounding-box-annotator-example-purple.png)
         """
-        assert isinstance(scene, np.ndarray), "MyPy type hint"
+        assert isinstance(scene, np.ndarray)
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
             color = resolve_color(
@@ -174,7 +174,7 @@ class BoundingBoxAnnotator(BaseAnnotator):
         ![bounding-box-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/bounding-box-annotator-example-purple.png)
         """
-        assert isinstance(scene, np.ndarray), "MyPy type hint"
+        assert isinstance(scene, np.ndarray)
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
             color = resolve_color(
@@ -259,7 +259,7 @@ class OrientedBoxAnnotator(BaseAnnotator):
             )
             ```
         """  # noqa E501 // docs
-        assert isinstance(scene, np.ndarray), "MyPy type hint"
+        assert isinstance(scene, np.ndarray)
         if detections.data is None or ORIENTED_BOX_COORDINATES not in detections.data:
             return scene
 
@@ -345,7 +345,7 @@ class MaskAnnotator(BaseAnnotator):
         ![mask-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/mask-annotator-example-purple.png)
         """
-        assert isinstance(scene, np.ndarray), "MyPy type hint"
+        assert isinstance(scene, np.ndarray)
         if detections.mask is None:
             return scene
 
@@ -435,7 +435,7 @@ class PolygonAnnotator(BaseAnnotator):
         ![polygon-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/polygon-annotator-example-purple.png)
         """
-        assert isinstance(scene, np.ndarray), "MyPy type hint"
+        assert isinstance(scene, np.ndarray)
         if detections.mask is None:
             return scene
 
@@ -522,7 +522,7 @@ class ColorAnnotator(BaseAnnotator):
         ![box-mask-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/box-mask-annotator-example-purple.png)
         """
-        assert isinstance(scene, np.ndarray), "MyPy type hint"
+        assert isinstance(scene, np.ndarray)
         scene_with_boxes = scene.copy()
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
@@ -618,7 +618,7 @@ class HaloAnnotator(BaseAnnotator):
         ![halo-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/halo-annotator-example-purple.png)
         """
-        assert isinstance(scene, np.ndarray), "MyPy type hint"
+        assert isinstance(scene, np.ndarray)
         if detections.mask is None:
             return scene
         colored_mask = np.zeros_like(scene, dtype=np.uint8)
@@ -718,7 +718,7 @@ class EllipseAnnotator(BaseAnnotator):
         ![ellipse-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/ellipse-annotator-example-purple.png)
         """
-        assert isinstance(scene, np.ndarray), "MyPy type hint"
+        assert isinstance(scene, np.ndarray)
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
             color = resolve_color(
@@ -810,7 +810,7 @@ class BoxCornerAnnotator(BaseAnnotator):
         ![box-corner-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/box-corner-annotator-example-purple.png)
         """
-        assert isinstance(scene, np.ndarray), "MyPy type hint"
+        assert isinstance(scene, np.ndarray)
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
             color = resolve_color(
@@ -900,7 +900,7 @@ class CircleAnnotator(BaseAnnotator):
         ![circle-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/circle-annotator-example-purple.png)
         """
-        assert isinstance(scene, np.ndarray), "MyPy type hint"
+        assert isinstance(scene, np.ndarray)
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
             center = ((x1 + x2) // 2, (y1 + y2) // 2)
@@ -993,7 +993,7 @@ class DotAnnotator(BaseAnnotator):
         ![dot-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/dot-annotator-example-purple.png)
         """
-        assert isinstance(scene, np.ndarray), "MyPy type hint"
+        assert isinstance(scene, np.ndarray)
         xy = detections.get_anchors_coordinates(anchor=self.position)
         for detection_idx in range(len(detections)):
             color = resolve_color(
@@ -1103,7 +1103,7 @@ class LabelAnnotator(BaseAnnotator):
         ![label-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/label-annotator-example-purple.png)
         """
-        assert isinstance(scene, np.ndarray), "MyPy type hint"
+        assert isinstance(scene, np.ndarray)
         font = cv2.FONT_HERSHEY_SIMPLEX
         anchors_coordinates = detections.get_anchors_coordinates(
             anchor=self.text_anchor
@@ -1320,7 +1320,7 @@ class RichLabelAnnotator(BaseAnnotator):
             ```
 
         """
-        assert isinstance(scene, Image.Image), "MyPy type hint"
+        assert isinstance(scene, Image.Image)
         draw = ImageDraw.Draw(scene)
         anchors_coordinates = detections.get_anchors_coordinates(
             anchor=self.text_anchor
@@ -1453,7 +1453,7 @@ class BlurAnnotator(BaseAnnotator):
         ![blur-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/blur-annotator-example-purple.png)
         """
-        assert isinstance(scene, np.ndarray), "MyPy type hint"
+        assert isinstance(scene, np.ndarray)
         image_height, image_width = scene.shape[:2]
         clipped_xyxy = clip_boxes(
             xyxy=detections.xyxy, resolution_wh=(image_width, image_height)
@@ -1552,7 +1552,7 @@ class TraceAnnotator(BaseAnnotator):
         ![trace-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/trace-annotator-example-purple.png)
         """
-        assert isinstance(scene, np.ndarray), "MyPy type hint"
+        assert isinstance(scene, np.ndarray)
         if detections.tracker_id is None:
             raise ValueError(
                 "The `tracker_id` field is missing in the provided detections."
@@ -1656,7 +1656,7 @@ class HeatMapAnnotator(BaseAnnotator):
         ![heatmap-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/heat-map-annotator-example-purple.png)
         """
-        assert isinstance(scene, np.ndarray), "MyPy type hint"
+        assert isinstance(scene, np.ndarray)
         if self.heat_mask is None:
             self.heat_mask = np.zeros(scene.shape[:2], dtype=np.float32)
 
@@ -1737,7 +1737,7 @@ class PixelateAnnotator(BaseAnnotator):
         ![pixelate-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/pixelate-annotator-example-10.png)
         """
-        assert isinstance(scene, np.ndarray), "MyPy type hint"
+        assert isinstance(scene, np.ndarray)
         image_height, image_width = scene.shape[:2]
         clipped_xyxy = clip_boxes(
             xyxy=detections.xyxy, resolution_wh=(image_width, image_height)
@@ -1831,7 +1831,7 @@ class TriangleAnnotator(BaseAnnotator):
         ![triangle-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/triangle-annotator-example.png)
         """
-        assert isinstance(scene, np.ndarray), "MyPy type hint"
+        assert isinstance(scene, np.ndarray)
         xy = detections.get_anchors_coordinates(anchor=self.position)
         for detection_idx in range(len(detections)):
             color = resolve_color(
@@ -1932,7 +1932,7 @@ class RoundBoxAnnotator(BaseAnnotator):
         ![round-box-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/round-box-annotator-example-purple.png)
         """
-        assert isinstance(scene, np.ndarray), "MyPy type hint"
+        assert isinstance(scene, np.ndarray)
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
             color = resolve_color(
@@ -2076,7 +2076,7 @@ class PercentageBarAnnotator(BaseAnnotator):
         ![percentage-bar-example](https://media.roboflow.com/
         supervision-annotator-examples/percentage-bar-annotator-example-purple.png)
         """
-        assert isinstance(scene, np.ndarray), "MyPy type hint"
+        assert isinstance(scene, np.ndarray)
         self.validate_custom_values(custom_values=custom_values, detections=detections)
 
         anchors = detections.get_anchors_coordinates(anchor=self.position)
@@ -2249,7 +2249,7 @@ class CropAnnotator(BaseAnnotator):
             )
             ```
         """
-        assert isinstance(scene, np.ndarray), "MyPy type hint"
+        assert isinstance(scene, np.ndarray)
         crops = [
             crop_image(image=scene, xyxy=xyxy) for xyxy in detections.xyxy.astype(int)
         ]
@@ -2388,7 +2388,7 @@ class BackgroundOverlayAnnotator(BaseAnnotator):
         ![background-overlay-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/background-color-annotator-example-purple.png)
         """
-        assert isinstance(scene, np.ndarray), "MyPy type hint"
+        assert isinstance(scene, np.ndarray)
         colored_mask = np.full_like(scene, self.color.as_bgr(), dtype=np.uint8)
 
         cv2.addWeighted(
