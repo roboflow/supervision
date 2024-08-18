@@ -89,7 +89,7 @@ class KeyPoints:
 
     Attributes:
         xy (np.ndarray): An array of shape `(n, m, 2)` containing
-            `n` detected objects, each composed of0 `m` equally-sized
+            `n` detected objects, each composed of `m` equally-sized
             sets of keypoints, where each point is `[x, y]`.
         confidence (Optional[np.ndarray]): An array of shape
             `(n, m)` containing the confidence scores of each keypoint.
@@ -97,7 +97,7 @@ class KeyPoints:
             `(n,)` containing the class ids of the detected objects.
         data (Dict[str, Union[np.ndarray, List]]): A dictionary containing additional
             data where each key is a string representing the data type, and the value
-            is either a NumPy array or a list of corresponding data, of length `n`
+            is either a NumPy array or a list of corresponding data of length `n`
             (one entry per detected object).
     """  # noqa: E501 // docs
 
