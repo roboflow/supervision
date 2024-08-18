@@ -262,9 +262,10 @@ class OrientedBoxAnnotator(BaseAnnotator):
         assert isinstance(scene, np.ndarray)
         if detections.data is None or ORIENTED_BOX_COORDINATES not in detections.data:
             return scene
+        obb_boxes = np.array(detections.data[ORIENTED_BOX_COORDINATES]).astype(int)
 
         for detection_idx in range(len(detections)):
-            bbox = detections.xyxy[detection_idx].astype(int)
+            obb = obb_boxes[detection_idx]
             color = resolve_color(
                 color=self.color,
                 detections=detections,
@@ -274,7 +275,7 @@ class OrientedBoxAnnotator(BaseAnnotator):
                 else custom_color_lookup,
             )
 
-            cv2.drawContours(scene, [bbox], 0, color.as_bgr(), self.thickness)
+            cv2.drawContours(scene, [obb], 0, color.as_bgr(), self.thickness)
 
         return scene
 
