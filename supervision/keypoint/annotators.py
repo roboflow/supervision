@@ -194,7 +194,7 @@ class VertexLabelAnnotator:
     def __init__(
         self,
         color: Union[Color, List[Color]] = Color.ROBOFLOW,
-        text_color: Color = Color.WHITE,
+        text_color: Union[Color, List[Color]] = Color.WHITE,
         text_scale: float = 0.5,
         text_thickness: int = 1,
         text_padding: int = 10,
@@ -205,7 +205,9 @@ class VertexLabelAnnotator:
             color (Union[Color, List[Color]], optional): The color to use for each
                 keypoint label. If a list is provided, the colors will be used in order
                 for each keypoint.
-            text_color (Color, optional): The color to use for the labels.
+            text_color (Union[Color, List[Color]], optional): The color to use
+                for the labels. If a list is provided, the colors will be used in order
+                for each keypoint.
             text_scale (float, optional): The scale of the text.
             text_thickness (int, optional): The thickness of the text.
             text_padding (int, optional): The padding around the text.
@@ -214,7 +216,7 @@ class VertexLabelAnnotator:
         """
         self.border_radius: int = border_radius
         self.color: Union[Color, List[Color]] = color
-        self.text_color: Color = text_color
+        self.text_color: Union[Color, List[Color]] = text_color
         self.text_scale: float = text_scale
         self.text_thickness: int = text_thickness
         self.text_padding: int = text_padding
@@ -321,12 +323,19 @@ class VertexLabelAnnotator:
             skeletons_count=skeletons_count,
         )
 
+        text_colors = self.preprocess_and_validate_colors(
+            colors=self.text_color,
+            points_count=points_count,
+            skeletons_count=skeletons_count,
+        )
+
         labels = self.preprocess_and_validate_labels(
             labels=labels, points_count=points_count, skeletons_count=skeletons_count
         )
 
         anchors = anchors[mask]
         colors = colors[mask]
+        text_colors = text_colors[mask]
         labels = labels[mask]
 
         xyxy = np.array(
@@ -344,7 +353,9 @@ class VertexLabelAnnotator:
 
         xyxy_padded = pad_boxes(xyxy=xyxy, px=self.text_padding)
 
-        for text, color, box, box_padded in zip(labels, colors, xyxy, xyxy_padded):
+        for text, color, text_color, box, box_padded in zip(
+            labels, colors, text_colors, xyxy, xyxy_padded
+        ):
             draw_rounded_rectangle(
                 scene=scene,
                 rect=Rect.from_xyxy(box_padded),
@@ -357,7 +368,7 @@ class VertexLabelAnnotator:
                 org=(box[0], box[3]),
                 fontFace=font,
                 fontScale=self.text_scale,
-                color=self.text_color.as_rgb(),
+                color=text_color.as_bgr(),
                 thickness=self.text_thickness,
                 lineType=cv2.LINE_AA,
             )

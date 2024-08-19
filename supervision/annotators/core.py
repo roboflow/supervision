@@ -927,6 +927,7 @@ class DotAnnotator(BaseAnnotator):
         position: Position = Position.CENTER,
         color_lookup: ColorLookup = ColorLookup.CLASS,
         outline_thickness: int = 0,
+        outline_color: Union[Color, ColorPalette] = Color.BLACK,
     ):
         """
         Args:
@@ -937,12 +938,16 @@ class DotAnnotator(BaseAnnotator):
             color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
             outline_thickness (int): Thickness of the outline of the dot.
+            outline_color (Union[Color, ColorPalette]): The color or color palette to
+                use for outline. It is activated by setting outline_thickness to a value
+                greater than 0.
         """
         self.color: Union[Color, ColorPalette] = color
         self.radius: int = radius
         self.position: Position = position
         self.color_lookup: ColorLookup = color_lookup
         self.outline_thickness = outline_thickness
+        self.outline_color: Union[Color, ColorPalette] = outline_color
 
     @ensure_cv2_image_for_annotation
     def annotate(
@@ -997,8 +1002,20 @@ class DotAnnotator(BaseAnnotator):
 
             cv2.circle(scene, center, self.radius, color.as_bgr(), -1)
             if self.outline_thickness:
+                outline_color = resolve_color(
+                    color=self.outline_color,
+                    detections=detections,
+                    detection_idx=detection_idx,
+                    color_lookup=self.color_lookup
+                    if custom_color_lookup is None
+                    else custom_color_lookup,
+                )
                 cv2.circle(
-                    scene, center, self.radius, (0, 0, 0), self.outline_thickness
+                    scene,
+                    center,
+                    self.radius,
+                    outline_color.as_bgr(),
+                    self.outline_thickness,
                 )
         return scene
 
@@ -1744,6 +1761,7 @@ class TriangleAnnotator(BaseAnnotator):
         position: Position = Position.TOP_CENTER,
         color_lookup: ColorLookup = ColorLookup.CLASS,
         outline_thickness: int = 0,
+        outline_color: Union[Color, ColorPalette] = Color.BLACK,
     ):
         """
         Args:
@@ -1755,6 +1773,9 @@ class TriangleAnnotator(BaseAnnotator):
             color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
             outline_thickness (int): Thickness of the outline of the triangle.
+            outline_color (Union[Color, ColorPalette]): The color or color palette to
+                use for outline. It is activated by setting outline_thickness to a value
+                greater than 0.
         """
         self.color: Union[Color, ColorPalette] = color
         self.base: int = base
@@ -1762,6 +1783,7 @@ class TriangleAnnotator(BaseAnnotator):
         self.position: Position = position
         self.color_lookup: ColorLookup = color_lookup
         self.outline_thickness: int = outline_thickness
+        self.outline_color: Union[Color, ColorPalette] = outline_color
 
     @ensure_cv2_image_for_annotation
     def annotate(
@@ -1824,8 +1846,20 @@ class TriangleAnnotator(BaseAnnotator):
 
             cv2.fillPoly(scene, [vertices], color.as_bgr())
             if self.outline_thickness:
+                outline_color = resolve_color(
+                    color=self.outline_color,
+                    detections=detections,
+                    detection_idx=detection_idx,
+                    color_lookup=self.color_lookup
+                    if custom_color_lookup is None
+                    else custom_color_lookup,
+                )
                 cv2.polylines(
-                    scene, [vertices], True, (0, 0, 0), thickness=self.outline_thickness
+                    scene,
+                    [vertices],
+                    True,
+                    outline_color.as_bgr(),
+                    thickness=self.outline_thickness,
                 )
         return scene
 
@@ -2283,3 +2317,84 @@ class CropAnnotator(BaseAnnotator):
             )
         elif position == Position.BOTTOM_RIGHT:
             return (anchor_x, anchor_y), (anchor_x + width, anchor_y + height)
+
+
+class BackgroundOverlayAnnotator(BaseAnnotator):
+    """
+    A class for drawing a colored overlay on the background of an image outside
+    the region of detections.
+
+    If masks are provided, the background is colored outside the masks.
+    If masks are not provided, the background is colored outside the bounding boxes.
+
+    You can use the `force_box` parameter to force the annotator to use bounding boxes.
+
+    !!! warning
+
+        This annotator uses `sv.Detections.mask`.
+    """
+
+    def __init__(
+        self,
+        color: Color = Color.BLACK,
+        opacity: float = 0.5,
+        force_box: bool = False,
+    ):
+        """
+        Args:
+            color (Color): The color to use for annotating detections.
+            opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.
+            force_box (bool): If `True`, forces the annotator to use bounding boxes when
+                masks are provided in the supplied sv.Detections.
+        """
+        self.color: Color = color
+        self.opacity = opacity
+        self.force_box = force_box
+
+    @ensure_cv2_image_for_annotation
+    def annotate(self, scene: ImageType, detections: Detections) -> ImageType:
+        """
+        Applies a colored overlay to the scene outside of the detected regions.
+
+        Args:
+            scene (ImageType): The image where masks will be drawn.
+                `ImageType` is a flexible type, accepting either `numpy.ndarray`
+                or `PIL.Image.Image`.
+            detections (Detections): Object detections to annotate.
+
+        Returns:
+            The annotated image, matching the type of `scene` (`numpy.ndarray`
+                or `PIL.Image.Image`)
+
+        Example:
+            ```python
+            import supervision as sv
+
+            image = ...
+            detections = sv.Detections(...)
+
+            background_overlay_annotator = sv.BackgroundOverlayAnnotator()
+            annotated_frame = background_overlay_annotator.annotate(
+                scene=image.copy(),
+                detections=detections
+            )
+            ```
+
+        ![background-overlay-annotator-example](https://media.roboflow.com/
+        supervision-annotator-examples/background-color-annotator-example-purple.png)
+        """
+        colored_mask = np.full_like(scene, self.color.as_bgr(), dtype=np.uint8)
+
+        cv2.addWeighted(
+            scene, 1 - self.opacity, colored_mask, self.opacity, 0, dst=colored_mask
+        )
+
+        if detections.mask is None or self.force_box:
+            for x1, y1, x2, y2 in detections.xyxy.astype(int):
+                colored_mask[y1:y2, x1:x2] = scene[y1:y2, x1:x2]
+        else:
+            for mask in detections.mask:
+                colored_mask[mask] = scene[mask]
+
+        np.copyto(scene, colored_mask)
+        return scene
