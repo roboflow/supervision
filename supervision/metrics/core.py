@@ -180,7 +180,7 @@ class MetricData:
         """Stack new mask onto stored masks. Expand the shapes if necessary."""
         if self._metric_target != MetricTarget.MASKS:
             raise ValueError("This method is only for mask data.")
-        self._validate_mask_shape(new_mask)
+        self._validate_shape(new_mask)
 
         new_width = max(self.data.shape[1], new_mask.shape[1])
         new_height = max(self.data.shape[2], new_mask.shape[2])
@@ -249,5 +249,9 @@ class InternalMetricDataStore:
         )
 
     def __iter__(self) -> Iterator[Tuple[int, MetricData, MetricData]]:
-        for class_id in self._data_1.get_classes():
+        all_classes = set.union(
+            self._data_1.get_classes(),
+            self._data_2.get_classes(),
+        )
+        for class_id in all_classes:
             yield class_id, *self[class_id]

@@ -103,12 +103,12 @@ class IntersectionOverUnion(Metric):
         Returns:
             Dict[int, npt.NDArray[np.float32]]: A dictionary with class IDs as keys.
             If no class ID is provided, the key is the value CLASS_ID_NONE. The values
-            are (N, M) arrays where N is the number of predictions and M is the number
+            are (P, T) arrays where P is the number of predictions and T is the number
             of targets.
         """
         ious = {}
-        for class_id, data_1, data_2 in self._store:
-            iou = box_iou_batch(data_1.data, data_2.data).transpose()
+        for class_id, predictions, targets in self._store:
+            iou = box_iou_batch(targets.data, predictions.data).transpose()
             ious[class_id] = iou
         return IntersectionOverUnionResult(ious, self._metric_target)
 

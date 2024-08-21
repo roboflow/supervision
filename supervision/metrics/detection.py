@@ -694,6 +694,7 @@ class MeanAveragePrecision:
                 matches = cls._match_detection_batch(
                     predicted_objs, true_objs, iou_thresholds
                 )
+
                 stats.append(
                     (
                         matches,
@@ -830,8 +831,27 @@ class MeanAveragePrecision:
 
             false_positives = (1 - matches[is_class]).cumsum(0)
             true_positives = matches[is_class].cumsum(0)
-            recall = true_positives / (total_true + eps)
+            true_negatives = total_true - true_positives
+
+
+            if class_id == 7:
+                print(np.sum(prediction_class_ids == class_id))
+                print(matches[is_class].shape)
+
+                print(f"OLD conf mtx, class_id: {class_id}")
+                print("TP:")
+                print(true_positives)
+                print("FP:")
+                print(false_positives)
+                print("TN:")
+                print(true_negatives)
+
+            recall = true_positives / (true_positives + true_negatives + eps)
             precision = true_positives / (true_positives + false_positives)
+
+            # print("pr:")
+            # print(recall)
+            # print(precision)
 
             for iou_level_idx in range(matches.shape[1]):
                 average_precisions[class_idx, iou_level_idx] = (
