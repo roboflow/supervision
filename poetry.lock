@@ -3842,19 +3842,19 @@ win32 = ["pywin32"]
 
 [[package]]
 name = "setuptools"
-version = "71.0.1"
+version = "73.0.1"
 description = "Easily download, build, install, upgrade, and uninstall Python packages"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "setuptools-71.0.1-py3-none-any.whl", hash = "sha256:1eb8ef012efae7f6acbc53ec0abde4bc6746c43087fd215ee09e1df48998711f"},
-    {file = "setuptools-71.0.1.tar.gz", hash = "sha256:c51d7fd29843aa18dad362d4b4ecd917022131425438251f4e3d766c964dd1ad"},
+    {file = "setuptools-73.0.1-py3-none-any.whl", hash = "sha256:b208925fcb9f7af924ed2dc04708ea89791e24bde0d3020b27df0e116088b34e"},
+    {file = "setuptools-73.0.1.tar.gz", hash = "sha256:d59a3e788ab7e012ab2c4baed1b376da6366883ee20d7a5fc426816e3d7b1193"},
 ]
 
 [package.extras]
-core = ["importlib-metadata (>=6)", "importlib-resources (>=5.10.2)", "jaraco.text (>=3.7)", "more-itertools (>=8.8)", "ordered-set (>=3.1.1)", "packaging (>=24)", "platformdirs (>=2.6.2)", "tomli (>=2.0.1)", "wheel (>=0.43.0)"]
-doc = ["furo", "jaraco.packaging (>=9.3)", "jaraco.tidelift (>=1.4)", "pygments-github-lexers (==0.0.5)", "pyproject-hooks (!=1.1)", "rst.linker (>=1.9)", "sphinx (<7.4)", "sphinx (>=3.5)", "sphinx-favicon", "sphinx-inline-tabs", "sphinx-lint", "sphinx-notfound-page (>=1,<2)", "sphinx-reredirects", "sphinxcontrib-towncrier"]
-test = ["build[virtualenv] (>=1.0.3)", "filelock (>=3.4.0)", "importlib-metadata", "ini2toml[lite] (>=0.14)", "jaraco.develop (>=7.21)", "jaraco.envs (>=2.2)", "jaraco.path (>=3.2.0)", "jaraco.test", "mypy (==1.10.0)", "packaging (>=23.2)", "pip (>=19.1)", "pyproject-hooks (!=1.1)", "pytest (>=6,!=8.1.*)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=2.2)", "pytest-home (>=0.5)", "pytest-mypy", "pytest-perf", "pytest-ruff (<0.4)", "pytest-ruff (>=0.2.1)", "pytest-ruff (>=0.3.2)", "pytest-subprocess", "pytest-timeout", "pytest-xdist (>=3)", "tomli", "tomli-w (>=1.0.0)", "virtualenv (>=13.0.0)", "wheel"]
+core = ["importlib-metadata (>=6)", "importlib-resources (>=5.10.2)", "jaraco.text (>=3.7)", "more-itertools (>=8.8)", "packaging (>=24)", "platformdirs (>=2.6.2)", "tomli (>=2.0.1)", "wheel (>=0.43.0)"]
+doc = ["furo", "jaraco.packaging (>=9.3)", "jaraco.tidelift (>=1.4)", "pygments-github-lexers (==0.0.5)", "pyproject-hooks (!=1.1)", "rst.linker (>=1.9)", "sphinx (>=3.5)", "sphinx-favicon", "sphinx-inline-tabs", "sphinx-lint", "sphinx-notfound-page (>=1,<2)", "sphinx-reredirects", "sphinxcontrib-towncrier", "towncrier (<24.7)"]
+test = ["build[virtualenv] (>=1.0.3)", "filelock (>=3.4.0)", "importlib-metadata", "ini2toml[lite] (>=0.14)", "jaraco.develop (>=7.21)", "jaraco.envs (>=2.2)", "jaraco.path (>=3.2.0)", "jaraco.test", "mypy (==1.11.*)", "packaging (>=23.2)", "pip (>=19.1)", "pyproject-hooks (!=1.1)", "pytest (>=6,!=8.1.*)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=2.2)", "pytest-home (>=0.5)", "pytest-mypy", "pytest-perf", "pytest-ruff (<0.4)", "pytest-ruff (>=0.2.1)", "pytest-ruff (>=0.3.2)", "pytest-subprocess", "pytest-timeout", "pytest-xdist (>=3)", "tomli", "tomli-w (>=1.0.0)", "virtualenv (>=13.0.0)", "wheel (>=0.44.0)"]
 
 [[package]]
 name = "six"
@@ -4074,6 +4074,20 @@ rich = ">=12.0.0"
 urllib3 = ">=1.26.0"
 
 [[package]]
+name = "types-cffi"
+version = "1.16.0.20240331"
+description = "Typing stubs for cffi"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "types-cffi-1.16.0.20240331.tar.gz", hash = "sha256:b8b20d23a2b89cfed5f8c5bc53b0cb8677c3aac6d970dbc771e28b9c698f5dee"},
+    {file = "types_cffi-1.16.0.20240331-py3-none-any.whl", hash = "sha256:a363e5ea54a4eb6a4a105d800685fde596bc318089b025b27dee09849fe41ff0"},
+]
+
+[package.dependencies]
+types-setuptools = "*"
+
+[[package]]
 name = "types-python-dateutil"
 version = "2.9.0.20240316"
 description = "Typing stubs for python-dateutil"
@@ -4082,6 +4096,53 @@ python-versions = ">=3.8"
 files = [
     {file = "types-python-dateutil-2.9.0.20240316.tar.gz", hash = "sha256:5d2f2e240b86905e40944dd787db6da9263f0deabef1076ddaed797351ec0202"},
     {file = "types_python_dateutil-2.9.0.20240316-py3-none-any.whl", hash = "sha256:6b8cb66d960771ce5ff974e9dd45e38facb81718cc1e208b10b1baccbfdbee3b"},
+]
+
+[[package]]
+name = "types-pyyaml"
+version = "6.0.12.20240808"
+description = "Typing stubs for PyYAML"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "types-PyYAML-6.0.12.20240808.tar.gz", hash = "sha256:b8f76ddbd7f65440a8bda5526a9607e4c7a322dc2f8e1a8c405644f9a6f4b9af"},
+    {file = "types_PyYAML-6.0.12.20240808-py3-none-any.whl", hash = "sha256:deda34c5c655265fc517b546c902aa6eed2ef8d3e921e4765fe606fe2afe8d35"},
+]
+
+[[package]]
+name = "types-requests"
+version = "2.32.0.20240712"
+description = "Typing stubs for requests"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "types-requests-2.32.0.20240712.tar.gz", hash = "sha256:90c079ff05e549f6bf50e02e910210b98b8ff1ebdd18e19c873cd237737c1358"},
+    {file = "types_requests-2.32.0.20240712-py3-none-any.whl", hash = "sha256:f754283e152c752e46e70942fa2a146b5bc70393522257bb85bd1ef7e019dcc3"},
+]
+
+[package.dependencies]
+urllib3 = ">=2"
+
+[[package]]
+name = "types-setuptools"
+version = "73.0.0.20240822"
+description = "Typing stubs for setuptools"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "types-setuptools-73.0.0.20240822.tar.gz", hash = "sha256:3a060681098eb3fbc2fea0a86f7f6af6aa1ca71906039d88d891ea2cecdd4dbf"},
+    {file = "types_setuptools-73.0.0.20240822-py3-none-any.whl", hash = "sha256:b9eba9b68546031317a0fa506d4973641d987d74f79e7dd8369ad4f7a93dea17"},
+]
+
+[[package]]
+name = "types-tqdm"
+version = "4.66.0.20240417"
+description = "Typing stubs for tqdm"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "types-tqdm-4.66.0.20240417.tar.gz", hash = "sha256:16dce9ef522ea8d40e4f5b8d84dd8a1166eefc13ceee7a7e158bf0f1a1421a31"},
+    {file = "types_tqdm-4.66.0.20240417-py3-none-any.whl", hash = "sha256:248aef1f9986b7b8c2c12b3cb4399fc17dba0a29e7e3f3f9cd704babb879383d"},
 ]
 
 [[package]]
@@ -4304,4 +4365,4 @@ desktop = ["opencv-python"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "3335a9dabe490f33be8f9f74bbd199b786f8d7c6959ec853012831606c3abcdd"
+content-hash = "c639934a93aca292b212bfc36e4837118595356df08d98eb6e1115d0a1e168c1"

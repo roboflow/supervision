@@ -90,6 +90,15 @@ mkdocs-jupyter = "^0.24.3"
 mkdocs-git-committers-plugin-2 = "^2.2.3"
 mkdocs-git-revision-date-localized-plugin = "^1.2.4"
 
+[tool.poetry.group.typecheck]
+optional = true
+
+[tool.poetry.group.typecheck.dependencies]
+types-pyyaml = "^6.0.12.20240808"
+types-cffi = "^1.16.0.20240331"
+types-requests = "^2.32.0.20240712"
+types-tqdm = "^4.66.0.20240417"
+
 
 [tool.bandit]
 target = ["test", "supervision"]
