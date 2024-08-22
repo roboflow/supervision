@@ -90,9 +90,6 @@ mkdocs-jupyter = "^0.24.3"
 mkdocs-git-committers-plugin-2 = "^2.2.3"
 mkdocs-git-revision-date-localized-plugin = "^1.2.4"
 
-[tool.isort]
-line_length = 88
-profile = "black"
 
 [tool.bandit]
 target = ["test", "supervision"]
@@ -157,7 +154,7 @@ indent-width = 4
 
 [tool.ruff.lint]
 # Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
-select = ["E", "F"]
+select = ["E", "F", "I", "A", "Q", "W"]
 ignore = []
 # Allow autofix for all enabled rules (when `--fix`) is provided.
 fixable = [
@@ -225,6 +222,10 @@ convention = "google"
 [tool.ruff.lint.mccabe]
 # Flag errors (`C901`) whenever the complexity level exceeds 5.
 max-complexity = 20
+
+[tool.ruff.lint.isort]
+order-by-type = true
+no-sections = false
 
 [tool.ruff.format]
 # Like Black, use double quotes for strings.
