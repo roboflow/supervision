@@ -78,19 +78,19 @@ status: new
 :::supervision.detection.utils.pad_boxes
 
 <div class="md-typeset">
-  <h2><a href="#supervision.detection.utils.contains_holes">contains_holes</a></h2>
+  <h2><a href="#supervision.detection.utils.xywh_to_xyxy">xywh_to_xyxy</a></h2>
 </div>
 
 :::supervision.detection.utils.xywh_to_xyxy
 
 <div class="md-typeset">
-  <h2><a href="#supervision.detection.utils.xywh_to_xyxy">xywh_to_xyxy</a></h2>
+  <h2><a href="#supervision.detection.utils.xcycwh_to_xyxy">xcycwh_to_xyxy</a></h2>
 </div>
 
 :::supervision.detection.utils.xcycwh_to_xyxy
 
 <div class="md-typeset">
-  <h2><a href="#supervision.detection.utils.xcycwh_to_xyxy">xcycwh_to_xyxy</a></h2>
+  <h2><a href="#supervision.detection.utils.contains_holes">contains_holes</a></h2>
 </div>
 
 :::supervision.detection.utils.contains_holes
