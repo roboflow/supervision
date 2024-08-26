@@ -234,13 +234,14 @@ class MetricData:
         """Merge all class IDs into a single array."""
         if len(self._class_id_list) < 2:
             return
-        self._class_id_list = [np.vstack(self._class_id_list)]
+        self._class_id_list = [np.hstack(self._class_id_list)]
+        print(self._class_id_list)
 
     def _merge_confidence(self):
         """Merge all confidences into a single array."""
         if len(self._confidence_list) < 2:
             return
-        self._confidence_list = [np.vstack(self._confidence_list)]
+        self._confidence_list = [np.hstack(self._confidence_list)]
 
 
 class MetricDataStore:
