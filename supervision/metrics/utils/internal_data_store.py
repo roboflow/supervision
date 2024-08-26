@@ -108,14 +108,16 @@ class MetricData:
             class_ids = np.array([], dtype=int)
         else:
             class_ids = self._class_id_list[0]
-        class_ids = class_ids[(size_mask & class_mask)]
+        if len(class_ids) > 0:
+            class_ids = class_ids[(size_mask & class_mask)]
 
         self._merge_confidence()
         if len(self._confidence_list) == 0:
             confidences = np.array([], dtype=float)
         else:
             confidences = self._confidence_list[0]
-        confidences = confidences[(size_mask & class_mask)]
+        if len(confidences) > 0:
+            confidences = confidences[(size_mask & class_mask)]
 
         return content, class_ids, confidences
 
