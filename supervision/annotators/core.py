@@ -1,3 +1,4 @@
+from functools import lru_cache
 from math import sqrt
 from typing import List, Optional, Tuple, Union
 
@@ -22,7 +23,12 @@ from supervision.utils.conversion import (
     ensure_cv2_image_for_annotation,
     ensure_pil_image_for_annotation,
 )
-from supervision.utils.image import crop_image, overlay_image, scale_image
+from supervision.utils.image import (
+    crop_image,
+    letterbox_image,
+    overlay_image,
+    scale_image,
+)
 from supervision.utils.internal import deprecated
 
 
@@ -1399,52 +1405,37 @@ class IconAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        icon_path: str,
-        position: Position = Position.TOP_CENTER,
-        icon_scale: float = 0.2,
+        icon_resolution_wh: Tuple[int, int] = (64, 64),
+        icon_position: Position = Position.TOP_CENTER,
         offset_xy: Tuple[int, int] = (0, 0),
     ):
         """
         Args:
-            icon_path (str): path to the icon file, in png format.
-            position (Position): The position of the icon. Defaults to
-                `TOP_CENTER`.
-            icon_scale (float): Represents the fraction of the original icon size to
-              be displayed, with a default value of 0.2 (equivalent to 20% of the
-              original size).
+            icon_resolution_wh (Tuple[int, int]): The size of drawn icons.
+                All icons will be resized to this resolution, keeping the aspect ratio.
+            icon_position (Position): The position of the icon.
             offset_xy (Tuple[int, int]): The offset to apply to the icon position,
                 in pixels. Can be both positive and negative.
         """
-        self.position = position
-        icon = cv2.imread(icon_path, cv2.IMREAD_UNCHANGED)
-        if icon is None:
-            raise FileNotFoundError(
-                f"Error: Couldn't load the icon image from {icon_path}"
-            )
-
-        resized_icon_h, resized_icon_w = (
-            int(icon.shape[0] * icon_scale),
-            int(icon.shape[1] * icon_scale),
-        )
-        self.icon = cv2.resize(
-            icon, (resized_icon_w, resized_icon_h), interpolation=cv2.INTER_AREA
-        )
+        self.icon_resolution_wh = icon_resolution_wh
+        self.position = icon_position
         self.offset_xy = offset_xy
 
     @ensure_cv2_image_for_annotation
     def annotate(
-        self,
-        scene: ImageType,
-        detections: Detections,
+        self, scene: ImageType, detections: Detections, icon_path: Union[str, List[str]]
     ) -> ImageType:
         """
-        Annotates the given scene with icons based on the provided detections.
+        Annotates the given scene with given icons.
 
         Args:
             scene (ImageType): The image where labels will be drawn.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
                 or `PIL.Image.Image`.
             detections (Detections): Object detections to annotate.
+            icon_path (Union[str, List[str]]): The path to the PNG image to use as an
+                icon. Must be a single path or a list of paths, one for each detection.
+                Pass an empty string `""` to draw nothing.
 
         Returns:
             The annotated image, matching the type of `scene` (`numpy.ndarray`
@@ -1457,42 +1448,58 @@ class IconAnnotator(BaseAnnotator):
             image = ...
             detections = sv.Detections(...)
 
-            icon_annotator = sv.IconAnnotator(icon_path='...')
+            icon_paths = []
+            for class_name in detections.data["class_name"]:
+                if class_name == "cat":
+                    icon_paths.append("cat.png")
+                elif class_id == "dog":
+                    icon_paths.append("dog.png")
+                else:
+                    icon_paths.append("")
+
+            icon_annotator = sv.IconAnnotator(icon_resolution_wh=(64, 64))
             annotated_frame = icon_annotator.annotate(
                 scene=image.copy(),
-                detections=detections
+                detections=detections,
+                icon_path=icon_paths
             )
             ```
 
         """
         assert isinstance(scene, np.ndarray)
-        icon_h, icon_w = self.icon.shape[:2]
-        print(self.icon.shape)
+        if isinstance(icon_path, list) and len(icon_path) != len(detections):
+            raise ValueError(
+                f"The number of icon paths provided ({len(icon_path)}) does not match "
+                f"the number of detections ({len(detections)}). Either provide a single"
+                f" icon path or one for each detection."
+            )
 
-        padded_scene = np.pad(
-            scene,
-            ((icon_h, icon_h), (icon_w, icon_w), (0, 0)),
-            mode="constant",
-            constant_values=0,
-        )
-
-        xy = detections.get_anchors_coordinates(anchor=self.position)
-        xy += np.array([icon_w, icon_h])
+        xy = detections.get_anchors_coordinates(anchor=self.position).astype(int)
 
         for detection_idx in range(len(detections)):
+            current_path = (
+                icon_path if isinstance(icon_path, str) else icon_path[detection_idx]
+            )
+            if current_path == "":
+                continue
+            icon = self._load_icon(current_path)
+            icon_h, icon_w = icon.shape[:2]
+
             x = int(xy[detection_idx, 0] - icon_w / 2 + self.offset_xy[0])
             y = int(xy[detection_idx, 1] - icon_h / 2 + self.offset_xy[1])
 
-            alpha_channel = self.icon[:, :, 3]
-            mask = alpha_channel != 0
-
-            padded_scene[y : y + icon_h, x : x + icon_w][mask] = self.icon[:, :, :3][
-                mask
-            ]
-
-        padded_scene = padded_scene[icon_h:-icon_h, icon_w:-icon_w]
-        np.copyto(scene, padded_scene)
+            scene[:] = overlay_image(scene, icon, (x, y))
         return scene
+
+    @lru_cache
+    def _load_icon(self, icon_path: str) -> np.ndarray:
+        icon = cv2.imread(icon_path, cv2.IMREAD_UNCHANGED)
+        if icon is None:
+            raise FileNotFoundError(
+                f"Error: Couldn't load the icon image from {icon_path}"
+            )
+        icon = letterbox_image(image=icon, resolution_wh=self.icon_resolution_wh)
+        return icon
 
 
 class BlurAnnotator(BaseAnnotator):

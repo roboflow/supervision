@@ -270,6 +270,7 @@ def letterbox_image(
 
     ![letterbox_image](https://media.roboflow.com/supervision-docs/letterbox-image.png){ align=center width="800" }
     """  # noqa E501 // docs
+    assert isinstance(image, np.ndarray)
     color = unify_to_bgr(color=color)
     resized_image = resize_image(
         image=image, resolution_wh=resolution_wh, keep_aspect_ratio=True
@@ -279,7 +280,7 @@ def letterbox_image(
     padding_bottom = resolution_wh[1] - height_new - padding_top
     padding_left = (resolution_wh[0] - width_new) // 2
     padding_right = resolution_wh[0] - width_new - padding_left
-    return cv2.copyMakeBorder(
+    image_with_borders = cv2.copyMakeBorder(
         resized_image,
         padding_top,
         padding_bottom,
@@ -288,6 +289,14 @@ def letterbox_image(
         cv2.BORDER_CONSTANT,
         value=color,
     )
+
+    if image.shape[2] == 4:
+        image[:padding_top, :, 3] = 0
+        image[height_new - padding_bottom :, :, 3] = 0
+        image[:, :padding_left, 3] = 0
+        image[:, width_new - padding_right :, 3] = 0
+
+    return image_with_borders
 
 
 def overlay_image(
@@ -341,9 +350,20 @@ def overlay_image(
     crop_x_max = image_width - max((anchor_x + image_width) - scene_width, 0)
     crop_y_max = image_height - max((anchor_y + image_height) - scene_height, 0)
 
-    image[y_min:y_max, x_min:x_max] = overlay[
-        crop_y_min:crop_y_max, crop_x_min:crop_x_max
-    ]
+    if overlay.shape[2] == 4:
+        b, g, r, alpha = cv2.split(
+            overlay[crop_y_min:crop_y_max, crop_x_min:crop_x_max]
+        )
+        alpha = alpha[:, :, None] / 255.0
+        overlay_color = cv2.merge((b, g, r))
+
+        roi = image[y_min:y_max, x_min:x_max]
+        roi[:] = roi * (1 - alpha) + overlay_color * alpha
+        image[y_min:y_max, x_min:x_max] = roi
+    else:
+        image[y_min:y_max, x_min:x_max] = overlay[
+            crop_y_min:crop_y_max, crop_x_min:crop_x_max
+        ]
 
     return image
 
