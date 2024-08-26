@@ -2018,7 +2018,7 @@ class PercentageBarAnnotator(BaseAnnotator):
             position (Position): The anchor position of drawing the percentage bar.
             color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
-            border_thickness (int): The thickness of the border lines.
+            border_thickness (Optional[int]): The thickness of the border lines.
         """
         self.height: int = height
         self.width: int = width

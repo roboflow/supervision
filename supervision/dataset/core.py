@@ -43,7 +43,10 @@ class BaseDataset(ABC):
 
     @abstractmethod
     def split(
-        self, split_ratio=0.8, random_state=None, shuffle: bool = True
+        self,
+        split_ratio: float = 0.8,
+        random_state: Optional[int] = None,
+        shuffle: bool = True,
     ) -> Tuple[BaseDataset, BaseDataset]:
         pass
 
@@ -174,7 +177,10 @@ class DetectionDataset(BaseDataset):
         return True
 
     def split(
-        self, split_ratio=0.8, random_state=None, shuffle: bool = True
+        self,
+        split_ratio: float = 0.8,
+        random_state: Optional[int] = None,
+        shuffle: bool = True,
     ) -> Tuple[DetectionDataset, DetectionDataset]:
         """
         Splits the dataset into two parts (training and testing)
@@ -777,7 +783,10 @@ class ClassificationDataset(BaseDataset):
         return True
 
     def split(
-        self, split_ratio=0.8, random_state=None, shuffle: bool = True
+        self,
+        split_ratio: float = 0.8,
+        random_state: Optional[int] = None,
+        shuffle: bool = True,
     ) -> Tuple[ClassificationDataset, ClassificationDataset]:
         """
         Splits the dataset into two parts (training and testing)
