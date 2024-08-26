@@ -117,7 +117,7 @@ class VideoSink:
 
 
 def _validate_and_setup_video(
-    source_path: str, start: int, end: Optional[int], manual_seek: bool = False
+    source_path: str, start: int, end: Optional[int], iterative_seek: bool = False
 ):
     video = cv2.VideoCapture(source_path)
     if not video.isOpened():
@@ -128,7 +128,7 @@ def _validate_and_setup_video(
     start = max(start, 0)
     end = min(end, total_frames) if end is not None else total_frames
 
-    if manual_seek:
+    if iterative_seek:
         while start > 0:
             success = video.grab()
             if not success:
@@ -145,7 +145,7 @@ def get_video_frames_generator(
     stride: int = 1,
     start: int = 0,
     end: Optional[int] = None,
-    manual_seek: bool = False,
+    iterative_seek: bool = False,
 ) -> Generator[np.ndarray, None, None]:
     """
     Get a generator that yields the frames of the video.
@@ -158,7 +158,7 @@ def get_video_frames_generator(
             video should generate frames
         end (Optional[int]): Indicates the ending position at which video
             should stop generating frames. If None, video will be read to the end.
-        manual_seek (bool): If True, the generator will manually seek to the
+        iterative_seek (bool): If True, the generator will seek to the
             `start` frame by grabbing each frame, which is much slower. This is a
             workaround for videos that don't open at all when you set the `start` value.
 
@@ -174,7 +174,7 @@ def get_video_frames_generator(
             ...
         ```
     """
-    video, start, end = _validate_and_setup_video(source_path, start, end, manual_seek)
+    video, start, end = _validate_and_setup_video(source_path, start, end, iterative_seek)
     frame_position = start
     while True:
         success, frame = video.read()
