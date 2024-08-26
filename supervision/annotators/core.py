@@ -1448,16 +1448,10 @@ class IconAnnotator(BaseAnnotator):
             image = ...
             detections = sv.Detections(...)
 
-            icon_paths = []
-            for class_name in detections.data["class_name"]:
-                if class_name == "cat":
-                    icon_paths.append("cat.png")
-                elif class_id == "dog":
-                    icon_paths.append("dog.png")
-                else:
-                    icon_paths.append("")
+            available_icons = ["roboflow.png", "lenny.png"]
+            icon_paths = [np.random.choice(available_icons) for _ in detections]
 
-            icon_annotator = sv.IconAnnotator(icon_resolution_wh=(64, 64))
+            icon_annotator = sv.IconAnnotator()
             annotated_frame = icon_annotator.annotate(
                 scene=image.copy(),
                 detections=detections,
@@ -1465,6 +1459,8 @@ class IconAnnotator(BaseAnnotator):
             )
             ```
 
+        ![icon-annotator-example](https://media.roboflow.com/
+        supervision-annotator-examples/icon-annotator-example.png)
         """
         assert isinstance(scene, np.ndarray)
         if isinstance(icon_path, list) and len(icon_path) != len(detections):

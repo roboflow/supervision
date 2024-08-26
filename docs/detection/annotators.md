@@ -316,6 +316,33 @@ status: new
 
     </div>
 
+=== "Icon"
+
+    ```python
+    import supervision as sv
+
+    image = ...
+    detections = sv.Detections(...)
+
+    icon_paths = [
+        "<ICON_PATH>"
+        for _ in detections
+    ]
+
+    icon_annotator = sv.IconAnnotator()
+    annotated_frame = icon_annotator.annotate(
+        scene=image.copy(),
+        detections=detections,
+        icon_path=icon_paths
+    )
+    ```
+
+    <div class="result" markdown>
+
+    ![icon-annotator-example](https://media.roboflow.com/supervision-annotator-examples/icon-annotator-example.png){ align=center width="800" }
+
+    </div>
+
 === "Crop"
 
     ```python
