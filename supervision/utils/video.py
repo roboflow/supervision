@@ -174,7 +174,9 @@ def get_video_frames_generator(
             ...
         ```
     """
-    video, start, end = _validate_and_setup_video(source_path, start, end, iterative_seek)
+    video, start, end = _validate_and_setup_video(
+        source_path, start, end, iterative_seek
+    )
     frame_position = start
     while True:
         success, frame = video.read()
