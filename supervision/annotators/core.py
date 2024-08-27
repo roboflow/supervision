@@ -1,3 +1,4 @@
+from functools import lru_cache
 from math import sqrt
 from typing import List, Optional, Tuple, Union
 
@@ -22,7 +23,12 @@ from supervision.utils.conversion import (
     ensure_cv2_image_for_annotation,
     ensure_pil_image_for_annotation,
 )
-from supervision.utils.image import crop_image, overlay_image, scale_image
+from supervision.utils.image import (
+    crop_image,
+    letterbox_image,
+    overlay_image,
+    scale_image,
+)
 from supervision.utils.internal import deprecated
 
 
@@ -1407,6 +1413,106 @@ class RichLabelAnnotator(BaseAnnotator):
         except TypeError:
             font = ImageFont.load_default()
         return font
+
+
+class IconAnnotator(BaseAnnotator):
+    """
+    A class for drawing an icon on an image, using provided detections.
+    """
+
+    def __init__(
+        self,
+        icon_resolution_wh: Tuple[int, int] = (64, 64),
+        icon_position: Position = Position.TOP_CENTER,
+        offset_xy: Tuple[int, int] = (0, 0),
+    ):
+        """
+        Args:
+            icon_resolution_wh (Tuple[int, int]): The size of drawn icons.
+                All icons will be resized to this resolution, keeping the aspect ratio.
+            icon_position (Position): The position of the icon.
+            offset_xy (Tuple[int, int]): The offset to apply to the icon position,
+                in pixels. Can be both positive and negative.
+        """
+        self.icon_resolution_wh = icon_resolution_wh
+        self.position = icon_position
+        self.offset_xy = offset_xy
+
+    @ensure_cv2_image_for_annotation
+    def annotate(
+        self, scene: ImageType, detections: Detections, icon_path: Union[str, List[str]]
+    ) -> ImageType:
+        """
+        Annotates the given scene with given icons.
+
+        Args:
+            scene (ImageType): The image where labels will be drawn.
+                `ImageType` is a flexible type, accepting either `numpy.ndarray`
+                or `PIL.Image.Image`.
+            detections (Detections): Object detections to annotate.
+            icon_path (Union[str, List[str]]): The path to the PNG image to use as an
+                icon. Must be a single path or a list of paths, one for each detection.
+                Pass an empty string `""` to draw nothing.
+
+        Returns:
+            The annotated image, matching the type of `scene` (`numpy.ndarray`
+                or `PIL.Image.Image`)
+
+        Example:
+            ```python
+            import supervision as sv
+
+            image = ...
+            detections = sv.Detections(...)
+
+            available_icons = ["roboflow.png", "lenny.png"]
+            icon_paths = [np.random.choice(available_icons) for _ in detections]
+
+            icon_annotator = sv.IconAnnotator()
+            annotated_frame = icon_annotator.annotate(
+                scene=image.copy(),
+                detections=detections,
+                icon_path=icon_paths
+            )
+            ```
+
+        ![icon-annotator-example](https://media.roboflow.com/
+        supervision-annotator-examples/icon-annotator-example.png)
+        """
+        assert isinstance(scene, np.ndarray)
+        if isinstance(icon_path, list) and len(icon_path) != len(detections):
+            raise ValueError(
+                f"The number of icon paths provided ({len(icon_path)}) does not match "
+                f"the number of detections ({len(detections)}). Either provide a single"
+                f" icon path or one for each detection."
+            )
+
+        xy = detections.get_anchors_coordinates(anchor=self.position).astype(int)
+
+        for detection_idx in range(len(detections)):
+            current_path = (
+                icon_path if isinstance(icon_path, str) else icon_path[detection_idx]
+            )
+            if current_path == "":
+                continue
+            icon = self._load_icon(current_path)
+            icon_h, icon_w = icon.shape[:2]
+
+            x = int(xy[detection_idx, 0] - icon_w / 2 + self.offset_xy[0])
+            y = int(xy[detection_idx, 1] - icon_h / 2 + self.offset_xy[1])
+
+            scene[:] = overlay_image(scene, icon, (x, y))
+        return scene
+
+    @lru_cache
+    def _load_icon(self, icon_path: str) -> np.ndarray:
+        icon = cv2.imread(icon_path, cv2.IMREAD_UNCHANGED)
+        if icon is None:
+            raise FileNotFoundError(
+                f"Error: Couldn't load the icon image from {icon_path}"
+            )
+        icon = letterbox_image(image=icon, resolution_wh=self.icon_resolution_wh)
+        return icon
 
 
 class BlurAnnotator(BaseAnnotator):
