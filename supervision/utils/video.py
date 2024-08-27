@@ -19,7 +19,7 @@ class VideoInfo:
         width (int): width of the video in pixels
         height (int): height of the video in pixels
         fps (int): frames per second of the video
-        total_frames (int, optional): total number of frames in the video,
+        total_frames (Optional[int]): total number of frames in the video,
             default is None
 
     Examples:

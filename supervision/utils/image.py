@@ -158,7 +158,7 @@ def resize_image(
             accepting either `numpy.ndarray` or `PIL.Image.Image`.
         resolution_wh (Tuple[int, int]): The target resolution as
             `(width, height)`.
-        keep_aspect_ratio (bool, optional): Flag to maintain the image's original
+        keep_aspect_ratio (bool): Flag to maintain the image's original
             aspect ratio. Defaults to `False`.
 
     Returns:
@@ -380,9 +380,9 @@ class ImageSink:
 
         Args:
             target_dir_path (str): The target directory where images will be saved.
-            overwrite (bool, optional): Whether to overwrite the existing directory.
+            overwrite (bool): Whether to overwrite the existing directory.
                 Defaults to False.
-            image_name_pattern (str, optional): The image file name pattern.
+            image_name_pattern (str): The image file name pattern.
                 Defaults to "image_{:05d}.png".
 
         Examples:
@@ -419,7 +419,7 @@ class ImageSink:
         Args:
             image (np.ndarray): The image to be saved. The image must be in BGR color
                 format.
-            image_name (str, optional): The name to use for the saved image.
+            image_name (Optional[str]): The name to use for the saved image.
                 If not provided, a name will be
                 generated using the `image_name_pattern`.
         """
