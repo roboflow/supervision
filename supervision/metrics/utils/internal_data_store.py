@@ -237,7 +237,6 @@ class MetricData:
         if len(self._class_id_list) < 2:
             return
         self._class_id_list = [np.hstack(self._class_id_list)]
-        print(self._class_id_list)
 
     def _merge_confidence(self):
         """Merge all confidences into a single array."""
