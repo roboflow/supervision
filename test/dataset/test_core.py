@@ -1,11 +1,11 @@
 from contextlib import ExitStack as DoesNotRaise
-from test.test_utils import mock_detections
 from typing import List, Optional
 
 import numpy as np
 import pytest
 
 from supervision import DetectionDataset
+from test.test_utils import mock_detections
 
 
 @pytest.mark.parametrize(
