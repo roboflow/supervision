@@ -20,9 +20,9 @@ def heatmap_and_track(
     iou_threshold: float = 0.5,
     heatmap_alpha: float = 0.5,
     radius: int = 25,
-    track_threshold: float = 0.35,
+    track_activation_threshold: float = 0.35,
     track_seconds: int = 5,
-    match_threshold: float = 0.99,
+    minimum_matching_threshold: float = 0.99,
 ) -> None:
     ### instantiate model
     model = YOLO(source_weights_path)
@@ -47,9 +47,9 @@ def heatmap_and_track(
 
     ### tracker config
     byte_tracker = sv.ByteTrack(
-        track_thresh=track_threshold,
-        track_buffer=track_seconds * fps,
-        match_thresh=match_threshold,
+        track_activation_threshold=track_activation_threshold,
+        lost_track_buffer=track_seconds * fps,
+        minimum_matching_threshold=minimum_matching_threshold,
         frame_rate=fps,
     )
 
@@ -175,7 +175,7 @@ if __name__ == "__main__":
         iou_threshold=args.iou_threshold,
         heatmap_alpha=args.heatmap_alpha,
         radius=args.radius,
-        track_threshold=args.track_threshold,
+        track_activation_threshold=args.track_threshold,
         track_seconds=args.track_seconds,
-        match_threshold=args.match_threshold,
+        minimum_matching_threshold=args.match_threshold,
     )

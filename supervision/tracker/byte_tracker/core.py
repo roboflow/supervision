@@ -7,7 +7,6 @@ from supervision.detection.utils import box_iou_batch
 from supervision.tracker.byte_tracker import matching
 from supervision.tracker.byte_tracker.basetrack import BaseTrack, TrackState
 from supervision.tracker.byte_tracker.kalman_filter import KalmanFilter
-from supervision.utils.internal import deprecated_parameter
 
 
 class STrack(BaseTrack):
@@ -215,30 +214,6 @@ class ByteTrack:
             false detection or double detection, but risks missing shorter tracks.
     """  # noqa: E501 // docs
 
-    @deprecated_parameter(
-        old_parameter="track_buffer",
-        new_parameter="lost_track_buffer",
-        map_function=lambda x: x,
-        warning_message="`{old_parameter}` in `{function_name}` is deprecated and will "
-        "be remove in `supervision-0.23.0`. Use '{new_parameter}' "
-        "instead.",
-    )
-    @deprecated_parameter(
-        old_parameter="track_thresh",
-        new_parameter="track_activation_threshold",
-        map_function=lambda x: x,
-        warning_message="`{old_parameter}` in `{function_name}` is deprecated and will "
-        "be remove in `supervision-0.23.0`. Use '{new_parameter}' "
-        "instead.",
-    )
-    @deprecated_parameter(
-        old_parameter="match_thresh",
-        new_parameter="minimum_matching_threshold",
-        map_function=lambda x: x,
-        warning_message="`{old_parameter}` in `{function_name}` is deprecated and will "
-        "be remove in `supervision-0.23.0`. Use '{new_parameter}' "
-        "instead.",
-    )
     def __init__(
         self,
         track_activation_threshold: float = 0.25,
