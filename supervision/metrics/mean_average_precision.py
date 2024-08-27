@@ -49,25 +49,27 @@ class MeanAveragePrecision(Metric):
 
     def update(
         self,
-        data_1: Union[Detections, List[Detections]],
-        data_2: Union[Detections, List[Detections]],
+        predictions: Union[Detections, List[Detections]],
+        targets: Union[Detections, List[Detections]],
     ) -> MeanAveragePrecision:
-        if not isinstance(data_1, list):
-            data_1 = [data_1]
-        if not isinstance(data_2, list):
-            data_2 = [data_2]
+        if not isinstance(predictions, list):
+            predictions = [predictions]
+        if not isinstance(targets, list):
+            targets = [targets]
 
-        for d1, d2 in zip_longest(data_1, data_2, fillvalue=Detections.empty()):
-            self._update(d1, d2)
+        for pred, target in zip_longest(
+            predictions, targets, fillvalue=Detections.empty()
+        ):
+            self._update(pred, target)
 
         return self
 
     def _update(
         self,
-        data_1: Detections,
-        data_2: Detections,
+        predictions: Detections,
+        targets: Detections,
     ) -> None:
-        self._store.update(data_1, data_2)
+        self._store.update(predictions, targets)
 
     def compute(
         self,
