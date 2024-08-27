@@ -67,9 +67,8 @@ class STrack(BaseTrack):
         self.state = TrackState.Tracked
         if frame_id == 1:
             self.is_activated = True
-
-        if self.minimum_consecutive_frames == 1:
-            self.external_track_id = self.next_external_id()
+            if self.minimum_consecutive_frames == 1:
+                self.external_track_id = self.next_external_id()
 
         self.frame_id = frame_id
         self.start_frame = frame_id
@@ -206,8 +205,8 @@ class ByteTrack:
             reducing the likelihood of track fragmentation or disappearance caused
             by brief detection gaps.
         minimum_matching_threshold (float, optional): Threshold for matching tracks with detections.
-            Increasing minimum_matching_threshold improves accuracy but risks fragmentation.
-            Decreasing it improves completeness but risks false positives and drift.
+            Decreasing minimum_matching_threshold improves accuracy but risks fragmentation.
+            Increasing it improves completeness but risks false positives and drift.
         frame_rate (int, optional): The frame rate of the video.
         minimum_consecutive_frames (int, optional): Number of consecutive frames that an object must
             be tracked before it is considered a 'valid' track.
@@ -545,7 +544,7 @@ def sub_tracks(track_list_a: List, track_list_b: List) -> List[int]:
 
 def remove_duplicate_tracks(tracks_a: List, tracks_b: List) -> Tuple[List, List]:
     pairwise_distance = matching.iou_distance(tracks_a, tracks_b)
-    matching_pairs = np.where(pairwise_distance < 0.15)
+    matching_pairs = np.where(pairwise_distance < 0.05)
 
     duplicates_a, duplicates_b = set(), set()
     for track_index_a, track_index_b in zip(*matching_pairs):
