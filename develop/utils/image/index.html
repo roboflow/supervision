@@ -2711,7 +2711,7 @@ may be either a <code>numpy.ndarray</code> or <code>PIL.Image.Image</code>.</p>
 <a id="__codelineno-0-158" name="__codelineno-0-158"></a><span class="sd">            accepting either `numpy.ndarray` or `PIL.Image.Image`.</span>
 <a id="__codelineno-0-159" name="__codelineno-0-159"></a><span class="sd">        resolution_wh (Tuple[int, int]): The target resolution as</span>
 <a id="__codelineno-0-160" name="__codelineno-0-160"></a><span class="sd">            `(width, height)`.</span>
-<a id="__codelineno-0-161" name="__codelineno-0-161"></a><span class="sd">        keep_aspect_ratio (bool, optional): Flag to maintain the image&#39;s original</span>
+<a id="__codelineno-0-161" name="__codelineno-0-161"></a><span class="sd">        keep_aspect_ratio (bool): Flag to maintain the image&#39;s original</span>
 <a id="__codelineno-0-162" name="__codelineno-0-162"></a><span class="sd">            aspect ratio. Defaults to `False`.</span>
 <a id="__codelineno-0-163" name="__codelineno-0-163"></a>
 <a id="__codelineno-0-164" name="__codelineno-0-164"></a><span class="sd">    Returns:</span>
@@ -3408,9 +3408,9 @@ top-left corner of the image will be placed.</p>
 <a id="__codelineno-0-380" name="__codelineno-0-380"></a>
 <a id="__codelineno-0-381" name="__codelineno-0-381"></a><span class="sd">        Args:</span>
 <a id="__codelineno-0-382" name="__codelineno-0-382"></a><span class="sd">            target_dir_path (str): The target directory where images will be saved.</span>
-<a id="__codelineno-0-383" name="__codelineno-0-383"></a><span class="sd">            overwrite (bool, optional): Whether to overwrite the existing directory.</span>
+<a id="__codelineno-0-383" name="__codelineno-0-383"></a><span class="sd">            overwrite (bool): Whether to overwrite the existing directory.</span>
 <a id="__codelineno-0-384" name="__codelineno-0-384"></a><span class="sd">                Defaults to False.</span>
-<a id="__codelineno-0-385" name="__codelineno-0-385"></a><span class="sd">            image_name_pattern (str, optional): The image file name pattern.</span>
+<a id="__codelineno-0-385" name="__codelineno-0-385"></a><span class="sd">            image_name_pattern (str): The image file name pattern.</span>
 <a id="__codelineno-0-386" name="__codelineno-0-386"></a><span class="sd">                Defaults to &quot;image_{:05d}.png&quot;.</span>
 <a id="__codelineno-0-387" name="__codelineno-0-387"></a>
 <a id="__codelineno-0-388" name="__codelineno-0-388"></a><span class="sd">        Examples:</span>
@@ -3447,7 +3447,7 @@ top-left corner of the image will be placed.</p>
 <a id="__codelineno-0-419" name="__codelineno-0-419"></a><span class="sd">        Args:</span>
 <a id="__codelineno-0-420" name="__codelineno-0-420"></a><span class="sd">            image (np.ndarray): The image to be saved. The image must be in BGR color</span>
 <a id="__codelineno-0-421" name="__codelineno-0-421"></a><span class="sd">                format.</span>
-<a id="__codelineno-0-422" name="__codelineno-0-422"></a><span class="sd">            image_name (str, optional): The name to use for the saved image.</span>
+<a id="__codelineno-0-422" name="__codelineno-0-422"></a><span class="sd">            image_name (Optional[str]): The name to use for the saved image.</span>
 <a id="__codelineno-0-423" name="__codelineno-0-423"></a><span class="sd">                If not provided, a name will be</span>
 <a id="__codelineno-0-424" name="__codelineno-0-424"></a><span class="sd">                generated using the `image_name_pattern`.</span>
 <a id="__codelineno-0-425" name="__codelineno-0-425"></a><span class="sd">        &quot;&quot;&quot;</span>
@@ -3602,9 +3602,9 @@ Defaults to "image_{:05d}.png".</p>
 <a id="__codelineno-0-380" name="__codelineno-0-380"></a>
 <a id="__codelineno-0-381" name="__codelineno-0-381"></a><span class="sd">    Args:</span>
 <a id="__codelineno-0-382" name="__codelineno-0-382"></a><span class="sd">        target_dir_path (str): The target directory where images will be saved.</span>
-<a id="__codelineno-0-383" name="__codelineno-0-383"></a><span class="sd">        overwrite (bool, optional): Whether to overwrite the existing directory.</span>
+<a id="__codelineno-0-383" name="__codelineno-0-383"></a><span class="sd">        overwrite (bool): Whether to overwrite the existing directory.</span>
 <a id="__codelineno-0-384" name="__codelineno-0-384"></a><span class="sd">            Defaults to False.</span>
-<a id="__codelineno-0-385" name="__codelineno-0-385"></a><span class="sd">        image_name_pattern (str, optional): The image file name pattern.</span>
+<a id="__codelineno-0-385" name="__codelineno-0-385"></a><span class="sd">        image_name_pattern (str): The image file name pattern.</span>
 <a id="__codelineno-0-386" name="__codelineno-0-386"></a><span class="sd">            Defaults to &quot;image_{:05d}.png&quot;.</span>
 <a id="__codelineno-0-387" name="__codelineno-0-387"></a>
 <a id="__codelineno-0-388" name="__codelineno-0-388"></a><span class="sd">    Examples:</span>
@@ -3672,7 +3672,7 @@ format.</p>
           <tr class="doc-section-item">
             <td><code>image_name</code></td>
             <td>
-                  <code>str</code>
+                  <code><span title="typing.Optional">Optional</span>[str]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3713,7 +3713,7 @@ generated using the <code>image_name_pattern</code>.</p>
 <a id="__codelineno-0-419" name="__codelineno-0-419"></a><span class="sd">    Args:</span>
 <a id="__codelineno-0-420" name="__codelineno-0-420"></a><span class="sd">        image (np.ndarray): The image to be saved. The image must be in BGR color</span>
 <a id="__codelineno-0-421" name="__codelineno-0-421"></a><span class="sd">            format.</span>
-<a id="__codelineno-0-422" name="__codelineno-0-422"></a><span class="sd">        image_name (str, optional): The name to use for the saved image.</span>
+<a id="__codelineno-0-422" name="__codelineno-0-422"></a><span class="sd">        image_name (Optional[str]): The name to use for the saved image.</span>
 <a id="__codelineno-0-423" name="__codelineno-0-423"></a><span class="sd">            If not provided, a name will be</span>
 <a id="__codelineno-0-424" name="__codelineno-0-424"></a><span class="sd">            generated using the `image_name_pattern`.</span>
 <a id="__codelineno-0-425" name="__codelineno-0-425"></a><span class="sd">    &quot;&quot;&quot;</span>

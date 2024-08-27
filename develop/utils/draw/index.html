@@ -2873,7 +2873,7 @@
 <a id="__codelineno-0-142" name="__codelineno-0-142"></a><span class="sd">        scene (np.ndarray): The scene to draw the polygon on.</span>
 <a id="__codelineno-0-143" name="__codelineno-0-143"></a><span class="sd">        polygon (np.ndarray): The polygon to be drawn, given as a list of vertices.</span>
 <a id="__codelineno-0-144" name="__codelineno-0-144"></a><span class="sd">        color (Color): The color of the polygon.</span>
-<a id="__codelineno-0-145" name="__codelineno-0-145"></a><span class="sd">        thickness (int, optional): The thickness of the polygon lines, by default 2.</span>
+<a id="__codelineno-0-145" name="__codelineno-0-145"></a><span class="sd">        thickness (int): The thickness of the polygon lines, by default 2.</span>
 <a id="__codelineno-0-146" name="__codelineno-0-146"></a>
 <a id="__codelineno-0-147" name="__codelineno-0-147"></a><span class="sd">    Returns:</span>
 <a id="__codelineno-0-148" name="__codelineno-0-148"></a><span class="sd">        np.ndarray: The scene with the polygon drawn on it.</span>
@@ -3031,7 +3031,7 @@ Defaults to cv2.FONT_HERSHEY_SIMPLEX.</p>
           <tr class="doc-section-item">
             <td><code>background_color</code></td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="supervision.draw.color.Color" href="#supervision.draw.color.Color">Color</a></code>
+                  <code><span title="typing.Optional">Optional</span>[<a class="autorefs autorefs-internal" title="supervision.draw.color.Color" href="#supervision.draw.color.Color">Color</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3171,14 +3171,14 @@ if one is to be drawn. Defaults to None.</p>
 <a id="__codelineno-0-172" name="__codelineno-0-172"></a><span class="sd">        text (str): The text to be drawn.</span>
 <a id="__codelineno-0-173" name="__codelineno-0-173"></a><span class="sd">        text_anchor (Point): The anchor point for the text, represented as a</span>
 <a id="__codelineno-0-174" name="__codelineno-0-174"></a><span class="sd">            Point object with x and y attributes.</span>
-<a id="__codelineno-0-175" name="__codelineno-0-175"></a><span class="sd">        text_color (Color, optional): The color of the text. Defaults to black.</span>
-<a id="__codelineno-0-176" name="__codelineno-0-176"></a><span class="sd">        text_scale (float, optional): The scale of the text. Defaults to 0.5.</span>
-<a id="__codelineno-0-177" name="__codelineno-0-177"></a><span class="sd">        text_thickness (int, optional): The thickness of the text. Defaults to 1.</span>
-<a id="__codelineno-0-178" name="__codelineno-0-178"></a><span class="sd">        text_padding (int, optional): The amount of padding to add around the text</span>
+<a id="__codelineno-0-175" name="__codelineno-0-175"></a><span class="sd">        text_color (Color): The color of the text. Defaults to black.</span>
+<a id="__codelineno-0-176" name="__codelineno-0-176"></a><span class="sd">        text_scale (float): The scale of the text. Defaults to 0.5.</span>
+<a id="__codelineno-0-177" name="__codelineno-0-177"></a><span class="sd">        text_thickness (int): The thickness of the text. Defaults to 1.</span>
+<a id="__codelineno-0-178" name="__codelineno-0-178"></a><span class="sd">        text_padding (int): The amount of padding to add around the text</span>
 <a id="__codelineno-0-179" name="__codelineno-0-179"></a><span class="sd">            when drawing a rectangle in the background. Defaults to 10.</span>
-<a id="__codelineno-0-180" name="__codelineno-0-180"></a><span class="sd">        text_font (int, optional): The font to use for the text.</span>
+<a id="__codelineno-0-180" name="__codelineno-0-180"></a><span class="sd">        text_font (int): The font to use for the text.</span>
 <a id="__codelineno-0-181" name="__codelineno-0-181"></a><span class="sd">            Defaults to cv2.FONT_HERSHEY_SIMPLEX.</span>
-<a id="__codelineno-0-182" name="__codelineno-0-182"></a><span class="sd">        background_color (Color, optional): The color of the background rectangle,</span>
+<a id="__codelineno-0-182" name="__codelineno-0-182"></a><span class="sd">        background_color (Optional[Color]): The color of the background rectangle,</span>
 <a id="__codelineno-0-183" name="__codelineno-0-183"></a><span class="sd">            if one is to be drawn. Defaults to None.</span>
 <a id="__codelineno-0-184" name="__codelineno-0-184"></a>
 <a id="__codelineno-0-185" name="__codelineno-0-185"></a><span class="sd">    Returns:</span>

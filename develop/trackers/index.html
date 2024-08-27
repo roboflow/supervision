@@ -2349,19 +2349,19 @@ false detection or double detection, but risks missing shorter tracks.</p>
 <a id="__codelineno-0-197" name="__codelineno-0-197"></a><span class="sd">    &lt;/video&gt;</span>
 <a id="__codelineno-0-198" name="__codelineno-0-198"></a>
 <a id="__codelineno-0-199" name="__codelineno-0-199"></a><span class="sd">    Parameters:</span>
-<a id="__codelineno-0-200" name="__codelineno-0-200"></a><span class="sd">        track_activation_threshold (float, optional): Detection confidence threshold</span>
+<a id="__codelineno-0-200" name="__codelineno-0-200"></a><span class="sd">        track_activation_threshold (float): Detection confidence threshold</span>
 <a id="__codelineno-0-201" name="__codelineno-0-201"></a><span class="sd">            for track activation. Increasing track_activation_threshold improves accuracy</span>
 <a id="__codelineno-0-202" name="__codelineno-0-202"></a><span class="sd">            and stability but might miss true detections. Decreasing it increases</span>
 <a id="__codelineno-0-203" name="__codelineno-0-203"></a><span class="sd">            completeness but risks introducing noise and instability.</span>
-<a id="__codelineno-0-204" name="__codelineno-0-204"></a><span class="sd">        lost_track_buffer (int, optional): Number of frames to buffer when a track is lost.</span>
+<a id="__codelineno-0-204" name="__codelineno-0-204"></a><span class="sd">        lost_track_buffer (int): Number of frames to buffer when a track is lost.</span>
 <a id="__codelineno-0-205" name="__codelineno-0-205"></a><span class="sd">            Increasing lost_track_buffer enhances occlusion handling, significantly</span>
 <a id="__codelineno-0-206" name="__codelineno-0-206"></a><span class="sd">            reducing the likelihood of track fragmentation or disappearance caused</span>
 <a id="__codelineno-0-207" name="__codelineno-0-207"></a><span class="sd">            by brief detection gaps.</span>
-<a id="__codelineno-0-208" name="__codelineno-0-208"></a><span class="sd">        minimum_matching_threshold (float, optional): Threshold for matching tracks with detections.</span>
+<a id="__codelineno-0-208" name="__codelineno-0-208"></a><span class="sd">        minimum_matching_threshold (float): Threshold for matching tracks with detections.</span>
 <a id="__codelineno-0-209" name="__codelineno-0-209"></a><span class="sd">            Increasing minimum_matching_threshold improves accuracy but risks fragmentation.</span>
 <a id="__codelineno-0-210" name="__codelineno-0-210"></a><span class="sd">            Decreasing it improves completeness but risks false positives and drift.</span>
-<a id="__codelineno-0-211" name="__codelineno-0-211"></a><span class="sd">        frame_rate (int, optional): The frame rate of the video.</span>
-<a id="__codelineno-0-212" name="__codelineno-0-212"></a><span class="sd">        minimum_consecutive_frames (int, optional): Number of consecutive frames that an object must</span>
+<a id="__codelineno-0-211" name="__codelineno-0-211"></a><span class="sd">        frame_rate (int): The frame rate of the video.</span>
+<a id="__codelineno-0-212" name="__codelineno-0-212"></a><span class="sd">        minimum_consecutive_frames (int): Number of consecutive frames that an object must</span>
 <a id="__codelineno-0-213" name="__codelineno-0-213"></a><span class="sd">            be tracked before it is considered a &#39;valid&#39; track.</span>
 <a id="__codelineno-0-214" name="__codelineno-0-214"></a><span class="sd">            Increasing minimum_consecutive_frames prevents the creation of accidental tracks from</span>
 <a id="__codelineno-0-215" name="__codelineno-0-215"></a><span class="sd">            false detection or double detection, but risks missing shorter tracks.</span>

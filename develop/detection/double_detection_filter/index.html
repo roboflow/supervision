@@ -2226,7 +2226,7 @@ closed range from <code>0</code> to <code>1</code>.</p>
 <a id="__codelineno-0-103" name="__codelineno-0-103"></a><span class="sd">        predictions (np.ndarray): An array of object detection predictions in</span>
 <a id="__codelineno-0-104" name="__codelineno-0-104"></a><span class="sd">            the format of `(x_min, y_min, x_max, y_max, score)`</span>
 <a id="__codelineno-0-105" name="__codelineno-0-105"></a><span class="sd">            or `(x_min, y_min, x_max, y_max, score, class)`.</span>
-<a id="__codelineno-0-106" name="__codelineno-0-106"></a><span class="sd">        iou_threshold (float, optional): The intersection-over-union threshold</span>
+<a id="__codelineno-0-106" name="__codelineno-0-106"></a><span class="sd">        iou_threshold (float): The intersection-over-union threshold</span>
 <a id="__codelineno-0-107" name="__codelineno-0-107"></a><span class="sd">            to use for non-maximum suppression.</span>
 <a id="__codelineno-0-108" name="__codelineno-0-108"></a>
 <a id="__codelineno-0-109" name="__codelineno-0-109"></a><span class="sd">    Returns:</span>
@@ -2483,9 +2483,9 @@ non-maximum suppression.</p>
 <a id="__codelineno-0-55" name="__codelineno-0-55"></a><span class="sd">        masks (np.ndarray): A 3D array of binary masks corresponding to the predictions.</span>
 <a id="__codelineno-0-56" name="__codelineno-0-56"></a><span class="sd">            Shape: `(N, H, W)`, where N is the number of predictions, and H, W are the</span>
 <a id="__codelineno-0-57" name="__codelineno-0-57"></a><span class="sd">            dimensions of each mask.</span>
-<a id="__codelineno-0-58" name="__codelineno-0-58"></a><span class="sd">        iou_threshold (float, optional): The intersection-over-union threshold</span>
+<a id="__codelineno-0-58" name="__codelineno-0-58"></a><span class="sd">        iou_threshold (float): The intersection-over-union threshold</span>
 <a id="__codelineno-0-59" name="__codelineno-0-59"></a><span class="sd">            to use for non-maximum suppression.</span>
-<a id="__codelineno-0-60" name="__codelineno-0-60"></a><span class="sd">        mask_dimension (int, optional): The dimension to which the masks should be</span>
+<a id="__codelineno-0-60" name="__codelineno-0-60"></a><span class="sd">        mask_dimension (int): The dimension to which the masks should be</span>
 <a id="__codelineno-0-61" name="__codelineno-0-61"></a><span class="sd">            resized before computing IOU values. Defaults to 640.</span>
 <a id="__codelineno-0-62" name="__codelineno-0-62"></a>
 <a id="__codelineno-0-63" name="__codelineno-0-63"></a><span class="sd">    Returns:</span>
@@ -2665,7 +2665,7 @@ Each group may have 1 or more elements.</p>
 <a id="__codelineno-0-202" name="__codelineno-0-202"></a><span class="sd">            containing the bounding boxes coordinates in format `[x1, y1, x2, y2]`,</span>
 <a id="__codelineno-0-203" name="__codelineno-0-203"></a><span class="sd">            the confidence scores and class_ids. Omit class_id column to allow</span>
 <a id="__codelineno-0-204" name="__codelineno-0-204"></a><span class="sd">            detections of different classes to be merged.</span>
-<a id="__codelineno-0-205" name="__codelineno-0-205"></a><span class="sd">        iou_threshold (float, optional): The intersection-over-union threshold</span>
+<a id="__codelineno-0-205" name="__codelineno-0-205"></a><span class="sd">        iou_threshold (float): The intersection-over-union threshold</span>
 <a id="__codelineno-0-206" name="__codelineno-0-206"></a><span class="sd">            to use for non-maximum suppression. Defaults to 0.5.</span>
 <a id="__codelineno-0-207" name="__codelineno-0-207"></a>
 <a id="__codelineno-0-208" name="__codelineno-0-208"></a><span class="sd">    Returns:</span>

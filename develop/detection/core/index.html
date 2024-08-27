@@ -4860,10 +4860,10 @@ is either a NumPy array or a list of corresponding data.</p>
 <a id="__codelineno-0-1158" name="__codelineno-0-1158"></a><span class="sd">        from a segmentation model, the IoU mask is applied. Otherwise, box IoU is used.</span>
 <a id="__codelineno-0-1159" name="__codelineno-0-1159"></a>
 <a id="__codelineno-0-1160" name="__codelineno-0-1160"></a><span class="sd">        Args:</span>
-<a id="__codelineno-0-1161" name="__codelineno-0-1161"></a><span class="sd">            threshold (float, optional): The intersection-over-union threshold</span>
+<a id="__codelineno-0-1161" name="__codelineno-0-1161"></a><span class="sd">            threshold (float): The intersection-over-union threshold</span>
 <a id="__codelineno-0-1162" name="__codelineno-0-1162"></a><span class="sd">                to use for non-maximum suppression. I&#39;m the lower the value the more</span>
 <a id="__codelineno-0-1163" name="__codelineno-0-1163"></a><span class="sd">                restrictive the NMS becomes. Defaults to 0.5.</span>
-<a id="__codelineno-0-1164" name="__codelineno-0-1164"></a><span class="sd">            class_agnostic (bool, optional): Whether to perform class-agnostic</span>
+<a id="__codelineno-0-1164" name="__codelineno-0-1164"></a><span class="sd">            class_agnostic (bool): Whether to perform class-agnostic</span>
 <a id="__codelineno-0-1165" name="__codelineno-0-1165"></a><span class="sd">                non-maximum suppression. If True, the class_id of each detection</span>
 <a id="__codelineno-0-1166" name="__codelineno-0-1166"></a><span class="sd">                will be ignored. Defaults to False.</span>
 <a id="__codelineno-0-1167" name="__codelineno-0-1167"></a>
@@ -4915,9 +4915,9 @@ is either a NumPy array or a list of corresponding data.</p>
 <a id="__codelineno-0-1213" name="__codelineno-0-1213"></a><span class="sd">        Perform non-maximum merging on the current set of object detections.</span>
 <a id="__codelineno-0-1214" name="__codelineno-0-1214"></a>
 <a id="__codelineno-0-1215" name="__codelineno-0-1215"></a><span class="sd">        Args:</span>
-<a id="__codelineno-0-1216" name="__codelineno-0-1216"></a><span class="sd">            threshold (float, optional): The intersection-over-union threshold</span>
+<a id="__codelineno-0-1216" name="__codelineno-0-1216"></a><span class="sd">            threshold (float): The intersection-over-union threshold</span>
 <a id="__codelineno-0-1217" name="__codelineno-0-1217"></a><span class="sd">                to use for non-maximum merging. Defaults to 0.5.</span>
-<a id="__codelineno-0-1218" name="__codelineno-0-1218"></a><span class="sd">            class_agnostic (bool, optional): Whether to perform class-agnostic</span>
+<a id="__codelineno-0-1218" name="__codelineno-0-1218"></a><span class="sd">            class_agnostic (bool): Whether to perform class-agnostic</span>
 <a id="__codelineno-0-1219" name="__codelineno-0-1219"></a><span class="sd">                non-maximum merging. If True, the class_id of each detection</span>
 <a id="__codelineno-0-1220" name="__codelineno-0-1220"></a><span class="sd">                will be ignored. Defaults to False.</span>
 <a id="__codelineno-0-1221" name="__codelineno-0-1221"></a>
@@ -8999,9 +8999,9 @@ class_agnostic is False.</p>
 <a id="__codelineno-0-1213" name="__codelineno-0-1213"></a><span class="sd">    Perform non-maximum merging on the current set of object detections.</span>
 <a id="__codelineno-0-1214" name="__codelineno-0-1214"></a>
 <a id="__codelineno-0-1215" name="__codelineno-0-1215"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-1216" name="__codelineno-0-1216"></a><span class="sd">        threshold (float, optional): The intersection-over-union threshold</span>
+<a id="__codelineno-0-1216" name="__codelineno-0-1216"></a><span class="sd">        threshold (float): The intersection-over-union threshold</span>
 <a id="__codelineno-0-1217" name="__codelineno-0-1217"></a><span class="sd">            to use for non-maximum merging. Defaults to 0.5.</span>
-<a id="__codelineno-0-1218" name="__codelineno-0-1218"></a><span class="sd">        class_agnostic (bool, optional): Whether to perform class-agnostic</span>
+<a id="__codelineno-0-1218" name="__codelineno-0-1218"></a><span class="sd">        class_agnostic (bool): Whether to perform class-agnostic</span>
 <a id="__codelineno-0-1219" name="__codelineno-0-1219"></a><span class="sd">            non-maximum merging. If True, the class_id of each detection</span>
 <a id="__codelineno-0-1220" name="__codelineno-0-1220"></a><span class="sd">            will be ignored. Defaults to False.</span>
 <a id="__codelineno-0-1221" name="__codelineno-0-1221"></a>
@@ -9229,10 +9229,10 @@ If <code>class_id</code> is None and class_agnostic is False.</p>
 <a id="__codelineno-0-1158" name="__codelineno-0-1158"></a><span class="sd">    from a segmentation model, the IoU mask is applied. Otherwise, box IoU is used.</span>
 <a id="__codelineno-0-1159" name="__codelineno-0-1159"></a>
 <a id="__codelineno-0-1160" name="__codelineno-0-1160"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-1161" name="__codelineno-0-1161"></a><span class="sd">        threshold (float, optional): The intersection-over-union threshold</span>
+<a id="__codelineno-0-1161" name="__codelineno-0-1161"></a><span class="sd">        threshold (float): The intersection-over-union threshold</span>
 <a id="__codelineno-0-1162" name="__codelineno-0-1162"></a><span class="sd">            to use for non-maximum suppression. I&#39;m the lower the value the more</span>
 <a id="__codelineno-0-1163" name="__codelineno-0-1163"></a><span class="sd">            restrictive the NMS becomes. Defaults to 0.5.</span>
-<a id="__codelineno-0-1164" name="__codelineno-0-1164"></a><span class="sd">        class_agnostic (bool, optional): Whether to perform class-agnostic</span>
+<a id="__codelineno-0-1164" name="__codelineno-0-1164"></a><span class="sd">        class_agnostic (bool): Whether to perform class-agnostic</span>
 <a id="__codelineno-0-1165" name="__codelineno-0-1165"></a><span class="sd">            non-maximum suppression. If True, the class_id of each detection</span>
 <a id="__codelineno-0-1166" name="__codelineno-0-1166"></a><span class="sd">            will be ignored. Defaults to False.</span>
 <a id="__codelineno-0-1167" name="__codelineno-0-1167"></a>
