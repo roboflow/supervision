@@ -15,7 +15,7 @@ results = model.infer(image)[0]
 detections = sv.Detections.from_inference(results)
 
 icon_paths = []
-for class_name in detections.data["class_names"]:
+for class_name in detections.data["class_name"]:
     if class_name == "dog":
         icon_paths.append(icon_dog)
     elif class_name == "cat":
@@ -31,7 +31,7 @@ annotated_frame = icon_annotator.annotate(
 )
 ```
 
-- Added [#1385](https://github.com/roboflow/supervision/pull/1385): `BackgroundColorAnnotator`, that draws an overlay on the background images of the detections.
+- Added [#1385](https://github.com/roboflow/supervision/pull/1385): [`BackgroundColorAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.BackgroundColorAnnotator), that draws an overlay on the background images of the detections.
 
 ```python
 import supervision as sv
@@ -50,7 +50,7 @@ annotated_frame = background_overlay_annotator.annotate(
 )
 ```
 
-- Added [#1386](https://github.com/roboflow/supervision/pull/1386): Support for Transformers v5 functions in `sv.Detections.from_transformers`. This includes the `DetrImageProcessor` methods `post_process_object_detection`, `post_process_panoptic_segmentation`, `post_process_semantic_segmentation`, and `post_process_instance_segmentation`.
+- Added [#1386](https://github.com/roboflow/supervision/pull/1386): Support for Transformers v5 functions in [`sv.Detections.from_transformers`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_transformers). This includes the `DetrImageProcessor` methods `post_process_object_detection`, `post_process_panoptic_segmentation`, `post_process_semantic_segmentation`, and `post_process_instance_segmentation`.
 
 ```python
 import torch
@@ -76,7 +76,7 @@ detections = sv.Detections.from_transformers(
     id2label=model.config.id2label)
 ```
 
-- Added [#1354](https://github.com/roboflow/supervision/pull/1354): Ultralytics SAM (Segment Anything Model) support in `sv.Detections.from_ultralytics`. SAM2 was released during this update, and is already supported via `sv.Detections.from_sam`.
+- Added [#1354](https://github.com/roboflow/supervision/pull/1354): Ultralytics SAM (Segment Anything Model) support in [`sv.Detections.from_ultralytics`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_ultralytics). [SAM2](https://sam2.metademolab.com/) was released during this update, and is already supported via [`sv.Detections.from_sam`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_sam).
 
 ```python
 import supervision as sv
@@ -92,15 +92,15 @@ sam_result = mask_generator.generate(IMAGE)
 detections = sv.Detections.from_sam(sam_result=sam_result)
 ```
 
-- Added [#1458](https://github.com/roboflow/supervision/pull/1458): `outline_color` options for `TriangleAnnotator` and `DotAnnotator`.
+- Added [#1458](https://github.com/roboflow/supervision/pull/1458): `outline_color` options for [`TriangleAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.TriangleAnnotator) and [`DotAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.DotAnnotator).
 
-- Added [#1409](https://github.com/roboflow/supervision/pull/1409): `text_color` option for `VertexLabelAnnotator` keypoint annotator.
+- Added [#1409](https://github.com/roboflow/supervision/pull/1409): `text_color` option for [`VertexLabelAnnotator`](https://supervision.roboflow.com/latest/keypoint/annotators/#supervision.keypoint.annotators.VertexLabelAnnotator) keypoint annotator.
 
-- Changed [#1434](https://github.com/roboflow/supervision/pull/1434): `InferenceSlicer` now features an `overlap_ratio_wh` parameter, making it easier to compute slice sizes when handling overlapping slices.
+- Changed [#1434](https://github.com/roboflow/supervision/pull/1434): [`InferenceSlicer`](https://supervision.roboflow.com/latest/detection/tools/inference_slicer/) now features an `overlap_ratio_wh` parameter, making it easier to compute slice sizes when handling overlapping slices.
 
 - Fix [#1448](https://github.com/roboflow/supervision/pull/1448): Various annotator type issues have been resolved, supporting expanded error handling.
 
-- Fix [#1348](https://github.com/roboflow/supervision/pull/1348): Introduced a new method for seeking to a specific video frame, addressing cases where traditional seek methods were failing. It can be enabled with `iterative_seek=True`.
+- Fix [#1348](https://github.com/roboflow/supervision/pull/1348): Introduced a new method for [seeking to a specific video frame](https://supervision.roboflow.com/latest/utils/video/#supervision.utils.video.get_video_frames_generator), addressing cases where traditional seek methods were failing. It can be enabled with `iterative_seek=True`.
 
 ```python
 import supervision as sv
