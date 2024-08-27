@@ -147,7 +147,7 @@ class PolygonZoneAnnotator:
 
         Parameters:
             scene (np.ndarray): The image on which the polygon zone will be annotated
-            label (Optional[str]): An optional label for the count of detected objects
+            label (Optional[str]): A label for the count of detected objects
                 within the polygon zone (default: None)
 
         Returns:

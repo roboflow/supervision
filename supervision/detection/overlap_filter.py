@@ -55,9 +55,9 @@ def mask_non_max_suppression(
         masks (np.ndarray): A 3D array of binary masks corresponding to the predictions.
             Shape: `(N, H, W)`, where N is the number of predictions, and H, W are the
             dimensions of each mask.
-        iou_threshold (float, optional): The intersection-over-union threshold
+        iou_threshold (float): The intersection-over-union threshold
             to use for non-maximum suppression.
-        mask_dimension (int, optional): The dimension to which the masks should be
+        mask_dimension (int): The dimension to which the masks should be
             resized before computing IOU values. Defaults to 640.
 
     Returns:
@@ -103,7 +103,7 @@ def box_non_max_suppression(
         predictions (np.ndarray): An array of object detection predictions in
             the format of `(x_min, y_min, x_max, y_max, score)`
             or `(x_min, y_min, x_max, y_max, score, class)`.
-        iou_threshold (float, optional): The intersection-over-union threshold
+        iou_threshold (float): The intersection-over-union threshold
             to use for non-maximum suppression.
 
     Returns:
@@ -158,7 +158,7 @@ def group_overlapping_boxes(
         predictions (npt.NDArray[np.float64]): An array of shape `(n, 5)` containing
             the bounding boxes coordinates in format `[x1, y1, x2, y2]`
             and the confidence scores.
-        iou_threshold (float, optional): The intersection-over-union threshold
+        iou_threshold (float): The intersection-over-union threshold
             to use for non-maximum suppression. Defaults to 0.5.
 
     Returns:
@@ -202,7 +202,7 @@ def box_non_max_merge(
             containing the bounding boxes coordinates in format `[x1, y1, x2, y2]`,
             the confidence scores and class_ids. Omit class_id column to allow
             detections of different classes to be merged.
-        iou_threshold (float, optional): The intersection-over-union threshold
+        iou_threshold (float): The intersection-over-union threshold
             to use for non-maximum suppression. Defaults to 0.5.
 
     Returns:

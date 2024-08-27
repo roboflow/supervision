@@ -22,7 +22,7 @@ class FPSBasedTimer:
         """Initializes the FPSBasedTimer with the specified frames per second rate.
 
         Args:
-            fps (int, optional): The frame rate of the video stream. Defaults to 30.
+            fps (int): The frame rate of the video stream. Defaults to 30.
         """
         self.fps = fps
         self.frame_id = 0

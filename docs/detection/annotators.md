@@ -316,6 +316,33 @@ status: new
 
     </div>
 
+=== "Icon"
+
+    ```python
+    import supervision as sv
+
+    image = ...
+    detections = sv.Detections(...)
+
+    icon_paths = [
+        "<ICON_PATH>"
+        for _ in detections
+    ]
+
+    icon_annotator = sv.IconAnnotator()
+    annotated_frame = icon_annotator.annotate(
+        scene=image.copy(),
+        detections=detections,
+        icon_path=icon_paths
+    )
+    ```
+
+    <div class="result" markdown>
+
+    ![icon-annotator-example](https://media.roboflow.com/supervision-annotator-examples/icon-annotator-example.png){ align=center width="800" }
+
+    </div>
+
 === "Crop"
 
     ```python
@@ -384,7 +411,7 @@ status: new
     trace_annotator = sv.TraceAnnotator()
 
     video_info = sv.VideoInfo.from_video_path(video_path='...')
-    frames_generator = get_video_frames_generator(source_path='...')
+    frames_generator = sv.get_video_frames_generator(source_path='...')
     tracker = sv.ByteTrack()
 
     with sv.VideoSink(target_path='...', video_info=video_info) as sink:
@@ -415,7 +442,7 @@ status: new
     heat_map_annotator = sv.HeatMapAnnotator()
 
     video_info = sv.VideoInfo.from_video_path(video_path='...')
-    frames_generator = get_video_frames_generator(source_path='...')
+    frames_generator = sv.get_video_frames_generator(source_path='...')
 
     with sv.VideoSink(target_path='...', video_info=video_info) as sink:
         for frame in frames_generator:
@@ -549,6 +576,12 @@ status: new
 </div>
 
 :::supervision.annotators.core.RichLabelAnnotator
+
+<div class="md-typeset">
+    <h2><a href="#supervision.annotators.core.IconAnnotator">IconAnnotator</a></h2>
+</div>
+
+:::supervision.annotators.core.IconAnnotator
 
 <div class="md-typeset">
     <h2><a href="#supervision.annotators.core.BlurAnnotator">BlurAnnotator</a></h2>
