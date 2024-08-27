@@ -173,7 +173,7 @@ Furthermore, we have integrated a pre-commit GitHub Action into our workflow. Th
 
 To run the pre-commit tool, follow these steps:
 
-1. Install pre-commit by running the following command: `poetry install`. It will not only install pre-commit but also install all the deps and dev-deps of project
+1. Install pre-commit by running the following command: `poetry install --with dev`. It will not only install pre-commit but also install all the deps and dev-deps of project
 
 2. Once pre-commit is installed, navigate to the project's root directory.
 
