@@ -52,6 +52,16 @@ class MeanAveragePrecision(Metric):
         predictions: Union[Detections, List[Detections]],
         targets: Union[Detections, List[Detections]],
     ) -> MeanAveragePrecision:
+        """
+        Add new predictions and targets to the metric, but do not compute the result.
+
+        Args:
+            predictions (Union[Detections, List[Detections]]): The predicted detections.
+            targets (Union[Detections, List[Detections]]): The ground-truth detections.
+
+        Returns:
+            (MeanAveragePrecision): The updated metric instance.
+        """
         if not isinstance(predictions, list):
             predictions = [predictions]
         if not isinstance(targets, list):
@@ -88,45 +98,22 @@ class MeanAveragePrecision(Metric):
                 number of ground-truth objects. Each row is expected to be in
                 `(x_min, y_min, x_max, y_max, class)` format.
         Returns:
-            MeanAveragePrecision: New instance of MeanAveragePrecision.
+            (MeanAveragePrecision): New instance of MeanAveragePrecision.
 
         Example:
             ```python
             import supervision as sv
-            import numpy as np
+            from supervision.metrics import MeanAveragePrecision
 
-            targets = (
-                [
-                    np.array(
-                        [
-                            [0.0, 0.0, 3.0, 3.0, 1],
-                            [2.0, 2.0, 5.0, 5.0, 1],
-                            [6.0, 1.0, 8.0, 3.0, 2],
-                        ]
-                    ),
-                    np.array([[1.0, 1.0, 2.0, 2.0, 2]]),
-                ]
-            )
+            predictions = sv.Detections(...)
+            targets = sv.Detections(...)
 
-            predictions = [
-                np.array(
-                    [
-                        [0.0, 0.0, 3.0, 3.0, 1, 0.9],
-                        [0.1, 0.1, 3.0, 3.0, 0, 0.9],
-                        [6.0, 1.0, 8.0, 3.0, 1, 0.8],
-                        [1.0, 6.0, 2.0, 7.0, 1, 0.8],
-                    ]
-                ),
-                np.array([[1.0, 1.0, 2.0, 2.0, 2, 0.8]])
-            ]
+            map_metric = MeanAveragePrecision()
+            map_result = map_metric.update(predictions, targets).compute()
 
-            mean_average_precison = sv.MeanAveragePrecision.from_tensors(
-                predictions=predictions,
-                targets=targets,
-            )
-
-            print(mean_average_precison.map50_95)
-            # 0.6649
+            print(map_result)
+            print(map_result.map50_95)
+            map_result.plot()
             ```
         """
         (
@@ -243,6 +230,7 @@ class MeanAveragePrecision(Metric):
             map50=map50,
             map75=map75,
             per_class_ap50_95=average_precisions,
+            metric_target=self._metric_target,
         )
 
     @staticmethod
@@ -256,7 +244,7 @@ class MeanAveragePrecision(Metric):
             precision (np.ndarray): The precision curve.
 
         Returns:
-            float: Average precision.
+            (float): Average precision.
         """
         extended_recall = np.concatenate(([0.0], recall, [1.0]))
         extended_precision = np.concatenate(([1.0], precision, [0.0]))
@@ -320,7 +308,7 @@ class MeanAveragePrecision(Metric):
             eps (float, optional): Small value to prevent division by zero.
 
         Returns:
-            np.ndarray: Average precision for different IoU levels.
+            (np.ndarray): Average precision for different IoU levels.
         """
         eps = 1e-16
 
@@ -361,15 +349,44 @@ class MeanAveragePrecision(Metric):
 @dataclass
 class MeanAveragePrecisionResult:
     iou_thresholds: np.ndarray
+    """Array of IoU thresholds used in the calculations"""
     map50_95: float
+    """Mean Average Precision over IoU thresholds from 0.5 to 0.95"""
+
     map50: float
+    """Mean Average Precision at IoU threshold of 0.5"""
+
     map75: float
+    """Mean Average Precision at IoU threshold of 0.75"""
+
     per_class_ap50_95: np.ndarray
+    """Average precision for each class at different IoU thresholds"""
+
+    metric_target: MetricTarget
+    """
+    Defines the type of data used for the metric - boxes, masks or
+    oriented bounding boxes.
+    """
+
     small_objects: Optional[MeanAveragePrecisionResult] = None
+    """Mean Average Precision results for small objects"""
+
     medium_objects: Optional[MeanAveragePrecisionResult] = None
+    """Mean Average Precision results for medium objects"""
+
     large_objects: Optional[MeanAveragePrecisionResult] = None
+    """Mean Average Precision results for large objects"""
 
     def __str__(self) -> str:
+        """
+        Format the mAP results as a pretty string.
+
+        Example:
+            ```python
+            print(map_result)
+            ```
+        """
+
         out_str = (
             f"{self.__class__.__name__}:\n"
             f"iou_thresholds: {self.iou_thresholds}\n"
@@ -402,7 +419,7 @@ class MeanAveragePrecisionResult:
         Convert the result to a pandas DataFrame.
 
         Returns:
-            pd.DataFrame: The result as a DataFrame.
+            (pd.DataFrame): The result as a DataFrame.
         """
         ensure_pandas_installed()
         import pandas as pd

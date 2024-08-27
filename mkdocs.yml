@@ -47,7 +47,6 @@ nav:
       - Detection and Segmentation:
           - Core: detection/core.md
           - Annotators: detection/annotators.md
-          - Metrics: detection/metrics.md
           - Double Detection Filter: detection/double_detection_filter.md
           - Utils: detection/utils.md
       - Keypoint Detection:
@@ -67,6 +66,8 @@ nav:
           - Utils: datasets/utils.md
       - Metrics:
           - IoU: metrics/intersection_over_union.md
+          - mAP: metrics/mean_average_precision.md
+          - Legacy Metrics: detection/legacy_metrics.md
       - Utils:
           - Video: utils/video.md
           - Image: utils/image.md

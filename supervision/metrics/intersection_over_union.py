@@ -65,15 +65,13 @@ class IntersectionOverUnion(Metric):
     ) -> IntersectionOverUnion:
         """
         Add data to the metric, without computing the result.
-        Should call all update methods of the shared data store.
 
         Args:
             data_1 (Union[Detection, List[Detections]]): The first set of data.
             data_2 (Union[Detection, List[Detections]]): The second set of data.
 
         Returns:
-            Metric: The metric object itself. You can get the metric result
-            by calling the `compute` method.
+            (IntersectionOverUnion): The updated metric instance.
         """
         if self._is_store_shared:
             # Should be updated by the parent metric
@@ -103,10 +101,32 @@ class IntersectionOverUnion(Metric):
         Uses the data set with the `update` method.
 
         Returns:
-            Dict[int, npt.NDArray[np.float32]]: A dictionary with class IDs as keys.
-            If no class ID is provided, the key is the value CLASS_ID_NONE. The values
-            are (N, M) arrays where N is the number of predictions and M is the number
-            of targets.
+            IntersectionOverUnionResult: IoU results.
+
+        Example:
+            ```python
+            import supervision as sv
+            from supervision.metrics import IntersectionOverUnion
+
+            detections_1 = sv.Detections(...)
+            detections_2 = sv.Detections(...)
+
+            iou_metric = IntersectionOverUnion(class_agnostic=False)
+            iou_result = map_metric.update(detections_1, detections_2).compute()
+            print(iou_result)
+
+            class_id = 2
+            ious = iou_result[class_id]
+
+            class_id = -1  # no class
+            ious = iou_result[class_id]
+
+            for class_id, ious in iou_result:
+                ...
+
+            iou_result.plot()
+            ```
+
         """
         ious_by_class = {}
         for class_id in self._store.get_classes():
@@ -135,25 +155,75 @@ class IntersectionOverUnion(Metric):
 @dataclass
 class IntersectionOverUnionResult:
     ious_by_class: Dict[int, npt.NDArray[np.float32]]
+    """The IoU matrices for each class."""
+
     metric_target: MetricTarget
+    """
+    Defines the type of data used for the metric - boxes, masks or
+    oriented bounding boxes.
+    """
 
     @property
     def class_ids(self) -> List[int]:
         return list(self.ious_by_class.keys())
 
     def __getitem__(self, class_id: int) -> npt.NDArray[np.float32]:
+        """
+        Get the IoU matrix for a specific class.
+
+        Args:
+            class_id (int): The class ID. Set `-1` to access "no class" data.
+            If class-agnostic IoU was used, all class IDs will be `-1`.
+
+        Returns:
+            (npt.NDArray[np.float32]): The IoU matrix for the class.
+
+        Example:
+            ```python
+            class_id = 2
+            ious = iou_result[class_id]
+            ```
+        """
         return self.ious_by_class[class_id]
 
     def __iter__(self):
+        """
+        Iterate over the IoU matrices for each class.
+
+        Returns:
+            (Iterator[Tuple[int, npt.NDArray[np.float32]]]): An iterator
+                with class IDs as keys and IoU matrices as values.
+
+        Example:
+            ```python
+            for class_id, ious in iou_result:
+                ...
+            ```
+        """
         return iter(self.ious_by_class.items())
 
     def __str__(self) -> str:
+        """
+        Format the IoU results as a pretty string.
+
+        Example:
+            ```python
+            print(iou_result)
+            ```
+        """
         out_str = f"{self.__class__.__name__}:\n"
         for class_id, iou in self.ious_by_class.items():
             out_str += f"IoUs for class {class_id}:\n{str(iou)}\n"
         return out_str
 
     def to_pandas(self) -> Dict[int, "pd.DataFrame"]:
+        """
+        Convert the results to multiple pandas DataFrames.
+
+        Returns:
+            (Dict[int, pd.DataFrame]): A dictionary with class IDs as keys and pandas
+                DataFrames as values.
+        """
         ensure_pandas_installed()
         import pandas as pd
 
