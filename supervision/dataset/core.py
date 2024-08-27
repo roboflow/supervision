@@ -1002,7 +1002,10 @@ class KeyPointDataset(BaseDataset):
         return True
 
     def split(
-        self, split_ratio=0.8, random_state=None, shuffle: bool = True
+        self,
+        split_ratio: float = 0.8,
+        random_state: Optional[int] = None,
+        shuffle: bool = True,
     ) -> Tuple[KeyPointDataset, KeyPointDataset]:
         """
         Splits the dataset into two parts (training and testing)
