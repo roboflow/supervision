@@ -1,18 +1,21 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import dataclass
-from itertools import zip_longest
 from typing import TYPE_CHECKING, List, Optional, Union
 
 import numpy as np
 from matplotlib import pyplot as plt
 
+from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
 from supervision.detection.utils import box_iou_batch, mask_iou_batch
 from supervision.draw.color import LEGACY_COLOR_PALETTE
 from supervision.metrics.core import Metric, MetricTarget
-from supervision.metrics.utils.internal_data_store import MetricDataStore
-from supervision.metrics.utils.object_size import ObjectSizeCategory
+from supervision.metrics.utils.object_size import (
+    ObjectSizeCategory,
+    get_detection_size_category,
+)
 from supervision.metrics.utils.utils import ensure_pandas_installed
 
 if TYPE_CHECKING:
@@ -40,12 +43,12 @@ class MeanAveragePrecision(Metric):
 
         self._class_agnostic = class_agnostic
 
-        self._store = MetricDataStore(metric_target, class_agnostic)
-
-        self.reset()
+        self._predictions_list: List[Detections] = []
+        self._targets_list: List[Detections] = []
 
     def reset(self) -> None:
-        return self._store.reset()
+        self._predictions_list = []
+        self._targets_list = []
 
     def update(
         self,
@@ -67,19 +70,16 @@ class MeanAveragePrecision(Metric):
         if not isinstance(targets, list):
             targets = [targets]
 
-        for pred, target in zip_longest(
-            predictions, targets, fillvalue=Detections.empty()
-        ):
-            self._update(pred, target)
+        if len(predictions) != len(targets):
+            raise ValueError(
+                f"The number of predictions ({len(predictions)}) and"
+                f" targets ({len(targets)}) during the update must be the same."
+            )
+
+        self._predictions_list.extend(predictions)
+        self._targets_list.extend(targets)
 
         return self
-
-    def _update(
-        self,
-        predictions: Detections,
-        targets: Detections,
-    ) -> None:
-        self._store.update(predictions, targets)
 
     def compute(
         self,
@@ -116,102 +116,87 @@ class MeanAveragePrecision(Metric):
             map_result.plot()
             ```
         """
-        (
-            (predictions, prediction_classes, prediction_confidence),
-            (targets, target_classes, _),
-        ) = self._store.get()
-        result = self._compute(
-            predictions,
-            prediction_classes,
-            prediction_confidence,
-            targets,
-            target_classes,
-        )
+        result = self._compute(self._predictions_list, self._targets_list)
 
-        (
-            (predictions, prediction_classes, prediction_confidence),
-            (targets, target_classes, _),
-        ) = self._store.get(size_category=ObjectSizeCategory.SMALL)
-        small_result = self._compute(
-            predictions,
-            prediction_classes,
-            prediction_confidence,
-            targets,
-            target_classes,
-        )
-        result.small_objects = small_result
+        small_predictions = []
+        small_targets = []
+        for predictions, targets in zip(self._predictions_list, self._targets_list):
+            small_predictions.append(
+                self._filter_detections_by_size(predictions, ObjectSizeCategory.SMALL)
+            )
+            small_targets.append(
+                self._filter_detections_by_size(targets, ObjectSizeCategory.SMALL)
+            )
+        result.small_objects = self._compute(small_predictions, small_targets)
 
-        (
-            (predictions, prediction_classes, prediction_confidence),
-            (targets, target_classes, _),
-        ) = self._store.get(size_category=ObjectSizeCategory.MEDIUM)
-        medium_result = self._compute(
-            predictions,
-            prediction_classes,
-            prediction_confidence,
-            targets,
-            target_classes,
-        )
-        result.medium_objects = medium_result
+        medium_predictions = []
+        medium_targets = []
+        for predictions, targets in zip(self._predictions_list, self._targets_list):
+            medium_predictions.append(
+                self._filter_detections_by_size(predictions, ObjectSizeCategory.MEDIUM)
+            )
+            medium_targets.append(
+                self._filter_detections_by_size(targets, ObjectSizeCategory.MEDIUM)
+            )
+        result.medium_objects = self._compute(medium_predictions, medium_targets)
 
-        (
-            (predictions, prediction_classes, prediction_confidence),
-            (targets, target_classes, _),
-        ) = self._store.get(size_category=ObjectSizeCategory.LARGE)
-        large_result = self._compute(
-            predictions,
-            prediction_classes,
-            prediction_confidence,
-            targets,
-            target_classes,
-        )
-        result.large_objects = large_result
+        large_predictions = []
+        large_targets = []
+        for predictions, targets in zip(self._predictions_list, self._targets_list):
+            large_predictions.append(
+                self._filter_detections_by_size(predictions, ObjectSizeCategory.LARGE)
+            )
+            large_targets.append(
+                self._filter_detections_by_size(targets, ObjectSizeCategory.LARGE)
+            )
+        result.large_objects = self._compute(large_predictions, large_targets)
 
         return result
 
     def _compute(
         self,
-        predictions: np.ndarray,
-        prediction_classes: np.ndarray,
-        prediction_confidence: np.ndarray,
-        targets: np.ndarray,
-        target_classes: np.ndarray,
+        predictions_list: List[Detections],
+        targets_list: List[Detections],
     ) -> MeanAveragePrecisionResult:
         iou_thresholds = np.linspace(0.5, 0.95, 10)
         stats = []
 
-        if targets.shape[0] > 0:
-            if predictions.shape[0] == 0:
-                stats.append(
-                    (
-                        np.zeros((0, iou_thresholds.size), dtype=bool),
-                        np.zeros((0,), dtype=np.float32),
-                        np.zeros((0,), dtype=int),
-                        target_classes,
-                    )
-                )
+        for predictions, targets in zip(predictions_list, targets_list):
+            prediction_contents = self._detections_content(predictions)
+            target_contents = self._detections_content(targets)
 
-            else:
-                if self._metric_target == MetricTarget.BOXES:
-                    iou = box_iou_batch(targets, predictions)
-                elif self._metric_target == MetricTarget.MASKS:
-                    iou = mask_iou_batch(targets, predictions)
+            if len(targets) > 0:
+                if len(predictions) == 0:
+                    stats.append(
+                        (
+                            np.zeros((0, iou_thresholds.size), dtype=bool),
+                            np.zeros((0,), dtype=np.float32),
+                            np.zeros((0,), dtype=int),
+                            targets.class_id,
+                        )
+                    )
+
                 else:
-                    raise NotImplementedError(
-                        "Unsupported metric target for IoU calculation"
-                    )
+                    if self._metric_target == MetricTarget.BOXES:
+                        iou = box_iou_batch(target_contents, prediction_contents)
+                    elif self._metric_target == MetricTarget.MASKS:
+                        iou = mask_iou_batch(target_contents, prediction_contents)
+                    else:
+                        raise NotImplementedError(
+                            "Unsupported metric target for IoU calculation"
+                        )
 
-                matches = self._match_detection_batch(
-                    prediction_classes, target_classes, iou, iou_thresholds
-                )
-                stats.append(
-                    (
-                        matches,
-                        prediction_confidence,
-                        prediction_classes,
-                        target_classes,
+                    matches = self._match_detection_batch(
+                        predictions.class_id, targets.class_id, iou, iou_thresholds
                     )
-                )
+                    stats.append(
+                        (
+                            matches,
+                            predictions.confidence,
+                            predictions.class_id,
+                            targets.class_id,
+                        )
+                    )
 
         # Compute average precisions if any matches exist
         if stats:
@@ -344,6 +329,57 @@ class MeanAveragePrecision(Metric):
                 )
 
         return average_precisions
+
+    def _detections_content(self, detections: Detections) -> np.ndarray:
+        """Return boxes, masks or oriented bounding boxes from detections."""
+        if self._metric_target == MetricTarget.BOXES:
+            return detections.xyxy
+        if self._metric_target == MetricTarget.MASKS:
+            return (
+                detections.mask
+                if detections.mask is not None
+                else self._make_empty_content()
+            )
+        if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
+            if obb := detections.data.get(ORIENTED_BOX_COORDINATES):
+                return np.ndarray(obb, dtype=np.float32)
+            return self._make_empty_content()
+        raise ValueError(f"Invalid metric target: {self._metric_target}")
+
+    def _make_empty_content(self) -> np.ndarray:
+        if self._metric_target == MetricTarget.BOXES:
+            return np.empty((0, 4), dtype=np.float32)
+        if self._metric_target == MetricTarget.MASKS:
+            return np.empty((0, 0, 0), dtype=bool)
+        if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
+            return np.empty((0, 8), dtype=np.float32)
+        raise ValueError(f"Invalid metric target: {self._metric_target}")
+
+    def _filter_detections_by_size(
+        self, detections: Detections, size_category: ObjectSizeCategory
+    ) -> Detections:
+        """Return a copy of detections with contents filtered by object size."""
+        new_detections = deepcopy(detections)
+        if detections.is_empty() or size_category == ObjectSizeCategory.ANY:
+            return new_detections
+
+        sizes = get_detection_size_category(new_detections, self._metric_target)
+        size_mask = sizes == size_category
+
+        new_detections.xyxy = new_detections.xyxy[size_mask]
+        if new_detections.mask is not None:
+            new_detections.mask = new_detections.mask[size_mask]
+        if new_detections.class_id is not None:
+            new_detections.class_id = new_detections.class_id[size_mask]
+        if new_detections.confidence is not None:
+            new_detections.confidence = new_detections.confidence[size_mask]
+        if new_detections.tracker_id is not None:
+            new_detections.tracker_id = new_detections.tracker_id[size_mask]
+        if new_detections.data is not None:
+            for key, value in new_detections.data.items():
+                new_detections.data[key] = np.array(value)[size_mask]
+
+        return new_detections
 
 
 @dataclass

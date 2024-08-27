@@ -664,12 +664,12 @@ class MeanAveragePrecision:
                 np.array([[1.0, 1.0, 2.0, 2.0, 2, 0.8]])
             ]
 
-            mean_average_precison = sv.MeanAveragePrecision.from_tensors(
+            mean_average_precision = sv.MeanAveragePrecision.from_tensors(
                 predictions=predictions,
                 targets=targets,
             )
 
-            print(mean_average_precison.map50_95)
+            print(mean_average_precision.map50_95)
             # 0.6649
             ```
         """
