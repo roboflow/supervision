@@ -82,7 +82,7 @@ docutils = [
 
 [tool.poetry.group.docs.dependencies]
 mkdocs-material = { extras = ["imaging"], version = "^9.5.5" }
-mkdocstrings = { extras = ["python"], version = ">=0.20,<0.26" }
+mkdocstrings = { extras = ["python"], version = "^0.25.2" }
 mike = "^2.0.0"
 # For Documentation Development use Python 3.10 or above
 # Use Latest mkdocs-jupyter min 0.24.6 for Jupyter Notebook Theme support
@@ -90,9 +90,15 @@ mkdocs-jupyter = "^0.24.3"
 mkdocs-git-committers-plugin-2 = "^2.2.3"
 mkdocs-git-revision-date-localized-plugin = "^1.2.4"
 
-[tool.isort]
-line_length = 88
-profile = "black"
+[tool.poetry.group.typecheck]
+optional = true
+
+[tool.poetry.group.typecheck.dependencies]
+types-pyyaml = "^6.0.12.20240808"
+types-cffi = "^1.16.0.20240331"
+types-requests = "^2.32.0.20240712"
+types-tqdm = "^4.66.0.20240417"
+
 
 [tool.bandit]
 target = ["test", "supervision"]
@@ -157,7 +163,7 @@ indent-width = 4
 
 [tool.ruff.lint]
 # Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
-select = ["E", "F"]
+select = ["E", "F", "I", "A", "Q", "W"]
 ignore = []
 # Allow autofix for all enabled rules (when `--fix`) is provided.
 fixable = [
@@ -225,6 +231,10 @@ convention = "google"
 [tool.ruff.lint.mccabe]
 # Flag errors (`C901`) whenever the complexity level exceeds 5.
 max-complexity = 20
+
+[tool.ruff.lint.isort]
+order-by-type = true
+no-sections = false
 
 [tool.ruff.format]
 # Like Black, use double quotes for strings.

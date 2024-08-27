@@ -1,3 +1,136 @@
+### 0.23.0 <small>Aug 28, 2024</small>
+
+- Added [#930](https://github.com/roboflow/supervision/pull/930): `IconAnnotator`, a [new annotator](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.IconAnnotator) that allows drawing icons on each detection. Useful if you want to draw a specific icon for each class.
+
+```python
+import supervision as sv
+from inference import get_model
+
+image = <SOURCE_IMAGE_PATH>
+icon_dog = <DOG_PNG_PATH>
+icon_cat = <CAT_PNG_PATH>
+
+model = get_model(model_id="yolov8n-640")
+results = model.infer(image)[0]
+detections = sv.Detections.from_inference(results)
+
+icon_paths = []
+for class_name in detections.data["class_name"]:
+    if class_name == "dog":
+        icon_paths.append(icon_dog)
+    elif class_name == "cat":
+        icon_paths.append(icon_cat)
+    else:
+        icon_paths.append("")
+
+icon_annotator = sv.IconAnnotator()
+annotated_frame = icon_annotator.annotate(
+    scene=image.copy(),
+    detections=detections,
+    icon_path=icon_paths
+)
+```
+
+- Added [#1385](https://github.com/roboflow/supervision/pull/1385): [`BackgroundColorAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.BackgroundColorAnnotator), that draws an overlay on the background images of the detections.
+
+```python
+import supervision as sv
+from inference import get_model
+
+image = <SOURCE_IMAGE_PATH>
+
+model = get_model(model_id="yolov8n-640")
+results = model.infer(image)[0]
+detections = sv.Detections.from_inference(results)
+
+background_overlay_annotator = sv.BackgroundOverlayAnnotator()
+annotated_frame = background_overlay_annotator.annotate(
+    scene=image.copy(),
+    detections=detections
+)
+```
+
+- Added [#1386](https://github.com/roboflow/supervision/pull/1386): Support for Transformers v5 functions in [`sv.Detections.from_transformers`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_transformers). This includes the `DetrImageProcessor` methods `post_process_object_detection`, `post_process_panoptic_segmentation`, `post_process_semantic_segmentation`, and `post_process_instance_segmentation`.
+
+```python
+import torch
+import supervision as sv
+from PIL import Image
+from transformers import DetrImageProcessor, DetrForObjectDetection
+
+processor = DetrImageProcessor.from_pretrained("facebook/detr-resnet-50")
+model = DetrForObjectDetection.from_pretrained("facebook/detr-resnet-50")
+
+image = Image.open(<SOURCE_IMAGE_PATH>)
+inputs = processor(images=image, return_tensors="pt")
+
+with torch.no_grad():
+    outputs = model(**inputs)
+
+width, height = image.size
+target_size = torch.tensor([[height, width]])
+results = processor.post_process_object_detection(
+    outputs=outputs, target_sizes=target_size)[0]
+detections = sv.Detections.from_transformers(
+    transformers_results=results,
+    id2label=model.config.id2label)
+```
+
+- Added [#1354](https://github.com/roboflow/supervision/pull/1354): Ultralytics SAM (Segment Anything Model) support in [`sv.Detections.from_ultralytics`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_ultralytics). [SAM2](https://sam2.metademolab.com/) was released during this update, and is already supported via [`sv.Detections.from_sam`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_sam).
+
+```python
+import supervision as sv
+from segment_anything import (
+    sam_model_registry,
+    SamAutomaticMaskGenerator
+)
+
+sam_model_reg = sam_model_registry[MODEL_TYPE]
+sam = sam_model_reg(checkpoint=CHECKPOINT_PATH).to(device=DEVICE)
+mask_generator = SamAutomaticMaskGenerator(sam)
+sam_result = mask_generator.generate(IMAGE)
+detections = sv.Detections.from_sam(sam_result=sam_result)
+```
+
+- Added [#1458](https://github.com/roboflow/supervision/pull/1458): `outline_color` options for [`TriangleAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.TriangleAnnotator) and [`DotAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.DotAnnotator).
+
+- Added [#1409](https://github.com/roboflow/supervision/pull/1409): `text_color` option for [`VertexLabelAnnotator`](https://supervision.roboflow.com/latest/keypoint/annotators/#supervision.keypoint.annotators.VertexLabelAnnotator) keypoint annotator.
+
+- Changed [#1434](https://github.com/roboflow/supervision/pull/1434): [`InferenceSlicer`](https://supervision.roboflow.com/latest/detection/tools/inference_slicer/) now features an `overlap_ratio_wh` parameter, making it easier to compute slice sizes when handling overlapping slices.
+
+- Fix [#1448](https://github.com/roboflow/supervision/pull/1448): Various annotator type issues have been resolved, supporting expanded error handling.
+
+- Fix [#1348](https://github.com/roboflow/supervision/pull/1348): Introduced a new method for [seeking to a specific video frame](https://supervision.roboflow.com/latest/utils/video/#supervision.utils.video.get_video_frames_generator), addressing cases where traditional seek methods were failing. It can be enabled with `iterative_seek=True`.
+
+```python
+import supervision as sv
+
+for frame in sv.get_video_frames_generator(
+    source_path=<SOURCE_VIDEO_PATH>,
+    start=60,
+    iterative_seek=True
+):
+    ...
+```
+
+- Fix [#1424](https://github.com/roboflow/supervision/pull/1424): `plot_image` function now clearly indicates that the size is in inches.
+
+!!! failure "Removed"
+
+    The `track_buffer`, `track_thresh`, and `match_thresh` parameters in [`ByteTrack`](trackers.md/#supervision.tracker.byte_tracker.core.ByteTrack) are deprecated and were removed as of `supervision-0.23.0`. Use `lost_track_buffer,` `track_activation_threshold`, and `minimum_matching_threshold` instead.
+
+!!! failure "Removed"
+
+    The `triggering_position ` parameter in [`sv.PolygonZone`](detection/tools/polygon_zone.md/#supervision.detection.tools.polygon_zone.PolygonZone) was removed as of `supervision-0.23.0`. Use `triggering_anchors ` instead.
+
+!!! failure "Deprecated"
+
+    `overlap_filter_strategy` in `InferenceSlicer.__init__` is deprecated and will be removed in `supervision-0.27.0`. Use `overlap_strategy` instead.
+
+!!! failure "Deprecated"
+
+    `overlap_ratio_wh` in `InferenceSlicer.__init__` is deprecated and will be removed in `supervision-0.27.0`. Use `overlap_wh` instead.
+
 ### 0.22.0 <small>Jul 12, 2024</small>
 
 - Added [#1326](https://github.com/roboflow/supervision/pull/1326): [`sv.DetectionsDataset`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset) and [`sv.ClassificationDataset`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.ClassificationDataset) allowing to load the images into memory only when necessary (lazy loading).
@@ -360,7 +493,7 @@ annotated_frame = crop_annotator.annotate(
 
 !!! failure "Deprecated"
 
-    The `track_buffer`, `track_thresh`, and `match_thresh` parameters in `sv.ByterTrack` are deprecated and will be removed in `supervision-0.23.0`. Use `lost_track_buffer,` `track_activation_threshold`, and `minimum_matching_threshold` instead.
+    The `track_buffer`, `track_thresh`, and `match_thresh` parameters in `sv.ByteTrack` are deprecated and will be removed in `supervision-0.23.0`. Use `lost_track_buffer,` `track_activation_threshold`, and `minimum_matching_threshold` instead.
 
 - Changed [#910](https://github.com/roboflow/supervision/pull/910): [`sv.PolygonZone`](/0.19.0/detection/tools/polygon_zone/#supervision.detection.tools.polygon_zone.PolygonZone) to now accept a list of specific box anchors that must be in zone for a detection to be counted.
 

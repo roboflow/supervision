@@ -139,9 +139,9 @@ def load_yolo_annotations(
             containing the YOLO annotation files.
         data_yaml_path (str): The path to the data
             YAML file containing class information.
-        force_masks (bool, optional): If True, forces masks to be loaded
+        force_masks (bool): If True, forces masks to be loaded
             for all annotations, regardless of whether they are present.
-        is_obb (bool, optional): If True, loads the annotations in OBB format.
+        is_obb (bool): If True, loads the annotations in OBB format.
             OBB annotations are defined as `[class_id, x, y, x, y, x, y, x, y]`,
             where pairs of [x, y] are box corners.
 

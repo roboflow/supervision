@@ -88,15 +88,17 @@ class KeyPoints:
         ```
 
     Attributes:
-        xy (np.ndarray): An array of shape `(n, 2)` containing
-            the bounding boxes coordinates in format `[x1, y1]`
+        xy (np.ndarray): An array of shape `(n, m, 2)` containing
+            `n` detected objects, each composed of `m` equally-sized
+            sets of keypoints, where each point is `[x, y]`.
         confidence (Optional[np.ndarray]): An array of shape
-            `(n,)` containing the confidence scores of the keypoint keypoints.
+            `(n, m)` containing the confidence scores of each keypoint.
         class_id (Optional[np.ndarray]): An array of shape
-            `(n,)` containing the class ids of the keypoint keypoints.
+            `(n,)` containing the class ids of the detected objects.
         data (Dict[str, Union[np.ndarray, List]]): A dictionary containing additional
             data where each key is a string representing the data type, and the value
-            is either a NumPy array or a list of corresponding data.
+            is either a NumPy array or a list of corresponding data of length `n`
+            (one entry per detected object).
     """  # noqa: E501 // docs
 
     xy: npt.NDArray[np.float32]
@@ -132,7 +134,7 @@ class KeyPoints:
     ]:
         """
         Iterates over the Keypoint object and yield a tuple of
-        `(xy, confidence, class_id, data)` for each keypoint detection.
+        `(xy, confidence, class_id, data)` for each object detection.
         """
         for i in range(len(self.xy)):
             yield (

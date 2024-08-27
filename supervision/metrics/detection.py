@@ -806,7 +806,7 @@ class MeanAveragePrecision:
             prediction_confidence (np.ndarray): Objectness value from 0-1.
             prediction_class_ids (np.ndarray): Predicted object classes.
             true_class_ids (np.ndarray): True object classes.
-            eps (float, optional): Small value to prevent division by zero.
+            eps (float): Small value to prevent division by zero.
 
         Returns:
             np.ndarray: Average precision for different IoU levels.

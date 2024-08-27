@@ -142,7 +142,7 @@ def draw_polygon(
         scene (np.ndarray): The scene to draw the polygon on.
         polygon (np.ndarray): The polygon to be drawn, given as a list of vertices.
         color (Color): The color of the polygon.
-        thickness (int, optional): The thickness of the polygon lines, by default 2.
+        thickness (int): The thickness of the polygon lines, by default 2.
 
     Returns:
         np.ndarray: The scene with the polygon drawn on it.
@@ -172,14 +172,14 @@ def draw_text(
         text (str): The text to be drawn.
         text_anchor (Point): The anchor point for the text, represented as a
             Point object with x and y attributes.
-        text_color (Color, optional): The color of the text. Defaults to black.
-        text_scale (float, optional): The scale of the text. Defaults to 0.5.
-        text_thickness (int, optional): The thickness of the text. Defaults to 1.
-        text_padding (int, optional): The amount of padding to add around the text
+        text_color (Color): The color of the text. Defaults to black.
+        text_scale (float): The scale of the text. Defaults to 0.5.
+        text_thickness (int): The thickness of the text. Defaults to 1.
+        text_padding (int): The amount of padding to add around the text
             when drawing a rectangle in the background. Defaults to 10.
-        text_font (int, optional): The font to use for the text.
+        text_font (int): The font to use for the text.
             Defaults to cv2.FONT_HERSHEY_SIMPLEX.
-        background_color (Color, optional): The color of the background rectangle,
+        background_color (Optional[Color]): The color of the background rectangle,
             if one is to be drawn. Defaults to None.
 
     Returns:
