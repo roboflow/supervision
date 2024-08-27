@@ -25,7 +25,9 @@ from supervision.dataset.formats.yolo import (
     save_yolo_annotations,
 )
 from supervision.dataset.utils import (
+    LazyDict,
     build_class_index_mapping,
+    load_lazy_detections,
     map_detections_class_id,
     merge_class_lists,
     save_dataset_images,
@@ -70,7 +72,9 @@ class DetectionDataset(BaseDataset):
         self,
         classes: List[str],
         images: Union[List[str], Dict[str, np.ndarray]],
-        annotations: Dict[str, Detections],
+        annotations: Union[
+            Dict[str, Detections], LazyDict[str, Detections, Detections]
+        ],
     ) -> None:
         self.classes = classes
 
@@ -78,7 +82,11 @@ class DetectionDataset(BaseDataset):
             raise ValueError(
                 "The keys of the images and annotations dictionaries must match."
             )
-        self.annotations = annotations
+
+        if isinstance(annotations, LazyDict):
+            self.annotations = annotations
+        else:
+            self.annotations = LazyDict(load_lazy_detections, annotations)
 
         # Eliminate duplicates while preserving order
         self.image_paths = list(dict.fromkeys(images))
@@ -217,8 +225,8 @@ class DetectionDataset(BaseDataset):
         else:
             train_input = train_paths
             test_input = test_paths
-        train_annotations = {path: self.annotations[path] for path in train_paths}
-        test_annotations = {path: self.annotations[path] for path in test_paths}
+        train_annotations = self.annotations.subset(train_paths)
+        test_annotations = self.annotations.subset(test_paths)
 
         train_dataset = DetectionDataset(
             classes=self.classes,
@@ -306,7 +314,9 @@ class DetectionDataset(BaseDataset):
             class_lists=[dataset.classes for dataset in dataset_list]
         )
 
-        annotations = {}
+        annotations: LazyDict[str, Detections, Detections] = LazyDict(
+            load_lazy_detections
+        )
         for dataset in dataset_list:
             annotations.update(dataset.annotations)
         for dataset in dataset_list:
