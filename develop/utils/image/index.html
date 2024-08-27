@@ -2975,7 +2975,16 @@ may be either a <code>numpy.ndarray</code> or <code>PIL.Image.Image</code>.</p>
 <span class="normal"><a href="#__codelineno-0-287">287</a></span>
 <span class="normal"><a href="#__codelineno-0-288">288</a></span>
 <span class="normal"><a href="#__codelineno-0-289">289</a></span>
-<span class="normal"><a href="#__codelineno-0-290">290</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-219" name="__codelineno-0-219"></a><span class="nd">@ensure_cv2_image_for_processing</span>
+<span class="normal"><a href="#__codelineno-0-290">290</a></span>
+<span class="normal"><a href="#__codelineno-0-291">291</a></span>
+<span class="normal"><a href="#__codelineno-0-292">292</a></span>
+<span class="normal"><a href="#__codelineno-0-293">293</a></span>
+<span class="normal"><a href="#__codelineno-0-294">294</a></span>
+<span class="normal"><a href="#__codelineno-0-295">295</a></span>
+<span class="normal"><a href="#__codelineno-0-296">296</a></span>
+<span class="normal"><a href="#__codelineno-0-297">297</a></span>
+<span class="normal"><a href="#__codelineno-0-298">298</a></span>
+<span class="normal"><a href="#__codelineno-0-299">299</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-219" name="__codelineno-0-219"></a><span class="nd">@ensure_cv2_image_for_processing</span>
 <a id="__codelineno-0-220" name="__codelineno-0-220"></a><span class="k">def</span> <span class="nf">letterbox_image</span><span class="p">(</span>
 <a id="__codelineno-0-221" name="__codelineno-0-221"></a>    <span class="n">image</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span>
 <a id="__codelineno-0-222" name="__codelineno-0-222"></a>    <span class="n">resolution_wh</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
@@ -3029,24 +3038,33 @@ may be either a <code>numpy.ndarray</code> or <code>PIL.Image.Image</code>.</p>
 <a id="__codelineno-0-270" name="__codelineno-0-270"></a>
 <a id="__codelineno-0-271" name="__codelineno-0-271"></a><span class="sd">    ![letterbox_image](https://media.roboflow.com/supervision-docs/letterbox-image.png){ align=center width=&quot;800&quot; }</span>
 <a id="__codelineno-0-272" name="__codelineno-0-272"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa E501 // docs</span>
-<a id="__codelineno-0-273" name="__codelineno-0-273"></a>    <span class="n">color</span> <span class="o">=</span> <span class="n">unify_to_bgr</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span>
-<a id="__codelineno-0-274" name="__codelineno-0-274"></a>    <span class="n">resized_image</span> <span class="o">=</span> <span class="n">resize_image</span><span class="p">(</span>
-<a id="__codelineno-0-275" name="__codelineno-0-275"></a>        <span class="n">image</span><span class="o">=</span><span class="n">image</span><span class="p">,</span> <span class="n">resolution_wh</span><span class="o">=</span><span class="n">resolution_wh</span><span class="p">,</span> <span class="n">keep_aspect_ratio</span><span class="o">=</span><span class="kc">True</span>
-<a id="__codelineno-0-276" name="__codelineno-0-276"></a>    <span class="p">)</span>
-<a id="__codelineno-0-277" name="__codelineno-0-277"></a>    <span class="n">height_new</span><span class="p">,</span> <span class="n">width_new</span> <span class="o">=</span> <span class="n">resized_image</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
-<a id="__codelineno-0-278" name="__codelineno-0-278"></a>    <span class="n">padding_top</span> <span class="o">=</span> <span class="p">(</span><span class="n">resolution_wh</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">height_new</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
-<a id="__codelineno-0-279" name="__codelineno-0-279"></a>    <span class="n">padding_bottom</span> <span class="o">=</span> <span class="n">resolution_wh</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">height_new</span> <span class="o">-</span> <span class="n">padding_top</span>
-<a id="__codelineno-0-280" name="__codelineno-0-280"></a>    <span class="n">padding_left</span> <span class="o">=</span> <span class="p">(</span><span class="n">resolution_wh</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">width_new</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
-<a id="__codelineno-0-281" name="__codelineno-0-281"></a>    <span class="n">padding_right</span> <span class="o">=</span> <span class="n">resolution_wh</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">width_new</span> <span class="o">-</span> <span class="n">padding_left</span>
-<a id="__codelineno-0-282" name="__codelineno-0-282"></a>    <span class="k">return</span> <span class="n">cv2</span><span class="o">.</span><span class="n">copyMakeBorder</span><span class="p">(</span>
-<a id="__codelineno-0-283" name="__codelineno-0-283"></a>        <span class="n">resized_image</span><span class="p">,</span>
-<a id="__codelineno-0-284" name="__codelineno-0-284"></a>        <span class="n">padding_top</span><span class="p">,</span>
-<a id="__codelineno-0-285" name="__codelineno-0-285"></a>        <span class="n">padding_bottom</span><span class="p">,</span>
-<a id="__codelineno-0-286" name="__codelineno-0-286"></a>        <span class="n">padding_left</span><span class="p">,</span>
-<a id="__codelineno-0-287" name="__codelineno-0-287"></a>        <span class="n">padding_right</span><span class="p">,</span>
-<a id="__codelineno-0-288" name="__codelineno-0-288"></a>        <span class="n">cv2</span><span class="o">.</span><span class="n">BORDER_CONSTANT</span><span class="p">,</span>
-<a id="__codelineno-0-289" name="__codelineno-0-289"></a>        <span class="n">value</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
-<a id="__codelineno-0-290" name="__codelineno-0-290"></a>    <span class="p">)</span>
+<a id="__codelineno-0-273" name="__codelineno-0-273"></a>    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+<a id="__codelineno-0-274" name="__codelineno-0-274"></a>    <span class="n">color</span> <span class="o">=</span> <span class="n">unify_to_bgr</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span>
+<a id="__codelineno-0-275" name="__codelineno-0-275"></a>    <span class="n">resized_image</span> <span class="o">=</span> <span class="n">resize_image</span><span class="p">(</span>
+<a id="__codelineno-0-276" name="__codelineno-0-276"></a>        <span class="n">image</span><span class="o">=</span><span class="n">image</span><span class="p">,</span> <span class="n">resolution_wh</span><span class="o">=</span><span class="n">resolution_wh</span><span class="p">,</span> <span class="n">keep_aspect_ratio</span><span class="o">=</span><span class="kc">True</span>
+<a id="__codelineno-0-277" name="__codelineno-0-277"></a>    <span class="p">)</span>
+<a id="__codelineno-0-278" name="__codelineno-0-278"></a>    <span class="n">height_new</span><span class="p">,</span> <span class="n">width_new</span> <span class="o">=</span> <span class="n">resized_image</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+<a id="__codelineno-0-279" name="__codelineno-0-279"></a>    <span class="n">padding_top</span> <span class="o">=</span> <span class="p">(</span><span class="n">resolution_wh</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">height_new</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+<a id="__codelineno-0-280" name="__codelineno-0-280"></a>    <span class="n">padding_bottom</span> <span class="o">=</span> <span class="n">resolution_wh</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">height_new</span> <span class="o">-</span> <span class="n">padding_top</span>
+<a id="__codelineno-0-281" name="__codelineno-0-281"></a>    <span class="n">padding_left</span> <span class="o">=</span> <span class="p">(</span><span class="n">resolution_wh</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">width_new</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+<a id="__codelineno-0-282" name="__codelineno-0-282"></a>    <span class="n">padding_right</span> <span class="o">=</span> <span class="n">resolution_wh</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">width_new</span> <span class="o">-</span> <span class="n">padding_left</span>
+<a id="__codelineno-0-283" name="__codelineno-0-283"></a>    <span class="n">image_with_borders</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">copyMakeBorder</span><span class="p">(</span>
+<a id="__codelineno-0-284" name="__codelineno-0-284"></a>        <span class="n">resized_image</span><span class="p">,</span>
+<a id="__codelineno-0-285" name="__codelineno-0-285"></a>        <span class="n">padding_top</span><span class="p">,</span>
+<a id="__codelineno-0-286" name="__codelineno-0-286"></a>        <span class="n">padding_bottom</span><span class="p">,</span>
+<a id="__codelineno-0-287" name="__codelineno-0-287"></a>        <span class="n">padding_left</span><span class="p">,</span>
+<a id="__codelineno-0-288" name="__codelineno-0-288"></a>        <span class="n">padding_right</span><span class="p">,</span>
+<a id="__codelineno-0-289" name="__codelineno-0-289"></a>        <span class="n">cv2</span><span class="o">.</span><span class="n">BORDER_CONSTANT</span><span class="p">,</span>
+<a id="__codelineno-0-290" name="__codelineno-0-290"></a>        <span class="n">value</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
+<a id="__codelineno-0-291" name="__codelineno-0-291"></a>    <span class="p">)</span>
+<a id="__codelineno-0-292" name="__codelineno-0-292"></a>
+<a id="__codelineno-0-293" name="__codelineno-0-293"></a>    <span class="k">if</span> <span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+<a id="__codelineno-0-294" name="__codelineno-0-294"></a>        <span class="n">image</span><span class="p">[:</span><span class="n">padding_top</span><span class="p">,</span> <span class="p">:,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+<a id="__codelineno-0-295" name="__codelineno-0-295"></a>        <span class="n">image</span><span class="p">[</span><span class="n">height_new</span> <span class="o">-</span> <span class="n">padding_bottom</span> <span class="p">:,</span> <span class="p">:,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+<a id="__codelineno-0-296" name="__codelineno-0-296"></a>        <span class="n">image</span><span class="p">[:,</span> <span class="p">:</span><span class="n">padding_left</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+<a id="__codelineno-0-297" name="__codelineno-0-297"></a>        <span class="n">image</span><span class="p">[:,</span> <span class="n">width_new</span> <span class="o">-</span> <span class="n">padding_right</span> <span class="p">:,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+<a id="__codelineno-0-298" name="__codelineno-0-298"></a>
+<a id="__codelineno-0-299" name="__codelineno-0-299"></a>    <span class="k">return</span> <span class="n">image_with_borders</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3162,16 +3180,7 @@ top-left corner of the image will be placed.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/utils/image.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-293">293</a></span>
-<span class="normal"><a href="#__codelineno-0-294">294</a></span>
-<span class="normal"><a href="#__codelineno-0-295">295</a></span>
-<span class="normal"><a href="#__codelineno-0-296">296</a></span>
-<span class="normal"><a href="#__codelineno-0-297">297</a></span>
-<span class="normal"><a href="#__codelineno-0-298">298</a></span>
-<span class="normal"><a href="#__codelineno-0-299">299</a></span>
-<span class="normal"><a href="#__codelineno-0-300">300</a></span>
-<span class="normal"><a href="#__codelineno-0-301">301</a></span>
-<span class="normal"><a href="#__codelineno-0-302">302</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-302">302</a></span>
 <span class="normal"><a href="#__codelineno-0-303">303</a></span>
 <span class="normal"><a href="#__codelineno-0-304">304</a></span>
 <span class="normal"><a href="#__codelineno-0-305">305</a></span>
@@ -3217,62 +3226,93 @@ top-left corner of the image will be placed.</p>
 <span class="normal"><a href="#__codelineno-0-345">345</a></span>
 <span class="normal"><a href="#__codelineno-0-346">346</a></span>
 <span class="normal"><a href="#__codelineno-0-347">347</a></span>
-<span class="normal"><a href="#__codelineno-0-348">348</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-293" name="__codelineno-0-293"></a><span class="k">def</span> <span class="nf">overlay_image</span><span class="p">(</span>
-<a id="__codelineno-0-294" name="__codelineno-0-294"></a>    <span class="n">image</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">],</span>
-<a id="__codelineno-0-295" name="__codelineno-0-295"></a>    <span class="n">overlay</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">],</span>
-<a id="__codelineno-0-296" name="__codelineno-0-296"></a>    <span class="n">anchor</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
-<a id="__codelineno-0-297" name="__codelineno-0-297"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">]:</span>
-<a id="__codelineno-0-298" name="__codelineno-0-298"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-299" name="__codelineno-0-299"></a><span class="sd">    Places an image onto a scene at a given anchor point, handling cases where</span>
-<a id="__codelineno-0-300" name="__codelineno-0-300"></a><span class="sd">    the image&#39;s position is partially or completely outside the scene&#39;s bounds.</span>
-<a id="__codelineno-0-301" name="__codelineno-0-301"></a>
-<a id="__codelineno-0-302" name="__codelineno-0-302"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-303" name="__codelineno-0-303"></a><span class="sd">        image (np.ndarray): The background scene onto which the image is placed.</span>
-<a id="__codelineno-0-304" name="__codelineno-0-304"></a><span class="sd">        overlay (np.ndarray): The image to be placed onto the scene.</span>
-<a id="__codelineno-0-305" name="__codelineno-0-305"></a><span class="sd">        anchor (Tuple[int, int]): The `(x, y)` coordinates in the scene where the</span>
-<a id="__codelineno-0-306" name="__codelineno-0-306"></a><span class="sd">            top-left corner of the image will be placed.</span>
-<a id="__codelineno-0-307" name="__codelineno-0-307"></a>
-<a id="__codelineno-0-308" name="__codelineno-0-308"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-309" name="__codelineno-0-309"></a><span class="sd">        (np.ndarray): The result image with overlay.</span>
+<span class="normal"><a href="#__codelineno-0-348">348</a></span>
+<span class="normal"><a href="#__codelineno-0-349">349</a></span>
+<span class="normal"><a href="#__codelineno-0-350">350</a></span>
+<span class="normal"><a href="#__codelineno-0-351">351</a></span>
+<span class="normal"><a href="#__codelineno-0-352">352</a></span>
+<span class="normal"><a href="#__codelineno-0-353">353</a></span>
+<span class="normal"><a href="#__codelineno-0-354">354</a></span>
+<span class="normal"><a href="#__codelineno-0-355">355</a></span>
+<span class="normal"><a href="#__codelineno-0-356">356</a></span>
+<span class="normal"><a href="#__codelineno-0-357">357</a></span>
+<span class="normal"><a href="#__codelineno-0-358">358</a></span>
+<span class="normal"><a href="#__codelineno-0-359">359</a></span>
+<span class="normal"><a href="#__codelineno-0-360">360</a></span>
+<span class="normal"><a href="#__codelineno-0-361">361</a></span>
+<span class="normal"><a href="#__codelineno-0-362">362</a></span>
+<span class="normal"><a href="#__codelineno-0-363">363</a></span>
+<span class="normal"><a href="#__codelineno-0-364">364</a></span>
+<span class="normal"><a href="#__codelineno-0-365">365</a></span>
+<span class="normal"><a href="#__codelineno-0-366">366</a></span>
+<span class="normal"><a href="#__codelineno-0-367">367</a></span>
+<span class="normal"><a href="#__codelineno-0-368">368</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-302" name="__codelineno-0-302"></a><span class="k">def</span> <span class="nf">overlay_image</span><span class="p">(</span>
+<a id="__codelineno-0-303" name="__codelineno-0-303"></a>    <span class="n">image</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">],</span>
+<a id="__codelineno-0-304" name="__codelineno-0-304"></a>    <span class="n">overlay</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">],</span>
+<a id="__codelineno-0-305" name="__codelineno-0-305"></a>    <span class="n">anchor</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
+<a id="__codelineno-0-306" name="__codelineno-0-306"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">]:</span>
+<a id="__codelineno-0-307" name="__codelineno-0-307"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-308" name="__codelineno-0-308"></a><span class="sd">    Places an image onto a scene at a given anchor point, handling cases where</span>
+<a id="__codelineno-0-309" name="__codelineno-0-309"></a><span class="sd">    the image&#39;s position is partially or completely outside the scene&#39;s bounds.</span>
 <a id="__codelineno-0-310" name="__codelineno-0-310"></a>
-<a id="__codelineno-0-311" name="__codelineno-0-311"></a><span class="sd">    Examples:</span>
-<a id="__codelineno-0-312" name="__codelineno-0-312"></a><span class="sd">        ```python</span>
-<a id="__codelineno-0-313" name="__codelineno-0-313"></a><span class="sd">        import cv2</span>
-<a id="__codelineno-0-314" name="__codelineno-0-314"></a><span class="sd">        import numpy as np</span>
-<a id="__codelineno-0-315" name="__codelineno-0-315"></a><span class="sd">        import supervision as sv</span>
+<a id="__codelineno-0-311" name="__codelineno-0-311"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-312" name="__codelineno-0-312"></a><span class="sd">        image (np.ndarray): The background scene onto which the image is placed.</span>
+<a id="__codelineno-0-313" name="__codelineno-0-313"></a><span class="sd">        overlay (np.ndarray): The image to be placed onto the scene.</span>
+<a id="__codelineno-0-314" name="__codelineno-0-314"></a><span class="sd">        anchor (Tuple[int, int]): The `(x, y)` coordinates in the scene where the</span>
+<a id="__codelineno-0-315" name="__codelineno-0-315"></a><span class="sd">            top-left corner of the image will be placed.</span>
 <a id="__codelineno-0-316" name="__codelineno-0-316"></a>
-<a id="__codelineno-0-317" name="__codelineno-0-317"></a><span class="sd">        image = cv2.imread(&lt;SOURCE_IMAGE_PATH&gt;)</span>
-<a id="__codelineno-0-318" name="__codelineno-0-318"></a><span class="sd">        overlay = np.zeros((400, 400, 3), dtype=np.uint8)</span>
-<a id="__codelineno-0-319" name="__codelineno-0-319"></a><span class="sd">        result_image = sv.overlay_image(image=image, overlay=overlay, anchor=(200, 400))</span>
-<a id="__codelineno-0-320" name="__codelineno-0-320"></a><span class="sd">        ```</span>
-<a id="__codelineno-0-321" name="__codelineno-0-321"></a>
-<a id="__codelineno-0-322" name="__codelineno-0-322"></a><span class="sd">    ![overlay_image](https://media.roboflow.com/supervision-docs/overlay-image.png){ align=center width=&quot;800&quot; }</span>
-<a id="__codelineno-0-323" name="__codelineno-0-323"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa E501 // docs</span>
-<a id="__codelineno-0-324" name="__codelineno-0-324"></a>    <span class="n">scene_height</span><span class="p">,</span> <span class="n">scene_width</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
-<a id="__codelineno-0-325" name="__codelineno-0-325"></a>    <span class="n">image_height</span><span class="p">,</span> <span class="n">image_width</span> <span class="o">=</span> <span class="n">overlay</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
-<a id="__codelineno-0-326" name="__codelineno-0-326"></a>    <span class="n">anchor_x</span><span class="p">,</span> <span class="n">anchor_y</span> <span class="o">=</span> <span class="n">anchor</span>
-<a id="__codelineno-0-327" name="__codelineno-0-327"></a>
-<a id="__codelineno-0-328" name="__codelineno-0-328"></a>    <span class="n">is_out_horizontally</span> <span class="o">=</span> <span class="n">anchor_x</span> <span class="o">+</span> <span class="n">image_width</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">anchor_x</span> <span class="o">&gt;=</span> <span class="n">scene_width</span>
-<a id="__codelineno-0-329" name="__codelineno-0-329"></a>    <span class="n">is_out_vertically</span> <span class="o">=</span> <span class="n">anchor_y</span> <span class="o">+</span> <span class="n">image_height</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">anchor_y</span> <span class="o">&gt;=</span> <span class="n">scene_height</span>
+<a id="__codelineno-0-317" name="__codelineno-0-317"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-318" name="__codelineno-0-318"></a><span class="sd">        (np.ndarray): The result image with overlay.</span>
+<a id="__codelineno-0-319" name="__codelineno-0-319"></a>
+<a id="__codelineno-0-320" name="__codelineno-0-320"></a><span class="sd">    Examples:</span>
+<a id="__codelineno-0-321" name="__codelineno-0-321"></a><span class="sd">        ```python</span>
+<a id="__codelineno-0-322" name="__codelineno-0-322"></a><span class="sd">        import cv2</span>
+<a id="__codelineno-0-323" name="__codelineno-0-323"></a><span class="sd">        import numpy as np</span>
+<a id="__codelineno-0-324" name="__codelineno-0-324"></a><span class="sd">        import supervision as sv</span>
+<a id="__codelineno-0-325" name="__codelineno-0-325"></a>
+<a id="__codelineno-0-326" name="__codelineno-0-326"></a><span class="sd">        image = cv2.imread(&lt;SOURCE_IMAGE_PATH&gt;)</span>
+<a id="__codelineno-0-327" name="__codelineno-0-327"></a><span class="sd">        overlay = np.zeros((400, 400, 3), dtype=np.uint8)</span>
+<a id="__codelineno-0-328" name="__codelineno-0-328"></a><span class="sd">        result_image = sv.overlay_image(image=image, overlay=overlay, anchor=(200, 400))</span>
+<a id="__codelineno-0-329" name="__codelineno-0-329"></a><span class="sd">        ```</span>
 <a id="__codelineno-0-330" name="__codelineno-0-330"></a>
-<a id="__codelineno-0-331" name="__codelineno-0-331"></a>    <span class="k">if</span> <span class="n">is_out_horizontally</span> <span class="ow">or</span> <span class="n">is_out_vertically</span><span class="p">:</span>
-<a id="__codelineno-0-332" name="__codelineno-0-332"></a>        <span class="k">return</span> <span class="n">image</span>
-<a id="__codelineno-0-333" name="__codelineno-0-333"></a>
-<a id="__codelineno-0-334" name="__codelineno-0-334"></a>    <span class="n">x_min</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">anchor_x</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-<a id="__codelineno-0-335" name="__codelineno-0-335"></a>    <span class="n">y_min</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">anchor_y</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-<a id="__codelineno-0-336" name="__codelineno-0-336"></a>    <span class="n">x_max</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">scene_width</span><span class="p">,</span> <span class="n">anchor_x</span> <span class="o">+</span> <span class="n">image_width</span><span class="p">)</span>
-<a id="__codelineno-0-337" name="__codelineno-0-337"></a>    <span class="n">y_max</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">scene_height</span><span class="p">,</span> <span class="n">anchor_y</span> <span class="o">+</span> <span class="n">image_height</span><span class="p">)</span>
-<a id="__codelineno-0-338" name="__codelineno-0-338"></a>
-<a id="__codelineno-0-339" name="__codelineno-0-339"></a>    <span class="n">crop_x_min</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="o">-</span><span class="n">anchor_x</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-<a id="__codelineno-0-340" name="__codelineno-0-340"></a>    <span class="n">crop_y_min</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="o">-</span><span class="n">anchor_y</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-<a id="__codelineno-0-341" name="__codelineno-0-341"></a>    <span class="n">crop_x_max</span> <span class="o">=</span> <span class="n">image_width</span> <span class="o">-</span> <span class="nb">max</span><span class="p">((</span><span class="n">anchor_x</span> <span class="o">+</span> <span class="n">image_width</span><span class="p">)</span> <span class="o">-</span> <span class="n">scene_width</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-<a id="__codelineno-0-342" name="__codelineno-0-342"></a>    <span class="n">crop_y_max</span> <span class="o">=</span> <span class="n">image_height</span> <span class="o">-</span> <span class="nb">max</span><span class="p">((</span><span class="n">anchor_y</span> <span class="o">+</span> <span class="n">image_height</span><span class="p">)</span> <span class="o">-</span> <span class="n">scene_height</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-<a id="__codelineno-0-343" name="__codelineno-0-343"></a>
-<a id="__codelineno-0-344" name="__codelineno-0-344"></a>    <span class="n">image</span><span class="p">[</span><span class="n">y_min</span><span class="p">:</span><span class="n">y_max</span><span class="p">,</span> <span class="n">x_min</span><span class="p">:</span><span class="n">x_max</span><span class="p">]</span> <span class="o">=</span> <span class="n">overlay</span><span class="p">[</span>
-<a id="__codelineno-0-345" name="__codelineno-0-345"></a>        <span class="n">crop_y_min</span><span class="p">:</span><span class="n">crop_y_max</span><span class="p">,</span> <span class="n">crop_x_min</span><span class="p">:</span><span class="n">crop_x_max</span>
-<a id="__codelineno-0-346" name="__codelineno-0-346"></a>    <span class="p">]</span>
+<a id="__codelineno-0-331" name="__codelineno-0-331"></a><span class="sd">    ![overlay_image](https://media.roboflow.com/supervision-docs/overlay-image.png){ align=center width=&quot;800&quot; }</span>
+<a id="__codelineno-0-332" name="__codelineno-0-332"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa E501 // docs</span>
+<a id="__codelineno-0-333" name="__codelineno-0-333"></a>    <span class="n">scene_height</span><span class="p">,</span> <span class="n">scene_width</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+<a id="__codelineno-0-334" name="__codelineno-0-334"></a>    <span class="n">image_height</span><span class="p">,</span> <span class="n">image_width</span> <span class="o">=</span> <span class="n">overlay</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+<a id="__codelineno-0-335" name="__codelineno-0-335"></a>    <span class="n">anchor_x</span><span class="p">,</span> <span class="n">anchor_y</span> <span class="o">=</span> <span class="n">anchor</span>
+<a id="__codelineno-0-336" name="__codelineno-0-336"></a>
+<a id="__codelineno-0-337" name="__codelineno-0-337"></a>    <span class="n">is_out_horizontally</span> <span class="o">=</span> <span class="n">anchor_x</span> <span class="o">+</span> <span class="n">image_width</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">anchor_x</span> <span class="o">&gt;=</span> <span class="n">scene_width</span>
+<a id="__codelineno-0-338" name="__codelineno-0-338"></a>    <span class="n">is_out_vertically</span> <span class="o">=</span> <span class="n">anchor_y</span> <span class="o">+</span> <span class="n">image_height</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">anchor_y</span> <span class="o">&gt;=</span> <span class="n">scene_height</span>
+<a id="__codelineno-0-339" name="__codelineno-0-339"></a>
+<a id="__codelineno-0-340" name="__codelineno-0-340"></a>    <span class="k">if</span> <span class="n">is_out_horizontally</span> <span class="ow">or</span> <span class="n">is_out_vertically</span><span class="p">:</span>
+<a id="__codelineno-0-341" name="__codelineno-0-341"></a>        <span class="k">return</span> <span class="n">image</span>
+<a id="__codelineno-0-342" name="__codelineno-0-342"></a>
+<a id="__codelineno-0-343" name="__codelineno-0-343"></a>    <span class="n">x_min</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">anchor_x</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-0-344" name="__codelineno-0-344"></a>    <span class="n">y_min</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">anchor_y</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-0-345" name="__codelineno-0-345"></a>    <span class="n">x_max</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">scene_width</span><span class="p">,</span> <span class="n">anchor_x</span> <span class="o">+</span> <span class="n">image_width</span><span class="p">)</span>
+<a id="__codelineno-0-346" name="__codelineno-0-346"></a>    <span class="n">y_max</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">scene_height</span><span class="p">,</span> <span class="n">anchor_y</span> <span class="o">+</span> <span class="n">image_height</span><span class="p">)</span>
 <a id="__codelineno-0-347" name="__codelineno-0-347"></a>
-<a id="__codelineno-0-348" name="__codelineno-0-348"></a>    <span class="k">return</span> <span class="n">image</span>
+<a id="__codelineno-0-348" name="__codelineno-0-348"></a>    <span class="n">crop_x_min</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="o">-</span><span class="n">anchor_x</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-0-349" name="__codelineno-0-349"></a>    <span class="n">crop_y_min</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="o">-</span><span class="n">anchor_y</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-0-350" name="__codelineno-0-350"></a>    <span class="n">crop_x_max</span> <span class="o">=</span> <span class="n">image_width</span> <span class="o">-</span> <span class="nb">max</span><span class="p">((</span><span class="n">anchor_x</span> <span class="o">+</span> <span class="n">image_width</span><span class="p">)</span> <span class="o">-</span> <span class="n">scene_width</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-0-351" name="__codelineno-0-351"></a>    <span class="n">crop_y_max</span> <span class="o">=</span> <span class="n">image_height</span> <span class="o">-</span> <span class="nb">max</span><span class="p">((</span><span class="n">anchor_y</span> <span class="o">+</span> <span class="n">image_height</span><span class="p">)</span> <span class="o">-</span> <span class="n">scene_height</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-0-352" name="__codelineno-0-352"></a>
+<a id="__codelineno-0-353" name="__codelineno-0-353"></a>    <span class="k">if</span> <span class="n">overlay</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+<a id="__codelineno-0-354" name="__codelineno-0-354"></a>        <span class="n">b</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">alpha</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">split</span><span class="p">(</span>
+<a id="__codelineno-0-355" name="__codelineno-0-355"></a>            <span class="n">overlay</span><span class="p">[</span><span class="n">crop_y_min</span><span class="p">:</span><span class="n">crop_y_max</span><span class="p">,</span> <span class="n">crop_x_min</span><span class="p">:</span><span class="n">crop_x_max</span><span class="p">]</span>
+<a id="__codelineno-0-356" name="__codelineno-0-356"></a>        <span class="p">)</span>
+<a id="__codelineno-0-357" name="__codelineno-0-357"></a>        <span class="n">alpha</span> <span class="o">=</span> <span class="n">alpha</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">/</span> <span class="mf">255.0</span>
+<a id="__codelineno-0-358" name="__codelineno-0-358"></a>        <span class="n">overlay_color</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">merge</span><span class="p">((</span><span class="n">b</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">r</span><span class="p">))</span>
+<a id="__codelineno-0-359" name="__codelineno-0-359"></a>
+<a id="__codelineno-0-360" name="__codelineno-0-360"></a>        <span class="n">roi</span> <span class="o">=</span> <span class="n">image</span><span class="p">[</span><span class="n">y_min</span><span class="p">:</span><span class="n">y_max</span><span class="p">,</span> <span class="n">x_min</span><span class="p">:</span><span class="n">x_max</span><span class="p">]</span>
+<a id="__codelineno-0-361" name="__codelineno-0-361"></a>        <span class="n">roi</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">roi</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">+</span> <span class="n">overlay_color</span> <span class="o">*</span> <span class="n">alpha</span>
+<a id="__codelineno-0-362" name="__codelineno-0-362"></a>        <span class="n">image</span><span class="p">[</span><span class="n">y_min</span><span class="p">:</span><span class="n">y_max</span><span class="p">,</span> <span class="n">x_min</span><span class="p">:</span><span class="n">x_max</span><span class="p">]</span> <span class="o">=</span> <span class="n">roi</span>
+<a id="__codelineno-0-363" name="__codelineno-0-363"></a>    <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-0-364" name="__codelineno-0-364"></a>        <span class="n">image</span><span class="p">[</span><span class="n">y_min</span><span class="p">:</span><span class="n">y_max</span><span class="p">,</span> <span class="n">x_min</span><span class="p">:</span><span class="n">x_max</span><span class="p">]</span> <span class="o">=</span> <span class="n">overlay</span><span class="p">[</span>
+<a id="__codelineno-0-365" name="__codelineno-0-365"></a>            <span class="n">crop_y_min</span><span class="p">:</span><span class="n">crop_y_max</span><span class="p">,</span> <span class="n">crop_x_min</span><span class="p">:</span><span class="n">crop_x_max</span>
+<a id="__codelineno-0-366" name="__codelineno-0-366"></a>        <span class="p">]</span>
+<a id="__codelineno-0-367" name="__codelineno-0-367"></a>
+<a id="__codelineno-0-368" name="__codelineno-0-368"></a>    <span class="k">return</span> <span class="n">image</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3293,27 +3333,7 @@ top-left corner of the image will be placed.</p>
 
               <details class="quote">
                 <summary>Source code in <code>supervision/utils/image.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-351">351</a></span>
-<span class="normal"><a href="#__codelineno-0-352">352</a></span>
-<span class="normal"><a href="#__codelineno-0-353">353</a></span>
-<span class="normal"><a href="#__codelineno-0-354">354</a></span>
-<span class="normal"><a href="#__codelineno-0-355">355</a></span>
-<span class="normal"><a href="#__codelineno-0-356">356</a></span>
-<span class="normal"><a href="#__codelineno-0-357">357</a></span>
-<span class="normal"><a href="#__codelineno-0-358">358</a></span>
-<span class="normal"><a href="#__codelineno-0-359">359</a></span>
-<span class="normal"><a href="#__codelineno-0-360">360</a></span>
-<span class="normal"><a href="#__codelineno-0-361">361</a></span>
-<span class="normal"><a href="#__codelineno-0-362">362</a></span>
-<span class="normal"><a href="#__codelineno-0-363">363</a></span>
-<span class="normal"><a href="#__codelineno-0-364">364</a></span>
-<span class="normal"><a href="#__codelineno-0-365">365</a></span>
-<span class="normal"><a href="#__codelineno-0-366">366</a></span>
-<span class="normal"><a href="#__codelineno-0-367">367</a></span>
-<span class="normal"><a href="#__codelineno-0-368">368</a></span>
-<span class="normal"><a href="#__codelineno-0-369">369</a></span>
-<span class="normal"><a href="#__codelineno-0-370">370</a></span>
-<span class="normal"><a href="#__codelineno-0-371">371</a></span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-371">371</a></span>
 <span class="normal"><a href="#__codelineno-0-372">372</a></span>
 <span class="normal"><a href="#__codelineno-0-373">373</a></span>
 <span class="normal"><a href="#__codelineno-0-374">374</a></span>
@@ -3356,70 +3376,90 @@ top-left corner of the image will be placed.</p>
 <span class="normal"><a href="#__codelineno-0-411">411</a></span>
 <span class="normal"><a href="#__codelineno-0-412">412</a></span>
 <span class="normal"><a href="#__codelineno-0-413">413</a></span>
-<span class="normal"><a href="#__codelineno-0-414">414</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-351" name="__codelineno-0-351"></a><span class="k">class</span> <span class="nc">ImageSink</span><span class="p">:</span>
-<a id="__codelineno-0-352" name="__codelineno-0-352"></a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
-<a id="__codelineno-0-353" name="__codelineno-0-353"></a>        <span class="bp">self</span><span class="p">,</span>
-<a id="__codelineno-0-354" name="__codelineno-0-354"></a>        <span class="n">target_dir_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-<a id="__codelineno-0-355" name="__codelineno-0-355"></a>        <span class="n">overwrite</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-<a id="__codelineno-0-356" name="__codelineno-0-356"></a>        <span class="n">image_name_pattern</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;image_</span><span class="si">{:05d}</span><span class="s2">.png&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-357" name="__codelineno-0-357"></a>    <span class="p">):</span>
-<a id="__codelineno-0-358" name="__codelineno-0-358"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-359" name="__codelineno-0-359"></a><span class="sd">        Initialize a context manager for saving images.</span>
-<a id="__codelineno-0-360" name="__codelineno-0-360"></a>
-<a id="__codelineno-0-361" name="__codelineno-0-361"></a><span class="sd">        Args:</span>
-<a id="__codelineno-0-362" name="__codelineno-0-362"></a><span class="sd">            target_dir_path (str): The target directory where images will be saved.</span>
-<a id="__codelineno-0-363" name="__codelineno-0-363"></a><span class="sd">            overwrite (bool, optional): Whether to overwrite the existing directory.</span>
-<a id="__codelineno-0-364" name="__codelineno-0-364"></a><span class="sd">                Defaults to False.</span>
-<a id="__codelineno-0-365" name="__codelineno-0-365"></a><span class="sd">            image_name_pattern (str, optional): The image file name pattern.</span>
-<a id="__codelineno-0-366" name="__codelineno-0-366"></a><span class="sd">                Defaults to &quot;image_{:05d}.png&quot;.</span>
-<a id="__codelineno-0-367" name="__codelineno-0-367"></a>
-<a id="__codelineno-0-368" name="__codelineno-0-368"></a><span class="sd">        Examples:</span>
-<a id="__codelineno-0-369" name="__codelineno-0-369"></a><span class="sd">            ```python</span>
-<a id="__codelineno-0-370" name="__codelineno-0-370"></a><span class="sd">            import supervision as sv</span>
-<a id="__codelineno-0-371" name="__codelineno-0-371"></a>
-<a id="__codelineno-0-372" name="__codelineno-0-372"></a><span class="sd">            frames_generator = sv.get_video_frames_generator(&lt;SOURCE_VIDEO_PATH&gt;, stride=2)</span>
-<a id="__codelineno-0-373" name="__codelineno-0-373"></a>
-<a id="__codelineno-0-374" name="__codelineno-0-374"></a><span class="sd">            with sv.ImageSink(target_dir_path=&lt;TARGET_CROPS_DIRECTORY&gt;) as sink:</span>
-<a id="__codelineno-0-375" name="__codelineno-0-375"></a><span class="sd">                for image in frames_generator:</span>
-<a id="__codelineno-0-376" name="__codelineno-0-376"></a><span class="sd">                    sink.save_image(image=image)</span>
-<a id="__codelineno-0-377" name="__codelineno-0-377"></a><span class="sd">            ```</span>
-<a id="__codelineno-0-378" name="__codelineno-0-378"></a><span class="sd">        &quot;&quot;&quot;</span>  <span class="c1"># noqa E501 // docs</span>
-<a id="__codelineno-0-379" name="__codelineno-0-379"></a>
-<a id="__codelineno-0-380" name="__codelineno-0-380"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">target_dir_path</span> <span class="o">=</span> <span class="n">target_dir_path</span>
-<a id="__codelineno-0-381" name="__codelineno-0-381"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">overwrite</span> <span class="o">=</span> <span class="n">overwrite</span>
-<a id="__codelineno-0-382" name="__codelineno-0-382"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">image_name_pattern</span> <span class="o">=</span> <span class="n">image_name_pattern</span>
-<a id="__codelineno-0-383" name="__codelineno-0-383"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">image_count</span> <span class="o">=</span> <span class="mi">0</span>
-<a id="__codelineno-0-384" name="__codelineno-0-384"></a>
-<a id="__codelineno-0-385" name="__codelineno-0-385"></a>    <span class="k">def</span> <span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<a id="__codelineno-0-386" name="__codelineno-0-386"></a>        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_dir_path</span><span class="p">):</span>
-<a id="__codelineno-0-387" name="__codelineno-0-387"></a>            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">overwrite</span><span class="p">:</span>
-<a id="__codelineno-0-388" name="__codelineno-0-388"></a>                <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_dir_path</span><span class="p">)</span>
-<a id="__codelineno-0-389" name="__codelineno-0-389"></a>                <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_dir_path</span><span class="p">)</span>
-<a id="__codelineno-0-390" name="__codelineno-0-390"></a>        <span class="k">else</span><span class="p">:</span>
-<a id="__codelineno-0-391" name="__codelineno-0-391"></a>            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_dir_path</span><span class="p">)</span>
-<a id="__codelineno-0-392" name="__codelineno-0-392"></a>
-<a id="__codelineno-0-393" name="__codelineno-0-393"></a>        <span class="k">return</span> <span class="bp">self</span>
-<a id="__codelineno-0-394" name="__codelineno-0-394"></a>
-<a id="__codelineno-0-395" name="__codelineno-0-395"></a>    <span class="k">def</span> <span class="nf">save_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">image_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
-<a id="__codelineno-0-396" name="__codelineno-0-396"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-397" name="__codelineno-0-397"></a><span class="sd">        Save a given image in the target directory.</span>
-<a id="__codelineno-0-398" name="__codelineno-0-398"></a>
-<a id="__codelineno-0-399" name="__codelineno-0-399"></a><span class="sd">        Args:</span>
-<a id="__codelineno-0-400" name="__codelineno-0-400"></a><span class="sd">            image (np.ndarray): The image to be saved. The image must be in BGR color</span>
-<a id="__codelineno-0-401" name="__codelineno-0-401"></a><span class="sd">                format.</span>
-<a id="__codelineno-0-402" name="__codelineno-0-402"></a><span class="sd">            image_name (str, optional): The name to use for the saved image.</span>
-<a id="__codelineno-0-403" name="__codelineno-0-403"></a><span class="sd">                If not provided, a name will be</span>
-<a id="__codelineno-0-404" name="__codelineno-0-404"></a><span class="sd">                generated using the `image_name_pattern`.</span>
-<a id="__codelineno-0-405" name="__codelineno-0-405"></a><span class="sd">        &quot;&quot;&quot;</span>
-<a id="__codelineno-0-406" name="__codelineno-0-406"></a>        <span class="k">if</span> <span class="n">image_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-407" name="__codelineno-0-407"></a>            <span class="n">image_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_name_pattern</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image_count</span><span class="p">)</span>
-<a id="__codelineno-0-408" name="__codelineno-0-408"></a>
-<a id="__codelineno-0-409" name="__codelineno-0-409"></a>        <span class="n">image_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_dir_path</span><span class="p">,</span> <span class="n">image_name</span><span class="p">)</span>
-<a id="__codelineno-0-410" name="__codelineno-0-410"></a>        <span class="n">cv2</span><span class="o">.</span><span class="n">imwrite</span><span class="p">(</span><span class="n">image_path</span><span class="p">,</span> <span class="n">image</span><span class="p">)</span>
-<a id="__codelineno-0-411" name="__codelineno-0-411"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">image_count</span> <span class="o">+=</span> <span class="mi">1</span>
+<span class="normal"><a href="#__codelineno-0-414">414</a></span>
+<span class="normal"><a href="#__codelineno-0-415">415</a></span>
+<span class="normal"><a href="#__codelineno-0-416">416</a></span>
+<span class="normal"><a href="#__codelineno-0-417">417</a></span>
+<span class="normal"><a href="#__codelineno-0-418">418</a></span>
+<span class="normal"><a href="#__codelineno-0-419">419</a></span>
+<span class="normal"><a href="#__codelineno-0-420">420</a></span>
+<span class="normal"><a href="#__codelineno-0-421">421</a></span>
+<span class="normal"><a href="#__codelineno-0-422">422</a></span>
+<span class="normal"><a href="#__codelineno-0-423">423</a></span>
+<span class="normal"><a href="#__codelineno-0-424">424</a></span>
+<span class="normal"><a href="#__codelineno-0-425">425</a></span>
+<span class="normal"><a href="#__codelineno-0-426">426</a></span>
+<span class="normal"><a href="#__codelineno-0-427">427</a></span>
+<span class="normal"><a href="#__codelineno-0-428">428</a></span>
+<span class="normal"><a href="#__codelineno-0-429">429</a></span>
+<span class="normal"><a href="#__codelineno-0-430">430</a></span>
+<span class="normal"><a href="#__codelineno-0-431">431</a></span>
+<span class="normal"><a href="#__codelineno-0-432">432</a></span>
+<span class="normal"><a href="#__codelineno-0-433">433</a></span>
+<span class="normal"><a href="#__codelineno-0-434">434</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-371" name="__codelineno-0-371"></a><span class="k">class</span> <span class="nc">ImageSink</span><span class="p">:</span>
+<a id="__codelineno-0-372" name="__codelineno-0-372"></a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<a id="__codelineno-0-373" name="__codelineno-0-373"></a>        <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-0-374" name="__codelineno-0-374"></a>        <span class="n">target_dir_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<a id="__codelineno-0-375" name="__codelineno-0-375"></a>        <span class="n">overwrite</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<a id="__codelineno-0-376" name="__codelineno-0-376"></a>        <span class="n">image_name_pattern</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;image_</span><span class="si">{:05d}</span><span class="s2">.png&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-377" name="__codelineno-0-377"></a>    <span class="p">):</span>
+<a id="__codelineno-0-378" name="__codelineno-0-378"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-379" name="__codelineno-0-379"></a><span class="sd">        Initialize a context manager for saving images.</span>
+<a id="__codelineno-0-380" name="__codelineno-0-380"></a>
+<a id="__codelineno-0-381" name="__codelineno-0-381"></a><span class="sd">        Args:</span>
+<a id="__codelineno-0-382" name="__codelineno-0-382"></a><span class="sd">            target_dir_path (str): The target directory where images will be saved.</span>
+<a id="__codelineno-0-383" name="__codelineno-0-383"></a><span class="sd">            overwrite (bool, optional): Whether to overwrite the existing directory.</span>
+<a id="__codelineno-0-384" name="__codelineno-0-384"></a><span class="sd">                Defaults to False.</span>
+<a id="__codelineno-0-385" name="__codelineno-0-385"></a><span class="sd">            image_name_pattern (str, optional): The image file name pattern.</span>
+<a id="__codelineno-0-386" name="__codelineno-0-386"></a><span class="sd">                Defaults to &quot;image_{:05d}.png&quot;.</span>
+<a id="__codelineno-0-387" name="__codelineno-0-387"></a>
+<a id="__codelineno-0-388" name="__codelineno-0-388"></a><span class="sd">        Examples:</span>
+<a id="__codelineno-0-389" name="__codelineno-0-389"></a><span class="sd">            ```python</span>
+<a id="__codelineno-0-390" name="__codelineno-0-390"></a><span class="sd">            import supervision as sv</span>
+<a id="__codelineno-0-391" name="__codelineno-0-391"></a>
+<a id="__codelineno-0-392" name="__codelineno-0-392"></a><span class="sd">            frames_generator = sv.get_video_frames_generator(&lt;SOURCE_VIDEO_PATH&gt;, stride=2)</span>
+<a id="__codelineno-0-393" name="__codelineno-0-393"></a>
+<a id="__codelineno-0-394" name="__codelineno-0-394"></a><span class="sd">            with sv.ImageSink(target_dir_path=&lt;TARGET_CROPS_DIRECTORY&gt;) as sink:</span>
+<a id="__codelineno-0-395" name="__codelineno-0-395"></a><span class="sd">                for image in frames_generator:</span>
+<a id="__codelineno-0-396" name="__codelineno-0-396"></a><span class="sd">                    sink.save_image(image=image)</span>
+<a id="__codelineno-0-397" name="__codelineno-0-397"></a><span class="sd">            ```</span>
+<a id="__codelineno-0-398" name="__codelineno-0-398"></a><span class="sd">        &quot;&quot;&quot;</span>  <span class="c1"># noqa E501 // docs</span>
+<a id="__codelineno-0-399" name="__codelineno-0-399"></a>
+<a id="__codelineno-0-400" name="__codelineno-0-400"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">target_dir_path</span> <span class="o">=</span> <span class="n">target_dir_path</span>
+<a id="__codelineno-0-401" name="__codelineno-0-401"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">overwrite</span> <span class="o">=</span> <span class="n">overwrite</span>
+<a id="__codelineno-0-402" name="__codelineno-0-402"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">image_name_pattern</span> <span class="o">=</span> <span class="n">image_name_pattern</span>
+<a id="__codelineno-0-403" name="__codelineno-0-403"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">image_count</span> <span class="o">=</span> <span class="mi">0</span>
+<a id="__codelineno-0-404" name="__codelineno-0-404"></a>
+<a id="__codelineno-0-405" name="__codelineno-0-405"></a>    <span class="k">def</span> <span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-0-406" name="__codelineno-0-406"></a>        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_dir_path</span><span class="p">):</span>
+<a id="__codelineno-0-407" name="__codelineno-0-407"></a>            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">overwrite</span><span class="p">:</span>
+<a id="__codelineno-0-408" name="__codelineno-0-408"></a>                <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_dir_path</span><span class="p">)</span>
+<a id="__codelineno-0-409" name="__codelineno-0-409"></a>                <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_dir_path</span><span class="p">)</span>
+<a id="__codelineno-0-410" name="__codelineno-0-410"></a>        <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-0-411" name="__codelineno-0-411"></a>            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_dir_path</span><span class="p">)</span>
 <a id="__codelineno-0-412" name="__codelineno-0-412"></a>
-<a id="__codelineno-0-413" name="__codelineno-0-413"></a>    <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">exc_traceback</span><span class="p">):</span>
-<a id="__codelineno-0-414" name="__codelineno-0-414"></a>        <span class="k">pass</span>
+<a id="__codelineno-0-413" name="__codelineno-0-413"></a>        <span class="k">return</span> <span class="bp">self</span>
+<a id="__codelineno-0-414" name="__codelineno-0-414"></a>
+<a id="__codelineno-0-415" name="__codelineno-0-415"></a>    <span class="k">def</span> <span class="nf">save_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">image_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<a id="__codelineno-0-416" name="__codelineno-0-416"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-417" name="__codelineno-0-417"></a><span class="sd">        Save a given image in the target directory.</span>
+<a id="__codelineno-0-418" name="__codelineno-0-418"></a>
+<a id="__codelineno-0-419" name="__codelineno-0-419"></a><span class="sd">        Args:</span>
+<a id="__codelineno-0-420" name="__codelineno-0-420"></a><span class="sd">            image (np.ndarray): The image to be saved. The image must be in BGR color</span>
+<a id="__codelineno-0-421" name="__codelineno-0-421"></a><span class="sd">                format.</span>
+<a id="__codelineno-0-422" name="__codelineno-0-422"></a><span class="sd">            image_name (str, optional): The name to use for the saved image.</span>
+<a id="__codelineno-0-423" name="__codelineno-0-423"></a><span class="sd">                If not provided, a name will be</span>
+<a id="__codelineno-0-424" name="__codelineno-0-424"></a><span class="sd">                generated using the `image_name_pattern`.</span>
+<a id="__codelineno-0-425" name="__codelineno-0-425"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-426" name="__codelineno-0-426"></a>        <span class="k">if</span> <span class="n">image_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-427" name="__codelineno-0-427"></a>            <span class="n">image_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_name_pattern</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image_count</span><span class="p">)</span>
+<a id="__codelineno-0-428" name="__codelineno-0-428"></a>
+<a id="__codelineno-0-429" name="__codelineno-0-429"></a>        <span class="n">image_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_dir_path</span><span class="p">,</span> <span class="n">image_name</span><span class="p">)</span>
+<a id="__codelineno-0-430" name="__codelineno-0-430"></a>        <span class="n">cv2</span><span class="o">.</span><span class="n">imwrite</span><span class="p">(</span><span class="n">image_path</span><span class="p">,</span> <span class="n">image</span><span class="p">)</span>
+<a id="__codelineno-0-431" name="__codelineno-0-431"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">image_count</span> <span class="o">+=</span> <span class="mi">1</span>
+<a id="__codelineno-0-432" name="__codelineno-0-432"></a>
+<a id="__codelineno-0-433" name="__codelineno-0-433"></a>    <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">exc_traceback</span><span class="p">):</span>
+<a id="__codelineno-0-434" name="__codelineno-0-434"></a>        <span class="k">pass</span>
 </code></pre></div></td></tr></table></div>
               </details>
 
@@ -3520,27 +3560,7 @@ Defaults to "image_{:05d}.png".</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/utils/image.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-352">352</a></span>
-<span class="normal"><a href="#__codelineno-0-353">353</a></span>
-<span class="normal"><a href="#__codelineno-0-354">354</a></span>
-<span class="normal"><a href="#__codelineno-0-355">355</a></span>
-<span class="normal"><a href="#__codelineno-0-356">356</a></span>
-<span class="normal"><a href="#__codelineno-0-357">357</a></span>
-<span class="normal"><a href="#__codelineno-0-358">358</a></span>
-<span class="normal"><a href="#__codelineno-0-359">359</a></span>
-<span class="normal"><a href="#__codelineno-0-360">360</a></span>
-<span class="normal"><a href="#__codelineno-0-361">361</a></span>
-<span class="normal"><a href="#__codelineno-0-362">362</a></span>
-<span class="normal"><a href="#__codelineno-0-363">363</a></span>
-<span class="normal"><a href="#__codelineno-0-364">364</a></span>
-<span class="normal"><a href="#__codelineno-0-365">365</a></span>
-<span class="normal"><a href="#__codelineno-0-366">366</a></span>
-<span class="normal"><a href="#__codelineno-0-367">367</a></span>
-<span class="normal"><a href="#__codelineno-0-368">368</a></span>
-<span class="normal"><a href="#__codelineno-0-369">369</a></span>
-<span class="normal"><a href="#__codelineno-0-370">370</a></span>
-<span class="normal"><a href="#__codelineno-0-371">371</a></span>
-<span class="normal"><a href="#__codelineno-0-372">372</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-372">372</a></span>
 <span class="normal"><a href="#__codelineno-0-373">373</a></span>
 <span class="normal"><a href="#__codelineno-0-374">374</a></span>
 <span class="normal"><a href="#__codelineno-0-375">375</a></span>
@@ -3551,38 +3571,58 @@ Defaults to "image_{:05d}.png".</p>
 <span class="normal"><a href="#__codelineno-0-380">380</a></span>
 <span class="normal"><a href="#__codelineno-0-381">381</a></span>
 <span class="normal"><a href="#__codelineno-0-382">382</a></span>
-<span class="normal"><a href="#__codelineno-0-383">383</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-352" name="__codelineno-0-352"></a><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
-<a id="__codelineno-0-353" name="__codelineno-0-353"></a>    <span class="bp">self</span><span class="p">,</span>
-<a id="__codelineno-0-354" name="__codelineno-0-354"></a>    <span class="n">target_dir_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-<a id="__codelineno-0-355" name="__codelineno-0-355"></a>    <span class="n">overwrite</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-<a id="__codelineno-0-356" name="__codelineno-0-356"></a>    <span class="n">image_name_pattern</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;image_</span><span class="si">{:05d}</span><span class="s2">.png&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-357" name="__codelineno-0-357"></a><span class="p">):</span>
-<a id="__codelineno-0-358" name="__codelineno-0-358"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-359" name="__codelineno-0-359"></a><span class="sd">    Initialize a context manager for saving images.</span>
-<a id="__codelineno-0-360" name="__codelineno-0-360"></a>
-<a id="__codelineno-0-361" name="__codelineno-0-361"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-362" name="__codelineno-0-362"></a><span class="sd">        target_dir_path (str): The target directory where images will be saved.</span>
-<a id="__codelineno-0-363" name="__codelineno-0-363"></a><span class="sd">        overwrite (bool, optional): Whether to overwrite the existing directory.</span>
-<a id="__codelineno-0-364" name="__codelineno-0-364"></a><span class="sd">            Defaults to False.</span>
-<a id="__codelineno-0-365" name="__codelineno-0-365"></a><span class="sd">        image_name_pattern (str, optional): The image file name pattern.</span>
-<a id="__codelineno-0-366" name="__codelineno-0-366"></a><span class="sd">            Defaults to &quot;image_{:05d}.png&quot;.</span>
-<a id="__codelineno-0-367" name="__codelineno-0-367"></a>
-<a id="__codelineno-0-368" name="__codelineno-0-368"></a><span class="sd">    Examples:</span>
-<a id="__codelineno-0-369" name="__codelineno-0-369"></a><span class="sd">        ```python</span>
-<a id="__codelineno-0-370" name="__codelineno-0-370"></a><span class="sd">        import supervision as sv</span>
-<a id="__codelineno-0-371" name="__codelineno-0-371"></a>
-<a id="__codelineno-0-372" name="__codelineno-0-372"></a><span class="sd">        frames_generator = sv.get_video_frames_generator(&lt;SOURCE_VIDEO_PATH&gt;, stride=2)</span>
-<a id="__codelineno-0-373" name="__codelineno-0-373"></a>
-<a id="__codelineno-0-374" name="__codelineno-0-374"></a><span class="sd">        with sv.ImageSink(target_dir_path=&lt;TARGET_CROPS_DIRECTORY&gt;) as sink:</span>
-<a id="__codelineno-0-375" name="__codelineno-0-375"></a><span class="sd">            for image in frames_generator:</span>
-<a id="__codelineno-0-376" name="__codelineno-0-376"></a><span class="sd">                sink.save_image(image=image)</span>
-<a id="__codelineno-0-377" name="__codelineno-0-377"></a><span class="sd">        ```</span>
-<a id="__codelineno-0-378" name="__codelineno-0-378"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa E501 // docs</span>
-<a id="__codelineno-0-379" name="__codelineno-0-379"></a>
-<a id="__codelineno-0-380" name="__codelineno-0-380"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">target_dir_path</span> <span class="o">=</span> <span class="n">target_dir_path</span>
-<a id="__codelineno-0-381" name="__codelineno-0-381"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">overwrite</span> <span class="o">=</span> <span class="n">overwrite</span>
-<a id="__codelineno-0-382" name="__codelineno-0-382"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">image_name_pattern</span> <span class="o">=</span> <span class="n">image_name_pattern</span>
-<a id="__codelineno-0-383" name="__codelineno-0-383"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">image_count</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="normal"><a href="#__codelineno-0-383">383</a></span>
+<span class="normal"><a href="#__codelineno-0-384">384</a></span>
+<span class="normal"><a href="#__codelineno-0-385">385</a></span>
+<span class="normal"><a href="#__codelineno-0-386">386</a></span>
+<span class="normal"><a href="#__codelineno-0-387">387</a></span>
+<span class="normal"><a href="#__codelineno-0-388">388</a></span>
+<span class="normal"><a href="#__codelineno-0-389">389</a></span>
+<span class="normal"><a href="#__codelineno-0-390">390</a></span>
+<span class="normal"><a href="#__codelineno-0-391">391</a></span>
+<span class="normal"><a href="#__codelineno-0-392">392</a></span>
+<span class="normal"><a href="#__codelineno-0-393">393</a></span>
+<span class="normal"><a href="#__codelineno-0-394">394</a></span>
+<span class="normal"><a href="#__codelineno-0-395">395</a></span>
+<span class="normal"><a href="#__codelineno-0-396">396</a></span>
+<span class="normal"><a href="#__codelineno-0-397">397</a></span>
+<span class="normal"><a href="#__codelineno-0-398">398</a></span>
+<span class="normal"><a href="#__codelineno-0-399">399</a></span>
+<span class="normal"><a href="#__codelineno-0-400">400</a></span>
+<span class="normal"><a href="#__codelineno-0-401">401</a></span>
+<span class="normal"><a href="#__codelineno-0-402">402</a></span>
+<span class="normal"><a href="#__codelineno-0-403">403</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-372" name="__codelineno-0-372"></a><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<a id="__codelineno-0-373" name="__codelineno-0-373"></a>    <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-0-374" name="__codelineno-0-374"></a>    <span class="n">target_dir_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<a id="__codelineno-0-375" name="__codelineno-0-375"></a>    <span class="n">overwrite</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<a id="__codelineno-0-376" name="__codelineno-0-376"></a>    <span class="n">image_name_pattern</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;image_</span><span class="si">{:05d}</span><span class="s2">.png&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-377" name="__codelineno-0-377"></a><span class="p">):</span>
+<a id="__codelineno-0-378" name="__codelineno-0-378"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-379" name="__codelineno-0-379"></a><span class="sd">    Initialize a context manager for saving images.</span>
+<a id="__codelineno-0-380" name="__codelineno-0-380"></a>
+<a id="__codelineno-0-381" name="__codelineno-0-381"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-382" name="__codelineno-0-382"></a><span class="sd">        target_dir_path (str): The target directory where images will be saved.</span>
+<a id="__codelineno-0-383" name="__codelineno-0-383"></a><span class="sd">        overwrite (bool, optional): Whether to overwrite the existing directory.</span>
+<a id="__codelineno-0-384" name="__codelineno-0-384"></a><span class="sd">            Defaults to False.</span>
+<a id="__codelineno-0-385" name="__codelineno-0-385"></a><span class="sd">        image_name_pattern (str, optional): The image file name pattern.</span>
+<a id="__codelineno-0-386" name="__codelineno-0-386"></a><span class="sd">            Defaults to &quot;image_{:05d}.png&quot;.</span>
+<a id="__codelineno-0-387" name="__codelineno-0-387"></a>
+<a id="__codelineno-0-388" name="__codelineno-0-388"></a><span class="sd">    Examples:</span>
+<a id="__codelineno-0-389" name="__codelineno-0-389"></a><span class="sd">        ```python</span>
+<a id="__codelineno-0-390" name="__codelineno-0-390"></a><span class="sd">        import supervision as sv</span>
+<a id="__codelineno-0-391" name="__codelineno-0-391"></a>
+<a id="__codelineno-0-392" name="__codelineno-0-392"></a><span class="sd">        frames_generator = sv.get_video_frames_generator(&lt;SOURCE_VIDEO_PATH&gt;, stride=2)</span>
+<a id="__codelineno-0-393" name="__codelineno-0-393"></a>
+<a id="__codelineno-0-394" name="__codelineno-0-394"></a><span class="sd">        with sv.ImageSink(target_dir_path=&lt;TARGET_CROPS_DIRECTORY&gt;) as sink:</span>
+<a id="__codelineno-0-395" name="__codelineno-0-395"></a><span class="sd">            for image in frames_generator:</span>
+<a id="__codelineno-0-396" name="__codelineno-0-396"></a><span class="sd">                sink.save_image(image=image)</span>
+<a id="__codelineno-0-397" name="__codelineno-0-397"></a><span class="sd">        ```</span>
+<a id="__codelineno-0-398" name="__codelineno-0-398"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa E501 // docs</span>
+<a id="__codelineno-0-399" name="__codelineno-0-399"></a>
+<a id="__codelineno-0-400" name="__codelineno-0-400"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">target_dir_path</span> <span class="o">=</span> <span class="n">target_dir_path</span>
+<a id="__codelineno-0-401" name="__codelineno-0-401"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">overwrite</span> <span class="o">=</span> <span class="n">overwrite</span>
+<a id="__codelineno-0-402" name="__codelineno-0-402"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">image_name_pattern</span> <span class="o">=</span> <span class="n">image_name_pattern</span>
+<a id="__codelineno-0-403" name="__codelineno-0-403"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">image_count</span> <span class="o">=</span> <span class="mi">0</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3650,39 +3690,39 @@ generated using the <code>image_name_pattern</code>.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/utils/image.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-395">395</a></span>
-<span class="normal"><a href="#__codelineno-0-396">396</a></span>
-<span class="normal"><a href="#__codelineno-0-397">397</a></span>
-<span class="normal"><a href="#__codelineno-0-398">398</a></span>
-<span class="normal"><a href="#__codelineno-0-399">399</a></span>
-<span class="normal"><a href="#__codelineno-0-400">400</a></span>
-<span class="normal"><a href="#__codelineno-0-401">401</a></span>
-<span class="normal"><a href="#__codelineno-0-402">402</a></span>
-<span class="normal"><a href="#__codelineno-0-403">403</a></span>
-<span class="normal"><a href="#__codelineno-0-404">404</a></span>
-<span class="normal"><a href="#__codelineno-0-405">405</a></span>
-<span class="normal"><a href="#__codelineno-0-406">406</a></span>
-<span class="normal"><a href="#__codelineno-0-407">407</a></span>
-<span class="normal"><a href="#__codelineno-0-408">408</a></span>
-<span class="normal"><a href="#__codelineno-0-409">409</a></span>
-<span class="normal"><a href="#__codelineno-0-410">410</a></span>
-<span class="normal"><a href="#__codelineno-0-411">411</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-395" name="__codelineno-0-395"></a><span class="k">def</span> <span class="nf">save_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">image_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
-<a id="__codelineno-0-396" name="__codelineno-0-396"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-397" name="__codelineno-0-397"></a><span class="sd">    Save a given image in the target directory.</span>
-<a id="__codelineno-0-398" name="__codelineno-0-398"></a>
-<a id="__codelineno-0-399" name="__codelineno-0-399"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-400" name="__codelineno-0-400"></a><span class="sd">        image (np.ndarray): The image to be saved. The image must be in BGR color</span>
-<a id="__codelineno-0-401" name="__codelineno-0-401"></a><span class="sd">            format.</span>
-<a id="__codelineno-0-402" name="__codelineno-0-402"></a><span class="sd">        image_name (str, optional): The name to use for the saved image.</span>
-<a id="__codelineno-0-403" name="__codelineno-0-403"></a><span class="sd">            If not provided, a name will be</span>
-<a id="__codelineno-0-404" name="__codelineno-0-404"></a><span class="sd">            generated using the `image_name_pattern`.</span>
-<a id="__codelineno-0-405" name="__codelineno-0-405"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-406" name="__codelineno-0-406"></a>    <span class="k">if</span> <span class="n">image_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-407" name="__codelineno-0-407"></a>        <span class="n">image_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_name_pattern</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image_count</span><span class="p">)</span>
-<a id="__codelineno-0-408" name="__codelineno-0-408"></a>
-<a id="__codelineno-0-409" name="__codelineno-0-409"></a>    <span class="n">image_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_dir_path</span><span class="p">,</span> <span class="n">image_name</span><span class="p">)</span>
-<a id="__codelineno-0-410" name="__codelineno-0-410"></a>    <span class="n">cv2</span><span class="o">.</span><span class="n">imwrite</span><span class="p">(</span><span class="n">image_path</span><span class="p">,</span> <span class="n">image</span><span class="p">)</span>
-<a id="__codelineno-0-411" name="__codelineno-0-411"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">image_count</span> <span class="o">+=</span> <span class="mi">1</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-415">415</a></span>
+<span class="normal"><a href="#__codelineno-0-416">416</a></span>
+<span class="normal"><a href="#__codelineno-0-417">417</a></span>
+<span class="normal"><a href="#__codelineno-0-418">418</a></span>
+<span class="normal"><a href="#__codelineno-0-419">419</a></span>
+<span class="normal"><a href="#__codelineno-0-420">420</a></span>
+<span class="normal"><a href="#__codelineno-0-421">421</a></span>
+<span class="normal"><a href="#__codelineno-0-422">422</a></span>
+<span class="normal"><a href="#__codelineno-0-423">423</a></span>
+<span class="normal"><a href="#__codelineno-0-424">424</a></span>
+<span class="normal"><a href="#__codelineno-0-425">425</a></span>
+<span class="normal"><a href="#__codelineno-0-426">426</a></span>
+<span class="normal"><a href="#__codelineno-0-427">427</a></span>
+<span class="normal"><a href="#__codelineno-0-428">428</a></span>
+<span class="normal"><a href="#__codelineno-0-429">429</a></span>
+<span class="normal"><a href="#__codelineno-0-430">430</a></span>
+<span class="normal"><a href="#__codelineno-0-431">431</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-415" name="__codelineno-0-415"></a><span class="k">def</span> <span class="nf">save_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">image_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<a id="__codelineno-0-416" name="__codelineno-0-416"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-417" name="__codelineno-0-417"></a><span class="sd">    Save a given image in the target directory.</span>
+<a id="__codelineno-0-418" name="__codelineno-0-418"></a>
+<a id="__codelineno-0-419" name="__codelineno-0-419"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-420" name="__codelineno-0-420"></a><span class="sd">        image (np.ndarray): The image to be saved. The image must be in BGR color</span>
+<a id="__codelineno-0-421" name="__codelineno-0-421"></a><span class="sd">            format.</span>
+<a id="__codelineno-0-422" name="__codelineno-0-422"></a><span class="sd">        image_name (str, optional): The name to use for the saved image.</span>
+<a id="__codelineno-0-423" name="__codelineno-0-423"></a><span class="sd">            If not provided, a name will be</span>
+<a id="__codelineno-0-424" name="__codelineno-0-424"></a><span class="sd">            generated using the `image_name_pattern`.</span>
+<a id="__codelineno-0-425" name="__codelineno-0-425"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-426" name="__codelineno-0-426"></a>    <span class="k">if</span> <span class="n">image_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-427" name="__codelineno-0-427"></a>        <span class="n">image_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_name_pattern</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image_count</span><span class="p">)</span>
+<a id="__codelineno-0-428" name="__codelineno-0-428"></a>
+<a id="__codelineno-0-429" name="__codelineno-0-429"></a>    <span class="n">image_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_dir_path</span><span class="p">,</span> <span class="n">image_name</span><span class="p">)</span>
+<a id="__codelineno-0-430" name="__codelineno-0-430"></a>    <span class="n">cv2</span><span class="o">.</span><span class="n">imwrite</span><span class="p">(</span><span class="n">image_path</span><span class="p">,</span> <span class="n">image</span><span class="p">)</span>
+<a id="__codelineno-0-431" name="__codelineno-0-431"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">image_count</span> <span class="o">+=</span> <span class="mi">1</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
