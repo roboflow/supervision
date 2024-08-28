@@ -86,19 +86,10 @@ class MeanAveragePrecision(Metric):
     ) -> MeanAveragePrecisionResult:
         """
         Calculate Mean Average Precision based on predicted and ground-truth
-            detections at different threshold.
+            detections at different thresholds.
 
-        Args:
-            predictions (List[np.ndarray]): Each element of the list describes
-                a single image and has `shape = (M, 6)` where `M` is
-                the number of detected objects. Each row is expected to be
-                in `(x_min, y_min, x_max, y_max, class, conf)` format.
-            targets (List[np.ndarray]): Each element of the list describes a single
-                image and has `shape = (N, 5)` where `N` is the
-                number of ground-truth objects. Each row is expected to be in
-                `(x_min, y_min, x_max, y_max, class)` format.
         Returns:
-            (MeanAveragePrecision): New instance of MeanAveragePrecision.
+            (MeanAveragePrecisionResult): New instance of MeanAveragePrecision.
 
         Example:
             ```python
@@ -219,7 +210,7 @@ class MeanAveragePrecision(Metric):
         )
 
     @staticmethod
-    def compute_average_precision(recall: np.ndarray, precision: np.ndarray) -> float:
+    def _compute_average_precision(recall: np.ndarray, precision: np.ndarray) -> float:
         """
         Compute the average precision using 101-point interpolation (COCO), given
             the recall and precision curves.
@@ -323,7 +314,7 @@ class MeanAveragePrecision(Metric):
 
             for iou_level_idx in range(matches.shape[1]):
                 average_precisions[class_idx, iou_level_idx] = (
-                    MeanAveragePrecision.compute_average_precision(
+                    MeanAveragePrecision._compute_average_precision(
                         recall[:, iou_level_idx], precision[:, iou_level_idx]
                     )
                 )
