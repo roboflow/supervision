@@ -65,7 +65,6 @@ nav:
           - Core: datasets/core.md
           - Utils: datasets/utils.md
       - Metrics:
-          - IoU: metrics/intersection_over_union.md
           - mAP: metrics/mean_average_precision.md
           - Legacy Metrics: detection/legacy_metrics.md
       - Utils:
