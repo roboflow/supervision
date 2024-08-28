@@ -426,9 +426,9 @@ class MeanAveragePrecisionResult:
         out_str = (
             f"{self.__class__.__name__}:\n"
             f"iou_thresholds: {self.iou_thresholds}\n"
-            f"map50_95:  {self.map50_95}\n"
-            f"map50:     {self.map50}\n"
-            f"map75:     {self.map75}\n"
+            f"map50_95:  {self.map50_95:.4f}\n"
+            f"map50:     {self.map50:.4f}\n"
+            f"map75:     {self.map75:.4f}\n"
             f"per_class_ap50_95:"
         )
 

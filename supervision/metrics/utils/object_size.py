@@ -12,7 +12,7 @@ from supervision.metrics.core import MetricTarget
 if TYPE_CHECKING:
     from supervision.detection.core import Detections
 
-SIZE_THRESHOLDS = [32**2, 96**2]
+SIZE_THRESHOLDS = (32**2, 96**2)
 
 
 class ObjectSizeCategory(Enum):
@@ -65,9 +65,10 @@ def get_bbox_size_category(xyxy: npt.NDArray[np.float32]) -> npt.NDArray[np.int_
     areas = width * height
 
     result = np.full(areas.shape, ObjectSizeCategory.ANY.value)
-    result[areas < SIZE_THRESHOLDS[0]] = ObjectSizeCategory.SMALL.value
-    result[areas < SIZE_THRESHOLDS[1]] = ObjectSizeCategory.MEDIUM.value
-    result[areas >= SIZE_THRESHOLDS[1]] = ObjectSizeCategory.LARGE.value
+    SM, LG = SIZE_THRESHOLDS
+    result[areas < SM] = ObjectSizeCategory.SMALL.value
+    result[(areas >= SM) & (areas < LG)] = ObjectSizeCategory.MEDIUM.value
+    result[areas >= LG] = ObjectSizeCategory.LARGE.value
     return result
 
 
@@ -88,9 +89,10 @@ def get_mask_size_category(mask: npt.NDArray[np.bool_]) -> npt.NDArray[np.int_]:
     areas = np.sum(mask, axis=(1, 2))
 
     result = np.full(areas.shape, ObjectSizeCategory.ANY.value)
-    result[areas < SIZE_THRESHOLDS[0]] = ObjectSizeCategory.SMALL.value
-    result[areas < SIZE_THRESHOLDS[1]] = ObjectSizeCategory.MEDIUM.value
-    result[areas >= SIZE_THRESHOLDS[1]] = ObjectSizeCategory.LARGE.value
+    SM, LG = SIZE_THRESHOLDS
+    result[areas < SM] = ObjectSizeCategory.SMALL.value
+    result[(areas >= SM) & (areas < LG)] = ObjectSizeCategory.MEDIUM.value
+    result[areas >= LG] = ObjectSizeCategory.LARGE.value
     return result
 
 
@@ -116,9 +118,10 @@ def get_obb_size_category(xyxyxyxy: npt.NDArray[np.float32]) -> npt.NDArray[np.i
     )
 
     result = np.full(areas.shape, ObjectSizeCategory.ANY.value)
-    result[areas < SIZE_THRESHOLDS[0]] = ObjectSizeCategory.SMALL.value
-    result[areas < SIZE_THRESHOLDS[1]] = ObjectSizeCategory.MEDIUM.value
-    result[areas >= SIZE_THRESHOLDS[1]] = ObjectSizeCategory.LARGE.value
+    SM, LG = SIZE_THRESHOLDS
+    result[areas < SM] = ObjectSizeCategory.SMALL.value
+    result[(areas >= SM) & (areas < LG)] = ObjectSizeCategory.MEDIUM.value
+    result[areas >= LG] = ObjectSizeCategory.LARGE.value
     return result
 
 
