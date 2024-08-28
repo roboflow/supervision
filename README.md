@@ -16,6 +16,7 @@
 
 [![version](https://badge.fury.io/py/supervision.svg)](https://badge.fury.io/py/supervision)
 [![downloads](https://img.shields.io/pypi/dm/supervision)](https://pypistats.org/packages/supervision)
+[![snyk](https://snyk.io/advisor/python/supervision/badge.svg)](https://snyk.io/advisor/python/supervision)
 [![license](https://img.shields.io/pypi/l/supervision)](https://github.com/roboflow/supervision/blob/main/LICENSE.md)
 [![python-version](https://img.shields.io/pypi/pyversions/supervision)](https://badge.fury.io/py/supervision)
 [![colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/roboflow/supervision/blob/main/demo.ipynb)
@@ -110,18 +111,21 @@ Supervision provides a set of [utils](https://supervision.roboflow.com/latest/da
 
 ```python
 import supervision as sv
+from roboflow import Roboflow
 
-dataset = sv.DetectionDataset.from_yolo(
-    images_directory_path=...,
-    annotations_directory_path=...,
-    data_yaml_path=...
+project = Roboflow().workspace(<WORKSPACE_ID>).project(<PROJECT_ID>)
+dataset = project.version(<PROJECT_VERSION>).download("coco")
+
+ds = sv.DetectionDataset.from_coco(
+    images_directory_path=f"{dataset.location}/train",
+    annotations_path=f"{dataset.location}/train/_annotations.coco.json",
 )
 
-dataset.classes
-['dog', 'person']
+path, image, annotation = ds[0]
+    # loads image on demand
 
-len(dataset)
-# 1000
+for path, image, annotation in ds:
+    # loads image on demand
 ```
 
 <details close>

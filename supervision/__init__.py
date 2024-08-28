@@ -7,6 +7,7 @@ except importlib_metadata.PackageNotFoundError:
     __version__ = "development"
 
 from supervision.annotators.core import (
+    BackgroundOverlayAnnotator,
     BlurAnnotator,
     BoundingBoxAnnotator,
     BoxAnnotator,
@@ -18,6 +19,7 @@ from supervision.annotators.core import (
     EllipseAnnotator,
     HaloAnnotator,
     HeatMapAnnotator,
+    IconAnnotator,
     LabelAnnotator,
     MaskAnnotator,
     OrientedBoxAnnotator,

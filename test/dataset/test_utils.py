@@ -1,5 +1,4 @@
 from contextlib import ExitStack as DoesNotRaise
-from test.test_utils import mock_detections
 from typing import Dict, List, Optional, Tuple, TypeVar
 
 import numpy as np
@@ -15,6 +14,7 @@ from supervision.dataset.utils import (
     rle_to_mask,
     train_test_split,
 )
+from test.test_utils import mock_detections
 
 T = TypeVar("T")
 

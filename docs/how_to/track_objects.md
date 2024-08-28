@@ -32,7 +32,7 @@ download_assets(VideoAssets.PEOPLE_WALKING)
 First, you'll need to obtain predictions from your object detection or segmentation
 model. In this tutorial, we are using the YOLOv8 model as an example. However,
 Supervision is versatile and compatible with various models. Check this
-[link](latest/how_to/detect_and_annotate/#load-predictions-into-supervision)
+[link](/latest/how_to/detect_and_annotate/#load-predictions-into-supervision)
 for guidance on how to plug in other models.
 
 We will define a `callback` function, which will process each frame of the video

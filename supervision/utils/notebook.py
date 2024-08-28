@@ -17,7 +17,7 @@ def plot_image(
     Args:
         image (ImageType): The frame to be displayed ImageType
              is a flexible type, accepting either `numpy.ndarray` or `PIL.Image.Image`.
-        size (Tuple[int, int]): The size of the plot.
+        size (Tuple[int, int]): The size of the plot in inches.
         cmap (str): the colormap to use for single channel images.
 
     Examples:

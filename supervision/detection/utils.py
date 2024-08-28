@@ -106,7 +106,7 @@ def mask_iou_batch(
     Args:
         masks_true (np.ndarray): 3D `np.ndarray` representing ground-truth masks.
         masks_detection (np.ndarray): 3D `np.ndarray` representing detection masks.
-        memory_limit (int, optional): memory limit in MB, default is 1024 * 5 MB (5GB).
+        memory_limit (int): memory limit in MB, default is 1024 * 5 MB (5GB).
 
     Returns:
         np.ndarray: Pairwise IoU of masks from `masks_true` and `masks_detection`.
@@ -594,6 +594,61 @@ def move_boxes(
         ```
     """
     return xyxy + np.hstack([offset, offset])
+
+
+def move_oriented_boxes(
+    xyxyxyxy: npt.NDArray[np.float64], offset: npt.NDArray[np.int32]
+) -> npt.NDArray[np.float64]:
+    """
+    Parameters:
+    xyxyxyxy (npt.NDArray[np.float64]): An array of shape `(n, 4, 2)` containing the
+    oriented bounding boxes coordinates in format
+    `[[x1, y1], [x2, y2], [x3, y3], [x3, y3]]`
+    offset (np.array): An array of shape `(2,)` containing offset values in format
+        is `[dx, dy]`.
+
+    Returns:
+    npt.NDArray[np.float64]: Repositioned bounding boxes.
+
+    Examples:
+    ```python
+    import numpy as np
+    import supervision as sv
+
+    xyxyxyxy = np.array([
+        [
+            [20, 10],
+            [10, 20],
+            [20, 30],
+            [30, 20]
+        ],
+        [
+            [30 ,30],
+            [20, 40],
+            [30, 50],
+            [40, 40]
+        ]
+    ])
+    offset = np.array([5, 5])
+
+    sv.move_oriented_boxes(xyxy=xyxy, offset=offset)
+    # array([
+    #     [
+    #         [25, 15],
+    #         [15, 25],
+    #         [25, 35],
+    #         [35, 25]
+    #     ],
+    #     [
+    #         [35, 35],
+    #         [25, 45],
+    #         [35, 55],
+    #         [45, 45]
+    #     ]
+    # ])
+    ```
+    """
+    return xyxyxyxy + offset
 
 
 def move_masks(
