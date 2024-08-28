@@ -364,7 +364,7 @@ class MeanAveragePrecision(Metric):
             return new_detections
 
         sizes = get_detection_size_category(new_detections, self._metric_target)
-        size_mask = sizes == size_category
+        size_mask = sizes == size_category.value
 
         new_detections.xyxy = new_detections.xyxy[size_mask]
         if new_detections.mask is not None:
