@@ -151,6 +151,11 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
+         <loc>https://supervision.roboflow.com/develop/metrics/mean_average_precision/</loc>
+         <lastmod>2024-08-28</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
          <loc>https://supervision.roboflow.com/develop/notebooks/annotate-video-with-detections/</loc>
          <lastmod>2024-08-28</lastmod>
          <changefreq>daily</changefreq>
