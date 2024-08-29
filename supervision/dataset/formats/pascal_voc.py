@@ -147,7 +147,7 @@ def load_pascal_voc_annotations(
         images_directory_path (str): The path to the directory containing the images.
         annotations_directory_path (str): The path to the directory containing the
             PASCAL VOC annotation files.
-        force_masks (bool, optional): If True, forces masks to be loaded for all
+        force_masks (bool): If True, forces masks to be loaded for all
             annotations, regardless of whether they are present.
 
     Returns:

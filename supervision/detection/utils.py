@@ -106,7 +106,7 @@ def mask_iou_batch(
     Args:
         masks_true (np.ndarray): 3D `np.ndarray` representing ground-truth masks.
         masks_detection (np.ndarray): 3D `np.ndarray` representing detection masks.
-        memory_limit (int, optional): memory limit in MB, default is 1024 * 5 MB (5GB).
+        memory_limit (int): memory limit in MB, default is 1024 * 5 MB (5GB).
 
     Returns:
         np.ndarray: Pairwise IoU of masks from `masks_true` and `masks_detection`.

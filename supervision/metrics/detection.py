@@ -664,12 +664,12 @@ class MeanAveragePrecision:
                 np.array([[1.0, 1.0, 2.0, 2.0, 2, 0.8]])
             ]
 
-            mean_average_precison = sv.MeanAveragePrecision.from_tensors(
+            mean_average_precision = sv.MeanAveragePrecision.from_tensors(
                 predictions=predictions,
                 targets=targets,
             )
 
-            print(mean_average_precison.map50_95)
+            print(mean_average_precision.map50_95)
             # 0.6649
             ```
         """
@@ -806,7 +806,7 @@ class MeanAveragePrecision:
             prediction_confidence (np.ndarray): Objectness value from 0-1.
             prediction_class_ids (np.ndarray): Predicted object classes.
             true_class_ids (np.ndarray): True object classes.
-            eps (float, optional): Small value to prevent division by zero.
+            eps (float): Small value to prevent division by zero.
 
         Returns:
             np.ndarray: Average precision for different IoU levels.
