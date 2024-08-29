@@ -1577,13 +1577,13 @@ test = ["jupyter-server (>=2.0.0)", "pytest (>=7.0)", "pytest-jupyter[server] (>
 
 [[package]]
 name = "jupyterlab"
-version = "4.2.4"
+version = "4.2.5"
 description = "JupyterLab computational environment"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "jupyterlab-4.2.4-py3-none-any.whl", hash = "sha256:807a7ec73637744f879e112060d4b9d9ebe028033b7a429b2d1f4fc523d00245"},
-    {file = "jupyterlab-4.2.4.tar.gz", hash = "sha256:343a979fb9582fd08c8511823e320703281cd072a0049bcdafdc7afeda7f2537"},
+    {file = "jupyterlab-4.2.5-py3-none-any.whl", hash = "sha256:73b6e0775d41a9fee7ee756c80f58a6bed4040869ccc21411dc559818874d321"},
+    {file = "jupyterlab-4.2.5.tar.gz", hash = "sha256:ae7f3a1b8cb88b4f55009ce79fa7c06f99d70cd63601ee4aa91815d054f46f75"},
 ]
 
 [package.dependencies]
@@ -2783,24 +2783,6 @@ files = [
 ]
 
 [package.dependencies]
-types-pytz = ">=2022.1.1"
-
-[[package]]
-name = "pandas-stubs"
-version = "2.0.3.230814"
-description = "Type annotations for pandas"
-optional = true
-python-versions = ">=3.8"
-files = [
-    {file = "pandas_stubs-2.0.3.230814-py3-none-any.whl", hash = "sha256:4b3dfc027d49779176b7daa031a3405f7b839bcb6e312f4b9f29fea5feec5b4f"},
-    {file = "pandas_stubs-2.0.3.230814.tar.gz", hash = "sha256:1d5cc09e36e3d9f9a1ed9dceae4e03eeb26d1b898dd769996925f784365c8769"},
-]
-
-[package.dependencies]
-numpy = [
-    {version = "<=1.24.3", markers = "python_full_version <= \"3.8.0\""},
-    {version = ">=1.25.0", markers = "python_version >= \"3.9\""},
-]
 types-pytz = ">=2022.1.1"
 
 [[package]]
@@ -4233,6 +4215,17 @@ files = [
 ]
 
 [[package]]
+name = "types-pytz"
+version = "2024.1.0.20240417"
+description = "Typing stubs for pytz"
+optional = true
+python-versions = ">=3.8"
+files = [
+    {file = "types-pytz-2024.1.0.20240417.tar.gz", hash = "sha256:6810c8a1f68f21fdf0f4f374a432487c77645a0ac0b31de4bf4690cf21ad3981"},
+    {file = "types_pytz-2024.1.0.20240417-py3-none-any.whl", hash = "sha256:8335d443310e2db7b74e007414e74c4f53b67452c0cb0d228ca359ccfba59659"},
+]
+
+[[package]]
 name = "types-pyyaml"
 version = "6.0.12.20240808"
 description = "Typing stubs for PyYAML"
@@ -4323,6 +4316,7 @@ optional = false
 python-versions = ">=3.8"
 files = [
     {file = "urllib3-2.2.2-py3-none-any.whl", hash = "sha256:a448b2f64d686155468037e1ace9f2d2199776e17f0a46610480d311f73e3472"},
+    {file = "urllib3-2.2.2.tar.gz", hash = "sha256:dd505485549a7a552833da5e6063639d0d177c04f23bc3864e41e5dc5f612168"},
 ]
 
 [package.extras]
@@ -4513,4 +4507,4 @@ metrics = ["pandas", "pandas-stubs"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "84cd2523482606530c1b5dbe931d053dfd356e0c6e80c741ddc10ea7d808affd"
+content-hash = "39ccd89806127e237343dc7a3501bc8473f8e78bc0068407ca2e90d75c2e6790"
