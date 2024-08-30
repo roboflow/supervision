@@ -278,7 +278,7 @@ def test_map_detections_class_id(
             np.array([[[]]]).astype(bool),
             None,
             pytest.raises(AssertionError),
-        ),  # raises AssertionError because mask dimentionality is not 2D
+        ),  # raises AssertionError because mask dimensionality is not 2D
         (
             np.array([[]]).astype(bool),
             None,

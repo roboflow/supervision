@@ -975,7 +975,7 @@ def test_get_data_item(
             ),
             False,
             DoesNotRaise(),
-        ),  # foreground object in 2 seperate elements
+        ),  # foreground object in 2 separate elements
         (
             np.array([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]).astype(
                 bool
@@ -1032,7 +1032,7 @@ def test_contains_holes(
             4,
             True,
             DoesNotRaise(),
-        ),  # foreground object in 2 seperate elements
+        ),  # foreground object in 2 separate elements
         (
             np.array([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]).astype(
                 bool
