@@ -222,16 +222,15 @@ class MeanAveragePrecision(Metric):
         Returns:
             (float): Average precision.
         """
-        extended_recall = np.concatenate(([0.0], recall, [1.0]))
-        extended_precision = np.concatenate(([1.0], precision, [0.0]))
-        max_accumulated_precision = np.flip(
-            np.maximum.accumulate(np.flip(extended_precision))
-        )
-        interpolated_recall_levels = np.linspace(0, 1, 101)
-        interpolated_precision = np.interp(
-            interpolated_recall_levels, extended_recall, max_accumulated_precision
-        )
-        average_precision = np.trapz(interpolated_precision, interpolated_recall_levels)
+        if len(recall) == 0 and len(precision) == 0:
+            return 0.0
+
+        recall_levels = np.linspace(0, 1, 101)
+        precision_levels = np.zeros_like(recall_levels)
+        for r, p in zip(recall[::-1], precision[::-1]):
+            precision_levels[recall_levels <= r] = p
+
+        average_precision = (1 / 100 * precision_levels).sum()
         return average_precision
 
     @staticmethod
@@ -307,9 +306,9 @@ class MeanAveragePrecision(Metric):
 
             false_positives = (1 - matches[is_class]).cumsum(0)
             true_positives = matches[is_class].cumsum(0)
-            true_negatives = total_true - true_positives
+            false_negatives = total_true - true_positives
 
-            recall = true_positives / (true_positives + true_negatives + eps)
+            recall = true_positives / (true_positives + false_negatives + eps)
             precision = true_positives / (true_positives + false_positives)
 
             for iou_level_idx in range(matches.shape[1]):
