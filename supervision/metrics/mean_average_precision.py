@@ -306,9 +306,9 @@ class MeanAveragePrecision(Metric):
 
             false_positives = (1 - matches[is_class]).cumsum(0)
             true_positives = matches[is_class].cumsum(0)
-            true_negatives = total_true - true_positives
+            false_negatives = total_true - true_positives
 
-            recall = true_positives / (true_positives + true_negatives + eps)
+            recall = true_positives / (true_positives + false_negatives + eps)
             precision = true_positives / (true_positives + false_positives)
 
             for iou_level_idx in range(matches.shape[1]):
