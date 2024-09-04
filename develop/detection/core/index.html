@@ -2434,7 +2434,7 @@
     <div class="doc doc-contents first">
 
 
-      <p>The <code>sv.Detections</code> class in the Supervision library standardizes results from
+        <p>The <code>sv.Detections</code> class in the Supervision library standardizes results from
 various object detection and segmentation models into a consistent format. This
 class simplifies data manipulation and filtering, providing a uniform API for
 integration with Supervision <a href="/trackers/">trackers</a>, <a href="/detection/annotators/">annotators</a>, and <a href="/detection/tools/line_zone/">tools</a>.</p>
@@ -5062,7 +5062,7 @@ is either a NumPy array or a list of corresponding data.</p>
 
     <div class="doc doc-contents ">
 
-      <p>Calculate the area of each detection in the set of object detections.
+        <p>Calculate the area of each detection in the set of object detections.
 If masks field is defined property returns are of each mask.
 If only box is given property return area of each box.</p>
 
@@ -5110,7 +5110,7 @@ where n is the number of detections.</p>
 
     <div class="doc doc-contents ">
 
-      <p>Calculate the area of each bounding box in the set of object detections.</p>
+        <p>Calculate the area of each bounding box in the set of object detections.</p>
 
 
     <p><span class="doc-section-title">Returns:</span></p>
@@ -5153,7 +5153,7 @@ where n is the number of detections.</p>
 
     <div class="doc doc-contents ">
 
-      <p>Get a subset of the Detections object or access an item from its data field.</p>
+        <p>Get a subset of the Detections object or access an item from its data field.</p>
 <p>When provided with an integer, slice, list of integers, or a numpy array, this
 method returns a new Detections object that represents a subset of the original
 detections. When provided with a string, it accesses the corresponding item in
@@ -5339,7 +5339,7 @@ the data field.</p>
 
     <div class="doc doc-contents ">
 
-      <p>Iterates over the Detections object and yield a tuple of
+        <p>Iterates over the Detections object and yield a tuple of
 <code>(xyxy, mask, confidence, class_id, tracker_id, data)</code> for each detection.</p>
 
             <details class="quote">
@@ -5410,7 +5410,7 @@ the data field.</p>
 
     <div class="doc doc-contents ">
 
-      <p>Returns the number of detections in the Detections object.</p>
+        <p>Returns the number of detections in the Detections object.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/detection/core.py</code></summary>
@@ -5440,7 +5440,7 @@ the data field.</p>
 
     <div class="doc doc-contents ">
 
-      <p>Set a value in the data dictionary of the Detections object.</p>
+        <p>Set a value in the data dictionary of the Detections object.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -5595,7 +5595,7 @@ the data field.</p>
 
     <div class="doc doc-contents ">
 
-      <p>Create an empty Detections object with no bounding boxes,
+        <p>Create an empty Detections object with no bounding boxes,
     confidences, or class IDs.</p>
 
 
@@ -5693,7 +5693,7 @@ the data field.</p>
 
     <div class="doc doc-contents ">
 
-      <p>Creates a Detections instance from <a href="https://learn.microsoft.com/en-us/azure/ai-services/computer-vision/
+        <p>Creates a Detections instance from <a href="https://learn.microsoft.com/en-us/azure/ai-services/computer-vision/
 concept-object-detection-40">Azure Image Analysis 4.0</a>.</p>
 
 
@@ -5982,7 +5982,7 @@ names (str). If None, a new mapping is created dynamically.</p>
 
     <div class="doc doc-contents ">
 
-      <p>Creates a Detections instance from a
+        <p>Creates a Detections instance from a
 <a href="https://github.com/neuralmagic/deepsparse">DeepSparse</a>
 inference result.</p>
 
@@ -6146,7 +6146,7 @@ inference result.</p>
 
     <div class="doc doc-contents ">
 
-      <p>Create a Detections object from the
+        <p>Create a Detections object from the
 <a href="https://github.com/facebookresearch/detectron2">Detectron2</a> inference result.</p>
 
 
@@ -6331,7 +6331,7 @@ class IDs, and confidences of the predictions.</p>
 
     <div class="doc doc-contents ">
 
-      <p>Create a <code>sv.Detections</code> object from the <a href="https://roboflow.com/">Roboflow</a>
+        <p>Create a <code>sv.Detections</code> object from the <a href="https://roboflow.com/">Roboflow</a>
 API inference result or the <a href="https://inference.roboflow.com/">Inference</a>
 package results. This method extracts bounding boxes, class IDs,
 confidences, and class names from the Roboflow API result and encapsulates
@@ -6525,7 +6525,7 @@ and confidences of the predictions.</p>
 
     <div class="doc doc-contents ">
 
-      <p>Creates a Detections object from the given result string based on the specified
+        <p>Creates a Detections object from the given result string based on the specified
 Large Multimodal Model (LMM).</p>
 
 
@@ -6805,7 +6805,7 @@ disallowed arguments are provided.</p>
 
     <div class="doc doc-contents ">
 
-      <p>Creates a Detections instance from a
+        <p>Creates a Detections instance from a
 <a href="https://github.com/open-mmlab/mmdetection">mmdetection</a> and
 <a href="https://github.com/open-mmlab/mmyolo">mmyolo</a> inference result.</p>
 
@@ -6969,7 +6969,7 @@ disallowed arguments are provided.</p>
 
     <div class="doc doc-contents ">
 
-      <p>Creates a Detections instance from
+        <p>Creates a Detections instance from
     <a href="https://github.com/PaddlePaddle/PaddleDetection">PaddleDetection</a>
     inference result.</p>
 
@@ -7149,7 +7149,7 @@ disallowed arguments are provided.</p>
 
     <div class="doc doc-contents ">
 
-      <p>Creates a Detections instance from
+        <p>Creates a Detections instance from
 <a href="https://github.com/facebookresearch/segment-anything">Segment Anything Model</a>
 inference result.</p>
 
@@ -7325,7 +7325,7 @@ inference result.</p>
 
     <div class="doc doc-contents ">
 
-      <p>Creates a Detections instance from a
+        <p>Creates a Detections instance from a
 <a href="https://www.tensorflow.org/hub/tutorials/tf2_object_detection">Tensorflow Hub</a>
 inference result.</p>
 
@@ -7498,7 +7498,7 @@ inference result.</p>
 
     <div class="doc doc-contents ">
 
-      <p>Creates a Detections instance from object detection or panoptic, semantic
+        <p>Creates a Detections instance from object detection or panoptic, semantic
 and instance segmentation
 <a href="https://github.com/huggingface/transformers">Transformer</a> inference result.</p>
 
@@ -7766,7 +7766,7 @@ provided, the resulting dictionary will include class names.</p>
 
     <div class="doc doc-contents ">
 
-      <p>Creates a <code>sv.Detections</code> instance from a
+        <p>Creates a <code>sv.Detections</code> instance from a
 <a href="https://github.com/ultralytics/ultralytics">YOLOv8</a> inference result.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -8003,7 +8003,7 @@ provided, the resulting dictionary will include class names.</p>
 
     <div class="doc doc-contents ">
 
-      <p>Creates a Detections instance from a
+        <p>Creates a Detections instance from a
 <a href="https://github.com/Deci-AI/super-gradients/blob/master/YOLONAS.md">YOLO-NAS</a>
 inference result.</p>
 
@@ -8171,7 +8171,7 @@ ImageDetectionPrediction is coming from
 
     <div class="doc doc-contents ">
 
-      <p>Creates a Detections instance from a
+        <p>Creates a Detections instance from a
 <a href="https://github.com/ultralytics/yolov5">YOLOv5</a> inference result.</p>
 
 
@@ -8321,7 +8321,7 @@ ImageDetectionPrediction is coming from
 
     <div class="doc doc-contents ">
 
-      <p>Calculates and returns the coordinates of a specific anchor point
+        <p>Calculates and returns the coordinates of a specific anchor point
 within the bounding boxes defined by the <code>xyxy</code> attribute. The anchor
 point can be any of the predefined positions in the <code>Position</code> enum,
 such as <code>CENTER</code>, <code>CENTER_LEFT</code>, <code>BOTTOM_RIGHT</code>, etc.</p>
@@ -8553,7 +8553,7 @@ anchor point for the corresponding bounding box.</p>
 
     <div class="doc doc-contents ">
 
-      <p>Returns <code>True</code> if the <code>Detections</code> object is considered empty.</p>
+        <p>Returns <code>True</code> if the <code>Detections</code> object is considered empty.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/detection/core.py</code></summary>
@@ -8591,7 +8591,7 @@ anchor point for the corresponding bounding box.</p>
 
     <div class="doc doc-contents ">
 
-      <p>Merge a list of Detections objects into a single Detections object.</p>
+        <p>Merge a list of Detections objects into a single Detections object.</p>
 <p>This method takes a list of Detections objects and combines their
 respective fields (<code>xyxy</code>, <code>mask</code>, <code>confidence</code>, <code>class_id</code>, and <code>tracker_id</code>)
 into a single Detections object.</p>
@@ -8903,7 +8903,7 @@ the merged data from the input list.</p>
 
     <div class="doc doc-contents ">
 
-      <p>Perform non-maximum merging on the current set of object detections.</p>
+        <p>Perform non-maximum merging on the current set of object detections.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -8998,7 +8998,7 @@ class_agnostic is False.</p>
           </tr>
       </tbody>
     </table>
-      <p><img align="center" alt="non-max-merging" src="https://media.roboflow.com/supervision-docs/non-max-merging.png" width="800" /></p>
+        <p><img align="center" alt="non-max-merging" src="https://media.roboflow.com/supervision-docs/non-max-merging.png" width="800" /></p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/detection/core.py</code></summary>
@@ -9134,7 +9134,7 @@ class_agnostic is False.</p>
 
     <div class="doc doc-contents ">
 
-      <p>Performs non-max suppression on detection set. If the detections result
+        <p>Performs non-max suppression on detection set. If the detections result
 from a segmentation model, the IoU mask is applied. Otherwise, box IoU is used.</p>
 
 

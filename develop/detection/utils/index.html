@@ -2190,7 +2190,7 @@
 <a id="supervision.detection.utils.box_iou_batch"></a>
     <div class="doc doc-contents first">
 
-      <p>Compute Intersection over Union (IoU) of two sets of bounding boxes -
+        <p>Compute Intersection over Union (IoU) of two sets of bounding boxes -
     <code>boxes_true</code> and <code>boxes_detection</code>. Both sets
     of boxes are expected to be in <code>(x_min, y_min, x_max, y_max)</code> format.</p>
 
@@ -2344,7 +2344,7 @@
 <a id="supervision.detection.utils.mask_iou_batch"></a>
     <div class="doc doc-contents first">
 
-      <p>Compute Intersection over Union (IoU) of two sets of masks -
+        <p>Compute Intersection over Union (IoU) of two sets of masks -
     <code>masks_true</code> and <code>masks_detection</code>.</p>
 
 
@@ -2533,7 +2533,7 @@
 <a id="supervision.detection.utils.polygon_to_mask"></a>
     <div class="doc doc-contents first">
 
-      <p>Generate a mask from a polygon.</p>
+        <p>Generate a mask from a polygon.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -2655,7 +2655,7 @@ given as a list of vertices.</p>
 <a id="supervision.detection.utils.mask_to_xyxy"></a>
     <div class="doc doc-contents first">
 
-      <p>Converts a 3D <code>np.array</code> of 2D bool masks into a 2D <code>np.array</code> of bounding boxes.</p>
+        <p>Converts a 3D <code>np.array</code> of 2D bool masks into a 2D <code>np.array</code> of bounding boxes.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -2777,7 +2777,7 @@ containing 2D bool masks</p>
 <a id="supervision.detection.utils.mask_to_polygons"></a>
     <div class="doc doc-contents first">
 
-      <p>Converts a binary mask to a list of polygons.</p>
+        <p>Converts a binary mask to a list of polygons.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -2902,7 +2902,7 @@ are excluded from the output.</p>
 <a id="supervision.detection.utils.polygon_to_xyxy"></a>
     <div class="doc doc-contents first">
 
-      <p>Converts a polygon represented by a NumPy array into a bounding box.</p>
+        <p>Converts a polygon represented by a NumPy array into a bounding box.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -3006,7 +3006,7 @@ containing the <code>x</code>, <code>y</code> coordinates of the points.</p>
 <a id="supervision.detection.utils.filter_polygons_by_area"></a>
     <div class="doc doc-contents first">
 
-      <p>Filters a list of polygons based on their area.</p>
+        <p>Filters a list of polygons based on their area.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -3352,7 +3352,7 @@ is <code>[dx, dy]</code>.</p>
 <a id="supervision.detection.utils.move_masks"></a>
     <div class="doc doc-contents first">
 
-      <p>Offset the masks in an array by the specified (x, y) amount.</p>
+        <p>Offset the masks in an array by the specified (x, y) amount.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -3523,7 +3523,7 @@ shape.</p>
 <a id="supervision.detection.utils.scale_boxes"></a>
     <div class="doc doc-contents first">
 
-      <p>Scale the dimensions of bounding boxes.</p>
+        <p>Scale the dimensions of bounding boxes.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -3701,7 +3701,7 @@ factor less than 1 shrinks them.</p>
 <a id="supervision.detection.utils.clip_boxes"></a>
     <div class="doc doc-contents first">
 
-      <p>Clips bounding boxes coordinates to fit within the frame resolution.</p>
+        <p>Clips bounding boxes coordinates to fit within the frame resolution.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -3890,7 +3890,7 @@ within the frame resolution.</p>
 <a id="supervision.detection.utils.pad_boxes"></a>
     <div class="doc doc-contents first">
 
-      <p>Pads bounding boxes coordinates with a constant padding.</p>
+        <p>Pads bounding boxes coordinates with a constant padding.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -4102,7 +4102,7 @@ values.</p>
 <a id="supervision.detection.utils.xywh_to_xyxy"></a>
     <div class="doc doc-contents first">
 
-      <p>Converts bounding box coordinates from <code>(x, y, width, height)</code>
+        <p>Converts bounding box coordinates from <code>(x, y, width, height)</code>
 format to <code>(x_min, y_min, x_max, y_max)</code> format.</p>
 
 
@@ -4262,7 +4262,7 @@ to a bounding box in the format <code>(x_min, y_min, x_max, y_max)</code>.</p>
 <a id="supervision.detection.utils.xcycwh_to_xyxy"></a>
     <div class="doc doc-contents first">
 
-      <p>Converts bounding box coordinates from <code>(center_x, center_y, width, height)</code>
+        <p>Converts bounding box coordinates from <code>(center_x, center_y, width, height)</code>
 format to <code>(x_min, y_min, x_max, y_max)</code> format.</p>
 
 
@@ -4429,7 +4429,7 @@ to a bounding box in the format <code>(x_min, y_min, x_max, y_max)</code>.</p>
 <a id="supervision.detection.utils.contains_holes"></a>
     <div class="doc doc-contents first">
 
-      <p>Checks if the binary mask contains holes (background pixels fully enclosed by
+        <p>Checks if the binary mask contains holes (background pixels fully enclosed by
 foreground pixels).</p>
 
 
@@ -4512,7 +4512,7 @@ object and <code>False</code> indicates background.</p>
 <a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="n">sv</span><span class="o">.</span><span class="n">contains_holes</span><span class="p">(</span><span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span>
 <a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="c1"># False</span>
 </code></pre></div>
-      <p><img align="center" alt="contains_holes" src="https://media.roboflow.com/supervision-docs/contains-holes.png" width="800" /></p>
+        <p><img align="center" alt="contains_holes" src="https://media.roboflow.com/supervision-docs/contains-holes.png" width="800" /></p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/detection/utils.py</code></summary>
@@ -4634,7 +4634,7 @@ object and <code>False</code> indicates background.</p>
 <a id="supervision.detection.utils.contains_multiple_segments"></a>
     <div class="doc doc-contents first">
 
-      <p>Checks if the binary mask contains multiple unconnected foreground segments.</p>
+        <p>Checks if the binary mask contains multiple unconnected foreground segments.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -4759,7 +4759,7 @@ connected by their edges or corners touch.</p>
 <a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="n">sv</span><span class="o">.</span><span class="n">contains_multiple_segments</span><span class="p">(</span><span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span> <span class="n">connectivity</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
 <a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="c1"># False</span>
 </code></pre></div>
-      <p><img align="center" alt="contains_multiple_segments" src="https://media.roboflow.com/supervision-docs/contains-multiple-segments.png" width="800" /></p>
+        <p><img align="center" alt="contains_multiple_segments" src="https://media.roboflow.com/supervision-docs/contains-multiple-segments.png" width="800" /></p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/detection/utils.py</code></summary>
