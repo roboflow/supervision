@@ -874,7 +874,12 @@ class Detections:
 
         return cls(
             xyxy=xyxy,
-            confidence=np.array([result[2] for result in easyocr_results]),
+            confidence=np.array(
+                [
+                    result[2] if len(result) > 2 and result[2] else 0
+                    for result in easyocr_results
+                ]
+            ),
             class_id=np.arange(len(xyxy)),
             data={TEXT_DATA_FIELD: np.array([result[1] for result in easyocr_results])},
         )
