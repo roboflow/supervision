@@ -6,7 +6,11 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 
-from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES
+from supervision.config import (
+    CLASS_NAME_DATA_FIELD,
+    ORIENTED_BOX_COORDINATES,
+    TEXT_DATA_FIELD,
+)
 from supervision.detection.lmm import (
     LMM,
     from_florence_2,
@@ -842,6 +846,38 @@ class Detections:
             return cls(xyxy=xyxy, mask=mask, data=data)
 
         raise ValueError(f"Unsupported LMM: {lmm}")
+
+    @classmethod
+    def from_easyocr(cls, easyocr_results: list) -> Detections:
+        """
+        Create a Detections object from the
+        [EasyOCR](https://github.com/JaidedAI/EasyOCR) inference result.
+
+        Args:
+            easyocr_results (List): The output Results instance from EasyOCR
+
+        Returns:
+            Detections: A new Detections object.
+
+        Example:
+            ```python
+            import supervision as sv
+            import easyocr
+
+            reader = easyocr.Reader(['en'])
+            results = reader.readtext(<SOURCE_IMAGE_PATH>)
+            detections = sv.Detections.from_easyocr(results)
+            ```
+        """
+        bbox = np.array([result[0] for result in easyocr_results])
+        xyxy = np.hstack((np.min(bbox, axis=1), np.max(bbox, axis=1)))
+
+        return cls(
+            xyxy=xyxy,
+            confidence=np.array([result[2] for result in easyocr_results]),
+            class_id=np.arange(len(xyxy)),
+            data={TEXT_DATA_FIELD: np.array([result[1] for result in easyocr_results])},
+        )
 
     @classmethod
     def empty(cls) -> Detections:
