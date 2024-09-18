@@ -9,7 +9,6 @@ import numpy as np
 from supervision.config import (
     CLASS_NAME_DATA_FIELD,
     ORIENTED_BOX_COORDINATES,
-    TEXT_DATA_FIELD,
 )
 from supervision.detection.lmm import (
     LMM,
@@ -869,6 +868,9 @@ class Detections:
             detections = sv.Detections.from_easyocr(results)
             ```
         """
+        if len(easyocr_results) == 0:
+            return cls.empty()
+
         bbox = np.array([result[0] for result in easyocr_results])
         xyxy = np.hstack((np.min(bbox, axis=1), np.max(bbox, axis=1)))
 
@@ -881,7 +883,11 @@ class Detections:
                 ]
             ),
             class_id=np.arange(len(xyxy)),
-            data={TEXT_DATA_FIELD: np.array([result[1] for result in easyocr_results])},
+            data={
+                CLASS_NAME_DATA_FIELD: np.array(
+                    [result[1] for result in easyocr_results]
+                )
+            },
         )
 
     @classmethod
