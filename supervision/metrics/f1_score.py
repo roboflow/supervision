@@ -428,10 +428,10 @@ class F1ScoreResult:
             f"{self.__class__.__name__}:\n"
             f"Metric target: {self.metric_target}\n"
             f"Averaging method: {self.averaging_method}\n"
-            f"F1@50:      {self.f1_50:.4f}\n"
-            f"F1@75:      {self.f1_75:.4f}\n"
-            f"F1@50:95:   {self.f1_scores}\n"
-            f"IoU thresh: {self.iou_thresholds}\n"
+            f"F1 @ 50:     {self.f1_50:.4f}\n"
+            f"F1 @ 75:     {self.f1_75:.4f}\n"
+            f"F1 @ thresh: {self.f1_scores}\n"
+            f"IoU thresh:  {self.iou_thresholds}\n"
             f"F1 per class:\n"
         )
         if self.f1_per_class.size == 0:

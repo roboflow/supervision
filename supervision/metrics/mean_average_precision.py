@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, List, Optional, Union
+from typing import TYPE_CHECKING, List, Optional, Tuple, Union
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -192,21 +192,21 @@ class MeanAveragePrecision(Metric):
         # Compute average precisions if any matches exist
         if stats:
             concatenated_stats = [np.concatenate(items, 0) for items in zip(*stats)]
-            average_precisions = self._average_precisions_per_class(*concatenated_stats)
-            map50 = average_precisions[:, 0].mean()
-            map75 = average_precisions[:, 5].mean()
-            map50_95 = average_precisions.mean()
+            average_precisions, unique_classes = self._average_precisions_per_class(
+                *concatenated_stats
+            )
+            mAP_scores = np.mean(average_precisions, axis=0)
         else:
-            map50, map75, map50_95 = 0, 0, 0
+            mAP_scores = np.zeros((10,), dtype=np.float32)
+            unique_classes = np.empty((0,), dtype=int)
             average_precisions = np.empty((0, len(iou_thresholds)), dtype=np.float32)
 
         return MeanAveragePrecisionResult(
-            iou_thresholds=iou_thresholds,
-            map50_95=map50_95,
-            map50=map50,
-            map75=map75,
-            per_class_ap50_95=average_precisions,
             metric_target=self._metric_target,
+            mAP_scores=mAP_scores,
+            iou_thresholds=iou_thresholds,
+            matched_classes=unique_classes,
+            ap_per_class=average_precisions,
         )
 
     @staticmethod
@@ -270,7 +270,7 @@ class MeanAveragePrecision(Metric):
         prediction_confidence: np.ndarray,
         prediction_class_ids: np.ndarray,
         true_class_ids: np.ndarray,
-    ) -> np.ndarray:
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Compute the average precision, given the recall and precision curves.
         Source: https://github.com/rafaelpadilla/Object-Detection-Metrics.
@@ -283,7 +283,8 @@ class MeanAveragePrecision(Metric):
             eps (float, optional): Small value to prevent division by zero.
 
         Returns:
-            (np.ndarray): Average precision for different IoU levels.
+            (Tuple[np.ndarray, np.ndarray]): Average precision for different
+                IoU levels, and an array of class IDs that were matched.
         """
         eps = 1e-16
 
@@ -318,7 +319,7 @@ class MeanAveragePrecision(Metric):
                     )
                 )
 
-        return average_precisions
+        return average_precisions, unique_classes
 
     def _detections_content(self, detections: Detections) -> np.ndarray:
         """Return boxes, masks or oriented bounding boxes from detections."""
@@ -374,24 +375,40 @@ class MeanAveragePrecision(Metric):
 
 @dataclass
 class MeanAveragePrecisionResult:
-    iou_thresholds: np.ndarray
-    """Array of IoU thresholds used in the calculations"""
-    map50_95: float
-    """Mean Average Precision over IoU thresholds from 0.5 to 0.95"""
-
-    map50: float
-    """Mean Average Precision at IoU threshold of 0.5"""
-
-    map75: float
-    """Mean Average Precision at IoU threshold of 0.75"""
-
-    per_class_ap50_95: np.ndarray
-    """Average precision for each class at different IoU thresholds"""
-
     metric_target: MetricTarget
     """
-    Defines the type of data used for the metric - boxes, masks or
-    oriented bounding boxes.
+    The class IDs of classes that were matched during the calculation.
+    Corresponds to the rows of per_class_ap50_95.
+    """
+
+    @property
+    def map50_95(self) -> float:
+        """Mean Average Precision over IoU thresholds from 0.5 to 0.95"""
+        return self.mAP_scores.mean()
+
+    @property
+    def map50(self) -> float:
+        """Mean Average Precision at IoU threshold of 0.5"""
+        return self.mAP_scores[0]
+
+    @property
+    def map75(self) -> float:
+        """Mean Average Precision at IoU threshold of 0.75"""
+        return self.mAP_scores[5]
+
+    mAP_scores: np.ndarray
+    """Mean Average Precision scores at different IoU thresholds"""
+
+    ap_per_class: np.ndarray
+    """Average precision for each class at different IoU thresholds"""
+
+    iou_thresholds: np.ndarray
+    """Array of IoU thresholds used in the calculations"""
+
+    matched_classes: np.ndarray
+    """
+    The class IDs of classes that were matched during the calculation.
+    Corresponds to the rows of ap_per_class.
     """
 
     small_objects: Optional[MeanAveragePrecisionResult] = None
@@ -415,21 +432,18 @@ class MeanAveragePrecisionResult:
 
         out_str = (
             f"{self.__class__.__name__}:\n"
-            f"iou_thresholds: {self.iou_thresholds}\n"
-            f"map50_95:  {self.map50_95:.4f}\n"
-            f"map50:     {self.map50:.4f}\n"
-            f"map75:     {self.map75:.4f}\n"
-            f"per_class_ap50_95:"
+            f"Metric target: {self.metric_target}\n"
+            f"mAP @ 50:95: {self.map50_95:.4f}\n"
+            f"mAP @ 50:    {self.map50:.4f}\n"
+            f"mAP @ 75:    {self.map75:.4f}\n"
+            f"mAP scores: {self.mAP_scores}\n"
+            f"IoU thresh: {self.iou_thresholds}\n"
+            f"AP per class:\n"
         )
-        # TODO: newline here?
-        # TODO: rename to "mAP@50, etc"
-        # TODO: print thresholds later."
-        # TODO: print metric target
-        # TODO: align IoU thresh
-
-        # TODO: that's not the class_id.
-        for class_id, ap in enumerate(self.per_class_ap50_95):
-            out_str += f"\n  {class_id}:  {ap}"
+        if self.ap_per_class.size == 0:
+            out_str += "  No results\n"
+        for class_id, ap_of_class in zip(self.matched_classes, self.ap_per_class):
+            out_str += f"  {class_id}: {ap_of_class}\n"
 
         indent = "  "
         if self.small_objects is not None:
@@ -455,11 +469,10 @@ class MeanAveragePrecisionResult:
         import pandas as pd
 
         pandas_data = {
-            "mAP_50_95": self.map50_95,
-            "mAP_50": self.map50,
-            "mAP_75": self.map75,
+            "mAP@50:95": self.map50_95,
+            "mAP@50": self.map50,
+            "mAP@75": self.map75,
         }
-        # TODO: change names to mAP@50, etc
 
         if self.small_objects is not None:
             small_objects_df = self.small_objects.to_pandas()
@@ -486,17 +499,12 @@ class MeanAveragePrecisionResult:
         Plot the mAP results.
         """
 
-        labels = ["mAP_50_95", "mAP_50", "mAP_75"]
-        # TODO: change labels to @ notation.
+        labels = ["mAP@50:95", "mAP@50", "mAP@75"]
         values = [self.map50_95, self.map50, self.map75]
         colors = [LEGACY_COLOR_PALETTE[0]] * 3
 
         if self.small_objects is not None:
-            labels += [
-                "small_objects_mAP_50_95",
-                "small_objects_mAP_50",
-                "small_objects_mAP_75",
-            ]
+            labels += ["Small: mAP@50:95", "Small: mAP@50", "Small: mAP@75"]
             values += [
                 self.small_objects.map50_95,
                 self.small_objects.map50,
@@ -505,11 +513,7 @@ class MeanAveragePrecisionResult:
             colors += [LEGACY_COLOR_PALETTE[3]] * 3
 
         if self.medium_objects is not None:
-            labels += [
-                "medium_objects_mAP_50_95",
-                "medium_objects_mAP_50",
-                "medium_objects_mAP_75",
-            ]
+            labels += ["Medium: mAP@50:95", "Medium: mAP@50", "Medium: mAP@75"]
             values += [
                 self.medium_objects.map50_95,
                 self.medium_objects.map50,
@@ -518,11 +522,7 @@ class MeanAveragePrecisionResult:
             colors += [LEGACY_COLOR_PALETTE[2]] * 3
 
         if self.large_objects is not None:
-            labels += [
-                "large_objects_mAP_50_95",
-                "large_objects_mAP_50",
-                "large_objects_mAP_75",
-            ]
+            labels += ["Large: mAP@50:95", "Large: mAP@50", "Large: mAP@75"]
             values += [
                 self.large_objects.map50_95,
                 self.large_objects.map50,
