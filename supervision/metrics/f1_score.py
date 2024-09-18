@@ -31,7 +31,7 @@ class F1Score(Metric):
         self._metric_target = metric_target
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
             raise NotImplementedError(
-                "Mean Average Precision is not implemented for oriented bounding boxes."
+                "F1 score is not implemented for oriented bounding boxes."
             )
 
         self._metric_target = metric_target
