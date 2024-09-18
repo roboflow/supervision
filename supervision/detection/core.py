@@ -844,6 +844,63 @@ class Detections:
         raise ValueError(f"Unsupported LMM: {lmm}")
 
     @classmethod
+    def from_ncnn(cls, ncnn_results) -> Detections:
+        """
+        Creates a Detections instance from a
+        [ncnn](https://github.com/Tencent/ncnn) inference result.
+
+        Args:
+            ncnn_results (dict): The output Results instance from ncnn.
+
+        Returns:
+            Detections: A new Detections object.
+
+        Example:
+            ```python
+            import cv2
+            from ncnn.model_zoo import get_model
+            import supervision as sv
+
+            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            net = get_model(
+                "yolov8s",
+                target_size=640
+                prob_threshold=0.5,
+                nms_threshold=0.45,
+                num_threads=4,
+                use_gpu=True,
+                )
+            result = net(image)
+            detections = sv.Detections.from_ncnn(result)
+            ```
+        """
+
+        xywh, confidences, class_ids = [], [], []
+
+        if len(ncnn_results) > 0:
+            for ncnn_result in ncnn_results:
+                rect = ncnn_result.rect
+                xywh.append(
+                    [
+                        rect.x.astype(np.int64),
+                        rect.y.astype(np.int64),
+                        rect.w.astype(np.int64),
+                        rect.h.astype(np.int64),
+                    ]
+                )
+
+                confidences.append(ncnn_result.prob)
+                class_ids.append(ncnn_result.label)
+
+            return cls(
+                xyxy=xywh_to_xyxy(np.array(xywh)),
+                confidence=np.array(confidences),
+                class_id=np.array(class_ids, dtype=int),
+            )
+
+        return cls.empty()
+
+    @classmethod
     def empty(cls) -> Detections:
         """
         Create an empty Detections object with no bounding boxes,
