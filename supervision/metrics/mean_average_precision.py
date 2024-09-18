@@ -421,22 +421,26 @@ class MeanAveragePrecisionResult:
             f"map75:     {self.map75:.4f}\n"
             f"per_class_ap50_95:"
         )
+        # TODO: newline here?
+        # TODO: rename to "mAP@50, etc"
+        # TODO: print thresholds later."
+        # TODO: print metric target
+        # TODO: align IoU thresh
 
+        # TODO: that's not the class_id.
         for class_id, ap in enumerate(self.per_class_ap50_95):
             out_str += f"\n  {class_id}:  {ap}"
 
         indent = "  "
         if self.small_objects is not None:
-            indented_str = indent + str(self.small_objects).replace("\n", f"\n{indent}")
-            out_str += f"\nSmall objects:\n{indented_str}"
+            indented = indent + str(self.small_objects).replace("\n", f"\n{indent}")
+            out_str += f"\nSmall objects:\n{indented}"
         if self.medium_objects is not None:
-            indented_str = indent + str(self.medium_objects).replace(
-                "\n", f"\n{indent}"
-            )
-            out_str += f"\nMedium objects:\n{indented_str}"
+            indented = indent + str(self.medium_objects).replace("\n", f"\n{indent}")
+            out_str += f"\nMedium objects:\n{indented}"
         if self.large_objects is not None:
-            indented_str = indent + str(self.large_objects).replace("\n", f"\n{indent}")
-            out_str += f"\nLarge objects:\n{indented_str}"
+            indented = indent + str(self.large_objects).replace("\n", f"\n{indent}")
+            out_str += f"\nLarge objects:\n{indented}"
 
         return out_str
 
@@ -455,6 +459,8 @@ class MeanAveragePrecisionResult:
             "mAP_50": self.map50,
             "mAP_75": self.map75,
         }
+        # TODO: change names to mAP@50, etc
+
         if self.small_objects is not None:
             small_objects_df = self.small_objects.to_pandas()
             for key, value in small_objects_df.items():
@@ -481,6 +487,7 @@ class MeanAveragePrecisionResult:
         """
 
         labels = ["mAP_50_95", "mAP_50", "mAP_75"]
+        # TODO: change labels to @ notation.
         values = [self.map50_95, self.map50, self.map75]
         colors = [LEGACY_COLOR_PALETTE[0]] * 3
 
