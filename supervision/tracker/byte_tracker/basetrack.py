@@ -13,7 +13,6 @@ class TrackState(Enum):
 
 class BaseTrack:
     def __init__(self):
-        self._count = 0
         self.track_id = 0
         self.is_activated = False
         self.state = TrackState.New
@@ -33,12 +32,7 @@ class BaseTrack:
     def end_frame(self) -> int:
         return self.frame_id
 
-    def next_id(self) -> int:
-        self._count += 1
-        return self._count
-
     def reset_counter(self):
-        self._count = 0
         self.track_id = 0
         self.start_frame = 0
         self.frame_id = 0
