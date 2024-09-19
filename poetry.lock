@@ -4479,10 +4479,9 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 
 [extras]
 assets = ["requests", "tqdm"]
-desktop = ["opencv-python"]
 metrics = ["pandas", "pandas-stubs"]
 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "65b82b4f22fe8186659cc276441848a0466f30df5fc7e73f1b46ba71f05914e4"
+content-hash = "86cf58c784053b04397cd55589f9704969531654dcb0c407435a81ea8305dd52"
