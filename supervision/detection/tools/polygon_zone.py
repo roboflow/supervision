@@ -109,6 +109,7 @@ class PolygonZoneAnnotator:
             default is cv2.FONT_HERSHEY_SIMPLEX
         center (Tuple[int, int]): The center of the polygon for text placement
         display_in_zone_count (bool): Show the label of the zone or not. Default is True
+        opacity: The opacity of zone when drawn on the scene. Default is 1 (no opacity)
     """
 
     def __init__(
