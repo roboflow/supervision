@@ -52,16 +52,14 @@ matplotlib = ">=3.6.0"
 pyyaml = ">=5.3"
 defusedxml = "^0.7.1"
 pillow = ">=9.4"
-opencv-python = { version = ">=4.5.5.64", optional = true }
-opencv-python-headless = ">=4.5.5.64"
 requests = { version = ">=2.26.0,<=2.32.3", optional = true }
 tqdm = { version = ">=4.62.3,<=4.66.5", optional = true }
 # pandas: picked lowest major version that supports Python 3.8
 pandas = { version = ">=2.0.0", optional = true }
 pandas-stubs = { version = ">=2.0.0.230412", optional = true }
+opencv-python = ">=4.5.5.64"
 
 [tool.poetry.extras]
-desktop = ["opencv-python"]
 assets = ["requests", "tqdm"]
 metrics = ["pandas", "pandas-stubs"]
 
