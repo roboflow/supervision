@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+
 import supervision as sv
 
 
@@ -24,7 +25,7 @@ import supervision as sv
                 class_id=np.array([1, 1]),
                 confidence=np.array([1, 1]),
                 tracker_id=np.array([1, 2]),
-            )
+            ),
         ),
     ],
 )

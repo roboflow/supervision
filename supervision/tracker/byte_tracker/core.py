@@ -428,7 +428,9 @@ class ByteTrack:
             dists, thresh=0.7
         )
         for itracked, idet in matches:
-            unconfirmed[itracked].update(detections[idet], self.frame_id, self._next_id())
+            unconfirmed[itracked].update(
+                detections[idet], self.frame_id, self._next_id()
+            )
             activated_starcks.append(unconfirmed[itracked])
         for it in u_unconfirmed:
             track = unconfirmed[it]
