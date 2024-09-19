@@ -28,6 +28,12 @@ We write your reusable computer vision tools. Whether you need to load your data
     >
 </video>
 
+## ▶︎ Try it out
+
+Play with our annotators using [**Workflows**](https://roboflow.com/workflows/build), powered by `supervision`.
+
+<div style="height: 600px; width: 850px;"><iframe src="https://app.roboflow.com/workflows/embed/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ3b3JrZmxvd0lkIjoibTJ5Ync5bUxzRGl4czI4cGI2OEkiLCJ3b3Jrc3BhY2VJZCI6ImtyT1RBYm5jRmhvUU1DZExPbGU0IiwidXNlcklkIjoiRVJNUFBZY3FQMmZWWjB1NkRpNXZaYXJDdlZPMiIsImlhdCI6MTcyNjc1MDM1NH0.YQIDaeLS1CEaqwecawhgspLqjjzAcn8WaSli6GtUgJs" loading="lazy" title="Roboflow Workflow for Detect Common Objects" style="width: 100%; height: 100%; min-height: 400px; border: none;"></iframe></div>
+
 ## 💻 Install
 
 You can install `supervision` in a

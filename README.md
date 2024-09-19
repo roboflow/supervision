@@ -248,6 +248,16 @@ https://github.com/roboflow/supervision/assets/26109316/c9436828-9fbf-4c25-ae8c-
 
 https://github.com/roboflow/supervision/assets/26109316/3ac6982f-4943-4108-9b7f-51787ef1a69f
 
+## ▶︎ playground
+
+Play with supervision annotators in your browser using [**Workflows**](https://roboflow.com/workflows/build)
+
+- [Detect common objects](https://app.roboflow.com/workflows/embed/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ3b3JrZmxvd0lkIjoibTJ5Ync5bUxzRGl4czI4cGI2OEkiLCJ3b3Jrc3BhY2VJZCI6ImtyT1RBYm5jRmhvUU1DZExPbGU0IiwidXNlcklkIjoiRVJNUFBZY3FQMmZWWjB1NkRpNXZaYXJDdlZPMiIsImlhdCI6MTcyNjc1MDM1NH0.YQIDaeLS1CEaqwecawhgspLqjjzAcn8WaSli6GtUgJs)
+- [Small object detection (SAHI)](https://app.roboflow.com/workflows/embed/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ3b3JrZmxvd0lkIjoiMWU4bkNOb2Jtdm0wOGtIb2Q1OWQiLCJ3b3Jrc3BhY2VJZCI6ImtyT1RBYm5jRmhvUU1DZExPbGU0IiwidXNlcklkIjoiRVJNUFBZY3FQMmZWWjB1NkRpNXZaYXJDdlZPMiIsImlhdCI6MTcyNjc1MzcwMX0.xfnBA38QDURJka1_WGItrKMbDg1T0IHdloSNGtgcj_I)
+- [Facial emotions](https://app.roboflow.com/workflows/embed/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ3b3JrZmxvd0lkIjoibWpuM1VjcWFqeEllSUtSb2RNWUEiLCJ3b3Jrc3BhY2VJZCI6ImtyT1RBYm5jRmhvUU1DZExPbGU0IiwidXNlcklkIjoiRVJNUFBZY3FQMmZWWjB1NkRpNXZaYXJDdlZPMiIsImlhdCI6MTcyNjc1Mzc2NH0.uoO5idABijO2Gcg7_HQe1E5agCKAuxyYj9qxj-34ETA)
+- [People in target zone](https://app.roboflow.com/workflows/embed/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ3b3JrZmxvd0lkIjoiSG9RRk9pWmkyNmFvYnRDVVZJYjgiLCJ3b3Jrc3BhY2VJZCI6ImtyT1RBYm5jRmhvUU1DZExPbGU0IiwidXNlcklkIjoiRVJNUFBZY3FQMmZWWjB1NkRpNXZaYXJDdlZPMiIsImlhdCI6MTcyNjc1MzgyMn0.gvlQmc41YyzwhkbCzkHOhmyXFhcFVABI-ZW91mi3Rvg)
+- [YOLO World](https://app.roboflow.com/workflows/embed/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ3b3JrZmxvd0lkIjoiOTF1bm43NmNpcHlTcllSQWxXSlYiLCJ3b3Jrc3BhY2VJZCI6IjFsY25TMDdFSVJTb08xUHo5RkFmIiwidXNlcklkIjoiRVJNUFBZY3FQMmZWWjB1NkRpNXZaYXJDdlZPMiIsImlhdCI6MTcyNjc1Mzg1N30.7-Rg_zKxVPU2kgskyjefFVf_0BWOS7J_vhS_lqP98OY)
+
 ## 📚 documentation
 
 Visit our [documentation](https://roboflow.github.io/supervision) page to learn how supervision can help you build computer vision applications faster and more reliably.
