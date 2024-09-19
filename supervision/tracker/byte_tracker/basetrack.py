@@ -12,9 +12,8 @@ class TrackState(Enum):
 
 
 class BaseTrack:
-    _count = 0
-
     def __init__(self):
+        self._count = 0
         self.track_id = 0
         self.is_activated = False
         self.state = TrackState.New
@@ -34,18 +33,16 @@ class BaseTrack:
     def end_frame(self) -> int:
         return self.frame_id
 
-    @staticmethod
-    def next_id() -> int:
-        BaseTrack._count += 1
-        return BaseTrack._count
+    def next_id(self) -> int:
+        self._count += 1
+        return self._count
 
-    @staticmethod
-    def reset_counter():
-        BaseTrack._count = 0
-        BaseTrack.track_id = 0
-        BaseTrack.start_frame = 0
-        BaseTrack.frame_id = 0
-        BaseTrack.time_since_update = 0
+    def reset_counter(self):
+        self._count = 0
+        self.track_id = 0
+        self.start_frame = 0
+        self.frame_id = 0
+        self.time_since_update = 0
 
     def activate(self, *args):
         raise NotImplementedError
