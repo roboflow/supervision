@@ -173,13 +173,13 @@ def draw_polygon(
 def draw_filled_polygon(
     scene: np.ndarray, polygon: np.ndarray, color: Color, opacity: float = 1
 ) -> np.ndarray:
-    """Draw a polygon on a scene.
+    """Draw a filled polygon on a scene.
 
     Parameters:
         scene (np.ndarray): The scene to draw the polygon on.
         polygon (np.ndarray): The polygon to be drawn, given as a list of vertices.
         color (Color): The color of the polygon.
-        opacity (float): The opacity of rectangle when drawn on the scene.
+        opacity (float): The opacity of polygon when drawn on the scene.
 
     Returns:
         np.ndarray: The scene with the polygon drawn on it.
