@@ -45,7 +45,7 @@ class Detections:
     The `sv.Detections` class in the Supervision library standardizes results from
     various object detection and segmentation models into a consistent format. This
     class simplifies data manipulation and filtering, providing a uniform API for
-    integration with Supervision [trackers](/trackers/), [annotators](/detection/annotators/), and [tools](/detection/tools/line_zone/).
+    integration with Supervision [trackers](/trackers/), [annotators](/latest/detection/annotators/), and [tools](/detection/tools/line_zone/).
 
     === "Inference"
 

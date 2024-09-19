@@ -125,13 +125,15 @@ You can install `supervision` in a
 
     [:octicons-arrow-right-24: Tutorial](how_to/detect_small_objects.md)
 
-- > **Count Objects Crossing Line**
+- **Count Objects Crossing Line**
 
     ---
 
     Explore methods to accurately count and analyze objects crossing a predefined line
 
-- > **Filter Objects in Zone**
+    [:octicons-arrow-right-24: Notebook](https://supervision.roboflow.com/latest/notebooks/count-objects-crossing-the-line/)
+
+- **Filter Objects in Zone**
 
     ---
 

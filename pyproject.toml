@@ -109,24 +109,6 @@ tests = ["B201", "B301", "B318", "B314", "B303", "B413", "B412", "B410"]
 check = true
 imports = ["cv2", "supervision"]
 
-[tool.black]
-target-version = ["py38"]
-line-length = 88
-include = '\.pyi?$'
-exclude = '''
-/(
-    \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | _build
-  | buck-out
-  | build
-  | dist
-  | docs
-)/
-'''
 
 [tool.ruff]
 target-version = "py38"
