@@ -45,7 +45,7 @@ class Detections:
     The `sv.Detections` class in the Supervision library standardizes results from
     various object detection and segmentation models into a consistent format. This
     class simplifies data manipulation and filtering, providing a uniform API for
-    integration with Supervision [trackers](/trackers/), [annotators](/detection/annotators/), and [tools](/detection/tools/line_zone/).
+    integration with Supervision [trackers](/trackers/), [annotators](/latest/detection/annotators/), and [tools](/detection/tools/line_zone/).
 
     === "Inference"
 
@@ -249,7 +249,7 @@ class Detections:
             results = model(image)[0]
             detections = sv.Detections.from_ultralytics(results)
             ```
-        """  # noqa: E501 // docs
+        """
 
         if hasattr(ultralytics_results, "obb") and ultralytics_results.obb is not None:
             class_id = ultralytics_results.obb.cls.cpu().numpy().astype(int)
@@ -356,7 +356,7 @@ class Detections:
             result = model(img)
             detections = sv.Detections.from_tensorflow(result)
             ```
-        """  # noqa: E501 // docs
+        """
 
         boxes = tensorflow_results["detection_boxes"][0].numpy()
         boxes[:, [0, 2]] *= resolution_wh[0]
@@ -431,7 +431,7 @@ class Detections:
             result = inference_detector(model, image)
             detections = sv.Detections.from_mmdetection(result)
             ```
-        """  # noqa: E501 // docs
+        """
 
         return cls(
             xyxy=mmdet_results.pred_instances.bboxes.cpu().numpy(),
@@ -490,7 +490,7 @@ class Detections:
                 id2label=model.config.id2label
             )
             ```
-        """  # noqa: E501 // docs
+        """
 
         if (
             transformers_results.__class__.__name__ == "Tensor"

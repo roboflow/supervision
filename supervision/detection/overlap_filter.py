@@ -183,7 +183,7 @@ def group_overlapping_boxes(
         ious = ious.flatten()
 
         above_threshold = ious >= iou_threshold
-        merge_group = [idx] + np.flip(order[above_threshold]).tolist()
+        merge_group = [idx, *np.flip(order[above_threshold]).tolist()]
         merge_groups.append(merge_group)
         order = order[~above_threshold]
     return merge_groups

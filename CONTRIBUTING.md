@@ -6,7 +6,7 @@ We are actively improving this library to reduce the amount of work you need to 
 
 ## Code of Conduct
 
-Please read and adhere to our [Code of Conduct](CODE_OF_CONDUCT.md). This document outlines the expected behavior for all participants in our project.
+Please read and adhere to our [Code of Conduct](https://supervision.roboflow.com/latest/code_of_conduct/). This document outlines the expected behavior for all participants in our project.
 
 ## Table of Contents
 
@@ -86,6 +86,7 @@ Use conventional commit messages to clearly describe your changes. The format is
 <type>[optional scope]: <description>
 
 Common types include:
+
 - feat: A new feature
 - fix: A bug fix
 - docs: Documentation only changes
@@ -128,13 +129,16 @@ PRs must pass all tests and linting requirements before they can be merged.
 Before starting your work on the project, set up your development environment:
 
 1. Clone your fork of the project:
+
    ```bash
    git clone https://github.com/YOUR_USERNAME/supervision.git
    cd supervision
    ```
+
    Replace `YOUR_USERNAME` with your GitHub username.
 
 2. Create and activate a virtual environment:
+
    ```bash
    python3 -m venv .venv
    source .venv/bin/activate
@@ -143,17 +147,20 @@ Before starting your work on the project, set up your development environment:
 3. Install Poetry:
 
    Using pip:
+
    ```bash
    pip install -U pip setuptools
    pip install poetry
    ```
 
    Or using pipx (recommended for global installation):
+
    ```bash
    pipx install poetry
    ```
 
 4. Install project dependencies:
+
    ```bash
    poetry install
    ```

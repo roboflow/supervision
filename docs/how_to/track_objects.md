@@ -148,7 +148,7 @@ enabling the continuous following of the object's motion path across different f
 
 Annotating the video with tracking IDs helps in distinguishing and following each object
 distinctly. With the
-[`sv.LabelAnnotator`](/latest/annotators.md/#supervision.annotators.core.LabelAnnotator)
+[`sv.LabelAnnotator`](/latest/detection/annotators/#supervision.annotators.core.LabelAnnotator)
 in Supervision, we can overlay the tracker IDs and class labels on the detected objects,
 offering a clear visual representation of each object's class and unique identifier.
 
@@ -230,7 +230,7 @@ offering a clear visual representation of each object's class and unique identif
 
 Adding traces to the video involves overlaying the historical paths of the detected
 objects. This feature, powered by the
-[`sv.TraceAnnotator`](/latest/annotators/#supervision.annotators.core.TraceAnnotator),
+[`sv.TraceAnnotator`](/latest/detection/annotators/#supervision.annotators.core.TraceAnnotator),
 allows for visualizing the trajectories of objects, helping in understanding the
 movement patterns and interactions between objects in the video.
 

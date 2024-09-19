@@ -440,8 +440,8 @@ class ConfusionMatrix:
         class_names = classes if classes is not None else self.classes
         use_labels_for_ticks = class_names is not None and (0 < len(class_names) < 99)
         if use_labels_for_ticks:
-            x_tick_labels = class_names + ["FN"]
-            y_tick_labels = class_names + ["FP"]
+            x_tick_labels = [*class_names, "FN"]
+            y_tick_labels = [*class_names, "FP"]
             num_ticks = len(x_tick_labels)
         else:
             x_tick_labels = None
