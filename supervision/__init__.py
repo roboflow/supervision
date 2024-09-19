@@ -76,6 +76,7 @@ from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import (
     calculate_optimal_line_thickness,
     calculate_optimal_text_scale,
+    draw_filled_polygon,
     draw_filled_rectangle,
     draw_image,
     draw_line,

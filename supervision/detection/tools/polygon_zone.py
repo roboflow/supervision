@@ -9,7 +9,7 @@ import numpy.typing as npt
 from supervision import Detections
 from supervision.detection.utils import clip_boxes, polygon_to_mask
 from supervision.draw.color import Color
-from supervision.draw.utils import draw_polygon, draw_text
+from supervision.draw.utils import draw_polygon, draw_filled_polygon, draw_text
 from supervision.geometry.core import Position
 from supervision.geometry.utils import get_polygon_center
 from supervision.utils.internal import SupervisionWarnings
@@ -109,7 +109,7 @@ class PolygonZoneAnnotator:
             default is cv2.FONT_HERSHEY_SIMPLEX
         center (Tuple[int, int]): The center of the polygon for text placement
         display_in_zone_count (bool): Show the label of the zone or not. Default is True
-        opacity: The opacity of zone when drawn on the scene. Default is 1 (no opacity)
+        opacity: The opacity of zone when drawn on the scene. Default is 0 (only zone border will be drawn)
     """
 
     def __init__(
@@ -122,7 +122,7 @@ class PolygonZoneAnnotator:
         text_thickness: int = 1,
         text_padding: int = 10,
         display_in_zone_count: bool = True,
-        opacity: float = 1,
+        opacity: float = 0,
     ):
         self.zone = zone
         self.color = color
@@ -148,7 +148,7 @@ class PolygonZoneAnnotator:
         Returns:
             np.ndarray: The image with the polygon zone and count of detected objects
         """
-        if self.opacity == 1:
+        if self.opacity == 0:
             annotated_frame = draw_polygon(
                 scene=scene,
                 polygon=self.zone.polygon,
@@ -156,15 +156,17 @@ class PolygonZoneAnnotator:
                 thickness=self.thickness,
             )
         else:
-            scene_with_annotations = scene.copy()
+            annotated_frame = draw_filled_polygon(
+                scene=scene.copy(),
+                polygon=self.zone.polygon,
+                color=self.color,
+                opacity=self.opacity,
+            )
             annotated_frame = draw_polygon(
-                scene=scene_with_annotations,
+                scene=annotated_frame,
                 polygon=self.zone.polygon,
                 color=self.color,
                 thickness=self.thickness,
-            )
-            cv2.addWeighted(
-                annotated_frame, self.opacity, scene, 1 - self.opacity, gamma=0, dst=scene
             )
 
         if self.display_in_zone_count:
