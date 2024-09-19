@@ -3277,7 +3277,7 @@ is either a NumPy array or a list of corresponding data of length <code>n</code>
 <a id="__codelineno-0-429" name="__codelineno-0-429"></a><span class="sd">            results = model.predict(image, conf=0.1)</span>
 <a id="__codelineno-0-430" name="__codelineno-0-430"></a><span class="sd">            key_points = sv.KeyPoints.from_yolo_nas(results)</span>
 <a id="__codelineno-0-431" name="__codelineno-0-431"></a><span class="sd">            ```</span>
-<a id="__codelineno-0-432" name="__codelineno-0-432"></a><span class="sd">        &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
+<a id="__codelineno-0-432" name="__codelineno-0-432"></a><span class="sd">        &quot;&quot;&quot;</span>
 <a id="__codelineno-0-433" name="__codelineno-0-433"></a>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">yolo_nas_results</span><span class="o">.</span><span class="n">prediction</span><span class="o">.</span><span class="n">poses</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
 <a id="__codelineno-0-434" name="__codelineno-0-434"></a>            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">empty</span><span class="p">()</span>
 <a id="__codelineno-0-435" name="__codelineno-0-435"></a>
@@ -5219,7 +5219,7 @@ and class names, and confidences of each keypoint.</p>
 <a id="__codelineno-0-429" name="__codelineno-0-429"></a><span class="sd">        results = model.predict(image, conf=0.1)</span>
 <a id="__codelineno-0-430" name="__codelineno-0-430"></a><span class="sd">        key_points = sv.KeyPoints.from_yolo_nas(results)</span>
 <a id="__codelineno-0-431" name="__codelineno-0-431"></a><span class="sd">        ```</span>
-<a id="__codelineno-0-432" name="__codelineno-0-432"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
+<a id="__codelineno-0-432" name="__codelineno-0-432"></a><span class="sd">    &quot;&quot;&quot;</span>
 <a id="__codelineno-0-433" name="__codelineno-0-433"></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">yolo_nas_results</span><span class="o">.</span><span class="n">prediction</span><span class="o">.</span><span class="n">poses</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
 <a id="__codelineno-0-434" name="__codelineno-0-434"></a>        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">empty</span><span class="p">()</span>
 <a id="__codelineno-0-435" name="__codelineno-0-435"></a>

@@ -4018,7 +4018,7 @@ is either a NumPy array or a list of corresponding data.</p>
 <a id="__codelineno-0-249" name="__codelineno-0-249"></a><span class="sd">            results = model(image)[0]</span>
 <a id="__codelineno-0-250" name="__codelineno-0-250"></a><span class="sd">            detections = sv.Detections.from_ultralytics(results)</span>
 <a id="__codelineno-0-251" name="__codelineno-0-251"></a><span class="sd">            ```</span>
-<a id="__codelineno-0-252" name="__codelineno-0-252"></a><span class="sd">        &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
+<a id="__codelineno-0-252" name="__codelineno-0-252"></a><span class="sd">        &quot;&quot;&quot;</span>
 <a id="__codelineno-0-253" name="__codelineno-0-253"></a>
 <a id="__codelineno-0-254" name="__codelineno-0-254"></a>        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">ultralytics_results</span><span class="p">,</span> <span class="s2">&quot;obb&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">ultralytics_results</span><span class="o">.</span><span class="n">obb</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
 <a id="__codelineno-0-255" name="__codelineno-0-255"></a>            <span class="n">class_id</span> <span class="o">=</span> <span class="n">ultralytics_results</span><span class="o">.</span><span class="n">obb</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
@@ -4125,7 +4125,7 @@ is either a NumPy array or a list of corresponding data.</p>
 <a id="__codelineno-0-356" name="__codelineno-0-356"></a><span class="sd">            result = model(img)</span>
 <a id="__codelineno-0-357" name="__codelineno-0-357"></a><span class="sd">            detections = sv.Detections.from_tensorflow(result)</span>
 <a id="__codelineno-0-358" name="__codelineno-0-358"></a><span class="sd">            ```</span>
-<a id="__codelineno-0-359" name="__codelineno-0-359"></a><span class="sd">        &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
+<a id="__codelineno-0-359" name="__codelineno-0-359"></a><span class="sd">        &quot;&quot;&quot;</span>
 <a id="__codelineno-0-360" name="__codelineno-0-360"></a>
 <a id="__codelineno-0-361" name="__codelineno-0-361"></a>        <span class="n">boxes</span> <span class="o">=</span> <span class="n">tensorflow_results</span><span class="p">[</span><span class="s2">&quot;detection_boxes&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
 <a id="__codelineno-0-362" name="__codelineno-0-362"></a>        <span class="n">boxes</span><span class="p">[:,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]]</span> <span class="o">*=</span> <span class="n">resolution_wh</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -4200,7 +4200,7 @@ is either a NumPy array or a list of corresponding data.</p>
 <a id="__codelineno-0-431" name="__codelineno-0-431"></a><span class="sd">            result = inference_detector(model, image)</span>
 <a id="__codelineno-0-432" name="__codelineno-0-432"></a><span class="sd">            detections = sv.Detections.from_mmdetection(result)</span>
 <a id="__codelineno-0-433" name="__codelineno-0-433"></a><span class="sd">            ```</span>
-<a id="__codelineno-0-434" name="__codelineno-0-434"></a><span class="sd">        &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
+<a id="__codelineno-0-434" name="__codelineno-0-434"></a><span class="sd">        &quot;&quot;&quot;</span>
 <a id="__codelineno-0-435" name="__codelineno-0-435"></a>
 <a id="__codelineno-0-436" name="__codelineno-0-436"></a>        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
 <a id="__codelineno-0-437" name="__codelineno-0-437"></a>            <span class="n">xyxy</span><span class="o">=</span><span class="n">mmdet_results</span><span class="o">.</span><span class="n">pred_instances</span><span class="o">.</span><span class="n">bboxes</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
@@ -4259,7 +4259,7 @@ is either a NumPy array or a list of corresponding data.</p>
 <a id="__codelineno-0-490" name="__codelineno-0-490"></a><span class="sd">                id2label=model.config.id2label</span>
 <a id="__codelineno-0-491" name="__codelineno-0-491"></a><span class="sd">            )</span>
 <a id="__codelineno-0-492" name="__codelineno-0-492"></a><span class="sd">            ```</span>
-<a id="__codelineno-0-493" name="__codelineno-0-493"></a><span class="sd">        &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
+<a id="__codelineno-0-493" name="__codelineno-0-493"></a><span class="sd">        &quot;&quot;&quot;</span>
 <a id="__codelineno-0-494" name="__codelineno-0-494"></a>
 <a id="__codelineno-0-495" name="__codelineno-0-495"></a>        <span class="k">if</span> <span class="p">(</span>
 <a id="__codelineno-0-496" name="__codelineno-0-496"></a>            <span class="n">transformers_results</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;Tensor&quot;</span>
@@ -6938,7 +6938,7 @@ disallowed arguments are provided.</p>
 <a id="__codelineno-0-431" name="__codelineno-0-431"></a><span class="sd">        result = inference_detector(model, image)</span>
 <a id="__codelineno-0-432" name="__codelineno-0-432"></a><span class="sd">        detections = sv.Detections.from_mmdetection(result)</span>
 <a id="__codelineno-0-433" name="__codelineno-0-433"></a><span class="sd">        ```</span>
-<a id="__codelineno-0-434" name="__codelineno-0-434"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
+<a id="__codelineno-0-434" name="__codelineno-0-434"></a><span class="sd">    &quot;&quot;&quot;</span>
 <a id="__codelineno-0-435" name="__codelineno-0-435"></a>
 <a id="__codelineno-0-436" name="__codelineno-0-436"></a>    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
 <a id="__codelineno-0-437" name="__codelineno-0-437"></a>        <span class="n">xyxy</span><span class="o">=</span><span class="n">mmdet_results</span><span class="o">.</span><span class="n">pred_instances</span><span class="o">.</span><span class="n">bboxes</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
@@ -7466,7 +7466,7 @@ inference result.</p>
 <a id="__codelineno-0-356" name="__codelineno-0-356"></a><span class="sd">        result = model(img)</span>
 <a id="__codelineno-0-357" name="__codelineno-0-357"></a><span class="sd">        detections = sv.Detections.from_tensorflow(result)</span>
 <a id="__codelineno-0-358" name="__codelineno-0-358"></a><span class="sd">        ```</span>
-<a id="__codelineno-0-359" name="__codelineno-0-359"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
+<a id="__codelineno-0-359" name="__codelineno-0-359"></a><span class="sd">    &quot;&quot;&quot;</span>
 <a id="__codelineno-0-360" name="__codelineno-0-360"></a>
 <a id="__codelineno-0-361" name="__codelineno-0-361"></a>    <span class="n">boxes</span> <span class="o">=</span> <span class="n">tensorflow_results</span><span class="p">[</span><span class="s2">&quot;detection_boxes&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
 <a id="__codelineno-0-362" name="__codelineno-0-362"></a>    <span class="n">boxes</span><span class="p">[:,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]]</span> <span class="o">*=</span> <span class="n">resolution_wh</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -7722,7 +7722,7 @@ provided, the resulting dictionary will include class names.</p>
 <a id="__codelineno-0-490" name="__codelineno-0-490"></a><span class="sd">            id2label=model.config.id2label</span>
 <a id="__codelineno-0-491" name="__codelineno-0-491"></a><span class="sd">        )</span>
 <a id="__codelineno-0-492" name="__codelineno-0-492"></a><span class="sd">        ```</span>
-<a id="__codelineno-0-493" name="__codelineno-0-493"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
+<a id="__codelineno-0-493" name="__codelineno-0-493"></a><span class="sd">    &quot;&quot;&quot;</span>
 <a id="__codelineno-0-494" name="__codelineno-0-494"></a>
 <a id="__codelineno-0-495" name="__codelineno-0-495"></a>    <span class="k">if</span> <span class="p">(</span>
 <a id="__codelineno-0-496" name="__codelineno-0-496"></a>        <span class="n">transformers_results</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;Tensor&quot;</span>
@@ -7943,7 +7943,7 @@ provided, the resulting dictionary will include class names.</p>
 <a id="__codelineno-0-249" name="__codelineno-0-249"></a><span class="sd">        results = model(image)[0]</span>
 <a id="__codelineno-0-250" name="__codelineno-0-250"></a><span class="sd">        detections = sv.Detections.from_ultralytics(results)</span>
 <a id="__codelineno-0-251" name="__codelineno-0-251"></a><span class="sd">        ```</span>
-<a id="__codelineno-0-252" name="__codelineno-0-252"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
+<a id="__codelineno-0-252" name="__codelineno-0-252"></a><span class="sd">    &quot;&quot;&quot;</span>
 <a id="__codelineno-0-253" name="__codelineno-0-253"></a>
 <a id="__codelineno-0-254" name="__codelineno-0-254"></a>    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">ultralytics_results</span><span class="p">,</span> <span class="s2">&quot;obb&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">ultralytics_results</span><span class="o">.</span><span class="n">obb</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
 <a id="__codelineno-0-255" name="__codelineno-0-255"></a>        <span class="n">class_id</span> <span class="o">=</span> <span class="n">ultralytics_results</span><span class="o">.</span><span class="n">obb</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
