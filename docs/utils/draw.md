@@ -29,6 +29,12 @@ comments: true
 :::supervision.draw.utils.draw_polygon
 
 <div class="md-typeset">
+    <h2><a href="#supervision.draw.utils.draw_filled_polygon">draw_filled_polygon</a></h2>
+</div>
+
+:::supervision.draw.utils.draw_filled_polygon
+
+<div class="md-typeset">
     <h2><a href="#supervision.draw.utils.draw_text">draw_text</a></h2>
 </div>
 
