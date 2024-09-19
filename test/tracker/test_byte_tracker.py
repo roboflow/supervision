@@ -1,3 +1,4 @@
+from typing import List
 import numpy as np
 import pytest
 
@@ -30,7 +31,7 @@ import supervision as sv
     ],
 )
 def test_byte_tracker(
-    detections: list[sv.Detections],
+    detections: List[sv.Detections],
     expected_results: sv.Detections,
 ) -> None:
     byte_tracker = sv.ByteTrack()
