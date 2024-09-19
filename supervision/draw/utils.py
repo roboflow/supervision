@@ -59,7 +59,9 @@ def draw_rectangle(
     return scene
 
 
-def draw_filled_rectangle(scene: np.ndarray, rect: Rect, color: Color, opacity: float = 1) -> np.ndarray:
+def draw_filled_rectangle(
+    scene: np.ndarray, rect: Rect, color: Color, opacity: float = 1
+) -> np.ndarray:
     """
     Draws a filled rectangle on an image.
 
@@ -183,14 +185,10 @@ def draw_filled_polygon(
         np.ndarray: The scene with the polygon drawn on it.
     """
     if opacity == 1:
-        cv2.fillPoly(
-            scene, [polygon], color=color.as_bgr()
-        )
+        cv2.fillPoly(scene, [polygon], color=color.as_bgr())
     else:
         scene_with_annotations = scene.copy()
-        cv2.fillPoly(
-            scene_with_annotations, [polygon], color=color.as_bgr()
-        )
+        cv2.fillPoly(scene_with_annotations, [polygon], color=color.as_bgr())
         cv2.addWeighted(
             scene_with_annotations, opacity, scene, 1 - opacity, gamma=0, dst=scene
         )

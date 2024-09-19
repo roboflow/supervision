@@ -9,7 +9,7 @@ import numpy.typing as npt
 from supervision import Detections
 from supervision.detection.utils import clip_boxes, polygon_to_mask
 from supervision.draw.color import Color
-from supervision.draw.utils import draw_polygon, draw_filled_polygon, draw_text
+from supervision.draw.utils import draw_filled_polygon, draw_polygon, draw_text
 from supervision.geometry.core import Position
 from supervision.geometry.utils import get_polygon_center
 from supervision.utils.internal import SupervisionWarnings
