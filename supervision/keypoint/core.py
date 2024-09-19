@@ -429,7 +429,7 @@ class KeyPoints:
             results = model.predict(image, conf=0.1)
             key_points = sv.KeyPoints.from_yolo_nas(results)
             ```
-        """  # noqa: E501 // docs
+        """
         if len(yolo_nas_results.prediction.poses) == 0:
             return cls.empty()
 
