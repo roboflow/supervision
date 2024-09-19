@@ -1,6 +1,6 @@
 import argparse
 import os
-from typing import Dict, Iterable, List, Set
+from typing import Dict, Iterable, List, Optional, Set
 
 import cv2
 import numpy as np
@@ -77,7 +77,7 @@ class VideoProcessor:
         roboflow_api_key: str,
         model_id: str,
         source_video_path: str,
-        target_video_path: str = None,
+        target_video_path: Optional[str] = None,
         confidence_threshold: float = 0.3,
         iou_threshold: float = 0.7,
     ) -> None:
