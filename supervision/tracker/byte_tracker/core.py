@@ -15,7 +15,6 @@ class STrack(BaseTrack):
     def __init__(self, tlwh, score, class_ids, minimum_consecutive_frames):
         super().__init__()
         # wait activate
-        self._external_count = 0
         self._tlwh = np.asarray(tlwh, dtype=np.float32)
         self.kalman_filter = None
         self.mean, self.covariance = None, None
