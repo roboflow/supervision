@@ -2386,7 +2386,7 @@
 
 <h3 id="0230-aug-28-2024">0.23.0 <small>Aug 28, 2024</small><a class="headerlink" href="#0230-aug-28-2024" title="Permanent link">&para;</a></h3>
 <ul>
-<li>Added <a href="https://github.com/roboflow/supervision/pull/930">#930</a>: <code>IconAnnotator</code>, a <a href="https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.IconAnnotator">new annotator</a> that allows drawing icons on each detection. Useful if you want to draw a specific icon for each class.</li>
+<li>Added <a href="https://github.com/roboflow/supervision/pull/930">#930</a>: <code>IconAnnotator</code>, a <a href="https://supervision.roboflow.com/0.23.0/detection/annotators/#supervision.annotators.core.IconAnnotator">new annotator</a> that allows drawing icons on each detection. Useful if you want to draw a specific icon for each class.</li>
 </ul>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span> <span class="nn">inference</span> <span class="kn">import</span> <span class="n">get_model</span>
@@ -2416,7 +2416,7 @@
 <a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="p">)</span>
 </code></pre></div>
 <ul>
-<li>Added <a href="https://github.com/roboflow/supervision/pull/1385">#1385</a>: <a href="https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.BackgroundColorAnnotator"><code>BackgroundColorAnnotator</code></a>, that draws an overlay on the background images of the detections.</li>
+<li>Added <a href="https://github.com/roboflow/supervision/pull/1385">#1385</a>: <a href="https://supervision.roboflow.com/0.23.0/detection/annotators/#supervision.annotators.core.BackgroundColorAnnotator"><code>BackgroundColorAnnotator</code></a>, that draws an overlay on the background images of the detections.</li>
 </ul>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">from</span> <span class="nn">inference</span> <span class="kn">import</span> <span class="n">get_model</span>
@@ -2434,7 +2434,7 @@
 <a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="p">)</span>
 </code></pre></div>
 <ul>
-<li>Added <a href="https://github.com/roboflow/supervision/pull/1386">#1386</a>: Support for Transformers v5 functions in <a href="https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_transformers"><code>sv.Detections.from_transformers</code></a>. This includes the <code>DetrImageProcessor</code> methods <code>post_process_object_detection</code>, <code>post_process_panoptic_segmentation</code>, <code>post_process_semantic_segmentation</code>, and <code>post_process_instance_segmentation</code>.</li>
+<li>Added <a href="https://github.com/roboflow/supervision/pull/1386">#1386</a>: Support for Transformers v5 functions in <a href="https://supervision.roboflow.com/0.23.0/detection/core/#supervision.detection.core.Detections.from_transformers"><code>sv.Detections.from_transformers</code></a>. This includes the <code>DetrImageProcessor</code> methods <code>post_process_object_detection</code>, <code>post_process_panoptic_segmentation</code>, <code>post_process_semantic_segmentation</code>, and <code>post_process_instance_segmentation</code>.</li>
 </ul>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">import</span> <span class="nn">torch</span>
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
@@ -2459,7 +2459,7 @@
 <a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>    <span class="n">id2label</span><span class="o">=</span><span class="n">model</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">id2label</span><span class="p">)</span>
 </code></pre></div>
 <ul>
-<li>Added <a href="https://github.com/roboflow/supervision/pull/1354">#1354</a>: Ultralytics SAM (Segment Anything Model) support in <a href="https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_ultralytics"><code>sv.Detections.from_ultralytics</code></a>. <a href="https://sam2.metademolab.com/">SAM2</a> was released during this update, and is already supported via <a href="https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_sam"><code>sv.Detections.from_sam</code></a>.</li>
+<li>Added <a href="https://github.com/roboflow/supervision/pull/1354">#1354</a>: Ultralytics SAM (Segment Anything Model) support in <a href="https://supervision.roboflow.com/0.23.0/detection/core/#supervision.detection.core.Detections.from_ultralytics"><code>sv.Detections.from_ultralytics</code></a>. <a href="https://sam2.metademolab.com/">SAM2</a> was released during this update, and is already supported via <a href="https://supervision.roboflow.com/0.23.0/detection/core/#supervision.detection.core.Detections.from_sam"><code>sv.Detections.from_sam</code></a>.</li>
 </ul>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kn">from</span> <span class="nn">segment_anything</span> <span class="kn">import</span> <span class="p">(</span>
@@ -2475,19 +2475,19 @@
 </code></pre></div>
 <ul>
 <li>
-<p>Added <a href="https://github.com/roboflow/supervision/pull/1458">#1458</a>: <code>outline_color</code> options for <a href="https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.TriangleAnnotator"><code>TriangleAnnotator</code></a> and <a href="https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.DotAnnotator"><code>DotAnnotator</code></a>.</p>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/1458">#1458</a>: <code>outline_color</code> options for <a href="https://supervision.roboflow.com/0.23.0/detection/annotators/#supervision.annotators.core.TriangleAnnotator"><code>TriangleAnnotator</code></a> and <a href="https://supervision.roboflow.com/0.23.0/detection/annotators/#supervision.annotators.core.DotAnnotator"><code>DotAnnotator</code></a>.</p>
 </li>
 <li>
-<p>Added <a href="https://github.com/roboflow/supervision/pull/1409">#1409</a>: <code>text_color</code> option for <a href="https://supervision.roboflow.com/latest/keypoint/annotators/#supervision.keypoint.annotators.VertexLabelAnnotator"><code>VertexLabelAnnotator</code></a> keypoint annotator.</p>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/1409">#1409</a>: <code>text_color</code> option for <a href="https://supervision.roboflow.com/0.23.0/keypoint/annotators/#supervision.keypoint.annotators.VertexLabelAnnotator"><code>VertexLabelAnnotator</code></a> keypoint annotator.</p>
 </li>
 <li>
-<p>Changed <a href="https://github.com/roboflow/supervision/pull/1434">#1434</a>: <a href="https://supervision.roboflow.com/latest/detection/tools/inference_slicer/"><code>InferenceSlicer</code></a> now features an <code>overlap_ratio_wh</code> parameter, making it easier to compute slice sizes when handling overlapping slices.</p>
+<p>Changed <a href="https://github.com/roboflow/supervision/pull/1434">#1434</a>: <a href="https://supervision.roboflow.com/0.23.0/detection/tools/inference_slicer/"><code>InferenceSlicer</code></a> now features an <code>overlap_ratio_wh</code> parameter, making it easier to compute slice sizes when handling overlapping slices.</p>
 </li>
 <li>
 <p>Fix <a href="https://github.com/roboflow/supervision/pull/1448">#1448</a>: Various annotator type issues have been resolved, supporting expanded error handling.</p>
 </li>
 <li>
-<p>Fix <a href="https://github.com/roboflow/supervision/pull/1348">#1348</a>: Introduced a new method for <a href="https://supervision.roboflow.com/latest/utils/video/#supervision.utils.video.get_video_frames_generator">seeking to a specific video frame</a>, addressing cases where traditional seek methods were failing. It can be enabled with <code>iterative_seek=True</code>.</p>
+<p>Fix <a href="https://github.com/roboflow/supervision/pull/1348">#1348</a>: Introduced a new method for <a href="https://supervision.roboflow.com/0.23.0/utils/video/#supervision.utils.video.get_video_frames_generator">seeking to a specific video frame</a>, addressing cases where traditional seek methods were failing. It can be enabled with <code>iterative_seek=True</code>.</p>
 </li>
 </ul>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
@@ -2520,7 +2520,7 @@
 </div>
 <h3 id="0220-jul-12-2024">0.22.0 <small>Jul 12, 2024</small><a class="headerlink" href="#0220-jul-12-2024" title="Permanent link">&para;</a></h3>
 <ul>
-<li>Added <a href="https://github.com/roboflow/supervision/pull/1326">#1326</a>: <a href="https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset"><code>sv.DetectionsDataset</code></a> and <a href="https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.ClassificationDataset"><code>sv.ClassificationDataset</code></a> allowing to load the images into memory only when necessary (lazy loading).</li>
+<li>Added <a href="https://github.com/roboflow/supervision/pull/1326">#1326</a>: <a href="https://supervision.roboflow.com/0.22.0/datasets/core/#supervision.dataset.core.DetectionDataset"><code>sv.DetectionsDataset</code></a> and <a href="https://supervision.roboflow.com/0.22.0/datasets/core/#supervision.dataset.core.ClassificationDataset"><code>sv.ClassificationDataset</code></a> allowing to load the images into memory only when necessary (lazy loading).</li>
 </ul>
 <div class="admonition failure">
 <p class="admonition-title">Deprecated</p>
@@ -2553,19 +2553,19 @@
 </code></pre></div>
 <ul>
 <li>
-<p>Added <a href="https://github.com/roboflow/supervision/pull/1296">#1296</a>: <a href="https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_lmm"><code>sv.Detections.from_lmm</code></a> now supports parsing results from the <a href="https://huggingface.co/microsoft/Florence-2-large">Florence 2</a> model, extending the capability to handle outputs from this Large Multimodal Model (LMM). This includes detailed object detection, OCR with region proposals, segmentation, and more. Find out more in our <a href="https://colab.research.google.com/github/roboflow-ai/notebooks/blob/main/notebooks/how-to-finetune-florence-2-on-detection-dataset.ipynb">Colab notebook</a>.</p>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/1296">#1296</a>: <a href="https://supervision.roboflow.com/0.22.0/detection/core/#supervision.detection.core.Detections.from_lmm"><code>sv.Detections.from_lmm</code></a> now supports parsing results from the <a href="https://huggingface.co/microsoft/Florence-2-large">Florence 2</a> model, extending the capability to handle outputs from this Large Multimodal Model (LMM). This includes detailed object detection, OCR with region proposals, segmentation, and more. Find out more in our <a href="https://colab.research.google.com/github/roboflow-ai/notebooks/blob/main/notebooks/how-to-finetune-florence-2-on-detection-dataset.ipynb">Colab notebook</a>.</p>
 </li>
 <li>
-<p>Added <a href="https://github.com/roboflow/supervision/pull/1232">#1232</a> to support keypoint detection with Mediapipe. Both <a href="https://colab.research.google.com/github/googlesamples/mediapipe/blob/main/examples/pose_landmarker/python/%5BMediaPipe_Python_Tasks%5D_Pose_Landmarker.ipynb">legacy</a> and <a href="https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker/python">modern</a> pipelines are supported. See <a href="https://supervision.roboflow.com/latest/keypoint/core/#supervision.keypoint.core.KeyPoints.from_mediapipe"><code>sv.KeyPoints.from_mediapipe</code></a> for more.</p>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/1232">#1232</a> to support keypoint detection with Mediapipe. Both <a href="https://colab.research.google.com/github/googlesamples/mediapipe/blob/main/examples/pose_landmarker/python/%5BMediaPipe_Python_Tasks%5D_Pose_Landmarker.ipynb">legacy</a> and <a href="https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker/python">modern</a> pipelines are supported. See <a href="https://supervision.roboflow.com/0.22.0/keypoint/core/#supervision.keypoint.core.KeyPoints.from_mediapipe"><code>sv.KeyPoints.from_mediapipe</code></a> for more.</p>
 </li>
 <li>
-<p>Added <a href="https://github.com/roboflow/supervision/pull/1316">#1316</a>: <a href="https://supervision.roboflow.com/latest/keypoint/core/#supervision.keypoint.core.KeyPoints.from_mediapipe"><code>sv.KeyPoints.from_mediapipe</code></a> extended to support FaceMesh from Mediapipe. This enhancement allows for processing both face landmarks from <code>FaceLandmarker</code>, and legacy results from <code>FaceMesh</code>.</p>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/1316">#1316</a>: <a href="https://supervision.roboflow.com/0.22.0/keypoint/core/#supervision.keypoint.core.KeyPoints.from_mediapipe"><code>sv.KeyPoints.from_mediapipe</code></a> extended to support FaceMesh from Mediapipe. This enhancement allows for processing both face landmarks from <code>FaceLandmarker</code>, and legacy results from <code>FaceMesh</code>.</p>
 </li>
 <li>
-<p>Added <a href="https://github.com/roboflow/supervision/pull/1310">#1310</a>: <a href="https://supervision.roboflow.com/latest/keypoint/core/#supervision.keypoint.core.KeyPoints.from_detectron2"><code>sv.KeyPoints.from_detectron2</code></a> is a new <code>KeyPoints</code> method, adding support for extracting keypoints from the popular <a href="https://github.com/facebookresearch/detectron2">Detectron 2</a> platform.</p>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/1310">#1310</a>: <a href="https://supervision.roboflow.com/0.22.0/keypoint/core/#supervision.keypoint.core.KeyPoints.from_detectron2"><code>sv.KeyPoints.from_detectron2</code></a> is a new <code>KeyPoints</code> method, adding support for extracting keypoints from the popular <a href="https://github.com/facebookresearch/detectron2">Detectron 2</a> platform.</p>
 </li>
 <li>
-<p>Added <a href="https://github.com/roboflow/supervision/pull/1300">#1300</a>: <a href="https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_detectron2"><code>sv.Detections.from_detectron2</code></a> now supports segmentation models detectron2. The resulting masks can be used with <a href="https://supervision.roboflow.com/latest/annotators/#supervision.annotators.core.MaskAnnotator"><code>sv.MaskAnnotator</code></a> for displaying annotations.</p>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/1300">#1300</a>: <a href="https://supervision.roboflow.com/0.22.0/detection/core/#supervision.detection.core.Detections.from_detectron2"><code>sv.Detections.from_detectron2</code></a> now supports segmentation models detectron2. The resulting masks can be used with <a href="https://supervision.roboflow.com/0.22.0/detection/annotators/#supervision.annotators.core.MaskAnnotator"><code>sv.MaskAnnotator</code></a> for displaying annotations.</p>
 </li>
 </ul>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
@@ -2587,7 +2587,7 @@
 <a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a><span class="n">annotated_frame</span> <span class="o">=</span> <span class="n">mask_annotator</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="o">=</span><span class="n">image</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="n">detections</span><span class="o">=</span><span class="n">detections</span><span class="p">)</span>
 </code></pre></div>
 <ul>
-<li>Added <a href="https://github.com/roboflow/supervision/pull/1277">#1277</a>: if you provide a font that supports symbols of a language, <a href="https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.LabelAnnotator.annotate"><code>sv.RichLabelAnnotator</code></a> will draw them on your images.</li>
+<li>Added <a href="https://github.com/roboflow/supervision/pull/1277">#1277</a>: if you provide a font that supports symbols of a language, <a href="https://supervision.roboflow.com/0.22.0/detection/annotators/#supervision.annotators.core.LabelAnnotator.annotate"><code>sv.RichLabelAnnotator</code></a> will draw them on your images.</li>
 <li>Various other annotators have been revised to ensure proper in-place functionality when used with <code>numpy</code> arrays. Additionally, we fixed a bug where <code>sv.ColorAnnotator</code> was filling boxes with solid color when used in-place.</li>
 </ul>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">import</span> <span class="nn">cv2</span>
@@ -2621,15 +2621,15 @@
 <a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="n">annotated_image</span> <span class="o">=</span> <span class="n">obb_annotator</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="o">=</span><span class="n">image</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="n">detections</span><span class="o">=</span><span class="n">detections</span><span class="p">)</span>
 </code></pre></div>
 <ul>
-<li>Fixed <a href="https://github.com/roboflow/supervision/pull/1312">#1312</a>: Fixed <a href="https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.TraceAnnotator.annotate"><code>CropAnnotator</code></a>.</li>
+<li>Fixed <a href="https://github.com/roboflow/supervision/pull/1312">#1312</a>: Fixed <a href="https://supervision.roboflow.com/0.22.0/detection/annotators/#supervision.annotators.core.TraceAnnotator.annotate"><code>CropAnnotator</code></a>.</li>
 </ul>
 <div class="admonition failure">
 <p class="admonition-title">Removed</p>
-<p><code>BoxAnnotator</code> was removed, however <code>BoundingBoxAnnotator</code> has been renamed to <code>BoxAnnotator</code>. Use a combination of <a href="https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.BoxAnnotator"><code>BoxAnnotator</code></a> and <a href="https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.LabelAnnotator"><code>LabelAnnotator</code></a> to simulate old <code>BoundingBox</code> behavior.</p>
+<p><code>BoxAnnotator</code> was removed, however <code>BoundingBoxAnnotator</code> has been renamed to <code>BoxAnnotator</code>. Use a combination of <a href="https://supervision.roboflow.com/0.22.0/detection/annotators/#supervision.annotators.core.BoxAnnotator"><code>BoxAnnotator</code></a> and <a href="https://supervision.roboflow.com/0.22.0/detection/annotators/#supervision.annotators.core.LabelAnnotator"><code>LabelAnnotator</code></a> to simulate old <code>BoundingBox</code> behavior.</p>
 </div>
 <div class="admonition failure">
 <p class="admonition-title">Deprecated</p>
-<p>The name <code>BoundingBoxAnnotator</code> has been deprecated and will be removed in <code>supervision-0.26.0</code>. It has been renamed to <a href="https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.BoxAnnotator"><code>BoxAnnotator</code></a>.</p>
+<p>The name <code>BoundingBoxAnnotator</code> has been deprecated and will be removed in <code>supervision-0.26.0</code>. It has been renamed to <a href="https://supervision.roboflow.com/0.22.0/detection/annotators/#supervision.annotators.core.BoxAnnotator"><code>BoxAnnotator</code></a>.</p>
 </div>
 <ul>
 <li>
@@ -2639,12 +2639,12 @@
 <p>Added <a href="https://github.com/roboflow/supervision/pull/1290">#1290</a>: Mostly an internal change, our file utility function now support both <code>str</code> and <code>pathlib</code> paths.</p>
 </li>
 <li>
-<p>Added <a href="https://github.com/roboflow/supervision/pull/1340">#1340</a>: Two new methods for converting between bounding box formats - <a href="https://supervision.roboflow.com/latest/detection/utils/#supervision.detection.utils.xywh_to_xyxy"><code>xywh_to_xyxy</code></a> and <a href="https://supervision.roboflow.com/latest/detection/utils/#supervision.detection.utils.xcycwh_to_xyxy"><code>xcycwh_to_xyxy</code></a></p>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/1340">#1340</a>: Two new methods for converting between bounding box formats - <a href="https://supervision.roboflow.com/0.22.0/detection/utils/#supervision.detection.utils.xywh_to_xyxy"><code>xywh_to_xyxy</code></a> and <a href="https://supervision.roboflow.com/0.22.0/detection/utils/#supervision.detection.utils.xcycwh_to_xyxy"><code>xcycwh_to_xyxy</code></a></p>
 </li>
 </ul>
 <div class="admonition failure">
 <p class="admonition-title">Removed</p>
-<p><code>from_roboflow</code> method has been removed due to deprecation. Use <a href="https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_inference">from_inference</a> instead.</p>
+<p><code>from_roboflow</code> method has been removed due to deprecation. Use <a href="https://supervision.roboflow.com/0.22.0/detection/core/#supervision.detection.core.Detections.from_inference">from_inference</a> instead.</p>
 </div>
 <div class="admonition failure">
 <p class="admonition-title">Removed</p>
@@ -2668,19 +2668,19 @@
 </div>
 <div class="admonition failure">
 <p class="admonition-title">Removed</p>
-<p><code>ColorPalette.default()</code> has been removed due to deprecation. Use <a href="https://supervision.roboflow.com/latest/utils/draw/#supervision.draw.color.ColorPalette.DEFAULT">ColorPalette.DEFAULT</a> instead.</p>
+<p><code>ColorPalette.default()</code> has been removed due to deprecation. Use <a href="https://supervision.roboflow.com/0.22.0/utils/draw/#supervision.draw.color.ColorPalette.DEFAULT">ColorPalette.DEFAULT</a> instead.</p>
 </div>
 <div class="admonition failure">
 <p class="admonition-title">Removed</p>
-<p><code>FPSMonitor.__call__</code> has been removed due to deprecation. Use the attribute <a href="https://supervision.roboflow.com/latest/utils/video/#supervision.utils.video.FPSMonitor.fps">FPSMonitor.fps</a> instead.</p>
+<p><code>FPSMonitor.__call__</code> has been removed due to deprecation. Use the attribute <a href="https://supervision.roboflow.com/0.22.0/utils/video/#supervision.utils.video.FPSMonitor.fps">FPSMonitor.fps</a> instead.</p>
 </div>
 <h3 id="0210-jun-5-2024">0.21.0 <small>Jun 5, 2024</small><a class="headerlink" href="#0210-jun-5-2024" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
-<p>Added <a href="https://github.com/roboflow/supervision/pull/500">#500</a>: <a href="https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.with_nmm"><code>sv.Detections.with_nmm</code></a> to perform non-maximum merging on the current set of object detections.</p>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/500">#500</a>: <a href="https://supervision.roboflow.com/0.21.0/detection/core/#supervision.detection.core.Detections.with_nmm"><code>sv.Detections.with_nmm</code></a> to perform non-maximum merging on the current set of object detections.</p>
 </li>
 <li>
-<p>Added <a href="https://github.com/roboflow/supervision/pull/1221">#1221</a>: <a href="https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_lmm"><code>sv.Detections.from_lmm</code></a> allowing to parse Large Multimodal Model (LMM) text result into <a href="https://supervision.roboflow.com/latest/detection/core/"><code>sv.Detections</code></a> object. For now <code>from_lmm</code> supports only <a href="https://colab.research.google.com/github/roboflow-ai/notebooks/blob/main/notebooks/how-to-finetune-paligemma-on-detection-dataset.ipynb">PaliGemma</a> result parsing.</p>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/1221">#1221</a>: <a href="https://supervision.roboflow.com/0.21.0/detection/core/#supervision.detection.core.Detections.from_lmm"><code>sv.Detections.from_lmm</code></a> allowing to parse Large Multimodal Model (LMM) text result into <a href="https://supervision.roboflow.com/0.21.0/detection/core/"><code>sv.Detections</code></a> object. For now <code>from_lmm</code> supports only <a href="https://colab.research.google.com/github/roboflow-ai/notebooks/blob/main/notebooks/how-to-finetune-paligemma-on-detection-dataset.ipynb">PaliGemma</a> result parsing.</p>
 </li>
 </ul>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
@@ -2699,7 +2699,7 @@
 <a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a><span class="c1"># array([0])</span>
 </code></pre></div>
 <ul>
-<li>Added <a href="https://github.com/roboflow/supervision/pull/1236">#1236</a>: <a href="https://supervision.roboflow.com/latest/keypoint/annotators/#supervision.keypoint.annotators.EdgeAnnotator.annotate"><code>sv.VertexLabelAnnotator</code></a> allowing to annotate every vertex of a keypoint skeleton with custom text and color.</li>
+<li>Added <a href="https://github.com/roboflow/supervision/pull/1236">#1236</a>: <a href="https://supervision.roboflow.com/0.21.0/keypoint/annotators/#supervision.keypoint.annotators.EdgeAnnotator.annotate"><code>sv.VertexLabelAnnotator</code></a> allowing to annotate every vertex of a keypoint skeleton with custom text and color.</li>
 </ul>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
 <a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
@@ -2717,19 +2717,19 @@
 </code></pre></div>
 <ul>
 <li>
-<p>Added <a href="https://github.com/roboflow/supervision/pull/1147">#1147</a>: <a href="https://supervision.roboflow.com/develop/keypoint/core/#supervision.keypoint.core.KeyPoints.from_inference"><code>sv.KeyPoints.from_inference</code></a> allowing to create <a href="https://supervision.roboflow.com/develop/keypoint/core/#supervision.keypoint.core.KeyPoints"><code>sv.KeyPoints</code></a> from <a href="https://github.com/roboflow/inference">Inference</a> result.</p>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/1147">#1147</a>: <a href="https://supervision.roboflow.com/0.21.0/keypoint/core/#supervision.keypoint.core.KeyPoints.from_inference"><code>sv.KeyPoints.from_inference</code></a> allowing to create <a href="https://supervision.roboflow.com/0.21.0/keypoint/core/#supervision.keypoint.core.KeyPoints"><code>sv.KeyPoints</code></a> from <a href="https://github.com/roboflow/inference">Inference</a> result.</p>
 </li>
 <li>
-<p>Added <a href="https://github.com/roboflow/supervision/pull/1138">#1138</a>: <a href="https://supervision.roboflow.com/develop/keypoint/core/#supervision.keypoint.core.KeyPoints.from_yolo_nas"><code>sv.KeyPoints.from_yolo_nas</code></a> allowing to create <a href="https://supervision.roboflow.com/develop/keypoint/core/#supervision.keypoint.core.KeyPoints"><code>sv.KeyPoints</code></a> from <a href="https://github.com/Deci-AI/super-gradients/blob/master/YOLONAS.md">YOLO-NAS</a> result.</p>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/1138">#1138</a>: <a href="https://supervision.roboflow.com/0.21.0/keypoint/core/#supervision.keypoint.core.KeyPoints.from_yolo_nas"><code>sv.KeyPoints.from_yolo_nas</code></a> allowing to create <a href="https://supervision.roboflow.com/0.21.0/keypoint/core/#supervision.keypoint.core.KeyPoints"><code>sv.KeyPoints</code></a> from <a href="https://github.com/Deci-AI/super-gradients/blob/master/YOLONAS.md">YOLO-NAS</a> result.</p>
 </li>
 <li>
-<p>Added <a href="https://github.com/roboflow/supervision/pull/1163">#1163</a>: <a href="https://supervision.roboflow.com/develop/datasets/utils/#supervision.dataset.utils.rle_to_mask"><code>sv.mask_to_rle</code></a> and <a href="https://supervision.roboflow.com/develop/datasets/utils/#supervision.dataset.utils.rle_to_mask"><code>sv.rle_to_mask</code></a> allowing for easy conversion between mask and rle formats.</p>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/1163">#1163</a>: <a href="https://supervision.roboflow.com/0.21.0/datasets/utils/#supervision.dataset.utils.rle_to_mask"><code>sv.mask_to_rle</code></a> and <a href="https://supervision.roboflow.com/0.21.0/datasets/utils/#supervision.dataset.utils.rle_to_mask"><code>sv.rle_to_mask</code></a> allowing for easy conversion between mask and rle formats.</p>
 </li>
 <li>
-<p>Changed <a href="https://github.com/roboflow/supervision/pull/1236">#1236</a>: <a href="https://supervision.roboflow.com/develop/detection/tools/inference_slicer/"><code>sv.InferenceSlicer</code></a> allowing to select overlap filtering strategy (<code>NONE</code>, <code>NON_MAX_SUPPRESSION</code> and <code>NON_MAX_MERGE</code>).</p>
+<p>Changed <a href="https://github.com/roboflow/supervision/pull/1236">#1236</a>: <a href="https://supervision.roboflow.com/0.21.0/detection/tools/inference_slicer/"><code>sv.InferenceSlicer</code></a> allowing to select overlap filtering strategy (<code>NONE</code>, <code>NON_MAX_SUPPRESSION</code> and <code>NON_MAX_MERGE</code>).</p>
 </li>
 <li>
-<p>Changed <a href="https://github.com/roboflow/supervision/pull/1178">#1178</a>: <a href="https://supervision.roboflow.com/develop/detection/tools/inference_slicer/"><code>sv.InferenceSlicer</code></a> adding instance segmentation model support.</p>
+<p>Changed <a href="https://github.com/roboflow/supervision/pull/1178">#1178</a>: <a href="https://supervision.roboflow.com/0.21.0/detection/tools/inference_slicer/"><code>sv.InferenceSlicer</code></a> adding instance segmentation model support.</p>
 </li>
 </ul>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">import</span> <span class="nn">cv2</span>
@@ -2757,10 +2757,10 @@
 </code></pre></div>
 <ul>
 <li>
-<p>Changed <a href="https://github.com/roboflow/supervision/pull/1228">#1228</a>: <a href="https://supervision.roboflow.com/develop/detection/tools/line_zone/"><code>sv.LineZone</code></a> making it 10-20 times faster, depending on the use case.</p>
+<p>Changed <a href="https://github.com/roboflow/supervision/pull/1228">#1228</a>: <a href="https://supervision.roboflow.com/0.21.0/detection/tools/line_zone/"><code>sv.LineZone</code></a> making it 10-20 times faster, depending on the use case.</p>
 </li>
 <li>
-<p>Changed <a href="https://github.com/roboflow/supervision/pull/1163">#1163</a>: <a href="https://supervision.roboflow.com/develop/datasets/core/#supervision.dataset.core.DetectionDataset.from_coco"><code>sv.DetectionDataset.from_coco</code></a> and <a href="https://supervision.roboflow.com/develop/datasets/core/#supervision.dataset.core.DetectionDataset.as_coco"><code>sv.DetectionDataset.as_coco</code></a> adding support for run-length encoding (RLE) mask format.</p>
+<p>Changed <a href="https://github.com/roboflow/supervision/pull/1163">#1163</a>: <a href="https://supervision.roboflow.com/0.21.0/datasets/core/#supervision.dataset.core.DetectionDataset.from_coco"><code>sv.DetectionDataset.from_coco</code></a> and <a href="https://supervision.roboflow.com/0.21.0/datasets/core/#supervision.dataset.core.DetectionDataset.as_coco"><code>sv.DetectionDataset.as_coco</code></a> adding support for run-length encoding (RLE) mask format.</p>
 </li>
 </ul>
 <h3 id="0200-april-24-2024">0.20.0 <small>April 24, 2024</small><a class="headerlink" href="#0200-april-24-2024" title="Permanent link">&para;</a></h3>
@@ -2898,13 +2898,13 @@
 </code></pre></div>
 <ul>
 <li>
-<p>Changed <a href="https://github.com/roboflow/supervision/pull/827">#827</a>: <a href="/0.19.0/tracking/#supervision.tracking.ByteTrack.reset"><code>sv.ByteTrack.reset</code></a> allowing users to clear trackers state, enabling the processing of multiple video files in sequence.</p>
+<p>Changed <a href="https://github.com/roboflow/supervision/pull/827">#827</a>: <a href="/0.19.0/trackers/#supervision.tracker.ByteTrack.reset"><code>sv.ByteTrack.reset</code></a> allowing users to clear trackers state, enabling the processing of multiple video files in sequence.</p>
 </li>
 <li>
 <p>Changed <a href="https://github.com/roboflow/supervision/pull/802">#802</a>: <a href="/0.19.0/detection/tools/line_zone/#supervision.detection.line_zone.LineZone"><code>sv.LineZoneAnnotator</code></a> allowing to hide in/out count using <code>display_in_count</code> and <code>display_out_count</code> properties.</p>
 </li>
 <li>
-<p>Changed <a href="https://github.com/roboflow/supervision/pull/787">#787</a>: <a href="/0.19.0/tracking/#supervision.tracking.ByteTrack"><code>sv.ByteTrack</code></a> input arguments and docstrings updated to improve readability and ease of use.</p>
+<p>Changed <a href="https://github.com/roboflow/supervision/pull/787">#787</a>: <a href="/0.19.0/trackers/#supervision.tracker.ByteTrack"><code>sv.ByteTrack</code></a> input arguments and docstrings updated to improve readability and ease of use.</p>
 </li>
 </ul>
 <div class="admonition failure">
@@ -3414,7 +3414,7 @@
 <p>Added <a href="https://github.com/roboflow/supervision/pull/101">#101</a>: ability to extract masks from YOLOv8 result using <a href="/0.8.0/detection/core/#supervision.detection.core.Detections.from_yolov8"><code>sv.Detections.from_yolov8</code></a>. Here is an example illustrating how to extract boolean masks from the result of the YOLOv8 model inference.</p>
 </li>
 <li>
-<p>Added <a href="https://github.com/roboflow/supervision/pull/122">#122</a>: ability to crop image using <a href="/latest/utils/image/#crop"><code>sv.crop</code></a>. Here is an example showing how to get a separate crop for each detection in <code>sv.Detections</code>.</p>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/122">#122</a>: ability to crop image using <a href="/0.9.0/utils/image/#crop"><code>sv.crop</code></a>. Here is an example showing how to get a separate crop for each detection in <code>sv.Detections</code>.</p>
 </li>
 <li>
 <p>Added <a href="https://github.com/roboflow/supervision/pull/120">#120</a>: ability to conveniently save multiple images into directory using <a href="/0.9.0/utils/image/#imagesink"><code>sv.ImageSink</code></a>. Here is an example showing how to save every tenth video frame as a separate image.</p>
@@ -3427,11 +3427,11 @@
 <a id="__codelineno-31-5" name="__codelineno-31-5" href="#__codelineno-31-5"></a><span class="o">...</span>         <span class="n">sink</span><span class="o">.</span><span class="n">save_image</span><span class="p">(</span><span class="n">image</span><span class="o">=</span><span class="n">image</span><span class="p">)</span>
 </code></pre></div>
 <ul>
-<li>Fixed <a href="https://github.com/roboflow/supervision/issues/106">#106</a>: inconvenient handling of <a href="/0.8.0/supervision/detection/tools/polygon_zone/#polygonzone"><code>sv.PolygonZone</code></a> coordinates. Now <code>sv.PolygonZone</code> accepts coordinates in the form of <code>[[x1, y1], [x2, y2], ...]</code> that can be both integers and floats.</li>
+<li>Fixed <a href="https://github.com/roboflow/supervision/issues/106">#106</a>: inconvenient handling of <a href="/0.8.0/detection/tools/polygon_zone/#polygonzone"><code>sv.PolygonZone</code></a> coordinates. Now <code>sv.PolygonZone</code> accepts coordinates in the form of <code>[[x1, y1], [x2, y2], ...]</code> that can be both integers and floats.</li>
 </ul>
 <h3 id="080-may-17-2023">0.8.0 <small>May 17, 2023</small><a class="headerlink" href="#080-may-17-2023" title="Permanent link">&para;</a></h3>
 <ul>
-<li>Added <a href="https://github.com/roboflow/supervision/pull/100">#100</a>: support for dataset inheritance. The current <code>Dataset</code> got renamed to <code>DetectionDataset</code>. Now <a href="/0.8.0/supervision/dataset/core/#detectiondataset"><code>DetectionDataset</code></a> inherits from <code>BaseDataset</code>. This change was made to enforce the future consistency of APIs of different types of computer vision datasets.</li>
+<li>Added <a href="https://github.com/roboflow/supervision/pull/100">#100</a>: support for dataset inheritance. The current <code>Dataset</code> got renamed to <code>DetectionDataset</code>. Now <a href="/0.8.0/dataset/core/#detectiondataset"><code>DetectionDataset</code></a> inherits from <code>BaseDataset</code>. This change was made to enforce the future consistency of APIs of different types of computer vision datasets.</li>
 <li>Added <a href="https://github.com/roboflow/supervision/pull/100">#100</a>: ability to save datasets in YOLO format using <a href="/0.8.0/dataset/core/#supervision.dataset.core.DetectionDataset.as_yolo"><code>DetectionDataset.as_yolo</code></a>.</li>
 </ul>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">roboflow</span>
@@ -3554,7 +3554,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">August 27, 2024</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">September 18, 2024</span>
   </span>
 
     

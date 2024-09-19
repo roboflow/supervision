@@ -134,7 +134,9 @@ You can install `supervision` in a
 
     [:octicons-arrow-right-24: Tutorial](how_to/detect_small_objects.md)
 
--   > __Count Objects Crossing Line__
+-   __Count Objects Crossing Line__
+
+    [:octicons-arrow-right-24: Notebook](https://supervision.roboflow.com/latest/notebooks/count-objects-crossing-the-line/)
 
     ---
 

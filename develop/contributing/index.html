@@ -2164,7 +2164,7 @@
 <p>Thank you for your interest in contributing to Supervision!</p>
 <p>We are actively improving this library to reduce the amount of work you need to do to solve common computer vision problems.</p>
 <h2 id="code-of-conduct">Code of Conduct<a class="headerlink" href="#code-of-conduct" title="Permanent link">&para;</a></h2>
-<p>Please read and adhere to our <a href="CODE_OF_CONDUCT.md">Code of Conduct</a>. This document outlines the expected behavior for all participants in our project.</p>
+<p>Please read and adhere to our <a href="https://supervision.roboflow.com/latest/code_of_conduct/">Code of Conduct</a>. This document outlines the expected behavior for all participants in our project.</p>
 <h2 id="table-of-contents">Table of Contents<a class="headerlink" href="#table-of-contents" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="#contribution-guidelines">Contribution Guidelines</a></li>
@@ -2221,15 +2221,17 @@
 </code></pre></div>
 <p>Use conventional commit messages to clearly describe your changes. The format is:</p>
 <p><type>[optional scope]: <description></p>
-<p>Common types include:
-- feat: A new feature
-- fix: A bug fix
-- docs: Documentation only changes
-- style: Changes that do not affect the meaning of the code (white-space, formatting, etc)
-- refactor: A code change that neither fixes a bug nor adds a feature
-- perf: A code change that improves performance
-- test: Adding missing tests or correcting existing tests
-- chore: Changes to the build process or auxiliary tools and libraries</p>
+<p>Common types include:</p>
+<ul>
+<li>feat: A new feature</li>
+<li>fix: A bug fix</li>
+<li>docs: Documentation only changes</li>
+<li>style: Changes that do not affect the meaning of the code (white-space, formatting, etc)</li>
+<li>refactor: A code change that neither fixes a bug nor adds a feature</li>
+<li>perf: A code change that improves performance</li>
+<li>test: Adding missing tests or correcting existing tests</li>
+<li>chore: Changes to the build process or auxiliary tools and libraries</li>
+</ul>
 <p>Then, go back to your fork of the <code>supervision</code> repository, click "Pull Requests", and click "New Pull Request".</p>
 <p><img alt="Opening a pull request" src="https://media.roboflow.com/open_pr.png" /></p>
 <p>Make sure the <code>base</code> branch is <code>develop</code> before submitting your PR.</p>
@@ -2251,41 +2253,37 @@
 <h2 id="installation-for-contributors">Installation for Contributors<a class="headerlink" href="#installation-for-contributors" title="Permanent link">&para;</a></h2>
 <p>Before starting your work on the project, set up your development environment:</p>
 <ol>
-<li>
-<p>Clone your fork of the project:
-   <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/YOUR_USERNAME/supervision.git
+<li>Clone your fork of the project:</li>
+</ol>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/YOUR_USERNAME/supervision.git
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nb">cd</span><span class="w"> </span>supervision
 </code></pre></div>
-   Replace <code>YOUR_USERNAME</code> with your GitHub username.</p>
-</li>
-<li>
-<p>Create and activate a virtual environment:
-   <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>python3<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>.venv
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="nb">source</span><span class="w"> </span>.venv/bin/activate
-</code></pre></div></p>
-</li>
-<li>
-<p>Install Poetry:</p>
-</li>
-</ol>
-<p>Using pip:
-   <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>pip<span class="w"> </span>install<span class="w"> </span>-U<span class="w"> </span>pip<span class="w"> </span>setuptools
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>pip<span class="w"> </span>install<span class="w"> </span>poetry
-</code></pre></div></p>
-<p>Or using pipx (recommended for global installation):
-   <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>pipx<span class="w"> </span>install<span class="w"> </span>poetry
-</code></pre></div></p>
+<p>Replace <code>YOUR_USERNAME</code> with your GitHub username.</p>
 <ol>
-<li>
-<p>Install project dependencies:
-   <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>poetry<span class="w"> </span>install
-</code></pre></div></p>
-</li>
-<li>
-<p>Run pytest to verify the setup:
+<li>Create and activate a virtual environment:</li>
+</ol>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>python3<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>.venv
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="nb">source</span><span class="w"> </span>.venv/bin/activate
+</code></pre></div>
+<ol>
+<li>Install Poetry:</li>
+</ol>
+<p>Using pip:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>pip<span class="w"> </span>install<span class="w"> </span>-U<span class="w"> </span>pip<span class="w"> </span>setuptools
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>pip<span class="w"> </span>install<span class="w"> </span>poetry
+</code></pre></div>
+<p>Or using pipx (recommended for global installation):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>pipx<span class="w"> </span>install<span class="w"> </span>poetry
+</code></pre></div>
+<ol>
+<li>Install project dependencies:</li>
+</ol>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>poetry<span class="w"> </span>install
+</code></pre></div>
+<ol>
+<li>Run pytest to verify the setup:
    <div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>poetry<span class="w"> </span>run<span class="w"> </span>pytest
-</code></pre></div></p>
-</li>
+</code></pre></div></li>
 </ol>
 <h2 id="code-style-and-quality">🎨 Code Style and Quality<a class="headerlink" href="#code-style-and-quality" title="Permanent link">&para;</a></h2>
 <h3 id="pre-commit-tool">Pre-commit tool<a class="headerlink" href="#pre-commit-tool" title="Permanent link">&para;</a></h3>
