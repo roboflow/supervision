@@ -1566,6 +1566,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#supervision.draw.utils.draw_filled_polygon" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;draw_filled_polygon
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#supervision.draw.utils.draw_text" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;draw_text
@@ -2113,6 +2122,15 @@
   <a href="#supervision.draw.utils.draw_polygon" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;draw_polygon
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#supervision.draw.utils.draw_filled_polygon" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;draw_filled_polygon
     </span>
   </a>
   
@@ -2732,6 +2750,20 @@
                 <em>required</em>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td><code>opacity</code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The opacity of rectangle when drawn on the scene.</p>
+              </div>
+            </td>
+            <td>
+                  <code>1</code>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -2779,26 +2811,60 @@
 <span class="normal"><a href="#__codelineno-0-78">78</a></span>
 <span class="normal"><a href="#__codelineno-0-79">79</a></span>
 <span class="normal"><a href="#__codelineno-0-80">80</a></span>
-<span class="normal"><a href="#__codelineno-0-81">81</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-62" name="__codelineno-0-62"></a><span class="k">def</span> <span class="nf">draw_filled_rectangle</span><span class="p">(</span><span class="n">scene</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">rect</span><span class="p">:</span> <span class="n">Rect</span><span class="p">,</span> <span class="n">color</span><span class="p">:</span> <span class="n">Color</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<a id="__codelineno-0-63" name="__codelineno-0-63"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-64" name="__codelineno-0-64"></a><span class="sd">    Draws a filled rectangle on an image.</span>
-<a id="__codelineno-0-65" name="__codelineno-0-65"></a>
-<a id="__codelineno-0-66" name="__codelineno-0-66"></a><span class="sd">    Parameters:</span>
-<a id="__codelineno-0-67" name="__codelineno-0-67"></a><span class="sd">        scene (np.ndarray): The scene on which the rectangle will be drawn</span>
-<a id="__codelineno-0-68" name="__codelineno-0-68"></a><span class="sd">        rect (Rect): The rectangle to be drawn</span>
-<a id="__codelineno-0-69" name="__codelineno-0-69"></a><span class="sd">        color (Color): The color of the rectangle</span>
-<a id="__codelineno-0-70" name="__codelineno-0-70"></a>
-<a id="__codelineno-0-71" name="__codelineno-0-71"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-72" name="__codelineno-0-72"></a><span class="sd">        np.ndarray: The scene with the rectangle drawn on it</span>
-<a id="__codelineno-0-73" name="__codelineno-0-73"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-74" name="__codelineno-0-74"></a>    <span class="n">cv2</span><span class="o">.</span><span class="n">rectangle</span><span class="p">(</span>
-<a id="__codelineno-0-75" name="__codelineno-0-75"></a>        <span class="n">scene</span><span class="p">,</span>
-<a id="__codelineno-0-76" name="__codelineno-0-76"></a>        <span class="n">rect</span><span class="o">.</span><span class="n">top_left</span><span class="o">.</span><span class="n">as_xy_int_tuple</span><span class="p">(),</span>
-<a id="__codelineno-0-77" name="__codelineno-0-77"></a>        <span class="n">rect</span><span class="o">.</span><span class="n">bottom_right</span><span class="o">.</span><span class="n">as_xy_int_tuple</span><span class="p">(),</span>
-<a id="__codelineno-0-78" name="__codelineno-0-78"></a>        <span class="n">color</span><span class="o">.</span><span class="n">as_bgr</span><span class="p">(),</span>
-<a id="__codelineno-0-79" name="__codelineno-0-79"></a>        <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
-<a id="__codelineno-0-80" name="__codelineno-0-80"></a>    <span class="p">)</span>
-<a id="__codelineno-0-81" name="__codelineno-0-81"></a>    <span class="k">return</span> <span class="n">scene</span>
+<span class="normal"><a href="#__codelineno-0-81">81</a></span>
+<span class="normal"><a href="#__codelineno-0-82">82</a></span>
+<span class="normal"><a href="#__codelineno-0-83">83</a></span>
+<span class="normal"><a href="#__codelineno-0-84">84</a></span>
+<span class="normal"><a href="#__codelineno-0-85">85</a></span>
+<span class="normal"><a href="#__codelineno-0-86">86</a></span>
+<span class="normal"><a href="#__codelineno-0-87">87</a></span>
+<span class="normal"><a href="#__codelineno-0-88">88</a></span>
+<span class="normal"><a href="#__codelineno-0-89">89</a></span>
+<span class="normal"><a href="#__codelineno-0-90">90</a></span>
+<span class="normal"><a href="#__codelineno-0-91">91</a></span>
+<span class="normal"><a href="#__codelineno-0-92">92</a></span>
+<span class="normal"><a href="#__codelineno-0-93">93</a></span>
+<span class="normal"><a href="#__codelineno-0-94">94</a></span>
+<span class="normal"><a href="#__codelineno-0-95">95</a></span>
+<span class="normal"><a href="#__codelineno-0-96">96</a></span>
+<span class="normal"><a href="#__codelineno-0-97">97</a></span>
+<span class="normal"><a href="#__codelineno-0-98">98</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-62" name="__codelineno-0-62"></a><span class="k">def</span> <span class="nf">draw_filled_rectangle</span><span class="p">(</span>
+<a id="__codelineno-0-63" name="__codelineno-0-63"></a>    <span class="n">scene</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">rect</span><span class="p">:</span> <span class="n">Rect</span><span class="p">,</span> <span class="n">color</span><span class="p">:</span> <span class="n">Color</span><span class="p">,</span> <span class="n">opacity</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span>
+<a id="__codelineno-0-64" name="__codelineno-0-64"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a id="__codelineno-0-65" name="__codelineno-0-65"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-66" name="__codelineno-0-66"></a><span class="sd">    Draws a filled rectangle on an image.</span>
+<a id="__codelineno-0-67" name="__codelineno-0-67"></a>
+<a id="__codelineno-0-68" name="__codelineno-0-68"></a><span class="sd">    Parameters:</span>
+<a id="__codelineno-0-69" name="__codelineno-0-69"></a><span class="sd">        scene (np.ndarray): The scene on which the rectangle will be drawn</span>
+<a id="__codelineno-0-70" name="__codelineno-0-70"></a><span class="sd">        rect (Rect): The rectangle to be drawn</span>
+<a id="__codelineno-0-71" name="__codelineno-0-71"></a><span class="sd">        color (Color): The color of the rectangle</span>
+<a id="__codelineno-0-72" name="__codelineno-0-72"></a><span class="sd">        opacity (float): The opacity of rectangle when drawn on the scene.</span>
+<a id="__codelineno-0-73" name="__codelineno-0-73"></a>
+<a id="__codelineno-0-74" name="__codelineno-0-74"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-75" name="__codelineno-0-75"></a><span class="sd">        np.ndarray: The scene with the rectangle drawn on it</span>
+<a id="__codelineno-0-76" name="__codelineno-0-76"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-77" name="__codelineno-0-77"></a>    <span class="k">if</span> <span class="n">opacity</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+<a id="__codelineno-0-78" name="__codelineno-0-78"></a>        <span class="n">cv2</span><span class="o">.</span><span class="n">rectangle</span><span class="p">(</span>
+<a id="__codelineno-0-79" name="__codelineno-0-79"></a>            <span class="n">scene</span><span class="p">,</span>
+<a id="__codelineno-0-80" name="__codelineno-0-80"></a>            <span class="n">rect</span><span class="o">.</span><span class="n">top_left</span><span class="o">.</span><span class="n">as_xy_int_tuple</span><span class="p">(),</span>
+<a id="__codelineno-0-81" name="__codelineno-0-81"></a>            <span class="n">rect</span><span class="o">.</span><span class="n">bottom_right</span><span class="o">.</span><span class="n">as_xy_int_tuple</span><span class="p">(),</span>
+<a id="__codelineno-0-82" name="__codelineno-0-82"></a>            <span class="n">color</span><span class="o">.</span><span class="n">as_bgr</span><span class="p">(),</span>
+<a id="__codelineno-0-83" name="__codelineno-0-83"></a>            <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+<a id="__codelineno-0-84" name="__codelineno-0-84"></a>        <span class="p">)</span>
+<a id="__codelineno-0-85" name="__codelineno-0-85"></a>    <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-0-86" name="__codelineno-0-86"></a>        <span class="n">scene_with_annotations</span> <span class="o">=</span> <span class="n">scene</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<a id="__codelineno-0-87" name="__codelineno-0-87"></a>        <span class="n">cv2</span><span class="o">.</span><span class="n">rectangle</span><span class="p">(</span>
+<a id="__codelineno-0-88" name="__codelineno-0-88"></a>            <span class="n">scene_with_annotations</span><span class="p">,</span>
+<a id="__codelineno-0-89" name="__codelineno-0-89"></a>            <span class="n">rect</span><span class="o">.</span><span class="n">top_left</span><span class="o">.</span><span class="n">as_xy_int_tuple</span><span class="p">(),</span>
+<a id="__codelineno-0-90" name="__codelineno-0-90"></a>            <span class="n">rect</span><span class="o">.</span><span class="n">bottom_right</span><span class="o">.</span><span class="n">as_xy_int_tuple</span><span class="p">(),</span>
+<a id="__codelineno-0-91" name="__codelineno-0-91"></a>            <span class="n">color</span><span class="o">.</span><span class="n">as_bgr</span><span class="p">(),</span>
+<a id="__codelineno-0-92" name="__codelineno-0-92"></a>            <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+<a id="__codelineno-0-93" name="__codelineno-0-93"></a>        <span class="p">)</span>
+<a id="__codelineno-0-94" name="__codelineno-0-94"></a>        <span class="n">cv2</span><span class="o">.</span><span class="n">addWeighted</span><span class="p">(</span>
+<a id="__codelineno-0-95" name="__codelineno-0-95"></a>            <span class="n">scene_with_annotations</span><span class="p">,</span> <span class="n">opacity</span><span class="p">,</span> <span class="n">scene</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">opacity</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">dst</span><span class="o">=</span><span class="n">scene</span>
+<a id="__codelineno-0-96" name="__codelineno-0-96"></a>        <span class="p">)</span>
+<a id="__codelineno-0-97" name="__codelineno-0-97"></a>
+<a id="__codelineno-0-98" name="__codelineno-0-98"></a>    <span class="k">return</span> <span class="n">scene</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2914,41 +2980,203 @@
 
             <details class="quote">
               <summary>Source code in <code>supervision/draw/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-136">136</a></span>
-<span class="normal"><a href="#__codelineno-0-137">137</a></span>
-<span class="normal"><a href="#__codelineno-0-138">138</a></span>
-<span class="normal"><a href="#__codelineno-0-139">139</a></span>
-<span class="normal"><a href="#__codelineno-0-140">140</a></span>
-<span class="normal"><a href="#__codelineno-0-141">141</a></span>
-<span class="normal"><a href="#__codelineno-0-142">142</a></span>
-<span class="normal"><a href="#__codelineno-0-143">143</a></span>
-<span class="normal"><a href="#__codelineno-0-144">144</a></span>
-<span class="normal"><a href="#__codelineno-0-145">145</a></span>
-<span class="normal"><a href="#__codelineno-0-146">146</a></span>
-<span class="normal"><a href="#__codelineno-0-147">147</a></span>
-<span class="normal"><a href="#__codelineno-0-148">148</a></span>
-<span class="normal"><a href="#__codelineno-0-149">149</a></span>
-<span class="normal"><a href="#__codelineno-0-150">150</a></span>
-<span class="normal"><a href="#__codelineno-0-151">151</a></span>
-<span class="normal"><a href="#__codelineno-0-152">152</a></span>
-<span class="normal"><a href="#__codelineno-0-153">153</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-136" name="__codelineno-0-136"></a><span class="k">def</span> <span class="nf">draw_polygon</span><span class="p">(</span>
-<a id="__codelineno-0-137" name="__codelineno-0-137"></a>    <span class="n">scene</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">polygon</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">color</span><span class="p">:</span> <span class="n">Color</span><span class="p">,</span> <span class="n">thickness</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span>
-<a id="__codelineno-0-138" name="__codelineno-0-138"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<a id="__codelineno-0-139" name="__codelineno-0-139"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Draw a polygon on a scene.</span>
-<a id="__codelineno-0-140" name="__codelineno-0-140"></a>
-<a id="__codelineno-0-141" name="__codelineno-0-141"></a><span class="sd">    Parameters:</span>
-<a id="__codelineno-0-142" name="__codelineno-0-142"></a><span class="sd">        scene (np.ndarray): The scene to draw the polygon on.</span>
-<a id="__codelineno-0-143" name="__codelineno-0-143"></a><span class="sd">        polygon (np.ndarray): The polygon to be drawn, given as a list of vertices.</span>
-<a id="__codelineno-0-144" name="__codelineno-0-144"></a><span class="sd">        color (Color): The color of the polygon.</span>
-<a id="__codelineno-0-145" name="__codelineno-0-145"></a><span class="sd">        thickness (int): The thickness of the polygon lines, by default 2.</span>
-<a id="__codelineno-0-146" name="__codelineno-0-146"></a>
-<a id="__codelineno-0-147" name="__codelineno-0-147"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-148" name="__codelineno-0-148"></a><span class="sd">        np.ndarray: The scene with the polygon drawn on it.</span>
-<a id="__codelineno-0-149" name="__codelineno-0-149"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-150" name="__codelineno-0-150"></a>    <span class="n">cv2</span><span class="o">.</span><span class="n">polylines</span><span class="p">(</span>
-<a id="__codelineno-0-151" name="__codelineno-0-151"></a>        <span class="n">scene</span><span class="p">,</span> <span class="p">[</span><span class="n">polygon</span><span class="p">],</span> <span class="n">isClosed</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="o">.</span><span class="n">as_bgr</span><span class="p">(),</span> <span class="n">thickness</span><span class="o">=</span><span class="n">thickness</span>
-<a id="__codelineno-0-152" name="__codelineno-0-152"></a>    <span class="p">)</span>
-<a id="__codelineno-0-153" name="__codelineno-0-153"></a>    <span class="k">return</span> <span class="n">scene</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-153">153</a></span>
+<span class="normal"><a href="#__codelineno-0-154">154</a></span>
+<span class="normal"><a href="#__codelineno-0-155">155</a></span>
+<span class="normal"><a href="#__codelineno-0-156">156</a></span>
+<span class="normal"><a href="#__codelineno-0-157">157</a></span>
+<span class="normal"><a href="#__codelineno-0-158">158</a></span>
+<span class="normal"><a href="#__codelineno-0-159">159</a></span>
+<span class="normal"><a href="#__codelineno-0-160">160</a></span>
+<span class="normal"><a href="#__codelineno-0-161">161</a></span>
+<span class="normal"><a href="#__codelineno-0-162">162</a></span>
+<span class="normal"><a href="#__codelineno-0-163">163</a></span>
+<span class="normal"><a href="#__codelineno-0-164">164</a></span>
+<span class="normal"><a href="#__codelineno-0-165">165</a></span>
+<span class="normal"><a href="#__codelineno-0-166">166</a></span>
+<span class="normal"><a href="#__codelineno-0-167">167</a></span>
+<span class="normal"><a href="#__codelineno-0-168">168</a></span>
+<span class="normal"><a href="#__codelineno-0-169">169</a></span>
+<span class="normal"><a href="#__codelineno-0-170">170</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-153" name="__codelineno-0-153"></a><span class="k">def</span> <span class="nf">draw_polygon</span><span class="p">(</span>
+<a id="__codelineno-0-154" name="__codelineno-0-154"></a>    <span class="n">scene</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">polygon</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">color</span><span class="p">:</span> <span class="n">Color</span><span class="p">,</span> <span class="n">thickness</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span>
+<a id="__codelineno-0-155" name="__codelineno-0-155"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a id="__codelineno-0-156" name="__codelineno-0-156"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Draw a polygon on a scene.</span>
+<a id="__codelineno-0-157" name="__codelineno-0-157"></a>
+<a id="__codelineno-0-158" name="__codelineno-0-158"></a><span class="sd">    Parameters:</span>
+<a id="__codelineno-0-159" name="__codelineno-0-159"></a><span class="sd">        scene (np.ndarray): The scene to draw the polygon on.</span>
+<a id="__codelineno-0-160" name="__codelineno-0-160"></a><span class="sd">        polygon (np.ndarray): The polygon to be drawn, given as a list of vertices.</span>
+<a id="__codelineno-0-161" name="__codelineno-0-161"></a><span class="sd">        color (Color): The color of the polygon.</span>
+<a id="__codelineno-0-162" name="__codelineno-0-162"></a><span class="sd">        thickness (int): The thickness of the polygon lines, by default 2.</span>
+<a id="__codelineno-0-163" name="__codelineno-0-163"></a>
+<a id="__codelineno-0-164" name="__codelineno-0-164"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-165" name="__codelineno-0-165"></a><span class="sd">        np.ndarray: The scene with the polygon drawn on it.</span>
+<a id="__codelineno-0-166" name="__codelineno-0-166"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-167" name="__codelineno-0-167"></a>    <span class="n">cv2</span><span class="o">.</span><span class="n">polylines</span><span class="p">(</span>
+<a id="__codelineno-0-168" name="__codelineno-0-168"></a>        <span class="n">scene</span><span class="p">,</span> <span class="p">[</span><span class="n">polygon</span><span class="p">],</span> <span class="n">isClosed</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="o">.</span><span class="n">as_bgr</span><span class="p">(),</span> <span class="n">thickness</span><span class="o">=</span><span class="n">thickness</span>
+<a id="__codelineno-0-169" name="__codelineno-0-169"></a>    <span class="p">)</span>
+<a id="__codelineno-0-170" name="__codelineno-0-170"></a>    <span class="k">return</span> <span class="n">scene</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div><div class="md-typeset">
+    <h2><a href="#supervision.draw.utils.draw_filled_polygon">draw_filled_polygon</a></h2>
+</div>
+
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="supervision.draw.utils.draw_filled_polygon"></a>
+    <div class="doc doc-contents first">
+
+        <p>Draw a filled polygon on a scene.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>scene</code></td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The scene to draw the polygon on.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>polygon</code></td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The polygon to be drawn, given as a list of vertices.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>color</code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="supervision.draw.color.Color" href="#supervision.draw.color.Color">Color</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The color of the polygon.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>opacity</code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The opacity of polygon when drawn on the scene.</p>
+              </div>
+            </td>
+            <td>
+                  <code>1</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>np.ndarray: The scene with the polygon drawn on it.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>supervision/draw/utils.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-173">173</a></span>
+<span class="normal"><a href="#__codelineno-0-174">174</a></span>
+<span class="normal"><a href="#__codelineno-0-175">175</a></span>
+<span class="normal"><a href="#__codelineno-0-176">176</a></span>
+<span class="normal"><a href="#__codelineno-0-177">177</a></span>
+<span class="normal"><a href="#__codelineno-0-178">178</a></span>
+<span class="normal"><a href="#__codelineno-0-179">179</a></span>
+<span class="normal"><a href="#__codelineno-0-180">180</a></span>
+<span class="normal"><a href="#__codelineno-0-181">181</a></span>
+<span class="normal"><a href="#__codelineno-0-182">182</a></span>
+<span class="normal"><a href="#__codelineno-0-183">183</a></span>
+<span class="normal"><a href="#__codelineno-0-184">184</a></span>
+<span class="normal"><a href="#__codelineno-0-185">185</a></span>
+<span class="normal"><a href="#__codelineno-0-186">186</a></span>
+<span class="normal"><a href="#__codelineno-0-187">187</a></span>
+<span class="normal"><a href="#__codelineno-0-188">188</a></span>
+<span class="normal"><a href="#__codelineno-0-189">189</a></span>
+<span class="normal"><a href="#__codelineno-0-190">190</a></span>
+<span class="normal"><a href="#__codelineno-0-191">191</a></span>
+<span class="normal"><a href="#__codelineno-0-192">192</a></span>
+<span class="normal"><a href="#__codelineno-0-193">193</a></span>
+<span class="normal"><a href="#__codelineno-0-194">194</a></span>
+<span class="normal"><a href="#__codelineno-0-195">195</a></span>
+<span class="normal"><a href="#__codelineno-0-196">196</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-173" name="__codelineno-0-173"></a><span class="k">def</span> <span class="nf">draw_filled_polygon</span><span class="p">(</span>
+<a id="__codelineno-0-174" name="__codelineno-0-174"></a>    <span class="n">scene</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">polygon</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">color</span><span class="p">:</span> <span class="n">Color</span><span class="p">,</span> <span class="n">opacity</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span>
+<a id="__codelineno-0-175" name="__codelineno-0-175"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a id="__codelineno-0-176" name="__codelineno-0-176"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Draw a filled polygon on a scene.</span>
+<a id="__codelineno-0-177" name="__codelineno-0-177"></a>
+<a id="__codelineno-0-178" name="__codelineno-0-178"></a><span class="sd">    Parameters:</span>
+<a id="__codelineno-0-179" name="__codelineno-0-179"></a><span class="sd">        scene (np.ndarray): The scene to draw the polygon on.</span>
+<a id="__codelineno-0-180" name="__codelineno-0-180"></a><span class="sd">        polygon (np.ndarray): The polygon to be drawn, given as a list of vertices.</span>
+<a id="__codelineno-0-181" name="__codelineno-0-181"></a><span class="sd">        color (Color): The color of the polygon.</span>
+<a id="__codelineno-0-182" name="__codelineno-0-182"></a><span class="sd">        opacity (float): The opacity of polygon when drawn on the scene.</span>
+<a id="__codelineno-0-183" name="__codelineno-0-183"></a>
+<a id="__codelineno-0-184" name="__codelineno-0-184"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-185" name="__codelineno-0-185"></a><span class="sd">        np.ndarray: The scene with the polygon drawn on it.</span>
+<a id="__codelineno-0-186" name="__codelineno-0-186"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-187" name="__codelineno-0-187"></a>    <span class="k">if</span> <span class="n">opacity</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+<a id="__codelineno-0-188" name="__codelineno-0-188"></a>        <span class="n">cv2</span><span class="o">.</span><span class="n">fillPoly</span><span class="p">(</span><span class="n">scene</span><span class="p">,</span> <span class="p">[</span><span class="n">polygon</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="o">.</span><span class="n">as_bgr</span><span class="p">())</span>
+<a id="__codelineno-0-189" name="__codelineno-0-189"></a>    <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-0-190" name="__codelineno-0-190"></a>        <span class="n">scene_with_annotations</span> <span class="o">=</span> <span class="n">scene</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<a id="__codelineno-0-191" name="__codelineno-0-191"></a>        <span class="n">cv2</span><span class="o">.</span><span class="n">fillPoly</span><span class="p">(</span><span class="n">scene_with_annotations</span><span class="p">,</span> <span class="p">[</span><span class="n">polygon</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="o">.</span><span class="n">as_bgr</span><span class="p">())</span>
+<a id="__codelineno-0-192" name="__codelineno-0-192"></a>        <span class="n">cv2</span><span class="o">.</span><span class="n">addWeighted</span><span class="p">(</span>
+<a id="__codelineno-0-193" name="__codelineno-0-193"></a>            <span class="n">scene_with_annotations</span><span class="p">,</span> <span class="n">opacity</span><span class="p">,</span> <span class="n">scene</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">opacity</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">dst</span><span class="o">=</span><span class="n">scene</span>
+<a id="__codelineno-0-194" name="__codelineno-0-194"></a>        <span class="p">)</span>
+<a id="__codelineno-0-195" name="__codelineno-0-195"></a>
+<a id="__codelineno-0-196" name="__codelineno-0-196"></a>    <span class="k">return</span> <span class="n">scene</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3147,50 +3375,7 @@ if one is to be drawn. Defaults to None.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/draw/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-156">156</a></span>
-<span class="normal"><a href="#__codelineno-0-157">157</a></span>
-<span class="normal"><a href="#__codelineno-0-158">158</a></span>
-<span class="normal"><a href="#__codelineno-0-159">159</a></span>
-<span class="normal"><a href="#__codelineno-0-160">160</a></span>
-<span class="normal"><a href="#__codelineno-0-161">161</a></span>
-<span class="normal"><a href="#__codelineno-0-162">162</a></span>
-<span class="normal"><a href="#__codelineno-0-163">163</a></span>
-<span class="normal"><a href="#__codelineno-0-164">164</a></span>
-<span class="normal"><a href="#__codelineno-0-165">165</a></span>
-<span class="normal"><a href="#__codelineno-0-166">166</a></span>
-<span class="normal"><a href="#__codelineno-0-167">167</a></span>
-<span class="normal"><a href="#__codelineno-0-168">168</a></span>
-<span class="normal"><a href="#__codelineno-0-169">169</a></span>
-<span class="normal"><a href="#__codelineno-0-170">170</a></span>
-<span class="normal"><a href="#__codelineno-0-171">171</a></span>
-<span class="normal"><a href="#__codelineno-0-172">172</a></span>
-<span class="normal"><a href="#__codelineno-0-173">173</a></span>
-<span class="normal"><a href="#__codelineno-0-174">174</a></span>
-<span class="normal"><a href="#__codelineno-0-175">175</a></span>
-<span class="normal"><a href="#__codelineno-0-176">176</a></span>
-<span class="normal"><a href="#__codelineno-0-177">177</a></span>
-<span class="normal"><a href="#__codelineno-0-178">178</a></span>
-<span class="normal"><a href="#__codelineno-0-179">179</a></span>
-<span class="normal"><a href="#__codelineno-0-180">180</a></span>
-<span class="normal"><a href="#__codelineno-0-181">181</a></span>
-<span class="normal"><a href="#__codelineno-0-182">182</a></span>
-<span class="normal"><a href="#__codelineno-0-183">183</a></span>
-<span class="normal"><a href="#__codelineno-0-184">184</a></span>
-<span class="normal"><a href="#__codelineno-0-185">185</a></span>
-<span class="normal"><a href="#__codelineno-0-186">186</a></span>
-<span class="normal"><a href="#__codelineno-0-187">187</a></span>
-<span class="normal"><a href="#__codelineno-0-188">188</a></span>
-<span class="normal"><a href="#__codelineno-0-189">189</a></span>
-<span class="normal"><a href="#__codelineno-0-190">190</a></span>
-<span class="normal"><a href="#__codelineno-0-191">191</a></span>
-<span class="normal"><a href="#__codelineno-0-192">192</a></span>
-<span class="normal"><a href="#__codelineno-0-193">193</a></span>
-<span class="normal"><a href="#__codelineno-0-194">194</a></span>
-<span class="normal"><a href="#__codelineno-0-195">195</a></span>
-<span class="normal"><a href="#__codelineno-0-196">196</a></span>
-<span class="normal"><a href="#__codelineno-0-197">197</a></span>
-<span class="normal"><a href="#__codelineno-0-198">198</a></span>
-<span class="normal"><a href="#__codelineno-0-199">199</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-199">199</a></span>
 <span class="normal"><a href="#__codelineno-0-200">200</a></span>
 <span class="normal"><a href="#__codelineno-0-201">201</a></span>
 <span class="normal"><a href="#__codelineno-0-202">202</a></span>
@@ -3219,79 +3404,122 @@ if one is to be drawn. Defaults to None.</p>
 <span class="normal"><a href="#__codelineno-0-225">225</a></span>
 <span class="normal"><a href="#__codelineno-0-226">226</a></span>
 <span class="normal"><a href="#__codelineno-0-227">227</a></span>
-<span class="normal"><a href="#__codelineno-0-228">228</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-156" name="__codelineno-0-156"></a><span class="k">def</span> <span class="nf">draw_text</span><span class="p">(</span>
-<a id="__codelineno-0-157" name="__codelineno-0-157"></a>    <span class="n">scene</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-<a id="__codelineno-0-158" name="__codelineno-0-158"></a>    <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-<a id="__codelineno-0-159" name="__codelineno-0-159"></a>    <span class="n">text_anchor</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span>
-<a id="__codelineno-0-160" name="__codelineno-0-160"></a>    <span class="n">text_color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">=</span> <span class="n">Color</span><span class="o">.</span><span class="n">BLACK</span><span class="p">,</span>
-<a id="__codelineno-0-161" name="__codelineno-0-161"></a>    <span class="n">text_scale</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
-<a id="__codelineno-0-162" name="__codelineno-0-162"></a>    <span class="n">text_thickness</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
-<a id="__codelineno-0-163" name="__codelineno-0-163"></a>    <span class="n">text_padding</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
-<a id="__codelineno-0-164" name="__codelineno-0-164"></a>    <span class="n">text_font</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">FONT_HERSHEY_SIMPLEX</span><span class="p">,</span>
-<a id="__codelineno-0-165" name="__codelineno-0-165"></a>    <span class="n">background_color</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Color</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-166" name="__codelineno-0-166"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<a id="__codelineno-0-167" name="__codelineno-0-167"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-168" name="__codelineno-0-168"></a><span class="sd">    Draw text with background on a scene.</span>
-<a id="__codelineno-0-169" name="__codelineno-0-169"></a>
-<a id="__codelineno-0-170" name="__codelineno-0-170"></a><span class="sd">    Parameters:</span>
-<a id="__codelineno-0-171" name="__codelineno-0-171"></a><span class="sd">        scene (np.ndarray): A 2-dimensional numpy ndarray representing an image or scene</span>
-<a id="__codelineno-0-172" name="__codelineno-0-172"></a><span class="sd">        text (str): The text to be drawn.</span>
-<a id="__codelineno-0-173" name="__codelineno-0-173"></a><span class="sd">        text_anchor (Point): The anchor point for the text, represented as a</span>
-<a id="__codelineno-0-174" name="__codelineno-0-174"></a><span class="sd">            Point object with x and y attributes.</span>
-<a id="__codelineno-0-175" name="__codelineno-0-175"></a><span class="sd">        text_color (Color): The color of the text. Defaults to black.</span>
-<a id="__codelineno-0-176" name="__codelineno-0-176"></a><span class="sd">        text_scale (float): The scale of the text. Defaults to 0.5.</span>
-<a id="__codelineno-0-177" name="__codelineno-0-177"></a><span class="sd">        text_thickness (int): The thickness of the text. Defaults to 1.</span>
-<a id="__codelineno-0-178" name="__codelineno-0-178"></a><span class="sd">        text_padding (int): The amount of padding to add around the text</span>
-<a id="__codelineno-0-179" name="__codelineno-0-179"></a><span class="sd">            when drawing a rectangle in the background. Defaults to 10.</span>
-<a id="__codelineno-0-180" name="__codelineno-0-180"></a><span class="sd">        text_font (int): The font to use for the text.</span>
-<a id="__codelineno-0-181" name="__codelineno-0-181"></a><span class="sd">            Defaults to cv2.FONT_HERSHEY_SIMPLEX.</span>
-<a id="__codelineno-0-182" name="__codelineno-0-182"></a><span class="sd">        background_color (Optional[Color]): The color of the background rectangle,</span>
-<a id="__codelineno-0-183" name="__codelineno-0-183"></a><span class="sd">            if one is to be drawn. Defaults to None.</span>
-<a id="__codelineno-0-184" name="__codelineno-0-184"></a>
-<a id="__codelineno-0-185" name="__codelineno-0-185"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-186" name="__codelineno-0-186"></a><span class="sd">        np.ndarray: The input scene with the text drawn on it.</span>
-<a id="__codelineno-0-187" name="__codelineno-0-187"></a>
-<a id="__codelineno-0-188" name="__codelineno-0-188"></a><span class="sd">    Examples:</span>
-<a id="__codelineno-0-189" name="__codelineno-0-189"></a><span class="sd">        ```python</span>
-<a id="__codelineno-0-190" name="__codelineno-0-190"></a><span class="sd">        import numpy as np</span>
-<a id="__codelineno-0-191" name="__codelineno-0-191"></a>
-<a id="__codelineno-0-192" name="__codelineno-0-192"></a><span class="sd">        scene = np.zeros((100, 100, 3), dtype=np.uint8)</span>
-<a id="__codelineno-0-193" name="__codelineno-0-193"></a><span class="sd">        text_anchor = Point(x=50, y=50)</span>
-<a id="__codelineno-0-194" name="__codelineno-0-194"></a><span class="sd">        scene = draw_text(scene=scene, text=&quot;Hello, world!&quot;,text_anchor=text_anchor)</span>
-<a id="__codelineno-0-195" name="__codelineno-0-195"></a><span class="sd">        ```</span>
-<a id="__codelineno-0-196" name="__codelineno-0-196"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-197" name="__codelineno-0-197"></a>    <span class="n">text_width</span><span class="p">,</span> <span class="n">text_height</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">getTextSize</span><span class="p">(</span>
-<a id="__codelineno-0-198" name="__codelineno-0-198"></a>        <span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">,</span>
-<a id="__codelineno-0-199" name="__codelineno-0-199"></a>        <span class="n">fontFace</span><span class="o">=</span><span class="n">text_font</span><span class="p">,</span>
-<a id="__codelineno-0-200" name="__codelineno-0-200"></a>        <span class="n">fontScale</span><span class="o">=</span><span class="n">text_scale</span><span class="p">,</span>
-<a id="__codelineno-0-201" name="__codelineno-0-201"></a>        <span class="n">thickness</span><span class="o">=</span><span class="n">text_thickness</span><span class="p">,</span>
-<a id="__codelineno-0-202" name="__codelineno-0-202"></a>    <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-<a id="__codelineno-0-203" name="__codelineno-0-203"></a>
-<a id="__codelineno-0-204" name="__codelineno-0-204"></a>    <span class="n">text_anchor_x</span><span class="p">,</span> <span class="n">text_anchor_y</span> <span class="o">=</span> <span class="n">text_anchor</span><span class="o">.</span><span class="n">as_xy_int_tuple</span><span class="p">()</span>
-<a id="__codelineno-0-205" name="__codelineno-0-205"></a>
-<a id="__codelineno-0-206" name="__codelineno-0-206"></a>    <span class="n">text_rect</span> <span class="o">=</span> <span class="n">Rect</span><span class="p">(</span>
-<a id="__codelineno-0-207" name="__codelineno-0-207"></a>        <span class="n">x</span><span class="o">=</span><span class="n">text_anchor_x</span> <span class="o">-</span> <span class="n">text_width</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span>
-<a id="__codelineno-0-208" name="__codelineno-0-208"></a>        <span class="n">y</span><span class="o">=</span><span class="n">text_anchor_y</span> <span class="o">-</span> <span class="n">text_height</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span>
-<a id="__codelineno-0-209" name="__codelineno-0-209"></a>        <span class="n">width</span><span class="o">=</span><span class="n">text_width</span><span class="p">,</span>
-<a id="__codelineno-0-210" name="__codelineno-0-210"></a>        <span class="n">height</span><span class="o">=</span><span class="n">text_height</span><span class="p">,</span>
-<a id="__codelineno-0-211" name="__codelineno-0-211"></a>    <span class="p">)</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">text_padding</span><span class="p">)</span>
+<span class="normal"><a href="#__codelineno-0-228">228</a></span>
+<span class="normal"><a href="#__codelineno-0-229">229</a></span>
+<span class="normal"><a href="#__codelineno-0-230">230</a></span>
+<span class="normal"><a href="#__codelineno-0-231">231</a></span>
+<span class="normal"><a href="#__codelineno-0-232">232</a></span>
+<span class="normal"><a href="#__codelineno-0-233">233</a></span>
+<span class="normal"><a href="#__codelineno-0-234">234</a></span>
+<span class="normal"><a href="#__codelineno-0-235">235</a></span>
+<span class="normal"><a href="#__codelineno-0-236">236</a></span>
+<span class="normal"><a href="#__codelineno-0-237">237</a></span>
+<span class="normal"><a href="#__codelineno-0-238">238</a></span>
+<span class="normal"><a href="#__codelineno-0-239">239</a></span>
+<span class="normal"><a href="#__codelineno-0-240">240</a></span>
+<span class="normal"><a href="#__codelineno-0-241">241</a></span>
+<span class="normal"><a href="#__codelineno-0-242">242</a></span>
+<span class="normal"><a href="#__codelineno-0-243">243</a></span>
+<span class="normal"><a href="#__codelineno-0-244">244</a></span>
+<span class="normal"><a href="#__codelineno-0-245">245</a></span>
+<span class="normal"><a href="#__codelineno-0-246">246</a></span>
+<span class="normal"><a href="#__codelineno-0-247">247</a></span>
+<span class="normal"><a href="#__codelineno-0-248">248</a></span>
+<span class="normal"><a href="#__codelineno-0-249">249</a></span>
+<span class="normal"><a href="#__codelineno-0-250">250</a></span>
+<span class="normal"><a href="#__codelineno-0-251">251</a></span>
+<span class="normal"><a href="#__codelineno-0-252">252</a></span>
+<span class="normal"><a href="#__codelineno-0-253">253</a></span>
+<span class="normal"><a href="#__codelineno-0-254">254</a></span>
+<span class="normal"><a href="#__codelineno-0-255">255</a></span>
+<span class="normal"><a href="#__codelineno-0-256">256</a></span>
+<span class="normal"><a href="#__codelineno-0-257">257</a></span>
+<span class="normal"><a href="#__codelineno-0-258">258</a></span>
+<span class="normal"><a href="#__codelineno-0-259">259</a></span>
+<span class="normal"><a href="#__codelineno-0-260">260</a></span>
+<span class="normal"><a href="#__codelineno-0-261">261</a></span>
+<span class="normal"><a href="#__codelineno-0-262">262</a></span>
+<span class="normal"><a href="#__codelineno-0-263">263</a></span>
+<span class="normal"><a href="#__codelineno-0-264">264</a></span>
+<span class="normal"><a href="#__codelineno-0-265">265</a></span>
+<span class="normal"><a href="#__codelineno-0-266">266</a></span>
+<span class="normal"><a href="#__codelineno-0-267">267</a></span>
+<span class="normal"><a href="#__codelineno-0-268">268</a></span>
+<span class="normal"><a href="#__codelineno-0-269">269</a></span>
+<span class="normal"><a href="#__codelineno-0-270">270</a></span>
+<span class="normal"><a href="#__codelineno-0-271">271</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-199" name="__codelineno-0-199"></a><span class="k">def</span> <span class="nf">draw_text</span><span class="p">(</span>
+<a id="__codelineno-0-200" name="__codelineno-0-200"></a>    <span class="n">scene</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<a id="__codelineno-0-201" name="__codelineno-0-201"></a>    <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<a id="__codelineno-0-202" name="__codelineno-0-202"></a>    <span class="n">text_anchor</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span>
+<a id="__codelineno-0-203" name="__codelineno-0-203"></a>    <span class="n">text_color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">=</span> <span class="n">Color</span><span class="o">.</span><span class="n">BLACK</span><span class="p">,</span>
+<a id="__codelineno-0-204" name="__codelineno-0-204"></a>    <span class="n">text_scale</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+<a id="__codelineno-0-205" name="__codelineno-0-205"></a>    <span class="n">text_thickness</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+<a id="__codelineno-0-206" name="__codelineno-0-206"></a>    <span class="n">text_padding</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+<a id="__codelineno-0-207" name="__codelineno-0-207"></a>    <span class="n">text_font</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">FONT_HERSHEY_SIMPLEX</span><span class="p">,</span>
+<a id="__codelineno-0-208" name="__codelineno-0-208"></a>    <span class="n">background_color</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Color</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-209" name="__codelineno-0-209"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a id="__codelineno-0-210" name="__codelineno-0-210"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-211" name="__codelineno-0-211"></a><span class="sd">    Draw text with background on a scene.</span>
 <a id="__codelineno-0-212" name="__codelineno-0-212"></a>
-<a id="__codelineno-0-213" name="__codelineno-0-213"></a>    <span class="k">if</span> <span class="n">background_color</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-214" name="__codelineno-0-214"></a>        <span class="n">scene</span> <span class="o">=</span> <span class="n">draw_filled_rectangle</span><span class="p">(</span>
-<a id="__codelineno-0-215" name="__codelineno-0-215"></a>            <span class="n">scene</span><span class="o">=</span><span class="n">scene</span><span class="p">,</span> <span class="n">rect</span><span class="o">=</span><span class="n">text_rect</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">background_color</span>
-<a id="__codelineno-0-216" name="__codelineno-0-216"></a>        <span class="p">)</span>
-<a id="__codelineno-0-217" name="__codelineno-0-217"></a>
-<a id="__codelineno-0-218" name="__codelineno-0-218"></a>    <span class="n">cv2</span><span class="o">.</span><span class="n">putText</span><span class="p">(</span>
-<a id="__codelineno-0-219" name="__codelineno-0-219"></a>        <span class="n">img</span><span class="o">=</span><span class="n">scene</span><span class="p">,</span>
-<a id="__codelineno-0-220" name="__codelineno-0-220"></a>        <span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">,</span>
-<a id="__codelineno-0-221" name="__codelineno-0-221"></a>        <span class="n">org</span><span class="o">=</span><span class="p">(</span><span class="n">text_anchor_x</span> <span class="o">-</span> <span class="n">text_width</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">text_anchor_y</span> <span class="o">+</span> <span class="n">text_height</span> <span class="o">//</span> <span class="mi">2</span><span class="p">),</span>
-<a id="__codelineno-0-222" name="__codelineno-0-222"></a>        <span class="n">fontFace</span><span class="o">=</span><span class="n">text_font</span><span class="p">,</span>
-<a id="__codelineno-0-223" name="__codelineno-0-223"></a>        <span class="n">fontScale</span><span class="o">=</span><span class="n">text_scale</span><span class="p">,</span>
-<a id="__codelineno-0-224" name="__codelineno-0-224"></a>        <span class="n">color</span><span class="o">=</span><span class="n">text_color</span><span class="o">.</span><span class="n">as_bgr</span><span class="p">(),</span>
-<a id="__codelineno-0-225" name="__codelineno-0-225"></a>        <span class="n">thickness</span><span class="o">=</span><span class="n">text_thickness</span><span class="p">,</span>
-<a id="__codelineno-0-226" name="__codelineno-0-226"></a>        <span class="n">lineType</span><span class="o">=</span><span class="n">cv2</span><span class="o">.</span><span class="n">LINE_AA</span><span class="p">,</span>
-<a id="__codelineno-0-227" name="__codelineno-0-227"></a>    <span class="p">)</span>
-<a id="__codelineno-0-228" name="__codelineno-0-228"></a>    <span class="k">return</span> <span class="n">scene</span>
+<a id="__codelineno-0-213" name="__codelineno-0-213"></a><span class="sd">    Parameters:</span>
+<a id="__codelineno-0-214" name="__codelineno-0-214"></a><span class="sd">        scene (np.ndarray): A 2-dimensional numpy ndarray representing an image or scene</span>
+<a id="__codelineno-0-215" name="__codelineno-0-215"></a><span class="sd">        text (str): The text to be drawn.</span>
+<a id="__codelineno-0-216" name="__codelineno-0-216"></a><span class="sd">        text_anchor (Point): The anchor point for the text, represented as a</span>
+<a id="__codelineno-0-217" name="__codelineno-0-217"></a><span class="sd">            Point object with x and y attributes.</span>
+<a id="__codelineno-0-218" name="__codelineno-0-218"></a><span class="sd">        text_color (Color): The color of the text. Defaults to black.</span>
+<a id="__codelineno-0-219" name="__codelineno-0-219"></a><span class="sd">        text_scale (float): The scale of the text. Defaults to 0.5.</span>
+<a id="__codelineno-0-220" name="__codelineno-0-220"></a><span class="sd">        text_thickness (int): The thickness of the text. Defaults to 1.</span>
+<a id="__codelineno-0-221" name="__codelineno-0-221"></a><span class="sd">        text_padding (int): The amount of padding to add around the text</span>
+<a id="__codelineno-0-222" name="__codelineno-0-222"></a><span class="sd">            when drawing a rectangle in the background. Defaults to 10.</span>
+<a id="__codelineno-0-223" name="__codelineno-0-223"></a><span class="sd">        text_font (int): The font to use for the text.</span>
+<a id="__codelineno-0-224" name="__codelineno-0-224"></a><span class="sd">            Defaults to cv2.FONT_HERSHEY_SIMPLEX.</span>
+<a id="__codelineno-0-225" name="__codelineno-0-225"></a><span class="sd">        background_color (Optional[Color]): The color of the background rectangle,</span>
+<a id="__codelineno-0-226" name="__codelineno-0-226"></a><span class="sd">            if one is to be drawn. Defaults to None.</span>
+<a id="__codelineno-0-227" name="__codelineno-0-227"></a>
+<a id="__codelineno-0-228" name="__codelineno-0-228"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-229" name="__codelineno-0-229"></a><span class="sd">        np.ndarray: The input scene with the text drawn on it.</span>
+<a id="__codelineno-0-230" name="__codelineno-0-230"></a>
+<a id="__codelineno-0-231" name="__codelineno-0-231"></a><span class="sd">    Examples:</span>
+<a id="__codelineno-0-232" name="__codelineno-0-232"></a><span class="sd">        ```python</span>
+<a id="__codelineno-0-233" name="__codelineno-0-233"></a><span class="sd">        import numpy as np</span>
+<a id="__codelineno-0-234" name="__codelineno-0-234"></a>
+<a id="__codelineno-0-235" name="__codelineno-0-235"></a><span class="sd">        scene = np.zeros((100, 100, 3), dtype=np.uint8)</span>
+<a id="__codelineno-0-236" name="__codelineno-0-236"></a><span class="sd">        text_anchor = Point(x=50, y=50)</span>
+<a id="__codelineno-0-237" name="__codelineno-0-237"></a><span class="sd">        scene = draw_text(scene=scene, text=&quot;Hello, world!&quot;,text_anchor=text_anchor)</span>
+<a id="__codelineno-0-238" name="__codelineno-0-238"></a><span class="sd">        ```</span>
+<a id="__codelineno-0-239" name="__codelineno-0-239"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-240" name="__codelineno-0-240"></a>    <span class="n">text_width</span><span class="p">,</span> <span class="n">text_height</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">getTextSize</span><span class="p">(</span>
+<a id="__codelineno-0-241" name="__codelineno-0-241"></a>        <span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">,</span>
+<a id="__codelineno-0-242" name="__codelineno-0-242"></a>        <span class="n">fontFace</span><span class="o">=</span><span class="n">text_font</span><span class="p">,</span>
+<a id="__codelineno-0-243" name="__codelineno-0-243"></a>        <span class="n">fontScale</span><span class="o">=</span><span class="n">text_scale</span><span class="p">,</span>
+<a id="__codelineno-0-244" name="__codelineno-0-244"></a>        <span class="n">thickness</span><span class="o">=</span><span class="n">text_thickness</span><span class="p">,</span>
+<a id="__codelineno-0-245" name="__codelineno-0-245"></a>    <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+<a id="__codelineno-0-246" name="__codelineno-0-246"></a>
+<a id="__codelineno-0-247" name="__codelineno-0-247"></a>    <span class="n">text_anchor_x</span><span class="p">,</span> <span class="n">text_anchor_y</span> <span class="o">=</span> <span class="n">text_anchor</span><span class="o">.</span><span class="n">as_xy_int_tuple</span><span class="p">()</span>
+<a id="__codelineno-0-248" name="__codelineno-0-248"></a>
+<a id="__codelineno-0-249" name="__codelineno-0-249"></a>    <span class="n">text_rect</span> <span class="o">=</span> <span class="n">Rect</span><span class="p">(</span>
+<a id="__codelineno-0-250" name="__codelineno-0-250"></a>        <span class="n">x</span><span class="o">=</span><span class="n">text_anchor_x</span> <span class="o">-</span> <span class="n">text_width</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span>
+<a id="__codelineno-0-251" name="__codelineno-0-251"></a>        <span class="n">y</span><span class="o">=</span><span class="n">text_anchor_y</span> <span class="o">-</span> <span class="n">text_height</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span>
+<a id="__codelineno-0-252" name="__codelineno-0-252"></a>        <span class="n">width</span><span class="o">=</span><span class="n">text_width</span><span class="p">,</span>
+<a id="__codelineno-0-253" name="__codelineno-0-253"></a>        <span class="n">height</span><span class="o">=</span><span class="n">text_height</span><span class="p">,</span>
+<a id="__codelineno-0-254" name="__codelineno-0-254"></a>    <span class="p">)</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">text_padding</span><span class="p">)</span>
+<a id="__codelineno-0-255" name="__codelineno-0-255"></a>
+<a id="__codelineno-0-256" name="__codelineno-0-256"></a>    <span class="k">if</span> <span class="n">background_color</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-257" name="__codelineno-0-257"></a>        <span class="n">scene</span> <span class="o">=</span> <span class="n">draw_filled_rectangle</span><span class="p">(</span>
+<a id="__codelineno-0-258" name="__codelineno-0-258"></a>            <span class="n">scene</span><span class="o">=</span><span class="n">scene</span><span class="p">,</span> <span class="n">rect</span><span class="o">=</span><span class="n">text_rect</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">background_color</span>
+<a id="__codelineno-0-259" name="__codelineno-0-259"></a>        <span class="p">)</span>
+<a id="__codelineno-0-260" name="__codelineno-0-260"></a>
+<a id="__codelineno-0-261" name="__codelineno-0-261"></a>    <span class="n">cv2</span><span class="o">.</span><span class="n">putText</span><span class="p">(</span>
+<a id="__codelineno-0-262" name="__codelineno-0-262"></a>        <span class="n">img</span><span class="o">=</span><span class="n">scene</span><span class="p">,</span>
+<a id="__codelineno-0-263" name="__codelineno-0-263"></a>        <span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">,</span>
+<a id="__codelineno-0-264" name="__codelineno-0-264"></a>        <span class="n">org</span><span class="o">=</span><span class="p">(</span><span class="n">text_anchor_x</span> <span class="o">-</span> <span class="n">text_width</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">text_anchor_y</span> <span class="o">+</span> <span class="n">text_height</span> <span class="o">//</span> <span class="mi">2</span><span class="p">),</span>
+<a id="__codelineno-0-265" name="__codelineno-0-265"></a>        <span class="n">fontFace</span><span class="o">=</span><span class="n">text_font</span><span class="p">,</span>
+<a id="__codelineno-0-266" name="__codelineno-0-266"></a>        <span class="n">fontScale</span><span class="o">=</span><span class="n">text_scale</span><span class="p">,</span>
+<a id="__codelineno-0-267" name="__codelineno-0-267"></a>        <span class="n">color</span><span class="o">=</span><span class="n">text_color</span><span class="o">.</span><span class="n">as_bgr</span><span class="p">(),</span>
+<a id="__codelineno-0-268" name="__codelineno-0-268"></a>        <span class="n">thickness</span><span class="o">=</span><span class="n">text_thickness</span><span class="p">,</span>
+<a id="__codelineno-0-269" name="__codelineno-0-269"></a>        <span class="n">lineType</span><span class="o">=</span><span class="n">cv2</span><span class="o">.</span><span class="n">LINE_AA</span><span class="p">,</span>
+<a id="__codelineno-0-270" name="__codelineno-0-270"></a>    <span class="p">)</span>
+<a id="__codelineno-0-271" name="__codelineno-0-271"></a>    <span class="k">return</span> <span class="n">scene</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3440,50 +3668,7 @@ if one is to be drawn. Defaults to None.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/draw/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-231">231</a></span>
-<span class="normal"><a href="#__codelineno-0-232">232</a></span>
-<span class="normal"><a href="#__codelineno-0-233">233</a></span>
-<span class="normal"><a href="#__codelineno-0-234">234</a></span>
-<span class="normal"><a href="#__codelineno-0-235">235</a></span>
-<span class="normal"><a href="#__codelineno-0-236">236</a></span>
-<span class="normal"><a href="#__codelineno-0-237">237</a></span>
-<span class="normal"><a href="#__codelineno-0-238">238</a></span>
-<span class="normal"><a href="#__codelineno-0-239">239</a></span>
-<span class="normal"><a href="#__codelineno-0-240">240</a></span>
-<span class="normal"><a href="#__codelineno-0-241">241</a></span>
-<span class="normal"><a href="#__codelineno-0-242">242</a></span>
-<span class="normal"><a href="#__codelineno-0-243">243</a></span>
-<span class="normal"><a href="#__codelineno-0-244">244</a></span>
-<span class="normal"><a href="#__codelineno-0-245">245</a></span>
-<span class="normal"><a href="#__codelineno-0-246">246</a></span>
-<span class="normal"><a href="#__codelineno-0-247">247</a></span>
-<span class="normal"><a href="#__codelineno-0-248">248</a></span>
-<span class="normal"><a href="#__codelineno-0-249">249</a></span>
-<span class="normal"><a href="#__codelineno-0-250">250</a></span>
-<span class="normal"><a href="#__codelineno-0-251">251</a></span>
-<span class="normal"><a href="#__codelineno-0-252">252</a></span>
-<span class="normal"><a href="#__codelineno-0-253">253</a></span>
-<span class="normal"><a href="#__codelineno-0-254">254</a></span>
-<span class="normal"><a href="#__codelineno-0-255">255</a></span>
-<span class="normal"><a href="#__codelineno-0-256">256</a></span>
-<span class="normal"><a href="#__codelineno-0-257">257</a></span>
-<span class="normal"><a href="#__codelineno-0-258">258</a></span>
-<span class="normal"><a href="#__codelineno-0-259">259</a></span>
-<span class="normal"><a href="#__codelineno-0-260">260</a></span>
-<span class="normal"><a href="#__codelineno-0-261">261</a></span>
-<span class="normal"><a href="#__codelineno-0-262">262</a></span>
-<span class="normal"><a href="#__codelineno-0-263">263</a></span>
-<span class="normal"><a href="#__codelineno-0-264">264</a></span>
-<span class="normal"><a href="#__codelineno-0-265">265</a></span>
-<span class="normal"><a href="#__codelineno-0-266">266</a></span>
-<span class="normal"><a href="#__codelineno-0-267">267</a></span>
-<span class="normal"><a href="#__codelineno-0-268">268</a></span>
-<span class="normal"><a href="#__codelineno-0-269">269</a></span>
-<span class="normal"><a href="#__codelineno-0-270">270</a></span>
-<span class="normal"><a href="#__codelineno-0-271">271</a></span>
-<span class="normal"><a href="#__codelineno-0-272">272</a></span>
-<span class="normal"><a href="#__codelineno-0-273">273</a></span>
-<span class="normal"><a href="#__codelineno-0-274">274</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-274">274</a></span>
 <span class="normal"><a href="#__codelineno-0-275">275</a></span>
 <span class="normal"><a href="#__codelineno-0-276">276</a></span>
 <span class="normal"><a href="#__codelineno-0-277">277</a></span>
@@ -3499,66 +3684,109 @@ if one is to be drawn. Defaults to None.</p>
 <span class="normal"><a href="#__codelineno-0-287">287</a></span>
 <span class="normal"><a href="#__codelineno-0-288">288</a></span>
 <span class="normal"><a href="#__codelineno-0-289">289</a></span>
-<span class="normal"><a href="#__codelineno-0-290">290</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-231" name="__codelineno-0-231"></a><span class="k">def</span> <span class="nf">draw_image</span><span class="p">(</span>
-<a id="__codelineno-0-232" name="__codelineno-0-232"></a>    <span class="n">scene</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">image</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> <span class="n">opacity</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">rect</span><span class="p">:</span> <span class="n">Rect</span>
-<a id="__codelineno-0-233" name="__codelineno-0-233"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<a id="__codelineno-0-234" name="__codelineno-0-234"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-235" name="__codelineno-0-235"></a><span class="sd">    Draws an image onto a given scene with specified opacity and dimensions.</span>
-<a id="__codelineno-0-236" name="__codelineno-0-236"></a>
-<a id="__codelineno-0-237" name="__codelineno-0-237"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-238" name="__codelineno-0-238"></a><span class="sd">        scene (np.ndarray): Background image where the new image will be drawn.</span>
-<a id="__codelineno-0-239" name="__codelineno-0-239"></a><span class="sd">        image (Union[str, np.ndarray]): Image to draw.</span>
-<a id="__codelineno-0-240" name="__codelineno-0-240"></a><span class="sd">        opacity (float): Opacity of the image to be drawn.</span>
-<a id="__codelineno-0-241" name="__codelineno-0-241"></a><span class="sd">        rect (Rect): Rectangle specifying where to draw the image.</span>
-<a id="__codelineno-0-242" name="__codelineno-0-242"></a>
-<a id="__codelineno-0-243" name="__codelineno-0-243"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-244" name="__codelineno-0-244"></a><span class="sd">        np.ndarray: The updated scene.</span>
-<a id="__codelineno-0-245" name="__codelineno-0-245"></a>
-<a id="__codelineno-0-246" name="__codelineno-0-246"></a><span class="sd">    Raises:</span>
-<a id="__codelineno-0-247" name="__codelineno-0-247"></a><span class="sd">        FileNotFoundError: If the image path does not exist.</span>
-<a id="__codelineno-0-248" name="__codelineno-0-248"></a><span class="sd">        ValueError: For invalid opacity or rectangle dimensions.</span>
-<a id="__codelineno-0-249" name="__codelineno-0-249"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-250" name="__codelineno-0-250"></a>
-<a id="__codelineno-0-251" name="__codelineno-0-251"></a>    <span class="c1"># Validate and load image</span>
-<a id="__codelineno-0-252" name="__codelineno-0-252"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-<a id="__codelineno-0-253" name="__codelineno-0-253"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">image</span><span class="p">):</span>
-<a id="__codelineno-0-254" name="__codelineno-0-254"></a>            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Image path (&#39;</span><span class="si">{</span><span class="n">image</span><span class="si">}</span><span class="s2">&#39;) does not exist.&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-255" name="__codelineno-0-255"></a>        <span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">IMREAD_UNCHANGED</span><span class="p">)</span>
-<a id="__codelineno-0-256" name="__codelineno-0-256"></a>
-<a id="__codelineno-0-257" name="__codelineno-0-257"></a>    <span class="c1"># Validate opacity</span>
-<a id="__codelineno-0-258" name="__codelineno-0-258"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">opacity</span> <span class="o">&lt;=</span> <span class="mf">1.0</span><span class="p">:</span>
-<a id="__codelineno-0-259" name="__codelineno-0-259"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Opacity must be between 0.0 and 1.0.&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-260" name="__codelineno-0-260"></a>
-<a id="__codelineno-0-261" name="__codelineno-0-261"></a>    <span class="c1"># Validate rectangle dimensions</span>
-<a id="__codelineno-0-262" name="__codelineno-0-262"></a>    <span class="k">if</span> <span class="p">(</span>
-<a id="__codelineno-0-263" name="__codelineno-0-263"></a>        <span class="n">rect</span><span class="o">.</span><span class="n">x</span> <span class="o">&lt;</span> <span class="mi">0</span>
-<a id="__codelineno-0-264" name="__codelineno-0-264"></a>        <span class="ow">or</span> <span class="n">rect</span><span class="o">.</span><span class="n">y</span> <span class="o">&lt;</span> <span class="mi">0</span>
-<a id="__codelineno-0-265" name="__codelineno-0-265"></a>        <span class="ow">or</span> <span class="n">rect</span><span class="o">.</span><span class="n">x</span> <span class="o">+</span> <span class="n">rect</span><span class="o">.</span><span class="n">width</span> <span class="o">&gt;</span> <span class="n">scene</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-<a id="__codelineno-0-266" name="__codelineno-0-266"></a>        <span class="ow">or</span> <span class="n">rect</span><span class="o">.</span><span class="n">y</span> <span class="o">+</span> <span class="n">rect</span><span class="o">.</span><span class="n">height</span> <span class="o">&gt;</span> <span class="n">scene</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-<a id="__codelineno-0-267" name="__codelineno-0-267"></a>    <span class="p">):</span>
-<a id="__codelineno-0-268" name="__codelineno-0-268"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid rectangle dimensions.&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-269" name="__codelineno-0-269"></a>
-<a id="__codelineno-0-270" name="__codelineno-0-270"></a>    <span class="c1"># Resize and isolate alpha channel</span>
-<a id="__codelineno-0-271" name="__codelineno-0-271"></a>    <span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="p">(</span><span class="n">rect</span><span class="o">.</span><span class="n">width</span><span class="p">,</span> <span class="n">rect</span><span class="o">.</span><span class="n">height</span><span class="p">))</span>
-<a id="__codelineno-0-272" name="__codelineno-0-272"></a>    <span class="n">alpha_channel</span> <span class="o">=</span> <span class="p">(</span>
-<a id="__codelineno-0-273" name="__codelineno-0-273"></a>        <span class="n">image</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">3</span><span class="p">]</span>
-<a id="__codelineno-0-274" name="__codelineno-0-274"></a>        <span class="k">if</span> <span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="mi">4</span>
-<a id="__codelineno-0-275" name="__codelineno-0-275"></a>        <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">rect</span><span class="o">.</span><span class="n">height</span><span class="p">,</span> <span class="n">rect</span><span class="o">.</span><span class="n">width</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">image</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">*</span> <span class="mi">255</span>
-<a id="__codelineno-0-276" name="__codelineno-0-276"></a>    <span class="p">)</span>
-<a id="__codelineno-0-277" name="__codelineno-0-277"></a>    <span class="n">alpha_scaled</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">convertScaleAbs</span><span class="p">(</span><span class="n">alpha_channel</span> <span class="o">*</span> <span class="n">opacity</span><span class="p">)</span>
-<a id="__codelineno-0-278" name="__codelineno-0-278"></a>
-<a id="__codelineno-0-279" name="__codelineno-0-279"></a>    <span class="c1"># Perform blending</span>
-<a id="__codelineno-0-280" name="__codelineno-0-280"></a>    <span class="n">scene_roi</span> <span class="o">=</span> <span class="n">scene</span><span class="p">[</span><span class="n">rect</span><span class="o">.</span><span class="n">y</span> <span class="p">:</span> <span class="n">rect</span><span class="o">.</span><span class="n">y</span> <span class="o">+</span> <span class="n">rect</span><span class="o">.</span><span class="n">height</span><span class="p">,</span> <span class="n">rect</span><span class="o">.</span><span class="n">x</span> <span class="p">:</span> <span class="n">rect</span><span class="o">.</span><span class="n">x</span> <span class="o">+</span> <span class="n">rect</span><span class="o">.</span><span class="n">width</span><span class="p">]</span>
-<a id="__codelineno-0-281" name="__codelineno-0-281"></a>    <span class="n">alpha_float</span> <span class="o">=</span> <span class="n">alpha_scaled</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">/</span> <span class="mf">255.0</span>
-<a id="__codelineno-0-282" name="__codelineno-0-282"></a>    <span class="n">blended_roi</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">convertScaleAbs</span><span class="p">(</span>
-<a id="__codelineno-0-283" name="__codelineno-0-283"></a>        <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha_float</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">])</span> <span class="o">*</span> <span class="n">scene_roi</span>
-<a id="__codelineno-0-284" name="__codelineno-0-284"></a>        <span class="o">+</span> <span class="n">alpha_float</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span> <span class="o">*</span> <span class="n">image</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="mi">3</span><span class="p">]</span>
-<a id="__codelineno-0-285" name="__codelineno-0-285"></a>    <span class="p">)</span>
-<a id="__codelineno-0-286" name="__codelineno-0-286"></a>
-<a id="__codelineno-0-287" name="__codelineno-0-287"></a>    <span class="c1"># Update the scene</span>
-<a id="__codelineno-0-288" name="__codelineno-0-288"></a>    <span class="n">scene</span><span class="p">[</span><span class="n">rect</span><span class="o">.</span><span class="n">y</span> <span class="p">:</span> <span class="n">rect</span><span class="o">.</span><span class="n">y</span> <span class="o">+</span> <span class="n">rect</span><span class="o">.</span><span class="n">height</span><span class="p">,</span> <span class="n">rect</span><span class="o">.</span><span class="n">x</span> <span class="p">:</span> <span class="n">rect</span><span class="o">.</span><span class="n">x</span> <span class="o">+</span> <span class="n">rect</span><span class="o">.</span><span class="n">width</span><span class="p">]</span> <span class="o">=</span> <span class="n">blended_roi</span>
-<a id="__codelineno-0-289" name="__codelineno-0-289"></a>
-<a id="__codelineno-0-290" name="__codelineno-0-290"></a>    <span class="k">return</span> <span class="n">scene</span>
+<span class="normal"><a href="#__codelineno-0-290">290</a></span>
+<span class="normal"><a href="#__codelineno-0-291">291</a></span>
+<span class="normal"><a href="#__codelineno-0-292">292</a></span>
+<span class="normal"><a href="#__codelineno-0-293">293</a></span>
+<span class="normal"><a href="#__codelineno-0-294">294</a></span>
+<span class="normal"><a href="#__codelineno-0-295">295</a></span>
+<span class="normal"><a href="#__codelineno-0-296">296</a></span>
+<span class="normal"><a href="#__codelineno-0-297">297</a></span>
+<span class="normal"><a href="#__codelineno-0-298">298</a></span>
+<span class="normal"><a href="#__codelineno-0-299">299</a></span>
+<span class="normal"><a href="#__codelineno-0-300">300</a></span>
+<span class="normal"><a href="#__codelineno-0-301">301</a></span>
+<span class="normal"><a href="#__codelineno-0-302">302</a></span>
+<span class="normal"><a href="#__codelineno-0-303">303</a></span>
+<span class="normal"><a href="#__codelineno-0-304">304</a></span>
+<span class="normal"><a href="#__codelineno-0-305">305</a></span>
+<span class="normal"><a href="#__codelineno-0-306">306</a></span>
+<span class="normal"><a href="#__codelineno-0-307">307</a></span>
+<span class="normal"><a href="#__codelineno-0-308">308</a></span>
+<span class="normal"><a href="#__codelineno-0-309">309</a></span>
+<span class="normal"><a href="#__codelineno-0-310">310</a></span>
+<span class="normal"><a href="#__codelineno-0-311">311</a></span>
+<span class="normal"><a href="#__codelineno-0-312">312</a></span>
+<span class="normal"><a href="#__codelineno-0-313">313</a></span>
+<span class="normal"><a href="#__codelineno-0-314">314</a></span>
+<span class="normal"><a href="#__codelineno-0-315">315</a></span>
+<span class="normal"><a href="#__codelineno-0-316">316</a></span>
+<span class="normal"><a href="#__codelineno-0-317">317</a></span>
+<span class="normal"><a href="#__codelineno-0-318">318</a></span>
+<span class="normal"><a href="#__codelineno-0-319">319</a></span>
+<span class="normal"><a href="#__codelineno-0-320">320</a></span>
+<span class="normal"><a href="#__codelineno-0-321">321</a></span>
+<span class="normal"><a href="#__codelineno-0-322">322</a></span>
+<span class="normal"><a href="#__codelineno-0-323">323</a></span>
+<span class="normal"><a href="#__codelineno-0-324">324</a></span>
+<span class="normal"><a href="#__codelineno-0-325">325</a></span>
+<span class="normal"><a href="#__codelineno-0-326">326</a></span>
+<span class="normal"><a href="#__codelineno-0-327">327</a></span>
+<span class="normal"><a href="#__codelineno-0-328">328</a></span>
+<span class="normal"><a href="#__codelineno-0-329">329</a></span>
+<span class="normal"><a href="#__codelineno-0-330">330</a></span>
+<span class="normal"><a href="#__codelineno-0-331">331</a></span>
+<span class="normal"><a href="#__codelineno-0-332">332</a></span>
+<span class="normal"><a href="#__codelineno-0-333">333</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-274" name="__codelineno-0-274"></a><span class="k">def</span> <span class="nf">draw_image</span><span class="p">(</span>
+<a id="__codelineno-0-275" name="__codelineno-0-275"></a>    <span class="n">scene</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">image</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> <span class="n">opacity</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">rect</span><span class="p">:</span> <span class="n">Rect</span>
+<a id="__codelineno-0-276" name="__codelineno-0-276"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a id="__codelineno-0-277" name="__codelineno-0-277"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-278" name="__codelineno-0-278"></a><span class="sd">    Draws an image onto a given scene with specified opacity and dimensions.</span>
+<a id="__codelineno-0-279" name="__codelineno-0-279"></a>
+<a id="__codelineno-0-280" name="__codelineno-0-280"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-281" name="__codelineno-0-281"></a><span class="sd">        scene (np.ndarray): Background image where the new image will be drawn.</span>
+<a id="__codelineno-0-282" name="__codelineno-0-282"></a><span class="sd">        image (Union[str, np.ndarray]): Image to draw.</span>
+<a id="__codelineno-0-283" name="__codelineno-0-283"></a><span class="sd">        opacity (float): Opacity of the image to be drawn.</span>
+<a id="__codelineno-0-284" name="__codelineno-0-284"></a><span class="sd">        rect (Rect): Rectangle specifying where to draw the image.</span>
+<a id="__codelineno-0-285" name="__codelineno-0-285"></a>
+<a id="__codelineno-0-286" name="__codelineno-0-286"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-287" name="__codelineno-0-287"></a><span class="sd">        np.ndarray: The updated scene.</span>
+<a id="__codelineno-0-288" name="__codelineno-0-288"></a>
+<a id="__codelineno-0-289" name="__codelineno-0-289"></a><span class="sd">    Raises:</span>
+<a id="__codelineno-0-290" name="__codelineno-0-290"></a><span class="sd">        FileNotFoundError: If the image path does not exist.</span>
+<a id="__codelineno-0-291" name="__codelineno-0-291"></a><span class="sd">        ValueError: For invalid opacity or rectangle dimensions.</span>
+<a id="__codelineno-0-292" name="__codelineno-0-292"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-293" name="__codelineno-0-293"></a>
+<a id="__codelineno-0-294" name="__codelineno-0-294"></a>    <span class="c1"># Validate and load image</span>
+<a id="__codelineno-0-295" name="__codelineno-0-295"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+<a id="__codelineno-0-296" name="__codelineno-0-296"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">image</span><span class="p">):</span>
+<a id="__codelineno-0-297" name="__codelineno-0-297"></a>            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Image path (&#39;</span><span class="si">{</span><span class="n">image</span><span class="si">}</span><span class="s2">&#39;) does not exist.&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-298" name="__codelineno-0-298"></a>        <span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">IMREAD_UNCHANGED</span><span class="p">)</span>
+<a id="__codelineno-0-299" name="__codelineno-0-299"></a>
+<a id="__codelineno-0-300" name="__codelineno-0-300"></a>    <span class="c1"># Validate opacity</span>
+<a id="__codelineno-0-301" name="__codelineno-0-301"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">opacity</span> <span class="o">&lt;=</span> <span class="mf">1.0</span><span class="p">:</span>
+<a id="__codelineno-0-302" name="__codelineno-0-302"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Opacity must be between 0.0 and 1.0.&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-303" name="__codelineno-0-303"></a>
+<a id="__codelineno-0-304" name="__codelineno-0-304"></a>    <span class="c1"># Validate rectangle dimensions</span>
+<a id="__codelineno-0-305" name="__codelineno-0-305"></a>    <span class="k">if</span> <span class="p">(</span>
+<a id="__codelineno-0-306" name="__codelineno-0-306"></a>        <span class="n">rect</span><span class="o">.</span><span class="n">x</span> <span class="o">&lt;</span> <span class="mi">0</span>
+<a id="__codelineno-0-307" name="__codelineno-0-307"></a>        <span class="ow">or</span> <span class="n">rect</span><span class="o">.</span><span class="n">y</span> <span class="o">&lt;</span> <span class="mi">0</span>
+<a id="__codelineno-0-308" name="__codelineno-0-308"></a>        <span class="ow">or</span> <span class="n">rect</span><span class="o">.</span><span class="n">x</span> <span class="o">+</span> <span class="n">rect</span><span class="o">.</span><span class="n">width</span> <span class="o">&gt;</span> <span class="n">scene</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<a id="__codelineno-0-309" name="__codelineno-0-309"></a>        <span class="ow">or</span> <span class="n">rect</span><span class="o">.</span><span class="n">y</span> <span class="o">+</span> <span class="n">rect</span><span class="o">.</span><span class="n">height</span> <span class="o">&gt;</span> <span class="n">scene</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<a id="__codelineno-0-310" name="__codelineno-0-310"></a>    <span class="p">):</span>
+<a id="__codelineno-0-311" name="__codelineno-0-311"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid rectangle dimensions.&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-312" name="__codelineno-0-312"></a>
+<a id="__codelineno-0-313" name="__codelineno-0-313"></a>    <span class="c1"># Resize and isolate alpha channel</span>
+<a id="__codelineno-0-314" name="__codelineno-0-314"></a>    <span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="p">(</span><span class="n">rect</span><span class="o">.</span><span class="n">width</span><span class="p">,</span> <span class="n">rect</span><span class="o">.</span><span class="n">height</span><span class="p">))</span>
+<a id="__codelineno-0-315" name="__codelineno-0-315"></a>    <span class="n">alpha_channel</span> <span class="o">=</span> <span class="p">(</span>
+<a id="__codelineno-0-316" name="__codelineno-0-316"></a>        <span class="n">image</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">3</span><span class="p">]</span>
+<a id="__codelineno-0-317" name="__codelineno-0-317"></a>        <span class="k">if</span> <span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="mi">4</span>
+<a id="__codelineno-0-318" name="__codelineno-0-318"></a>        <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">rect</span><span class="o">.</span><span class="n">height</span><span class="p">,</span> <span class="n">rect</span><span class="o">.</span><span class="n">width</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">image</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">*</span> <span class="mi">255</span>
+<a id="__codelineno-0-319" name="__codelineno-0-319"></a>    <span class="p">)</span>
+<a id="__codelineno-0-320" name="__codelineno-0-320"></a>    <span class="n">alpha_scaled</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">convertScaleAbs</span><span class="p">(</span><span class="n">alpha_channel</span> <span class="o">*</span> <span class="n">opacity</span><span class="p">)</span>
+<a id="__codelineno-0-321" name="__codelineno-0-321"></a>
+<a id="__codelineno-0-322" name="__codelineno-0-322"></a>    <span class="c1"># Perform blending</span>
+<a id="__codelineno-0-323" name="__codelineno-0-323"></a>    <span class="n">scene_roi</span> <span class="o">=</span> <span class="n">scene</span><span class="p">[</span><span class="n">rect</span><span class="o">.</span><span class="n">y</span> <span class="p">:</span> <span class="n">rect</span><span class="o">.</span><span class="n">y</span> <span class="o">+</span> <span class="n">rect</span><span class="o">.</span><span class="n">height</span><span class="p">,</span> <span class="n">rect</span><span class="o">.</span><span class="n">x</span> <span class="p">:</span> <span class="n">rect</span><span class="o">.</span><span class="n">x</span> <span class="o">+</span> <span class="n">rect</span><span class="o">.</span><span class="n">width</span><span class="p">]</span>
+<a id="__codelineno-0-324" name="__codelineno-0-324"></a>    <span class="n">alpha_float</span> <span class="o">=</span> <span class="n">alpha_scaled</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">/</span> <span class="mf">255.0</span>
+<a id="__codelineno-0-325" name="__codelineno-0-325"></a>    <span class="n">blended_roi</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">convertScaleAbs</span><span class="p">(</span>
+<a id="__codelineno-0-326" name="__codelineno-0-326"></a>        <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha_float</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">])</span> <span class="o">*</span> <span class="n">scene_roi</span>
+<a id="__codelineno-0-327" name="__codelineno-0-327"></a>        <span class="o">+</span> <span class="n">alpha_float</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span> <span class="o">*</span> <span class="n">image</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="mi">3</span><span class="p">]</span>
+<a id="__codelineno-0-328" name="__codelineno-0-328"></a>    <span class="p">)</span>
+<a id="__codelineno-0-329" name="__codelineno-0-329"></a>
+<a id="__codelineno-0-330" name="__codelineno-0-330"></a>    <span class="c1"># Update the scene</span>
+<a id="__codelineno-0-331" name="__codelineno-0-331"></a>    <span class="n">scene</span><span class="p">[</span><span class="n">rect</span><span class="o">.</span><span class="n">y</span> <span class="p">:</span> <span class="n">rect</span><span class="o">.</span><span class="n">y</span> <span class="o">+</span> <span class="n">rect</span><span class="o">.</span><span class="n">height</span><span class="p">,</span> <span class="n">rect</span><span class="o">.</span><span class="n">x</span> <span class="p">:</span> <span class="n">rect</span><span class="o">.</span><span class="n">x</span> <span class="o">+</span> <span class="n">rect</span><span class="o">.</span><span class="n">width</span><span class="p">]</span> <span class="o">=</span> <span class="n">blended_roi</span>
+<a id="__codelineno-0-332" name="__codelineno-0-332"></a>
+<a id="__codelineno-0-333" name="__codelineno-0-333"></a>    <span class="k">return</span> <span class="n">scene</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3633,29 +3861,29 @@ of the image.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/draw/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-293">293</a></span>
-<span class="normal"><a href="#__codelineno-0-294">294</a></span>
-<span class="normal"><a href="#__codelineno-0-295">295</a></span>
-<span class="normal"><a href="#__codelineno-0-296">296</a></span>
-<span class="normal"><a href="#__codelineno-0-297">297</a></span>
-<span class="normal"><a href="#__codelineno-0-298">298</a></span>
-<span class="normal"><a href="#__codelineno-0-299">299</a></span>
-<span class="normal"><a href="#__codelineno-0-300">300</a></span>
-<span class="normal"><a href="#__codelineno-0-301">301</a></span>
-<span class="normal"><a href="#__codelineno-0-302">302</a></span>
-<span class="normal"><a href="#__codelineno-0-303">303</a></span>
-<span class="normal"><a href="#__codelineno-0-304">304</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-293" name="__codelineno-0-293"></a><span class="k">def</span> <span class="nf">calculate_optimal_text_scale</span><span class="p">(</span><span class="n">resolution_wh</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-<a id="__codelineno-0-294" name="__codelineno-0-294"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-295" name="__codelineno-0-295"></a><span class="sd">    Calculate font scale based on the resolution of an image.</span>
-<a id="__codelineno-0-296" name="__codelineno-0-296"></a>
-<a id="__codelineno-0-297" name="__codelineno-0-297"></a><span class="sd">    Parameters:</span>
-<a id="__codelineno-0-298" name="__codelineno-0-298"></a><span class="sd">        resolution_wh (Tuple[int, int]): A tuple representing the width and height</span>
-<a id="__codelineno-0-299" name="__codelineno-0-299"></a><span class="sd">            of the image.</span>
-<a id="__codelineno-0-300" name="__codelineno-0-300"></a>
-<a id="__codelineno-0-301" name="__codelineno-0-301"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-302" name="__codelineno-0-302"></a><span class="sd">         float: The calculated font scale factor.</span>
-<a id="__codelineno-0-303" name="__codelineno-0-303"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-304" name="__codelineno-0-304"></a>    <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="n">resolution_wh</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1e-3</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-336">336</a></span>
+<span class="normal"><a href="#__codelineno-0-337">337</a></span>
+<span class="normal"><a href="#__codelineno-0-338">338</a></span>
+<span class="normal"><a href="#__codelineno-0-339">339</a></span>
+<span class="normal"><a href="#__codelineno-0-340">340</a></span>
+<span class="normal"><a href="#__codelineno-0-341">341</a></span>
+<span class="normal"><a href="#__codelineno-0-342">342</a></span>
+<span class="normal"><a href="#__codelineno-0-343">343</a></span>
+<span class="normal"><a href="#__codelineno-0-344">344</a></span>
+<span class="normal"><a href="#__codelineno-0-345">345</a></span>
+<span class="normal"><a href="#__codelineno-0-346">346</a></span>
+<span class="normal"><a href="#__codelineno-0-347">347</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-336" name="__codelineno-0-336"></a><span class="k">def</span> <span class="nf">calculate_optimal_text_scale</span><span class="p">(</span><span class="n">resolution_wh</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<a id="__codelineno-0-337" name="__codelineno-0-337"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-338" name="__codelineno-0-338"></a><span class="sd">    Calculate font scale based on the resolution of an image.</span>
+<a id="__codelineno-0-339" name="__codelineno-0-339"></a>
+<a id="__codelineno-0-340" name="__codelineno-0-340"></a><span class="sd">    Parameters:</span>
+<a id="__codelineno-0-341" name="__codelineno-0-341"></a><span class="sd">        resolution_wh (Tuple[int, int]): A tuple representing the width and height</span>
+<a id="__codelineno-0-342" name="__codelineno-0-342"></a><span class="sd">            of the image.</span>
+<a id="__codelineno-0-343" name="__codelineno-0-343"></a>
+<a id="__codelineno-0-344" name="__codelineno-0-344"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-345" name="__codelineno-0-345"></a><span class="sd">         float: The calculated font scale factor.</span>
+<a id="__codelineno-0-346" name="__codelineno-0-346"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-347" name="__codelineno-0-347"></a>    <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="n">resolution_wh</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1e-3</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3730,33 +3958,33 @@ of the image.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/draw/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-307">307</a></span>
-<span class="normal"><a href="#__codelineno-0-308">308</a></span>
-<span class="normal"><a href="#__codelineno-0-309">309</a></span>
-<span class="normal"><a href="#__codelineno-0-310">310</a></span>
-<span class="normal"><a href="#__codelineno-0-311">311</a></span>
-<span class="normal"><a href="#__codelineno-0-312">312</a></span>
-<span class="normal"><a href="#__codelineno-0-313">313</a></span>
-<span class="normal"><a href="#__codelineno-0-314">314</a></span>
-<span class="normal"><a href="#__codelineno-0-315">315</a></span>
-<span class="normal"><a href="#__codelineno-0-316">316</a></span>
-<span class="normal"><a href="#__codelineno-0-317">317</a></span>
-<span class="normal"><a href="#__codelineno-0-318">318</a></span>
-<span class="normal"><a href="#__codelineno-0-319">319</a></span>
-<span class="normal"><a href="#__codelineno-0-320">320</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-307" name="__codelineno-0-307"></a><span class="k">def</span> <span class="nf">calculate_optimal_line_thickness</span><span class="p">(</span><span class="n">resolution_wh</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-<a id="__codelineno-0-308" name="__codelineno-0-308"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-309" name="__codelineno-0-309"></a><span class="sd">    Calculate line thickness based on the resolution of an image.</span>
-<a id="__codelineno-0-310" name="__codelineno-0-310"></a>
-<a id="__codelineno-0-311" name="__codelineno-0-311"></a><span class="sd">    Parameters:</span>
-<a id="__codelineno-0-312" name="__codelineno-0-312"></a><span class="sd">        resolution_wh (Tuple[int, int]): A tuple representing the width and height</span>
-<a id="__codelineno-0-313" name="__codelineno-0-313"></a><span class="sd">            of the image.</span>
-<a id="__codelineno-0-314" name="__codelineno-0-314"></a>
-<a id="__codelineno-0-315" name="__codelineno-0-315"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-316" name="__codelineno-0-316"></a><span class="sd">        int: The calculated line thickness in pixels.</span>
-<a id="__codelineno-0-317" name="__codelineno-0-317"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-318" name="__codelineno-0-318"></a>    <span class="k">if</span> <span class="nb">min</span><span class="p">(</span><span class="n">resolution_wh</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1080</span><span class="p">:</span>
-<a id="__codelineno-0-319" name="__codelineno-0-319"></a>        <span class="k">return</span> <span class="mi">2</span>
-<a id="__codelineno-0-320" name="__codelineno-0-320"></a>    <span class="k">return</span> <span class="mi">4</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-350">350</a></span>
+<span class="normal"><a href="#__codelineno-0-351">351</a></span>
+<span class="normal"><a href="#__codelineno-0-352">352</a></span>
+<span class="normal"><a href="#__codelineno-0-353">353</a></span>
+<span class="normal"><a href="#__codelineno-0-354">354</a></span>
+<span class="normal"><a href="#__codelineno-0-355">355</a></span>
+<span class="normal"><a href="#__codelineno-0-356">356</a></span>
+<span class="normal"><a href="#__codelineno-0-357">357</a></span>
+<span class="normal"><a href="#__codelineno-0-358">358</a></span>
+<span class="normal"><a href="#__codelineno-0-359">359</a></span>
+<span class="normal"><a href="#__codelineno-0-360">360</a></span>
+<span class="normal"><a href="#__codelineno-0-361">361</a></span>
+<span class="normal"><a href="#__codelineno-0-362">362</a></span>
+<span class="normal"><a href="#__codelineno-0-363">363</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-350" name="__codelineno-0-350"></a><span class="k">def</span> <span class="nf">calculate_optimal_line_thickness</span><span class="p">(</span><span class="n">resolution_wh</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<a id="__codelineno-0-351" name="__codelineno-0-351"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-352" name="__codelineno-0-352"></a><span class="sd">    Calculate line thickness based on the resolution of an image.</span>
+<a id="__codelineno-0-353" name="__codelineno-0-353"></a>
+<a id="__codelineno-0-354" name="__codelineno-0-354"></a><span class="sd">    Parameters:</span>
+<a id="__codelineno-0-355" name="__codelineno-0-355"></a><span class="sd">        resolution_wh (Tuple[int, int]): A tuple representing the width and height</span>
+<a id="__codelineno-0-356" name="__codelineno-0-356"></a><span class="sd">            of the image.</span>
+<a id="__codelineno-0-357" name="__codelineno-0-357"></a>
+<a id="__codelineno-0-358" name="__codelineno-0-358"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-359" name="__codelineno-0-359"></a><span class="sd">        int: The calculated line thickness in pixels.</span>
+<a id="__codelineno-0-360" name="__codelineno-0-360"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-361" name="__codelineno-0-361"></a>    <span class="k">if</span> <span class="nb">min</span><span class="p">(</span><span class="n">resolution_wh</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1080</span><span class="p">:</span>
+<a id="__codelineno-0-362" name="__codelineno-0-362"></a>        <span class="k">return</span> <span class="mi">2</span>
+<a id="__codelineno-0-363" name="__codelineno-0-363"></a>    <span class="k">return</span> <span class="mi">4</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -5879,7 +6107,7 @@ supervision-annotator-examples/visualized_color_palette.png" /></p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">May 17, 2024</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">September 19, 2024</span>
   </span>
 
     
@@ -5906,6 +6134,11 @@ supervision-annotator-examples/visualized_color_palette.png" /></p>
 
     
     <nav>
+      
+        <a href="https://github.com/LinasKo" class="md-author" title="@LinasKo">
+          
+          <img src="https://avatars.githubusercontent.com/u/6500785?v=4&size=72" alt="LinasKo">
+        </a>
       
         <a href="https://github.com/SkalskiP" class="md-author" title="@SkalskiP">
           
