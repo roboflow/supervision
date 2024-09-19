@@ -69,7 +69,7 @@ def draw_filled_rectangle(
         scene (np.ndarray): The scene on which the rectangle will be drawn
         rect (Rect): The rectangle to be drawn
         color (Color): The color of the rectangle
-        opacity (float): The opacity of rectangle when drawn on the scene. Default is 1 (no opacity)
+        opacity (float): The opacity of rectangle when drawn on the scene.
 
     Returns:
         np.ndarray: The scene with the rectangle drawn on it
@@ -179,7 +179,7 @@ def draw_filled_polygon(
         scene (np.ndarray): The scene to draw the polygon on.
         polygon (np.ndarray): The polygon to be drawn, given as a list of vertices.
         color (Color): The color of the polygon.
-        opacity (float): The opacity of rectangle when drawn on the scene. Default is 1 (no opacity)
+        opacity (float): The opacity of rectangle when drawn on the scene.
 
     Returns:
         np.ndarray: The scene with the polygon drawn on it.
