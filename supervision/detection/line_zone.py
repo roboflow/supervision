@@ -255,7 +255,7 @@ class LineZoneAnnotator:
             line_counter (LineZone): The line counter object used to annotate.
 
         Returns:
-            float: Line counter angle.
+            float: Line counter angle, in degrees.
         """
         start_point = line_counter.vector.start.as_xy_int_tuple()
         end_point = line_counter.vector.end.as_xy_int_tuple()
@@ -370,9 +370,10 @@ class LineZoneAnnotator:
             np.ndarray: Image with the same shape as the input with aligned text.
         """
         line_angle = self._get_line_angle(line_counter)
+        is_line_upside_down = not -90 <= line_angle <= 90
 
         rotation_center = (img.shape[0] // 2, img.shape[0] // 2)
-        rotation_angle = -(line_angle)
+        rotation_angle = -(line_angle) + is_line_upside_down * 180
         rotation_scale = 1
 
         rotation_matrix = cv2.getRotationMatrix2D(
