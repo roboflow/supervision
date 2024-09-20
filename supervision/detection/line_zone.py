@@ -207,15 +207,16 @@ class LineZoneAnnotator:
         text_scale: float = 0.5,
         text_offset: float = 1.5,
         text_padding: int = 10,
-        draw_text_box: bool = True,
-        draw_centered: bool = True,
         custom_in_text: Optional[str] = None,
         custom_out_text: Optional[str] = None,
         display_in_count: bool = True,
         display_out_count: bool = True,
+        display_text_box: bool = True,
+        text_orient_to_line: bool = False,
+        text_centered: bool = True,
     ):
         """
-        Initialize the LineCounterAnnotator object with default values.
+        A class for drawing the LineZone and its detected object count on an image.
 
         Attributes:
             thickness (int): The thickness of the line that will be drawn.
@@ -225,12 +226,14 @@ class LineZoneAnnotator:
             text_scale (float): The scale of the text that will be drawn.
             text_offset (float): The offset of the text that will be drawn.
             text_padding (int): The padding of the text that will be drawn.
-            draw_text_box (bool): Whether to draw a text box under the text or not.
-            draw_centered (bool): Whether to draw the count centered in the line or not.
+            orient_text_to_line (bool): Whether to orient the text to the line or not.
             custom_in_text: (Optional[str]): Custom text to display for the in count.
             custom_out_text: (Optional[str]): Custom text to display for the out count.
             display_in_count (bool): Whether to display the in count or not.
             display_out_count (bool): Whether to display the out count or not.
+            display_text_box (bool): Whether to draw a text box under the text or not.
+            text_orient_to_line (bool): ⭐ Match text orientation to the line.
+            text_centered (bool): Whether to draw the count centered in the line or not.
 
         """
         self.thickness: int = thickness
@@ -240,12 +243,13 @@ class LineZoneAnnotator:
         self.text_scale: float = text_scale
         self.text_offset: float = text_offset
         self.text_padding: int = text_padding
-        self.draw_text_box: bool = draw_text_box
-        self.draw_centered: bool = draw_centered
         self.custom_in_text: Optional[str] = custom_in_text
         self.custom_out_text: Optional[str] = custom_out_text
         self.display_in_count: bool = display_in_count
         self.display_out_count: bool = display_out_count
+        self.display_text_box: bool = display_text_box
+        self.text_orient_to_line: bool = text_orient_to_line
+        self.text_centered: bool = text_centered
 
     def _get_line_angle(self, line_counter: LineZone) -> float:
         """
@@ -257,19 +261,21 @@ class LineZoneAnnotator:
         Returns:
             float: Line counter angle, in degrees.
         """
+        if not self.text_orient_to_line:
+            return 0
+
         start_point = line_counter.vector.start.as_xy_int_tuple()
         end_point = line_counter.vector.end.as_xy_int_tuple()
 
         delta_x = end_point[0] - start_point[0]
         delta_y = end_point[1] - start_point[1]
 
-        try:
+        if delta_x == 0:
+            line_angle = 90.0
+            line_angle += 180 if delta_y < 0 else 0
+        else:
             line_angle = math.degrees(math.atan(delta_y / delta_x))
             line_angle += 180 if delta_x < 0 else 0
-        except ZeroDivisionError:
-            # Add support for vertical lines.
-            line_angle = 90
-            line_angle += 180 if delta_y < 0 else 0
 
         return line_angle
 
@@ -294,7 +300,7 @@ class LineZoneAnnotator:
         """
         line_angle = self._get_line_angle(line_counter)
 
-        if self.draw_centered:
+        if self.text_centered:
             mid_point = Vector(
                 start=line_counter.vector.start, end=line_counter.vector.end
             ).center.as_xy_int_tuple()
@@ -457,7 +463,7 @@ class LineZoneAnnotator:
             text, cv2.FONT_HERSHEY_SIMPLEX, self.text_scale, self.text_thickness
         )[0]
 
-        # Create an auxiliar squared image for the count and its alpha channel
+        # Create an auxiliary squared image for the count and its alpha channel
         image_dim = int((max(text_width, text_height) + self.text_padding * 2) * 1.5)
         image = np.zeros((image_dim, image_dim, 3), dtype=np.uint8)  # bgr
         image_alpha = np.zeros((image_dim, image_dim, 1), dtype=np.uint8)  # gray
@@ -472,13 +478,13 @@ class LineZoneAnnotator:
         draw_text(
             scene=image,
             text_color=self.text_color,
-            background_color=self.color if self.draw_text_box else None,
+            background_color=self.color if self.display_text_box else None,
             **text_args,
         )
         draw_text(
             scene=image_alpha,
             text_color=Color.WHITE,
-            background_color=Color.WHITE if self.draw_text_box else None,
+            background_color=Color.WHITE if self.display_text_box else None,
             **text_args,
         )
         image = np.dstack((image, image_alpha))  # Stack bgr and alpha channels
