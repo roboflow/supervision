@@ -11,7 +11,7 @@ from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
 from supervision.detection.utils import box_iou_batch, mask_iou_batch
 from supervision.draw.color import LEGACY_COLOR_PALETTE
-from supervision.metrics.core import Metric, MetricTarget
+from supervision.metrics.core import AveragingMethod, Metric, MetricTarget
 from supervision.metrics.utils.object_size import (
     ObjectSizeCategory,
     get_detection_size_category,
@@ -22,27 +22,20 @@ if TYPE_CHECKING:
     import pandas as pd
 
 
-class MeanAveragePrecision(Metric):
+class F1Score(Metric):
     def __init__(
         self,
         metric_target: MetricTarget = MetricTarget.BOXES,
-        class_agnostic: bool = False,
+        averaging_method: AveragingMethod = AveragingMethod.WEIGHTED,
     ):
-        """
-        Initialize the Mean Average Precision metric.
-
-        Args:
-            metric_target (MetricTarget): The type of detection data to use.
-            class_agnostic (bool): Whether to treat all data as a single class.
-        """
         self._metric_target = metric_target
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
             raise NotImplementedError(
-                "Mean Average Precision is not implemented for oriented bounding boxes."
+                "F1 score is not implemented for oriented bounding boxes."
             )
 
-        self._class_agnostic = class_agnostic
-
+        self._metric_target = metric_target
+        self.averaging_method = averaging_method
         self._predictions_list: List[Detections] = []
         self._targets_list: List[Detections] = []
 
@@ -54,17 +47,7 @@ class MeanAveragePrecision(Metric):
         self,
         predictions: Union[Detections, List[Detections]],
         targets: Union[Detections, List[Detections]],
-    ) -> MeanAveragePrecision:
-        """
-        Add new predictions and targets to the metric, but do not compute the result.
-
-        Args:
-            predictions (Union[Detections, List[Detections]]): The predicted detections.
-            targets (Union[Detections, List[Detections]]): The ground-truth detections.
-
-        Returns:
-            (MeanAveragePrecision): The updated metric instance.
-        """
+    ) -> F1Score:
         if not isinstance(predictions, list):
             predictions = [predictions]
         if not isinstance(targets, list):
@@ -81,74 +64,31 @@ class MeanAveragePrecision(Metric):
 
         return self
 
-    def compute(
-        self,
-    ) -> MeanAveragePrecisionResult:
-        """
-        Calculate Mean Average Precision based on predicted and ground-truth
-            detections at different thresholds.
-
-        Returns:
-            (MeanAveragePrecisionResult): New instance of MeanAveragePrecision.
-
-        Example:
-            ```python
-            import supervision as sv
-            from supervision.metrics import MeanAveragePrecision
-
-            predictions = sv.Detections(...)
-            targets = sv.Detections(...)
-
-            map_metric = MeanAveragePrecision()
-            map_result = map_metric.update(predictions, targets).compute()
-
-            print(map_result)
-            print(map_result.map50_95)
-            map_result.plot()
-            ```
-        """
+    def compute(self) -> F1ScoreResult:
         result = self._compute(self._predictions_list, self._targets_list)
 
-        small_predictions = []
-        small_targets = []
-        for predictions, targets in zip(self._predictions_list, self._targets_list):
-            small_predictions.append(
-                self._filter_detections_by_size(predictions, ObjectSizeCategory.SMALL)
-            )
-            small_targets.append(
-                self._filter_detections_by_size(targets, ObjectSizeCategory.SMALL)
-            )
+        small_predictions, small_targets = self._filter_predictions_and_targets_by_size(
+            self._predictions_list, self._targets_list, ObjectSizeCategory.SMALL
+        )
         result.small_objects = self._compute(small_predictions, small_targets)
 
-        medium_predictions = []
-        medium_targets = []
-        for predictions, targets in zip(self._predictions_list, self._targets_list):
-            medium_predictions.append(
-                self._filter_detections_by_size(predictions, ObjectSizeCategory.MEDIUM)
+        medium_predictions, medium_targets = (
+            self._filter_predictions_and_targets_by_size(
+                self._predictions_list, self._targets_list, ObjectSizeCategory.MEDIUM
             )
-            medium_targets.append(
-                self._filter_detections_by_size(targets, ObjectSizeCategory.MEDIUM)
-            )
+        )
         result.medium_objects = self._compute(medium_predictions, medium_targets)
 
-        large_predictions = []
-        large_targets = []
-        for predictions, targets in zip(self._predictions_list, self._targets_list):
-            large_predictions.append(
-                self._filter_detections_by_size(predictions, ObjectSizeCategory.LARGE)
-            )
-            large_targets.append(
-                self._filter_detections_by_size(targets, ObjectSizeCategory.LARGE)
-            )
+        large_predictions, large_targets = self._filter_predictions_and_targets_by_size(
+            self._predictions_list, self._targets_list, ObjectSizeCategory.LARGE
+        )
         result.large_objects = self._compute(large_predictions, large_targets)
 
         return result
 
     def _compute(
-        self,
-        predictions_list: List[Detections],
-        targets_list: List[Detections],
-    ) -> MeanAveragePrecisionResult:
+        self, predictions_list: List[Detections], targets_list: List[Detections]
+    ) -> F1ScoreResult:
         iou_thresholds = np.linspace(0.5, 0.95, 10)
         stats = []
 
@@ -189,49 +129,67 @@ class MeanAveragePrecision(Metric):
                         )
                     )
 
-        # Compute average precisions if any matches exist
-        if stats:
-            concatenated_stats = [np.concatenate(items, 0) for items in zip(*stats)]
-            average_precisions, unique_classes = self._average_precisions_per_class(
-                *concatenated_stats
+        if not stats:
+            return F1ScoreResult(
+                metric_target=self._metric_target,
+                averaging_method=self.averaging_method,
+                f1_scores=np.zeros(iou_thresholds.shape[0]),
+                f1_per_class=np.zeros((0, iou_thresholds.shape[0])),
+                iou_thresholds=iou_thresholds,
+                matched_classes=np.array([], dtype=int),
+                small_objects=None,
+                medium_objects=None,
+                large_objects=None,
             )
-            mAP_scores = np.mean(average_precisions, axis=0)
-        else:
-            mAP_scores = np.zeros((10,), dtype=np.float32)
-            unique_classes = np.empty((0,), dtype=int)
-            average_precisions = np.empty((0, len(iou_thresholds)), dtype=np.float32)
 
-        return MeanAveragePrecisionResult(
-            metric_target=self._metric_target,
-            mAP_scores=mAP_scores,
-            iou_thresholds=iou_thresholds,
-            matched_classes=unique_classes,
-            ap_per_class=average_precisions,
+        concatenated_stats = [np.concatenate(items, 0) for items in zip(*stats)]
+        f1_scores, f1_per_class, unique_classes = self._compute_f1_for_classes(
+            *concatenated_stats
         )
 
-    @staticmethod
-    def _compute_average_precision(recall: np.ndarray, precision: np.ndarray) -> float:
-        """
-        Compute the average precision using 101-point interpolation (COCO), given
-            the recall and precision curves.
+        return F1ScoreResult(
+            metric_target=self._metric_target,
+            averaging_method=self.averaging_method,
+            f1_scores=f1_scores,
+            f1_per_class=f1_per_class,
+            iou_thresholds=iou_thresholds,
+            matched_classes=unique_classes,
+            small_objects=None,
+            medium_objects=None,
+            large_objects=None,
+        )
 
-        Args:
-            recall (np.ndarray): The recall curve.
-            precision (np.ndarray): The precision curve.
+    def _compute_f1_for_classes(
+        self,
+        matches: np.ndarray,
+        prediction_confidence: np.ndarray,
+        prediction_class_ids: np.ndarray,
+        true_class_ids: np.ndarray,
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        sorted_indices = np.argsort(-prediction_confidence)
+        matches = matches[sorted_indices]
+        prediction_class_ids = prediction_class_ids[sorted_indices]
+        unique_classes, class_counts = np.unique(true_class_ids, return_counts=True)
 
-        Returns:
-            (float): Average precision.
-        """
-        if len(recall) == 0 and len(precision) == 0:
-            return 0.0
+        # Shape: PxTh,P,C,C -> CxThx3
+        confusion_matrix = self._compute_confusion_matrix(
+            matches, prediction_class_ids, unique_classes, class_counts
+        )
 
-        recall_levels = np.linspace(0, 1, 101)
-        precision_levels = np.zeros_like(recall_levels)
-        for r, p in zip(recall[::-1], precision[::-1]):
-            precision_levels[recall_levels <= r] = p
+        # Shape: CxThx3 -> CxTh
+        f1_per_class = self._compute_f1(confusion_matrix)
 
-        average_precision = (1 / 100 * precision_levels).sum()
-        return average_precision
+        # Shape: CxTh -> Th
+        if self.averaging_method == AveragingMethod.MACRO:
+            f1_scores = np.mean(f1_per_class, axis=0)
+        elif self.averaging_method == AveragingMethod.MICRO:
+            confusion_matrix_merged = confusion_matrix.sum(0)
+            f1_scores = self._compute_f1(confusion_matrix_merged)
+        elif self.averaging_method == AveragingMethod.WEIGHTED:
+            class_counts = class_counts.astype(np.float32)
+            f1_scores = np.average(f1_per_class, axis=0, weights=class_counts)
+
+        return f1_scores, f1_per_class, unique_classes
 
     @staticmethod
     def _match_detection_batch(
@@ -265,61 +223,86 @@ class MeanAveragePrecision(Metric):
         return correct
 
     @staticmethod
-    def _average_precisions_per_class(
-        matches: np.ndarray,
-        prediction_confidence: np.ndarray,
-        prediction_class_ids: np.ndarray,
-        true_class_ids: np.ndarray,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    def _compute_confusion_matrix(
+        sorted_matches: np.ndarray,
+        sorted_prediction_class_ids: np.ndarray,
+        unique_classes: np.ndarray,
+        class_counts: np.ndarray,
+    ) -> np.ndarray:
         """
-        Compute the average precision, given the recall and precision curves.
-        Source: https://github.com/rafaelpadilla/Object-Detection-Metrics.
+        Compute the confusion matrix for each class and IoU threshold.
 
-        Args:
-            matches (np.ndarray): True positives.
-            prediction_confidence (np.ndarray): Objectness value from 0-1.
-            prediction_class_ids (np.ndarray): Predicted object classes.
-            true_class_ids (np.ndarray): True object classes.
-            eps (float, optional): Small value to prevent division by zero.
+        Assumes the matches and prediction_class_ids are sorted by confidence
+        in descending order.
+
+        Arguments:
+            sorted_matches: np.ndarray, bool, shape (P, Th), that is True
+                if the prediction is a true positive at the given IoU threshold.
+            sorted_prediction_class_ids: np.ndarray, int, shape (P,), containing
+                the class id for each prediction.
+            unique_classes: np.ndarray, int, shape (C,), containing the unique
+                class ids.
+            class_counts: np.ndarray, int, shape (C,), containing the number
+                of true instances for each class.
 
         Returns:
-            (Tuple[np.ndarray, np.ndarray]): Average precision for different
-                IoU levels, and an array of class IDs that were matched.
+            np.ndarray, shape (C, Th, 3), containing the true positives, false
+                positives, and false negatives for each class and IoU threshold.
         """
-        eps = 1e-16
 
-        sorted_indices = np.argsort(-prediction_confidence)
-        matches = matches[sorted_indices]
-        prediction_class_ids = prediction_class_ids[sorted_indices]
-
-        unique_classes, class_counts = np.unique(true_class_ids, return_counts=True)
+        num_thresholds = sorted_matches.shape[1]
         num_classes = unique_classes.shape[0]
 
-        average_precisions = np.zeros((num_classes, matches.shape[1]))
-
+        confusion_matrix = np.zeros((num_classes, num_thresholds, 3))
         for class_idx, class_id in enumerate(unique_classes):
-            is_class = prediction_class_ids == class_id
-            total_true = class_counts[class_idx]
-            total_prediction = is_class.sum()
+            is_class = sorted_prediction_class_ids == class_id
+            num_true = class_counts[class_idx]
+            num_predictions = is_class.sum()
 
-            if total_prediction == 0 or total_true == 0:
-                continue
+            if num_predictions == 0:
+                true_positives = np.zeros(num_thresholds)
+                false_positives = np.zeros(num_thresholds)
+                false_negatives = np.full(num_thresholds, num_true)
+            elif num_true == 0:
+                true_positives = np.zeros(num_thresholds)
+                false_positives = np.full(num_thresholds, num_predictions)
+                false_negatives = np.zeros(num_thresholds)
+            else:
+                true_positives = sorted_matches[is_class].sum(0)
+                false_positives = (1 - sorted_matches[is_class]).sum(0)
+                false_negatives = num_true - true_positives
+            confusion_matrix[class_idx] = np.stack(
+                [true_positives, false_positives, false_negatives], axis=1
+            )
 
-            false_positives = (1 - matches[is_class]).cumsum(0)
-            true_positives = matches[is_class].cumsum(0)
-            false_negatives = total_true - true_positives
+        return confusion_matrix
 
-            recall = true_positives / (true_positives + false_negatives + eps)
-            precision = true_positives / (true_positives + false_positives)
+    @staticmethod
+    def _compute_f1(confusion_matrix: np.ndarray) -> np.ndarray:
+        """
+        Broadcastable function, computing the F1 score from the confusion matrix.
 
-            for iou_level_idx in range(matches.shape[1]):
-                average_precisions[class_idx, iou_level_idx] = (
-                    MeanAveragePrecision._compute_average_precision(
-                        recall[:, iou_level_idx], precision[:, iou_level_idx]
-                    )
-                )
+        Arguments:
+            confusion_matrix: np.ndarray, shape (N, ..., 3), where the last dimension
+                contains the true positives, false positives, and false negatives.
 
-        return average_precisions, unique_classes
+        Returns:
+            np.ndarray, shape (N, ...), containing the F1 score for each element.
+        """
+        if not confusion_matrix.shape[-1] == 3:
+            raise ValueError(
+                f"Confusion matrix must have shape (..., 3), got "
+                f"{confusion_matrix.shape}"
+            )
+        true_positives = confusion_matrix[..., 0]
+        false_positives = confusion_matrix[..., 1]
+        false_negatives = confusion_matrix[..., 2]
+
+        # Alternate formula, avoids multiple zero division checks
+        denominator = 2 * true_positives + false_positives + false_negatives
+        f1_score = np.where(denominator == 0, 0, 2 * true_positives / denominator)
+
+        return f1_score
 
     def _detections_content(self, detections: Detections) -> np.ndarray:
         """Return boxes, masks or oriented bounding boxes from detections."""
@@ -329,20 +312,11 @@ class MeanAveragePrecision(Metric):
             return (
                 detections.mask
                 if detections.mask is not None
-                else self._make_empty_content()
+                else np.empty((0, 0, 0), dtype=bool)
             )
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
             if obb := detections.data.get(ORIENTED_BOX_COORDINATES):
                 return np.ndarray(obb, dtype=np.float32)
-            return self._make_empty_content()
-        raise ValueError(f"Invalid metric target: {self._metric_target}")
-
-    def _make_empty_content(self) -> np.ndarray:
-        if self._metric_target == MetricTarget.BOXES:
-            return np.empty((0, 4), dtype=np.float32)
-        if self._metric_target == MetricTarget.MASKS:
-            return np.empty((0, 0, 0), dtype=bool)
-        if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
             return np.empty((0, 8), dtype=np.float32)
         raise ValueError(f"Invalid metric target: {self._metric_target}")
 
@@ -372,56 +346,76 @@ class MeanAveragePrecision(Metric):
 
         return new_detections
 
+    def _filter_predictions_and_targets_by_size(
+        self,
+        predictions_list: List[Detections],
+        targets_list: List[Detections],
+        size_category: ObjectSizeCategory,
+    ) -> Tuple[List[Detections], List[Detections]]:
+        """
+        Filter predictions and targets by object size category.
+        """
+        new_predictions_list = []
+        new_targets_list = []
+        for predictions, targets in zip(predictions_list, targets_list):
+            new_predictions_list.append(
+                self._filter_detections_by_size(predictions, size_category)
+            )
+            new_targets_list.append(
+                self._filter_detections_by_size(targets, size_category)
+            )
+        return new_predictions_list, new_targets_list
+
 
 @dataclass
-class MeanAveragePrecisionResult:
+class F1ScoreResult:
     """
-    The result of the Mean Average Precision calculation.
+    The results of the F1 score metric calculation.
 
-    Defaults to `0` when no detections or targets are present.
+    Defaults to `0` if no detections or targets were provided.
+    Provides a custom `__str__` method for pretty printing.
 
     Attributes:
         metric_target (MetricTarget): the type of data used for the metric -
             boxes, masks or oriented bounding boxes.
-        mAP_map50_95 (float): the mAP score at IoU thresholds from `0.5` to `0.95`.
-        mAP_map50 (float): the mAP score at IoU threshold of `0.5`.
-        mAP_map75 (float): the mAP score at IoU threshold of `0.75`.
-        mAP_scores (np.ndarray): the mAP scores at each IoU threshold.
+        averaging_method (AveragingMethod): the averaging method used to compute the
+            F1 scores. Determines how the F1 scores are aggregated across classes.
+        f1_50 (float): the F1 score at IoU threshold of `0.5`.
+        f1_75 (float): the F1 score at IoU threshold of `0.75`.
+        f1_scores (np.ndarray): the F1 scores at each IoU threshold.
             Shape: `(num_iou_thresholds,)`
-        ap_per_class (np.ndarray): the average precision scores per
-            class and IoU threshold. Shape: `(num_target_classes, num_iou_thresholds)`
+        f1_per_class (np.ndarray): the F1 scores per class and IoU threshold.
+            Shape: `(num_target_classes, num_iou_thresholds)`
         iou_thresholds (np.ndarray): the IoU thresholds used in the calculations.
         matched_classes (np.ndarray): the class IDs of all matched classes.
-            Corresponds to the rows of `ap_per_class`.
-        small_objects (Optional[MeanAveragePrecisionResult]): the mAP results
+            Corresponds to the rows of `f1_per_class`.
+        small_objects (Optional[F1ScoreResult]): the F1 metric results
             for small objects.
-        medium_objects (Optional[MeanAveragePrecisionResult]): the mAP results
+        medium_objects (Optional[F1ScoreResult]): the F1 metric results
             for medium objects.
-        large_objects (Optional[MeanAveragePrecisionResult]): the mAP results
+        large_objects (Optional[F1ScoreResult]): the F1 metric results
             for large objects.
     """
 
     metric_target: MetricTarget
+    averaging_method: AveragingMethod
 
     @property
-    def map50_95(self) -> float:
-        return self.mAP_scores.mean()
+    def f1_50(self) -> float:
+        return self.f1_scores[0]
 
     @property
-    def map50(self) -> float:
-        return self.mAP_scores[0]
+    def f1_75(self) -> float:
+        return self.f1_scores[5]
 
-    @property
-    def map75(self) -> float:
-        return self.mAP_scores[5]
-
-    mAP_scores: np.ndarray
-    ap_per_class: np.ndarray
+    f1_scores: np.ndarray
+    f1_per_class: np.ndarray
     iou_thresholds: np.ndarray
     matched_classes: np.ndarray
-    small_objects: Optional[MeanAveragePrecisionResult] = None
-    medium_objects: Optional[MeanAveragePrecisionResult] = None
-    large_objects: Optional[MeanAveragePrecisionResult] = None
+
+    small_objects: Optional[F1ScoreResult]
+    medium_objects: Optional[F1ScoreResult]
+    large_objects: Optional[F1ScoreResult]
 
     def __str__(self) -> str:
         """
@@ -429,24 +423,23 @@ class MeanAveragePrecisionResult:
 
         Example:
             ```python
-            print(map_result)
+            print(f1_result)
             ```
         """
-
         out_str = (
             f"{self.__class__.__name__}:\n"
             f"Metric target: {self.metric_target}\n"
-            f"mAP @ 50:95: {self.map50_95:.4f}\n"
-            f"mAP @ 50:    {self.map50:.4f}\n"
-            f"mAP @ 75:    {self.map75:.4f}\n"
-            f"mAP scores: {self.mAP_scores}\n"
-            f"IoU thresh: {self.iou_thresholds}\n"
-            f"AP per class:\n"
+            f"Averaging method: {self.averaging_method}\n"
+            f"F1 @ 50:     {self.f1_50:.4f}\n"
+            f"F1 @ 75:     {self.f1_75:.4f}\n"
+            f"F1 @ thresh: {self.f1_scores}\n"
+            f"IoU thresh:  {self.iou_thresholds}\n"
+            f"F1 per class:\n"
         )
-        if self.ap_per_class.size == 0:
+        if self.f1_per_class.size == 0:
             out_str += "  No results\n"
-        for class_id, ap_of_class in zip(self.matched_classes, self.ap_per_class):
-            out_str += f"  {class_id}: {ap_of_class}\n"
+        for class_id, f1_of_class in zip(self.matched_classes, self.f1_per_class):
+            out_str += f"  {class_id}: {f1_of_class}\n"
 
         indent = "  "
         if self.small_objects is not None:
@@ -472,9 +465,8 @@ class MeanAveragePrecisionResult:
         import pandas as pd
 
         pandas_data = {
-            "mAP@50:95": self.map50_95,
-            "mAP@50": self.map50,
-            "mAP@75": self.map75,
+            "F1@50": self.f1_50,
+            "F1@75": self.f1_75,
         }
 
         if self.small_objects is not None:
@@ -490,55 +482,46 @@ class MeanAveragePrecisionResult:
             for key, value in large_objects_df.items():
                 pandas_data[f"large_objects_{key}"] = value
 
-        # Average precisions are currently not included in the DataFrame.
-
-        return pd.DataFrame(
-            pandas_data,
-            index=[0],
-        )
+        return pd.DataFrame(pandas_data, index=[0])
 
     def plot(self):
         """
-        Plot the mAP results.
+        Plot the F1 results.
         """
 
-        labels = ["mAP@50:95", "mAP@50", "mAP@75"]
-        values = [self.map50_95, self.map50, self.map75]
-        colors = [LEGACY_COLOR_PALETTE[0]] * 3
+        labels = ["F1@50", "F1@75"]
+        values = [self.f1_50, self.f1_75]
+        colors = [LEGACY_COLOR_PALETTE[0]] * 2
 
         if self.small_objects is not None:
-            labels += ["Small: mAP@50:95", "Small: mAP@50", "Small: mAP@75"]
-            values += [
-                self.small_objects.map50_95,
-                self.small_objects.map50,
-                self.small_objects.map75,
-            ]
-            colors += [LEGACY_COLOR_PALETTE[3]] * 3
+            small_objects = self.small_objects
+            labels += ["Small: F1@50", "Small: F1@75"]
+            values += [small_objects.f1_50, small_objects.f1_75]
+            colors += [LEGACY_COLOR_PALETTE[3]] * 2
 
         if self.medium_objects is not None:
-            labels += ["Medium: mAP@50:95", "Medium: mAP@50", "Medium: mAP@75"]
-            values += [
-                self.medium_objects.map50_95,
-                self.medium_objects.map50,
-                self.medium_objects.map75,
-            ]
-            colors += [LEGACY_COLOR_PALETTE[2]] * 3
+            medium_objects = self.medium_objects
+            labels += ["Medium: F1@50", "Medium: F1@75"]
+            values += [medium_objects.f1_50, medium_objects.f1_75]
+            colors += [LEGACY_COLOR_PALETTE[2]] * 2
 
         if self.large_objects is not None:
-            labels += ["Large: mAP@50:95", "Large: mAP@50", "Large: mAP@75"]
-            values += [
-                self.large_objects.map50_95,
-                self.large_objects.map50,
-                self.large_objects.map75,
-            ]
-            colors += [LEGACY_COLOR_PALETTE[4]] * 3
+            large_objects = self.large_objects
+            labels += ["Large: F1@50", "Large: F1@75"]
+            values += [large_objects.f1_50, large_objects.f1_75]
+            colors += [LEGACY_COLOR_PALETTE[4]] * 2
 
         plt.rcParams["font.family"] = "monospace"
 
         _, ax = plt.subplots(figsize=(10, 6))
         ax.set_ylim(0, 1)
         ax.set_ylabel("Value", fontweight="bold")
-        ax.set_title("Mean Average Precision", fontweight="bold")
+        title = (
+            f"F1 Score, by Object Size"
+            f"\n(target: {self.metric_target.value},"
+            f" averaging: {self.averaging_method.value})"
+        )
+        ax.set_title(title, fontweight="bold")
 
         x_positions = range(len(labels))
         bars = ax.bar(x_positions, values, color=colors, align="center")
