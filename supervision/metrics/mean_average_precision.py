@@ -375,54 +375,57 @@ class MeanAveragePrecision(Metric):
 
 @dataclass
 class MeanAveragePrecisionResult:
+    """
+    The result of the Mean Average Precision calculation.
+
+    Defaults to `0` when no detections or targets are present.
+
+    Attributes:
+        metric_target (MetricTarget): the type of data used for the metric -
+            boxes, masks or oriented bounding boxes.
+        mAP_map50_95 (float): the mAP score at IoU thresholds from `0.5` to `0.95`.
+        mAP_map50 (float): the mAP score at IoU threshold of `0.5`.
+        mAP_map75 (float): the mAP score at IoU threshold of `0.75`.
+        mAP_scores (np.ndarray): the mAP scores at each IoU threshold.
+            Shape: `(num_iou_thresholds,)`
+        ap_per_class (np.ndarray): the average precision scores per
+            class and IoU threshold. Shape: `(num_target_classes, num_iou_thresholds)`
+        iou_thresholds (np.ndarray): the IoU thresholds used in the calculations.
+        matched_classes (np.ndarray): the class IDs of all matched classes.
+            Corresponds to the rows of `ap_per_class`.
+        small_objects (Optional[MeanAveragePrecisionResult]): the mAP results
+            for small objects.
+        medium_objects (Optional[MeanAveragePrecisionResult]): the mAP results
+            for medium objects.
+        large_objects (Optional[MeanAveragePrecisionResult]): the mAP results
+            for large objects.
+    """
+
     metric_target: MetricTarget
-    """
-    The class IDs of classes that were matched during the calculation.
-    Corresponds to the rows of per_class_ap50_95.
-    """
 
     @property
     def map50_95(self) -> float:
-        """Mean Average Precision over IoU thresholds from 0.5 to 0.95"""
         return self.mAP_scores.mean()
 
     @property
     def map50(self) -> float:
-        """Mean Average Precision at IoU threshold of 0.5"""
         return self.mAP_scores[0]
 
     @property
     def map75(self) -> float:
-        """Mean Average Precision at IoU threshold of 0.75"""
         return self.mAP_scores[5]
 
     mAP_scores: np.ndarray
-    """Mean Average Precision scores at different IoU thresholds"""
-
     ap_per_class: np.ndarray
-    """Average precision for each class at different IoU thresholds"""
-
     iou_thresholds: np.ndarray
-    """Array of IoU thresholds used in the calculations"""
-
     matched_classes: np.ndarray
-    """
-    The class IDs of classes that were matched during the calculation.
-    Corresponds to the rows of ap_per_class.
-    """
-
     small_objects: Optional[MeanAveragePrecisionResult] = None
-    """Mean Average Precision results for small objects"""
-
     medium_objects: Optional[MeanAveragePrecisionResult] = None
-    """Mean Average Precision results for medium objects"""
-
     large_objects: Optional[MeanAveragePrecisionResult] = None
-    """Mean Average Precision results for large objects"""
 
     def __str__(self) -> str:
         """
-        Format the mAP results as a pretty string.
+        Format as a pretty string.
 
         Example:
             ```python

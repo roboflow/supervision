@@ -369,61 +369,63 @@ class F1Score(Metric):
 
 @dataclass
 class F1ScoreResult:
-    metric_target: MetricTarget
     """
-    Defines the type of data used for the metric - boxes, masks or
-    oriented bounding boxes.
+    The results of the F1 score metric calculation.
+
+    Defaults to `0` if no detections or targets were provided.
+    Provides a custom `__str__` method for pretty printing.
+
+    Attributes:
+        metric_target (MetricTarget): the type of data used for the metric -
+            boxes, masks or oriented bounding boxes.
+        averaging_method (AveragingMethod): the averaging method used to compute the
+            F1 scores. Determines how the F1 scores are aggregated across classes.
+        f1_50 (float): the F1 score at IoU threshold of `0.5`.
+        f1_75 (float): the F1 score at IoU threshold of `0.75`.
+        f1_scores (np.ndarray): the F1 scores at each IoU threshold.
+            Shape: `(num_iou_thresholds,)`
+        f1_per_class (np.ndarray): the F1 scores per class and IoU threshold.
+            Shape: `(num_target_classes, num_iou_thresholds)`
+        iou_thresholds (np.ndarray): the IoU thresholds used in the calculations.
+        matched_classes (np.ndarray): the class IDs of all matched classes.
+            Corresponds to the rows of `f1_per_class`.
+        small_objects (Optional[F1ScoreResult]): the F1 metric results
+            for small objects.
+        medium_objects (Optional[F1ScoreResult]): the F1 metric results
+            for medium objects.
+        large_objects (Optional[F1ScoreResult]): the F1 metric results
+            for large objects.
     """
 
+    metric_target: MetricTarget
     averaging_method: AveragingMethod
-    """Which averaging method was used to compute the F1 scores."""
 
     @property
     def f1_50(self) -> float:
-        """
-        The F1 score at IoU threshold of 0.5.
-        Considered to be the main result of this metric.
-        """
         return self.f1_scores[0]
 
     @property
     def f1_75(self) -> float:
-        """The F1 score at IoU threshold of 0.75."""
         return self.f1_scores[5]
 
     f1_scores: np.ndarray
-    """The F1 scores, one for each IoU threshold."""
-
     f1_per_class: np.ndarray
-    """
-    The F1 scores per class and IoU threshold.
-    Shape: (num_target_classes, num_iou_thresholds)
-    """
-
     iou_thresholds: np.ndarray
-    """
-    Array of IoU thresholds used in the calculations.
-
-    Note: IoU thresholds define what it means to be a True Positive, so
-    the F1 score remains high at lower threshold values.
-    """
-
     matched_classes: np.ndarray
-    """
-    The class IDs of classes that were matched during the calculation.
-    Corresponds to the rows of f1_per_class.
-    """
 
     small_objects: Optional[F1ScoreResult]
-    """F1 metric results for small objects."""
-
     medium_objects: Optional[F1ScoreResult]
-    """F1 metric results for medium objects."""
-
     large_objects: Optional[F1ScoreResult]
-    """F1 metric results for large objects."""
 
     def __str__(self) -> str:
+        """
+        Format as a pretty string.
+
+        Example:
+            ```python
+            print(f1_result)
+            ```
+        """
         out_str = (
             f"{self.__class__.__name__}:\n"
             f"Metric target: {self.metric_target}\n"
@@ -453,6 +455,12 @@ class F1ScoreResult:
         return out_str
 
     def to_pandas(self) -> "pd.DataFrame":
+        """
+        Convert the result to a pandas DataFrame.
+
+        Returns:
+            (pd.DataFrame): The result as a DataFrame.
+        """
         ensure_pandas_installed()
         import pandas as pd
 
