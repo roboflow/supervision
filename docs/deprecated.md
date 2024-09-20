@@ -25,12 +25,12 @@ These features are phased out due to better alternatives or potential issues in 
 
 ### 0.22.0
 
-- [`Detections.from_froboflow`](detection/core.md/#supervision.detection.core.Detections.from_roboflow) is removed as of `supervision-0.22.0`. Use [`Detections.from_inference`](detection/core.md/#supervision.detection.core.Detections.from_inference) instead.
+- [`Detections.from_roboflow`](detection/core.md/#supervision.detection.core.Detections.from_roboflow) is removed as of `supervision-0.22.0`. Use [`Detections.from_inference`](detection/core.md/#supervision.detection.core.Detections.from_inference) instead.
 - The method `Color.white()` was removed as of `supervision-0.22.0`. Use the constant `Color.WHITE` instead.
 - The method `Color.black()` was removed as of `supervision-0.22.0`. Use the constant `Color.BLACK` instead.
 - The method `Color.red()` was removed as of `supervision-0.22.0`. Use the constant `Color.RED` instead.
 - The method `Color.green()` was removed as of `supervision-0.22.0`. Use the constant `Color.GREEN` instead.
 - The method `Color.blue()` was removed as of `supervision-0.22.0`. Use the constant `Color.BLUE` instead.
-- The method [`ColorPalette.default()`](draw/color.md/#supervision.draw.color.ColorPalette.default) was removed as of `supervision-0.22.0`. Use the constant [`ColorPalette.DEFAULT`](draw/color.md/#supervision.draw.color.ColorPalette.DEFAULT) instead.
+- The method `ColorPalette.default()` was removed as of `supervision-0.22.0`. Use the constant [`ColorPalette.DEFAULT`](draw/color/#supervision.draw.color.ColorPalette.DEFAULT) instead.
 - `BoxAnnotator` was removed as of `supervision-0.22.0`, however `BoundingBoxAnnotator` was immediately renamed to `BoxAnnotator`. Use [`BoxAnnotator`](detection/annotators.md/#supervision.annotators.core.BoxAnnotator) and [`LabelAnnotator`](detection/annotators.md/#supervision.annotators.core.LabelAnnotator) instead of the old `BoxAnnotator`.
 - The method [`FPSMonitor.__call__`](utils/video.md/#supervision.utils.video.FPSMonitor.__call__) was removed as of `supervision-0.22.0`. Use the attribute [`FPSMonitor.fps`](utils/video.md/#supervision.utils.video.FPSMonitor.fps) instead.
