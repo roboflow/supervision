@@ -1,10 +1,10 @@
 from contextlib import ExitStack as DoesNotRaise
-from test.test_utils import mock_detections
 
 import numpy as np
 import pytest
 
 import supervision as sv
+from test.test_utils import mock_detections
 
 DETECTION_BOXES = np.array(
     [
@@ -26,7 +26,6 @@ DETECTIONS = mock_detections(
 )
 
 POLYGON = np.array([[100, 100], [200, 100], [200, 200], [100, 200]])
-FRAME_RESOLUTION = (300, 300)
 
 
 @pytest.mark.parametrize(
@@ -36,7 +35,6 @@ FRAME_RESOLUTION = (300, 300)
             DETECTIONS,
             sv.PolygonZone(
                 POLYGON,
-                FRAME_RESOLUTION,
                 triggering_anchors=(
                     sv.Position.TOP_LEFT,
                     sv.Position.TOP_RIGHT,
@@ -53,7 +51,6 @@ FRAME_RESOLUTION = (300, 300)
             DETECTIONS,
             sv.PolygonZone(
                 POLYGON,
-                FRAME_RESOLUTION,
             ),
             np.array(
                 [False, False, True, True, True, True, False, False, False], dtype=bool
@@ -64,7 +61,6 @@ FRAME_RESOLUTION = (300, 300)
             DETECTIONS,
             sv.PolygonZone(
                 POLYGON,
-                FRAME_RESOLUTION,
                 triggering_anchors=[sv.Position.BOTTOM_CENTER],
             ),
             np.array(
@@ -76,7 +72,6 @@ FRAME_RESOLUTION = (300, 300)
             sv.Detections.empty(),
             sv.PolygonZone(
                 POLYGON,
-                FRAME_RESOLUTION,
             ),
             np.array([], dtype=bool),
             DoesNotRaise(),
@@ -107,4 +102,4 @@ def test_polygon_zone_trigger(
 )
 def test_polygon_zone_initialization(polygon, triggering_anchors, exception):
     with exception:
-        sv.PolygonZone(polygon, FRAME_RESOLUTION, triggering_anchors=triggering_anchors)
+        sv.PolygonZone(polygon, triggering_anchors=triggering_anchors)

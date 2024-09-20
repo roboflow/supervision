@@ -1,6 +1,5 @@
 ---
 comments: true
-status: new
 ---
 
 # Detect Small Objects
@@ -32,10 +31,10 @@ size relative to the image resolution.
     results = model.infer(image)[0]
     detections = sv.Detections.from_inference(results)
 
-    bounding_box_annotator = sv.BoundingBoxAnnotator()
+    box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
 
-    annotated_image = bounding_box_annotator.annotate(
+    annotated_image = box_annotator.annotate(
         scene=image, detections=detections)
     annotated_image = label_annotator.annotate(
         scene=annotated_image, detections=detections)
@@ -53,10 +52,10 @@ size relative to the image resolution.
     results = model(image)[0]
     detections = sv.Detections.from_ultralytics(results)
 
-    bounding_box_annotator = sv.BoundingBoxAnnotator()
+    box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
 
-    annotated_image = bounding_box_annotator.annotate(
+    annotated_image = box_annotator.annotate(
         scene=image, detections=detections)
     annotated_image = label_annotator.annotate(
         scene=annotated_image, detections=detections)
@@ -85,7 +84,7 @@ size relative to the image resolution.
         outputs=outputs, target_sizes=target_size)[0]
     detections = sv.Detections.from_transformers(results)
 
-    bounding_box_annotator = sv.BoundingBoxAnnotator()
+    box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
 
     labels = [
@@ -94,7 +93,7 @@ size relative to the image resolution.
         in detections.class_id
     ]
 
-    annotated_image = bounding_box_annotator.annotate(
+    annotated_image = box_annotator.annotate(
         scene=image, detections=detections)
     annotated_image = label_annotator.annotate(
         scene=annotated_image, detections=detections, labels=labels)
@@ -120,10 +119,10 @@ is less effective for ultra-high-resolution images (4K and above).
     results = model.infer(image)[0]
     detections = sv.Detections.from_inference(results)
 
-    bounding_box_annotator = sv.BoundingBoxAnnotator()
+    box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
 
-    annotated_image = bounding_box_annotator.annotate(
+    annotated_image = box_annotator.annotate(
         scene=image, detections=detections)
     annotated_image = label_annotator.annotate(
         scene=annotated_image, detections=detections)
@@ -141,10 +140,10 @@ is less effective for ultra-high-resolution images (4K and above).
     results = model(image, imgsz=1280)[0]
     detections = sv.Detections.from_ultralytics(results)
 
-    bounding_box_annotator = sv.BoundingBoxAnnotator()
+    box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
 
-    annotated_image = bounding_box_annotator.annotate(
+    annotated_image = box_annotator.annotate(
         scene=image, detections=detections)
     annotated_image = label_annotator.annotate(
         scene=annotated_image, detections=detections)
@@ -180,10 +179,10 @@ objects within each, and aggregating the results.
     slicer = sv.InferenceSlicer(callback = callback)
     detections = slicer(image)
 
-    bounding_box_annotator = sv.BoundingBoxAnnotator()
+    box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
 
-    annotated_image = bounding_box_annotator.annotate(
+    annotated_image = box_annotator.annotate(
         scene=image, detections=detections)
     annotated_image = label_annotator.annotate(
         scene=annotated_image, detections=detections)
@@ -207,10 +206,10 @@ objects within each, and aggregating the results.
     slicer = sv.InferenceSlicer(callback = callback)
     detections = slicer(image)
 
-    bounding_box_annotator = sv.BoundingBoxAnnotator()
+    box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
 
-    annotated_image = bounding_box_annotator.annotate(
+    annotated_image = box_annotator.annotate(
         scene=image, detections=detections)
     annotated_image = label_annotator.annotate(
         scene=annotated_image, detections=detections)
@@ -248,7 +247,7 @@ objects within each, and aggregating the results.
     slicer = sv.InferenceSlicer(callback = callback)
     detections = slicer(image)
 
-    bounding_box_annotator = sv.BoundingBoxAnnotator()
+    box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
 
     labels = [
@@ -257,7 +256,7 @@ objects within each, and aggregating the results.
         in detections.class_id
     ]
 
-    annotated_image = bounding_box_annotator.annotate(
+    annotated_image = box_annotator.annotate(
         scene=image, detections=detections)
     annotated_image = label_annotator.annotate(
         scene=annotated_image, detections=detections, labels=labels)

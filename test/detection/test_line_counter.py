@@ -1,11 +1,11 @@
 from contextlib import ExitStack as DoesNotRaise
-from test.test_utils import mock_detections
 from typing import List, Optional, Tuple
 
 import pytest
 
 from supervision import LineZone
 from supervision.geometry.core import Point, Position, Vector
+from test.test_utils import mock_detections
 
 
 @pytest.mark.parametrize(

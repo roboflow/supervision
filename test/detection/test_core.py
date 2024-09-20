@@ -1,5 +1,4 @@
 from contextlib import ExitStack as DoesNotRaise
-from test.test_utils import mock_detections
 from typing import List, Optional, Union
 
 import numpy as np
@@ -7,6 +6,7 @@ import pytest
 
 from supervision.detection.core import Detections, merge_inner_detection_object_pair
 from supervision.geometry.core import Position
+from test.test_utils import mock_detections
 
 PREDICTIONS = np.array(
     [

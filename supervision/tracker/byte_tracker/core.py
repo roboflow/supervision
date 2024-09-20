@@ -7,7 +7,6 @@ from supervision.detection.utils import box_iou_batch
 from supervision.tracker.byte_tracker import matching
 from supervision.tracker.byte_tracker.basetrack import BaseTrack, TrackState
 from supervision.tracker.byte_tracker.kalman_filter import KalmanFilter
-from supervision.utils.internal import deprecated_parameter
 
 
 class STrack(BaseTrack):
@@ -197,48 +196,24 @@ class ByteTrack:
     </video>
 
     Parameters:
-        track_activation_threshold (float, optional): Detection confidence threshold
+        track_activation_threshold (float): Detection confidence threshold
             for track activation. Increasing track_activation_threshold improves accuracy
             and stability but might miss true detections. Decreasing it increases
             completeness but risks introducing noise and instability.
-        lost_track_buffer (int, optional): Number of frames to buffer when a track is lost.
+        lost_track_buffer (int): Number of frames to buffer when a track is lost.
             Increasing lost_track_buffer enhances occlusion handling, significantly
             reducing the likelihood of track fragmentation or disappearance caused
             by brief detection gaps.
-        minimum_matching_threshold (float, optional): Threshold for matching tracks with detections.
+        minimum_matching_threshold (float): Threshold for matching tracks with detections.
             Increasing minimum_matching_threshold improves accuracy but risks fragmentation.
             Decreasing it improves completeness but risks false positives and drift.
-        frame_rate (int, optional): The frame rate of the video.
-        minimum_consecutive_frames (int, optional): Number of consecutive frames that an object must
+        frame_rate (int): The frame rate of the video.
+        minimum_consecutive_frames (int): Number of consecutive frames that an object must
             be tracked before it is considered a 'valid' track.
             Increasing minimum_consecutive_frames prevents the creation of accidental tracks from
             false detection or double detection, but risks missing shorter tracks.
     """  # noqa: E501 // docs
 
-    @deprecated_parameter(
-        old_parameter="track_buffer",
-        new_parameter="lost_track_buffer",
-        map_function=lambda x: x,
-        warning_message="`{old_parameter}` in `{function_name}` is deprecated and will "
-        "be remove in `supervision-0.23.0`. Use '{new_parameter}' "
-        "instead.",
-    )
-    @deprecated_parameter(
-        old_parameter="track_thresh",
-        new_parameter="track_activation_threshold",
-        map_function=lambda x: x,
-        warning_message="`{old_parameter}` in `{function_name}` is deprecated and will "
-        "be remove in `supervision-0.23.0`. Use '{new_parameter}' "
-        "instead.",
-    )
-    @deprecated_parameter(
-        old_parameter="match_thresh",
-        new_parameter="minimum_matching_threshold",
-        map_function=lambda x: x,
-        warning_message="`{old_parameter}` in `{function_name}` is deprecated and will "
-        "be remove in `supervision-0.23.0`. Use '{new_parameter}' "
-        "instead.",
-    )
     def __init__(
         self,
         track_activation_threshold: float = 0.25,
@@ -276,7 +251,7 @@ class ByteTrack:
             model = YOLO(<MODEL_PATH>)
             tracker = sv.ByteTrack()
 
-            bounding_box_annotator = sv.BoundingBoxAnnotator()
+            box_annotator = sv.BoxAnnotator()
             label_annotator = sv.LabelAnnotator()
 
             def callback(frame: np.ndarray, index: int) -> np.ndarray:
@@ -286,7 +261,7 @@ class ByteTrack:
 
                 labels = [f"#{tracker_id}" for tracker_id in detections.tracker_id]
 
-                annotated_frame = bounding_box_annotator.annotate(
+                annotated_frame = box_annotator.annotate(
                     scene=frame.copy(), detections=detections)
                 annotated_frame = label_annotator.annotate(
                     scene=annotated_frame, detections=detections, labels=labels)

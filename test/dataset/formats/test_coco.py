@@ -1,5 +1,5 @@
 from contextlib import ExitStack as DoesNotRaise
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pytest
@@ -21,7 +21,7 @@ def mock_coco_annotation(
     category_id: int = 0,
     bbox: Tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0),
     area: float = 0.0,
-    segmentation: Union[List[list], Dict] = None,
+    segmentation: Optional[Union[List[list], Dict]] = None,
     iscrowd: bool = False,
 ) -> dict:
     if not segmentation:

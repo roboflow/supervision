@@ -106,7 +106,7 @@ def mask_iou_batch(
     Args:
         masks_true (np.ndarray): 3D `np.ndarray` representing ground-truth masks.
         masks_detection (np.ndarray): 3D `np.ndarray` representing detection masks.
-        memory_limit (int, optional): memory limit in MB, default is 1024 * 5 MB (5GB).
+        memory_limit (int): memory limit in MB, default is 1024 * 5 MB (5GB).
 
     Returns:
         np.ndarray: Pairwise IoU of masks from `masks_true` and `masks_detection`.
@@ -228,10 +228,78 @@ def pad_boxes(xyxy: np.ndarray, px: int, py: Optional[int] = None) -> np.ndarray
     return result
 
 
-def xywh_to_xyxy(boxes_xywh: np.ndarray) -> np.ndarray:
-    xyxy = boxes_xywh.copy()
-    xyxy[:, 2] = boxes_xywh[:, 0] + boxes_xywh[:, 2]
-    xyxy[:, 3] = boxes_xywh[:, 1] + boxes_xywh[:, 3]
+def xywh_to_xyxy(xywh: np.ndarray) -> np.ndarray:
+    """
+    Converts bounding box coordinates from `(x, y, width, height)`
+    format to `(x_min, y_min, x_max, y_max)` format.
+
+    Args:
+        xywh (np.ndarray): A numpy array of shape `(N, 4)` where each row
+            corresponds to a bounding box in the format `(x, y, width, height)`.
+
+    Returns:
+        np.ndarray: A numpy array of shape `(N, 4)` where each row corresponds
+            to a bounding box in the format `(x_min, y_min, x_max, y_max)`.
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        xywh = np.array([
+            [10, 20, 30, 40],
+            [15, 25, 35, 45]
+        ])
+
+        sv.xywh_to_xyxy(xywh=xywh)
+        # array([
+        #     [10, 20, 40, 60],
+        #     [15, 25, 50, 70]
+        # ])
+        ```
+    """
+    xyxy = xywh.copy()
+    xyxy[:, 2] = xywh[:, 0] + xywh[:, 2]
+    xyxy[:, 3] = xywh[:, 1] + xywh[:, 3]
+    return xyxy
+
+
+def xcycwh_to_xyxy(xcycwh: np.ndarray) -> np.ndarray:
+    """
+    Converts bounding box coordinates from `(center_x, center_y, width, height)`
+    format to `(x_min, y_min, x_max, y_max)` format.
+
+    Args:
+        xcycwh (np.ndarray): A numpy array of shape `(N, 4)` where each row
+            corresponds to a bounding box in the format `(center_x, center_y, width,
+            height)`.
+
+    Returns:
+        np.ndarray: A numpy array of shape `(N, 4)` where each row corresponds
+            to a bounding box in the format `(x_min, y_min, x_max, y_max)`.
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        xcycwh = np.array([
+            [50, 50, 20, 30],
+            [30, 40, 10, 15]
+        ])
+
+        sv.xcycwh_to_xyxy(xcycwh=xcycwh)
+        # array([
+        #     [40, 35, 60, 65],
+        #     [25, 32.5, 35, 47.5]
+        # ])
+        ```
+    """
+    xyxy = xcycwh.copy()
+    xyxy[:, 0] = xcycwh[:, 0] - xcycwh[:, 2] / 2
+    xyxy[:, 1] = xcycwh[:, 1] - xcycwh[:, 3] / 2
+    xyxy[:, 2] = xcycwh[:, 0] + xcycwh[:, 2] / 2
+    xyxy[:, 3] = xcycwh[:, 1] + xcycwh[:, 3] / 2
     return xyxy
 
 
@@ -526,6 +594,61 @@ def move_boxes(
         ```
     """
     return xyxy + np.hstack([offset, offset])
+
+
+def move_oriented_boxes(
+    xyxyxyxy: npt.NDArray[np.float64], offset: npt.NDArray[np.int32]
+) -> npt.NDArray[np.float64]:
+    """
+    Parameters:
+    xyxyxyxy (npt.NDArray[np.float64]): An array of shape `(n, 4, 2)` containing the
+    oriented bounding boxes coordinates in format
+    `[[x1, y1], [x2, y2], [x3, y3], [x3, y3]]`
+    offset (np.array): An array of shape `(2,)` containing offset values in format
+        is `[dx, dy]`.
+
+    Returns:
+    npt.NDArray[np.float64]: Repositioned bounding boxes.
+
+    Examples:
+    ```python
+    import numpy as np
+    import supervision as sv
+
+    xyxyxyxy = np.array([
+        [
+            [20, 10],
+            [10, 20],
+            [20, 30],
+            [30, 20]
+        ],
+        [
+            [30 ,30],
+            [20, 40],
+            [30, 50],
+            [40, 40]
+        ]
+    ])
+    offset = np.array([5, 5])
+
+    sv.move_oriented_boxes(xyxy=xyxy, offset=offset)
+    # array([
+    #     [
+    #         [25, 15],
+    #         [15, 25],
+    #         [25, 35],
+    #         [35, 25]
+    #     ],
+    #     [
+    #         [35, 35],
+    #         [25, 45],
+    #         [35, 55],
+    #         [45, 45]
+    #     ]
+    # ])
+    ```
+    """
+    return xyxyxyxy + offset
 
 
 def move_masks(

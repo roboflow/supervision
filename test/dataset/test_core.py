@@ -1,11 +1,10 @@
 from contextlib import ExitStack as DoesNotRaise
-from test.test_utils import mock_detections
 from typing import List, Optional
 
-import numpy as np
 import pytest
 
 from supervision import DetectionDataset
+from test.test_utils import mock_detections
 
 
 @pytest.mark.parametrize(
@@ -13,29 +12,29 @@ from supervision import DetectionDataset
     [
         (
             [],
-            DetectionDataset(classes=[], images={}, annotations={}),
+            DetectionDataset(classes=[], images=[], annotations={}),
             DoesNotRaise(),
         ),  # empty dataset list
         (
-            [DetectionDataset(classes=[], images={}, annotations={})],
-            DetectionDataset(classes=[], images={}, annotations={}),
+            [DetectionDataset(classes=[], images=[], annotations={})],
+            DetectionDataset(classes=[], images=[], annotations={}),
             DoesNotRaise(),
         ),  # single empty dataset
         (
             [
-                DetectionDataset(classes=["dog", "person"], images={}, annotations={}),
-                DetectionDataset(classes=["dog", "person"], images={}, annotations={}),
+                DetectionDataset(classes=["dog", "person"], images=[], annotations={}),
+                DetectionDataset(classes=["dog", "person"], images=[], annotations={}),
             ],
-            DetectionDataset(classes=["dog", "person"], images={}, annotations={}),
+            DetectionDataset(classes=["dog", "person"], images=[], annotations={}),
             DoesNotRaise(),
         ),  # two datasets; no images and annotations, the same classes
         (
             [
-                DetectionDataset(classes=["dog", "person"], images={}, annotations={}),
-                DetectionDataset(classes=["cat"], images={}, annotations={}),
+                DetectionDataset(classes=["dog", "person"], images=[], annotations={}),
+                DetectionDataset(classes=["cat"], images=[], annotations={}),
             ],
             DetectionDataset(
-                classes=["cat", "dog", "person"], images={}, annotations={}
+                classes=["cat", "dog", "person"], images=[], annotations={}
             ),
             DoesNotRaise(),
         ),  # two datasets; no images and annotations, different classes
@@ -43,10 +42,7 @@ from supervision import DetectionDataset
             [
                 DetectionDataset(
                     classes=["dog", "person"],
-                    images={
-                        "image-1.png": np.zeros((100, 100, 3), dtype=np.uint8),
-                        "image-2.png": np.zeros((100, 100, 3), dtype=np.uint8),
-                    },
+                    images=["image-1.png", "image-2.png"],
                     annotations={
                         "image-1.png": mock_detections(
                             xyxy=[[0, 0, 10, 10]], class_id=[0]
@@ -56,14 +52,11 @@ from supervision import DetectionDataset
                         ),
                     },
                 ),
-                DetectionDataset(classes=[], images={}, annotations={}),
+                DetectionDataset(classes=[], images=[], annotations={}),
             ],
             DetectionDataset(
                 classes=["dog", "person"],
-                images={
-                    "image-1.png": np.zeros((100, 100, 3), dtype=np.uint8),
-                    "image-2.png": np.zeros((100, 100, 3), dtype=np.uint8),
-                },
+                images=["image-1.png", "image-2.png"],
                 annotations={
                     "image-1.png": mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[0]),
                     "image-2.png": mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[1]),
@@ -75,10 +68,7 @@ from supervision import DetectionDataset
             [
                 DetectionDataset(
                     classes=["dog", "person"],
-                    images={
-                        "image-1.png": np.zeros((100, 100, 3), dtype=np.uint8),
-                        "image-2.png": np.zeros((100, 100, 3), dtype=np.uint8),
-                    },
+                    images=["image-1.png", "image-2.png"],
                     annotations={
                         "image-1.png": mock_detections(
                             xyxy=[[0, 0, 10, 10]], class_id=[0]
@@ -88,14 +78,11 @@ from supervision import DetectionDataset
                         ),
                     },
                 ),
-                DetectionDataset(classes=["cat"], images={}, annotations={}),
+                DetectionDataset(classes=["cat"], images=[], annotations={}),
             ],
             DetectionDataset(
                 classes=["cat", "dog", "person"],
-                images={
-                    "image-1.png": np.zeros((100, 100, 3), dtype=np.uint8),
-                    "image-2.png": np.zeros((100, 100, 3), dtype=np.uint8),
-                },
+                images=["image-1.png", "image-2.png"],
                 annotations={
                     "image-1.png": mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[1]),
                     "image-2.png": mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[2]),
@@ -107,10 +94,7 @@ from supervision import DetectionDataset
             [
                 DetectionDataset(
                     classes=["dog", "person"],
-                    images={
-                        "image-1.png": np.zeros((100, 100, 3), dtype=np.uint8),
-                        "image-2.png": np.zeros((100, 100, 3), dtype=np.uint8),
-                    },
+                    images=["image-1.png", "image-2.png"],
                     annotations={
                         "image-1.png": mock_detections(
                             xyxy=[[0, 0, 10, 10]], class_id=[0]
@@ -122,9 +106,7 @@ from supervision import DetectionDataset
                 ),
                 DetectionDataset(
                     classes=["cat"],
-                    images={
-                        "image-3.png": np.zeros((100, 100, 3), dtype=np.uint8),
-                    },
+                    images=["image-3.png"],
                     annotations={
                         "image-3.png": mock_detections(
                             xyxy=[[0, 0, 10, 10]], class_id=[0]
@@ -134,11 +116,7 @@ from supervision import DetectionDataset
             ],
             DetectionDataset(
                 classes=["cat", "dog", "person"],
-                images={
-                    "image-1.png": np.zeros((100, 100, 3), dtype=np.uint8),
-                    "image-2.png": np.zeros((100, 100, 3), dtype=np.uint8),
-                    "image-3.png": np.zeros((100, 100, 3), dtype=np.uint8),
-                },
+                images=["image-1.png", "image-2.png", "image-3.png"],
                 annotations={
                     "image-1.png": mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[1]),
                     "image-2.png": mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[2]),
@@ -151,10 +129,7 @@ from supervision import DetectionDataset
             [
                 DetectionDataset(
                     classes=["dog", "person"],
-                    images={
-                        "image-1.png": np.zeros((100, 100, 3), dtype=np.uint8),
-                        "image-2.png": np.zeros((100, 100, 3), dtype=np.uint8),
-                    },
+                    images=["image-1.png", "image-2.png"],
                     annotations={
                         "image-1.png": mock_detections(
                             xyxy=[[0, 0, 10, 10]], class_id=[0]
@@ -166,10 +141,7 @@ from supervision import DetectionDataset
                 ),
                 DetectionDataset(
                     classes=["dog", "person"],
-                    images={
-                        "image-2.png": np.zeros((100, 100, 3), dtype=np.uint8),
-                        "image-3.png": np.zeros((100, 100, 3), dtype=np.uint8),
-                    },
+                    images=["image-2.png", "image-3.png"],
                     annotations={
                         "image-2.png": mock_detections(
                             xyxy=[[0, 0, 10, 10]], class_id=[0]

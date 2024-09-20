@@ -56,7 +56,7 @@ class LineZone:
         line_zone.in_count, line_zone.out_count
         # 7, 2
         ```
-    """  # noqa: E501 // docs
+    """
 
     def __init__(
         self,
