@@ -103,48 +103,48 @@ You can install `supervision` in a
 
 - **Detect and Annotate**
 
-    ---
+  ***
 
-    Annotate predictions from a range of object detection and segmentation models
+  Annotate predictions from a range of object detection and segmentation models
 
-    [:octicons-arrow-right-24: Tutorial](how_to/detect_and_annotate.md)
+  [:octicons-arrow-right-24: Tutorial](how_to/detect_and_annotate.md)
 
 - **Track Objects**
 
-    ---
+  ***
 
-    Discover how to enhance video analysis by implementing seamless object tracking
+  Discover how to enhance video analysis by implementing seamless object tracking
 
-    [:octicons-arrow-right-24: Tutorial](how_to/track_objects.md)
+  [:octicons-arrow-right-24: Tutorial](how_to/track_objects.md)
 
 - **Detect Small Objects**
 
-    ---
+  ***
 
-    Learn how to detect small objects in images
+  Learn how to detect small objects in images
 
-    [:octicons-arrow-right-24: Tutorial](how_to/detect_small_objects.md)
+  [:octicons-arrow-right-24: Tutorial](how_to/detect_small_objects.md)
 
 - **Count Objects Crossing Line**
 
-    ---
+  ***
 
-    Explore methods to accurately count and analyze objects crossing a predefined line
+  Explore methods to accurately count and analyze objects crossing a predefined line
 
-    [:octicons-arrow-right-24: Notebook](https://supervision.roboflow.com/latest/notebooks/count-objects-crossing-the-line/)
+  [:octicons-arrow-right-24: Notebook](https://supervision.roboflow.com/latest/notebooks/count-objects-crossing-the-line/)
 
-- **Filter Objects in Zone**
+- > **Filter Objects in Zone**
 
-    ---
+  ***
 
-    Master the techniques to selectively filter and focus on objects within a specific zone
+  Master the techniques to selectively filter and focus on objects within a specific zone
 
 - **Cheatsheet**
 
-    ---
+  ***
 
-    Access a quick reference guide to the most common `supervision` functions
+  Access a quick reference guide to the most common `supervision` functions
 
-    [:octicons-arrow-right-24: Cheatsheet](https://roboflow.github.io/cheatsheet-supervision/)
+  [:octicons-arrow-right-24: Cheatsheet](https://roboflow.github.io/cheatsheet-supervision/)
 
 </div>

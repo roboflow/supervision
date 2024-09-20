@@ -121,6 +121,10 @@
          <lastmod>2024-09-20</lastmod>
     </url>
     <url>
+         <loc>https://supervision.roboflow.com/develop/metrics/f1_score/</loc>
+         <lastmod>2024-09-20</lastmod>
+    </url>
+    <url>
          <loc>https://supervision.roboflow.com/develop/metrics/mean_average_precision/</loc>
          <lastmod>2024-09-20</lastmod>
     </url>
