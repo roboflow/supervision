@@ -1,6 +1,6 @@
 import math
 import warnings
-from typing import Dict, Iterable, Optional, Tuple
+from typing import Any, Dict, Iterable, Optional, Tuple
 
 import cv2
 import numpy as np
@@ -200,9 +200,9 @@ class LineZone:
 class LineZoneAnnotator:
     def __init__(
         self,
-        thickness: float = 2,
+        thickness: int = 2,
         color: Color = Color.WHITE,
-        text_thickness: float = 2,
+        text_thickness: int = 2,
         text_color: Color = Color.BLACK,
         text_scale: float = 0.5,
         text_offset: float = 1.5,
@@ -218,30 +218,32 @@ class LineZoneAnnotator:
         Initialize the LineCounterAnnotator object with default values.
 
         Attributes:
-            thickness (float): The thickness of the line that will be drawn.
+            thickness (int): The thickness of the line that will be drawn.
             color (Color): The color of the line that will be drawn.
-            text_thickness (float): The thickness of the text that will be drawn.
+            text_thickness (int): The thickness of the text that will be drawn.
             text_color (Color): The color of the text that will be drawn.
             text_scale (float): The scale of the text that will be drawn.
             text_offset (float): The offset of the text that will be drawn.
             text_padding (int): The padding of the text that will be drawn.
             draw_text_box (bool): Whether to draw a text box under the text or not.
-            draw_centered (bool): Wheter to draw the count centered in the line or not.
+            draw_centered (bool): Whether to draw the count centered in the line or not.
+            custom_in_text: (Optional[str]): Custom text to display for the in count.
+            custom_out_text: (Optional[str]): Custom text to display for the out count.
             display_in_count (bool): Whether to display the in count or not.
             display_out_count (bool): Whether to display the out count or not.
 
         """
-        self.thickness: float = thickness
+        self.thickness: int = thickness
         self.color: Color = color
-        self.text_thickness: float = text_thickness
+        self.text_thickness: int = text_thickness
         self.text_color: Color = text_color
         self.text_scale: float = text_scale
         self.text_offset: float = text_offset
         self.text_padding: int = text_padding
         self.draw_text_box: bool = draw_text_box
         self.draw_centered: bool = draw_centered
-        self.custom_in_text: str = custom_in_text
-        self.custom_out_text: str = custom_out_text
+        self.custom_in_text: Optional[str] = custom_in_text
+        self.custom_out_text: Optional[str] = custom_out_text
         self.display_in_count: bool = display_in_count
         self.display_out_count: bool = display_out_count
 
@@ -459,7 +461,7 @@ class LineZoneAnnotator:
         image = np.zeros((image_dim, image_dim, 3), dtype=np.uint8)  # bgr
         image_alpha = np.zeros((image_dim, image_dim, 1), dtype=np.uint8)  # gray
 
-        text_args = {
+        text_args: Dict[str, Any] = {
             "text": text,
             "text_anchor": Point(image_dim // 2, image_dim // 2),
             "text_scale": self.text_scale,
