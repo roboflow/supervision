@@ -849,7 +849,11 @@ class LabelAnnotator:
                 center_x + text_w // 2,
                 center_y + text_h,
             )
-
+        '''
+        well-structured for calculating the bounding box coordinates based on the specified text position relative to a center point.
+        It takes into account different alignment options and returns the coordinates as expected.
+        '''
+        
     def annotate(
         self,
         scene: np.ndarray,
