@@ -514,6 +514,13 @@ class Detections:
                 **process_transformers_detection_result(transformers_results, id2label)
             )
 
+        else:
+            raise ValueError(
+                "The provided Transformers results do not contain any valid fields."
+                " Expected fields are 'boxes', 'masks', 'segments_info' or"
+                " 'segmentation'."
+            )
+
     @classmethod
     def from_detectron2(cls, detectron2_results) -> Detections:
         """
@@ -842,6 +849,64 @@ class Detections:
             return cls(xyxy=xyxy, mask=mask, data=data)
 
         raise ValueError(f"Unsupported LMM: {lmm}")
+
+    @classmethod
+    def from_ncnn(cls, ncnn_results) -> Detections:
+        """
+        Creates a Detections instance from the
+        [ncnn](https://github.com/Tencent/ncnn) inference result.
+        Supports object detection models.
+
+        Args:
+            ncnn_results (dict): The output Results instance from ncnn.
+
+        Returns:
+            Detections: A new Detections object.
+
+        Example:
+            ```python
+            import cv2
+            from ncnn.model_zoo import get_model
+            import supervision as sv
+
+            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            model = get_model(
+                "yolov8s",
+                target_size=640
+                prob_threshold=0.5,
+                nms_threshold=0.45,
+                num_threads=4,
+                use_gpu=True,
+                )
+            result = model(image)
+            detections = sv.Detections.from_ncnn(result)
+            ```
+        """
+
+        xywh, confidences, class_ids = [], [], []
+
+        if len(ncnn_results) > 0:
+            for ncnn_result in ncnn_results:
+                rect = ncnn_result.rect
+                xywh.append(
+                    [
+                        rect.x.astype(np.float32),
+                        rect.y.astype(np.float32),
+                        rect.w.astype(np.float32),
+                        rect.h.astype(np.float32),
+                    ]
+                )
+
+                confidences.append(ncnn_result.prob)
+                class_ids.append(ncnn_result.label)
+
+            return cls(
+                xyxy=xywh_to_xyxy(np.array(xywh, dtype=np.float32)),
+                confidence=np.array(confidences, dtype=np.float32),
+                class_id=np.array(class_ids, dtype=int),
+            )
+
+        return cls.empty()
 
     @classmethod
     def empty(cls) -> Detections:
