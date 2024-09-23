@@ -873,20 +873,19 @@ class Detections:
 
         bbox = np.array([result[0] for result in easyocr_results])
         xyxy = np.hstack((np.min(bbox, axis=1), np.max(bbox, axis=1)))
+        confidence = np.array(
+            [
+                result[2] if len(result) > 2 and result[2] else 0
+                for result in easyocr_results
+            ]
+        )
+        ocr_text = np.array([result[1] for result in easyocr_results])
 
         return cls(
-            xyxy=xyxy,
-            confidence=np.array(
-                [
-                    result[2] if len(result) > 2 and result[2] else 0
-                    for result in easyocr_results
-                ]
-            ),
-            class_id=np.arange(len(xyxy)),
+            xyxy=xyxy.astype(np.float32),
+            confidence=confidence.astype(np.float32),
             data={
-                CLASS_NAME_DATA_FIELD: np.array(
-                    [result[1] for result in easyocr_results]
-                )
+                CLASS_NAME_DATA_FIELD: ocr_text,
             },
         )
 
