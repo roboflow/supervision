@@ -857,7 +857,9 @@ class Detections:
     def from_easyocr(cls, easyocr_results: list) -> Detections:
         """
         Create a Detections object from the
-        [EasyOCR](https://github.com/JaidedAI/EasyOCR) inference result.
+        [EasyOCR](https://github.com/JaidedAI/EasyOCR) result.
+        
+        Results are placed in the `data` field with the key `"class_name"`.
 
         Args:
             easyocr_results (List): The output Results instance from EasyOCR
@@ -873,6 +875,7 @@ class Detections:
             reader = easyocr.Reader(['en'])
             results = reader.readtext(<SOURCE_IMAGE_PATH>)
             detections = sv.Detections.from_easyocr(results)
+            detected_text = detections["class_name"]
             ```
         """
         if len(easyocr_results) == 0:
