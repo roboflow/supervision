@@ -906,10 +906,15 @@ class Detections:
         [ncnn](https://github.com/Tencent/ncnn) inference result.
         Supports object detection models.
 
-        Args:
+        Arguments:
             ncnn_results (dict): The output Results instance from ncnn.
 
-                import cv2
+        Returns:
+            Detections: A new Detections object.
+
+        Example:
+            ```python
+            import cv2
             from ncnn.model_zoo import get_model
             import supervision as sv
 
