@@ -583,7 +583,10 @@ def test_line_zone_one_detection_long_horizon(
     expected_crossed_out: List[bool],
 ) -> None:
     line_zone = LineZone(
-        start=vector.start, end=vector.end, triggering_anchors=triggering_anchors, max_linger=max_linger,
+        start=vector.start,
+        end=vector.end,
+        triggering_anchors=triggering_anchors,
+        max_linger=max_linger,
     )
 
     crossed_in_list = []
@@ -622,8 +625,20 @@ def test_line_zone_one_detection_long_horizon(
                 Position.TOP_LEFT,
             ],
             1,
-            [[False, False, False], [False, True, False], [False, False], [False, True], [False, False]],
-            [[False, False, False], [False, False, False], [False, True], [False, False], [False, False]],
+            [
+                [False, False, False],
+                [False, True, False],
+                [False, False],
+                [False, True],
+                [False, False],
+            ],
+            [
+                [False, False, False],
+                [False, False, False],
+                [False, True],
+                [False, False],
+                [False, False],
+            ],
             [0, 1, 1, 2, 2],
             [0, 0, 1, 1, 1],
             DoesNotRaise(),
@@ -641,8 +656,24 @@ def test_line_zone_one_detection_long_horizon(
                 Position.TOP_LEFT,
             ],
             1,
-            [[False, False, False], [False, True, False], [False, False, True,], [False, True], [False, False]],
-            [[False, False, False], [False, False, False], [False, True, False], [False, False], [False, False]],
+            [
+                [False, False, False],
+                [False, True, False],
+                [
+                    False,
+                    False,
+                    True,
+                ],
+                [False, True],
+                [False, False],
+            ],
+            [
+                [False, False, False],
+                [False, False, False],
+                [False, True, False],
+                [False, False],
+                [False, False],
+            ],
             [0, 1, 2, 3, 3],
             [0, 0, 1, 1, 1],
             DoesNotRaise(),
@@ -660,8 +691,20 @@ def test_line_zone_one_detection_long_horizon(
                 Position.TOP_LEFT,
             ],
             2,
-            [[False, False, False], [False, False, False], [False, False], [False, False], [False, True]],
-            [[False, False, False], [False, False, False], [False, False], [False, False], [False, False]],
+            [
+                [False, False, False],
+                [False, False, False],
+                [False, False],
+                [False, False],
+                [False, True],
+            ],
+            [
+                [False, False, False],
+                [False, False, False],
+                [False, False],
+                [False, False],
+                [False, False],
+            ],
             [0, 0, 0, 0, 1],
             [0, 0, 0, 0, 0],
             DoesNotRaise(),
@@ -679,8 +722,24 @@ def test_line_zone_one_detection_long_horizon(
                 Position.TOP_LEFT,
             ],
             2,
-            [[False, False, False], [False, False, False], [False, False, False,], [False, False], [False, True]],
-            [[False, False, False], [False, False, False], [False, False, False], [False, False], [False, False]],
+            [
+                [False, False, False],
+                [False, False, False],
+                [
+                    False,
+                    False,
+                    False,
+                ],
+                [False, False],
+                [False, True],
+            ],
+            [
+                [False, False, False],
+                [False, False, False],
+                [False, False, False],
+                [False, False],
+                [False, False],
+            ],
             [0, 0, 0, 1, 2],
             [0, 0, 0, 0, 0],
             DoesNotRaise(),
@@ -700,7 +759,10 @@ def test_line_zone_long_horizon_disappearing_detections(
 ) -> None:
     with exception:
         line_zone = LineZone(
-            start=vector.start, end=vector.end, triggering_anchors=anchors, max_linger=max_linger
+            start=vector.start,
+            end=vector.end,
+            triggering_anchors=anchors,
+            max_linger=max_linger,
         )
         crossed_in_list = []
         crossed_out_list = []

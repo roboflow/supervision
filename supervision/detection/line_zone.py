@@ -1,6 +1,6 @@
-from collections import deque
 import warnings
-from typing import Deque, Dict, Iterable, List, Optional, Tuple
+from collections import deque
+from typing import Deque, Dict, Iterable, Optional, Tuple
 
 import cv2
 import numpy as np
@@ -187,7 +187,9 @@ class LineZone:
 
             tracker_state = has_any_left_trigger[i]
             if tracker_id not in self.crossing_state:
-                self.crossing_state[tracker_id] = deque([tracker_state], maxlen=self.max_linger)
+                self.crossing_state[tracker_id] = deque(
+                    [tracker_state], maxlen=self.max_linger
+                )
                 continue
 
             crossing_state = self.crossing_state[tracker_id]
@@ -195,7 +197,9 @@ class LineZone:
             if self.max_linger == 1 and prev_frame_tracker_state == tracker_state:
                 continue
 
-            crossing_in_progress = crossing_state.count(True) != 0 and crossing_state.count(False) != 0
+            crossing_in_progress = (
+                crossing_state.count(True) != 0 and crossing_state.count(False) != 0
+            )
             crossing_state.appendleft(tracker_state)
             all_on_same_side = crossing_state.count(not tracker_state) == 0
             if not all_on_same_side:
@@ -219,7 +223,9 @@ class LineZone:
             if tracker_id in this_frame_trackers:
                 continue
             crossing_state = self.crossing_state[tracker_id]
-            crossing_in_progress = crossing_state.count(True) != 0 and crossing_state.count(False) != 0
+            crossing_in_progress = (
+                crossing_state.count(True) != 0 and crossing_state.count(False) != 0
+            )
             if not crossing_in_progress:
                 continue
             tracker_state = crossing_state[0]
