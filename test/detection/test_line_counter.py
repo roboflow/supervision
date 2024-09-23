@@ -303,7 +303,7 @@ def test_line_zone_one_detection_default_anchors(
             [False, True, False, True],
             [False, False, True, False],
         ),
-        (  # Scrape line, left side, center anchor (along line point), then hold position
+        (  # Scrape line, left side, center anchor (along line point)
             Vector(Point(0, 0), Point(10, 0)),
             [
                 [-2, 4, 2, 6],
@@ -612,7 +612,7 @@ def test_line_zone_one_detection_long_horizon(
     "vector, xyxy_sequence, anchors, max_linger, expected_crossed_in, "
     "expected_crossed_out, expected_count_in, expected_count_out, exception",
     [
-        (  # One stays, one crosses, one disappears before crossing, max_linger==1
+        (  # One stays, one crosses, one disappears before crossing
             Vector(Point(0, 0), Point(10, 0)),
             [
                 [[4, 4, 6, 6], [4, 4, 6, 6], [4, 4, 6, 6]],
@@ -643,7 +643,7 @@ def test_line_zone_one_detection_long_horizon(
             [0, 0, 1, 1, 1],
             DoesNotRaise(),
         ),
-        (  # One stays, one crosses, one disappears immediately after crossing, max_linger==1
+        (  # One stays, one crosses, one disappears immediately after crossing
             Vector(Point(0, 0), Point(10, 0)),
             [
                 [[4, 4, 6, 6], [4, 4, 6, 6], [4, 4, 6, 6]],
@@ -678,7 +678,7 @@ def test_line_zone_one_detection_long_horizon(
             [0, 0, 1, 1, 1],
             DoesNotRaise(),
         ),
-        (  # One stays, one crosses, one disappears before crossing, max_linger==2
+        (  # One stays, one crosses, one disappears before crossing
             Vector(Point(0, 0), Point(10, 0)),
             [
                 [[4, 4, 6, 6], [4, 4, 6, 6], [4, 4, 6, 6]],
@@ -709,7 +709,7 @@ def test_line_zone_one_detection_long_horizon(
             [0, 0, 0, 0, 0],
             DoesNotRaise(),
         ),
-        (  # One stays, one crosses, one disappears immediately after crossing, max_linger==2
+        (  # One stays, one crosses, one disappears immediately after crossing
             Vector(Point(0, 0), Point(10, 0)),
             [
                 [[4, 4, 6, 6], [4, 4, 6, 6], [4, 4, 6, 6]],
