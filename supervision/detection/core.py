@@ -6,7 +6,10 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 
-from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES
+from supervision.config import (
+    CLASS_NAME_DATA_FIELD,
+    ORIENTED_BOX_COORDINATES,
+)
 from supervision.detection.lmm import (
     LMM,
     from_florence_2,
@@ -851,13 +854,59 @@ class Detections:
         raise ValueError(f"Unsupported LMM: {lmm}")
 
     @classmethod
+    def from_easyocr(cls, easyocr_results: list) -> Detections:
+        """
+        Create a Detections object from the
+        [EasyOCR](https://github.com/JaidedAI/EasyOCR) result.
+
+        Results are placed in the `data` field with the key `"class_name"`.
+
+        Args:
+            easyocr_results (List): The output Results instance from EasyOCR
+
+        Returns:
+            Detections: A new Detections object.
+
+        Example:
+            ```python
+            import supervision as sv
+            import easyocr
+
+            reader = easyocr.Reader(['en'])
+            results = reader.readtext(<SOURCE_IMAGE_PATH>)
+            detections = sv.Detections.from_easyocr(results)
+            detected_text = detections["class_name"]
+            ```
+        """
+        if len(easyocr_results) == 0:
+            return cls.empty()
+
+        bbox = np.array([result[0] for result in easyocr_results])
+        xyxy = np.hstack((np.min(bbox, axis=1), np.max(bbox, axis=1)))
+        confidence = np.array(
+            [
+                result[2] if len(result) > 2 and result[2] else 0
+                for result in easyocr_results
+            ]
+        )
+        ocr_text = np.array([result[1] for result in easyocr_results])
+
+        return cls(
+            xyxy=xyxy.astype(np.float32),
+            confidence=confidence.astype(np.float32),
+            data={
+                CLASS_NAME_DATA_FIELD: ocr_text,
+            },
+        )
+
+    @classmethod
     def from_ncnn(cls, ncnn_results) -> Detections:
         """
         Creates a Detections instance from the
         [ncnn](https://github.com/Tencent/ncnn) inference result.
         Supports object detection models.
 
-        Args:
+        Arguments:
             ncnn_results (dict): The output Results instance from ncnn.
 
         Returns:
@@ -885,28 +934,28 @@ class Detections:
 
         xywh, confidences, class_ids = [], [], []
 
-        if len(ncnn_results) > 0:
-            for ncnn_result in ncnn_results:
-                rect = ncnn_result.rect
-                xywh.append(
-                    [
-                        rect.x.astype(np.float32),
-                        rect.y.astype(np.float32),
-                        rect.w.astype(np.float32),
-                        rect.h.astype(np.float32),
-                    ]
-                )
+        if len(ncnn_results) == 0:
+            return cls.empty()
 
-                confidences.append(ncnn_result.prob)
-                class_ids.append(ncnn_result.label)
-
-            return cls(
-                xyxy=xywh_to_xyxy(np.array(xywh, dtype=np.float32)),
-                confidence=np.array(confidences, dtype=np.float32),
-                class_id=np.array(class_ids, dtype=int),
+        for ncnn_result in ncnn_results:
+            rect = ncnn_result.rect
+            xywh.append(
+                [
+                    rect.x.astype(np.float32),
+                    rect.y.astype(np.float32),
+                    rect.w.astype(np.float32),
+                    rect.h.astype(np.float32),
+                ]
             )
 
-        return cls.empty()
+            confidences.append(ncnn_result.prob)
+            class_ids.append(ncnn_result.label)
+
+        return cls(
+            xyxy=xywh_to_xyxy(np.array(xywh, dtype=np.float32)),
+            confidence=np.array(confidences, dtype=np.float32),
+            class_id=np.array(class_ids, dtype=int),
+        )
 
     @classmethod
     def empty(cls) -> Detections:
