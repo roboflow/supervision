@@ -882,10 +882,10 @@ class Detections:
                 rect = ncnn_result.rect
                 xywh.append(
                     [
-                        rect.x.astype(np.int64),
-                        rect.y.astype(np.int64),
-                        rect.w.astype(np.int64),
-                        rect.h.astype(np.int64),
+                        rect.x.astype(np.float32),
+                        rect.y.astype(np.float32),
+                        rect.w.astype(np.float32),
+                        rect.h.astype(np.float32),
                     ]
                 )
 
@@ -893,8 +893,8 @@ class Detections:
                 class_ids.append(ncnn_result.label)
 
             return cls(
-                xyxy=xywh_to_xyxy(np.array(xywh)),
-                confidence=np.array(confidences),
+                xyxy=xywh_to_xyxy(np.array(xywh,dtype=np.float32)),
+                confidence=np.array(confidences,dtype=np.float32),
                 class_id=np.array(class_ids, dtype=int),
             )
 
