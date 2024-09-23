@@ -514,6 +514,13 @@ class Detections:
                 **process_transformers_detection_result(transformers_results, id2label)
             )
 
+        else:
+            raise ValueError(
+                "The provided Transformers results do not contain any valid fields."
+                " Expected fields are 'boxes', 'masks', 'segments_info' or"
+                " 'segmentation'."
+            )
+
     @classmethod
     def from_detectron2(cls, detectron2_results) -> Detections:
         """
@@ -846,8 +853,9 @@ class Detections:
     @classmethod
     def from_ncnn(cls, ncnn_results) -> Detections:
         """
-        Creates a Detections instance from a
+        Creates a Detections instance from the
         [ncnn](https://github.com/Tencent/ncnn) inference result.
+        Supports object detection models.
 
         Args:
             ncnn_results (dict): The output Results instance from ncnn.
@@ -862,7 +870,7 @@ class Detections:
             import supervision as sv
 
             image = cv2.imread(<SOURCE_IMAGE_PATH>)
-            net = get_model(
+            model = get_model(
                 "yolov8s",
                 target_size=640
                 prob_threshold=0.5,
@@ -870,7 +878,7 @@ class Detections:
                 num_threads=4,
                 use_gpu=True,
                 )
-            result = net(image)
+            result = model(image)
             detections = sv.Detections.from_ncnn(result)
             ```
         """
