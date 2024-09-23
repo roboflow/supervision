@@ -893,8 +893,8 @@ class Detections:
                 class_ids.append(ncnn_result.label)
 
             return cls(
-                xyxy=xywh_to_xyxy(np.array(xywh,dtype=np.float32)),
-                confidence=np.array(confidences,dtype=np.float32),
+                xyxy=xywh_to_xyxy(np.array(xywh, dtype=np.float32)),
+                confidence=np.array(confidences, dtype=np.float32),
                 class_id=np.array(class_ids, dtype=int),
             )
 
