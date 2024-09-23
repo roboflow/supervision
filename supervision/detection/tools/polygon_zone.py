@@ -9,7 +9,7 @@ import numpy.typing as npt
 from supervision import Detections
 from supervision.detection.utils import clip_boxes, polygon_to_mask
 from supervision.draw.color import Color
-from supervision.draw.utils import draw_polygon, draw_text
+from supervision.draw.utils import draw_filled_polygon, draw_polygon, draw_text
 from supervision.geometry.core import Position
 from supervision.geometry.utils import get_polygon_center
 from supervision.utils.internal import SupervisionWarnings
@@ -109,6 +109,7 @@ class PolygonZoneAnnotator:
             default is cv2.FONT_HERSHEY_SIMPLEX
         center (Tuple[int, int]): The center of the polygon for text placement
         display_in_zone_count (bool): Show the label of the zone or not. Default is True
+        opacity: The opacity of zone filling when drawn on the scene. Default is 0
     """
 
     def __init__(
@@ -121,6 +122,7 @@ class PolygonZoneAnnotator:
         text_thickness: int = 1,
         text_padding: int = 10,
         display_in_zone_count: bool = True,
+        opacity: float = 0,
     ):
         self.zone = zone
         self.color = color
@@ -132,6 +134,7 @@ class PolygonZoneAnnotator:
         self.font = cv2.FONT_HERSHEY_SIMPLEX
         self.center = get_polygon_center(polygon=zone.polygon)
         self.display_in_zone_count = display_in_zone_count
+        self.opacity = opacity
 
     def annotate(self, scene: np.ndarray, label: Optional[str] = None) -> np.ndarray:
         """
@@ -145,12 +148,26 @@ class PolygonZoneAnnotator:
         Returns:
             np.ndarray: The image with the polygon zone and count of detected objects
         """
-        annotated_frame = draw_polygon(
-            scene=scene,
-            polygon=self.zone.polygon,
-            color=self.color,
-            thickness=self.thickness,
-        )
+        if self.opacity == 0:
+            annotated_frame = draw_polygon(
+                scene=scene,
+                polygon=self.zone.polygon,
+                color=self.color,
+                thickness=self.thickness,
+            )
+        else:
+            annotated_frame = draw_filled_polygon(
+                scene=scene.copy(),
+                polygon=self.zone.polygon,
+                color=self.color,
+                opacity=self.opacity,
+            )
+            annotated_frame = draw_polygon(
+                scene=annotated_frame,
+                polygon=self.zone.polygon,
+                color=self.color,
+                thickness=self.thickness,
+            )
 
         if self.display_in_zone_count:
             annotated_frame = draw_text(

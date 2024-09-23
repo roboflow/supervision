@@ -113,7 +113,7 @@ def from_florence_2(
             oriented bounding boxes.
     """
     assert len(result) == 1, f"Expected result with a single element. Got: {result}"
-    task = list(result.keys())[0]
+    task = next(iter(result.keys()))
     if task not in SUPPORTED_TASKS_FLORENCE_2:
         raise ValueError(
             f"{task} not supported. Supported tasks are: {SUPPORTED_TASKS_FLORENCE_2}"

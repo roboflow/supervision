@@ -53,7 +53,7 @@ class DetectionsSmoother:
                 annotated_frame = box_annotator.annotate(frame.copy(), detections)
                 sink.write_frame(annotated_frame)
         ```
-    """  # noqa: E501 // docs
+    """
 
     def __init__(self, length: int = 5) -> None:
         """

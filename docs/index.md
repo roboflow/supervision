@@ -35,18 +35,15 @@ You can install `supervision` in a
 
 !!! example "pip install (recommended)"
 
-    === "headless"
-        The headless installation of `supervision` is designed for environments where graphical user interfaces (GUI) are not needed, making it more lightweight and suitable for server-side applications.
+    === "pip"
+
+        [![version](https://badge.fury.io/py/supervision.svg)](https://badge.fury.io/py/supervision)
+        [![downloads](https://img.shields.io/pypi/dm/supervision)](https://pypistats.org/packages/supervision)
+        [![license](https://img.shields.io/pypi/l/supervision)](https://github.com/roboflow/supervision/blob/main/LICENSE.md)
+        [![python-version](https://img.shields.io/pypi/pyversions/supervision)](https://badge.fury.io/py/supervision)
 
         ```bash
         pip install supervision
-        ```
-
-    === "desktop"
-        If you require the full version of `supervision` with GUI support you can install the desktop version. This version includes the GUI components of OpenCV, allowing you to display images and videos on the screen.
-
-        ```bash
-        pip install "supervision[desktop]"
         ```
 
 !!! example "conda/mamba install"
@@ -81,11 +78,8 @@ You can install `supervision` in a
         source venv/bin/activate
         pip install --upgrade pip
 
-        # headless install
+        # installation
         pip install -e "."
-
-        # desktop install
-        pip install -e ".[desktop]"
         ```
 
     === "poetry"
@@ -99,60 +93,58 @@ You can install `supervision` in a
         poetry env use python3.10
         poetry shell
 
-        # headless install
+        # installation
         poetry install
-
-        # desktop install
-        poetry install --extras "desktop"
         ```
 
 ## 🚀 Quickstart
 
 <div class="grid cards" markdown>
 
--   __Detect and Annotate__
+- **Detect and Annotate**
 
-    ---
+  ***
 
-    Annotate predictions from a range of object detection and segmentation models
+  Annotate predictions from a range of object detection and segmentation models
 
-    [:octicons-arrow-right-24: Tutorial](how_to/detect_and_annotate.md)
+  [:octicons-arrow-right-24: Tutorial](how_to/detect_and_annotate.md)
 
--   __Track Objects__
+- **Track Objects**
 
-    ---
+  ***
 
-    Discover how to enhance video analysis by implementing seamless object tracking
+  Discover how to enhance video analysis by implementing seamless object tracking
 
-    [:octicons-arrow-right-24: Tutorial](how_to/track_objects.md)
+  [:octicons-arrow-right-24: Tutorial](how_to/track_objects.md)
 
--   __Detect Small Objects__
+- **Detect Small Objects**
 
-    ---
+  ***
 
-    Learn how to detect small objects in images
+  Learn how to detect small objects in images
 
-    [:octicons-arrow-right-24: Tutorial](how_to/detect_small_objects.md)
+  [:octicons-arrow-right-24: Tutorial](how_to/detect_small_objects.md)
 
--   > __Count Objects Crossing Line__
+- **Count Objects Crossing Line**
 
-    ---
+  ***
 
-    Explore methods to accurately count and analyze objects crossing a predefined line
+  Explore methods to accurately count and analyze objects crossing a predefined line
 
--   > __Filter Objects in Zone__
+  [:octicons-arrow-right-24: Notebook](https://supervision.roboflow.com/latest/notebooks/count-objects-crossing-the-line/)
 
-    ---
+- > **Filter Objects in Zone**
 
-    Master the techniques to selectively filter and focus on objects within a specific zone
+  ***
 
--   **Cheatsheet**
+  Master the techniques to selectively filter and focus on objects within a specific zone
 
-    ***
+- **Cheatsheet**
 
-    Access a quick reference guide to the most common `supervision` functions
+  ***
 
-    [:octicons-arrow-right-24: Cheatsheet](https://roboflow.github.io/cheatsheet-supervision/)
+  Access a quick reference guide to the most common `supervision` functions
 
+  [:octicons-arrow-right-24: Cheatsheet](https://roboflow.github.io/cheatsheet-supervision/)
 
 </div>

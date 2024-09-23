@@ -59,7 +59,9 @@ def draw_rectangle(
     return scene
 
 
-def draw_filled_rectangle(scene: np.ndarray, rect: Rect, color: Color) -> np.ndarray:
+def draw_filled_rectangle(
+    scene: np.ndarray, rect: Rect, color: Color, opacity: float = 1
+) -> np.ndarray:
     """
     Draws a filled rectangle on an image.
 
@@ -67,17 +69,32 @@ def draw_filled_rectangle(scene: np.ndarray, rect: Rect, color: Color) -> np.nda
         scene (np.ndarray): The scene on which the rectangle will be drawn
         rect (Rect): The rectangle to be drawn
         color (Color): The color of the rectangle
+        opacity (float): The opacity of rectangle when drawn on the scene.
 
     Returns:
         np.ndarray: The scene with the rectangle drawn on it
     """
-    cv2.rectangle(
-        scene,
-        rect.top_left.as_xy_int_tuple(),
-        rect.bottom_right.as_xy_int_tuple(),
-        color.as_bgr(),
-        -1,
-    )
+    if opacity == 1:
+        cv2.rectangle(
+            scene,
+            rect.top_left.as_xy_int_tuple(),
+            rect.bottom_right.as_xy_int_tuple(),
+            color.as_bgr(),
+            -1,
+        )
+    else:
+        scene_with_annotations = scene.copy()
+        cv2.rectangle(
+            scene_with_annotations,
+            rect.top_left.as_xy_int_tuple(),
+            rect.bottom_right.as_xy_int_tuple(),
+            color.as_bgr(),
+            -1,
+        )
+        cv2.addWeighted(
+            scene_with_annotations, opacity, scene, 1 - opacity, gamma=0, dst=scene
+        )
+
     return scene
 
 
@@ -150,6 +167,32 @@ def draw_polygon(
     cv2.polylines(
         scene, [polygon], isClosed=True, color=color.as_bgr(), thickness=thickness
     )
+    return scene
+
+
+def draw_filled_polygon(
+    scene: np.ndarray, polygon: np.ndarray, color: Color, opacity: float = 1
+) -> np.ndarray:
+    """Draw a filled polygon on a scene.
+
+    Parameters:
+        scene (np.ndarray): The scene to draw the polygon on.
+        polygon (np.ndarray): The polygon to be drawn, given as a list of vertices.
+        color (Color): The color of the polygon.
+        opacity (float): The opacity of polygon when drawn on the scene.
+
+    Returns:
+        np.ndarray: The scene with the polygon drawn on it.
+    """
+    if opacity == 1:
+        cv2.fillPoly(scene, [polygon], color=color.as_bgr())
+    else:
+        scene_with_annotations = scene.copy()
+        cv2.fillPoly(scene_with_annotations, [polygon], color=color.as_bgr())
+        cv2.addWeighted(
+            scene_with_annotations, opacity, scene, 1 - opacity, gamma=0, dst=scene
+        )
+
     return scene
 
 

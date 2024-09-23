@@ -18,11 +18,11 @@ class KeyPoints:
     The `sv.KeyPoints` class in the Supervision library standardizes results from
     various keypoint detection and pose estimation models into a consistent format. This
     class simplifies data manipulation and filtering, providing a uniform API for
-    integration with Supervision [keypoints annotators](/keypoint/annotators).
+    integration with Supervision [keypoints annotators](/latest/keypoint/annotators).
 
     === "Ultralytics"
 
-        Use [`sv.KeyPoints.from_ultralytics`](/keypoint/core/#supervision.keypoint.core.KeyPoints.from_ultralytics)
+        Use [`sv.KeyPoints.from_ultralytics`](/latest/keypoint/core/#supervision.keypoint.core.KeyPoints.from_ultralytics)
         method, which accepts [YOLOv8](https://github.com/ultralytics/ultralytics)
         pose result.
 
@@ -40,7 +40,7 @@ class KeyPoints:
 
     === "Inference"
 
-        Use [`sv.KeyPoints.from_inference`](/keypoint/core/#supervision.keypoint.core.KeyPoints.from_inference)
+        Use [`sv.KeyPoints.from_inference`](/latest/keypoint/core/#supervision.keypoint.core.KeyPoints.from_inference)
         method, which accepts [Inference](https://inference.roboflow.com/) pose result.
 
         ```python
@@ -57,7 +57,7 @@ class KeyPoints:
 
     === "MediaPipe"
 
-        Use [`sv.KeyPoints.from_mediapipe`](/keypoint/core/#supervision.keypoint.core.KeyPoints.from_mediapipe)
+        Use [`sv.KeyPoints.from_mediapipe`](/latest/keypoint/core/#supervision.keypoint.core.KeyPoints.from_mediapipe)
         method, which accepts [MediaPipe](https://github.com/google-ai-edge/mediapipe)
         pose result.
 
@@ -429,7 +429,7 @@ class KeyPoints:
             results = model.predict(image, conf=0.1)
             key_points = sv.KeyPoints.from_yolo_nas(results)
             ```
-        """  # noqa: E501 // docs
+        """
         if len(yolo_nas_results.prediction.poses) == 0:
             return cls.empty()
 

@@ -48,7 +48,7 @@ class Detections:
     The `sv.Detections` class in the Supervision library standardizes results from
     various object detection and segmentation models into a consistent format. This
     class simplifies data manipulation and filtering, providing a uniform API for
-    integration with Supervision [trackers](/trackers/), [annotators](/detection/annotators/), and [tools](/detection/tools/line_zone/).
+    integration with Supervision [trackers](/trackers/), [annotators](/latest/detection/annotators/), and [tools](/detection/tools/line_zone/).
 
     === "Inference"
 
@@ -252,7 +252,7 @@ class Detections:
             results = model(image)[0]
             detections = sv.Detections.from_ultralytics(results)
             ```
-        """  # noqa: E501 // docs
+        """
 
         if hasattr(ultralytics_results, "obb") and ultralytics_results.obb is not None:
             class_id = ultralytics_results.obb.cls.cpu().numpy().astype(int)
@@ -359,7 +359,7 @@ class Detections:
             result = model(img)
             detections = sv.Detections.from_tensorflow(result)
             ```
-        """  # noqa: E501 // docs
+        """
 
         boxes = tensorflow_results["detection_boxes"][0].numpy()
         boxes[:, [0, 2]] *= resolution_wh[0]
@@ -434,7 +434,7 @@ class Detections:
             result = inference_detector(model, image)
             detections = sv.Detections.from_mmdetection(result)
             ```
-        """  # noqa: E501 // docs
+        """
 
         return cls(
             xyxy=mmdet_results.pred_instances.bboxes.cpu().numpy(),
@@ -493,7 +493,7 @@ class Detections:
                 id2label=model.config.id2label
             )
             ```
-        """  # noqa: E501 // docs
+        """
 
         if (
             transformers_results.__class__.__name__ == "Tensor"
@@ -515,6 +515,13 @@ class Detections:
         if "boxes" in transformers_results:
             return cls(
                 **process_transformers_detection_result(transformers_results, id2label)
+            )
+
+        else:
+            raise ValueError(
+                "The provided Transformers results do not contain any valid fields."
+                " Expected fields are 'boxes', 'masks', 'segments_info' or"
+                " 'segmentation'."
             )
 
     @classmethod
@@ -887,6 +894,59 @@ class Detections:
             data={
                 CLASS_NAME_DATA_FIELD: ocr_text,
             },
+        )
+
+    @classmethod
+    def from_ncnn(cls, ncnn_results) -> Detections:
+        """
+        Creates a Detections instance from the
+        [ncnn](https://github.com/Tencent/ncnn) inference result.
+        Supports object detection models.
+
+        Args:
+            ncnn_results (dict): The output Results instance from ncnn.
+
+                import cv2
+            from ncnn.model_zoo import get_model
+            import supervision as sv
+
+            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            model = get_model(
+                "yolov8s",
+                target_size=640
+                prob_threshold=0.5,
+                nms_threshold=0.45,
+                num_threads=4,
+                use_gpu=True,
+                )
+            result = model(image)
+            detections = sv.Detections.from_ncnn(result)
+            ```
+        """
+
+        xywh, confidences, class_ids = [], [], []
+
+        if len(ncnn_results) == 0:
+            return cls.empty()
+
+        for ncnn_result in ncnn_results:
+            rect = ncnn_result.rect
+            xywh.append(
+                [
+                    rect.x.astype(np.float32),
+                    rect.y.astype(np.float32),
+                    rect.w.astype(np.float32),
+                    rect.h.astype(np.float32),
+                ]
+            )
+
+            confidences.append(ncnn_result.prob)
+            class_ids.append(ncnn_result.label)
+
+        return cls(
+            xyxy=xywh_to_xyxy(np.array(xywh, dtype=np.float32)),
+            confidence=np.array(confidences, dtype=np.float32),
+            class_id=np.array(class_ids, dtype=int),
         )
 
     @classmethod

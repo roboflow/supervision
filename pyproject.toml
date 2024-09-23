@@ -52,16 +52,14 @@ matplotlib = ">=3.6.0"
 pyyaml = ">=5.3"
 defusedxml = "^0.7.1"
 pillow = ">=9.4"
-opencv-python = { version = ">=4.5.5.64", optional = true }
-opencv-python-headless = ">=4.5.5.64"
 requests = { version = ">=2.26.0,<=2.32.3", optional = true }
 tqdm = { version = ">=4.62.3,<=4.66.5", optional = true }
 # pandas: picked lowest major version that supports Python 3.8
 pandas = { version = ">=2.0.0", optional = true }
 pandas-stubs = { version = ">=2.0.0.230412", optional = true }
+opencv-python = ">=4.5.5.64"
 
 [tool.poetry.extras]
-desktop = ["opencv-python"]
 assets = ["requests", "tqdm"]
 metrics = ["pandas", "pandas-stubs"]
 
@@ -111,24 +109,6 @@ tests = ["B201", "B301", "B318", "B314", "B303", "B413", "B412", "B410"]
 check = true
 imports = ["cv2", "supervision"]
 
-[tool.black]
-target-version = ["py38"]
-line-length = 88
-include = '\.pyi?$'
-exclude = '''
-/(
-    \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | _build
-  | buck-out
-  | build
-  | dist
-  | docs
-)/
-'''
 
 [tool.ruff]
 target-version = "py38"
@@ -166,7 +146,7 @@ indent-width = 4
 
 [tool.ruff.lint]
 # Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
-select = ["E", "F", "I", "A", "Q", "W"]
+select = ["E", "F", "I", "A", "Q", "W","RUF"]
 ignore = []
 # Allow autofix for all enabled rules (when `--fix`) is provided.
 fixable = [
