@@ -858,7 +858,7 @@ class Detections:
         """
         Create a Detections object from the
         [EasyOCR](https://github.com/JaidedAI/EasyOCR) result.
-        
+
         Results are placed in the `data` field with the key `"class_name"`.
 
         Args:
