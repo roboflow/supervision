@@ -30,14 +30,12 @@ jobs:
           python -m pip install --upgrade build twine
           python -m build
           twine check --strict dist/*
-      - name: 🚀 Publish distribution to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+      - name: 🚀 Publish to PyPi
+        uses: pypa/gh-action-pypi-publish@release/v1.10
         with:
-          user: ${{ secrets.PYPI_USERNAME }}
-          password: ${{ secrets.PYPI_PASSWORD }}
+          password: ${{ secrets.PYPI_API_TOKEN }}
       - name: 🚀 Publish to Test-PyPi
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@release/v1.10
         with:
           repository-url: https://test.pypi.org/legacy/
-          user: ${{ secrets.PYPI_TEST_USERNAME }}
-          password: ${{ secrets.PYPI_TEST_PASSWORD }}
+          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
