@@ -6,9 +6,12 @@ import cv2
 import numpy as np
 
 from supervision.config import ORIENTED_BOX_COORDINATES
-from supervision.dataset.utils import approximate_mask_with_polygons
+from supervision.dataset.utils import (
+    approximate_mask_with_polygons,
+    make_lazy_detections,
+)
 from supervision.detection.core import Detections
-from supervision.detection.utils import polygon_to_mask, polygon_to_xyxy
+from supervision.detection.utils import polygon_to_xyxy
 from supervision.utils.file import (
     list_files_with_extensions,
     read_txt_file,
@@ -44,18 +47,6 @@ def _parse_polygon(values: List[str]) -> np.ndarray:
     return np.array(values, dtype=np.float32).reshape(-1, 2)
 
 
-def _polygons_to_masks(
-    polygons: List[np.ndarray], resolution_wh: Tuple[int, int]
-) -> np.ndarray:
-    return np.array(
-        [
-            polygon_to_mask(polygon=polygon, resolution_wh=resolution_wh)
-            for polygon in polygons
-        ],
-        dtype=bool,
-    )
-
-
 def _with_mask(lines: List[str]) -> bool:
     return any([len(line.split()) > 5 for line in lines])
 
@@ -73,7 +64,7 @@ def _image_name_to_annotation_name(image_name: str) -> str:
     return base_name + ".txt"
 
 
-def yolo_annotations_to_detections(
+def yolo_annotations_to_lazy_detections(
     lines: List[str],
     resolution_wh: Tuple[int, int],
     with_masks: bool,
@@ -117,8 +108,15 @@ def yolo_annotations_to_detections(
     polygons = [
         (polygon * np.array(resolution_wh)).astype(int) for polygon in relative_polygon
     ]
-    mask = _polygons_to_masks(polygons=polygons, resolution_wh=resolution_wh)
-    return Detections(class_id=class_id, xyxy=xyxy, data=data, mask=mask)
+
+    lazy_detections = make_lazy_detections(
+        class_id=class_id,
+        xyxy=xyxy,
+        polygons=polygons,
+        data=data,
+        resolution_wh=resolution_wh,
+    )
+    return lazy_detections
 
 
 def load_yolo_annotations(
@@ -174,7 +172,7 @@ def load_yolo_annotations(
 
         with_masks = _with_mask(lines=lines)
         with_masks = force_masks if force_masks else with_masks
-        annotation = yolo_annotations_to_detections(
+        annotation = yolo_annotations_to_lazy_detections(
             lines=lines,
             resolution_wh=resolution_wh,
             with_masks=with_masks,

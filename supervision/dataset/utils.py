@@ -1,9 +1,22 @@
+from __future__ import annotations
+
 import copy
 import os
 import random
 import shutil
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, TypeVar, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    Generic,
+    List,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 import cv2
 import numpy as np
@@ -14,6 +27,7 @@ from supervision.detection.utils import (
     approximate_polygon,
     filter_polygons_by_area,
     mask_to_polygons,
+    polygon_to_mask,
 )
 
 if TYPE_CHECKING:
@@ -257,3 +271,110 @@ def mask_to_rle(mask: npt.NDArray[np.bool_]) -> List[int]:
         rle = np.insert(rle, 0, 0)
 
     return list(rle)
+
+
+KeyT = TypeVar("KeyT")
+InnerValueT = TypeVar("InnerValueT")
+ValueT = TypeVar("ValueT")
+
+
+class LazyDict(Generic[KeyT, InnerValueT, ValueT]):
+    """
+    Dictionary that stores a more efficient representation of the data,
+    converting it to the original format when a value is requested.
+    """
+
+    def __init__(
+        self,
+        load_function: Callable[[InnerValueT], ValueT],
+        init_dict: Optional[Dict[KeyT, InnerValueT]] = None,
+    ) -> None:
+        self._load_function = load_function
+        self._lazy_values: Dict[KeyT, InnerValueT] = init_dict or {}
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, LazyDict):
+            return False
+        return self._lazy_values == other._lazy_values
+
+    def __setitem__(self, key: KeyT, value: InnerValueT) -> None:
+        self._lazy_values[key] = value
+
+    def __getitem__(self, key: KeyT) -> ValueT:
+        value = self._lazy_values[key]
+        return self._load_function(value)
+
+    def __iter__(self):
+        return iter(self._lazy_values)
+
+    def get(self, key: KeyT, default: Optional[ValueT] = None) -> Any:
+        if key not in self._lazy_values:
+            return default
+        return self[key]
+
+    def values(self) -> List[ValueT]:
+        return [self[key] for key in self._lazy_values]
+
+    def items(self) -> List[Tuple[KeyT, ValueT]]:
+        return [(key, self[key]) for key in self._lazy_values]
+
+    def subset(self, keys: List[KeyT]) -> LazyDict[KeyT, InnerValueT, ValueT]:
+        new_lazy_dict: LazyDict[KeyT, InnerValueT, ValueT] = LazyDict(
+            load_function=self._load_function
+        )
+        new_lazy_dict._lazy_values = {key: self._lazy_values[key] for key in keys}
+        return new_lazy_dict
+
+    def update(self, other: LazyDict[KeyT, InnerValueT, ValueT]) -> None:
+        self._lazy_values.update(other._lazy_values)
+
+
+def make_lazy_detections(
+    xyxy: np.ndarray,
+    polygons: List[np.ndarray],
+    resolution_wh: Tuple[int, int],
+    class_id: Optional[np.ndarray] = None,
+    confidence: Optional[np.ndarray] = None,
+    data: Optional[Dict[str, Any]] = None,
+) -> Detections:
+    """Masks take a lot of space, so let's store polygons instead."""
+
+    if data is None:
+        data = {}
+    data["_polygons"] = polygons
+    data["_resolution_wh"] = [resolution_wh for _ in range(len(xyxy))]
+
+    lazy_detections = Detections(
+        xyxy=xyxy, mask=None, class_id=class_id, confidence=confidence, data=data
+    )
+    return lazy_detections
+
+
+def load_lazy_detections(lazy_detection: Detections) -> Detections:
+    """Unpack a lazy detections object into a fully loaded one."""
+
+    # Rationale: mask takes up a lot of memory, so let's store polygons
+    if lazy_detection.mask is not None or "_polygons" not in lazy_detection.data:
+        return lazy_detection
+
+    polygons = lazy_detection.data["_polygons"]
+    resolution_wh = lazy_detection.data["_resolution_wh"][0]  # We only need one
+    mask = np.array(
+        [
+            polygon_to_mask(polygon=polygon, resolution_wh=resolution_wh)
+            for polygon in polygons
+        ],
+        dtype=bool,
+    )
+    new_data = copy.deepcopy(lazy_detection.data)
+    del new_data["_polygons"]
+    del new_data["_resolution_wh"]
+
+    detections = Detections(
+        xyxy=lazy_detection.xyxy,
+        mask=mask,
+        class_id=lazy_detection.class_id,
+        confidence=lazy_detection.confidence,
+        data=new_data,
+    )
+    return detections

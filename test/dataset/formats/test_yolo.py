@@ -8,8 +8,9 @@ from supervision.dataset.formats.yolo import (
     _image_name_to_annotation_name,
     _with_mask,
     object_to_yolo,
-    yolo_annotations_to_detections,
+    yolo_annotations_to_lazy_detections,
 )
+from supervision.dataset.utils import load_lazy_detections
 from supervision.detection.core import Detections
 
 
@@ -178,9 +179,10 @@ def test_yolo_annotations_to_detections(
     exception: Exception,
 ) -> None:
     with exception:
-        result = yolo_annotations_to_detections(
+        result = yolo_annotations_to_lazy_detections(
             lines=lines, resolution_wh=resolution_wh, with_masks=with_masks
         )
+        result = load_lazy_detections(result)
         assert np.array_equal(result.xyxy, expected_result.xyxy)
         assert np.array_equal(result.class_id, expected_result.class_id)
         assert (
