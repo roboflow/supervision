@@ -145,14 +145,14 @@ def oriented_box_iou_batch(
 ) -> np.ndarray:
     """
     Compute Intersection over Union (IoU) of two sets of oriented bounding boxes -
-        `boxes_true` and `boxes_detection`. Both sets
-        of boxes are expected to be in `(x1, y1, x2, y2, x3, y3, x4, y4)` format.
+    `boxes_true` and `boxes_detection`. Both sets of boxes are expected to be in
+    `((x1, y1), (x2, y2), (x3, y3), (x4, y4))` format.
 
     Args:
-        boxes_true (np.ndarray): 2D `np.ndarray` representing ground-truth boxes.
-            `shape = (N, 8)` where `N` is number of true objects.
-        boxes_detection (np.ndarray): 2D `np.ndarray` representing detection boxes.
-            `shape = (M, 8)` where `M` is number of detected objects.
+        boxes_true (np.ndarray): a `np.ndarray` representing ground-truth boxes.
+            `shape = (N, 4, 2)` where `N` is number of true objects.
+        boxes_detection (np.ndarray): a `np.ndarray` representing detection boxes.
+            `shape = (M, 4, 2)` where `M` is number of detected objects.
 
     Returns:
         np.ndarray: Pairwise IoU of boxes from `boxes_true` and `boxes_detection`.
