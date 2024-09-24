@@ -101,17 +101,20 @@ def get_obb_size_category(xyxyxyxy: npt.NDArray[np.float32]) -> npt.NDArray[np.i
     Get the size category of a oriented bounding boxes array.
 
     Args:
-        xyxyxyxy (np.ndarray): The bounding boxes array shaped (N, 8).
+        xyxyxyxy (np.ndarray): The bounding boxes array shaped (N, 4, 2).
 
     Returns:
         (np.ndarray) The size category of each bounding box, matching
         the enum values of ObjectSizeCategory. Shaped (N,).
     """
-    if len(xyxyxyxy.shape) != 2 or xyxyxyxy.shape[1] != 8:
-        raise ValueError("Oriented bounding boxes must be shaped (N, 8)")
+    if len(xyxyxyxy.shape) != 3 or xyxyxyxy.shape[1] != 4 or xyxyxyxy.shape[2] != 2:
+        raise ValueError("Oriented bounding boxes must be shaped (N, 4, 2)")
 
     # Shoelace formula
-    x1, y1, x2, y2, x3, y3, x4, y4 = xyxyxyxy.T
+    x = xyxyxyxy[:, :, 0]
+    y = xyxyxyxy[:, :, 1]
+    x1, x2, x3, x4 = x.T
+    y1, y2, y3, y4 = y.T
     areas = 0.5 * np.abs(
         (x1 * y2 + x2 * y3 + x3 * y4 + x4 * y1)
         - (x2 * y1 + x3 * y2 + x4 * y3 + x1 * y4)
