@@ -491,11 +491,15 @@ class LineZoneAnnotator:
         )
         assert label_image.shape[0] == label_image.shape[1]
 
+        # Make sure text is displayed upright
+        if line_zone.vector.start.x > line_zone.vector.end.x:
+            label_image = cv2.flip(label_image, flipCode=-1)
+
         text_width, text_height = cv2.getTextSize(
             text, cv2.FONT_HERSHEY_SIMPLEX, self.text_scale, self.text_thickness
         )[0]
 
-        label_origin = self._calculate_anchor_in_frame(
+        label_anchor = self._calculate_anchor_in_frame(
             line_zone=line_zone,
             text_width=text_width,
             text_height=text_height,
@@ -503,7 +507,7 @@ class LineZoneAnnotator:
             label_dimension=label_image.shape[0],
         )
 
-        frame = overlay_image(frame, label_image, label_origin)
+        frame = overlay_image(frame, label_image, label_anchor)
 
         return frame
 
