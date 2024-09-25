@@ -1,3 +1,4 @@
+from functools import lru_cache
 import math
 import warnings
 from typing import Any, Dict, Iterable, Tuple
@@ -452,6 +453,7 @@ class LineZoneAnnotator:
         return frame
 
     @staticmethod
+    @lru_cache(maxsize=32)
     def _make_count_label_image(
         text: str,
         *,
