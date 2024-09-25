@@ -294,7 +294,8 @@ class LineZoneAnnotator:
             text_width (int): Text width.
             text_height (int): Text height.
             is_in_count (bool): Whether the count should be placed over or below line.
-            label_dimension (int): Size of the label image. Assumes the label is rectangular.
+            label_dimension (int): Size of the label image. Assumes the
+                label is rectangular.
 
         Returns:
             Tuple[int, int]: xy, pont in an image where the label will be placed.
@@ -453,9 +454,11 @@ class LineZoneAnnotator:
 
         Args:
             frame (np.ndarray): The entire scene, on which the label will be placed.
-            line_zone (LineZone): The line zone responsible for counting objects crossing it.
+            line_zone (LineZone): The line zone responsible for counting
+                objects crossing it.
             text (str): The text that will be drawn.
-            is_in_count (bool): Whether to display the in count (above line) or out count (below line).
+            is_in_count (bool): Whether to display the in count (above line)
+                or out count (below line).
 
         Returns:
             np.ndarray: The scene with the label drawn on it.
