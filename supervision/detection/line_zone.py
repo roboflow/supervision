@@ -400,7 +400,6 @@ class LineZoneAnnotator:
                 is_in_count=False,
             )
         return frame
-    
 
     def _draw_count_label(
         self,
@@ -519,6 +518,3 @@ class LineZoneAnnotator:
         annotation = cv2.warpAffine(annotation, rotation_matrix, annotation_shape)
 
         return annotation
-
-
-
