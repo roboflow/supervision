@@ -10,6 +10,7 @@ from supervision.detection.utils import cross_product
 from supervision.draw.color import Color
 from supervision.draw.utils import draw_text
 from supervision.geometry.core import Point, Position, Vector
+from supervision.utils.image import overlay_image
 from supervision.utils.internal import SupervisionWarnings
 
 
@@ -285,7 +286,8 @@ class LineZoneAnnotator:
         text_width: int,
         text_height: int,
         is_in_count: bool,
-    ) -> Point:
+        label_dimension: int,
+    ) -> Tuple[int, int]:
         """
         Calculate insertion anchor in frame to position the center of the count image.
 
@@ -294,9 +296,10 @@ class LineZoneAnnotator:
             text_width (int): Text width.
             text_height (int): Text height.
             is_in_count (bool): Whether the count should be placed over or below line.
+            label_dimension (int): Size of the label image. Assumes the label is rectangular.
 
         Returns:
-            Point: xy insertion anchor to position count image in frame.
+            Tuple[int, int]: xy, pont in an image where the label will be placed.
         """
         line_angle = self._get_line_angle(line_counter)
 
@@ -335,146 +338,10 @@ class LineZoneAnnotator:
             anchor[0] -= move_perp_x
             anchor[1] += move_perp_y
 
-        return Point(x=anchor[0], y=anchor[1])
+        x1 = max(anchor[0] - label_dimension // 2, 0)
+        y1 = max(anchor[1] - label_dimension // 2, 0)
 
-    def _calculate_xyxy_in_frame(
-        self, frame_dims: tuple, img_dim: int, anchor_in_frame: Point
-    ) -> tuple:
-        """
-        Calculate insertion bbox in frame to position count image.
-
-        Args:
-            frame_dims (int, int): Width and height of the frame.
-            img_dim (int): Width/height of squared count image.
-            anchor_in_frame (Point): xy insertion anchor to position image.
-
-        Returns:
-            (int, int, int, int): xyxy insertion bbox to position count image.
-        """
-        y1 = max(anchor_in_frame.y - img_dim // 2, 0)
-        y2 = min(anchor_in_frame.y + img_dim // 2 + img_dim % 2, frame_dims[0])
-        x1 = max(anchor_in_frame.x - img_dim // 2, 0)
-        x2 = min(anchor_in_frame.x + img_dim // 2 + img_dim % 2, frame_dims[1])
-
-        return x1, y1, x2, y2
-
-    def _crop_img(self, label_image, xyxy_in_frame) -> np.ndarray:
-        """
-        Crop image to fit insertion bbox boundaries.
-
-        Args:
-            label_image (np.ndarray): Image to crop.
-            xyxy_in_frame (list): xyxy insertion bbox used to crop image.
-
-        Returns:
-            np.ndarray: Cropped image.
-        """
-        img_dim = label_image.shape[0]
-        x1, y1, x2, y2 = xyxy_in_frame
-
-        if y2 - y1 != img_dim:
-            if y1 == 0:
-                label_image = label_image[(img_dim - y2) :, ...]
-            else:
-                label_image = label_image[: (y2 - y1), ...]
-
-        if x2 - x1 != img_dim:
-            if x1 == 0:
-                label_image = label_image[:, (img_dim - x2) :, ...]
-            else:
-                label_image = label_image[:, : (x2 - x1), ...]
-
-        return label_image
-
-    def _place_annotation_on_frame(
-        self, frame: np.ndarray, annotation_image: np.ndarray, xyxy_in_frame: tuple
-    ) -> np.ndarray:
-        """
-        Annotate count image in the original frame.
-
-        Attributes:
-            frame (np.ndarray): The base image on which to insert the text-box image.
-            img (np.ndarray): Count image with bgr channels + alpha channel.
-            xyxy_in_frame (int, int, int, int): xyxy insertion bbox.
-
-        Returns:
-            np.ndarray: Annotated frame.
-        """
-        x1, y1, x2, y2 = xyxy_in_frame
-
-        annotation_in_frame = np.zeros_like(frame, dtype=np.uint8)
-        annotation_in_frame[y1:y2, x1:x2, ...] = annotation_image[:, :, :3]
-
-        # Visually indistinguishable from opacity multiplication
-        alpha_in_frame = np.zeros_like(frame[:, :, 0], dtype=np.uint8)
-        alpha_in_frame[y1:y2, x1:x2] = annotation_image[:, :, 3]
-        mask = alpha_in_frame == 255
-
-        # MUCH faster when not vectorized (Mac)
-        for i in range(3):
-            frame[:, :, i][mask] = annotation_in_frame[:, :, i][mask]
-
-        return frame
-
-    def _draw_count_label(
-        self,
-        frame: np.ndarray,
-        line_counter: LineZone,
-        text: str,
-        is_in_count: bool,
-    ) -> np.ndarray:
-        """This method is drawing the text on the frame.
-
-        Args:
-            frame (np.ndarray): The image on which the text will be drawn.
-            line_counter (LineCounter): The line counter
-                that will be used to draw the line.
-            text (str): The text that will be drawn.
-            is_in_count (bool): Whether to display the in count or out count.
-
-        Returns:
-            np.ndarray: The image with the count drawn on it.
-        """
-
-        line_angle_degrees = self._get_line_angle(line_counter)
-        label_image = _make_line_zone_label(
-            text,
-            text_scale=self.text_scale,
-            text_thickness=self.text_thickness,
-            text_padding=self.text_padding,
-            text_color=self.text_color,
-            text_box_show=self.display_text_box,
-            text_box_color=self.color,
-            line_angle_degrees=line_angle_degrees,
-        )
-        assert label_image.shape[0] == label_image.shape[1]
-
-        text_width, text_height = cv2.getTextSize(
-            text, cv2.FONT_HERSHEY_SIMPLEX, self.text_scale, self.text_thickness
-        )[0]
-
-        anchor_in_frame = self._calculate_anchor_in_frame(
-            line_counter=line_counter,
-            text_width=text_width,
-            text_height=text_height,
-            is_in_count=is_in_count,
-        )
-
-        xyxy_in_frame = self._calculate_xyxy_in_frame(
-            frame_dims=frame.shape[:2],
-            img_dim=label_image.shape[0],
-            anchor_in_frame=anchor_in_frame,
-        )
-
-        image_cropped = self._crop_img(
-            label_image=label_image, xyxy_in_frame=xyxy_in_frame
-        )
-
-        frame = self._place_annotation_on_frame(
-            frame=frame, annotation_image=image_cropped, xyxy_in_frame=xyxy_in_frame
-        )
-
-        return frame
+        return x1, y1
 
     def annotate(self, frame: np.ndarray, line_counter: LineZone) -> np.ndarray:
         """
@@ -533,72 +400,125 @@ class LineZoneAnnotator:
                 is_in_count=False,
             )
         return frame
+    
+
+    def _draw_count_label(
+        self,
+        frame: np.ndarray,
+        line_counter: LineZone,
+        text: str,
+        is_in_count: bool,
+    ) -> np.ndarray:
+        """
+        This method is drawing the text on the frame.
+
+        Args:
+            frame (np.ndarray): The image on which the text will be drawn.
+            line_counter (LineCounter): The line counter
+                that will be used to draw the line.
+            text (str): The text that will be drawn.
+            is_in_count (bool): Whether to display the in count or out count.
+
+        Returns:
+            np.ndarray: The image with the count drawn on it.
+        """
+
+        line_angle_degrees = self._get_line_angle(line_counter)
+        label_image = self._make_count_label_image(
+            text,
+            text_scale=self.text_scale,
+            text_thickness=self.text_thickness,
+            text_padding=self.text_padding,
+            text_color=self.text_color,
+            text_box_show=self.display_text_box,
+            text_box_color=self.color,
+            line_angle_degrees=line_angle_degrees,
+        )
+        assert label_image.shape[0] == label_image.shape[1]
+
+        text_width, text_height = cv2.getTextSize(
+            text, cv2.FONT_HERSHEY_SIMPLEX, self.text_scale, self.text_thickness
+        )[0]
+
+        label_origin = self._calculate_anchor_in_frame(
+            line_counter=line_counter,
+            text_width=text_width,
+            text_height=text_height,
+            is_in_count=is_in_count,
+            label_dimension=label_image.shape[0],
+        )
+
+        frame = overlay_image(frame, label_image, label_origin)
+
+        return frame
+
+    @staticmethod
+    def _make_count_label_image(
+        text: str,
+        *,
+        text_scale: float,
+        text_thickness: int,
+        text_padding: int,
+        text_color: Color,
+        text_box_show: bool,
+        text_box_color: Color,
+        line_angle_degrees: float,
+    ) -> np.ndarray:
+        """
+        Create the small text box displaying line zone count. E.g. "out: 7".
+
+        Args:
+            text (str): The text to display.
+            text_scale (float): The scale of the text.
+            text_thickness (int): The thickness of the text.
+            text_padding (int): The padding around the text.
+            text_color (Color): The color of the text.
+            text_box_show (bool): Whether to display the text box.
+            text_box_color (Color): The color of the text box.
+            line_angle_degrees (float): The angle of the line in degrees.
+
+        Returns:
+            np.ndarray: The label of shape (H, W, 4), in BGRA format.
+        """
+        text_width, text_height = cv2.getTextSize(
+            text, cv2.FONT_HERSHEY_SIMPLEX, text_scale, text_thickness
+        )[0]
+
+        annotation_dim = int((max(text_width, text_height) + text_padding * 2) * 1.5)
+        annotation_shape = (annotation_dim, annotation_dim)
+        annotation_center = Point(annotation_dim // 2, annotation_dim // 2)
+
+        annotation = np.zeros((*annotation_shape, 3), dtype=np.uint8)
+        annotation_alpha = np.zeros((*annotation_shape, 1), dtype=np.uint8)
+
+        text_args: Dict[str, Any] = dict(
+            text=text,
+            text_anchor=annotation_center,
+            text_scale=text_scale,
+            text_thickness=text_thickness,
+            text_padding=text_padding,
+        )
+        draw_text(
+            scene=annotation,
+            text_color=text_color,
+            background_color=text_box_color if text_box_show else None,
+            **text_args,
+        )
+        draw_text(
+            scene=annotation_alpha,
+            text_color=Color.WHITE,
+            background_color=Color.WHITE if text_box_show else None,
+            **text_args,
+        )
+        annotation = np.dstack((annotation, annotation_alpha))
+
+        rotation_angle = -line_angle_degrees
+        rotation_matrix = cv2.getRotationMatrix2D(
+            annotation_center.as_xy_float_tuple(), rotation_angle, scale=1
+        )
+        annotation = cv2.warpAffine(annotation, rotation_matrix, annotation_shape)
+
+        return annotation
 
 
-def _make_line_zone_label(
-    text: str,
-    *,
-    text_scale: float,
-    text_thickness: int,
-    text_padding: int,
-    text_color: Color,
-    text_box_show: bool,
-    text_box_color: Color,
-    line_angle_degrees: float,
-) -> np.ndarray:
-    """
-    Create the image with the rotated label, showing the in/out counts
-    of objects crossing the LineZone.
 
-    Args:
-        text (str): The text to display.
-        text_scale (float): The scale of the text.
-        text_thickness (int): The thickness of the text.
-        text_padding (int): The padding around the text.
-        text_color (Color): The color of the text.
-        text_box_show (bool): Whether to display the text box.
-        text_box_color (Color): The color of the text box.
-        line_angle_degrees (float): The angle of the line in degrees.
-
-    Returns:
-        np.ndarray: The label of shape (H, W, 4), in BGRA format.
-    """
-    text_width, text_height = cv2.getTextSize(
-        text, cv2.FONT_HERSHEY_SIMPLEX, text_scale, text_thickness
-    )[0]
-
-    annotation_dim = int((max(text_width, text_height) + text_padding * 2) * 1.5)
-    annotation_shape = (annotation_dim, annotation_dim)
-    annotation_center = Point(annotation_dim // 2, annotation_dim // 2)
-
-    annotation = np.zeros((*annotation_shape, 3), dtype=np.uint8)
-    annotation_alpha = np.zeros((*annotation_shape, 1), dtype=np.uint8)
-
-    text_args: Dict[str, Any] = dict(
-        text=text,
-        text_anchor=annotation_center,
-        text_scale=text_scale,
-        text_thickness=text_thickness,
-        text_padding=text_padding,
-    )
-    draw_text(
-        scene=annotation,
-        text_color=text_color,
-        background_color=text_box_color if text_box_show else None,
-        **text_args,
-    )
-    draw_text(
-        scene=annotation_alpha,
-        text_color=Color.WHITE,
-        background_color=Color.WHITE if text_box_show else None,
-        **text_args,
-    )
-    annotation = np.dstack((annotation, annotation_alpha))
-
-    rotation_angle = -line_angle_degrees
-    rotation_matrix = cv2.getRotationMatrix2D(
-        annotation_center.as_xy_float_tuple(), rotation_angle, scale=1
-    )
-    annotation = cv2.warpAffine(annotation, rotation_matrix, annotation_shape)
-
-    return annotation
