@@ -419,6 +419,20 @@ class LineZoneAnnotator:
         text: str,
         is_in_count: bool,
     ) -> np.ndarray:
+        """
+        Draw the count label on the frame. For example: "out: 7".
+        The label contains horizontal text and is not rotated.
+
+        Args:
+            frame (np.ndarray): The entire scene, on which the label will be placed.
+            line_center (Point): The center of the line zone.
+            text (str): The text that will be drawn.
+            is_in_count (bool): Whether to display the in count (above line)
+                or out count (below line).
+
+        Returns:
+            np.ndarray: The scene with the label drawn on it.
+        """
         _, text_height = cv2.getTextSize(
             text, cv2.FONT_HERSHEY_SIMPLEX, self.text_scale, self.text_thickness
         )[0]
@@ -436,7 +450,7 @@ class LineZoneAnnotator:
             text_scale=self.text_scale,
             text_thickness=self.text_thickness,
             text_padding=self.text_padding,
-            background_color=self.color,
+            background_color=self.color if self.display_text_box else None,
         )
 
         return frame
