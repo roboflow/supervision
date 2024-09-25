@@ -1,6 +1,6 @@
-from functools import lru_cache
 import math
 import warnings
+from functools import lru_cache
 from typing import Any, Dict, Iterable, Tuple
 
 import cv2
