@@ -1,6 +1,6 @@
 import math
 import warnings
-from typing import Any, Dict, Iterable, Optional, Tuple
+from typing import Any, Dict, Iterable, Tuple
 
 import cv2
 import numpy as np
@@ -207,8 +207,8 @@ class LineZoneAnnotator:
         text_scale: float = 0.5,
         text_offset: float = 1.5,
         text_padding: int = 10,
-        custom_in_text: Optional[str] = None,
-        custom_out_text: Optional[str] = None,
+        custom_in_text: str = "in",
+        custom_out_text: str = "out",
         display_in_count: bool = True,
         display_out_count: bool = True,
         display_text_box: bool = True,
@@ -243,8 +243,8 @@ class LineZoneAnnotator:
         self.text_scale: float = text_scale
         self.text_offset: float = text_offset
         self.text_padding: int = text_padding
-        self.custom_in_text: Optional[str] = custom_in_text
-        self.custom_out_text: Optional[str] = custom_out_text
+        self.custom_in_text: str = custom_in_text
+        self.custom_out_text: str = custom_out_text
         self.display_in_count: bool = display_in_count
         self.display_out_count: bool = display_out_count
         self.display_text_box: bool = display_text_box
@@ -253,10 +253,10 @@ class LineZoneAnnotator:
 
     def _get_line_angle(self, line_counter: LineZone) -> float:
         """
-        Calculate the line counter angle using trigonometry.
+        Calculate the line counter angle (in degrees).
 
         Args:
-            line_counter (LineZone): The line counter object used to annotate.
+            line_counter (LineZone): The line zone object.
 
         Returns:
             float: Line counter angle, in degrees.
@@ -352,68 +352,42 @@ class LineZoneAnnotator:
             (int, int, int, int): xyxy insertion bbox to position count image.
         """
         y1 = max(anchor_in_frame.y - img_dim // 2, 0)
-        y2 = min(
-            anchor_in_frame.y + img_dim // 2 + img_dim % 2,
-            frame_dims[0],
-        )
+        y2 = min(anchor_in_frame.y + img_dim // 2 + img_dim % 2, frame_dims[0])
         x1 = max(anchor_in_frame.x - img_dim // 2, 0)
-        x2 = min(
-            anchor_in_frame.x + img_dim // 2 + img_dim % 2,
-            frame_dims[1],
-        )
+        x2 = min(anchor_in_frame.x + img_dim // 2 + img_dim % 2, frame_dims[1])
 
-        return (x1, y1, x2, y2)
+        return x1, y1, x2, y2
 
-    def _rotate_img(self, img: np.ndarray, line_counter: LineZone) -> np.ndarray:
-        """
-        Rotate count image to align text with the line counter.
-
-        Attributes:
-            img (np.ndarray): Image to rotate.
-            line_counter (LineZone): The line counter object.
-
-        Returns:
-            np.ndarray: Image with the same shape as the input with aligned text.
-        """
-        line_angle = self._get_line_angle(line_counter)
-        is_line_upside_down = not -90 <= line_angle <= 90
-
-        rotation_center = (img.shape[0] // 2, img.shape[0] // 2)
-        rotation_angle = -(line_angle) + is_line_upside_down * 180
-        rotation_scale = 1
-
-        rotation_matrix = cv2.getRotationMatrix2D(
-            rotation_center, rotation_angle, rotation_scale
-        )
-
-        img_rotated = cv2.warpAffine(img, rotation_matrix, (img.shape[1], img.shape[0]))
-
-        return img_rotated
-
-    def _crop_img(self, img, xyxy_in_frame) -> np.ndarray:
+    def _crop_img(self, label_image, xyxy_in_frame) -> np.ndarray:
         """
         Crop image to fit insertion bbox boundaries.
 
         Args:
-            img (np.ndarray): Image to crop.
+            label_image (np.ndarray): Image to crop.
             xyxy_in_frame (list): xyxy insertion bbox used to crop image.
 
         Returns:
             np.ndarray: Cropped image.
         """
-        img_dim = img.shape[0]
-        (x1, y1, x2, y2) = xyxy_in_frame
+        img_dim = label_image.shape[0]
+        x1, y1, x2, y2 = xyxy_in_frame
 
         if y2 - y1 != img_dim:
-            img = img[(img_dim - y2) :, ...] if y1 == 0 else img[: (y2 - y1), ...]
+            if y1 == 0:
+                label_image = label_image[(img_dim - y2) :, ...]
+            else:
+                label_image = label_image[: (y2 - y1), ...]
 
         if x2 - x1 != img_dim:
-            img = img[:, (img_dim - x2) :, ...] if x1 == 0 else img[:, : (x2 - x1), ...]
+            if x1 == 0:
+                label_image = label_image[:, (img_dim - x2) :, ...]
+            else:
+                label_image = label_image[:, : (x2 - x1), ...]
 
-        return img
+        return label_image
 
-    def _annotate_img_in_frame(
-        self, frame: np.ndarray, img: np.ndarray, xyxy_in_frame: tuple
+    def _place_annotation_on_frame(
+        self, frame: np.ndarray, annotation_image: np.ndarray, xyxy_in_frame: tuple
     ) -> np.ndarray:
         """
         Annotate count image in the original frame.
@@ -426,21 +400,23 @@ class LineZoneAnnotator:
         Returns:
             np.ndarray: Annotated frame.
         """
-        (x1, y1, x2, y2) = xyxy_in_frame
+        x1, y1, x2, y2 = xyxy_in_frame
 
-        # Paste count image and alpha in empty backgrounds with frame width and height.
-        img_in_frame = np.zeros_like(frame, dtype=np.uint8)
-        img_in_frame[y1:y2, x1:x2, ...] = img[:, :, :3]
+        annotation_in_frame = np.zeros_like(frame, dtype=np.uint8)
+        annotation_in_frame[y1:y2, x1:x2, ...] = annotation_image[:, :, :3]
+
+        # Visually indistinguishable from opacity multiplication
         alpha_in_frame = np.zeros_like(frame[:, :, 0], dtype=np.uint8)
-        alpha_in_frame[y1:y2, x1:x2] = img[:, :, 3]
+        alpha_in_frame[y1:y2, x1:x2] = annotation_image[:, :, 3]
+        mask = alpha_in_frame == 255
 
-        opacity = alpha_in_frame / 255
+        # MUCH faster when not vectorized (Mac)
         for i in range(3):
-            frame[:, :, i] = frame[:, :, i] * (1 - opacity) + img_in_frame[:, :, i]
+            frame[:, :, i][mask] = annotation_in_frame[:, :, i][mask]
 
         return frame
 
-    def _annotate_count(
+    def _draw_count_label(
         self,
         frame: np.ndarray,
         line_counter: LineZone,
@@ -459,35 +435,23 @@ class LineZoneAnnotator:
         Returns:
             np.ndarray: The image with the count drawn on it.
         """
+
+        line_angle_degrees = self._get_line_angle(line_counter)
+        label_image = _make_line_zone_label(
+            text,
+            text_scale=self.text_scale,
+            text_thickness=self.text_thickness,
+            text_padding=self.text_padding,
+            text_color=self.text_color,
+            text_box_show=self.display_text_box,
+            text_box_color=self.color,
+            line_angle_degrees=line_angle_degrees,
+        )
+        assert label_image.shape[0] == label_image.shape[1]
+
         text_width, text_height = cv2.getTextSize(
             text, cv2.FONT_HERSHEY_SIMPLEX, self.text_scale, self.text_thickness
         )[0]
-
-        # Create an auxiliary squared image for the count and its alpha channel
-        image_dim = int((max(text_width, text_height) + self.text_padding * 2) * 1.5)
-        image = np.zeros((image_dim, image_dim, 3), dtype=np.uint8)  # bgr
-        image_alpha = np.zeros((image_dim, image_dim, 1), dtype=np.uint8)  # gray
-
-        text_args: Dict[str, Any] = {
-            "text": text,
-            "text_anchor": Point(image_dim // 2, image_dim // 2),
-            "text_scale": self.text_scale,
-            "text_thickness": self.text_thickness,
-            "text_padding": self.text_padding,
-        }
-        draw_text(
-            scene=image,
-            text_color=self.text_color,
-            background_color=self.color if self.display_text_box else None,
-            **text_args,
-        )
-        draw_text(
-            scene=image_alpha,
-            text_color=Color.WHITE,
-            background_color=Color.WHITE if self.display_text_box else None,
-            **text_args,
-        )
-        image = np.dstack((image, image_alpha))  # Stack bgr and alpha channels
 
         anchor_in_frame = self._calculate_anchor_in_frame(
             line_counter=line_counter,
@@ -498,16 +462,16 @@ class LineZoneAnnotator:
 
         xyxy_in_frame = self._calculate_xyxy_in_frame(
             frame_dims=frame.shape[:2],
-            img_dim=image_dim,
+            img_dim=label_image.shape[0],
             anchor_in_frame=anchor_in_frame,
         )
 
-        image_rotated = self._rotate_img(img=image, line_counter=line_counter)
+        image_cropped = self._crop_img(
+            label_image=label_image, xyxy_in_frame=xyxy_in_frame
+        )
 
-        image_cropped = self._crop_img(img=image_rotated, xyxy_in_frame=xyxy_in_frame)
-
-        frame = self._annotate_img_in_frame(
-            frame=frame, img=image_cropped, xyxy_in_frame=xyxy_in_frame
+        frame = self._place_annotation_on_frame(
+            frame=frame, annotation_image=image_cropped, xyxy_in_frame=xyxy_in_frame
         )
 
         return frame
@@ -552,12 +516,8 @@ class LineZoneAnnotator:
         )
 
         if self.display_in_count:
-            in_text = (
-                f"{self.custom_in_text}: {line_counter.in_count}"
-                if self.custom_in_text is not None
-                else f"in: {line_counter.in_count}"
-            )
-            self._annotate_count(
+            in_text = f"{self.custom_in_text}: {line_counter.in_count}"
+            self._draw_count_label(
                 frame=frame,
                 line_counter=line_counter,
                 text=in_text,
@@ -565,15 +525,80 @@ class LineZoneAnnotator:
             )
 
         if self.display_out_count:
-            out_text = (
-                f"{self.custom_out_text}: {line_counter.out_count}"
-                if self.custom_out_text is not None
-                else f"out: {line_counter.out_count}"
-            )
-            self._annotate_count(
+            out_text = f"{self.custom_out_text}: {line_counter.out_count}"
+            self._draw_count_label(
                 frame=frame,
                 line_counter=line_counter,
                 text=out_text,
                 is_in_count=False,
             )
         return frame
+
+
+def _make_line_zone_label(
+    text: str,
+    *,
+    text_scale: float,
+    text_thickness: int,
+    text_padding: int,
+    text_color: Color,
+    text_box_show: bool,
+    text_box_color: Color,
+    line_angle_degrees: float,
+) -> np.ndarray:
+    """
+    Create the image with the rotated label, showing the in/out counts
+    of objects crossing the LineZone.
+
+    Args:
+        text (str): The text to display.
+        text_scale (float): The scale of the text.
+        text_thickness (int): The thickness of the text.
+        text_padding (int): The padding around the text.
+        text_color (Color): The color of the text.
+        text_box_show (bool): Whether to display the text box.
+        text_box_color (Color): The color of the text box.
+        line_angle_degrees (float): The angle of the line in degrees.
+
+    Returns:
+        np.ndarray: The label of shape (H, W, 4), in BGRA format.
+    """
+    text_width, text_height = cv2.getTextSize(
+        text, cv2.FONT_HERSHEY_SIMPLEX, text_scale, text_thickness
+    )[0]
+
+    annotation_dim = int((max(text_width, text_height) + text_padding * 2) * 1.5)
+    annotation_shape = (annotation_dim, annotation_dim)
+    annotation_center = Point(annotation_dim // 2, annotation_dim // 2)
+
+    annotation = np.zeros((*annotation_shape, 3), dtype=np.uint8)
+    annotation_alpha = np.zeros((*annotation_shape, 1), dtype=np.uint8)
+
+    text_args: Dict[str, Any] = dict(
+        text=text,
+        text_anchor=annotation_center,
+        text_scale=text_scale,
+        text_thickness=text_thickness,
+        text_padding=text_padding,
+    )
+    draw_text(
+        scene=annotation,
+        text_color=text_color,
+        background_color=text_box_color if text_box_show else None,
+        **text_args,
+    )
+    draw_text(
+        scene=annotation_alpha,
+        text_color=Color.WHITE,
+        background_color=Color.WHITE if text_box_show else None,
+        **text_args,
+    )
+    annotation = np.dstack((annotation, annotation_alpha))
+
+    rotation_angle = -line_angle_degrees
+    rotation_matrix = cv2.getRotationMatrix2D(
+        annotation_center.as_xy_float_tuple(), rotation_angle, scale=1
+    )
+    annotation = cv2.warpAffine(annotation, rotation_matrix, annotation_shape)
+
+    return annotation
