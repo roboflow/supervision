@@ -218,24 +218,26 @@ class LineZoneAnnotator:
         text_centered: bool = True,
     ):
         """
-        A class for drawing the LineZone and its detected object count on an image.
+        A class for drawing the `LineZone` and its detected object count
+        on an image.
 
         Attributes:
-            thickness (int): The thickness of the line that will be drawn.
-            color (Color): The color of the line that will be drawn.
-            text_thickness (int): The thickness of the text that will be drawn.
-            text_color (Color): The color of the text that will be drawn.
-            text_scale (float): The scale of the text that will be drawn.
-            text_offset (float): The offset of the text that will be drawn.
-            text_padding (int): The padding of the text that will be drawn.
-            orient_text_to_line (bool): Whether to orient the text to the line or not.
-            custom_in_text: (Optional[str]): Custom text to display for the in count.
-            custom_out_text: (Optional[str]): Custom text to display for the out count.
-            display_in_count (bool): Whether to display the in count or not.
-            display_out_count (bool): Whether to display the out count or not.
-            display_text_box (bool): Whether to draw a text box under the text or not.
+            thickness (int): Line thickness.
+            color (Color): Line color.
+            text_thickness (int): Text thickness.
+            text_color (Color): Text color.
+            text_scale (float): Text scale.
+            text_offset (float): How far the text will be from the line.
+            text_padding (int): The empty space in the text box, surrounding the text.
+            custom_in_text: (Optional[str]): Write something else instead of "in".
+            custom_out_text: (Optional[str]): Write something else instead of "out".
+            display_in_count (bool): Pass `False` to hide the "in" count.
+            display_out_count (bool): Pass `False` to hide the "out" count.
+            display_text_box (bool): Pass `False` to hide the text background box.
             text_orient_to_line (bool): ⭐ Match text orientation to the line.
-            text_centered (bool): Whether to draw the count centered in the line or not.
+                Recommended to set to `True`.
+            text_centered (bool): Pass `False` to disable text centering. Useful
+                when the label overlaps something important.
 
         """
         self.thickness: int = thickness
@@ -259,7 +261,7 @@ class LineZoneAnnotator:
 
         Attributes:
             frame (np.ndarray): The image on which the line will be drawn.
-            line_counter (LineCounter): The line zone
+            line_counter (LineZone): The line zone
                 that will be used to draw the line.
 
         Returns:
