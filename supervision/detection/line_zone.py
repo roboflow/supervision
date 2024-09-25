@@ -1,7 +1,7 @@
 import math
 import warnings
 from functools import lru_cache
-from typing import Any, Dict, Iterable, Tuple
+from typing import Any, Dict, Iterable, Optional, Tuple
 
 import cv2
 import numpy as np
@@ -209,8 +209,8 @@ class LineZoneAnnotator:
         text_scale: float = 0.5,
         text_offset: float = 1.5,
         text_padding: int = 10,
-        custom_in_text: str = "in",
-        custom_out_text: str = "out",
+        custom_in_text: Optional[str] = None,
+        custom_out_text: Optional[str] = None,
         display_in_count: bool = True,
         display_out_count: bool = True,
         display_text_box: bool = True,
@@ -245,29 +245,26 @@ class LineZoneAnnotator:
         self.text_scale: float = text_scale
         self.text_offset: float = text_offset
         self.text_padding: int = text_padding
-        self.custom_in_text: str = custom_in_text
-        self.custom_out_text: str = custom_out_text
+        self.in_text: str = custom_in_text if custom_in_text else "in"
+        self.out_text: str = custom_out_text if custom_out_text else "out"
         self.display_in_count: bool = display_in_count
         self.display_out_count: bool = display_out_count
         self.display_text_box: bool = display_text_box
         self.text_orient_to_line: bool = text_orient_to_line
         self.text_centered: bool = text_centered
 
-    def _get_line_angle(self, line_counter: LineZone) -> float:
+    def _get_line_angle(self, line_zone: LineZone) -> float:
         """
         Calculate the line counter angle (in degrees).
 
         Args:
-            line_counter (LineZone): The line zone object.
+            line_zone (LineZone): The line zone object.
 
         Returns:
             float: Line counter angle, in degrees.
         """
-        if not self.text_orient_to_line:
-            return 0
-
-        start_point = line_counter.vector.start.as_xy_int_tuple()
-        end_point = line_counter.vector.end.as_xy_int_tuple()
+        start_point = line_zone.vector.start.as_xy_int_tuple()
+        end_point = line_zone.vector.end.as_xy_int_tuple()
 
         delta_x = end_point[0] - start_point[0]
         delta_y = end_point[1] - start_point[1]
@@ -283,7 +280,7 @@ class LineZoneAnnotator:
 
     def _calculate_anchor_in_frame(
         self,
-        line_counter: LineZone,
+        line_zone: LineZone,
         text_width: int,
         text_height: int,
         is_in_count: bool,
@@ -293,7 +290,7 @@ class LineZoneAnnotator:
         Calculate insertion anchor in frame to position the center of the count image.
 
         Args:
-            line_counter (LineZone): The line counter object used for counting.
+            line_zone (LineZone): The line counter object used for counting.
             text_width (int): Text width.
             text_height (int): Text height.
             is_in_count (bool): Whether the count should be placed over or below line.
@@ -302,15 +299,15 @@ class LineZoneAnnotator:
         Returns:
             Tuple[int, int]: xy, pont in an image where the label will be placed.
         """
-        line_angle = self._get_line_angle(line_counter)
+        line_angle = self._get_line_angle(line_zone)
 
         if self.text_centered:
             mid_point = Vector(
-                start=line_counter.vector.start, end=line_counter.vector.end
+                start=line_zone.vector.start, end=line_zone.vector.end
             ).center.as_xy_int_tuple()
             anchor = list(mid_point)
         else:
-            end_point = line_counter.vector.end.as_xy_int_tuple()
+            end_point = line_zone.vector.end.as_xy_int_tuple()
             anchor = list(end_point)
 
             move_along_x = int(
@@ -346,21 +343,24 @@ class LineZoneAnnotator:
 
     def annotate(self, frame: np.ndarray, line_counter: LineZone) -> np.ndarray:
         """
-        Draws the line on the frame using the line_counter provided.
+        Draws the line on the frame using the line zone provided.
 
         Attributes:
             frame (np.ndarray): The image on which the line will be drawn.
-            line_counter (LineCounter): The line counter
+            line_counter (LineCounter): The line zone
                 that will be used to draw the line.
 
         Returns:
             np.ndarray: The image with the line drawn on it.
 
         """
+        line_start = line_counter.vector.start.as_xy_int_tuple()
+        line_end = line_counter.vector.end.as_xy_int_tuple()
+        line_center_point = line_counter.vector.center
         cv2.line(
             frame,
-            line_counter.vector.start.as_xy_int_tuple(),
-            line_counter.vector.end.as_xy_int_tuple(),
+            line_start,
+            line_end,
             self.color.as_bgr(),
             self.thickness,
             lineType=cv2.LINE_AA,
@@ -368,7 +368,7 @@ class LineZoneAnnotator:
         )
         cv2.circle(
             frame,
-            line_counter.vector.start.as_xy_int_tuple(),
+            line_start,
             radius=5,
             color=self.text_color.as_bgr(),
             thickness=-1,
@@ -376,55 +376,93 @@ class LineZoneAnnotator:
         )
         cv2.circle(
             frame,
-            line_counter.vector.end.as_xy_int_tuple(),
+            line_end,
             radius=5,
             color=self.text_color.as_bgr(),
             thickness=-1,
             lineType=cv2.LINE_AA,
         )
 
-        if self.display_in_count:
-            in_text = f"{self.custom_in_text}: {line_counter.in_count}"
-            self._draw_count_label(
-                frame=frame,
-                line_counter=line_counter,
-                text=in_text,
-                is_in_count=True,
-            )
+        in_text = f"{self.in_text}: {line_counter.in_count}"
+        out_text = f"{self.out_text}: {line_counter.out_count}"
+        line_angle_degrees = self._get_line_angle(line_counter)
 
-        if self.display_out_count:
-            out_text = f"{self.custom_out_text}: {line_counter.out_count}"
-            self._draw_count_label(
-                frame=frame,
-                line_counter=line_counter,
-                text=out_text,
-                is_in_count=False,
-            )
+        for text, is_shown, is_in_count in [
+            (in_text, self.display_in_count, True),
+            (out_text, self.display_out_count, False),
+        ]:
+            if not is_shown:
+                continue
+
+            if line_angle_degrees == 0 or not self.text_orient_to_line:
+                self._draw_basic_label(
+                    frame=frame,
+                    line_center=line_center_point,
+                    text=text,
+                    is_in_count=is_in_count,
+                )
+            else:
+                self._draw_oriented_label(
+                    frame=frame,
+                    line_zone=line_counter,
+                    text=text,
+                    is_in_count=is_in_count,
+                )
+
         return frame
 
-    def _draw_count_label(
+    def _draw_basic_label(
         self,
         frame: np.ndarray,
-        line_counter: LineZone,
+        line_center: Point,
+        text: str,
+        is_in_count: bool,
+    ) -> np.ndarray:
+        _, text_height = cv2.getTextSize(
+            text, cv2.FONT_HERSHEY_SIMPLEX, self.text_scale, self.text_thickness
+        )[0]
+
+        if is_in_count:
+            line_center.y -= int(self.text_offset * text_height)
+        else:
+            line_center.y += int(self.text_offset * text_height)
+
+        draw_text(
+            scene=frame,
+            text=text,
+            text_anchor=line_center,
+            text_color=self.text_color,
+            text_scale=self.text_scale,
+            text_thickness=self.text_thickness,
+            text_padding=self.text_padding,
+            background_color=self.color,
+        )
+
+        return frame
+
+    def _draw_oriented_label(
+        self,
+        frame: np.ndarray,
+        line_zone: LineZone,
         text: str,
         is_in_count: bool,
     ) -> np.ndarray:
         """
-        This method is drawing the text on the frame.
+        Draw the count label on the frame. For example: "out: 7".
+        The label is oriented to match the line angle.
 
         Args:
-            frame (np.ndarray): The image on which the text will be drawn.
-            line_counter (LineCounter): The line counter
-                that will be used to draw the line.
+            frame (np.ndarray): The entire scene, on which the label will be placed.
+            line_zone (LineZone): The line zone responsible for counting objects crossing it.
             text (str): The text that will be drawn.
-            is_in_count (bool): Whether to display the in count or out count.
+            is_in_count (bool): Whether to display the in count (above line) or out count (below line).
 
         Returns:
-            np.ndarray: The image with the count drawn on it.
+            np.ndarray: The scene with the label drawn on it.
         """
 
-        line_angle_degrees = self._get_line_angle(line_counter)
-        label_image = self._make_count_label_image(
+        line_angle_degrees = self._get_line_angle(line_zone)
+        label_image = self._make_label_image(
             text,
             text_scale=self.text_scale,
             text_thickness=self.text_thickness,
@@ -441,7 +479,7 @@ class LineZoneAnnotator:
         )[0]
 
         label_origin = self._calculate_anchor_in_frame(
-            line_counter=line_counter,
+            line_zone=line_zone,
             text_width=text_width,
             text_height=text_height,
             is_in_count=is_in_count,
@@ -454,7 +492,7 @@ class LineZoneAnnotator:
 
     @staticmethod
     @lru_cache(maxsize=32)
-    def _make_count_label_image(
+    def _make_label_image(
         text: str,
         *,
         text_scale: float,
