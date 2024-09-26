@@ -270,7 +270,6 @@ class LineZoneAnnotator:
         """
         line_start = line_counter.vector.start.as_xy_int_tuple()
         line_end = line_counter.vector.end.as_xy_int_tuple()
-        line_center_point = line_counter.vector.center
         cv2.line(
             frame,
             line_start,
@@ -311,7 +310,7 @@ class LineZoneAnnotator:
             if line_angle_degrees == 0 or not self.text_orient_to_line:
                 self._draw_basic_label(
                     frame=frame,
-                    line_center=line_center_point,
+                    line_center=line_counter.vector.center,
                     text=text,
                     is_in_count=is_in_count,
                 )
