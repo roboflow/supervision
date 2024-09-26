@@ -22,7 +22,7 @@
       
       
       <link rel="icon" href="../../assets/supervision-lenny.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.37">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.38">
     
     
       
@@ -4330,7 +4330,18 @@ codes, converting colors to hex strings, RGB tuples, and BGR tuples.</p>
 <span class="normal"><a href="#__codelineno-0-253">253</a></span>
 <span class="normal"><a href="#__codelineno-0-254">254</a></span>
 <span class="normal"><a href="#__codelineno-0-255">255</a></span>
-<span class="normal"><a href="#__codelineno-0-256">256</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-65" name="__codelineno-0-65"></a><span class="nd">@dataclass</span>
+<span class="normal"><a href="#__codelineno-0-256">256</a></span>
+<span class="normal"><a href="#__codelineno-0-257">257</a></span>
+<span class="normal"><a href="#__codelineno-0-258">258</a></span>
+<span class="normal"><a href="#__codelineno-0-259">259</a></span>
+<span class="normal"><a href="#__codelineno-0-260">260</a></span>
+<span class="normal"><a href="#__codelineno-0-261">261</a></span>
+<span class="normal"><a href="#__codelineno-0-262">262</a></span>
+<span class="normal"><a href="#__codelineno-0-263">263</a></span>
+<span class="normal"><a href="#__codelineno-0-264">264</a></span>
+<span class="normal"><a href="#__codelineno-0-265">265</a></span>
+<span class="normal"><a href="#__codelineno-0-266">266</a></span>
+<span class="normal"><a href="#__codelineno-0-267">267</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-65" name="__codelineno-0-65"></a><span class="nd">@dataclass</span>
 <a id="__codelineno-0-66" name="__codelineno-0-66"></a><span class="k">class</span> <span class="nc">Color</span><span class="p">:</span>
 <a id="__codelineno-0-67" name="__codelineno-0-67"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-68" name="__codelineno-0-68"></a><span class="sd">    Represents a color in RGB format.</span>
@@ -4522,6 +4533,17 @@ codes, converting colors to hex strings, RGB tuples, and BGR tuples.</p>
 <a id="__codelineno-0-254" name="__codelineno-0-254"></a>    <span class="nd">@classproperty</span>
 <a id="__codelineno-0-255" name="__codelineno-0-255"></a>    <span class="k">def</span> <span class="nf">ROBOFLOW</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Color</span><span class="p">:</span>
 <a id="__codelineno-0-256" name="__codelineno-0-256"></a>        <span class="k">return</span> <span class="n">Color</span><span class="o">.</span><span class="n">from_hex</span><span class="p">(</span><span class="s2">&quot;#A351FB&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-257" name="__codelineno-0-257"></a>
+<a id="__codelineno-0-258" name="__codelineno-0-258"></a>    <span class="k">def</span> <span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-0-259" name="__codelineno-0-259"></a>        <span class="k">return</span> <span class="nb">hash</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">r</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">g</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span><span class="p">))</span>
+<a id="__codelineno-0-260" name="__codelineno-0-260"></a>
+<a id="__codelineno-0-261" name="__codelineno-0-261"></a>    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+<a id="__codelineno-0-262" name="__codelineno-0-262"></a>        <span class="k">return</span> <span class="p">(</span>
+<a id="__codelineno-0-263" name="__codelineno-0-263"></a>            <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Color</span><span class="p">)</span>
+<a id="__codelineno-0-264" name="__codelineno-0-264"></a>            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">r</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">r</span>
+<a id="__codelineno-0-265" name="__codelineno-0-265"></a>            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">g</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">g</span>
+<a id="__codelineno-0-266" name="__codelineno-0-266"></a>            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">b</span>
+<a id="__codelineno-0-267" name="__codelineno-0-267"></a>        <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
               </details>
 
@@ -5224,18 +5246,7 @@ format, where each element is an integer in the range 0-255.</p>
 
               <details class="quote">
                 <summary>Source code in <code>supervision/draw/color.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-259">259</a></span>
-<span class="normal"><a href="#__codelineno-0-260">260</a></span>
-<span class="normal"><a href="#__codelineno-0-261">261</a></span>
-<span class="normal"><a href="#__codelineno-0-262">262</a></span>
-<span class="normal"><a href="#__codelineno-0-263">263</a></span>
-<span class="normal"><a href="#__codelineno-0-264">264</a></span>
-<span class="normal"><a href="#__codelineno-0-265">265</a></span>
-<span class="normal"><a href="#__codelineno-0-266">266</a></span>
-<span class="normal"><a href="#__codelineno-0-267">267</a></span>
-<span class="normal"><a href="#__codelineno-0-268">268</a></span>
-<span class="normal"><a href="#__codelineno-0-269">269</a></span>
-<span class="normal"><a href="#__codelineno-0-270">270</a></span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-270">270</a></span>
 <span class="normal"><a href="#__codelineno-0-271">271</a></span>
 <span class="normal"><a href="#__codelineno-0-272">272</a></span>
 <span class="normal"><a href="#__codelineno-0-273">273</a></span>
@@ -5352,135 +5363,146 @@ format, where each element is an integer in the range 0-255.</p>
 <span class="normal"><a href="#__codelineno-0-384">384</a></span>
 <span class="normal"><a href="#__codelineno-0-385">385</a></span>
 <span class="normal"><a href="#__codelineno-0-386">386</a></span>
-<span class="normal"><a href="#__codelineno-0-387">387</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-259" name="__codelineno-0-259"></a><span class="nd">@dataclass</span>
-<a id="__codelineno-0-260" name="__codelineno-0-260"></a><span class="k">class</span> <span class="nc">ColorPalette</span><span class="p">:</span>
-<a id="__codelineno-0-261" name="__codelineno-0-261"></a>    <span class="n">colors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Color</span><span class="p">]</span>
-<a id="__codelineno-0-262" name="__codelineno-0-262"></a>
-<a id="__codelineno-0-263" name="__codelineno-0-263"></a>    <span class="nd">@classproperty</span>
-<a id="__codelineno-0-264" name="__codelineno-0-264"></a>    <span class="k">def</span> <span class="nf">DEFAULT</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ColorPalette</span><span class="p">:</span>
-<a id="__codelineno-0-265" name="__codelineno-0-265"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-266" name="__codelineno-0-266"></a><span class="sd">        Returns a default color palette.</span>
-<a id="__codelineno-0-267" name="__codelineno-0-267"></a>
-<a id="__codelineno-0-268" name="__codelineno-0-268"></a><span class="sd">        Returns:</span>
-<a id="__codelineno-0-269" name="__codelineno-0-269"></a><span class="sd">            ColorPalette: A ColorPalette instance with default colors.</span>
-<a id="__codelineno-0-270" name="__codelineno-0-270"></a>
-<a id="__codelineno-0-271" name="__codelineno-0-271"></a><span class="sd">        Example:</span>
-<a id="__codelineno-0-272" name="__codelineno-0-272"></a><span class="sd">            ```python</span>
-<a id="__codelineno-0-273" name="__codelineno-0-273"></a><span class="sd">            import supervision as sv</span>
-<a id="__codelineno-0-274" name="__codelineno-0-274"></a>
-<a id="__codelineno-0-275" name="__codelineno-0-275"></a><span class="sd">            sv.ColorPalette.DEFAULT</span>
-<a id="__codelineno-0-276" name="__codelineno-0-276"></a><span class="sd">            # ColorPalette(colors=[Color(r=255, g=64, b=64), Color(r=255, g=161, b=160), ...])</span>
-<a id="__codelineno-0-277" name="__codelineno-0-277"></a><span class="sd">            ```</span>
+<span class="normal"><a href="#__codelineno-0-387">387</a></span>
+<span class="normal"><a href="#__codelineno-0-388">388</a></span>
+<span class="normal"><a href="#__codelineno-0-389">389</a></span>
+<span class="normal"><a href="#__codelineno-0-390">390</a></span>
+<span class="normal"><a href="#__codelineno-0-391">391</a></span>
+<span class="normal"><a href="#__codelineno-0-392">392</a></span>
+<span class="normal"><a href="#__codelineno-0-393">393</a></span>
+<span class="normal"><a href="#__codelineno-0-394">394</a></span>
+<span class="normal"><a href="#__codelineno-0-395">395</a></span>
+<span class="normal"><a href="#__codelineno-0-396">396</a></span>
+<span class="normal"><a href="#__codelineno-0-397">397</a></span>
+<span class="normal"><a href="#__codelineno-0-398">398</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-270" name="__codelineno-0-270"></a><span class="nd">@dataclass</span>
+<a id="__codelineno-0-271" name="__codelineno-0-271"></a><span class="k">class</span> <span class="nc">ColorPalette</span><span class="p">:</span>
+<a id="__codelineno-0-272" name="__codelineno-0-272"></a>    <span class="n">colors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Color</span><span class="p">]</span>
+<a id="__codelineno-0-273" name="__codelineno-0-273"></a>
+<a id="__codelineno-0-274" name="__codelineno-0-274"></a>    <span class="nd">@classproperty</span>
+<a id="__codelineno-0-275" name="__codelineno-0-275"></a>    <span class="k">def</span> <span class="nf">DEFAULT</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ColorPalette</span><span class="p">:</span>
+<a id="__codelineno-0-276" name="__codelineno-0-276"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-277" name="__codelineno-0-277"></a><span class="sd">        Returns a default color palette.</span>
 <a id="__codelineno-0-278" name="__codelineno-0-278"></a>
-<a id="__codelineno-0-279" name="__codelineno-0-279"></a><span class="sd">        ![default-color-palette](https://media.roboflow.com/</span>
-<a id="__codelineno-0-280" name="__codelineno-0-280"></a><span class="sd">        supervision-annotator-examples/default-color-palette.png)</span>
-<a id="__codelineno-0-281" name="__codelineno-0-281"></a><span class="sd">        &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
-<a id="__codelineno-0-282" name="__codelineno-0-282"></a>        <span class="k">return</span> <span class="n">ColorPalette</span><span class="o">.</span><span class="n">from_hex</span><span class="p">(</span><span class="n">color_hex_list</span><span class="o">=</span><span class="n">DEFAULT_COLOR_PALETTE</span><span class="p">)</span>
-<a id="__codelineno-0-283" name="__codelineno-0-283"></a>
-<a id="__codelineno-0-284" name="__codelineno-0-284"></a>    <span class="nd">@classproperty</span>
-<a id="__codelineno-0-285" name="__codelineno-0-285"></a>    <span class="k">def</span> <span class="nf">ROBOFLOW</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ColorPalette</span><span class="p">:</span>
-<a id="__codelineno-0-286" name="__codelineno-0-286"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-287" name="__codelineno-0-287"></a><span class="sd">        Returns a Roboflow color palette.</span>
-<a id="__codelineno-0-288" name="__codelineno-0-288"></a>
-<a id="__codelineno-0-289" name="__codelineno-0-289"></a><span class="sd">        Returns:</span>
-<a id="__codelineno-0-290" name="__codelineno-0-290"></a><span class="sd">            ColorPalette: A ColorPalette instance with Roboflow colors.</span>
-<a id="__codelineno-0-291" name="__codelineno-0-291"></a>
-<a id="__codelineno-0-292" name="__codelineno-0-292"></a><span class="sd">        Example:</span>
-<a id="__codelineno-0-293" name="__codelineno-0-293"></a><span class="sd">            ```python</span>
-<a id="__codelineno-0-294" name="__codelineno-0-294"></a><span class="sd">            import supervision as sv</span>
-<a id="__codelineno-0-295" name="__codelineno-0-295"></a>
-<a id="__codelineno-0-296" name="__codelineno-0-296"></a><span class="sd">            sv.ColorPalette.ROBOFLOW</span>
-<a id="__codelineno-0-297" name="__codelineno-0-297"></a><span class="sd">            # ColorPalette(colors=[Color(r=194, g=141, b=252), Color(r=163, g=81, b=251), ...])</span>
-<a id="__codelineno-0-298" name="__codelineno-0-298"></a><span class="sd">            ```</span>
+<a id="__codelineno-0-279" name="__codelineno-0-279"></a><span class="sd">        Returns:</span>
+<a id="__codelineno-0-280" name="__codelineno-0-280"></a><span class="sd">            ColorPalette: A ColorPalette instance with default colors.</span>
+<a id="__codelineno-0-281" name="__codelineno-0-281"></a>
+<a id="__codelineno-0-282" name="__codelineno-0-282"></a><span class="sd">        Example:</span>
+<a id="__codelineno-0-283" name="__codelineno-0-283"></a><span class="sd">            ```python</span>
+<a id="__codelineno-0-284" name="__codelineno-0-284"></a><span class="sd">            import supervision as sv</span>
+<a id="__codelineno-0-285" name="__codelineno-0-285"></a>
+<a id="__codelineno-0-286" name="__codelineno-0-286"></a><span class="sd">            sv.ColorPalette.DEFAULT</span>
+<a id="__codelineno-0-287" name="__codelineno-0-287"></a><span class="sd">            # ColorPalette(colors=[Color(r=255, g=64, b=64), Color(r=255, g=161, b=160), ...])</span>
+<a id="__codelineno-0-288" name="__codelineno-0-288"></a><span class="sd">            ```</span>
+<a id="__codelineno-0-289" name="__codelineno-0-289"></a>
+<a id="__codelineno-0-290" name="__codelineno-0-290"></a><span class="sd">        ![default-color-palette](https://media.roboflow.com/</span>
+<a id="__codelineno-0-291" name="__codelineno-0-291"></a><span class="sd">        supervision-annotator-examples/default-color-palette.png)</span>
+<a id="__codelineno-0-292" name="__codelineno-0-292"></a><span class="sd">        &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
+<a id="__codelineno-0-293" name="__codelineno-0-293"></a>        <span class="k">return</span> <span class="n">ColorPalette</span><span class="o">.</span><span class="n">from_hex</span><span class="p">(</span><span class="n">color_hex_list</span><span class="o">=</span><span class="n">DEFAULT_COLOR_PALETTE</span><span class="p">)</span>
+<a id="__codelineno-0-294" name="__codelineno-0-294"></a>
+<a id="__codelineno-0-295" name="__codelineno-0-295"></a>    <span class="nd">@classproperty</span>
+<a id="__codelineno-0-296" name="__codelineno-0-296"></a>    <span class="k">def</span> <span class="nf">ROBOFLOW</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ColorPalette</span><span class="p">:</span>
+<a id="__codelineno-0-297" name="__codelineno-0-297"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-298" name="__codelineno-0-298"></a><span class="sd">        Returns a Roboflow color palette.</span>
 <a id="__codelineno-0-299" name="__codelineno-0-299"></a>
-<a id="__codelineno-0-300" name="__codelineno-0-300"></a><span class="sd">        ![roboflow-color-palette](https://media.roboflow.com/</span>
-<a id="__codelineno-0-301" name="__codelineno-0-301"></a><span class="sd">        supervision-annotator-examples/roboflow-color-palette.png)</span>
-<a id="__codelineno-0-302" name="__codelineno-0-302"></a><span class="sd">        &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
-<a id="__codelineno-0-303" name="__codelineno-0-303"></a>        <span class="k">return</span> <span class="n">ColorPalette</span><span class="o">.</span><span class="n">from_hex</span><span class="p">(</span><span class="n">color_hex_list</span><span class="o">=</span><span class="n">ROBOFLOW_COLOR_PALETTE</span><span class="p">)</span>
-<a id="__codelineno-0-304" name="__codelineno-0-304"></a>
-<a id="__codelineno-0-305" name="__codelineno-0-305"></a>    <span class="nd">@classproperty</span>
-<a id="__codelineno-0-306" name="__codelineno-0-306"></a>    <span class="k">def</span> <span class="nf">LEGACY</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ColorPalette</span><span class="p">:</span>
-<a id="__codelineno-0-307" name="__codelineno-0-307"></a>        <span class="k">return</span> <span class="n">ColorPalette</span><span class="o">.</span><span class="n">from_hex</span><span class="p">(</span><span class="n">color_hex_list</span><span class="o">=</span><span class="n">LEGACY_COLOR_PALETTE</span><span class="p">)</span>
-<a id="__codelineno-0-308" name="__codelineno-0-308"></a>
-<a id="__codelineno-0-309" name="__codelineno-0-309"></a>    <span class="nd">@classmethod</span>
-<a id="__codelineno-0-310" name="__codelineno-0-310"></a>    <span class="k">def</span> <span class="nf">from_hex</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">color_hex_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">ColorPalette</span><span class="p">:</span>
-<a id="__codelineno-0-311" name="__codelineno-0-311"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-312" name="__codelineno-0-312"></a><span class="sd">        Create a ColorPalette instance from a list of hex strings.</span>
-<a id="__codelineno-0-313" name="__codelineno-0-313"></a>
-<a id="__codelineno-0-314" name="__codelineno-0-314"></a><span class="sd">        Args:</span>
-<a id="__codelineno-0-315" name="__codelineno-0-315"></a><span class="sd">            color_hex_list (List[str]): List of color hex strings.</span>
-<a id="__codelineno-0-316" name="__codelineno-0-316"></a>
-<a id="__codelineno-0-317" name="__codelineno-0-317"></a><span class="sd">        Returns:</span>
-<a id="__codelineno-0-318" name="__codelineno-0-318"></a><span class="sd">            ColorPalette: A ColorPalette instance.</span>
+<a id="__codelineno-0-300" name="__codelineno-0-300"></a><span class="sd">        Returns:</span>
+<a id="__codelineno-0-301" name="__codelineno-0-301"></a><span class="sd">            ColorPalette: A ColorPalette instance with Roboflow colors.</span>
+<a id="__codelineno-0-302" name="__codelineno-0-302"></a>
+<a id="__codelineno-0-303" name="__codelineno-0-303"></a><span class="sd">        Example:</span>
+<a id="__codelineno-0-304" name="__codelineno-0-304"></a><span class="sd">            ```python</span>
+<a id="__codelineno-0-305" name="__codelineno-0-305"></a><span class="sd">            import supervision as sv</span>
+<a id="__codelineno-0-306" name="__codelineno-0-306"></a>
+<a id="__codelineno-0-307" name="__codelineno-0-307"></a><span class="sd">            sv.ColorPalette.ROBOFLOW</span>
+<a id="__codelineno-0-308" name="__codelineno-0-308"></a><span class="sd">            # ColorPalette(colors=[Color(r=194, g=141, b=252), Color(r=163, g=81, b=251), ...])</span>
+<a id="__codelineno-0-309" name="__codelineno-0-309"></a><span class="sd">            ```</span>
+<a id="__codelineno-0-310" name="__codelineno-0-310"></a>
+<a id="__codelineno-0-311" name="__codelineno-0-311"></a><span class="sd">        ![roboflow-color-palette](https://media.roboflow.com/</span>
+<a id="__codelineno-0-312" name="__codelineno-0-312"></a><span class="sd">        supervision-annotator-examples/roboflow-color-palette.png)</span>
+<a id="__codelineno-0-313" name="__codelineno-0-313"></a><span class="sd">        &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
+<a id="__codelineno-0-314" name="__codelineno-0-314"></a>        <span class="k">return</span> <span class="n">ColorPalette</span><span class="o">.</span><span class="n">from_hex</span><span class="p">(</span><span class="n">color_hex_list</span><span class="o">=</span><span class="n">ROBOFLOW_COLOR_PALETTE</span><span class="p">)</span>
+<a id="__codelineno-0-315" name="__codelineno-0-315"></a>
+<a id="__codelineno-0-316" name="__codelineno-0-316"></a>    <span class="nd">@classproperty</span>
+<a id="__codelineno-0-317" name="__codelineno-0-317"></a>    <span class="k">def</span> <span class="nf">LEGACY</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ColorPalette</span><span class="p">:</span>
+<a id="__codelineno-0-318" name="__codelineno-0-318"></a>        <span class="k">return</span> <span class="n">ColorPalette</span><span class="o">.</span><span class="n">from_hex</span><span class="p">(</span><span class="n">color_hex_list</span><span class="o">=</span><span class="n">LEGACY_COLOR_PALETTE</span><span class="p">)</span>
 <a id="__codelineno-0-319" name="__codelineno-0-319"></a>
-<a id="__codelineno-0-320" name="__codelineno-0-320"></a><span class="sd">        Example:</span>
-<a id="__codelineno-0-321" name="__codelineno-0-321"></a><span class="sd">            ```python</span>
-<a id="__codelineno-0-322" name="__codelineno-0-322"></a><span class="sd">            import supervision as sv</span>
-<a id="__codelineno-0-323" name="__codelineno-0-323"></a>
-<a id="__codelineno-0-324" name="__codelineno-0-324"></a><span class="sd">            sv.ColorPalette.from_hex([&#39;#ff0000&#39;, &#39;#00ff00&#39;, &#39;#0000ff&#39;])</span>
-<a id="__codelineno-0-325" name="__codelineno-0-325"></a><span class="sd">            # ColorPalette(colors=[Color(r=255, g=0, b=0), Color(r=0, g=255, b=0), ...])</span>
-<a id="__codelineno-0-326" name="__codelineno-0-326"></a><span class="sd">            ```</span>
-<a id="__codelineno-0-327" name="__codelineno-0-327"></a><span class="sd">        &quot;&quot;&quot;</span>
-<a id="__codelineno-0-328" name="__codelineno-0-328"></a>        <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="n">Color</span><span class="o">.</span><span class="n">from_hex</span><span class="p">(</span><span class="n">color_hex</span><span class="p">)</span> <span class="k">for</span> <span class="n">color_hex</span> <span class="ow">in</span> <span class="n">color_hex_list</span><span class="p">]</span>
-<a id="__codelineno-0-329" name="__codelineno-0-329"></a>        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">colors</span><span class="p">)</span>
+<a id="__codelineno-0-320" name="__codelineno-0-320"></a>    <span class="nd">@classmethod</span>
+<a id="__codelineno-0-321" name="__codelineno-0-321"></a>    <span class="k">def</span> <span class="nf">from_hex</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">color_hex_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">ColorPalette</span><span class="p">:</span>
+<a id="__codelineno-0-322" name="__codelineno-0-322"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-323" name="__codelineno-0-323"></a><span class="sd">        Create a ColorPalette instance from a list of hex strings.</span>
+<a id="__codelineno-0-324" name="__codelineno-0-324"></a>
+<a id="__codelineno-0-325" name="__codelineno-0-325"></a><span class="sd">        Args:</span>
+<a id="__codelineno-0-326" name="__codelineno-0-326"></a><span class="sd">            color_hex_list (List[str]): List of color hex strings.</span>
+<a id="__codelineno-0-327" name="__codelineno-0-327"></a>
+<a id="__codelineno-0-328" name="__codelineno-0-328"></a><span class="sd">        Returns:</span>
+<a id="__codelineno-0-329" name="__codelineno-0-329"></a><span class="sd">            ColorPalette: A ColorPalette instance.</span>
 <a id="__codelineno-0-330" name="__codelineno-0-330"></a>
-<a id="__codelineno-0-331" name="__codelineno-0-331"></a>    <span class="nd">@classmethod</span>
-<a id="__codelineno-0-332" name="__codelineno-0-332"></a>    <span class="k">def</span> <span class="nf">from_matplotlib</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">palette_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">color_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ColorPalette</span><span class="p">:</span>
-<a id="__codelineno-0-333" name="__codelineno-0-333"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-334" name="__codelineno-0-334"></a><span class="sd">        Create a ColorPalette instance from a Matplotlib color palette.</span>
-<a id="__codelineno-0-335" name="__codelineno-0-335"></a>
-<a id="__codelineno-0-336" name="__codelineno-0-336"></a><span class="sd">        Args:</span>
-<a id="__codelineno-0-337" name="__codelineno-0-337"></a><span class="sd">            palette_name (str): Name of the Matplotlib palette.</span>
-<a id="__codelineno-0-338" name="__codelineno-0-338"></a><span class="sd">            color_count (int): Number of colors to sample from the palette.</span>
-<a id="__codelineno-0-339" name="__codelineno-0-339"></a>
-<a id="__codelineno-0-340" name="__codelineno-0-340"></a><span class="sd">        Returns:</span>
-<a id="__codelineno-0-341" name="__codelineno-0-341"></a><span class="sd">            ColorPalette: A ColorPalette instance.</span>
-<a id="__codelineno-0-342" name="__codelineno-0-342"></a>
-<a id="__codelineno-0-343" name="__codelineno-0-343"></a><span class="sd">        Example:</span>
-<a id="__codelineno-0-344" name="__codelineno-0-344"></a><span class="sd">            ```python</span>
-<a id="__codelineno-0-345" name="__codelineno-0-345"></a><span class="sd">            import supervision as sv</span>
+<a id="__codelineno-0-331" name="__codelineno-0-331"></a><span class="sd">        Example:</span>
+<a id="__codelineno-0-332" name="__codelineno-0-332"></a><span class="sd">            ```python</span>
+<a id="__codelineno-0-333" name="__codelineno-0-333"></a><span class="sd">            import supervision as sv</span>
+<a id="__codelineno-0-334" name="__codelineno-0-334"></a>
+<a id="__codelineno-0-335" name="__codelineno-0-335"></a><span class="sd">            sv.ColorPalette.from_hex([&#39;#ff0000&#39;, &#39;#00ff00&#39;, &#39;#0000ff&#39;])</span>
+<a id="__codelineno-0-336" name="__codelineno-0-336"></a><span class="sd">            # ColorPalette(colors=[Color(r=255, g=0, b=0), Color(r=0, g=255, b=0), ...])</span>
+<a id="__codelineno-0-337" name="__codelineno-0-337"></a><span class="sd">            ```</span>
+<a id="__codelineno-0-338" name="__codelineno-0-338"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-339" name="__codelineno-0-339"></a>        <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="n">Color</span><span class="o">.</span><span class="n">from_hex</span><span class="p">(</span><span class="n">color_hex</span><span class="p">)</span> <span class="k">for</span> <span class="n">color_hex</span> <span class="ow">in</span> <span class="n">color_hex_list</span><span class="p">]</span>
+<a id="__codelineno-0-340" name="__codelineno-0-340"></a>        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">colors</span><span class="p">)</span>
+<a id="__codelineno-0-341" name="__codelineno-0-341"></a>
+<a id="__codelineno-0-342" name="__codelineno-0-342"></a>    <span class="nd">@classmethod</span>
+<a id="__codelineno-0-343" name="__codelineno-0-343"></a>    <span class="k">def</span> <span class="nf">from_matplotlib</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">palette_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">color_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ColorPalette</span><span class="p">:</span>
+<a id="__codelineno-0-344" name="__codelineno-0-344"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-345" name="__codelineno-0-345"></a><span class="sd">        Create a ColorPalette instance from a Matplotlib color palette.</span>
 <a id="__codelineno-0-346" name="__codelineno-0-346"></a>
-<a id="__codelineno-0-347" name="__codelineno-0-347"></a><span class="sd">            sv.ColorPalette.from_matplotlib(&#39;viridis&#39;, 5)</span>
-<a id="__codelineno-0-348" name="__codelineno-0-348"></a><span class="sd">            # ColorPalette(colors=[Color(r=68, g=1, b=84), Color(r=59, g=82, b=139), ...])</span>
-<a id="__codelineno-0-349" name="__codelineno-0-349"></a><span class="sd">            ```</span>
+<a id="__codelineno-0-347" name="__codelineno-0-347"></a><span class="sd">        Args:</span>
+<a id="__codelineno-0-348" name="__codelineno-0-348"></a><span class="sd">            palette_name (str): Name of the Matplotlib palette.</span>
+<a id="__codelineno-0-349" name="__codelineno-0-349"></a><span class="sd">            color_count (int): Number of colors to sample from the palette.</span>
 <a id="__codelineno-0-350" name="__codelineno-0-350"></a>
-<a id="__codelineno-0-351" name="__codelineno-0-351"></a><span class="sd">        ![visualized_color_palette](https://media.roboflow.com/</span>
-<a id="__codelineno-0-352" name="__codelineno-0-352"></a><span class="sd">        supervision-annotator-examples/visualized_color_palette.png)</span>
-<a id="__codelineno-0-353" name="__codelineno-0-353"></a><span class="sd">        &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
-<a id="__codelineno-0-354" name="__codelineno-0-354"></a>        <span class="n">mpl_palette</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="n">palette_name</span><span class="p">,</span> <span class="n">color_count</span><span class="p">)</span>
-<a id="__codelineno-0-355" name="__codelineno-0-355"></a>
-<a id="__codelineno-0-356" name="__codelineno-0-356"></a>        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">mpl_palette</span><span class="p">,</span> <span class="s2">&quot;colors&quot;</span><span class="p">):</span>
-<a id="__codelineno-0-357" name="__codelineno-0-357"></a>            <span class="n">colors</span> <span class="o">=</span> <span class="n">mpl_palette</span><span class="o">.</span><span class="n">colors</span>
-<a id="__codelineno-0-358" name="__codelineno-0-358"></a>        <span class="k">else</span><span class="p">:</span>
-<a id="__codelineno-0-359" name="__codelineno-0-359"></a>            <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="n">mpl_palette</span><span class="p">(</span><span class="n">i</span> <span class="o">/</span> <span class="p">(</span><span class="n">color_count</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">color_count</span><span class="p">)]</span>
-<a id="__codelineno-0-360" name="__codelineno-0-360"></a>
-<a id="__codelineno-0-361" name="__codelineno-0-361"></a>        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
-<a id="__codelineno-0-362" name="__codelineno-0-362"></a>            <span class="p">[</span><span class="n">Color</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">r</span> <span class="o">*</span> <span class="mi">255</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">g</span> <span class="o">*</span> <span class="mi">255</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">b</span> <span class="o">*</span> <span class="mi">255</span><span class="p">))</span> <span class="k">for</span> <span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">colors</span><span class="p">]</span>
-<a id="__codelineno-0-363" name="__codelineno-0-363"></a>        <span class="p">)</span>
-<a id="__codelineno-0-364" name="__codelineno-0-364"></a>
-<a id="__codelineno-0-365" name="__codelineno-0-365"></a>    <span class="k">def</span> <span class="nf">by_idx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Color</span><span class="p">:</span>
-<a id="__codelineno-0-366" name="__codelineno-0-366"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-367" name="__codelineno-0-367"></a><span class="sd">        Return the color at a given index in the palette.</span>
-<a id="__codelineno-0-368" name="__codelineno-0-368"></a>
-<a id="__codelineno-0-369" name="__codelineno-0-369"></a><span class="sd">        Args:</span>
-<a id="__codelineno-0-370" name="__codelineno-0-370"></a><span class="sd">            idx (int): Index of the color in the palette.</span>
+<a id="__codelineno-0-351" name="__codelineno-0-351"></a><span class="sd">        Returns:</span>
+<a id="__codelineno-0-352" name="__codelineno-0-352"></a><span class="sd">            ColorPalette: A ColorPalette instance.</span>
+<a id="__codelineno-0-353" name="__codelineno-0-353"></a>
+<a id="__codelineno-0-354" name="__codelineno-0-354"></a><span class="sd">        Example:</span>
+<a id="__codelineno-0-355" name="__codelineno-0-355"></a><span class="sd">            ```python</span>
+<a id="__codelineno-0-356" name="__codelineno-0-356"></a><span class="sd">            import supervision as sv</span>
+<a id="__codelineno-0-357" name="__codelineno-0-357"></a>
+<a id="__codelineno-0-358" name="__codelineno-0-358"></a><span class="sd">            sv.ColorPalette.from_matplotlib(&#39;viridis&#39;, 5)</span>
+<a id="__codelineno-0-359" name="__codelineno-0-359"></a><span class="sd">            # ColorPalette(colors=[Color(r=68, g=1, b=84), Color(r=59, g=82, b=139), ...])</span>
+<a id="__codelineno-0-360" name="__codelineno-0-360"></a><span class="sd">            ```</span>
+<a id="__codelineno-0-361" name="__codelineno-0-361"></a>
+<a id="__codelineno-0-362" name="__codelineno-0-362"></a><span class="sd">        ![visualized_color_palette](https://media.roboflow.com/</span>
+<a id="__codelineno-0-363" name="__codelineno-0-363"></a><span class="sd">        supervision-annotator-examples/visualized_color_palette.png)</span>
+<a id="__codelineno-0-364" name="__codelineno-0-364"></a><span class="sd">        &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
+<a id="__codelineno-0-365" name="__codelineno-0-365"></a>        <span class="n">mpl_palette</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="n">palette_name</span><span class="p">,</span> <span class="n">color_count</span><span class="p">)</span>
+<a id="__codelineno-0-366" name="__codelineno-0-366"></a>
+<a id="__codelineno-0-367" name="__codelineno-0-367"></a>        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">mpl_palette</span><span class="p">,</span> <span class="s2">&quot;colors&quot;</span><span class="p">):</span>
+<a id="__codelineno-0-368" name="__codelineno-0-368"></a>            <span class="n">colors</span> <span class="o">=</span> <span class="n">mpl_palette</span><span class="o">.</span><span class="n">colors</span>
+<a id="__codelineno-0-369" name="__codelineno-0-369"></a>        <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-0-370" name="__codelineno-0-370"></a>            <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="n">mpl_palette</span><span class="p">(</span><span class="n">i</span> <span class="o">/</span> <span class="p">(</span><span class="n">color_count</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">color_count</span><span class="p">)]</span>
 <a id="__codelineno-0-371" name="__codelineno-0-371"></a>
-<a id="__codelineno-0-372" name="__codelineno-0-372"></a><span class="sd">        Returns:</span>
-<a id="__codelineno-0-373" name="__codelineno-0-373"></a><span class="sd">            Color: Color at the given index.</span>
-<a id="__codelineno-0-374" name="__codelineno-0-374"></a>
-<a id="__codelineno-0-375" name="__codelineno-0-375"></a><span class="sd">        Example:</span>
-<a id="__codelineno-0-376" name="__codelineno-0-376"></a><span class="sd">            ```python</span>
-<a id="__codelineno-0-377" name="__codelineno-0-377"></a><span class="sd">            import supervision as sv</span>
-<a id="__codelineno-0-378" name="__codelineno-0-378"></a>
-<a id="__codelineno-0-379" name="__codelineno-0-379"></a><span class="sd">            color_palette = sv.ColorPalette.from_hex([&#39;#ff0000&#39;, &#39;#00ff00&#39;, &#39;#0000ff&#39;])</span>
-<a id="__codelineno-0-380" name="__codelineno-0-380"></a><span class="sd">            color_palette.by_idx(1)</span>
-<a id="__codelineno-0-381" name="__codelineno-0-381"></a><span class="sd">            # Color(r=0, g=255, b=0)</span>
-<a id="__codelineno-0-382" name="__codelineno-0-382"></a><span class="sd">            ```</span>
-<a id="__codelineno-0-383" name="__codelineno-0-383"></a><span class="sd">        &quot;&quot;&quot;</span>
-<a id="__codelineno-0-384" name="__codelineno-0-384"></a>        <span class="k">if</span> <span class="n">idx</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
-<a id="__codelineno-0-385" name="__codelineno-0-385"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;idx argument should not be negative&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-386" name="__codelineno-0-386"></a>        <span class="n">idx</span> <span class="o">=</span> <span class="n">idx</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">colors</span><span class="p">)</span>
-<a id="__codelineno-0-387" name="__codelineno-0-387"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">colors</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+<a id="__codelineno-0-372" name="__codelineno-0-372"></a>        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+<a id="__codelineno-0-373" name="__codelineno-0-373"></a>            <span class="p">[</span><span class="n">Color</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">r</span> <span class="o">*</span> <span class="mi">255</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">g</span> <span class="o">*</span> <span class="mi">255</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">b</span> <span class="o">*</span> <span class="mi">255</span><span class="p">))</span> <span class="k">for</span> <span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">colors</span><span class="p">]</span>
+<a id="__codelineno-0-374" name="__codelineno-0-374"></a>        <span class="p">)</span>
+<a id="__codelineno-0-375" name="__codelineno-0-375"></a>
+<a id="__codelineno-0-376" name="__codelineno-0-376"></a>    <span class="k">def</span> <span class="nf">by_idx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Color</span><span class="p">:</span>
+<a id="__codelineno-0-377" name="__codelineno-0-377"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-378" name="__codelineno-0-378"></a><span class="sd">        Return the color at a given index in the palette.</span>
+<a id="__codelineno-0-379" name="__codelineno-0-379"></a>
+<a id="__codelineno-0-380" name="__codelineno-0-380"></a><span class="sd">        Args:</span>
+<a id="__codelineno-0-381" name="__codelineno-0-381"></a><span class="sd">            idx (int): Index of the color in the palette.</span>
+<a id="__codelineno-0-382" name="__codelineno-0-382"></a>
+<a id="__codelineno-0-383" name="__codelineno-0-383"></a><span class="sd">        Returns:</span>
+<a id="__codelineno-0-384" name="__codelineno-0-384"></a><span class="sd">            Color: Color at the given index.</span>
+<a id="__codelineno-0-385" name="__codelineno-0-385"></a>
+<a id="__codelineno-0-386" name="__codelineno-0-386"></a><span class="sd">        Example:</span>
+<a id="__codelineno-0-387" name="__codelineno-0-387"></a><span class="sd">            ```python</span>
+<a id="__codelineno-0-388" name="__codelineno-0-388"></a><span class="sd">            import supervision as sv</span>
+<a id="__codelineno-0-389" name="__codelineno-0-389"></a>
+<a id="__codelineno-0-390" name="__codelineno-0-390"></a><span class="sd">            color_palette = sv.ColorPalette.from_hex([&#39;#ff0000&#39;, &#39;#00ff00&#39;, &#39;#0000ff&#39;])</span>
+<a id="__codelineno-0-391" name="__codelineno-0-391"></a><span class="sd">            color_palette.by_idx(1)</span>
+<a id="__codelineno-0-392" name="__codelineno-0-392"></a><span class="sd">            # Color(r=0, g=255, b=0)</span>
+<a id="__codelineno-0-393" name="__codelineno-0-393"></a><span class="sd">            ```</span>
+<a id="__codelineno-0-394" name="__codelineno-0-394"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-395" name="__codelineno-0-395"></a>        <span class="k">if</span> <span class="n">idx</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+<a id="__codelineno-0-396" name="__codelineno-0-396"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;idx argument should not be negative&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-397" name="__codelineno-0-397"></a>        <span class="n">idx</span> <span class="o">=</span> <span class="n">idx</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">colors</span><span class="p">)</span>
+<a id="__codelineno-0-398" name="__codelineno-0-398"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">colors</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
 </code></pre></div></td></tr></table></div>
               </details>
 
@@ -5545,18 +5567,7 @@ supervision-annotator-examples/default-color-palette.png" /></p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/draw/color.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-263">263</a></span>
-<span class="normal"><a href="#__codelineno-0-264">264</a></span>
-<span class="normal"><a href="#__codelineno-0-265">265</a></span>
-<span class="normal"><a href="#__codelineno-0-266">266</a></span>
-<span class="normal"><a href="#__codelineno-0-267">267</a></span>
-<span class="normal"><a href="#__codelineno-0-268">268</a></span>
-<span class="normal"><a href="#__codelineno-0-269">269</a></span>
-<span class="normal"><a href="#__codelineno-0-270">270</a></span>
-<span class="normal"><a href="#__codelineno-0-271">271</a></span>
-<span class="normal"><a href="#__codelineno-0-272">272</a></span>
-<span class="normal"><a href="#__codelineno-0-273">273</a></span>
-<span class="normal"><a href="#__codelineno-0-274">274</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-274">274</a></span>
 <span class="normal"><a href="#__codelineno-0-275">275</a></span>
 <span class="normal"><a href="#__codelineno-0-276">276</a></span>
 <span class="normal"><a href="#__codelineno-0-277">277</a></span>
@@ -5564,26 +5575,37 @@ supervision-annotator-examples/default-color-palette.png" /></p>
 <span class="normal"><a href="#__codelineno-0-279">279</a></span>
 <span class="normal"><a href="#__codelineno-0-280">280</a></span>
 <span class="normal"><a href="#__codelineno-0-281">281</a></span>
-<span class="normal"><a href="#__codelineno-0-282">282</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-263" name="__codelineno-0-263"></a><span class="nd">@classproperty</span>
-<a id="__codelineno-0-264" name="__codelineno-0-264"></a><span class="k">def</span> <span class="nf">DEFAULT</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ColorPalette</span><span class="p">:</span>
-<a id="__codelineno-0-265" name="__codelineno-0-265"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-266" name="__codelineno-0-266"></a><span class="sd">    Returns a default color palette.</span>
-<a id="__codelineno-0-267" name="__codelineno-0-267"></a>
-<a id="__codelineno-0-268" name="__codelineno-0-268"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-269" name="__codelineno-0-269"></a><span class="sd">        ColorPalette: A ColorPalette instance with default colors.</span>
-<a id="__codelineno-0-270" name="__codelineno-0-270"></a>
-<a id="__codelineno-0-271" name="__codelineno-0-271"></a><span class="sd">    Example:</span>
-<a id="__codelineno-0-272" name="__codelineno-0-272"></a><span class="sd">        ```python</span>
-<a id="__codelineno-0-273" name="__codelineno-0-273"></a><span class="sd">        import supervision as sv</span>
-<a id="__codelineno-0-274" name="__codelineno-0-274"></a>
-<a id="__codelineno-0-275" name="__codelineno-0-275"></a><span class="sd">        sv.ColorPalette.DEFAULT</span>
-<a id="__codelineno-0-276" name="__codelineno-0-276"></a><span class="sd">        # ColorPalette(colors=[Color(r=255, g=64, b=64), Color(r=255, g=161, b=160), ...])</span>
-<a id="__codelineno-0-277" name="__codelineno-0-277"></a><span class="sd">        ```</span>
+<span class="normal"><a href="#__codelineno-0-282">282</a></span>
+<span class="normal"><a href="#__codelineno-0-283">283</a></span>
+<span class="normal"><a href="#__codelineno-0-284">284</a></span>
+<span class="normal"><a href="#__codelineno-0-285">285</a></span>
+<span class="normal"><a href="#__codelineno-0-286">286</a></span>
+<span class="normal"><a href="#__codelineno-0-287">287</a></span>
+<span class="normal"><a href="#__codelineno-0-288">288</a></span>
+<span class="normal"><a href="#__codelineno-0-289">289</a></span>
+<span class="normal"><a href="#__codelineno-0-290">290</a></span>
+<span class="normal"><a href="#__codelineno-0-291">291</a></span>
+<span class="normal"><a href="#__codelineno-0-292">292</a></span>
+<span class="normal"><a href="#__codelineno-0-293">293</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-274" name="__codelineno-0-274"></a><span class="nd">@classproperty</span>
+<a id="__codelineno-0-275" name="__codelineno-0-275"></a><span class="k">def</span> <span class="nf">DEFAULT</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ColorPalette</span><span class="p">:</span>
+<a id="__codelineno-0-276" name="__codelineno-0-276"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-277" name="__codelineno-0-277"></a><span class="sd">    Returns a default color palette.</span>
 <a id="__codelineno-0-278" name="__codelineno-0-278"></a>
-<a id="__codelineno-0-279" name="__codelineno-0-279"></a><span class="sd">    ![default-color-palette](https://media.roboflow.com/</span>
-<a id="__codelineno-0-280" name="__codelineno-0-280"></a><span class="sd">    supervision-annotator-examples/default-color-palette.png)</span>
-<a id="__codelineno-0-281" name="__codelineno-0-281"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
-<a id="__codelineno-0-282" name="__codelineno-0-282"></a>    <span class="k">return</span> <span class="n">ColorPalette</span><span class="o">.</span><span class="n">from_hex</span><span class="p">(</span><span class="n">color_hex_list</span><span class="o">=</span><span class="n">DEFAULT_COLOR_PALETTE</span><span class="p">)</span>
+<a id="__codelineno-0-279" name="__codelineno-0-279"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-280" name="__codelineno-0-280"></a><span class="sd">        ColorPalette: A ColorPalette instance with default colors.</span>
+<a id="__codelineno-0-281" name="__codelineno-0-281"></a>
+<a id="__codelineno-0-282" name="__codelineno-0-282"></a><span class="sd">    Example:</span>
+<a id="__codelineno-0-283" name="__codelineno-0-283"></a><span class="sd">        ```python</span>
+<a id="__codelineno-0-284" name="__codelineno-0-284"></a><span class="sd">        import supervision as sv</span>
+<a id="__codelineno-0-285" name="__codelineno-0-285"></a>
+<a id="__codelineno-0-286" name="__codelineno-0-286"></a><span class="sd">        sv.ColorPalette.DEFAULT</span>
+<a id="__codelineno-0-287" name="__codelineno-0-287"></a><span class="sd">        # ColorPalette(colors=[Color(r=255, g=64, b=64), Color(r=255, g=161, b=160), ...])</span>
+<a id="__codelineno-0-288" name="__codelineno-0-288"></a><span class="sd">        ```</span>
+<a id="__codelineno-0-289" name="__codelineno-0-289"></a>
+<a id="__codelineno-0-290" name="__codelineno-0-290"></a><span class="sd">    ![default-color-palette](https://media.roboflow.com/</span>
+<a id="__codelineno-0-291" name="__codelineno-0-291"></a><span class="sd">    supervision-annotator-examples/default-color-palette.png)</span>
+<a id="__codelineno-0-292" name="__codelineno-0-292"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
+<a id="__codelineno-0-293" name="__codelineno-0-293"></a>    <span class="k">return</span> <span class="n">ColorPalette</span><span class="o">.</span><span class="n">from_hex</span><span class="p">(</span><span class="n">color_hex_list</span><span class="o">=</span><span class="n">DEFAULT_COLOR_PALETTE</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -5639,18 +5661,7 @@ supervision-annotator-examples/roboflow-color-palette.png" /></p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/draw/color.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-284">284</a></span>
-<span class="normal"><a href="#__codelineno-0-285">285</a></span>
-<span class="normal"><a href="#__codelineno-0-286">286</a></span>
-<span class="normal"><a href="#__codelineno-0-287">287</a></span>
-<span class="normal"><a href="#__codelineno-0-288">288</a></span>
-<span class="normal"><a href="#__codelineno-0-289">289</a></span>
-<span class="normal"><a href="#__codelineno-0-290">290</a></span>
-<span class="normal"><a href="#__codelineno-0-291">291</a></span>
-<span class="normal"><a href="#__codelineno-0-292">292</a></span>
-<span class="normal"><a href="#__codelineno-0-293">293</a></span>
-<span class="normal"><a href="#__codelineno-0-294">294</a></span>
-<span class="normal"><a href="#__codelineno-0-295">295</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-295">295</a></span>
 <span class="normal"><a href="#__codelineno-0-296">296</a></span>
 <span class="normal"><a href="#__codelineno-0-297">297</a></span>
 <span class="normal"><a href="#__codelineno-0-298">298</a></span>
@@ -5658,26 +5669,37 @@ supervision-annotator-examples/roboflow-color-palette.png" /></p>
 <span class="normal"><a href="#__codelineno-0-300">300</a></span>
 <span class="normal"><a href="#__codelineno-0-301">301</a></span>
 <span class="normal"><a href="#__codelineno-0-302">302</a></span>
-<span class="normal"><a href="#__codelineno-0-303">303</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-284" name="__codelineno-0-284"></a><span class="nd">@classproperty</span>
-<a id="__codelineno-0-285" name="__codelineno-0-285"></a><span class="k">def</span> <span class="nf">ROBOFLOW</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ColorPalette</span><span class="p">:</span>
-<a id="__codelineno-0-286" name="__codelineno-0-286"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-287" name="__codelineno-0-287"></a><span class="sd">    Returns a Roboflow color palette.</span>
-<a id="__codelineno-0-288" name="__codelineno-0-288"></a>
-<a id="__codelineno-0-289" name="__codelineno-0-289"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-290" name="__codelineno-0-290"></a><span class="sd">        ColorPalette: A ColorPalette instance with Roboflow colors.</span>
-<a id="__codelineno-0-291" name="__codelineno-0-291"></a>
-<a id="__codelineno-0-292" name="__codelineno-0-292"></a><span class="sd">    Example:</span>
-<a id="__codelineno-0-293" name="__codelineno-0-293"></a><span class="sd">        ```python</span>
-<a id="__codelineno-0-294" name="__codelineno-0-294"></a><span class="sd">        import supervision as sv</span>
-<a id="__codelineno-0-295" name="__codelineno-0-295"></a>
-<a id="__codelineno-0-296" name="__codelineno-0-296"></a><span class="sd">        sv.ColorPalette.ROBOFLOW</span>
-<a id="__codelineno-0-297" name="__codelineno-0-297"></a><span class="sd">        # ColorPalette(colors=[Color(r=194, g=141, b=252), Color(r=163, g=81, b=251), ...])</span>
-<a id="__codelineno-0-298" name="__codelineno-0-298"></a><span class="sd">        ```</span>
+<span class="normal"><a href="#__codelineno-0-303">303</a></span>
+<span class="normal"><a href="#__codelineno-0-304">304</a></span>
+<span class="normal"><a href="#__codelineno-0-305">305</a></span>
+<span class="normal"><a href="#__codelineno-0-306">306</a></span>
+<span class="normal"><a href="#__codelineno-0-307">307</a></span>
+<span class="normal"><a href="#__codelineno-0-308">308</a></span>
+<span class="normal"><a href="#__codelineno-0-309">309</a></span>
+<span class="normal"><a href="#__codelineno-0-310">310</a></span>
+<span class="normal"><a href="#__codelineno-0-311">311</a></span>
+<span class="normal"><a href="#__codelineno-0-312">312</a></span>
+<span class="normal"><a href="#__codelineno-0-313">313</a></span>
+<span class="normal"><a href="#__codelineno-0-314">314</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-295" name="__codelineno-0-295"></a><span class="nd">@classproperty</span>
+<a id="__codelineno-0-296" name="__codelineno-0-296"></a><span class="k">def</span> <span class="nf">ROBOFLOW</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ColorPalette</span><span class="p">:</span>
+<a id="__codelineno-0-297" name="__codelineno-0-297"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-298" name="__codelineno-0-298"></a><span class="sd">    Returns a Roboflow color palette.</span>
 <a id="__codelineno-0-299" name="__codelineno-0-299"></a>
-<a id="__codelineno-0-300" name="__codelineno-0-300"></a><span class="sd">    ![roboflow-color-palette](https://media.roboflow.com/</span>
-<a id="__codelineno-0-301" name="__codelineno-0-301"></a><span class="sd">    supervision-annotator-examples/roboflow-color-palette.png)</span>
-<a id="__codelineno-0-302" name="__codelineno-0-302"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
-<a id="__codelineno-0-303" name="__codelineno-0-303"></a>    <span class="k">return</span> <span class="n">ColorPalette</span><span class="o">.</span><span class="n">from_hex</span><span class="p">(</span><span class="n">color_hex_list</span><span class="o">=</span><span class="n">ROBOFLOW_COLOR_PALETTE</span><span class="p">)</span>
+<a id="__codelineno-0-300" name="__codelineno-0-300"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-301" name="__codelineno-0-301"></a><span class="sd">        ColorPalette: A ColorPalette instance with Roboflow colors.</span>
+<a id="__codelineno-0-302" name="__codelineno-0-302"></a>
+<a id="__codelineno-0-303" name="__codelineno-0-303"></a><span class="sd">    Example:</span>
+<a id="__codelineno-0-304" name="__codelineno-0-304"></a><span class="sd">        ```python</span>
+<a id="__codelineno-0-305" name="__codelineno-0-305"></a><span class="sd">        import supervision as sv</span>
+<a id="__codelineno-0-306" name="__codelineno-0-306"></a>
+<a id="__codelineno-0-307" name="__codelineno-0-307"></a><span class="sd">        sv.ColorPalette.ROBOFLOW</span>
+<a id="__codelineno-0-308" name="__codelineno-0-308"></a><span class="sd">        # ColorPalette(colors=[Color(r=194, g=141, b=252), Color(r=163, g=81, b=251), ...])</span>
+<a id="__codelineno-0-309" name="__codelineno-0-309"></a><span class="sd">        ```</span>
+<a id="__codelineno-0-310" name="__codelineno-0-310"></a>
+<a id="__codelineno-0-311" name="__codelineno-0-311"></a><span class="sd">    ![roboflow-color-palette](https://media.roboflow.com/</span>
+<a id="__codelineno-0-312" name="__codelineno-0-312"></a><span class="sd">    supervision-annotator-examples/roboflow-color-palette.png)</span>
+<a id="__codelineno-0-313" name="__codelineno-0-313"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
+<a id="__codelineno-0-314" name="__codelineno-0-314"></a>    <span class="k">return</span> <span class="n">ColorPalette</span><span class="o">.</span><span class="n">from_hex</span><span class="p">(</span><span class="n">color_hex_list</span><span class="o">=</span><span class="n">ROBOFLOW_COLOR_PALETTE</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -5761,18 +5783,7 @@ supervision-annotator-examples/roboflow-color-palette.png" /></p>
 </details>
             <details class="quote">
               <summary>Source code in <code>supervision/draw/color.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-365">365</a></span>
-<span class="normal"><a href="#__codelineno-0-366">366</a></span>
-<span class="normal"><a href="#__codelineno-0-367">367</a></span>
-<span class="normal"><a href="#__codelineno-0-368">368</a></span>
-<span class="normal"><a href="#__codelineno-0-369">369</a></span>
-<span class="normal"><a href="#__codelineno-0-370">370</a></span>
-<span class="normal"><a href="#__codelineno-0-371">371</a></span>
-<span class="normal"><a href="#__codelineno-0-372">372</a></span>
-<span class="normal"><a href="#__codelineno-0-373">373</a></span>
-<span class="normal"><a href="#__codelineno-0-374">374</a></span>
-<span class="normal"><a href="#__codelineno-0-375">375</a></span>
-<span class="normal"><a href="#__codelineno-0-376">376</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-376">376</a></span>
 <span class="normal"><a href="#__codelineno-0-377">377</a></span>
 <span class="normal"><a href="#__codelineno-0-378">378</a></span>
 <span class="normal"><a href="#__codelineno-0-379">379</a></span>
@@ -5783,29 +5794,40 @@ supervision-annotator-examples/roboflow-color-palette.png" /></p>
 <span class="normal"><a href="#__codelineno-0-384">384</a></span>
 <span class="normal"><a href="#__codelineno-0-385">385</a></span>
 <span class="normal"><a href="#__codelineno-0-386">386</a></span>
-<span class="normal"><a href="#__codelineno-0-387">387</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-365" name="__codelineno-0-365"></a><span class="k">def</span> <span class="nf">by_idx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Color</span><span class="p">:</span>
-<a id="__codelineno-0-366" name="__codelineno-0-366"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-367" name="__codelineno-0-367"></a><span class="sd">    Return the color at a given index in the palette.</span>
-<a id="__codelineno-0-368" name="__codelineno-0-368"></a>
-<a id="__codelineno-0-369" name="__codelineno-0-369"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-370" name="__codelineno-0-370"></a><span class="sd">        idx (int): Index of the color in the palette.</span>
-<a id="__codelineno-0-371" name="__codelineno-0-371"></a>
-<a id="__codelineno-0-372" name="__codelineno-0-372"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-373" name="__codelineno-0-373"></a><span class="sd">        Color: Color at the given index.</span>
-<a id="__codelineno-0-374" name="__codelineno-0-374"></a>
-<a id="__codelineno-0-375" name="__codelineno-0-375"></a><span class="sd">    Example:</span>
-<a id="__codelineno-0-376" name="__codelineno-0-376"></a><span class="sd">        ```python</span>
-<a id="__codelineno-0-377" name="__codelineno-0-377"></a><span class="sd">        import supervision as sv</span>
-<a id="__codelineno-0-378" name="__codelineno-0-378"></a>
-<a id="__codelineno-0-379" name="__codelineno-0-379"></a><span class="sd">        color_palette = sv.ColorPalette.from_hex([&#39;#ff0000&#39;, &#39;#00ff00&#39;, &#39;#0000ff&#39;])</span>
-<a id="__codelineno-0-380" name="__codelineno-0-380"></a><span class="sd">        color_palette.by_idx(1)</span>
-<a id="__codelineno-0-381" name="__codelineno-0-381"></a><span class="sd">        # Color(r=0, g=255, b=0)</span>
-<a id="__codelineno-0-382" name="__codelineno-0-382"></a><span class="sd">        ```</span>
-<a id="__codelineno-0-383" name="__codelineno-0-383"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-384" name="__codelineno-0-384"></a>    <span class="k">if</span> <span class="n">idx</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
-<a id="__codelineno-0-385" name="__codelineno-0-385"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;idx argument should not be negative&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-386" name="__codelineno-0-386"></a>    <span class="n">idx</span> <span class="o">=</span> <span class="n">idx</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">colors</span><span class="p">)</span>
-<a id="__codelineno-0-387" name="__codelineno-0-387"></a>    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">colors</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+<span class="normal"><a href="#__codelineno-0-387">387</a></span>
+<span class="normal"><a href="#__codelineno-0-388">388</a></span>
+<span class="normal"><a href="#__codelineno-0-389">389</a></span>
+<span class="normal"><a href="#__codelineno-0-390">390</a></span>
+<span class="normal"><a href="#__codelineno-0-391">391</a></span>
+<span class="normal"><a href="#__codelineno-0-392">392</a></span>
+<span class="normal"><a href="#__codelineno-0-393">393</a></span>
+<span class="normal"><a href="#__codelineno-0-394">394</a></span>
+<span class="normal"><a href="#__codelineno-0-395">395</a></span>
+<span class="normal"><a href="#__codelineno-0-396">396</a></span>
+<span class="normal"><a href="#__codelineno-0-397">397</a></span>
+<span class="normal"><a href="#__codelineno-0-398">398</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-376" name="__codelineno-0-376"></a><span class="k">def</span> <span class="nf">by_idx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Color</span><span class="p">:</span>
+<a id="__codelineno-0-377" name="__codelineno-0-377"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-378" name="__codelineno-0-378"></a><span class="sd">    Return the color at a given index in the palette.</span>
+<a id="__codelineno-0-379" name="__codelineno-0-379"></a>
+<a id="__codelineno-0-380" name="__codelineno-0-380"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-381" name="__codelineno-0-381"></a><span class="sd">        idx (int): Index of the color in the palette.</span>
+<a id="__codelineno-0-382" name="__codelineno-0-382"></a>
+<a id="__codelineno-0-383" name="__codelineno-0-383"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-384" name="__codelineno-0-384"></a><span class="sd">        Color: Color at the given index.</span>
+<a id="__codelineno-0-385" name="__codelineno-0-385"></a>
+<a id="__codelineno-0-386" name="__codelineno-0-386"></a><span class="sd">    Example:</span>
+<a id="__codelineno-0-387" name="__codelineno-0-387"></a><span class="sd">        ```python</span>
+<a id="__codelineno-0-388" name="__codelineno-0-388"></a><span class="sd">        import supervision as sv</span>
+<a id="__codelineno-0-389" name="__codelineno-0-389"></a>
+<a id="__codelineno-0-390" name="__codelineno-0-390"></a><span class="sd">        color_palette = sv.ColorPalette.from_hex([&#39;#ff0000&#39;, &#39;#00ff00&#39;, &#39;#0000ff&#39;])</span>
+<a id="__codelineno-0-391" name="__codelineno-0-391"></a><span class="sd">        color_palette.by_idx(1)</span>
+<a id="__codelineno-0-392" name="__codelineno-0-392"></a><span class="sd">        # Color(r=0, g=255, b=0)</span>
+<a id="__codelineno-0-393" name="__codelineno-0-393"></a><span class="sd">        ```</span>
+<a id="__codelineno-0-394" name="__codelineno-0-394"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-395" name="__codelineno-0-395"></a>    <span class="k">if</span> <span class="n">idx</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+<a id="__codelineno-0-396" name="__codelineno-0-396"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;idx argument should not be negative&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-397" name="__codelineno-0-397"></a>    <span class="n">idx</span> <span class="o">=</span> <span class="n">idx</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">colors</span><span class="p">)</span>
+<a id="__codelineno-0-398" name="__codelineno-0-398"></a>    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">colors</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -5892,18 +5914,7 @@ supervision-annotator-examples/roboflow-color-palette.png" /></p>
 </details>
             <details class="quote">
               <summary>Source code in <code>supervision/draw/color.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-309">309</a></span>
-<span class="normal"><a href="#__codelineno-0-310">310</a></span>
-<span class="normal"><a href="#__codelineno-0-311">311</a></span>
-<span class="normal"><a href="#__codelineno-0-312">312</a></span>
-<span class="normal"><a href="#__codelineno-0-313">313</a></span>
-<span class="normal"><a href="#__codelineno-0-314">314</a></span>
-<span class="normal"><a href="#__codelineno-0-315">315</a></span>
-<span class="normal"><a href="#__codelineno-0-316">316</a></span>
-<span class="normal"><a href="#__codelineno-0-317">317</a></span>
-<span class="normal"><a href="#__codelineno-0-318">318</a></span>
-<span class="normal"><a href="#__codelineno-0-319">319</a></span>
-<span class="normal"><a href="#__codelineno-0-320">320</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-320">320</a></span>
 <span class="normal"><a href="#__codelineno-0-321">321</a></span>
 <span class="normal"><a href="#__codelineno-0-322">322</a></span>
 <span class="normal"><a href="#__codelineno-0-323">323</a></span>
@@ -5912,27 +5923,38 @@ supervision-annotator-examples/roboflow-color-palette.png" /></p>
 <span class="normal"><a href="#__codelineno-0-326">326</a></span>
 <span class="normal"><a href="#__codelineno-0-327">327</a></span>
 <span class="normal"><a href="#__codelineno-0-328">328</a></span>
-<span class="normal"><a href="#__codelineno-0-329">329</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-309" name="__codelineno-0-309"></a><span class="nd">@classmethod</span>
-<a id="__codelineno-0-310" name="__codelineno-0-310"></a><span class="k">def</span> <span class="nf">from_hex</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">color_hex_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">ColorPalette</span><span class="p">:</span>
-<a id="__codelineno-0-311" name="__codelineno-0-311"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-312" name="__codelineno-0-312"></a><span class="sd">    Create a ColorPalette instance from a list of hex strings.</span>
-<a id="__codelineno-0-313" name="__codelineno-0-313"></a>
-<a id="__codelineno-0-314" name="__codelineno-0-314"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-315" name="__codelineno-0-315"></a><span class="sd">        color_hex_list (List[str]): List of color hex strings.</span>
-<a id="__codelineno-0-316" name="__codelineno-0-316"></a>
-<a id="__codelineno-0-317" name="__codelineno-0-317"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-318" name="__codelineno-0-318"></a><span class="sd">        ColorPalette: A ColorPalette instance.</span>
-<a id="__codelineno-0-319" name="__codelineno-0-319"></a>
-<a id="__codelineno-0-320" name="__codelineno-0-320"></a><span class="sd">    Example:</span>
-<a id="__codelineno-0-321" name="__codelineno-0-321"></a><span class="sd">        ```python</span>
-<a id="__codelineno-0-322" name="__codelineno-0-322"></a><span class="sd">        import supervision as sv</span>
-<a id="__codelineno-0-323" name="__codelineno-0-323"></a>
-<a id="__codelineno-0-324" name="__codelineno-0-324"></a><span class="sd">        sv.ColorPalette.from_hex([&#39;#ff0000&#39;, &#39;#00ff00&#39;, &#39;#0000ff&#39;])</span>
-<a id="__codelineno-0-325" name="__codelineno-0-325"></a><span class="sd">        # ColorPalette(colors=[Color(r=255, g=0, b=0), Color(r=0, g=255, b=0), ...])</span>
-<a id="__codelineno-0-326" name="__codelineno-0-326"></a><span class="sd">        ```</span>
-<a id="__codelineno-0-327" name="__codelineno-0-327"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-328" name="__codelineno-0-328"></a>    <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="n">Color</span><span class="o">.</span><span class="n">from_hex</span><span class="p">(</span><span class="n">color_hex</span><span class="p">)</span> <span class="k">for</span> <span class="n">color_hex</span> <span class="ow">in</span> <span class="n">color_hex_list</span><span class="p">]</span>
-<a id="__codelineno-0-329" name="__codelineno-0-329"></a>    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">colors</span><span class="p">)</span>
+<span class="normal"><a href="#__codelineno-0-329">329</a></span>
+<span class="normal"><a href="#__codelineno-0-330">330</a></span>
+<span class="normal"><a href="#__codelineno-0-331">331</a></span>
+<span class="normal"><a href="#__codelineno-0-332">332</a></span>
+<span class="normal"><a href="#__codelineno-0-333">333</a></span>
+<span class="normal"><a href="#__codelineno-0-334">334</a></span>
+<span class="normal"><a href="#__codelineno-0-335">335</a></span>
+<span class="normal"><a href="#__codelineno-0-336">336</a></span>
+<span class="normal"><a href="#__codelineno-0-337">337</a></span>
+<span class="normal"><a href="#__codelineno-0-338">338</a></span>
+<span class="normal"><a href="#__codelineno-0-339">339</a></span>
+<span class="normal"><a href="#__codelineno-0-340">340</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-320" name="__codelineno-0-320"></a><span class="nd">@classmethod</span>
+<a id="__codelineno-0-321" name="__codelineno-0-321"></a><span class="k">def</span> <span class="nf">from_hex</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">color_hex_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">ColorPalette</span><span class="p">:</span>
+<a id="__codelineno-0-322" name="__codelineno-0-322"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-323" name="__codelineno-0-323"></a><span class="sd">    Create a ColorPalette instance from a list of hex strings.</span>
+<a id="__codelineno-0-324" name="__codelineno-0-324"></a>
+<a id="__codelineno-0-325" name="__codelineno-0-325"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-326" name="__codelineno-0-326"></a><span class="sd">        color_hex_list (List[str]): List of color hex strings.</span>
+<a id="__codelineno-0-327" name="__codelineno-0-327"></a>
+<a id="__codelineno-0-328" name="__codelineno-0-328"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-329" name="__codelineno-0-329"></a><span class="sd">        ColorPalette: A ColorPalette instance.</span>
+<a id="__codelineno-0-330" name="__codelineno-0-330"></a>
+<a id="__codelineno-0-331" name="__codelineno-0-331"></a><span class="sd">    Example:</span>
+<a id="__codelineno-0-332" name="__codelineno-0-332"></a><span class="sd">        ```python</span>
+<a id="__codelineno-0-333" name="__codelineno-0-333"></a><span class="sd">        import supervision as sv</span>
+<a id="__codelineno-0-334" name="__codelineno-0-334"></a>
+<a id="__codelineno-0-335" name="__codelineno-0-335"></a><span class="sd">        sv.ColorPalette.from_hex([&#39;#ff0000&#39;, &#39;#00ff00&#39;, &#39;#0000ff&#39;])</span>
+<a id="__codelineno-0-336" name="__codelineno-0-336"></a><span class="sd">        # ColorPalette(colors=[Color(r=255, g=0, b=0), Color(r=0, g=255, b=0), ...])</span>
+<a id="__codelineno-0-337" name="__codelineno-0-337"></a><span class="sd">        ```</span>
+<a id="__codelineno-0-338" name="__codelineno-0-338"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-339" name="__codelineno-0-339"></a>    <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="n">Color</span><span class="o">.</span><span class="n">from_hex</span><span class="p">(</span><span class="n">color_hex</span><span class="p">)</span> <span class="k">for</span> <span class="n">color_hex</span> <span class="ow">in</span> <span class="n">color_hex_list</span><span class="p">]</span>
+<a id="__codelineno-0-340" name="__codelineno-0-340"></a>    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">colors</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -6035,18 +6057,7 @@ supervision-annotator-examples/visualized_color_palette.png" /></p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/draw/color.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-331">331</a></span>
-<span class="normal"><a href="#__codelineno-0-332">332</a></span>
-<span class="normal"><a href="#__codelineno-0-333">333</a></span>
-<span class="normal"><a href="#__codelineno-0-334">334</a></span>
-<span class="normal"><a href="#__codelineno-0-335">335</a></span>
-<span class="normal"><a href="#__codelineno-0-336">336</a></span>
-<span class="normal"><a href="#__codelineno-0-337">337</a></span>
-<span class="normal"><a href="#__codelineno-0-338">338</a></span>
-<span class="normal"><a href="#__codelineno-0-339">339</a></span>
-<span class="normal"><a href="#__codelineno-0-340">340</a></span>
-<span class="normal"><a href="#__codelineno-0-341">341</a></span>
-<span class="normal"><a href="#__codelineno-0-342">342</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-342">342</a></span>
 <span class="normal"><a href="#__codelineno-0-343">343</a></span>
 <span class="normal"><a href="#__codelineno-0-344">344</a></span>
 <span class="normal"><a href="#__codelineno-0-345">345</a></span>
@@ -6067,39 +6078,50 @@ supervision-annotator-examples/visualized_color_palette.png" /></p>
 <span class="normal"><a href="#__codelineno-0-360">360</a></span>
 <span class="normal"><a href="#__codelineno-0-361">361</a></span>
 <span class="normal"><a href="#__codelineno-0-362">362</a></span>
-<span class="normal"><a href="#__codelineno-0-363">363</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-331" name="__codelineno-0-331"></a><span class="nd">@classmethod</span>
-<a id="__codelineno-0-332" name="__codelineno-0-332"></a><span class="k">def</span> <span class="nf">from_matplotlib</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">palette_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">color_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ColorPalette</span><span class="p">:</span>
-<a id="__codelineno-0-333" name="__codelineno-0-333"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-334" name="__codelineno-0-334"></a><span class="sd">    Create a ColorPalette instance from a Matplotlib color palette.</span>
-<a id="__codelineno-0-335" name="__codelineno-0-335"></a>
-<a id="__codelineno-0-336" name="__codelineno-0-336"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-337" name="__codelineno-0-337"></a><span class="sd">        palette_name (str): Name of the Matplotlib palette.</span>
-<a id="__codelineno-0-338" name="__codelineno-0-338"></a><span class="sd">        color_count (int): Number of colors to sample from the palette.</span>
-<a id="__codelineno-0-339" name="__codelineno-0-339"></a>
-<a id="__codelineno-0-340" name="__codelineno-0-340"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-341" name="__codelineno-0-341"></a><span class="sd">        ColorPalette: A ColorPalette instance.</span>
-<a id="__codelineno-0-342" name="__codelineno-0-342"></a>
-<a id="__codelineno-0-343" name="__codelineno-0-343"></a><span class="sd">    Example:</span>
-<a id="__codelineno-0-344" name="__codelineno-0-344"></a><span class="sd">        ```python</span>
-<a id="__codelineno-0-345" name="__codelineno-0-345"></a><span class="sd">        import supervision as sv</span>
+<span class="normal"><a href="#__codelineno-0-363">363</a></span>
+<span class="normal"><a href="#__codelineno-0-364">364</a></span>
+<span class="normal"><a href="#__codelineno-0-365">365</a></span>
+<span class="normal"><a href="#__codelineno-0-366">366</a></span>
+<span class="normal"><a href="#__codelineno-0-367">367</a></span>
+<span class="normal"><a href="#__codelineno-0-368">368</a></span>
+<span class="normal"><a href="#__codelineno-0-369">369</a></span>
+<span class="normal"><a href="#__codelineno-0-370">370</a></span>
+<span class="normal"><a href="#__codelineno-0-371">371</a></span>
+<span class="normal"><a href="#__codelineno-0-372">372</a></span>
+<span class="normal"><a href="#__codelineno-0-373">373</a></span>
+<span class="normal"><a href="#__codelineno-0-374">374</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-342" name="__codelineno-0-342"></a><span class="nd">@classmethod</span>
+<a id="__codelineno-0-343" name="__codelineno-0-343"></a><span class="k">def</span> <span class="nf">from_matplotlib</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">palette_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">color_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ColorPalette</span><span class="p">:</span>
+<a id="__codelineno-0-344" name="__codelineno-0-344"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-345" name="__codelineno-0-345"></a><span class="sd">    Create a ColorPalette instance from a Matplotlib color palette.</span>
 <a id="__codelineno-0-346" name="__codelineno-0-346"></a>
-<a id="__codelineno-0-347" name="__codelineno-0-347"></a><span class="sd">        sv.ColorPalette.from_matplotlib(&#39;viridis&#39;, 5)</span>
-<a id="__codelineno-0-348" name="__codelineno-0-348"></a><span class="sd">        # ColorPalette(colors=[Color(r=68, g=1, b=84), Color(r=59, g=82, b=139), ...])</span>
-<a id="__codelineno-0-349" name="__codelineno-0-349"></a><span class="sd">        ```</span>
+<a id="__codelineno-0-347" name="__codelineno-0-347"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-348" name="__codelineno-0-348"></a><span class="sd">        palette_name (str): Name of the Matplotlib palette.</span>
+<a id="__codelineno-0-349" name="__codelineno-0-349"></a><span class="sd">        color_count (int): Number of colors to sample from the palette.</span>
 <a id="__codelineno-0-350" name="__codelineno-0-350"></a>
-<a id="__codelineno-0-351" name="__codelineno-0-351"></a><span class="sd">    ![visualized_color_palette](https://media.roboflow.com/</span>
-<a id="__codelineno-0-352" name="__codelineno-0-352"></a><span class="sd">    supervision-annotator-examples/visualized_color_palette.png)</span>
-<a id="__codelineno-0-353" name="__codelineno-0-353"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
-<a id="__codelineno-0-354" name="__codelineno-0-354"></a>    <span class="n">mpl_palette</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="n">palette_name</span><span class="p">,</span> <span class="n">color_count</span><span class="p">)</span>
-<a id="__codelineno-0-355" name="__codelineno-0-355"></a>
-<a id="__codelineno-0-356" name="__codelineno-0-356"></a>    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">mpl_palette</span><span class="p">,</span> <span class="s2">&quot;colors&quot;</span><span class="p">):</span>
-<a id="__codelineno-0-357" name="__codelineno-0-357"></a>        <span class="n">colors</span> <span class="o">=</span> <span class="n">mpl_palette</span><span class="o">.</span><span class="n">colors</span>
-<a id="__codelineno-0-358" name="__codelineno-0-358"></a>    <span class="k">else</span><span class="p">:</span>
-<a id="__codelineno-0-359" name="__codelineno-0-359"></a>        <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="n">mpl_palette</span><span class="p">(</span><span class="n">i</span> <span class="o">/</span> <span class="p">(</span><span class="n">color_count</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">color_count</span><span class="p">)]</span>
-<a id="__codelineno-0-360" name="__codelineno-0-360"></a>
-<a id="__codelineno-0-361" name="__codelineno-0-361"></a>    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
-<a id="__codelineno-0-362" name="__codelineno-0-362"></a>        <span class="p">[</span><span class="n">Color</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">r</span> <span class="o">*</span> <span class="mi">255</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">g</span> <span class="o">*</span> <span class="mi">255</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">b</span> <span class="o">*</span> <span class="mi">255</span><span class="p">))</span> <span class="k">for</span> <span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">colors</span><span class="p">]</span>
-<a id="__codelineno-0-363" name="__codelineno-0-363"></a>    <span class="p">)</span>
+<a id="__codelineno-0-351" name="__codelineno-0-351"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-352" name="__codelineno-0-352"></a><span class="sd">        ColorPalette: A ColorPalette instance.</span>
+<a id="__codelineno-0-353" name="__codelineno-0-353"></a>
+<a id="__codelineno-0-354" name="__codelineno-0-354"></a><span class="sd">    Example:</span>
+<a id="__codelineno-0-355" name="__codelineno-0-355"></a><span class="sd">        ```python</span>
+<a id="__codelineno-0-356" name="__codelineno-0-356"></a><span class="sd">        import supervision as sv</span>
+<a id="__codelineno-0-357" name="__codelineno-0-357"></a>
+<a id="__codelineno-0-358" name="__codelineno-0-358"></a><span class="sd">        sv.ColorPalette.from_matplotlib(&#39;viridis&#39;, 5)</span>
+<a id="__codelineno-0-359" name="__codelineno-0-359"></a><span class="sd">        # ColorPalette(colors=[Color(r=68, g=1, b=84), Color(r=59, g=82, b=139), ...])</span>
+<a id="__codelineno-0-360" name="__codelineno-0-360"></a><span class="sd">        ```</span>
+<a id="__codelineno-0-361" name="__codelineno-0-361"></a>
+<a id="__codelineno-0-362" name="__codelineno-0-362"></a><span class="sd">    ![visualized_color_palette](https://media.roboflow.com/</span>
+<a id="__codelineno-0-363" name="__codelineno-0-363"></a><span class="sd">    supervision-annotator-examples/visualized_color_palette.png)</span>
+<a id="__codelineno-0-364" name="__codelineno-0-364"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
+<a id="__codelineno-0-365" name="__codelineno-0-365"></a>    <span class="n">mpl_palette</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="n">palette_name</span><span class="p">,</span> <span class="n">color_count</span><span class="p">)</span>
+<a id="__codelineno-0-366" name="__codelineno-0-366"></a>
+<a id="__codelineno-0-367" name="__codelineno-0-367"></a>    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">mpl_palette</span><span class="p">,</span> <span class="s2">&quot;colors&quot;</span><span class="p">):</span>
+<a id="__codelineno-0-368" name="__codelineno-0-368"></a>        <span class="n">colors</span> <span class="o">=</span> <span class="n">mpl_palette</span><span class="o">.</span><span class="n">colors</span>
+<a id="__codelineno-0-369" name="__codelineno-0-369"></a>    <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-0-370" name="__codelineno-0-370"></a>        <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="n">mpl_palette</span><span class="p">(</span><span class="n">i</span> <span class="o">/</span> <span class="p">(</span><span class="n">color_count</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">color_count</span><span class="p">)]</span>
+<a id="__codelineno-0-371" name="__codelineno-0-371"></a>
+<a id="__codelineno-0-372" name="__codelineno-0-372"></a>    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+<a id="__codelineno-0-373" name="__codelineno-0-373"></a>        <span class="p">[</span><span class="n">Color</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">r</span> <span class="o">*</span> <span class="mi">255</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">g</span> <span class="o">*</span> <span class="mi">255</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">b</span> <span class="o">*</span> <span class="mi">255</span><span class="p">))</span> <span class="k">for</span> <span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">colors</span><span class="p">]</span>
+<a id="__codelineno-0-374" name="__codelineno-0-374"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
