@@ -94,7 +94,7 @@ class InferenceSlicer:
         self,
         callback: Callable[[np.ndarray], Detections],
         slice_wh: Tuple[int, int] = (320, 320),
-        overlap_ratio_wh: Optional[Tuple[float, float]] = (0.2, 0.2),
+        overlap_ratio_wh: Optional[Tuple[float, float]] = None,
         overlap_wh: Optional[Tuple[int, int]] = None,
         overlap_filter: Union[OverlapFilter, str] = OverlapFilter.NON_MAX_SUPPRESSION,
         iou_threshold: float = 0.5,
