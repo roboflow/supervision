@@ -493,10 +493,6 @@ class LineZoneAnnotator:
         )
         assert label_image.shape[0] == label_image.shape[1]
 
-        # Make sure text is displayed upright
-        if line_zone.vector.start.x > line_zone.vector.end.x:
-            label_image = cv2.flip(label_image, flipCode=-1)
-
         text_width, text_height = cv2.getTextSize(
             text, cv2.FONT_HERSHEY_SIMPLEX, self.text_scale, self.text_thickness
         )[0]
@@ -573,6 +569,10 @@ class LineZoneAnnotator:
             **text_args,
         )
         annotation = np.dstack((annotation, annotation_alpha))
+
+        # Make sure text is displayed upright
+        if 90 < line_angle_degrees % 360 < 270:
+            annotation = cv2.flip(annotation, flipCode=-1).astype(np.uint8)
 
         rotation_angle = -line_angle_degrees
         rotation_matrix = cv2.getRotationMatrix2D(
