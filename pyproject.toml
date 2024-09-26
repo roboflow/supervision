@@ -3,13 +3,16 @@ name = "supervision"
 version = "0.24.0rc1"
 description = "A set of easy-to-use utils that will come in handy in any Computer Vision project"
 authors = ["Piotr Skalski <piotr.skalski92@gmail.com>"]
-maintainers = ["Piotr Skalski <piotr.skalski92@gmail.com>"]
+maintainers = [
+    "Piotr Skalski <piotr.skalski92@gmail.com>",
+    "Linas Kondrackis <linas@roboflow.com>",
+]
 readme = "README.md"
 license = "MIT"
 packages = [{ include = "supervision" }]
 homepage = "https://github.com/roboflow/supervision"
 repository = "https://github.com/roboflow/supervision"
-documentation = "https://github.com/roboflow/supervision/blob/main/README.md"
+documentation = "https://supervision.roboflow.com/latest/"
 keywords = [
     "machine-learning",
     "deep-learning",
@@ -146,7 +149,7 @@ indent-width = 4
 
 [tool.ruff.lint]
 # Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
-select = ["E", "F", "I", "A", "Q", "W","RUF"]
+select = ["E", "F", "I", "A", "Q", "W", "RUF"]
 ignore = []
 # Allow autofix for all enabled rules (when `--fix`) is provided.
 fixable = [
