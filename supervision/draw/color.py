@@ -397,6 +397,15 @@ class ColorPalette:
         idx = idx % len(self.colors)
         return self.colors[idx]
 
+    def __len__(self) -> int:
+        """
+        Returns the number of colors in the palette.
+
+        Returns:
+            int: The number of colors.
+        """
+        return len(self.colors)
+
 
 def unify_to_bgr(color: Union[Tuple[int, int, int], Color]) -> Tuple[int, int, int]:
     """
