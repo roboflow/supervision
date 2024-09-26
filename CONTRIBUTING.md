@@ -11,17 +11,17 @@ Please read and adhere to our [Code of Conduct](https://supervision.roboflow.com
 ## Table of Contents
 
 - [Contribution Guidelines](#contribution-guidelines)
-  - [Contributing Features](#contributing-features-)
+  - [Contributing Features](#contributing-features)
 - [How to Contribute Changes](#how-to-contribute-changes)
 - [Installation for Contributors](#installation-for-contributors)
-- [Code Style and Quality](#-code-style-and-quality)
+- [Code Style and Quality](#code-style-and-quality)
   - [Pre-commit tool](#pre-commit-tool)
   - [Docstrings](#docstrings)
   - [Type checking](#type-checking)
-- [Documentation](#-documentation)
-- [Cookbooks](#-cookbooks)
-- [Tests](#-tests)
-- [License](#-license)
+- [Documentation](#documentation)
+- [Cookbooks](#cookbooks)
+- [Tests](#tests)
+- [License](#license)
 
 ## Contribution Guidelines
 

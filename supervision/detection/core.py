@@ -525,13 +525,13 @@ class Detections:
             )
 
     @classmethod
-    def from_detectron2(cls, detectron2_results) -> Detections:
+    def from_detectron2(cls, detectron2_results: Any) -> Detections:
         """
         Create a Detections object from the
         [Detectron2](https://github.com/facebookresearch/detectron2) inference result.
 
         Args:
-            detectron2_results: The output of a
+            detectron2_results (Any): The output of a
                 Detectron2 model containing instances with prediction data.
 
         Returns:
@@ -792,7 +792,7 @@ class Detections:
 
     @classmethod
     def from_lmm(
-        cls, lmm: Union[LMM, str], result: Union[str, dict], **kwargs
+        cls, lmm: Union[LMM, str], result: Union[str, dict], **kwargs: Any
     ) -> Detections:
         """
         Creates a Detections object from the given result string based on the specified
@@ -801,7 +801,7 @@ class Detections:
         Args:
             lmm (Union[LMM, str]): The type of LMM (Large Multimodal Model) to use.
             result (str): The result string containing the detection data.
-            **kwargs: Additional keyword arguments required by the specified LMM.
+            **kwargs (Any): Additional keyword arguments required by the specified LMM.
 
         Returns:
             Detections: A new Detections object.
