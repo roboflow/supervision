@@ -229,8 +229,8 @@ class LineZoneAnnotator:
             text_scale (float): Text scale.
             text_offset (float): How far the text will be from the line.
             text_padding (int): The empty space in the text box, surrounding the text.
-            custom_in_text: (Optional[str]): Write something else instead of "in".
-            custom_out_text: (Optional[str]): Write something else instead of "out".
+            custom_in_text (Optional[str]): Write something else instead of "in".
+            custom_out_text (Optional[str]): Write something else instead of "out".
             display_in_count (bool): Pass `False` to hide the "in" count.
             display_out_count (bool): Pass `False` to hide the "out" count.
             display_text_box (bool): Pass `False` to hide the text background box.
