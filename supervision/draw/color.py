@@ -255,6 +255,17 @@ class Color:
     def ROBOFLOW(cls) -> Color:
         return Color.from_hex("#A351FB")
 
+    def __hash__(self):
+        return hash((self.r, self.g, self.b))
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, Color)
+            and self.r == other.r
+            and self.g == other.g
+            and self.b == other.b
+        )
+
 
 @dataclass
 class ColorPalette:
