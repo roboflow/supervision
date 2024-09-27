@@ -82,8 +82,10 @@ detections = sv.Detections.from_transformers(
 
 ```python
 import supervision as sv
-from segment_anything import sam_model_registry, SamAutomaticMaskGenerator
-
+from segment_anything import (
+    sam_model_registry,
+    SamAutomaticMaskGenerator
+)
 sam_model_reg = sam_model_registry[MODEL_TYPE]
 sam = sam_model_reg(checkpoint=CHECKPOINT_PATH).to(device=DEVICE)
 mask_generator = SamAutomaticMaskGenerator(sam)
@@ -294,8 +296,14 @@ import supervision as sv
 image = ...
 key_points = sv.KeyPoints(...)
 
-edge_annotator = sv.EdgeAnnotator(color=sv.Color.GREEN, thickness=5)
-annotated_frame = edge_annotator.annotate(scene=image.copy(), key_points=key_points)
+edge_annotator = sv.EdgeAnnotator(
+    color=sv.Color.GREEN,
+    thickness=5
+)
+annotated_frame = edge_annotator.annotate(
+    scene=image.copy(),
+    key_points=key_points
+)
 ```
 
 - Added [#1147](https://github.com/roboflow/supervision/pull/1147): [`sv.KeyPoints.from_inference`](https://supervision.roboflow.com/0.21.0/keypoint/core/#supervision.keypoint.core.KeyPoints.from_inference) allowing to create [`sv.KeyPoints`](https://supervision.roboflow.com/0.21.0/keypoint/core/#supervision.keypoint.core.KeyPoints) from [Inference](https://github.com/roboflow/inference) result.

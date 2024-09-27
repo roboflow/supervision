@@ -102,7 +102,9 @@ image = cv2.imread(...)
 detections = sv.Detections(...)
 
 box_annotator = sv.BoxAnnotator()
-annotated_frame = box_annotator.annotate(scene=image.copy(), detections=detections)
+annotated_frame = box_annotator.annotate(
+  scene=image.copy(),
+  detections=detections)
 ```
 
 https://github.com/roboflow/supervision/assets/26109316/691e219c-0565-4403-9218-ab5644f39bce
@@ -137,14 +139,20 @@ for path, image, annotation in ds:
 
     ```python
     dataset = sv.DetectionDataset.from_yolo(
-        images_directory_path=..., annotations_directory_path=..., data_yaml_path=...
+        images_directory_path=...,
+        annotations_directory_path=...,
+        data_yaml_path=...
     )
 
     dataset = sv.DetectionDataset.from_pascal_voc(
-        images_directory_path=..., annotations_directory_path=...
+        images_directory_path=...,
+        annotations_directory_path=...
     )
 
-    dataset = sv.DetectionDataset.from_coco(images_directory_path=..., annotations_path=...)
+    dataset = sv.DetectionDataset.from_coco(
+        images_directory_path=...,
+        annotations_path=...
+    )
     ```
 
 - split
@@ -183,20 +191,33 @@ for path, image, annotation in ds:
 
     ```python
     dataset.as_yolo(
-        images_directory_path=..., annotations_directory_path=..., data_yaml_path=...
+        images_directory_path=...,
+        annotations_directory_path=...,
+        data_yaml_path=...
     )
 
-    dataset.as_pascal_voc(images_directory_path=..., annotations_directory_path=...)
+    dataset.as_pascal_voc(
+        images_directory_path=...,
+        annotations_directory_path=...
+    )
 
-    dataset.as_coco(images_directory_path=..., annotations_path=...)
+    dataset.as_coco(
+        images_directory_path=...,
+        annotations_path=...
+    )
     ```
 
 - convert
 
     ```python
     sv.DetectionDataset.from_yolo(
-        images_directory_path=..., annotations_directory_path=..., data_yaml_path=...
-    ).as_pascal_voc(images_directory_path=..., annotations_directory_path=...)
+        images_directory_path=...,
+        annotations_directory_path=...,
+        data_yaml_path=...
+    ).as_pascal_voc(
+        images_directory_path=...,
+        annotations_directory_path=...
+    )
     ```
 
 </details>
