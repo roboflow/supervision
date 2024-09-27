@@ -1881,14 +1881,18 @@
 <li>
 <p>Constructing <a href="https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset"><code>DetectionDataset</code></a> and <a href="https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.ClassificationDataset"><code>ClassificationDataset</code></a> with parameter <code>images</code> as <code>Dict[str, np.ndarray]</code> will be removed in <code>supervision-0.26.0</code>. Please pass a list of paths <code>List[str]</code> instead.</p>
 </li>
-<li>The <code>DetectionDataset.images</code> property will be removed in <code>supervision-0.26.0</code>. Please loop over images with <code>for path, image, annotation in dataset:</code>, as that does not require loading all images into memory.</li>
+<li>
+<p>The <code>DetectionDataset.images</code> property will be removed in <code>supervision-0.26.0</code>. Please loop over images with <code>for path, image, annotation in dataset:</code>, as that does not require loading all images into memory.</p>
+</li>
 <li>
 <p><code>BoundingBoxAnnotator</code> has been renamed to <code>BoxAnnotator</code> after the old implementation of <a href="https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.BoxAnnotator"><code>BoxAnnotator</code></a> has been removed. <code>BoundingBoxAnnotator</code> will be removed in <code>supervision-0.26.0</code>.</p>
 </li>
 <li>
 <p><code>overlap_filter_strategy</code> in <a href="https://supervision.roboflow.com/latest/detection/tools/inference_slicer/"><code>InferenceSlicer.__init__</code></a> is deprecated and will be removed in <code>supervision-0.27.0</code>. Use <code>overlap_strategy</code> instead.</p>
 </li>
-<li><code>overlap_ratio_wh</code> in <a href="https://supervision.roboflow.com/latest/detection/tools/inference_slicer/"><code>InferenceSlicer.__init__</code></a> is deprecated and will be removed in <code>supervision-0.27.0</code>. Use <code>overlap_wh</code> instead.</li>
+<li>
+<p><code>overlap_ratio_wh</code> in <a href="https://supervision.roboflow.com/latest/detection/tools/inference_slicer/"><code>InferenceSlicer.__init__</code></a> is deprecated and will be removed in <code>supervision-0.27.0</code>. Use <code>overlap_wh</code> instead.</p>
+</li>
 </ul>
 <h1 id="removed">Removed<a class="headerlink" href="#removed" title="Permanent link">&para;</a></h1>
 <h3 id="0230">0.23.0<a class="headerlink" href="#0230" title="Permanent link">&para;</a></h3>
@@ -1898,15 +1902,15 @@
 </ul>
 <h3 id="0220">0.22.0<a class="headerlink" href="#0220" title="Permanent link">&para;</a></h3>
 <ul>
-<li><a href="../detection/core/#supervision.detection.core.Detections.from_roboflow"><code>Detections.from_roboflow</code></a> is removed as of <code>supervision-0.22.0</code>. Use <a href="../detection/core/#supervision.detection.core.Detections.from_inference"><code>Detections.from_inference</code></a> instead.</li>
+<li><code>Detections.from_roboflow</code> is removed as of <code>supervision-0.22.0</code>. Use <a href="../detection/core/#supervision.detection.core.Detections.from_inference"><code>Detections.from_inference</code></a> instead.</li>
 <li>The method <code>Color.white()</code> was removed as of <code>supervision-0.22.0</code>. Use the constant <code>Color.WHITE</code> instead.</li>
 <li>The method <code>Color.black()</code> was removed as of <code>supervision-0.22.0</code>. Use the constant <code>Color.BLACK</code> instead.</li>
 <li>The method <code>Color.red()</code> was removed as of <code>supervision-0.22.0</code>. Use the constant <code>Color.RED</code> instead.</li>
 <li>The method <code>Color.green()</code> was removed as of <code>supervision-0.22.0</code>. Use the constant <code>Color.GREEN</code> instead.</li>
 <li>The method <code>Color.blue()</code> was removed as of <code>supervision-0.22.0</code>. Use the constant <code>Color.BLUE</code> instead.</li>
-<li>The method <code>ColorPalette.default()</code> was removed as of <code>supervision-0.22.0</code>. Use the constant <a href="draw/color/#supervision.draw.color.ColorPalette.DEFAULT"><code>ColorPalette.DEFAULT</code></a> instead.</li>
+<li>The method <code>ColorPalette.default()</code> was removed as of <code>supervision-0.22.0</code>. Use the constant <a href="/utils/draw/#supervision.draw.color.ColorPalette.DEFAULT"><code>ColorPalette.DEFAULT</code></a> instead.</li>
 <li><code>BoxAnnotator</code> was removed as of <code>supervision-0.22.0</code>, however <code>BoundingBoxAnnotator</code> was immediately renamed to <code>BoxAnnotator</code>. Use <a href="../detection/annotators/#supervision.annotators.core.BoxAnnotator"><code>BoxAnnotator</code></a> and <a href="../detection/annotators/#supervision.annotators.core.LabelAnnotator"><code>LabelAnnotator</code></a> instead of the old <code>BoxAnnotator</code>.</li>
-<li>The method <a href="../utils/video/#supervision.utils.video.FPSMonitor.__call__"><code>FPSMonitor.__call__</code></a> was removed as of <code>supervision-0.22.0</code>. Use the attribute <a href="../utils/video/#supervision.utils.video.FPSMonitor.fps"><code>FPSMonitor.fps</code></a> instead.</li>
+<li>The method <code>FPSMonitor.__call__</code> was removed as of <code>supervision-0.22.0</code>. Use the attribute <a href="../utils/video/#supervision.utils.video.FPSMonitor.fps"><code>FPSMonitor.fps</code></a> instead.</li>
 </ul>
 
 
@@ -1930,7 +1934,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">September 18, 2024</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">September 27, 2024</span>
   </span>
 
     
@@ -1958,6 +1962,11 @@
     
     <nav>
       
+        <a href="https://github.com/onuralpszr" class="md-author" title="@onuralpszr">
+          
+          <img src="https://avatars.githubusercontent.com/u/1688848?v=4&size=72" alt="onuralpszr">
+        </a>
+      
         <a href="https://github.com/LinasKo" class="md-author" title="@LinasKo">
           
           <img src="https://avatars.githubusercontent.com/u/6500785?v=4&size=72" alt="LinasKo">
@@ -1966,11 +1975,6 @@
         <a href="https://github.com/SkalskiP" class="md-author" title="@SkalskiP">
           
           <img src="https://avatars.githubusercontent.com/u/26109316?v=4&size=72" alt="SkalskiP">
-        </a>
-      
-        <a href="https://github.com/onuralpszr" class="md-author" title="@onuralpszr">
-          
-          <img src="https://avatars.githubusercontent.com/u/1688848?v=4&size=72" alt="onuralpszr">
         </a>
       
         <a href="https://github.com/apps/pre-commit-ci" class="md-author" title="@pre-commit-ci[bot]">

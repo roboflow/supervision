@@ -4466,13 +4466,13 @@ is either a NumPy array or a list of corresponding data.</p>
 <a id="__codelineno-0-525" name="__codelineno-0-525"></a>            <span class="p">)</span>
 <a id="__codelineno-0-526" name="__codelineno-0-526"></a>
 <a id="__codelineno-0-527" name="__codelineno-0-527"></a>    <span class="nd">@classmethod</span>
-<a id="__codelineno-0-528" name="__codelineno-0-528"></a>    <span class="k">def</span> <span class="nf">from_detectron2</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">detectron2_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+<a id="__codelineno-0-528" name="__codelineno-0-528"></a>    <span class="k">def</span> <span class="nf">from_detectron2</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">detectron2_results</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-529" name="__codelineno-0-529"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-530" name="__codelineno-0-530"></a><span class="sd">        Create a Detections object from the</span>
 <a id="__codelineno-0-531" name="__codelineno-0-531"></a><span class="sd">        [Detectron2](https://github.com/facebookresearch/detectron2) inference result.</span>
 <a id="__codelineno-0-532" name="__codelineno-0-532"></a>
 <a id="__codelineno-0-533" name="__codelineno-0-533"></a><span class="sd">        Args:</span>
-<a id="__codelineno-0-534" name="__codelineno-0-534"></a><span class="sd">            detectron2_results: The output of a</span>
+<a id="__codelineno-0-534" name="__codelineno-0-534"></a><span class="sd">            detectron2_results (Any): The output of a</span>
 <a id="__codelineno-0-535" name="__codelineno-0-535"></a><span class="sd">                Detectron2 model containing instances with prediction data.</span>
 <a id="__codelineno-0-536" name="__codelineno-0-536"></a>
 <a id="__codelineno-0-537" name="__codelineno-0-537"></a><span class="sd">        Returns:</span>
@@ -4733,7 +4733,7 @@ is either a NumPy array or a list of corresponding data.</p>
 <a id="__codelineno-0-792" name="__codelineno-0-792"></a>
 <a id="__codelineno-0-793" name="__codelineno-0-793"></a>    <span class="nd">@classmethod</span>
 <a id="__codelineno-0-794" name="__codelineno-0-794"></a>    <span class="k">def</span> <span class="nf">from_lmm</span><span class="p">(</span>
-<a id="__codelineno-0-795" name="__codelineno-0-795"></a>        <span class="bp">cls</span><span class="p">,</span> <span class="n">lmm</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">LMM</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">result</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span>
+<a id="__codelineno-0-795" name="__codelineno-0-795"></a>        <span class="bp">cls</span><span class="p">,</span> <span class="n">lmm</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">LMM</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">result</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
 <a id="__codelineno-0-796" name="__codelineno-0-796"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-797" name="__codelineno-0-797"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-798" name="__codelineno-0-798"></a><span class="sd">        Creates a Detections object from the given result string based on the specified</span>
@@ -4742,7 +4742,7 @@ is either a NumPy array or a list of corresponding data.</p>
 <a id="__codelineno-0-801" name="__codelineno-0-801"></a><span class="sd">        Args:</span>
 <a id="__codelineno-0-802" name="__codelineno-0-802"></a><span class="sd">            lmm (Union[LMM, str]): The type of LMM (Large Multimodal Model) to use.</span>
 <a id="__codelineno-0-803" name="__codelineno-0-803"></a><span class="sd">            result (str): The result string containing the detection data.</span>
-<a id="__codelineno-0-804" name="__codelineno-0-804"></a><span class="sd">            **kwargs: Additional keyword arguments required by the specified LMM.</span>
+<a id="__codelineno-0-804" name="__codelineno-0-804"></a><span class="sd">            **kwargs (Any): Additional keyword arguments required by the specified LMM.</span>
 <a id="__codelineno-0-805" name="__codelineno-0-805"></a>
 <a id="__codelineno-0-806" name="__codelineno-0-806"></a><span class="sd">        Returns:</span>
 <a id="__codelineno-0-807" name="__codelineno-0-807"></a><span class="sd">            Detections: A new Detections object.</span>
@@ -6450,6 +6450,7 @@ inference result.</p>
           <tr class="doc-section-item">
             <td><code>detectron2_results</code></td>
             <td>
+                  <code><span title="typing.Any">Any</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6553,13 +6554,13 @@ class IDs, and confidences of the predictions.</p>
 <span class="normal"><a href="#__codelineno-0-568">568</a></span>
 <span class="normal"><a href="#__codelineno-0-569">569</a></span>
 <span class="normal"><a href="#__codelineno-0-570">570</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-527" name="__codelineno-0-527"></a><span class="nd">@classmethod</span>
-<a id="__codelineno-0-528" name="__codelineno-0-528"></a><span class="k">def</span> <span class="nf">from_detectron2</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">detectron2_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+<a id="__codelineno-0-528" name="__codelineno-0-528"></a><span class="k">def</span> <span class="nf">from_detectron2</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">detectron2_results</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-529" name="__codelineno-0-529"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-530" name="__codelineno-0-530"></a><span class="sd">    Create a Detections object from the</span>
 <a id="__codelineno-0-531" name="__codelineno-0-531"></a><span class="sd">    [Detectron2](https://github.com/facebookresearch/detectron2) inference result.</span>
 <a id="__codelineno-0-532" name="__codelineno-0-532"></a>
 <a id="__codelineno-0-533" name="__codelineno-0-533"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-534" name="__codelineno-0-534"></a><span class="sd">        detectron2_results: The output of a</span>
+<a id="__codelineno-0-534" name="__codelineno-0-534"></a><span class="sd">        detectron2_results (Any): The output of a</span>
 <a id="__codelineno-0-535" name="__codelineno-0-535"></a><span class="sd">            Detectron2 model containing instances with prediction data.</span>
 <a id="__codelineno-0-536" name="__codelineno-0-536"></a>
 <a id="__codelineno-0-537" name="__codelineno-0-537"></a><span class="sd">    Returns:</span>
@@ -7037,6 +7038,7 @@ Large Multimodal Model (LMM).</p>
           <tr class="doc-section-item">
             <td><code>**kwargs</code></td>
             <td>
+                  <code><span title="typing.Any">Any</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -7190,7 +7192,7 @@ disallowed arguments are provided.</p>
 <span class="normal"><a href="#__codelineno-0-853">853</a></span>
 <span class="normal"><a href="#__codelineno-0-854">854</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-793" name="__codelineno-0-793"></a><span class="nd">@classmethod</span>
 <a id="__codelineno-0-794" name="__codelineno-0-794"></a><span class="k">def</span> <span class="nf">from_lmm</span><span class="p">(</span>
-<a id="__codelineno-0-795" name="__codelineno-0-795"></a>    <span class="bp">cls</span><span class="p">,</span> <span class="n">lmm</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">LMM</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">result</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span>
+<a id="__codelineno-0-795" name="__codelineno-0-795"></a>    <span class="bp">cls</span><span class="p">,</span> <span class="n">lmm</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">LMM</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">result</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
 <a id="__codelineno-0-796" name="__codelineno-0-796"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-797" name="__codelineno-0-797"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-798" name="__codelineno-0-798"></a><span class="sd">    Creates a Detections object from the given result string based on the specified</span>
@@ -7199,7 +7201,7 @@ disallowed arguments are provided.</p>
 <a id="__codelineno-0-801" name="__codelineno-0-801"></a><span class="sd">    Args:</span>
 <a id="__codelineno-0-802" name="__codelineno-0-802"></a><span class="sd">        lmm (Union[LMM, str]): The type of LMM (Large Multimodal Model) to use.</span>
 <a id="__codelineno-0-803" name="__codelineno-0-803"></a><span class="sd">        result (str): The result string containing the detection data.</span>
-<a id="__codelineno-0-804" name="__codelineno-0-804"></a><span class="sd">        **kwargs: Additional keyword arguments required by the specified LMM.</span>
+<a id="__codelineno-0-804" name="__codelineno-0-804"></a><span class="sd">        **kwargs (Any): Additional keyword arguments required by the specified LMM.</span>
 <a id="__codelineno-0-805" name="__codelineno-0-805"></a>
 <a id="__codelineno-0-806" name="__codelineno-0-806"></a><span class="sd">    Returns:</span>
 <a id="__codelineno-0-807" name="__codelineno-0-807"></a><span class="sd">        Detections: A new Detections object.</span>

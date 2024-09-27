@@ -3335,13 +3335,13 @@ is either a NumPy array or a list of corresponding data of length <code>n</code>
 <a id="__codelineno-0-459" name="__codelineno-0-459"></a>        <span class="p">)</span>
 <a id="__codelineno-0-460" name="__codelineno-0-460"></a>
 <a id="__codelineno-0-461" name="__codelineno-0-461"></a>    <span class="nd">@classmethod</span>
-<a id="__codelineno-0-462" name="__codelineno-0-462"></a>    <span class="k">def</span> <span class="nf">from_detectron2</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">detectron2_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyPoints</span><span class="p">:</span>
+<a id="__codelineno-0-462" name="__codelineno-0-462"></a>    <span class="k">def</span> <span class="nf">from_detectron2</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">detectron2_results</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyPoints</span><span class="p">:</span>
 <a id="__codelineno-0-463" name="__codelineno-0-463"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-464" name="__codelineno-0-464"></a><span class="sd">        Create a `sv.KeyPoints` object from the</span>
 <a id="__codelineno-0-465" name="__codelineno-0-465"></a><span class="sd">        [Detectron2](https://github.com/facebookresearch/detectron2) inference result.</span>
 <a id="__codelineno-0-466" name="__codelineno-0-466"></a>
 <a id="__codelineno-0-467" name="__codelineno-0-467"></a><span class="sd">        Args:</span>
-<a id="__codelineno-0-468" name="__codelineno-0-468"></a><span class="sd">            detectron2_results: The output of a</span>
+<a id="__codelineno-0-468" name="__codelineno-0-468"></a><span class="sd">            detectron2_results (Any): The output of a</span>
 <a id="__codelineno-0-469" name="__codelineno-0-469"></a><span class="sd">                Detectron2 model containing instances with prediction data.</span>
 <a id="__codelineno-0-470" name="__codelineno-0-470"></a>
 <a id="__codelineno-0-471" name="__codelineno-0-471"></a><span class="sd">        Returns:</span>
@@ -4071,6 +4071,7 @@ data.</p>
           <tr class="doc-section-item">
             <td><code>detectron2_results</code></td>
             <td>
+                  <code><span title="typing.Any">Any</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4180,13 +4181,13 @@ and class names, and confidences of each keypoint.</p>
 <span class="normal"><a href="#__codelineno-0-508">508</a></span>
 <span class="normal"><a href="#__codelineno-0-509">509</a></span>
 <span class="normal"><a href="#__codelineno-0-510">510</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-461" name="__codelineno-0-461"></a><span class="nd">@classmethod</span>
-<a id="__codelineno-0-462" name="__codelineno-0-462"></a><span class="k">def</span> <span class="nf">from_detectron2</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">detectron2_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyPoints</span><span class="p">:</span>
+<a id="__codelineno-0-462" name="__codelineno-0-462"></a><span class="k">def</span> <span class="nf">from_detectron2</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">detectron2_results</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyPoints</span><span class="p">:</span>
 <a id="__codelineno-0-463" name="__codelineno-0-463"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-464" name="__codelineno-0-464"></a><span class="sd">    Create a `sv.KeyPoints` object from the</span>
 <a id="__codelineno-0-465" name="__codelineno-0-465"></a><span class="sd">    [Detectron2](https://github.com/facebookresearch/detectron2) inference result.</span>
 <a id="__codelineno-0-466" name="__codelineno-0-466"></a>
 <a id="__codelineno-0-467" name="__codelineno-0-467"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-468" name="__codelineno-0-468"></a><span class="sd">        detectron2_results: The output of a</span>
+<a id="__codelineno-0-468" name="__codelineno-0-468"></a><span class="sd">        detectron2_results (Any): The output of a</span>
 <a id="__codelineno-0-469" name="__codelineno-0-469"></a><span class="sd">            Detectron2 model containing instances with prediction data.</span>
 <a id="__codelineno-0-470" name="__codelineno-0-470"></a>
 <a id="__codelineno-0-471" name="__codelineno-0-471"></a><span class="sd">    Returns:</span>

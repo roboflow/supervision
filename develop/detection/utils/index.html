@@ -3935,7 +3935,8 @@ factor less than 1 shrinks them.</p>
             <td>
               <div class="doc-md-description">
                 <p>A numpy array of shape <code>(N, 4)</code> where each
-row corresponds to a bounding box in</p>
+row corresponds to a bounding box in
+the format <code>(x_min, y_min, x_max, y_max)</code>.</p>
               </div>
             </td>
             <td>
@@ -4052,7 +4053,7 @@ within the frame resolution.</p>
 <a id="__codelineno-0-186" name="__codelineno-0-186"></a><span class="sd">    Args:</span>
 <a id="__codelineno-0-187" name="__codelineno-0-187"></a><span class="sd">        xyxy (np.ndarray): A numpy array of shape `(N, 4)` where each</span>
 <a id="__codelineno-0-188" name="__codelineno-0-188"></a><span class="sd">            row corresponds to a bounding box in</span>
-<a id="__codelineno-0-189" name="__codelineno-0-189"></a><span class="sd">        the format `(x_min, y_min, x_max, y_max)`.</span>
+<a id="__codelineno-0-189" name="__codelineno-0-189"></a><span class="sd">            the format `(x_min, y_min, x_max, y_max)`.</span>
 <a id="__codelineno-0-190" name="__codelineno-0-190"></a><span class="sd">        resolution_wh (Tuple[int, int]): A tuple of the form `(width, height)`</span>
 <a id="__codelineno-0-191" name="__codelineno-0-191"></a><span class="sd">            representing the resolution of the frame.</span>
 <a id="__codelineno-0-192" name="__codelineno-0-192"></a>

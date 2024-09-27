@@ -2500,7 +2500,8 @@ non-maximum suppression.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>If <code>iou_threshold</code> is not within the closed</p>
+                <p>If <code>iou_threshold</code> is not within the closed
+range from <code>0</code> to <code>1</code>.</p>
               </div>
             </td>
           </tr>
@@ -2589,7 +2590,7 @@ non-maximum suppression.</p>
 <a id="__codelineno-0-66" name="__codelineno-0-66"></a>
 <a id="__codelineno-0-67" name="__codelineno-0-67"></a><span class="sd">    Raises:</span>
 <a id="__codelineno-0-68" name="__codelineno-0-68"></a><span class="sd">        AssertionError: If `iou_threshold` is not within the closed</span>
-<a id="__codelineno-0-69" name="__codelineno-0-69"></a><span class="sd">        range from `0` to `1`.</span>
+<a id="__codelineno-0-69" name="__codelineno-0-69"></a><span class="sd">            range from `0` to `1`.</span>
 <a id="__codelineno-0-70" name="__codelineno-0-70"></a><span class="sd">    &quot;&quot;&quot;</span>
 <a id="__codelineno-0-71" name="__codelineno-0-71"></a>    <span class="k">assert</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">iou_threshold</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span>
 <a id="__codelineno-0-72" name="__codelineno-0-72"></a>        <span class="s2">&quot;Value of `iou_threshold` must be in the closed range from 0 to 1, &quot;</span>
