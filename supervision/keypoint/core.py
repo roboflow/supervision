@@ -509,6 +509,60 @@ class KeyPoints:
         else:
             return cls.empty()
 
+    @classmethod
+    def from_transformers(cls, transformers_results: List) -> KeyPoints:
+        """
+        Create a `sv.KeyPoints` object from the
+        [Transformers](https://huggingface.co/transformers/) inference result.
+
+        Args:
+            transformers_results (Any): The output of a
+                Hugging Face Transformers model containing instances with prediction data.
+
+        Returns:
+            A `sv.KeyPoints` object containing the keypoint coordinates, class IDs,
+                and class names, and confidences of each keypoint.
+
+        Example:
+            ```python
+            import cv2
+            import torch
+            from PIL import Image
+            import supervision as sv
+            from transformers import AutoImageProcessor, SuperPointForKeypointDetection
+
+            processor = AutoImageProcessor.from_pretrained("magic-leap-community/superpoint")
+            model = SuperPointForKeypointDetection.from_pretrained("magic-leap-community/superpoint")
+
+            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            image_pil = Image.fromarray(image)
+            inputs = processor(images,return_tensors="pt").to(model.device, model.dtype)
+            outputs = model(**inputs)
+            keypoints = sv.KeyPoints.from_transformers(outputs)
+            ```
+        """  # noqa: E501 // docs
+
+        keypoints_list = []
+        scores_list = []
+
+        for result in transformers_results:
+            if "keypoints" in result:
+                keypoints = result["keypoints"].detach().numpy()
+                scores = result["scores"].detach().numpy()
+
+                if keypoints.size > 0:
+                    keypoints_list.append(keypoints)
+                    scores_list.append(scores)
+
+        if not keypoints_list:
+            return cls.empty()
+
+        return cls(
+            xy=np.array(keypoints_list),
+            confidence=np.array(scores_list),
+            class_id=None,
+        )
+
     def __getitem__(
         self, index: Union[int, slice, List[int], np.ndarray, str]
     ) -> Union[KeyPoints, List, np.ndarray, None]:
