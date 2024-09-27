@@ -19,7 +19,6 @@ model. You can learn more on this topic in our
 [How to Detect and Annotate](/latest/how_to/detect_and_annotate.md) guide.
 
 === "Inference"
-
     ```python
     import supervision as sv
     from inference import get_model
@@ -34,7 +33,6 @@ model. You can learn more on this topic in our
     ```
 
 === "Ultralytics"
-
     ```python
     import supervision as sv
     from ultralytics import YOLO
@@ -49,7 +47,6 @@ model. You can learn more on this topic in our
     ```
 
 === "Transformers"
-
     ```python
     import torch
     import supervision as sv
@@ -83,7 +80,6 @@ and then pass the
 object resulting from the inference to it. Its fields are parsed and saved on disk.
 
 === "Inference"
-
     ```{ .py hl_lines="7 12" }
     import supervision as sv
     from inference import get_model
@@ -100,7 +96,6 @@ object resulting from the inference to it. Its fields are parsed and saved on di
     ```
 
 === "Ultralytics"
-
     ```{ .py hl_lines="7 12" }
     import supervision as sv
     from ultralytics import YOLO
@@ -117,7 +112,6 @@ object resulting from the inference to it. Its fields are parsed and saved on di
     ```
 
 === "Transformers"
-
     ```{ .py hl_lines="9 23" }
     import torch
     import supervision as sv
@@ -144,11 +138,11 @@ object resulting from the inference to it. Its fields are parsed and saved on di
             sink.append(detections, {})
     ```
 
-| x_min   | y_min    | x_max   | y_max    | class_id | confidence | tracker_id | class_name |
-|---------|----------|---------|----------|----------|------------|------------|------------|
-| 2941.14 | 1269.31  | 3220.77 | 1500.67  | 2        | 0.8517     |            | car        |
-| 944.889 | 899.641  | 1235.42 | 1308.80  | 7        | 0.6752     |            | truck      |
-| 1439.78 | 1077.79  | 1621.27 | 1231.40  | 2        | 0.6450     |            | car        |
+| x_min   | y_min   | x_max   | y_max   | class_id | confidence | tracker_id | class_name |
+| ------- | ------- | ------- | ------- | -------- | ---------- | ---------- | ---------- |
+| 2941.14 | 1269.31 | 3220.77 | 1500.67 | 2        | 0.8517     |            | car        |
+| 944.889 | 899.641 | 1235.42 | 1308.80 | 7        | 0.6752     |            | truck      |
+| 1439.78 | 1077.79 | 1621.27 | 1231.40 | 2        | 0.6450     |            | car        |
 
 ## Custom Fields
 
@@ -160,7 +154,6 @@ also allows you to add custom information to each row, which can be passed via t
 frame index from which the detections originate.
 
 === "Inference"
-
     ```{ .py hl_lines="8 12" }
     import supervision as sv
     from inference import get_model
@@ -177,7 +170,6 @@ frame index from which the detections originate.
     ```
 
 === "Ultralytics"
-
     ```{ .py hl_lines="8 12" }
     import supervision as sv
     from ultralytics import YOLO
@@ -194,7 +186,6 @@ frame index from which the detections originate.
     ```
 
 === "Transformers"
-
     ```{ .py hl_lines="10 23" }
     import torch
     import supervision as sv
@@ -221,11 +212,11 @@ frame index from which the detections originate.
             sink.append(detections, {"frame_index": frame_index})
     ```
 
-| x_min   | y_min    | x_max   | y_max    | class_id | confidence | tracker_id | class_name | frame_index |
-|---------|----------|---------|----------|----------|------------|------------|------------|-------------|
-| 2941.14 | 1269.31  | 3220.77 | 1500.67  | 2        | 0.8517     |            | car        | 0           |
-| 944.889 | 899.641  | 1235.42 | 1308.80  | 7        | 0.6752     |            | truck      | 0           |
-| 1439.78 | 1077.79  | 1621.27 | 1231.40  | 2        | 0.6450     |            | car        | 0           |
+| x_min   | y_min   | x_max   | y_max   | class_id | confidence | tracker_id | class_name | frame_index |
+| ------- | ------- | ------- | ------- | -------- | ---------- | ---------- | ---------- | ----------- |
+| 2941.14 | 1269.31 | 3220.77 | 1500.67 | 2        | 0.8517     |            | car        | 0           |
+| 944.889 | 899.641 | 1235.42 | 1308.80 | 7        | 0.6752     |            | truck      | 0           |
+| 1439.78 | 1077.79 | 1621.27 | 1231.40 | 2        | 0.6450     |            | car        | 0           |
 
 ## Save Detections as JSON
 
@@ -236,7 +227,6 @@ with
 [`sv.JSONSink`](/latest/detection/tools/save_detections/#supervision.detection.tools.csv_sink.JSONSink).
 
 === "Inference"
-
     ```{ .py hl_lines="7" }
     import supervision as sv
     from inference import get_model
@@ -253,7 +243,6 @@ with
     ```
 
 === "Ultralytics"
-
     ```{ .py hl_lines="7" }
     import supervision as sv
     from ultralytics import YOLO
@@ -270,7 +259,6 @@ with
     ```
 
 === "Transformers"
-
     ```{ .py hl_lines="9" }
     import torch
     import supervision as sv

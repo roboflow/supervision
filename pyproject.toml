@@ -236,6 +236,12 @@ skip-magic-trailing-comma = false
 # Like Black, automatically detect the appropriate line ending.
 line-ending = "auto"
 
+[tool.codespell]
+skip = "*.ipynb,poetry.lock"
+count = true
+quiet-level = 3
+ignore-words-list = "STrack,sTrack,strack"
+
 [tool.setuptools]
 include-package-data = false
 

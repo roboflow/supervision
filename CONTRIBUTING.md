@@ -11,13 +11,13 @@ Please read and adhere to our [Code of Conduct](https://supervision.roboflow.com
 ## Table of Contents
 
 - [Contribution Guidelines](#contribution-guidelines)
-  - [Contributing Features](#contributing-features)
+    - [Contributing Features](#contributing-features)
 - [How to Contribute Changes](#how-to-contribute-changes)
 - [Installation for Contributors](#installation-for-contributors)
 - [Code Style and Quality](#code-style-and-quality)
-  - [Pre-commit tool](#pre-commit-tool)
-  - [Docstrings](#docstrings)
-  - [Type checking](#type-checking)
+    - [Pre-commit tool](#pre-commit-tool)
+    - [Docstrings](#docstrings)
+    - [Type checking](#type-checking)
 - [Documentation](#documentation)
 - [Cookbooks](#cookbooks)
 - [Tests](#tests)
@@ -83,7 +83,7 @@ git push -u origin <your_branch_name>
 
 Use conventional commit messages to clearly describe your changes. The format is:
 
-<type>[optional scope]: <description>
+<type>\[optional scope\]: <description>
 
 Common types include:
 
@@ -130,45 +130,46 @@ Before starting your work on the project, set up your development environment:
 
 1. Clone your fork of the project:
 
-   ```bash
-   git clone https://github.com/YOUR_USERNAME/supervision.git
-   cd supervision
-   ```
+    ```bash
+    git clone https://github.com/YOUR_USERNAME/supervision.git
+    cd supervision
+    ```
 
-   Replace `YOUR_USERNAME` with your GitHub username.
+    Replace `YOUR_USERNAME` with your GitHub username.
 
 2. Create and activate a virtual environment:
 
-   ```bash
-   python3 -m venv .venv
-   source .venv/bin/activate
-   ```
+    ```bash
+    python3 -m venv .venv
+    source .venv/bin/activate
+    ```
 
 3. Install Poetry:
 
-   Using pip:
+    Using pip:
 
-   ```bash
-   pip install -U pip setuptools
-   pip install poetry
-   ```
+    ```bash
+    pip install -U pip setuptools
+    pip install poetry
+    ```
 
-   Or using pipx (recommended for global installation):
+    Or using pipx (recommended for global installation):
 
-   ```bash
-   pipx install poetry
-   ```
+    ```bash
+    pipx install poetry
+    ```
 
 4. Install project dependencies:
 
-   ```bash
-   poetry install
-   ```
+    ```bash
+    poetry install
+    ```
 
 5. Run pytest to verify the setup:
-   ```bash
-   poetry run pytest
-   ```
+
+    ```bash
+    poetry run pytest
+    ```
 
 ## 🎨 Code Style and Quality
 

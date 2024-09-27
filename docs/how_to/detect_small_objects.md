@@ -20,7 +20,6 @@ Small object detection in high-resolution images presents challenges due to the 
 size relative to the image resolution.
 
 === "Inference"
-
     ```python
     import cv2
     import supervision as sv
@@ -41,7 +40,6 @@ size relative to the image resolution.
     ```
 
 === "Ultralytics"
-
     ```python
     import cv2
     import supervision as sv
@@ -62,7 +60,6 @@ size relative to the image resolution.
     ```
 
 === "Transformers"
-
     ```python
     import torch
     import supervision as sv
@@ -108,7 +105,6 @@ identification at the cost of processing speed and increased memory usage. This 
 is less effective for ultra-high-resolution images (4K and above).
 
 === "Inference"
-
     ```{ .py hl_lines="5" }
     import cv2
     import supervision as sv
@@ -129,7 +125,6 @@ is less effective for ultra-high-resolution images (4K and above).
     ```
 
 === "Ultralytics"
-
     ```{ .py hl_lines="7" }
     import cv2
     import supervision as sv
@@ -162,7 +157,6 @@ objects within each, and aggregating the results.
 </video>
 
 === "Inference"
-
     ```{ .py hl_lines="9-14" }
     import cv2
     import numpy as np
@@ -189,7 +183,6 @@ objects within each, and aggregating the results.
     ```
 
 === "Ultralytics"
-
     ```{ .py hl_lines="9-14" }
     import cv2
     import numpy as np
@@ -216,7 +209,6 @@ objects within each, and aggregating the results.
     ```
 
 === "Transformers"
-
     ```{ .py hl_lines="13-28" }
     import cv2
     import torch
@@ -269,7 +261,6 @@ objects within each, and aggregating the results.
 [`InferenceSlicer`](/latest/detection/tools/inference_slicer/#supervision.detection.tools.inference_slicer.InferenceSlicer) can perform segmentation tasks too.
 
 === "Inference"
-
     ```{ .py hl_lines="6 16 19-20" }
     import cv2
     import numpy as np
@@ -296,7 +287,6 @@ objects within each, and aggregating the results.
     ```
 
 === "Ultralytics"
-
     ```{ .py hl_lines="6 16 19-20" }
     import cv2
     import numpy as np

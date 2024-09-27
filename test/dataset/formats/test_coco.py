@@ -308,7 +308,7 @@ def test_group_coco_annotations_by_image_id(
                 ),
             ),
             DoesNotRaise(),
-        ),  # two image annotations with mask, one mask as polygon ans second as RLE
+        ),  # two image annotations with mask, one mask as polygon and second as RLE
         (
             [
                 mock_coco_annotation(
