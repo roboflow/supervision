@@ -23,6 +23,11 @@
 [![gradio](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/Roboflow/Annotators)
 [![discord](https://img.shields.io/discord/1159501506232451173)](https://discord.gg/GbfgXGJ8Bk)
 [![built-with-material-for-mkdocs](https://img.shields.io/badge/Material_for_MkDocs-526CFE?logo=MaterialForMkDocs&logoColor=white)](https://squidfunk.github.io/mkdocs-material/)
+
+  <div align="center">
+    <a href="https://trendshift.io/repositories/124"  target="_blank"><img src="https://trendshift.io/api/badge/repositories/124" alt="roboflow%2Fsupervision | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+  </div>
+
 </div>
 
 ## 👋 hello
@@ -67,21 +72,21 @@ len(detections)
 
 - inference
 
-    Running with [Inference](https://github.com/roboflow/inference) requires a [Roboflow API KEY](https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key).
+  Running with [Inference](https://github.com/roboflow/inference) requires a [Roboflow API KEY](https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key).
 
-    ```python
-    import cv2
-    import supervision as sv
-    from inference import get_model
+  ```python
+  import cv2
+  import supervision as sv
+  from inference import get_model
 
-    image = cv2.imread(...)
-    model = get_model(model_id="yolov8s-640", api_key=<ROBOFLOW API KEY>)
-    result = model.infer(image)[0]
-    detections = sv.Detections.from_inference(result)
+  image = cv2.imread(...)
+  model = get_model(model_id="yolov8s-640", api_key=<ROBOFLOW API KEY>)
+  result = model.infer(image)[0]
+  detections = sv.Detections.from_inference(result)
 
-    len(detections)
-    # 5
-    ```
+  len(detections)
+  # 5
+  ```
 
 </details>
 
