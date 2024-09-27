@@ -369,7 +369,7 @@ class LineZoneAnnotator:
                 label is rectangular.
 
         Returns:
-            Tuple[int, int]: xy, pont in an image where the label will be placed.
+            Tuple[int, int]: xy, point in an image where the label will be placed.
         """
         line_angle = self._get_line_angle(line_zone)
 

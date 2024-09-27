@@ -459,13 +459,13 @@ class KeyPoints:
         )
 
     @classmethod
-    def from_detectron2(cls, detectron2_results) -> KeyPoints:
+    def from_detectron2(cls, detectron2_results: Any) -> KeyPoints:
         """
         Create a `sv.KeyPoints` object from the
         [Detectron2](https://github.com/facebookresearch/detectron2) inference result.
 
         Args:
-            detectron2_results: The output of a
+            detectron2_results (Any): The output of a
                 Detectron2 model containing instances with prediction data.
 
         Returns:

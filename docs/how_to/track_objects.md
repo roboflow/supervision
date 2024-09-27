@@ -41,7 +41,6 @@ This `callback` function will be essential in the subsequent steps of the tutori
 it will be modified to include tracking, labeling, and trace annotations.
 
 === "Ultralytics"
-
     ```{ .py }
     import numpy as np
     import supervision as sv
@@ -63,7 +62,6 @@ it will be modified to include tracking, labeling, and trace annotations.
     ```
 
 === "Inference"
-
     ```{ .py }
     import numpy as np
     import supervision as sv
@@ -97,7 +95,6 @@ functionality, each detected object is assigned a unique tracker ID,
 enabling the continuous following of the object's motion path across different frames.
 
 === "Ultralytics"
-
     ```{ .py hl_lines="6 12" }
     import numpy as np
     import supervision as sv
@@ -121,7 +118,6 @@ enabling the continuous following of the object's motion path across different f
     ```
 
 === "Inference"
-
     ```{ .py hl_lines="6 12" }
     import numpy as np
     import supervision as sv
@@ -153,7 +149,6 @@ in Supervision, we can overlay the tracker IDs and class labels on the detected 
 offering a clear visual representation of each object's class and unique identifier.
 
 === "Ultralytics"
-
     ```{ .py hl_lines="8 15-19 23-24" }
     import numpy as np
     import supervision as sv
@@ -188,7 +183,6 @@ offering a clear visual representation of each object's class and unique identif
     ```
 
 === "Inference"
-
     ```{ .py hl_lines="8 15-19 23-24" }
     import numpy as np
     import supervision as sv
@@ -235,7 +229,6 @@ allows for visualizing the trajectories of objects, helping in understanding the
 movement patterns and interactions between objects in the video.
 
 === "Ultralytics"
-
     ```{ .py hl_lines="9 26-27" }
     import numpy as np
     import supervision as sv
@@ -273,7 +266,6 @@ movement patterns and interactions between objects in the video.
     ```
 
 === "Inference"
-
     ```{ .py hl_lines="9 26-27" }
     import numpy as np
     import supervision as sv

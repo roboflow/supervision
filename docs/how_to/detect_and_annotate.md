@@ -20,7 +20,6 @@ First, you'll need to obtain predictions from your object detection or segmentat
 model.
 
 === "Inference"
-
     ```python
     import cv2
     from inference import get_model
@@ -31,7 +30,6 @@ model.
     ```
 
 === "Ultralytics"
-
     ```python
     import cv2
     from ultralytics import YOLO
@@ -42,7 +40,6 @@ model.
     ```
 
 === "Transformers"
-
     ```python
     import torch
     from PIL import Image
@@ -68,7 +65,6 @@ model.
 Now that we have predictions from a model, we can load them into Supervision.
 
 === "Inference"
-
     We can do so using the [`sv.Detections.from_inference`](/latest/detection/core/#supervision.detection.core.Detections.from_inference) method, which accepts model results from both detection and segmentation models.
 
     ```{ .py hl_lines="2 8" }
@@ -83,7 +79,6 @@ Now that we have predictions from a model, we can load them into Supervision.
     ```
 
 === "Ultralytics"
-
     We can do so using the [`sv.Detections.from_ultralytics`](/latest/detection/core/#supervision.detection.core.Detections.from_ultralytics) method, which accepts model results from both detection and segmentation models.
 
     ```{ .py hl_lines="2 8" }
@@ -98,7 +93,6 @@ Now that we have predictions from a model, we can load them into Supervision.
     ```
 
 === "Transformers"
-
     We can do so using the [`sv.Detections.from_transformers`](/latest/detection/core/#supervision.detection.core.Detections.from_transformers) method, which accepts model results from both detection and segmentation models.
 
     ```{ .py hl_lines="2 19-21" }
@@ -138,7 +132,6 @@ You can load predictions from other computer vision frameworks and libraries usi
 Finally, we can annotate the image with the predictions. Since we are working with an object detection model, we will use the [`sv.BoxAnnotator`](/latest/detection/annotators/#supervision.annotators.core.BoxAnnotator) and [`sv.LabelAnnotator`](/latest/detection/annotators/#supervision.annotators.core.LabelAnnotator) classes.
 
 === "Inference"
-
     ```{ .py hl_lines="10-16" }
     import cv2
     import supervision as sv
@@ -159,7 +152,6 @@ Finally, we can annotate the image with the predictions. Since we are working wi
     ```
 
 === "Ultralytics"
-
     ```{ .py hl_lines="10-16" }
     import cv2
     import supervision as sv
@@ -180,7 +172,6 @@ Finally, we can annotate the image with the predictions. Since we are working wi
     ```
 
 === "Transformers"
-
     ```{ .py hl_lines="23-30" }
     import torch
     import supervision as sv
@@ -222,7 +213,6 @@ will label each detection with its `class_name` (if possible) or `class_id`. You
 override this behavior by passing a list of custom `labels` to the `annotate` method.
 
 === "Inference"
-
     ```{ .py hl_lines="13-17 22" }
     import cv2
     import supervision as sv
@@ -249,7 +239,6 @@ override this behavior by passing a list of custom `labels` to the `annotate` me
     ```
 
 === "Ultralytics"
-
     ```{ .py hl_lines="13-17 22" }
     import cv2
     import supervision as sv
@@ -276,7 +265,6 @@ override this behavior by passing a list of custom `labels` to the `annotate` me
     ```
 
 === "Transformers"
-
     ```{ .py hl_lines="26-30 35" }
     import torch
     import supervision as sv
@@ -326,7 +314,6 @@ is a drop-in replacement for
 that will allow you to draw masks instead of boxes.
 
 === "Inference"
-
     ```python
     import cv2
     import supervision as sv
@@ -347,7 +334,6 @@ that will allow you to draw masks instead of boxes.
     ```
 
 === "Ultralytics"
-
     ```python
     import cv2
     import supervision as sv
@@ -368,7 +354,6 @@ that will allow you to draw masks instead of boxes.
     ```
 
 === "Transformers"
-
     ```python
     import torch
     import supervision as sv
