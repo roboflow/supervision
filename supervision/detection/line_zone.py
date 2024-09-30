@@ -669,13 +669,12 @@ class LineZoneAnnotatorMulticlass:
                 on the table, write the class IDs. E.g. instead of `person: 6`,
                 write `0: 6`.
         """
-
-        if table_position not in [
+        if table_position not in {
             Position.TOP_LEFT,
             Position.TOP_RIGHT,
             Position.BOTTOM_LEFT,
             Position.BOTTOM_RIGHT,
-        ]:
+        }:
             raise ValueError(
                 "Invalid table position. Supported values are:"
                 " TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT."
@@ -697,52 +696,24 @@ class LineZoneAnnotatorMulticlass:
         line_zones: List[LineZone],
         line_zone_labels: Optional[List[str]] = None,
     ) -> np.ndarray:
-        """
-        Draw a table on the frame, showing how many items of each class
-        crossed each line.
-
-        Args:
-            frame (np.ndarray): The image on which the table will be drawn.
-            line_zones (List[LineZone]): The line zones used to count
-                the objects.
-            line_zone_labels (Optional[List[str]]): The labels for each line
-                zone. If not specified, the labels will be `Line 1:`,
-                `Line 2:`, etc.
-
-        Returns:
-            (np.ndarray): The image with the table drawn on it.
-        """
         if line_zone_labels is None:
             line_zone_labels = [f"Line {i + 1}:" for i in range(len(line_zones))]
         if len(line_zones) != len(line_zone_labels):
             raise ValueError("The number of line zones and their labels must match.")
 
-        text = "Line Crossings:\n"
+        text_lines = ["Line Crossings:"]
         for line_zone, line_zone_label in zip(line_zones, line_zone_labels):
-            text += f"{line_zone_label}\n"
+            text_lines.append(line_zone_label)
             class_id_to_name = line_zone.class_id_to_name
 
-            if len(line_zone.in_count_per_class) > 0:
-                text += " In:\n"
-                for class_id, count in line_zone.in_count_per_class.items():
-                    if not self.force_draw_class_ids and class_id in class_id_to_name:
-                        class_name = class_id_to_name[class_id]
-                    else:
-                        class_name = str(class_id)
-                    text += f"  {class_name}: {count}\n"
+            for direction, count_per_class in [("In", line_zone.in_count_per_class), ("Out", line_zone.out_count_per_class)]:
+                if count_per_class:
+                    text_lines.append(f" {direction}:")
+                    for class_id, count in count_per_class.items():
+                        class_name = class_id_to_name.get(class_id, str(class_id)) if not self.force_draw_class_ids else str(class_id)
+                        text_lines.append(f"  {class_name}: {count}")
 
-            if len(line_zone.out_count_per_class) > 0:
-                text += " Out:\n"
-                for class_id, count in line_zone.out_count_per_class.items():
-                    if class_id in class_id_to_name and not self.force_draw_class_ids:
-                        class_name = class_id_to_name[class_id]
-                    else:
-                        class_name = str(class_id)
-                    text += f"  {class_name}: {count}\n"
-
-        table_width = 0
-        table_height = 0
-        text_lines = text.split("\n")
+        table_width, table_height = 0, 0
         for line in text_lines:
             text_width, text_height = cv2.getTextSize(
                 line, cv2.FONT_HERSHEY_SIMPLEX, self.text_scale, self.text_thickness
@@ -750,41 +721,26 @@ class LineZoneAnnotatorMulticlass:
             text_height += TEXT_MARGIN
             table_width = max(table_width, text_width)
             table_height += text_height
+
         table_width += 2 * self.table_padding
         table_height += 2 * self.table_padding
-
         table_max_height = frame.shape[0] - 2 * self.table_margin
         table_height = min(table_height, table_max_height)
         table_width = min(table_width, self.table_max_width)
 
-        if self.table_position == Position.TOP_LEFT:
-            table_x1 = self.table_margin
-            table_y1 = self.table_margin
-        elif self.table_position == Position.TOP_RIGHT:
-            table_x1 = frame.shape[1] - table_width - self.table_margin
-            table_y1 = self.table_margin
-        elif self.table_position == Position.BOTTOM_LEFT:
-            table_x1 = self.table_margin
-            table_y1 = frame.shape[0] - table_height - self.table_margin
-        elif self.table_position == Position.BOTTOM_RIGHT:
-            table_x1 = frame.shape[1] - table_width - self.table_margin
-            table_y1 = frame.shape[0] - table_height - self.table_margin
+        position_map = {
+            Position.TOP_LEFT: (self.table_margin, self.table_margin),
+            Position.TOP_RIGHT: (frame.shape[1] - table_width - self.table_margin, self.table_margin),
+            Position.BOTTOM_LEFT: (self.table_margin, frame.shape[0] - table_height - self.table_margin),
+            Position.BOTTOM_RIGHT: (frame.shape[1] - table_width - self.table_margin, frame.shape[0] - table_height - self.table_margin),
+        }
+        table_x1, table_y1 = position_map[self.table_position]
 
-        table_rect = Rect(
-            x=table_x1, y=table_y1, width=table_width, height=table_height
-        )
+        table_rect = Rect(x=table_x1, y=table_y1, width=table_width, height=table_height)
+        frame = draw_rectangle(scene=frame, rect=table_rect, color=self.table_color, thickness=-1)
 
-        frame = draw_rectangle(
-            scene=frame,
-            rect=table_rect,
-            color=self.table_color,
-            thickness=-1,
-        )
-
-        for i, line in enumerate(text.split("\n")):
-            _, text_height = cv2.getTextSize(
-                line, cv2.FONT_HERSHEY_SIMPLEX, self.text_scale, self.text_thickness
-            )[0]
+        for i, line in enumerate(text_lines):
+            _, text_height = cv2.getTextSize(line, cv2.FONT_HERSHEY_SIMPLEX, self.text_scale, self.text_thickness)[0]
             text_height += TEXT_MARGIN
             anchor_x = table_x1 + self.table_padding
             anchor_y = table_y1 + self.table_padding + (i + 1) * text_height
