@@ -706,11 +706,18 @@ class LineZoneAnnotatorMulticlass:
             text_lines.append(line_zone_label)
             class_id_to_name = line_zone.class_id_to_name
 
-            for direction, count_per_class in [("In", line_zone.in_count_per_class), ("Out", line_zone.out_count_per_class)]:
+            for direction, count_per_class in [
+                ("In", line_zone.in_count_per_class),
+                ("Out", line_zone.out_count_per_class),
+            ]:
                 if count_per_class:
                     text_lines.append(f" {direction}:")
                     for class_id, count in count_per_class.items():
-                        class_name = class_id_to_name.get(class_id, str(class_id)) if not self.force_draw_class_ids else str(class_id)
+                        class_name = (
+                            class_id_to_name.get(class_id, str(class_id))
+                            if not self.force_draw_class_ids
+                            else str(class_id)
+                        )
                         text_lines.append(f"  {class_name}: {count}")
 
         table_width, table_height = 0, 0
@@ -730,17 +737,32 @@ class LineZoneAnnotatorMulticlass:
 
         position_map = {
             Position.TOP_LEFT: (self.table_margin, self.table_margin),
-            Position.TOP_RIGHT: (frame.shape[1] - table_width - self.table_margin, self.table_margin),
-            Position.BOTTOM_LEFT: (self.table_margin, frame.shape[0] - table_height - self.table_margin),
-            Position.BOTTOM_RIGHT: (frame.shape[1] - table_width - self.table_margin, frame.shape[0] - table_height - self.table_margin),
+            Position.TOP_RIGHT: (
+                frame.shape[1] - table_width - self.table_margin,
+                self.table_margin,
+            ),
+            Position.BOTTOM_LEFT: (
+                self.table_margin,
+                frame.shape[0] - table_height - self.table_margin,
+            ),
+            Position.BOTTOM_RIGHT: (
+                frame.shape[1] - table_width - self.table_margin,
+                frame.shape[0] - table_height - self.table_margin,
+            ),
         }
         table_x1, table_y1 = position_map[self.table_position]
 
-        table_rect = Rect(x=table_x1, y=table_y1, width=table_width, height=table_height)
-        frame = draw_rectangle(scene=frame, rect=table_rect, color=self.table_color, thickness=-1)
+        table_rect = Rect(
+            x=table_x1, y=table_y1, width=table_width, height=table_height
+        )
+        frame = draw_rectangle(
+            scene=frame, rect=table_rect, color=self.table_color, thickness=-1
+        )
 
         for i, line in enumerate(text_lines):
-            _, text_height = cv2.getTextSize(line, cv2.FONT_HERSHEY_SIMPLEX, self.text_scale, self.text_thickness)[0]
+            _, text_height = cv2.getTextSize(
+                line, cv2.FONT_HERSHEY_SIMPLEX, self.text_scale, self.text_thickness
+            )[0]
             text_height += TEXT_MARGIN
             anchor_x = table_x1 + self.table_padding
             anchor_y = table_y1 + self.table_padding + (i + 1) * text_height
