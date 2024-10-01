@@ -13,9 +13,7 @@ from supervision.detection.tools.inference_slicer import InferenceSlicer
 def mock_callback():
     """Mock callback function for testing."""
 
-    def callback(image_slice: np.ndarray) -> Detections:
-        # Here we mock the detection process, returning a mock detection
-        # Assume detections are just coordinates for simplicity
+    def callback(_: np.ndarray) -> Detections:
         return Detections(xyxy=np.array([[0, 0, 10, 10]]))
 
     return callback
