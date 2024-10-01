@@ -710,15 +710,17 @@ class LineZoneAnnotatorMulticlass:
                 ("In", line_zone.in_count_per_class),
                 ("Out", line_zone.out_count_per_class),
             ]:
-                if count_per_class:
-                    text_lines.append(f" {direction}:")
-                    for class_id, count in count_per_class.items():
-                        class_name = (
-                            class_id_to_name.get(class_id, str(class_id))
-                            if not self.force_draw_class_ids
-                            else str(class_id)
-                        )
-                        text_lines.append(f"  {class_name}: {count}")
+                if not count_per_class:
+                    continue
+
+                text_lines.append(f" {direction}:")
+                for class_id, count in count_per_class.items():
+                    class_name = (
+                        class_id_to_name.get(class_id, str(class_id))
+                        if not self.force_draw_class_ids
+                        else str(class_id)
+                    )
+                    text_lines.append(f"  {class_name}: {count}")
 
         table_width, table_height = 0, 0
         for line in text_lines:
