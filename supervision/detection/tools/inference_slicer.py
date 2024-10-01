@@ -11,7 +11,6 @@ from supervision.detection.utils import move_boxes, move_masks, move_oriented_bo
 from supervision.utils.image import crop_image
 from supervision.utils.internal import (
     SupervisionWarnings,
-    deprecated_parameter,
     warn_deprecated,
 )
 
@@ -60,13 +59,15 @@ class InferenceSlicer:
     Args:
         slice_wh (Tuple[int, int]): Dimensions of each slice measured in pixels. The
             tuple should be in the format `(width, height)`.
-        overlap_ratio_wh (Optional[Tuple[float, float]]): A tuple representing the
+        overlap_ratio_wh (Optional[Tuple[float, float]]): [⚠️ Deprecated: please set
+                to `None` and use `overlap_wh`] A tuple representing the
             desired overlap ratio for width and height between consecutive slices.
             Each value should be in the range [0, 1), where 0 means no overlap and
             a value close to 1 means high overlap.
         overlap_wh (Optional[Tuple[int, int]]): A tuple representing the desired
             overlap for width and height between consecutive slices measured in pixels.
-            Each value should be greater than or equal to 0.
+            Each value should be greater than or equal to 0. Takes precedence over
+            `overlap_ratio_wh`.
         overlap_filter (Union[OverlapFilter, str]): Strategy for
             filtering or merging overlapping detections in slices.
         iou_threshold (float): Intersection over Union (IoU) threshold
@@ -82,14 +83,6 @@ class InferenceSlicer:
         not a multiple of the slice's width or height minus the overlap.
     """
 
-    @deprecated_parameter(
-        old_parameter="overlap_filter_strategy",
-        new_parameter="overlap_filter",
-        map_function=lambda x: x,
-        warning_message="`{old_parameter}` in `{function_name}` is deprecated and will "
-        "be removed in `supervision-0.27.0`. Use '{new_parameter}' "
-        "instead.",
-    )
     def __init__(
         self,
         callback: Callable[[np.ndarray], Detections],
@@ -103,7 +96,8 @@ class InferenceSlicer:
         if overlap_ratio_wh is not None:
             warn_deprecated(
                 "`overlap_ratio_wh` in `InferenceSlicer.__init__` is deprecated and "
-                "will be removed in `supervision-0.27.0`. Use `overlap_wh` instead."
+                "will be removed in `supervision-0.27.0`. Please manually set it to "
+                "`None` and use `overlap_wh` instead."
             )
 
         self._validate_overlap(overlap_ratio_wh, overlap_wh)
