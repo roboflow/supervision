@@ -244,7 +244,7 @@ class LineZone:
             if tracker_id not in self.crossing_state:
                 self.crossing_state[tracker_id] = (
                     class_ids,
-                    deque([tracker_state], maxlen=self.max_linger)
+                    deque([tracker_state], maxlen=self.max_linger),
                 )
                 continue
 
@@ -259,7 +259,9 @@ class LineZone:
             crossing_state.appendleft(tracker_state)
             all_on_same_side = crossing_state.count(not tracker_state) == 0
             if class_ids:
-                if len(class_ids) != len(crossing_state_class_ids) or not all(class_ids == crossing_state_class_ids):
+                if len(class_ids) != len(crossing_state_class_ids) or not all(
+                    class_ids == crossing_state_class_ids
+                ):
                     self.crossing_state[tracker_id] = (class_ids, tracker_state)
             if not all_on_same_side:
                 continue
