@@ -8,11 +8,11 @@
     </a>
   </p>
 
-  <br>
+<br>
 
 [notebooks](https://github.com/roboflow/notebooks) | [inference](https://github.com/roboflow/inference) | [autodistill](https://github.com/autodistill/autodistill) | [maestro](https://github.com/roboflow/multimodal-maestro)
 
-  <br>
+<br>
 
 [![version](https://badge.fury.io/py/supervision.svg)](https://badge.fury.io/py/supervision)
 [![downloads](https://img.shields.io/pypi/dm/supervision)](https://pypistats.org/packages/supervision)
@@ -23,6 +23,11 @@
 [![gradio](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/Roboflow/Annotators)
 [![discord](https://img.shields.io/discord/1159501506232451173)](https://discord.gg/GbfgXGJ8Bk)
 [![built-with-material-for-mkdocs](https://img.shields.io/badge/Material_for_MkDocs-526CFE?logo=MaterialForMkDocs&logoColor=white)](https://squidfunk.github.io/mkdocs-material/)
+
+  <div align="center">
+    <a href="https://trendshift.io/repositories/124"  target="_blank"><img src="https://trendshift.io/api/badge/repositories/124" alt="roboflow%2Fsupervision | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+  </div>
+
 </div>
 
 ## 👋 hello
@@ -54,7 +59,7 @@ import supervision as sv
 from ultralytics import YOLO
 
 image = cv2.imread(...)
-model = YOLO('yolov8s.pt')
+model = YOLO("yolov8s.pt")
 result = model(image)[0]
 detections = sv.Detections.from_ultralytics(result)
 
@@ -67,21 +72,21 @@ len(detections)
 
 - inference
 
-    Running with [Inference](https://github.com/roboflow/inference) requires a [Roboflow API KEY](https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key).
+  Running with [Inference](https://github.com/roboflow/inference) requires a [Roboflow API KEY](https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key).
 
-    ```python
-    import cv2
-    import supervision as sv
-    from inference import get_model
+  ```python
+  import cv2
+  import supervision as sv
+  from inference import get_model
 
-    image = cv2.imread(...)
-    model = get_model(model_id="yolov8s-640", api_key=<ROBOFLOW API KEY>)
-    result = model.infer(image)[0]
-    detections = sv.Detections.from_inference(result)
+  image = cv2.imread(...)
+  model = get_model(model_id="yolov8s-640", api_key=<ROBOFLOW API KEY>)
+  result = model.infer(image)[0]
+  detections = sv.Detections.from_inference(result)
 
-    len(detections)
-    # 5
-    ```
+  len(detections)
+  # 5
+  ```
 
 </details>
 
@@ -98,9 +103,8 @@ detections = sv.Detections(...)
 
 box_annotator = sv.BoxAnnotator()
 annotated_frame = box_annotator.annotate(
-    scene=image.copy(),
-    detections=detections
-)
+  scene=image.copy(),
+  detections=detections)
 ```
 
 https://github.com/roboflow/supervision/assets/26109316/691e219c-0565-4403-9218-ab5644f39bce
@@ -133,88 +137,88 @@ for path, image, annotation in ds:
 
 - load
 
-  ```python
-  dataset = sv.DetectionDataset.from_yolo(
-      images_directory_path=...,
-      annotations_directory_path=...,
-      data_yaml_path=...
-  )
+    ```python
+    dataset = sv.DetectionDataset.from_yolo(
+        images_directory_path=...,
+        annotations_directory_path=...,
+        data_yaml_path=...
+    )
 
-  dataset = sv.DetectionDataset.from_pascal_voc(
-      images_directory_path=...,
-      annotations_directory_path=...
-  )
+    dataset = sv.DetectionDataset.from_pascal_voc(
+        images_directory_path=...,
+        annotations_directory_path=...
+    )
 
-  dataset = sv.DetectionDataset.from_coco(
-      images_directory_path=...,
-      annotations_path=...
-  )
-  ```
+    dataset = sv.DetectionDataset.from_coco(
+        images_directory_path=...,
+        annotations_path=...
+    )
+    ```
 
 - split
 
-  ```python
-  train_dataset, test_dataset = dataset.split(split_ratio=0.7)
-  test_dataset, valid_dataset = test_dataset.split(split_ratio=0.5)
+    ```python
+    train_dataset, test_dataset = dataset.split(split_ratio=0.7)
+    test_dataset, valid_dataset = test_dataset.split(split_ratio=0.5)
 
-  len(train_dataset), len(test_dataset), len(valid_dataset)
-  # (700, 150, 150)
-  ```
+    len(train_dataset), len(test_dataset), len(valid_dataset)
+    # (700, 150, 150)
+    ```
 
 - merge
 
-  ```python
-  ds_1 = sv.DetectionDataset(...)
-  len(ds_1)
-  # 100
-  ds_1.classes
-  # ['dog', 'person']
+    ```python
+    ds_1 = sv.DetectionDataset(...)
+    len(ds_1)
+    # 100
+    ds_1.classes
+    # ['dog', 'person']
 
-  ds_2 = sv.DetectionDataset(...)
-  len(ds_2)
-  # 200
-  ds_2.classes
-  # ['cat']
+    ds_2 = sv.DetectionDataset(...)
+    len(ds_2)
+    # 200
+    ds_2.classes
+    # ['cat']
 
-  ds_merged = sv.DetectionDataset.merge([ds_1, ds_2])
-  len(ds_merged)
-  # 300
-  ds_merged.classes
-  # ['cat', 'dog', 'person']
-  ```
+    ds_merged = sv.DetectionDataset.merge([ds_1, ds_2])
+    len(ds_merged)
+    # 300
+    ds_merged.classes
+    # ['cat', 'dog', 'person']
+    ```
 
 - save
 
-  ```python
-  dataset.as_yolo(
-      images_directory_path=...,
-      annotations_directory_path=...,
-      data_yaml_path=...
-  )
+    ```python
+    dataset.as_yolo(
+        images_directory_path=...,
+        annotations_directory_path=...,
+        data_yaml_path=...
+    )
 
-  dataset.as_pascal_voc(
-      images_directory_path=...,
-      annotations_directory_path=...
-  )
+    dataset.as_pascal_voc(
+        images_directory_path=...,
+        annotations_directory_path=...
+    )
 
-  dataset.as_coco(
-      images_directory_path=...,
-      annotations_path=...
-  )
-  ```
+    dataset.as_coco(
+        images_directory_path=...,
+        annotations_path=...
+    )
+    ```
 
 - convert
 
-  ```python
-  sv.DetectionDataset.from_yolo(
-      images_directory_path=...,
-      annotations_directory_path=...,
-      data_yaml_path=...
-  ).as_pascal_voc(
-      images_directory_path=...,
-      annotations_directory_path=...
-  )
-  ```
+    ```python
+    sv.DetectionDataset.from_yolo(
+        images_directory_path=...,
+        annotations_directory_path=...,
+        data_yaml_path=...
+    ).as_pascal_voc(
+        images_directory_path=...,
+        annotations_directory_path=...
+    )
+    ```
 
 </details>
 
@@ -266,7 +270,7 @@ We love your input! Please see our [contributing guide](https://github.com/robof
 
 <div align="center">
 
-  <div align="center">
+<div align="center">
       <a href="https://youtube.com/roboflow">
           <img
             src="https://media.roboflow.com/notebooks/template/icons/purple/youtube.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949634652"

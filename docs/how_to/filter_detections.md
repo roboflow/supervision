@@ -15,7 +15,6 @@ the filters in their applications.
 Allows you to select detections that belong only to one selected class.
 
 === "After"
-
     ```python
     import supervision as sv
 
@@ -30,7 +29,6 @@ Allows you to select detections that belong only to one selected class.
     </div>
 
 === "Before"
-
     ```python
     import supervision as sv
 
@@ -49,7 +47,6 @@ Allows you to select detections that belong only to one selected class.
 Allows you to select detections that belong only to selected set of classes.
 
 === "After"
-
     ```python
     import numpy as np
     import supervision as sv
@@ -66,7 +63,6 @@ Allows you to select detections that belong only to selected set of classes.
     </div>
 
 === "Before"
-
     ```python
     import numpy as np
     import supervision as sv
@@ -87,7 +83,6 @@ Allows you to select detections that belong only to selected set of classes.
 Allows you to select detections with specific confidence value, for example higher than selected threshold.
 
 === "After"
-
     ```python
     import supervision as sv
 
@@ -102,7 +97,6 @@ Allows you to select detections with specific confidence value, for example high
     </div>
 
 === "Before"
-
     ```python
     import supervision as sv
 
@@ -122,7 +116,6 @@ Allows you to select detections based on their size. We define the area as the n
 detection in the image. In the example below, we have sifted out the detections that are too small.
 
 === "After"
-
     ```python
     import supervision as sv
 
@@ -137,7 +130,6 @@ detection in the image. In the example below, we have sifted out the detections 
     </div>
 
 === "Before"
-
     ```python
     import supervision as sv
 
@@ -159,7 +151,6 @@ but small on a 3840x2160 image. In such cases, we can filter out detections base
 occupied by them. In the example below, we remove too large detections.
 
 === "After"
-
     ```python
     import supervision as sv
 
@@ -178,7 +169,6 @@ occupied by them. In the example below, we remove too large detections.
     </div>
 
 === "Before"
-
     ```python
     import supervision as sv
 
@@ -203,7 +193,6 @@ can be criteria for rejecting detection. Implementing such filtering requires a 
 simple and fast.
 
 === "After"
-
     ```python
     import supervision as sv
 
@@ -220,7 +209,6 @@ simple and fast.
     </div>
 
 === "Before"
-
     ```python
     import supervision as sv
 
@@ -242,7 +230,6 @@ Allows you to use `Detections` in combination with `PolygonZone` to weed out bou
 zone. In the example below you can see how to filter out all detections located in the lower part of the image.
 
 === "After"
-
     ```python
     import supervision as sv
 
@@ -259,7 +246,6 @@ zone. In the example below you can see how to filter out all detections located 
     </div>
 
 === "Before"
-
     ```python
     import supervision as sv
 
@@ -280,7 +266,6 @@ zone. In the example below you can see how to filter out all detections located 
 `Detections`' greatest strength, however, is that you can build arbitrarily complex logical conditions by simply combining separate conditions using `&` or `|`.
 
 === "After"
-
     ```python
     import supervision as sv
 
@@ -297,7 +282,6 @@ zone. In the example below you can see how to filter out all detections located 
     </div>
 
 === "Before"
-
     ```python
     import supervision as sv
 

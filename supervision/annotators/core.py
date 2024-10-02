@@ -68,7 +68,8 @@ class BoxAnnotator(BaseAnnotator):
 
         Args:
             scene (ImageType): The image where bounding boxes will be drawn. `ImageType`
-            is a flexible type, accepting either `numpy.ndarray` or `PIL.Image.Image`.
+                is a flexible type, accepting either `numpy.ndarray` or
+                `PIL.Image.Image`.
             detections (Detections): Object detections to annotate.
             custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
                 Allows to override the default color mapping strategy.

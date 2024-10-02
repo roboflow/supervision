@@ -6,7 +6,10 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 
-from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES
+from supervision.config import (
+    CLASS_NAME_DATA_FIELD,
+    ORIENTED_BOX_COORDINATES,
+)
 from supervision.detection.lmm import (
     LMM,
     from_florence_2,
@@ -514,14 +517,21 @@ class Detections:
                 **process_transformers_detection_result(transformers_results, id2label)
             )
 
+        else:
+            raise ValueError(
+                "The provided Transformers results do not contain any valid fields."
+                " Expected fields are 'boxes', 'masks', 'segments_info' or"
+                " 'segmentation'."
+            )
+
     @classmethod
-    def from_detectron2(cls, detectron2_results) -> Detections:
+    def from_detectron2(cls, detectron2_results: Any) -> Detections:
         """
         Create a Detections object from the
         [Detectron2](https://github.com/facebookresearch/detectron2) inference result.
 
         Args:
-            detectron2_results: The output of a
+            detectron2_results (Any): The output of a
                 Detectron2 model containing instances with prediction data.
 
         Returns:
@@ -782,7 +792,7 @@ class Detections:
 
     @classmethod
     def from_lmm(
-        cls, lmm: Union[LMM, str], result: Union[str, dict], **kwargs
+        cls, lmm: Union[LMM, str], result: Union[str, dict], **kwargs: Any
     ) -> Detections:
         """
         Creates a Detections object from the given result string based on the specified
@@ -791,7 +801,7 @@ class Detections:
         Args:
             lmm (Union[LMM, str]): The type of LMM (Large Multimodal Model) to use.
             result (str): The result string containing the detection data.
-            **kwargs: Additional keyword arguments required by the specified LMM.
+            **kwargs (Any): Additional keyword arguments required by the specified LMM.
 
         Returns:
             Detections: A new Detections object.
@@ -842,6 +852,110 @@ class Detections:
             return cls(xyxy=xyxy, mask=mask, data=data)
 
         raise ValueError(f"Unsupported LMM: {lmm}")
+
+    @classmethod
+    def from_easyocr(cls, easyocr_results: list) -> Detections:
+        """
+        Create a Detections object from the
+        [EasyOCR](https://github.com/JaidedAI/EasyOCR) result.
+
+        Results are placed in the `data` field with the key `"class_name"`.
+
+        Args:
+            easyocr_results (List): The output Results instance from EasyOCR
+
+        Returns:
+            Detections: A new Detections object.
+
+        Example:
+            ```python
+            import supervision as sv
+            import easyocr
+
+            reader = easyocr.Reader(['en'])
+            results = reader.readtext(<SOURCE_IMAGE_PATH>)
+            detections = sv.Detections.from_easyocr(results)
+            detected_text = detections["class_name"]
+            ```
+        """
+        if len(easyocr_results) == 0:
+            return cls.empty()
+
+        bbox = np.array([result[0] for result in easyocr_results])
+        xyxy = np.hstack((np.min(bbox, axis=1), np.max(bbox, axis=1)))
+        confidence = np.array(
+            [
+                result[2] if len(result) > 2 and result[2] else 0
+                for result in easyocr_results
+            ]
+        )
+        ocr_text = np.array([result[1] for result in easyocr_results])
+
+        return cls(
+            xyxy=xyxy.astype(np.float32),
+            confidence=confidence.astype(np.float32),
+            data={
+                CLASS_NAME_DATA_FIELD: ocr_text,
+            },
+        )
+
+    @classmethod
+    def from_ncnn(cls, ncnn_results) -> Detections:
+        """
+        Creates a Detections instance from the
+        [ncnn](https://github.com/Tencent/ncnn) inference result.
+        Supports object detection models.
+
+        Arguments:
+            ncnn_results (dict): The output Results instance from ncnn.
+
+        Returns:
+            Detections: A new Detections object.
+
+        Example:
+            ```python
+            import cv2
+            from ncnn.model_zoo import get_model
+            import supervision as sv
+
+            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            model = get_model(
+                "yolov8s",
+                target_size=640
+                prob_threshold=0.5,
+                nms_threshold=0.45,
+                num_threads=4,
+                use_gpu=True,
+                )
+            result = model(image)
+            detections = sv.Detections.from_ncnn(result)
+            ```
+        """
+
+        xywh, confidences, class_ids = [], [], []
+
+        if len(ncnn_results) == 0:
+            return cls.empty()
+
+        for ncnn_result in ncnn_results:
+            rect = ncnn_result.rect
+            xywh.append(
+                [
+                    rect.x.astype(np.float32),
+                    rect.y.astype(np.float32),
+                    rect.w.astype(np.float32),
+                    rect.h.astype(np.float32),
+                ]
+            )
+
+            confidences.append(ncnn_result.prob)
+            class_ids.append(ncnn_result.label)
+
+        return cls(
+            xyxy=xywh_to_xyxy(np.array(xywh, dtype=np.float32)),
+            confidence=np.array(confidences, dtype=np.float32),
+            class_id=np.array(class_ids, dtype=int),
+        )
 
     @classmethod
     def empty(cls) -> Detections:

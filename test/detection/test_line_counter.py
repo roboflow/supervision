@@ -725,11 +725,7 @@ def test_line_zone_one_detection_long_horizon(
             [
                 [False, False, False],
                 [False, False, False],
-                [
-                    False,
-                    False,
-                    False,
-                ],
+                [False, False, False],
                 [False, False],
                 [False, True],
             ],

@@ -10,10 +10,13 @@ These features are phased out due to better alternatives or potential issues in 
 - The `frame_resolution_wh ` parameter in [`sv.PolygonZone`](detection/tools/polygon_zone.md/#supervision.detection.tools.polygon_zone.PolygonZone) will be removed in `supervision-0.24.0`.
 
 - Constructing [`DetectionDataset`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset) and [`ClassificationDataset`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.ClassificationDataset) with parameter `images` as `Dict[str, np.ndarray]` will be removed in `supervision-0.26.0`. Please pass a list of paths `List[str]` instead.
+
 - The `DetectionDataset.images` property will be removed in `supervision-0.26.0`. Please loop over images with `for path, image, annotation in dataset:`, as that does not require loading all images into memory.
+
 - `BoundingBoxAnnotator` has been renamed to `BoxAnnotator` after the old implementation of [`BoxAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.BoxAnnotator) has been removed. `BoundingBoxAnnotator` will be removed in `supervision-0.26.0`.
 
 - `overlap_filter_strategy` in [`InferenceSlicer.__init__`](https://supervision.roboflow.com/latest/detection/tools/inference_slicer/) is deprecated and will be removed in `supervision-0.27.0`. Use `overlap_strategy` instead.
+
 - `overlap_ratio_wh` in [`InferenceSlicer.__init__`](https://supervision.roboflow.com/latest/detection/tools/inference_slicer/) is deprecated and will be removed in `supervision-0.27.0`. Use `overlap_wh` instead.
 
 # Removed
@@ -25,12 +28,12 @@ These features are phased out due to better alternatives or potential issues in 
 
 ### 0.22.0
 
-- [`Detections.from_roboflow`](detection/core.md/#supervision.detection.core.Detections.from_roboflow) is removed as of `supervision-0.22.0`. Use [`Detections.from_inference`](detection/core.md/#supervision.detection.core.Detections.from_inference) instead.
+- `Detections.from_roboflow` is removed as of `supervision-0.22.0`. Use [`Detections.from_inference`](detection/core.md/#supervision.detection.core.Detections.from_inference) instead.
 - The method `Color.white()` was removed as of `supervision-0.22.0`. Use the constant `Color.WHITE` instead.
 - The method `Color.black()` was removed as of `supervision-0.22.0`. Use the constant `Color.BLACK` instead.
 - The method `Color.red()` was removed as of `supervision-0.22.0`. Use the constant `Color.RED` instead.
 - The method `Color.green()` was removed as of `supervision-0.22.0`. Use the constant `Color.GREEN` instead.
 - The method `Color.blue()` was removed as of `supervision-0.22.0`. Use the constant `Color.BLUE` instead.
-- The method `ColorPalette.default()` was removed as of `supervision-0.22.0`. Use the constant [`ColorPalette.DEFAULT`](draw/color/#supervision.draw.color.ColorPalette.DEFAULT) instead.
+- The method `ColorPalette.default()` was removed as of `supervision-0.22.0`. Use the constant [`ColorPalette.DEFAULT`](/utils/draw/#supervision.draw.color.ColorPalette.DEFAULT) instead.
 - `BoxAnnotator` was removed as of `supervision-0.22.0`, however `BoundingBoxAnnotator` was immediately renamed to `BoxAnnotator`. Use [`BoxAnnotator`](detection/annotators.md/#supervision.annotators.core.BoxAnnotator) and [`LabelAnnotator`](detection/annotators.md/#supervision.annotators.core.LabelAnnotator) instead of the old `BoxAnnotator`.
-- The method [`FPSMonitor.__call__`](utils/video.md/#supervision.utils.video.FPSMonitor.__call__) was removed as of `supervision-0.22.0`. Use the attribute [`FPSMonitor.fps`](utils/video.md/#supervision.utils.video.FPSMonitor.fps) instead.
+- The method `FPSMonitor.__call__` was removed as of `supervision-0.22.0`. Use the attribute [`FPSMonitor.fps`](utils/video.md/#supervision.utils.video.FPSMonitor.fps) instead.
