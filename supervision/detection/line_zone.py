@@ -85,7 +85,7 @@ class LineZone:
                 to consider when deciding on whether the detection
                 has passed the line counter or not. By default, this
                 contains the four corners of the detection's bounding box
-            max_linger: An integer indicating the number of consequtive frames
+            max_linger: An integer indicating the number of consecutive frames
                 detections should stay away from the line after crossing it
                 to consider crossing completed. This configuration option
                 is useful when dealing with unstable bounding boxes or when
