@@ -5,8 +5,6 @@ status: new
 
 # Annotators
 
-Supervision provides a variety of annotators to annotate detections on images and videos. You can try them out below, with a [Workflow](https://roboflow.com/workflows) that runs [Microsoft's COCO](https://cocodataset.org/#home) dataset through a Instance Segmentation model and annotates the detections using supervision's annotators.
-
 === "Box"
 
     ```python
