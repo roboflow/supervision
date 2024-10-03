@@ -484,8 +484,8 @@ Annotators accept detections and apply box or mask visualizations to the detecti
     </div>
 
 <div class="md-typeset">
-    <h2>Visualize Supervision Annotators on your own images</h2>
-    Note this visualization uses a COCO model (default detects classes such as people, vehicles, animals, household items) to visualize annotators. If annotators do not appear, your image may not found by the COCO model.
+    <h2>Try Supervision Annotators on your own image</h2>
+    Visualize annotators on images with COCO classes such as people, vehicles, animals, household items.
 </div>
 
 <div style="height: 400px; width: 100%; border-radius: 8px; overflow: hidden;"><iframe src="https://app.roboflow.com/workflows/embed/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ3b3JrZmxvd0lkIjoiNDdtd2xuWW16S25VNWtOYUZjMG8iLCJ3b3Jrc3BhY2VJZCI6ImtyT1RBYm5jRmhvUU1DZExPbGU0IiwidXNlcklkIjoiRVJNUFBZY3FQMmZWWjB1NkRpNXZaYXJDdlZPMiIsImlhdCI6MTcyNjgzOTM2N30.gj2F6SnmmURAScJe4PTC1raUXsAK5mZyrUIGIJ44NhM?hideToolbar=true&hideHeader=true&defaultVisual=true" loading="lazy" title="Roboflow Workflow for Supervision Annotators" style="width: 100%; height: 100%; min-height: 400px; border: none;"></iframe></div>
