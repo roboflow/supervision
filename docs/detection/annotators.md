@@ -7,8 +7,6 @@ status: new
 
 Supervision provides a variety of annotators to annotate detections on images and videos. You can try them out below, with a [Workflow](https://roboflow.com/workflows) that runs [Microsoft's COCO](https://cocodataset.org/#home) dataset through a Instance Segmentation model and annotates the detections using supervision's annotators.
 
-<div style="height: 400px; width: 100%; border-radius: 8px; overflow: hidden;"><iframe src="https://app.roboflow.com/workflows/embed/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ3b3JrZmxvd0lkIjoiNDdtd2xuWW16S25VNWtOYUZjMG8iLCJ3b3Jrc3BhY2VJZCI6ImtyT1RBYm5jRmhvUU1DZExPbGU0IiwidXNlcklkIjoiRVJNUFBZY3FQMmZWWjB1NkRpNXZaYXJDdlZPMiIsImlhdCI6MTcyNjgzOTM2N30.gj2F6SnmmURAScJe4PTC1raUXsAK5mZyrUIGIJ44NhM" loading="lazy" title="Roboflow Workflow for Supervision Annotators" style="width: 100%; height: 100%; min-height: 400px; border: none;"></iframe></div>
-
 === "Box"
 
     ```python
@@ -484,6 +482,12 @@ Supervision provides a variety of annotators to annotate detections on images an
     ![background-overlay-annotator-example](https://media.roboflow.com/supervision-annotator-examples/background-color-annotator-example-purple.png)
 
     </div>
+
+<div class="md-typeset">
+    <h2>Try Supervision Annotators with your own images</h2>
+</div>
+
+<div style="height: 400px; width: 100%; border-radius: 8px; overflow: hidden;"><iframe src="https://app.roboflow.com/workflows/embed/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ3b3JrZmxvd0lkIjoiNDdtd2xuWW16S25VNWtOYUZjMG8iLCJ3b3Jrc3BhY2VJZCI6ImtyT1RBYm5jRmhvUU1DZExPbGU0IiwidXNlcklkIjoiRVJNUFBZY3FQMmZWWjB1NkRpNXZaYXJDdlZPMiIsImlhdCI6MTcyNjgzOTM2N30.gj2F6SnmmURAScJe4PTC1raUXsAK5mZyrUIGIJ44NhM?hideToolbar=true&hideHeader=true&defaultVisual=true" loading="lazy" title="Roboflow Workflow for Supervision Annotators" style="width: 100%; height: 100%; min-height: 400px; border: none;"></iframe></div>
 
 <div class="md-typeset">
     <h2><a href="#supervision.annotators.core.BoxAnnotator">BoxAnnotator</a></h2>
