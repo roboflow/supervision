@@ -1,6 +1,5 @@
-import warnings
 from dataclasses import replace
-from typing import Iterable, Optional, Tuple
+from typing import Iterable, Optional
 
 import cv2
 import numpy as np
@@ -12,7 +11,6 @@ from supervision.draw.color import Color
 from supervision.draw.utils import draw_filled_polygon, draw_polygon, draw_text
 from supervision.geometry.core import Position
 from supervision.geometry.utils import get_polygon_center
-from supervision.utils.internal import SupervisionWarnings
 
 
 class PolygonZone:
@@ -33,17 +31,8 @@ class PolygonZone:
     def __init__(
         self,
         polygon: npt.NDArray[np.int64],
-        frame_resolution_wh: Optional[Tuple[int, int]] = None,
         triggering_anchors: Iterable[Position] = (Position.BOTTOM_CENTER,),
     ):
-        if frame_resolution_wh is not None:
-            warnings.warn(
-                "The `frame_resolution_wh` parameter is no longer required and will be "
-                "dropped in version supervision-0.24.0. The mask resolution is now "
-                "calculated automatically based on the polygon coordinates.",
-                category=SupervisionWarnings,
-            )
-
         self.polygon = polygon.astype(int)
         self.triggering_anchors = triggering_anchors
         if not list(self.triggering_anchors):

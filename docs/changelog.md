@@ -1,5 +1,11 @@
 # CHANGELOG
 
+### 0.24.0 <small>Oct 4, 2024</small>
+
+!!! failure "Removed"
+    The `frame_resolution_wh ` parameter in [`sv.PolygonZone`](https://supervision.roboflow.com/0.24.0/detection/tools/polygon_zone.md/#supervision.detection.tools.polygon_zone.PolygonZone) has been removed.
+
+
 ### 0.23.0 <small>Aug 28, 2024</small>
 
 - Added [#930](https://github.com/roboflow/supervision/pull/930): `IconAnnotator`, a [new annotator](https://supervision.roboflow.com/0.23.0/detection/annotators/#supervision.annotators.core.IconAnnotator) that allows drawing icons on each detection. Useful if you want to draw a specific icon for each class.
