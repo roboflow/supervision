@@ -2,7 +2,7 @@
 
 ### 0.24.0 <small>Oct 4, 2024</small>
 
-- Added [F1 score](https://supervision.roboflow.com/develop/metrics/f1_score/#supervision.metrics.f1_score.F1Score) as a new metric for detection and segmentation. [#1521](https://github.com/roboflow/supervision/pull/1521)
+- Added [F1 score](https://supervision.roboflow.com/0.24.0/metrics/f1_score/#supervision.metrics.f1_score.F1Score) as a new metric for detection and segmentation. [#1521](https://github.com/roboflow/supervision/pull/1521)
 
 ```python
 import supervision as sv
@@ -19,11 +19,11 @@ print(f1_result.f1_50)
 print(f1_result.small_objects.f1_50)
 ```
 
-- Added new cookbook: [Small Object Detection with SAHI](https://supervision.roboflow.com/develop/notebooks/small-object-detection-with-sahi/). This cookbook provides a detailed guide on using [`InferenceSlicer`](https://supervision.roboflow.com/develop/detection/tools/inference_slicer/) for small object detection. [#1483](https://github.com/roboflow/supervision/pull/1483)
+- Added new cookbook: [Small Object Detection with SAHI](https://supervision.roboflow.com/0.24.0/notebooks/small-object-detection-with-sahi/). This cookbook provides a detailed guide on using [`InferenceSlicer`](https://supervision.roboflow.com/0.24.0/detection/tools/inference_slicer/) for small object detection. [#1483](https://github.com/roboflow/supervision/pull/1483)
 
-- Added an [Embedded Workflow](https://roboflow.com/workflows), which allows you to [preview annotators](https://supervision.roboflow.com/develop/detection/annotators/). [#1533](https://github.com/roboflow/supervision/pull/1533)
+- Added an [Embedded Workflow](https://roboflow.com/workflows), which allows you to [preview annotators](https://supervision.roboflow.com/0.24.0/detection/annotators/). [#1533](https://github.com/roboflow/supervision/pull/1533)
 
-- Enhanced [`LineZoneAnnotator`](https://supervision.roboflow.com/develop/detection/tools/line_zone/#supervision.detection.line_zone.LineZoneAnnotator), allowing the labels to align with the line, even when it's not horizontal. Also, you can now disable text background, and choose to draw labels off-center which minimizes overlaps for multiple [`LineZone`](https://supervision.roboflow.com/develop/detection/tools/line_zone/#supervision.detection.line_zone.LineZone) labels. [#854](https://github.com/roboflow/supervision/pull/854)
+- Enhanced [`LineZoneAnnotator`](https://supervision.roboflow.com/0.24.0/detection/tools/line_zone/#supervision.detection.line_zone.LineZoneAnnotator), allowing the labels to align with the line, even when it's not horizontal. Also, you can now disable text background, and choose to draw labels off-center which minimizes overlaps for multiple [`LineZone`](https://supervision.roboflow.com/0.24.0/detection/tools/line_zone/#supervision.detection.line_zone.LineZone) labels. [#854](https://github.com/roboflow/supervision/pull/854)
 
 ```python
 import supervision as sv
@@ -48,7 +48,7 @@ annotated_frame = line_zone_annotator.annotate(
 sv.plot_image(frame)
 ```
 
-- Added per-class counting capabilities to [`LineZone`](https://supervision.roboflow.com/develop/detection/tools/line_zone/#supervision.detection.line_zone.LineZone) and introduced [`LineZoneAnnotatorMulticlass`](https://supervision.roboflow.com/develop/detection/tools/line_zone/#supervision.detection.line_zone.LineZoneAnnotatorMulticlass) for visualizing the counts per class. This feature allows tracking of individual classes crossing a line, enhancing the flexibility of use cases like traffic monitoring or crowd analysis. [#1555](https://github.com/roboflow/supervision/pull/1555)
+- Added per-class counting capabilities to [`LineZone`](https://supervision.roboflow.com/0.24.0/detection/tools/line_zone/#supervision.detection.line_zone.LineZone) and introduced [`LineZoneAnnotatorMulticlass`](https://supervision.roboflow.com/0.24.0/detection/tools/line_zone/#supervision.detection.line_zone.LineZoneAnnotatorMulticlass) for visualizing the counts per class. This feature allows tracking of individual classes crossing a line, enhancing the flexibility of use cases like traffic monitoring or crowd analysis. [#1555](https://github.com/roboflow/supervision/pull/1555)
 
 ```python
 import supervision as sv
@@ -69,7 +69,7 @@ frame = line_zone_annotator.annotate(
 sv.plot_image(frame)
 ```
 
-- - Added [`from_easyocr`](https://supervision.roboflow.com/develop/detection/core/#supervision.detection.core.Detections.from_easyocr), allowing integration of OCR results into the supervision framework. [EasyOCR](https://github.com/JaidedAI/EasyOCR) is an open-source optical character recognition (OCR) library that can read text from images. [#1515](https://github.com/roboflow/supervision/pull/1515)
+- - Added [`from_easyocr`](https://supervision.roboflow.com/0.24.0/detection/core/#supervision.detection.core.Detections.from_easyocr), allowing integration of OCR results into the supervision framework. [EasyOCR](https://github.com/JaidedAI/EasyOCR) is an open-source optical character recognition (OCR) library that can read text from images. [#1515](https://github.com/roboflow/supervision/pull/1515)
 
 ```python
 import supervision as sv
@@ -92,7 +92,7 @@ annotated_image = label_annotator.annotate(scene=annotated_image, detections=det
 sv.plot_image(annotated_image)
 ```
 
-- Added [`oriented_box_iou_batch`](https://supervision.roboflow.com/develop/detection/utils/#supervision.detection.utils.oriented_box_iou_batch) function to `detection.utils`. This function computes Intersection over Union (IoU) for oriented or rotated bounding boxes (OBB). [#1502](https://github.com/roboflow/supervision/pull/1502)
+- Added [`oriented_box_iou_batch`](https://supervision.roboflow.com/0.24.0/detection/utils/#supervision.detection.utils.oriented_box_iou_batch) function to `detection.utils`. This function computes Intersection over Union (IoU) for oriented or rotated bounding boxes (OBB). [#1502](https://github.com/roboflow/supervision/pull/1502)
 
 ```python
 import numpy as np
@@ -103,7 +103,7 @@ ious = sv.oriented_box_iou_batch(boxes_true, boxes_detection)
 print("IoU between true and detected boxes:", ious)
 ```
 
-- Extended [`PolygonZoneAnnotator`](https://supervision.roboflow.com/develop/detection/tools/polygon_zone/#supervision.detection.tools.polygon_zone.PolygonZoneAnnotator) to allow setting opacity when drawing zones, providing enhanced visualization by filling the zone with adjustable transparency. [#1527](https://github.com/roboflow/supervision/pull/1527)
+- Extended [`PolygonZoneAnnotator`](https://supervision.roboflow.com/0.24.0/detection/tools/polygon_zone/#supervision.detection.tools.polygon_zone.PolygonZoneAnnotator) to allow setting opacity when drawing zones, providing enhanced visualization by filling the zone with adjustable transparency. [#1527](https://github.com/roboflow/supervision/pull/1527)
 
 ```python
 import cv2
@@ -124,7 +124,7 @@ detections = sv.Detections.from_ncnn(result)
 ```
 
 !!! failure "Removed"
-The `frame_resolution_wh` parameter in [`PolygonZone`](https://supervision.roboflow.com/develop/detection/tools/polygon_zone/#supervision.detection.tools.polygon_zone.PolygonZone) has been removed.
+The `frame_resolution_wh` parameter in [`PolygonZone`](https://supervision.roboflow.com/0.24.0/detection/tools/polygon_zone/#supervision.detection.tools.polygon_zone.PolygonZone) has been removed.
 
 !!! failure "Removed"
 Supervision installation methods `"headless"` and `"desktop"` were removed, as they are no longer needed. `pip install supervision[headless]` will install the base library and harmlessly warn of non-existent extras.
