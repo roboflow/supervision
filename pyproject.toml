@@ -92,7 +92,7 @@ mike = "^2.0.0"
 # For Documentation Development use Python 3.10 or above
 # Use Latest mkdocs-jupyter min 0.24.6 for Jupyter Notebook Theme support
 mkdocs-jupyter = "^0.24.3"
-mkdocs-git-committers-plugin-2 = "2.3.0"
+mkdocs-git-committers-plugin-2 = "2.4.0"
 mkdocs-git-revision-date-localized-plugin = "^1.2.4"
 
 [tool.poetry.group.typecheck]

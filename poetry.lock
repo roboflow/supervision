@@ -2195,13 +2195,13 @@ pyyaml = ">=5.1"
 
 [[package]]
 name = "mkdocs-git-committers-plugin-2"
-version = "2.3.0"
+version = "2.4.0"
 description = "An MkDocs plugin to create a list of contributors on the page. The git-committers plugin will seed the template context with a list of GitHub or GitLab committers and other useful GIT info such as last modified date"
 optional = false
-python-versions = ">=3.8,<4"
+python-versions = "<4,>=3.8"
 files = [
-    {file = "mkdocs-git-committers-plugin-2-2.3.0.tar.gz", hash = "sha256:d6baca1ae04db8120640038eda8142f2d081c27b53f3b566c83c75717e4ed81a"},
-    {file = "mkdocs_git_committers_plugin_2-2.3.0-py3-none-any.whl", hash = "sha256:7b3434af3be525c12858eb3b44b4c6b695b7c7b7760482ea8de1c6e292e84f0f"},
+    {file = "mkdocs_git_committers_plugin_2-2.4.0-py3-none-any.whl", hash = "sha256:4ca97c06e6b0f651db878afbdb1fec24c0eb841d9b8985161c2fb7837c87f0a3"},
+    {file = "mkdocs_git_committers_plugin_2-2.4.0.tar.gz", hash = "sha256:b4d21f64f9f135c8c1bbb353e374a61f48b195497e83ba695d96f3211e3d0518"},
 ]
 
 [package.dependencies]
@@ -4545,4 +4545,4 @@ metrics = ["pandas", "pandas-stubs"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "f7f497da73c8c467b621555f622bf0f10b21d0c4e97f68521e3f079e2ffb7789"
+content-hash = "ba820267ed044e687df7df7cf34702a3d3da391c89f0961ffa9584f099d2e09c"
