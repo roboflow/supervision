@@ -17,5 +17,5 @@ jobs:
       - name:  🏗️ Install dependencies and Test Docs Build
         run: |
           python -m pip install --upgrade pip
-          pip install "mkdocs-material" "mkdocstrings[python]" "mkdocs-material[imaging]" mike "mkdocs-git-revision-date-localized-plugin" jupyterlab mkdocs-jupyter mkdocs-git-committers-plugin-2==2.3.0
+          pip install "mkdocs-material" "mkdocstrings[python]" "mkdocs-material[imaging]" mike "mkdocs-git-revision-date-localized-plugin" jupyterlab mkdocs-jupyter mkdocs-git-committers-plugin-2
           mkdocs build --verbose
