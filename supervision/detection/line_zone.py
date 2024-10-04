@@ -705,6 +705,9 @@ class LineZoneAnnotatorMulticlass:
             line_zone_labels (Optional[List[str]]): The labels, one for each
                 line zone. If not provided, the default labels will be used.
 
+        Returns:
+            (np.ndarray): The image with the table drawn on it.
+
         """
         if line_zone_labels is None:
             line_zone_labels = [f"Line {i + 1}:" for i in range(len(line_zones))]
