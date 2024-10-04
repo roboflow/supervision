@@ -5,6 +5,8 @@ status: new
 
 # Annotators
 
+Annotators accept detections and apply box or mask visualizations to the detections. Annotators have many available styles.
+
 === "Box"
 
     ```python
@@ -480,6 +482,13 @@ status: new
     ![background-overlay-annotator-example](https://media.roboflow.com/supervision-annotator-examples/background-color-annotator-example-purple.png)
 
     </div>
+
+<div class="md-typeset">
+    <h2>Try Supervision Annotators on your own image</h2>
+    Visualize annotators on images with COCO classes such as people, vehicles, animals, household items.
+</div>
+
+<div style="height: 400px; width: 100%; border-radius: 8px; overflow: hidden;"><iframe src="https://app.roboflow.com/workflows/embed/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ3b3JrZmxvd0lkIjoiNDdtd2xuWW16S25VNWtOYUZjMG8iLCJ3b3Jrc3BhY2VJZCI6ImtyT1RBYm5jRmhvUU1DZExPbGU0IiwidXNlcklkIjoiRVJNUFBZY3FQMmZWWjB1NkRpNXZaYXJDdlZPMiIsImlhdCI6MTcyNjgzOTM2N30.gj2F6SnmmURAScJe4PTC1raUXsAK5mZyrUIGIJ44NhM?hideToolbar=true&hideHeader=true&defaultVisual=true" loading="lazy" title="Roboflow Workflow for Supervision Annotators" style="width: 100%; height: 100%; min-height: 400px; border: none;"></iframe></div>
 
 <div class="md-typeset">
     <h2><a href="#supervision.annotators.core.BoxAnnotator">BoxAnnotator</a></h2>

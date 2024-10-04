@@ -1,5 +1,6 @@
 ---
 comments: true
+status: new
 ---
 
 <div class="md-typeset">
@@ -13,3 +14,9 @@ comments: true
 </div>
 
 :::supervision.detection.line_zone.LineZoneAnnotator
+
+<div class="md-typeset">
+  <h2>LineZoneAnnotatorMulticlass</h2>
+</div>
+
+:::supervision.detection.line_zone.LineZoneAnnotatorMulticlass

@@ -1,5 +1,6 @@
 ---
 comments: true
+status: new
 ---
 
 # Detection Utils
@@ -15,6 +16,12 @@ comments: true
 </div>
 
 :::supervision.detection.utils.mask_iou_batch
+
+<div class="md-typeset">
+  <h2><a href="#supervision.detection.utils.oriented_box_iou_batch">oriented_box_iou_batch</a></h2>
+</div>
+
+:::supervision.detection.utils.oriented_box_iou_batch
 
 <div class="md-typeset">
   <h2><a href="#supervision.detection.utils.polygon_to_mask">polygon_to_mask</a></h2>

@@ -140,6 +140,45 @@ def mask_iou_batch(
     return np.vstack(ious)
 
 
+def oriented_box_iou_batch(
+    boxes_true: np.ndarray, boxes_detection: np.ndarray
+) -> np.ndarray:
+    """
+    Compute Intersection over Union (IoU) of two sets of oriented bounding boxes -
+    `boxes_true` and `boxes_detection`. Both sets of boxes are expected to be in
+    `((x1, y1), (x2, y2), (x3, y3), (x4, y4))` format.
+
+    Args:
+        boxes_true (np.ndarray): a `np.ndarray` representing ground-truth boxes.
+            `shape = (N, 4, 2)` where `N` is number of true objects.
+        boxes_detection (np.ndarray): a `np.ndarray` representing detection boxes.
+            `shape = (M, 4, 2)` where `M` is number of detected objects.
+
+    Returns:
+        np.ndarray: Pairwise IoU of boxes from `boxes_true` and `boxes_detection`.
+            `shape = (N, M)` where `N` is number of true objects and
+            `M` is number of detected objects.
+    """
+
+    boxes_true = boxes_true.reshape(-1, 4, 2)
+    boxes_detection = boxes_detection.reshape(-1, 4, 2)
+
+    max_height = max(boxes_true[:, :, 0].max(), boxes_detection[:, :, 0].max()) + 1
+    # adding 1 because we are 0-indexed
+    max_width = max(boxes_true[:, :, 1].max(), boxes_detection[:, :, 1].max()) + 1
+
+    mask_true = np.zeros((boxes_true.shape[0], max_height, max_width))
+    for i, box_true in enumerate(boxes_true):
+        mask_true[i] = polygon_to_mask(box_true, (max_width, max_height))
+
+    mask_detection = np.zeros((boxes_detection.shape[0], max_height, max_width))
+    for i, box_detection in enumerate(boxes_detection):
+        mask_detection[i] = polygon_to_mask(box_detection, (max_width, max_height))
+
+    ious = mask_iou_batch(mask_true, mask_detection)
+    return ious
+
+
 def clip_boxes(xyxy: np.ndarray, resolution_wh: Tuple[int, int]) -> np.ndarray:
     """
     Clips bounding boxes coordinates to fit within the frame resolution.
@@ -147,7 +186,7 @@ def clip_boxes(xyxy: np.ndarray, resolution_wh: Tuple[int, int]) -> np.ndarray:
     Args:
         xyxy (np.ndarray): A numpy array of shape `(N, 4)` where each
             row corresponds to a bounding box in
-        the format `(x_min, y_min, x_max, y_max)`.
+            the format `(x_min, y_min, x_max, y_max)`.
         resolution_wh (Tuple[int, int]): A tuple of the form `(width, height)`
             representing the resolution of the frame.
 

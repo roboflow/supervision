@@ -66,7 +66,7 @@ def mask_non_max_suppression(
 
     Raises:
         AssertionError: If `iou_threshold` is not within the closed
-        range from `0` to `1`.
+            range from `0` to `1`.
     """
     assert 0 <= iou_threshold <= 1, (
         "Value of `iou_threshold` must be in the closed range from 0 to 1, "
@@ -183,7 +183,7 @@ def group_overlapping_boxes(
         ious = ious.flatten()
 
         above_threshold = ious >= iou_threshold
-        merge_group = [idx] + np.flip(order[above_threshold]).tolist()
+        merge_group = [idx, *np.flip(order[above_threshold]).tolist()]
         merge_groups.append(merge_group)
         order = order[~above_threshold]
     return merge_groups

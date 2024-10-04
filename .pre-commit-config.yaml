@@ -25,16 +25,31 @@ repos:
       - id: mixed-line-ending
 
   -   repo: https://github.com/PyCQA/bandit
-      rev: '1.7.9'
+      rev: '1.7.10'
       hooks:
       -   id: bandit
           args: ["-c", "pyproject.toml"]
           additional_dependencies: ["bandit[toml]"]
 
   -   repo: https://github.com/astral-sh/ruff-pre-commit
-      rev: v0.6.2
+      rev: v0.6.8
       hooks:
       -   id: ruff
           args: [--fix, --exit-non-zero-on-fix]
       -   id: ruff-format
           types_or: [ python, pyi, jupyter ]
+
+  # - repo: https://github.com/executablebooks/mdformat
+  #   rev: 0.7.17
+  #   hooks:
+  #     - id: mdformat
+  #       additional_dependencies:
+  #         - "mdformat-mkdocs[recommended]>=2.1.0"
+  #       args: ["--number"]
+
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.3.0
+    hooks:
+      - id: codespell
+        additional_dependencies:
+          - tomli
