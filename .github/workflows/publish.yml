@@ -1,8 +1,7 @@
 name: Publish Supervision Releases to PyPI and TestPyPI
 on:
-  push:
-    tags:
-      - '[0-9]+.[0-9]+[0-9]+.[0-9]'
+  pull_request:
+    branches: [main, develop]
 
   workflow_dispatch:
 
@@ -32,8 +31,5 @@ jobs:
 
       - name: 🚀 Publish to PyPi
         uses: pypa/gh-action-pypi-publish@release/v1.10
-
-      - name: 🚀 Publish to Test-PyPi
-        uses: pypa/gh-action-pypi-publish@release/v1.10
         with:
-          repository-url: https://test.pypi.org/legacy/
+          password: ${{ secrets.PYPI_API_TOKEN }}
