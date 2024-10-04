@@ -43,7 +43,7 @@ jobs:
       - name: 📦 Install mkdocs-jupyter
         run: pip install mkdocs-jupyter
       - name: 📦 Install mkdocs-git-committers-plugin-2
-        run: pip install mkdocs-git-committers-plugin-2==2.3.0
+        run: pip install mkdocs-git-committers-plugin-2
       - name: ⚙️ Configure git for github-actions
         run: |
           git config --global user.name "github-actions[bot]"
