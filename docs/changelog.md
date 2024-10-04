@@ -69,7 +69,7 @@ frame = line_zone_annotator.annotate(
 sv.plot_image(frame)
 ```
 
-- - Added [`from_easyocr`](https://supervision.roboflow.com/0.24.0/detection/core/#supervision.detection.core.Detections.from_easyocr), allowing integration of OCR results into the supervision framework. [EasyOCR](https://github.com/JaidedAI/EasyOCR) is an open-source optical character recognition (OCR) library that can read text from images. [#1515](https://github.com/roboflow/supervision/pull/1515)
+- Added [`from_easyocr`](https://supervision.roboflow.com/0.24.0/detection/core/#supervision.detection.core.Detections.from_easyocr), allowing integration of OCR results into the supervision framework. [EasyOCR](https://github.com/JaidedAI/EasyOCR) is an open-source optical character recognition (OCR) library that can read text from images. [#1515](https://github.com/roboflow/supervision/pull/1515)
 
 ```python
 import supervision as sv
