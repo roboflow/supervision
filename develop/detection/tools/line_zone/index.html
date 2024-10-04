@@ -779,6 +779,13 @@
     Utils
   </span>
   
+    
+  
+  
+    <span class="md-status md-status--new"></span>
+  
+
+  
 
       </a>
     </li>
@@ -866,13 +873,6 @@
   <span class="md-ellipsis">
     Annotators
   </span>
-  
-    
-  
-  
-    <span class="md-status md-status--new"></span>
-  
-
   
 
       </a>
@@ -1017,6 +1017,13 @@
     Line Zone
   </span>
   
+    
+  
+  
+    <span class="md-status md-status--new"></span>
+  
+
+  
 
           <span class="md-nav__icon md-icon"></span>
         </label>
@@ -1027,6 +1034,13 @@
   <span class="md-ellipsis">
     Line Zone
   </span>
+  
+    
+  
+  
+    <span class="md-status md-status--new"></span>
+  
+
   
 
       </a>
@@ -1207,6 +1221,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#supervision.detection.line_zone.LineZoneAnnotatorMulticlass.annotate" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;annotate
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1234,6 +1257,13 @@
   <span class="md-ellipsis">
     Polygon Zone
   </span>
+  
+    
+  
+  
+    <span class="md-status md-status--new"></span>
+  
+
   
 
       </a>
@@ -1604,13 +1634,6 @@
     Video
   </span>
   
-    
-  
-  
-    <span class="md-status md-status--new"></span>
-  
-
-  
 
       </a>
     </li>
@@ -1631,13 +1654,6 @@
   <span class="md-ellipsis">
     Image
   </span>
-  
-    
-  
-  
-    <span class="md-status md-status--new"></span>
-  
-
   
 
       </a>
@@ -2211,6 +2227,15 @@
   <a href="#supervision.detection.line_zone.LineZoneAnnotatorMulticlass.__init__" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;__init__
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#supervision.detection.line_zone.LineZoneAnnotatorMulticlass.annotate" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;annotate
     </span>
   </a>
   
@@ -4766,7 +4791,20 @@ that will be used to draw the line.</p>
 <span class="normal"><a href="#__codelineno-0-780">780</a></span>
 <span class="normal"><a href="#__codelineno-0-781">781</a></span>
 <span class="normal"><a href="#__codelineno-0-782">782</a></span>
-<span class="normal"><a href="#__codelineno-0-783">783</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-637" name="__codelineno-0-637"></a><span class="k">class</span> <span class="nc">LineZoneAnnotatorMulticlass</span><span class="p">:</span>
+<span class="normal"><a href="#__codelineno-0-783">783</a></span>
+<span class="normal"><a href="#__codelineno-0-784">784</a></span>
+<span class="normal"><a href="#__codelineno-0-785">785</a></span>
+<span class="normal"><a href="#__codelineno-0-786">786</a></span>
+<span class="normal"><a href="#__codelineno-0-787">787</a></span>
+<span class="normal"><a href="#__codelineno-0-788">788</a></span>
+<span class="normal"><a href="#__codelineno-0-789">789</a></span>
+<span class="normal"><a href="#__codelineno-0-790">790</a></span>
+<span class="normal"><a href="#__codelineno-0-791">791</a></span>
+<span class="normal"><a href="#__codelineno-0-792">792</a></span>
+<span class="normal"><a href="#__codelineno-0-793">793</a></span>
+<span class="normal"><a href="#__codelineno-0-794">794</a></span>
+<span class="normal"><a href="#__codelineno-0-795">795</a></span>
+<span class="normal"><a href="#__codelineno-0-796">796</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-637" name="__codelineno-0-637"></a><span class="k">class</span> <span class="nc">LineZoneAnnotatorMulticlass</span><span class="p">:</span>
 <a id="__codelineno-0-638" name="__codelineno-0-638"></a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
 <a id="__codelineno-0-639" name="__codelineno-0-639"></a>        <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-640" name="__codelineno-0-640"></a>        <span class="o">*</span><span class="p">,</span>
@@ -4828,91 +4866,104 @@ that will be used to draw the line.</p>
 <a id="__codelineno-0-696" name="__codelineno-0-696"></a>        <span class="n">line_zones</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LineZone</span><span class="p">],</span>
 <a id="__codelineno-0-697" name="__codelineno-0-697"></a>        <span class="n">line_zone_labels</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <a id="__codelineno-0-698" name="__codelineno-0-698"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<a id="__codelineno-0-699" name="__codelineno-0-699"></a>        <span class="k">if</span> <span class="n">line_zone_labels</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-700" name="__codelineno-0-700"></a>            <span class="n">line_zone_labels</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;Line </span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">:&quot;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">line_zones</span><span class="p">))]</span>
-<a id="__codelineno-0-701" name="__codelineno-0-701"></a>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">line_zones</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">line_zone_labels</span><span class="p">):</span>
-<a id="__codelineno-0-702" name="__codelineno-0-702"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The number of line zones and their labels must match.&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-703" name="__codelineno-0-703"></a>
-<a id="__codelineno-0-704" name="__codelineno-0-704"></a>        <span class="n">text_lines</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Line Crossings:&quot;</span><span class="p">]</span>
-<a id="__codelineno-0-705" name="__codelineno-0-705"></a>        <span class="k">for</span> <span class="n">line_zone</span><span class="p">,</span> <span class="n">line_zone_label</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">line_zones</span><span class="p">,</span> <span class="n">line_zone_labels</span><span class="p">):</span>
-<a id="__codelineno-0-706" name="__codelineno-0-706"></a>            <span class="n">text_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line_zone_label</span><span class="p">)</span>
-<a id="__codelineno-0-707" name="__codelineno-0-707"></a>            <span class="n">class_id_to_name</span> <span class="o">=</span> <span class="n">line_zone</span><span class="o">.</span><span class="n">class_id_to_name</span>
-<a id="__codelineno-0-708" name="__codelineno-0-708"></a>
-<a id="__codelineno-0-709" name="__codelineno-0-709"></a>            <span class="k">for</span> <span class="n">direction</span><span class="p">,</span> <span class="n">count_per_class</span> <span class="ow">in</span> <span class="p">[</span>
-<a id="__codelineno-0-710" name="__codelineno-0-710"></a>                <span class="p">(</span><span class="s2">&quot;In&quot;</span><span class="p">,</span> <span class="n">line_zone</span><span class="o">.</span><span class="n">in_count_per_class</span><span class="p">),</span>
-<a id="__codelineno-0-711" name="__codelineno-0-711"></a>                <span class="p">(</span><span class="s2">&quot;Out&quot;</span><span class="p">,</span> <span class="n">line_zone</span><span class="o">.</span><span class="n">out_count_per_class</span><span class="p">),</span>
-<a id="__codelineno-0-712" name="__codelineno-0-712"></a>            <span class="p">]:</span>
-<a id="__codelineno-0-713" name="__codelineno-0-713"></a>                <span class="k">if</span> <span class="ow">not</span> <span class="n">count_per_class</span><span class="p">:</span>
-<a id="__codelineno-0-714" name="__codelineno-0-714"></a>                    <span class="k">continue</span>
-<a id="__codelineno-0-715" name="__codelineno-0-715"></a>
-<a id="__codelineno-0-716" name="__codelineno-0-716"></a>                <span class="n">text_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="n">direction</span><span class="si">}</span><span class="s2">:&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-717" name="__codelineno-0-717"></a>                <span class="k">for</span> <span class="n">class_id</span><span class="p">,</span> <span class="n">count</span> <span class="ow">in</span> <span class="n">count_per_class</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-<a id="__codelineno-0-718" name="__codelineno-0-718"></a>                    <span class="n">class_name</span> <span class="o">=</span> <span class="p">(</span>
-<a id="__codelineno-0-719" name="__codelineno-0-719"></a>                        <span class="n">class_id_to_name</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">class_id</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">class_id</span><span class="p">))</span>
-<a id="__codelineno-0-720" name="__codelineno-0-720"></a>                        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">force_draw_class_ids</span>
-<a id="__codelineno-0-721" name="__codelineno-0-721"></a>                        <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">class_id</span><span class="p">)</span>
-<a id="__codelineno-0-722" name="__codelineno-0-722"></a>                    <span class="p">)</span>
-<a id="__codelineno-0-723" name="__codelineno-0-723"></a>                    <span class="n">text_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">class_name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">count</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-724" name="__codelineno-0-724"></a>
-<a id="__codelineno-0-725" name="__codelineno-0-725"></a>        <span class="n">table_width</span><span class="p">,</span> <span class="n">table_height</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
-<a id="__codelineno-0-726" name="__codelineno-0-726"></a>        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">text_lines</span><span class="p">:</span>
-<a id="__codelineno-0-727" name="__codelineno-0-727"></a>            <span class="n">text_width</span><span class="p">,</span> <span class="n">text_height</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">getTextSize</span><span class="p">(</span>
-<a id="__codelineno-0-728" name="__codelineno-0-728"></a>                <span class="n">line</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">FONT_HERSHEY_SIMPLEX</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_scale</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_thickness</span>
-<a id="__codelineno-0-729" name="__codelineno-0-729"></a>            <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-<a id="__codelineno-0-730" name="__codelineno-0-730"></a>            <span class="n">text_height</span> <span class="o">+=</span> <span class="n">TEXT_MARGIN</span>
-<a id="__codelineno-0-731" name="__codelineno-0-731"></a>            <span class="n">table_width</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">table_width</span><span class="p">,</span> <span class="n">text_width</span><span class="p">)</span>
-<a id="__codelineno-0-732" name="__codelineno-0-732"></a>            <span class="n">table_height</span> <span class="o">+=</span> <span class="n">text_height</span>
-<a id="__codelineno-0-733" name="__codelineno-0-733"></a>
-<a id="__codelineno-0-734" name="__codelineno-0-734"></a>        <span class="n">table_width</span> <span class="o">+=</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">table_padding</span>
-<a id="__codelineno-0-735" name="__codelineno-0-735"></a>        <span class="n">table_height</span> <span class="o">+=</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">table_padding</span>
-<a id="__codelineno-0-736" name="__codelineno-0-736"></a>        <span class="n">table_max_height</span> <span class="o">=</span> <span class="n">frame</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">table_margin</span>
-<a id="__codelineno-0-737" name="__codelineno-0-737"></a>        <span class="n">table_height</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">table_height</span><span class="p">,</span> <span class="n">table_max_height</span><span class="p">)</span>
-<a id="__codelineno-0-738" name="__codelineno-0-738"></a>        <span class="n">table_width</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">table_width</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">table_max_width</span><span class="p">)</span>
-<a id="__codelineno-0-739" name="__codelineno-0-739"></a>
-<a id="__codelineno-0-740" name="__codelineno-0-740"></a>        <span class="n">position_map</span> <span class="o">=</span> <span class="p">{</span>
-<a id="__codelineno-0-741" name="__codelineno-0-741"></a>            <span class="n">Position</span><span class="o">.</span><span class="n">TOP_LEFT</span><span class="p">:</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">table_margin</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">table_margin</span><span class="p">),</span>
-<a id="__codelineno-0-742" name="__codelineno-0-742"></a>            <span class="n">Position</span><span class="o">.</span><span class="n">TOP_RIGHT</span><span class="p">:</span> <span class="p">(</span>
-<a id="__codelineno-0-743" name="__codelineno-0-743"></a>                <span class="n">frame</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">table_width</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">table_margin</span><span class="p">,</span>
-<a id="__codelineno-0-744" name="__codelineno-0-744"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">table_margin</span><span class="p">,</span>
-<a id="__codelineno-0-745" name="__codelineno-0-745"></a>            <span class="p">),</span>
-<a id="__codelineno-0-746" name="__codelineno-0-746"></a>            <span class="n">Position</span><span class="o">.</span><span class="n">BOTTOM_LEFT</span><span class="p">:</span> <span class="p">(</span>
-<a id="__codelineno-0-747" name="__codelineno-0-747"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">table_margin</span><span class="p">,</span>
-<a id="__codelineno-0-748" name="__codelineno-0-748"></a>                <span class="n">frame</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">table_height</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">table_margin</span><span class="p">,</span>
-<a id="__codelineno-0-749" name="__codelineno-0-749"></a>            <span class="p">),</span>
-<a id="__codelineno-0-750" name="__codelineno-0-750"></a>            <span class="n">Position</span><span class="o">.</span><span class="n">BOTTOM_RIGHT</span><span class="p">:</span> <span class="p">(</span>
-<a id="__codelineno-0-751" name="__codelineno-0-751"></a>                <span class="n">frame</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">table_width</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">table_margin</span><span class="p">,</span>
-<a id="__codelineno-0-752" name="__codelineno-0-752"></a>                <span class="n">frame</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">table_height</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">table_margin</span><span class="p">,</span>
-<a id="__codelineno-0-753" name="__codelineno-0-753"></a>            <span class="p">),</span>
-<a id="__codelineno-0-754" name="__codelineno-0-754"></a>        <span class="p">}</span>
-<a id="__codelineno-0-755" name="__codelineno-0-755"></a>        <span class="n">table_x1</span><span class="p">,</span> <span class="n">table_y1</span> <span class="o">=</span> <span class="n">position_map</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">table_position</span><span class="p">]</span>
-<a id="__codelineno-0-756" name="__codelineno-0-756"></a>
-<a id="__codelineno-0-757" name="__codelineno-0-757"></a>        <span class="n">table_rect</span> <span class="o">=</span> <span class="n">Rect</span><span class="p">(</span>
-<a id="__codelineno-0-758" name="__codelineno-0-758"></a>            <span class="n">x</span><span class="o">=</span><span class="n">table_x1</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">table_y1</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">table_width</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="n">table_height</span>
-<a id="__codelineno-0-759" name="__codelineno-0-759"></a>        <span class="p">)</span>
-<a id="__codelineno-0-760" name="__codelineno-0-760"></a>        <span class="n">frame</span> <span class="o">=</span> <span class="n">draw_rectangle</span><span class="p">(</span>
-<a id="__codelineno-0-761" name="__codelineno-0-761"></a>            <span class="n">scene</span><span class="o">=</span><span class="n">frame</span><span class="p">,</span> <span class="n">rect</span><span class="o">=</span><span class="n">table_rect</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">table_color</span><span class="p">,</span> <span class="n">thickness</span><span class="o">=-</span><span class="mi">1</span>
-<a id="__codelineno-0-762" name="__codelineno-0-762"></a>        <span class="p">)</span>
-<a id="__codelineno-0-763" name="__codelineno-0-763"></a>
-<a id="__codelineno-0-764" name="__codelineno-0-764"></a>        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">text_lines</span><span class="p">):</span>
-<a id="__codelineno-0-765" name="__codelineno-0-765"></a>            <span class="n">_</span><span class="p">,</span> <span class="n">text_height</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">getTextSize</span><span class="p">(</span>
-<a id="__codelineno-0-766" name="__codelineno-0-766"></a>                <span class="n">line</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">FONT_HERSHEY_SIMPLEX</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_scale</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_thickness</span>
-<a id="__codelineno-0-767" name="__codelineno-0-767"></a>            <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-<a id="__codelineno-0-768" name="__codelineno-0-768"></a>            <span class="n">text_height</span> <span class="o">+=</span> <span class="n">TEXT_MARGIN</span>
-<a id="__codelineno-0-769" name="__codelineno-0-769"></a>            <span class="n">anchor_x</span> <span class="o">=</span> <span class="n">table_x1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">table_padding</span>
-<a id="__codelineno-0-770" name="__codelineno-0-770"></a>            <span class="n">anchor_y</span> <span class="o">=</span> <span class="n">table_y1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">table_padding</span> <span class="o">+</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">text_height</span>
-<a id="__codelineno-0-771" name="__codelineno-0-771"></a>
-<a id="__codelineno-0-772" name="__codelineno-0-772"></a>            <span class="n">cv2</span><span class="o">.</span><span class="n">putText</span><span class="p">(</span>
-<a id="__codelineno-0-773" name="__codelineno-0-773"></a>                <span class="n">img</span><span class="o">=</span><span class="n">frame</span><span class="p">,</span>
-<a id="__codelineno-0-774" name="__codelineno-0-774"></a>                <span class="n">text</span><span class="o">=</span><span class="n">line</span><span class="p">,</span>
-<a id="__codelineno-0-775" name="__codelineno-0-775"></a>                <span class="n">org</span><span class="o">=</span><span class="p">(</span><span class="n">anchor_x</span><span class="p">,</span> <span class="n">anchor_y</span><span class="p">),</span>
-<a id="__codelineno-0-776" name="__codelineno-0-776"></a>                <span class="n">fontFace</span><span class="o">=</span><span class="n">cv2</span><span class="o">.</span><span class="n">FONT_HERSHEY_SIMPLEX</span><span class="p">,</span>
-<a id="__codelineno-0-777" name="__codelineno-0-777"></a>                <span class="n">fontScale</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">text_scale</span><span class="p">,</span>
-<a id="__codelineno-0-778" name="__codelineno-0-778"></a>                <span class="n">color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">text_color</span><span class="o">.</span><span class="n">as_bgr</span><span class="p">(),</span>
-<a id="__codelineno-0-779" name="__codelineno-0-779"></a>                <span class="n">thickness</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">text_thickness</span><span class="p">,</span>
-<a id="__codelineno-0-780" name="__codelineno-0-780"></a>                <span class="n">lineType</span><span class="o">=</span><span class="n">cv2</span><span class="o">.</span><span class="n">LINE_AA</span><span class="p">,</span>
-<a id="__codelineno-0-781" name="__codelineno-0-781"></a>            <span class="p">)</span>
-<a id="__codelineno-0-782" name="__codelineno-0-782"></a>
-<a id="__codelineno-0-783" name="__codelineno-0-783"></a>        <span class="k">return</span> <span class="n">frame</span>
+<a id="__codelineno-0-699" name="__codelineno-0-699"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-700" name="__codelineno-0-700"></a><span class="sd">        Draws a table with the number of objects of each class that crossed each line.</span>
+<a id="__codelineno-0-701" name="__codelineno-0-701"></a>
+<a id="__codelineno-0-702" name="__codelineno-0-702"></a><span class="sd">        Attributes:</span>
+<a id="__codelineno-0-703" name="__codelineno-0-703"></a><span class="sd">            frame (np.ndarray): The image on which the table will be drawn.</span>
+<a id="__codelineno-0-704" name="__codelineno-0-704"></a><span class="sd">            line_zones (List[LineZone]): The line zones to be annotated.</span>
+<a id="__codelineno-0-705" name="__codelineno-0-705"></a><span class="sd">            line_zone_labels (Optional[List[str]]): The labels, one for each</span>
+<a id="__codelineno-0-706" name="__codelineno-0-706"></a><span class="sd">                line zone. If not provided, the default labels will be used.</span>
+<a id="__codelineno-0-707" name="__codelineno-0-707"></a>
+<a id="__codelineno-0-708" name="__codelineno-0-708"></a><span class="sd">        Returns:</span>
+<a id="__codelineno-0-709" name="__codelineno-0-709"></a><span class="sd">            (np.ndarray): The image with the table drawn on it.</span>
+<a id="__codelineno-0-710" name="__codelineno-0-710"></a>
+<a id="__codelineno-0-711" name="__codelineno-0-711"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-712" name="__codelineno-0-712"></a>        <span class="k">if</span> <span class="n">line_zone_labels</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-713" name="__codelineno-0-713"></a>            <span class="n">line_zone_labels</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;Line </span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">:&quot;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">line_zones</span><span class="p">))]</span>
+<a id="__codelineno-0-714" name="__codelineno-0-714"></a>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">line_zones</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">line_zone_labels</span><span class="p">):</span>
+<a id="__codelineno-0-715" name="__codelineno-0-715"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The number of line zones and their labels must match.&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-716" name="__codelineno-0-716"></a>
+<a id="__codelineno-0-717" name="__codelineno-0-717"></a>        <span class="n">text_lines</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Line Crossings:&quot;</span><span class="p">]</span>
+<a id="__codelineno-0-718" name="__codelineno-0-718"></a>        <span class="k">for</span> <span class="n">line_zone</span><span class="p">,</span> <span class="n">line_zone_label</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">line_zones</span><span class="p">,</span> <span class="n">line_zone_labels</span><span class="p">):</span>
+<a id="__codelineno-0-719" name="__codelineno-0-719"></a>            <span class="n">text_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line_zone_label</span><span class="p">)</span>
+<a id="__codelineno-0-720" name="__codelineno-0-720"></a>            <span class="n">class_id_to_name</span> <span class="o">=</span> <span class="n">line_zone</span><span class="o">.</span><span class="n">class_id_to_name</span>
+<a id="__codelineno-0-721" name="__codelineno-0-721"></a>
+<a id="__codelineno-0-722" name="__codelineno-0-722"></a>            <span class="k">for</span> <span class="n">direction</span><span class="p">,</span> <span class="n">count_per_class</span> <span class="ow">in</span> <span class="p">[</span>
+<a id="__codelineno-0-723" name="__codelineno-0-723"></a>                <span class="p">(</span><span class="s2">&quot;In&quot;</span><span class="p">,</span> <span class="n">line_zone</span><span class="o">.</span><span class="n">in_count_per_class</span><span class="p">),</span>
+<a id="__codelineno-0-724" name="__codelineno-0-724"></a>                <span class="p">(</span><span class="s2">&quot;Out&quot;</span><span class="p">,</span> <span class="n">line_zone</span><span class="o">.</span><span class="n">out_count_per_class</span><span class="p">),</span>
+<a id="__codelineno-0-725" name="__codelineno-0-725"></a>            <span class="p">]:</span>
+<a id="__codelineno-0-726" name="__codelineno-0-726"></a>                <span class="k">if</span> <span class="ow">not</span> <span class="n">count_per_class</span><span class="p">:</span>
+<a id="__codelineno-0-727" name="__codelineno-0-727"></a>                    <span class="k">continue</span>
+<a id="__codelineno-0-728" name="__codelineno-0-728"></a>
+<a id="__codelineno-0-729" name="__codelineno-0-729"></a>                <span class="n">text_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="n">direction</span><span class="si">}</span><span class="s2">:&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-730" name="__codelineno-0-730"></a>                <span class="k">for</span> <span class="n">class_id</span><span class="p">,</span> <span class="n">count</span> <span class="ow">in</span> <span class="n">count_per_class</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+<a id="__codelineno-0-731" name="__codelineno-0-731"></a>                    <span class="n">class_name</span> <span class="o">=</span> <span class="p">(</span>
+<a id="__codelineno-0-732" name="__codelineno-0-732"></a>                        <span class="n">class_id_to_name</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">class_id</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">class_id</span><span class="p">))</span>
+<a id="__codelineno-0-733" name="__codelineno-0-733"></a>                        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">force_draw_class_ids</span>
+<a id="__codelineno-0-734" name="__codelineno-0-734"></a>                        <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">class_id</span><span class="p">)</span>
+<a id="__codelineno-0-735" name="__codelineno-0-735"></a>                    <span class="p">)</span>
+<a id="__codelineno-0-736" name="__codelineno-0-736"></a>                    <span class="n">text_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">class_name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">count</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-737" name="__codelineno-0-737"></a>
+<a id="__codelineno-0-738" name="__codelineno-0-738"></a>        <span class="n">table_width</span><span class="p">,</span> <span class="n">table_height</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+<a id="__codelineno-0-739" name="__codelineno-0-739"></a>        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">text_lines</span><span class="p">:</span>
+<a id="__codelineno-0-740" name="__codelineno-0-740"></a>            <span class="n">text_width</span><span class="p">,</span> <span class="n">text_height</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">getTextSize</span><span class="p">(</span>
+<a id="__codelineno-0-741" name="__codelineno-0-741"></a>                <span class="n">line</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">FONT_HERSHEY_SIMPLEX</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_scale</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_thickness</span>
+<a id="__codelineno-0-742" name="__codelineno-0-742"></a>            <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+<a id="__codelineno-0-743" name="__codelineno-0-743"></a>            <span class="n">text_height</span> <span class="o">+=</span> <span class="n">TEXT_MARGIN</span>
+<a id="__codelineno-0-744" name="__codelineno-0-744"></a>            <span class="n">table_width</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">table_width</span><span class="p">,</span> <span class="n">text_width</span><span class="p">)</span>
+<a id="__codelineno-0-745" name="__codelineno-0-745"></a>            <span class="n">table_height</span> <span class="o">+=</span> <span class="n">text_height</span>
+<a id="__codelineno-0-746" name="__codelineno-0-746"></a>
+<a id="__codelineno-0-747" name="__codelineno-0-747"></a>        <span class="n">table_width</span> <span class="o">+=</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">table_padding</span>
+<a id="__codelineno-0-748" name="__codelineno-0-748"></a>        <span class="n">table_height</span> <span class="o">+=</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">table_padding</span>
+<a id="__codelineno-0-749" name="__codelineno-0-749"></a>        <span class="n">table_max_height</span> <span class="o">=</span> <span class="n">frame</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">table_margin</span>
+<a id="__codelineno-0-750" name="__codelineno-0-750"></a>        <span class="n">table_height</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">table_height</span><span class="p">,</span> <span class="n">table_max_height</span><span class="p">)</span>
+<a id="__codelineno-0-751" name="__codelineno-0-751"></a>        <span class="n">table_width</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">table_width</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">table_max_width</span><span class="p">)</span>
+<a id="__codelineno-0-752" name="__codelineno-0-752"></a>
+<a id="__codelineno-0-753" name="__codelineno-0-753"></a>        <span class="n">position_map</span> <span class="o">=</span> <span class="p">{</span>
+<a id="__codelineno-0-754" name="__codelineno-0-754"></a>            <span class="n">Position</span><span class="o">.</span><span class="n">TOP_LEFT</span><span class="p">:</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">table_margin</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">table_margin</span><span class="p">),</span>
+<a id="__codelineno-0-755" name="__codelineno-0-755"></a>            <span class="n">Position</span><span class="o">.</span><span class="n">TOP_RIGHT</span><span class="p">:</span> <span class="p">(</span>
+<a id="__codelineno-0-756" name="__codelineno-0-756"></a>                <span class="n">frame</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">table_width</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">table_margin</span><span class="p">,</span>
+<a id="__codelineno-0-757" name="__codelineno-0-757"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">table_margin</span><span class="p">,</span>
+<a id="__codelineno-0-758" name="__codelineno-0-758"></a>            <span class="p">),</span>
+<a id="__codelineno-0-759" name="__codelineno-0-759"></a>            <span class="n">Position</span><span class="o">.</span><span class="n">BOTTOM_LEFT</span><span class="p">:</span> <span class="p">(</span>
+<a id="__codelineno-0-760" name="__codelineno-0-760"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">table_margin</span><span class="p">,</span>
+<a id="__codelineno-0-761" name="__codelineno-0-761"></a>                <span class="n">frame</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">table_height</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">table_margin</span><span class="p">,</span>
+<a id="__codelineno-0-762" name="__codelineno-0-762"></a>            <span class="p">),</span>
+<a id="__codelineno-0-763" name="__codelineno-0-763"></a>            <span class="n">Position</span><span class="o">.</span><span class="n">BOTTOM_RIGHT</span><span class="p">:</span> <span class="p">(</span>
+<a id="__codelineno-0-764" name="__codelineno-0-764"></a>                <span class="n">frame</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">table_width</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">table_margin</span><span class="p">,</span>
+<a id="__codelineno-0-765" name="__codelineno-0-765"></a>                <span class="n">frame</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">table_height</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">table_margin</span><span class="p">,</span>
+<a id="__codelineno-0-766" name="__codelineno-0-766"></a>            <span class="p">),</span>
+<a id="__codelineno-0-767" name="__codelineno-0-767"></a>        <span class="p">}</span>
+<a id="__codelineno-0-768" name="__codelineno-0-768"></a>        <span class="n">table_x1</span><span class="p">,</span> <span class="n">table_y1</span> <span class="o">=</span> <span class="n">position_map</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">table_position</span><span class="p">]</span>
+<a id="__codelineno-0-769" name="__codelineno-0-769"></a>
+<a id="__codelineno-0-770" name="__codelineno-0-770"></a>        <span class="n">table_rect</span> <span class="o">=</span> <span class="n">Rect</span><span class="p">(</span>
+<a id="__codelineno-0-771" name="__codelineno-0-771"></a>            <span class="n">x</span><span class="o">=</span><span class="n">table_x1</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">table_y1</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">table_width</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="n">table_height</span>
+<a id="__codelineno-0-772" name="__codelineno-0-772"></a>        <span class="p">)</span>
+<a id="__codelineno-0-773" name="__codelineno-0-773"></a>        <span class="n">frame</span> <span class="o">=</span> <span class="n">draw_rectangle</span><span class="p">(</span>
+<a id="__codelineno-0-774" name="__codelineno-0-774"></a>            <span class="n">scene</span><span class="o">=</span><span class="n">frame</span><span class="p">,</span> <span class="n">rect</span><span class="o">=</span><span class="n">table_rect</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">table_color</span><span class="p">,</span> <span class="n">thickness</span><span class="o">=-</span><span class="mi">1</span>
+<a id="__codelineno-0-775" name="__codelineno-0-775"></a>        <span class="p">)</span>
+<a id="__codelineno-0-776" name="__codelineno-0-776"></a>
+<a id="__codelineno-0-777" name="__codelineno-0-777"></a>        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">text_lines</span><span class="p">):</span>
+<a id="__codelineno-0-778" name="__codelineno-0-778"></a>            <span class="n">_</span><span class="p">,</span> <span class="n">text_height</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">getTextSize</span><span class="p">(</span>
+<a id="__codelineno-0-779" name="__codelineno-0-779"></a>                <span class="n">line</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">FONT_HERSHEY_SIMPLEX</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_scale</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_thickness</span>
+<a id="__codelineno-0-780" name="__codelineno-0-780"></a>            <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+<a id="__codelineno-0-781" name="__codelineno-0-781"></a>            <span class="n">text_height</span> <span class="o">+=</span> <span class="n">TEXT_MARGIN</span>
+<a id="__codelineno-0-782" name="__codelineno-0-782"></a>            <span class="n">anchor_x</span> <span class="o">=</span> <span class="n">table_x1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">table_padding</span>
+<a id="__codelineno-0-783" name="__codelineno-0-783"></a>            <span class="n">anchor_y</span> <span class="o">=</span> <span class="n">table_y1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">table_padding</span> <span class="o">+</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">text_height</span>
+<a id="__codelineno-0-784" name="__codelineno-0-784"></a>
+<a id="__codelineno-0-785" name="__codelineno-0-785"></a>            <span class="n">cv2</span><span class="o">.</span><span class="n">putText</span><span class="p">(</span>
+<a id="__codelineno-0-786" name="__codelineno-0-786"></a>                <span class="n">img</span><span class="o">=</span><span class="n">frame</span><span class="p">,</span>
+<a id="__codelineno-0-787" name="__codelineno-0-787"></a>                <span class="n">text</span><span class="o">=</span><span class="n">line</span><span class="p">,</span>
+<a id="__codelineno-0-788" name="__codelineno-0-788"></a>                <span class="n">org</span><span class="o">=</span><span class="p">(</span><span class="n">anchor_x</span><span class="p">,</span> <span class="n">anchor_y</span><span class="p">),</span>
+<a id="__codelineno-0-789" name="__codelineno-0-789"></a>                <span class="n">fontFace</span><span class="o">=</span><span class="n">cv2</span><span class="o">.</span><span class="n">FONT_HERSHEY_SIMPLEX</span><span class="p">,</span>
+<a id="__codelineno-0-790" name="__codelineno-0-790"></a>                <span class="n">fontScale</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">text_scale</span><span class="p">,</span>
+<a id="__codelineno-0-791" name="__codelineno-0-791"></a>                <span class="n">color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">text_color</span><span class="o">.</span><span class="n">as_bgr</span><span class="p">(),</span>
+<a id="__codelineno-0-792" name="__codelineno-0-792"></a>                <span class="n">thickness</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">text_thickness</span><span class="p">,</span>
+<a id="__codelineno-0-793" name="__codelineno-0-793"></a>                <span class="n">lineType</span><span class="o">=</span><span class="n">cv2</span><span class="o">.</span><span class="n">LINE_AA</span><span class="p">,</span>
+<a id="__codelineno-0-794" name="__codelineno-0-794"></a>            <span class="p">)</span>
+<a id="__codelineno-0-795" name="__codelineno-0-795"></a>
+<a id="__codelineno-0-796" name="__codelineno-0-796"></a>        <span class="k">return</span> <span class="n">frame</span>
 </code></pre></div></td></tr></table></div>
               </details>
 
@@ -5199,6 +5250,305 @@ write <code>0: 6</code>.</p>
 
 </div>
 
+<div class="doc doc-object doc-function">
+
+
+<h3 id="supervision.detection.line_zone.LineZoneAnnotatorMulticlass.annotate" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">line_zones</span><span class="p">,</span> <span class="n">line_zone_labels</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+<a href="#supervision.detection.line_zone.LineZoneAnnotatorMulticlass.annotate" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Draws a table with the number of objects of each class that crossed each line.</p>
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.detection.line_zone.LineZoneAnnotatorMulticlass.annotate.frame">frame</span></code></td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The image on which the table will be drawn.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.detection.line_zone.LineZoneAnnotatorMulticlass.annotate.line_zones">line_zones</span></code></td>
+            <td>
+                  <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="supervision.detection.line_zone.LineZone" href="#supervision.detection.line_zone.LineZone">LineZone</a>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The line zones to be annotated.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.detection.line_zone.LineZoneAnnotatorMulticlass.annotate.line_zone_labels">line_zone_labels</span></code></td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="typing.List">List</span>[str]]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The labels, one for each
+line zone. If not provided, the default labels will be used.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The image with the table drawn on it.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>supervision/detection/line_zone.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-693">693</a></span>
+<span class="normal"><a href="#__codelineno-0-694">694</a></span>
+<span class="normal"><a href="#__codelineno-0-695">695</a></span>
+<span class="normal"><a href="#__codelineno-0-696">696</a></span>
+<span class="normal"><a href="#__codelineno-0-697">697</a></span>
+<span class="normal"><a href="#__codelineno-0-698">698</a></span>
+<span class="normal"><a href="#__codelineno-0-699">699</a></span>
+<span class="normal"><a href="#__codelineno-0-700">700</a></span>
+<span class="normal"><a href="#__codelineno-0-701">701</a></span>
+<span class="normal"><a href="#__codelineno-0-702">702</a></span>
+<span class="normal"><a href="#__codelineno-0-703">703</a></span>
+<span class="normal"><a href="#__codelineno-0-704">704</a></span>
+<span class="normal"><a href="#__codelineno-0-705">705</a></span>
+<span class="normal"><a href="#__codelineno-0-706">706</a></span>
+<span class="normal"><a href="#__codelineno-0-707">707</a></span>
+<span class="normal"><a href="#__codelineno-0-708">708</a></span>
+<span class="normal"><a href="#__codelineno-0-709">709</a></span>
+<span class="normal"><a href="#__codelineno-0-710">710</a></span>
+<span class="normal"><a href="#__codelineno-0-711">711</a></span>
+<span class="normal"><a href="#__codelineno-0-712">712</a></span>
+<span class="normal"><a href="#__codelineno-0-713">713</a></span>
+<span class="normal"><a href="#__codelineno-0-714">714</a></span>
+<span class="normal"><a href="#__codelineno-0-715">715</a></span>
+<span class="normal"><a href="#__codelineno-0-716">716</a></span>
+<span class="normal"><a href="#__codelineno-0-717">717</a></span>
+<span class="normal"><a href="#__codelineno-0-718">718</a></span>
+<span class="normal"><a href="#__codelineno-0-719">719</a></span>
+<span class="normal"><a href="#__codelineno-0-720">720</a></span>
+<span class="normal"><a href="#__codelineno-0-721">721</a></span>
+<span class="normal"><a href="#__codelineno-0-722">722</a></span>
+<span class="normal"><a href="#__codelineno-0-723">723</a></span>
+<span class="normal"><a href="#__codelineno-0-724">724</a></span>
+<span class="normal"><a href="#__codelineno-0-725">725</a></span>
+<span class="normal"><a href="#__codelineno-0-726">726</a></span>
+<span class="normal"><a href="#__codelineno-0-727">727</a></span>
+<span class="normal"><a href="#__codelineno-0-728">728</a></span>
+<span class="normal"><a href="#__codelineno-0-729">729</a></span>
+<span class="normal"><a href="#__codelineno-0-730">730</a></span>
+<span class="normal"><a href="#__codelineno-0-731">731</a></span>
+<span class="normal"><a href="#__codelineno-0-732">732</a></span>
+<span class="normal"><a href="#__codelineno-0-733">733</a></span>
+<span class="normal"><a href="#__codelineno-0-734">734</a></span>
+<span class="normal"><a href="#__codelineno-0-735">735</a></span>
+<span class="normal"><a href="#__codelineno-0-736">736</a></span>
+<span class="normal"><a href="#__codelineno-0-737">737</a></span>
+<span class="normal"><a href="#__codelineno-0-738">738</a></span>
+<span class="normal"><a href="#__codelineno-0-739">739</a></span>
+<span class="normal"><a href="#__codelineno-0-740">740</a></span>
+<span class="normal"><a href="#__codelineno-0-741">741</a></span>
+<span class="normal"><a href="#__codelineno-0-742">742</a></span>
+<span class="normal"><a href="#__codelineno-0-743">743</a></span>
+<span class="normal"><a href="#__codelineno-0-744">744</a></span>
+<span class="normal"><a href="#__codelineno-0-745">745</a></span>
+<span class="normal"><a href="#__codelineno-0-746">746</a></span>
+<span class="normal"><a href="#__codelineno-0-747">747</a></span>
+<span class="normal"><a href="#__codelineno-0-748">748</a></span>
+<span class="normal"><a href="#__codelineno-0-749">749</a></span>
+<span class="normal"><a href="#__codelineno-0-750">750</a></span>
+<span class="normal"><a href="#__codelineno-0-751">751</a></span>
+<span class="normal"><a href="#__codelineno-0-752">752</a></span>
+<span class="normal"><a href="#__codelineno-0-753">753</a></span>
+<span class="normal"><a href="#__codelineno-0-754">754</a></span>
+<span class="normal"><a href="#__codelineno-0-755">755</a></span>
+<span class="normal"><a href="#__codelineno-0-756">756</a></span>
+<span class="normal"><a href="#__codelineno-0-757">757</a></span>
+<span class="normal"><a href="#__codelineno-0-758">758</a></span>
+<span class="normal"><a href="#__codelineno-0-759">759</a></span>
+<span class="normal"><a href="#__codelineno-0-760">760</a></span>
+<span class="normal"><a href="#__codelineno-0-761">761</a></span>
+<span class="normal"><a href="#__codelineno-0-762">762</a></span>
+<span class="normal"><a href="#__codelineno-0-763">763</a></span>
+<span class="normal"><a href="#__codelineno-0-764">764</a></span>
+<span class="normal"><a href="#__codelineno-0-765">765</a></span>
+<span class="normal"><a href="#__codelineno-0-766">766</a></span>
+<span class="normal"><a href="#__codelineno-0-767">767</a></span>
+<span class="normal"><a href="#__codelineno-0-768">768</a></span>
+<span class="normal"><a href="#__codelineno-0-769">769</a></span>
+<span class="normal"><a href="#__codelineno-0-770">770</a></span>
+<span class="normal"><a href="#__codelineno-0-771">771</a></span>
+<span class="normal"><a href="#__codelineno-0-772">772</a></span>
+<span class="normal"><a href="#__codelineno-0-773">773</a></span>
+<span class="normal"><a href="#__codelineno-0-774">774</a></span>
+<span class="normal"><a href="#__codelineno-0-775">775</a></span>
+<span class="normal"><a href="#__codelineno-0-776">776</a></span>
+<span class="normal"><a href="#__codelineno-0-777">777</a></span>
+<span class="normal"><a href="#__codelineno-0-778">778</a></span>
+<span class="normal"><a href="#__codelineno-0-779">779</a></span>
+<span class="normal"><a href="#__codelineno-0-780">780</a></span>
+<span class="normal"><a href="#__codelineno-0-781">781</a></span>
+<span class="normal"><a href="#__codelineno-0-782">782</a></span>
+<span class="normal"><a href="#__codelineno-0-783">783</a></span>
+<span class="normal"><a href="#__codelineno-0-784">784</a></span>
+<span class="normal"><a href="#__codelineno-0-785">785</a></span>
+<span class="normal"><a href="#__codelineno-0-786">786</a></span>
+<span class="normal"><a href="#__codelineno-0-787">787</a></span>
+<span class="normal"><a href="#__codelineno-0-788">788</a></span>
+<span class="normal"><a href="#__codelineno-0-789">789</a></span>
+<span class="normal"><a href="#__codelineno-0-790">790</a></span>
+<span class="normal"><a href="#__codelineno-0-791">791</a></span>
+<span class="normal"><a href="#__codelineno-0-792">792</a></span>
+<span class="normal"><a href="#__codelineno-0-793">793</a></span>
+<span class="normal"><a href="#__codelineno-0-794">794</a></span>
+<span class="normal"><a href="#__codelineno-0-795">795</a></span>
+<span class="normal"><a href="#__codelineno-0-796">796</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-693" name="__codelineno-0-693"></a><span class="k">def</span> <span class="nf">annotate</span><span class="p">(</span>
+<a id="__codelineno-0-694" name="__codelineno-0-694"></a>    <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-0-695" name="__codelineno-0-695"></a>    <span class="n">frame</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<a id="__codelineno-0-696" name="__codelineno-0-696"></a>    <span class="n">line_zones</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LineZone</span><span class="p">],</span>
+<a id="__codelineno-0-697" name="__codelineno-0-697"></a>    <span class="n">line_zone_labels</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-698" name="__codelineno-0-698"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a id="__codelineno-0-699" name="__codelineno-0-699"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-700" name="__codelineno-0-700"></a><span class="sd">    Draws a table with the number of objects of each class that crossed each line.</span>
+<a id="__codelineno-0-701" name="__codelineno-0-701"></a>
+<a id="__codelineno-0-702" name="__codelineno-0-702"></a><span class="sd">    Attributes:</span>
+<a id="__codelineno-0-703" name="__codelineno-0-703"></a><span class="sd">        frame (np.ndarray): The image on which the table will be drawn.</span>
+<a id="__codelineno-0-704" name="__codelineno-0-704"></a><span class="sd">        line_zones (List[LineZone]): The line zones to be annotated.</span>
+<a id="__codelineno-0-705" name="__codelineno-0-705"></a><span class="sd">        line_zone_labels (Optional[List[str]]): The labels, one for each</span>
+<a id="__codelineno-0-706" name="__codelineno-0-706"></a><span class="sd">            line zone. If not provided, the default labels will be used.</span>
+<a id="__codelineno-0-707" name="__codelineno-0-707"></a>
+<a id="__codelineno-0-708" name="__codelineno-0-708"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-709" name="__codelineno-0-709"></a><span class="sd">        (np.ndarray): The image with the table drawn on it.</span>
+<a id="__codelineno-0-710" name="__codelineno-0-710"></a>
+<a id="__codelineno-0-711" name="__codelineno-0-711"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-712" name="__codelineno-0-712"></a>    <span class="k">if</span> <span class="n">line_zone_labels</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-713" name="__codelineno-0-713"></a>        <span class="n">line_zone_labels</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;Line </span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">:&quot;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">line_zones</span><span class="p">))]</span>
+<a id="__codelineno-0-714" name="__codelineno-0-714"></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">line_zones</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">line_zone_labels</span><span class="p">):</span>
+<a id="__codelineno-0-715" name="__codelineno-0-715"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The number of line zones and their labels must match.&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-716" name="__codelineno-0-716"></a>
+<a id="__codelineno-0-717" name="__codelineno-0-717"></a>    <span class="n">text_lines</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Line Crossings:&quot;</span><span class="p">]</span>
+<a id="__codelineno-0-718" name="__codelineno-0-718"></a>    <span class="k">for</span> <span class="n">line_zone</span><span class="p">,</span> <span class="n">line_zone_label</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">line_zones</span><span class="p">,</span> <span class="n">line_zone_labels</span><span class="p">):</span>
+<a id="__codelineno-0-719" name="__codelineno-0-719"></a>        <span class="n">text_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line_zone_label</span><span class="p">)</span>
+<a id="__codelineno-0-720" name="__codelineno-0-720"></a>        <span class="n">class_id_to_name</span> <span class="o">=</span> <span class="n">line_zone</span><span class="o">.</span><span class="n">class_id_to_name</span>
+<a id="__codelineno-0-721" name="__codelineno-0-721"></a>
+<a id="__codelineno-0-722" name="__codelineno-0-722"></a>        <span class="k">for</span> <span class="n">direction</span><span class="p">,</span> <span class="n">count_per_class</span> <span class="ow">in</span> <span class="p">[</span>
+<a id="__codelineno-0-723" name="__codelineno-0-723"></a>            <span class="p">(</span><span class="s2">&quot;In&quot;</span><span class="p">,</span> <span class="n">line_zone</span><span class="o">.</span><span class="n">in_count_per_class</span><span class="p">),</span>
+<a id="__codelineno-0-724" name="__codelineno-0-724"></a>            <span class="p">(</span><span class="s2">&quot;Out&quot;</span><span class="p">,</span> <span class="n">line_zone</span><span class="o">.</span><span class="n">out_count_per_class</span><span class="p">),</span>
+<a id="__codelineno-0-725" name="__codelineno-0-725"></a>        <span class="p">]:</span>
+<a id="__codelineno-0-726" name="__codelineno-0-726"></a>            <span class="k">if</span> <span class="ow">not</span> <span class="n">count_per_class</span><span class="p">:</span>
+<a id="__codelineno-0-727" name="__codelineno-0-727"></a>                <span class="k">continue</span>
+<a id="__codelineno-0-728" name="__codelineno-0-728"></a>
+<a id="__codelineno-0-729" name="__codelineno-0-729"></a>            <span class="n">text_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="n">direction</span><span class="si">}</span><span class="s2">:&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-730" name="__codelineno-0-730"></a>            <span class="k">for</span> <span class="n">class_id</span><span class="p">,</span> <span class="n">count</span> <span class="ow">in</span> <span class="n">count_per_class</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+<a id="__codelineno-0-731" name="__codelineno-0-731"></a>                <span class="n">class_name</span> <span class="o">=</span> <span class="p">(</span>
+<a id="__codelineno-0-732" name="__codelineno-0-732"></a>                    <span class="n">class_id_to_name</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">class_id</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">class_id</span><span class="p">))</span>
+<a id="__codelineno-0-733" name="__codelineno-0-733"></a>                    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">force_draw_class_ids</span>
+<a id="__codelineno-0-734" name="__codelineno-0-734"></a>                    <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">class_id</span><span class="p">)</span>
+<a id="__codelineno-0-735" name="__codelineno-0-735"></a>                <span class="p">)</span>
+<a id="__codelineno-0-736" name="__codelineno-0-736"></a>                <span class="n">text_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">class_name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">count</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-737" name="__codelineno-0-737"></a>
+<a id="__codelineno-0-738" name="__codelineno-0-738"></a>    <span class="n">table_width</span><span class="p">,</span> <span class="n">table_height</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+<a id="__codelineno-0-739" name="__codelineno-0-739"></a>    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">text_lines</span><span class="p">:</span>
+<a id="__codelineno-0-740" name="__codelineno-0-740"></a>        <span class="n">text_width</span><span class="p">,</span> <span class="n">text_height</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">getTextSize</span><span class="p">(</span>
+<a id="__codelineno-0-741" name="__codelineno-0-741"></a>            <span class="n">line</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">FONT_HERSHEY_SIMPLEX</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_scale</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_thickness</span>
+<a id="__codelineno-0-742" name="__codelineno-0-742"></a>        <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+<a id="__codelineno-0-743" name="__codelineno-0-743"></a>        <span class="n">text_height</span> <span class="o">+=</span> <span class="n">TEXT_MARGIN</span>
+<a id="__codelineno-0-744" name="__codelineno-0-744"></a>        <span class="n">table_width</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">table_width</span><span class="p">,</span> <span class="n">text_width</span><span class="p">)</span>
+<a id="__codelineno-0-745" name="__codelineno-0-745"></a>        <span class="n">table_height</span> <span class="o">+=</span> <span class="n">text_height</span>
+<a id="__codelineno-0-746" name="__codelineno-0-746"></a>
+<a id="__codelineno-0-747" name="__codelineno-0-747"></a>    <span class="n">table_width</span> <span class="o">+=</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">table_padding</span>
+<a id="__codelineno-0-748" name="__codelineno-0-748"></a>    <span class="n">table_height</span> <span class="o">+=</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">table_padding</span>
+<a id="__codelineno-0-749" name="__codelineno-0-749"></a>    <span class="n">table_max_height</span> <span class="o">=</span> <span class="n">frame</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">table_margin</span>
+<a id="__codelineno-0-750" name="__codelineno-0-750"></a>    <span class="n">table_height</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">table_height</span><span class="p">,</span> <span class="n">table_max_height</span><span class="p">)</span>
+<a id="__codelineno-0-751" name="__codelineno-0-751"></a>    <span class="n">table_width</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">table_width</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">table_max_width</span><span class="p">)</span>
+<a id="__codelineno-0-752" name="__codelineno-0-752"></a>
+<a id="__codelineno-0-753" name="__codelineno-0-753"></a>    <span class="n">position_map</span> <span class="o">=</span> <span class="p">{</span>
+<a id="__codelineno-0-754" name="__codelineno-0-754"></a>        <span class="n">Position</span><span class="o">.</span><span class="n">TOP_LEFT</span><span class="p">:</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">table_margin</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">table_margin</span><span class="p">),</span>
+<a id="__codelineno-0-755" name="__codelineno-0-755"></a>        <span class="n">Position</span><span class="o">.</span><span class="n">TOP_RIGHT</span><span class="p">:</span> <span class="p">(</span>
+<a id="__codelineno-0-756" name="__codelineno-0-756"></a>            <span class="n">frame</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">table_width</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">table_margin</span><span class="p">,</span>
+<a id="__codelineno-0-757" name="__codelineno-0-757"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">table_margin</span><span class="p">,</span>
+<a id="__codelineno-0-758" name="__codelineno-0-758"></a>        <span class="p">),</span>
+<a id="__codelineno-0-759" name="__codelineno-0-759"></a>        <span class="n">Position</span><span class="o">.</span><span class="n">BOTTOM_LEFT</span><span class="p">:</span> <span class="p">(</span>
+<a id="__codelineno-0-760" name="__codelineno-0-760"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">table_margin</span><span class="p">,</span>
+<a id="__codelineno-0-761" name="__codelineno-0-761"></a>            <span class="n">frame</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">table_height</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">table_margin</span><span class="p">,</span>
+<a id="__codelineno-0-762" name="__codelineno-0-762"></a>        <span class="p">),</span>
+<a id="__codelineno-0-763" name="__codelineno-0-763"></a>        <span class="n">Position</span><span class="o">.</span><span class="n">BOTTOM_RIGHT</span><span class="p">:</span> <span class="p">(</span>
+<a id="__codelineno-0-764" name="__codelineno-0-764"></a>            <span class="n">frame</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">table_width</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">table_margin</span><span class="p">,</span>
+<a id="__codelineno-0-765" name="__codelineno-0-765"></a>            <span class="n">frame</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">table_height</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">table_margin</span><span class="p">,</span>
+<a id="__codelineno-0-766" name="__codelineno-0-766"></a>        <span class="p">),</span>
+<a id="__codelineno-0-767" name="__codelineno-0-767"></a>    <span class="p">}</span>
+<a id="__codelineno-0-768" name="__codelineno-0-768"></a>    <span class="n">table_x1</span><span class="p">,</span> <span class="n">table_y1</span> <span class="o">=</span> <span class="n">position_map</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">table_position</span><span class="p">]</span>
+<a id="__codelineno-0-769" name="__codelineno-0-769"></a>
+<a id="__codelineno-0-770" name="__codelineno-0-770"></a>    <span class="n">table_rect</span> <span class="o">=</span> <span class="n">Rect</span><span class="p">(</span>
+<a id="__codelineno-0-771" name="__codelineno-0-771"></a>        <span class="n">x</span><span class="o">=</span><span class="n">table_x1</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">table_y1</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">table_width</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="n">table_height</span>
+<a id="__codelineno-0-772" name="__codelineno-0-772"></a>    <span class="p">)</span>
+<a id="__codelineno-0-773" name="__codelineno-0-773"></a>    <span class="n">frame</span> <span class="o">=</span> <span class="n">draw_rectangle</span><span class="p">(</span>
+<a id="__codelineno-0-774" name="__codelineno-0-774"></a>        <span class="n">scene</span><span class="o">=</span><span class="n">frame</span><span class="p">,</span> <span class="n">rect</span><span class="o">=</span><span class="n">table_rect</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">table_color</span><span class="p">,</span> <span class="n">thickness</span><span class="o">=-</span><span class="mi">1</span>
+<a id="__codelineno-0-775" name="__codelineno-0-775"></a>    <span class="p">)</span>
+<a id="__codelineno-0-776" name="__codelineno-0-776"></a>
+<a id="__codelineno-0-777" name="__codelineno-0-777"></a>    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">text_lines</span><span class="p">):</span>
+<a id="__codelineno-0-778" name="__codelineno-0-778"></a>        <span class="n">_</span><span class="p">,</span> <span class="n">text_height</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">getTextSize</span><span class="p">(</span>
+<a id="__codelineno-0-779" name="__codelineno-0-779"></a>            <span class="n">line</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">FONT_HERSHEY_SIMPLEX</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_scale</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_thickness</span>
+<a id="__codelineno-0-780" name="__codelineno-0-780"></a>        <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+<a id="__codelineno-0-781" name="__codelineno-0-781"></a>        <span class="n">text_height</span> <span class="o">+=</span> <span class="n">TEXT_MARGIN</span>
+<a id="__codelineno-0-782" name="__codelineno-0-782"></a>        <span class="n">anchor_x</span> <span class="o">=</span> <span class="n">table_x1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">table_padding</span>
+<a id="__codelineno-0-783" name="__codelineno-0-783"></a>        <span class="n">anchor_y</span> <span class="o">=</span> <span class="n">table_y1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">table_padding</span> <span class="o">+</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">text_height</span>
+<a id="__codelineno-0-784" name="__codelineno-0-784"></a>
+<a id="__codelineno-0-785" name="__codelineno-0-785"></a>        <span class="n">cv2</span><span class="o">.</span><span class="n">putText</span><span class="p">(</span>
+<a id="__codelineno-0-786" name="__codelineno-0-786"></a>            <span class="n">img</span><span class="o">=</span><span class="n">frame</span><span class="p">,</span>
+<a id="__codelineno-0-787" name="__codelineno-0-787"></a>            <span class="n">text</span><span class="o">=</span><span class="n">line</span><span class="p">,</span>
+<a id="__codelineno-0-788" name="__codelineno-0-788"></a>            <span class="n">org</span><span class="o">=</span><span class="p">(</span><span class="n">anchor_x</span><span class="p">,</span> <span class="n">anchor_y</span><span class="p">),</span>
+<a id="__codelineno-0-789" name="__codelineno-0-789"></a>            <span class="n">fontFace</span><span class="o">=</span><span class="n">cv2</span><span class="o">.</span><span class="n">FONT_HERSHEY_SIMPLEX</span><span class="p">,</span>
+<a id="__codelineno-0-790" name="__codelineno-0-790"></a>            <span class="n">fontScale</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">text_scale</span><span class="p">,</span>
+<a id="__codelineno-0-791" name="__codelineno-0-791"></a>            <span class="n">color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">text_color</span><span class="o">.</span><span class="n">as_bgr</span><span class="p">(),</span>
+<a id="__codelineno-0-792" name="__codelineno-0-792"></a>            <span class="n">thickness</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">text_thickness</span><span class="p">,</span>
+<a id="__codelineno-0-793" name="__codelineno-0-793"></a>            <span class="n">lineType</span><span class="o">=</span><span class="n">cv2</span><span class="o">.</span><span class="n">LINE_AA</span><span class="p">,</span>
+<a id="__codelineno-0-794" name="__codelineno-0-794"></a>        <span class="p">)</span>
+<a id="__codelineno-0-795" name="__codelineno-0-795"></a>
+<a id="__codelineno-0-796" name="__codelineno-0-796"></a>    <span class="k">return</span> <span class="n">frame</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
 
 
   </div>
@@ -5228,7 +5578,7 @@ write <code>0: 6</code>.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">September 29, 2024</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">October 4, 2024</span>
   </span>
 
     
