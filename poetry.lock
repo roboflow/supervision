@@ -4545,4 +4545,4 @@ metrics = ["pandas", "pandas-stubs"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "6619a49f1450ccc15a01215d156afbcf248619374ad2ba0576f48434d9b8720f"
+content-hash = "f7f497da73c8c467b621555f622bf0f10b21d0c4e97f68521e3f079e2ffb7789"
