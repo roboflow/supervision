@@ -124,10 +124,12 @@ detections = sv.Detections.from_ncnn(result)
 ```
 
 !!! failure "Removed"
-The `frame_resolution_wh` parameter in [`PolygonZone`](https://supervision.roboflow.com/0.24.0/detection/tools/polygon_zone/#supervision.detection.tools.polygon_zone.PolygonZone) has been removed.
+
+    The `frame_resolution_wh` parameter in [`PolygonZone`](https://supervision.roboflow.com/0.24.0/detection/tools/polygon_zone/#supervision.detection.tools.polygon_zone.PolygonZone) has been removed.
 
 !!! failure "Removed"
-Supervision installation methods `"headless"` and `"desktop"` were removed, as they are no longer needed. `pip install supervision[headless]` will install the base library and harmlessly warn of non-existent extras.
+
+    Supervision installation methods `"headless"` and `"desktop"` were removed, as they are no longer needed. `pip install supervision[headless]` will install the base library and harmlessly warn of non-existent extras.
 
 - Supervision now depends on `opencv-python` rather than `opencv-python-headless`. [#1530](https://github.com/roboflow/supervision/pull/1530)
 
@@ -254,26 +256,32 @@ for frame in sv.get_video_frames_generator(
 - Fix [#1424](https://github.com/roboflow/supervision/pull/1424): `plot_image` function now clearly indicates that the size is in inches.
 
 !!! failure "Removed"
-The `track_buffer`, `track_thresh`, and `match_thresh` parameters in [`ByteTrack`](trackers.md/#supervision.tracker.byte_tracker.core.ByteTrack) are deprecated and were removed as of `supervision-0.23.0`. Use `lost_track_buffer,` `track_activation_threshold`, and `minimum_matching_threshold` instead.
+
+    The `track_buffer`, `track_thresh`, and `match_thresh` parameters in [`ByteTrack`](trackers.md/#supervision.tracker.byte_tracker.core.ByteTrack) are deprecated and were removed as of `supervision-0.23.0`. Use `lost_track_buffer,` `track_activation_threshold`, and `minimum_matching_threshold` instead.
 
 !!! failure "Removed"
-The `triggering_position` parameter in [`sv.PolygonZone`](detection/tools/polygon_zone.md/#supervision.detection.tools.polygon_zone.PolygonZone) was removed as of `supervision-0.23.0`. Use `triggering_anchors` instead.
+
+    The `triggering_position` parameter in [`sv.PolygonZone`](detection/tools/polygon_zone.md/#supervision.detection.tools.polygon_zone.PolygonZone) was removed as of `supervision-0.23.0`. Use `triggering_anchors` instead.
 
 !!! failure "Deprecated"
-`overlap_filter_strategy` in `InferenceSlicer.__init__` is deprecated and will be removed in `supervision-0.27.0`. Use `overlap_strategy` instead.
+
+    `overlap_filter_strategy` in `InferenceSlicer.__init__` is deprecated and will be removed in `supervision-0.27.0`. Use `overlap_strategy` instead.
 
 !!! failure "Deprecated"
-`overlap_ratio_wh` in `InferenceSlicer.__init__` is deprecated and will be removed in `supervision-0.27.0`. Use `overlap_wh` instead.
+
+    `overlap_ratio_wh` in `InferenceSlicer.__init__` is deprecated and will be removed in `supervision-0.27.0`. Use `overlap_wh` instead.
 
 ### 0.22.0 <small>Jul 12, 2024</small>
 
 - Added [#1326](https://github.com/roboflow/supervision/pull/1326): [`sv.DetectionsDataset`](https://supervision.roboflow.com/0.22.0/datasets/core/#supervision.dataset.core.DetectionDataset) and [`sv.ClassificationDataset`](https://supervision.roboflow.com/0.22.0/datasets/core/#supervision.dataset.core.ClassificationDataset) allowing to load the images into memory only when necessary (lazy loading).
 
 !!! failure "Deprecated"
-Constructing `DetectionDataset` with parameter `images` as `Dict[str, np.ndarray]` is deprecated and will be removed in `supervision-0.26.0`. Please pass a list of paths `List[str]` instead.
+
+    Constructing `DetectionDataset` with parameter `images` as `Dict[str, np.ndarray]` is deprecated and will be removed in `supervision-0.26.0`. Please pass a list of paths `List[str]` instead.
 
 !!! failure "Deprecated"
-The `DetectionDataset.images` property is deprecated and will be removed in `supervision-0.26.0`. Please loop over images with `for path, image, annotation in dataset:`, as that does not require loading all images into memory.
+
+    The `DetectionDataset.images` property is deprecated and will be removed in `supervision-0.26.0`. Please loop over images with `for path, image, annotation in dataset:`, as that does not require loading all images into memory.
 
 ```python
 import roboflow
@@ -367,10 +375,12 @@ annotated_image = obb_annotator.annotate(scene=image.copy(), detections=detectio
 - Fixed [#1312](https://github.com/roboflow/supervision/pull/1312): Fixed [`CropAnnotator`](https://supervision.roboflow.com/0.22.0/detection/annotators/#supervision.annotators.core.TraceAnnotator.annotate).
 
 !!! failure "Removed"
-`BoxAnnotator` was removed, however `BoundingBoxAnnotator` has been renamed to `BoxAnnotator`. Use a combination of [`BoxAnnotator`](https://supervision.roboflow.com/0.22.0/detection/annotators/#supervision.annotators.core.BoxAnnotator) and [`LabelAnnotator`](https://supervision.roboflow.com/0.22.0/detection/annotators/#supervision.annotators.core.LabelAnnotator) to simulate old `BoundingBox` behavior.
+
+    `BoxAnnotator` was removed, however `BoundingBoxAnnotator` has been renamed to `BoxAnnotator`. Use a combination of [`BoxAnnotator`](https://supervision.roboflow.com/0.22.0/detection/annotators/#supervision.annotators.core.BoxAnnotator) and [`LabelAnnotator`](https://supervision.roboflow.com/0.22.0/detection/annotators/#supervision.annotators.core.LabelAnnotator) to simulate old `BoundingBox` behavior.
 
 !!! failure "Deprecated"
-The name `BoundingBoxAnnotator` has been deprecated and will be removed in `supervision-0.26.0`. It has been renamed to [`BoxAnnotator`](https://supervision.roboflow.com/0.22.0/detection/annotators/#supervision.annotators.core.BoxAnnotator).
+
+    The name `BoundingBoxAnnotator` has been deprecated and will be removed in `supervision-0.26.0`. It has been renamed to [`BoxAnnotator`](https://supervision.roboflow.com/0.22.0/detection/annotators/#supervision.annotators.core.BoxAnnotator).
 
 - Added [#975](https://github.com/roboflow/supervision/pull/975) 📝 New Cookbooks: serialize detections into [json](https://github.com/roboflow/supervision/blob/de896189b83a1f9434c0a37dd9192ee00d2a1283/docs/notebooks/serialise-detections-to-json.ipynb) and [csv](https://github.com/roboflow/supervision/blob/de896189b83a1f9434c0a37dd9192ee00d2a1283/docs/notebooks/serialise-detections-to-csv.ipynb).
 
@@ -379,28 +389,36 @@ The name `BoundingBoxAnnotator` has been deprecated and will be removed in `supe
 - Added [#1340](https://github.com/roboflow/supervision/pull/1340): Two new methods for converting between bounding box formats - [`xywh_to_xyxy`](https://supervision.roboflow.com/0.22.0/detection/utils/#supervision.detection.utils.xywh_to_xyxy) and [`xcycwh_to_xyxy`](https://supervision.roboflow.com/0.22.0/detection/utils/#supervision.detection.utils.xcycwh_to_xyxy)
 
 !!! failure "Removed"
-`from_roboflow` method has been removed due to deprecation. Use [from_inference](https://supervision.roboflow.com/0.22.0/detection/core/#supervision.detection.core.Detections.from_inference) instead.
+
+    `from_roboflow` method has been removed due to deprecation. Use [from_inference](https://supervision.roboflow.com/0.22.0/detection/core/#supervision.detection.core.Detections.from_inference) instead.
 
 !!! failure "Removed"
-`Color.white()` has been removed due to deprecation. Use `color.WHITE` instead.
+
+    `Color.white()` has been removed due to deprecation. Use `color.WHITE` instead.
 
 !!! failure "Removed"
-`Color.black()` has been removed due to deprecation. Use `color.BLACK` instead.
+
+    `Color.black()` has been removed due to deprecation. Use `color.BLACK` instead.
 
 !!! failure "Removed"
-`Color.red()` has been removed due to deprecation. Use `color.RED` instead.
+
+    `Color.red()` has been removed due to deprecation. Use `color.RED` instead.
 
 !!! failure "Removed"
-`Color.green()` has been removed due to deprecation. Use `color.GREEN` instead.
+
+    `Color.green()` has been removed due to deprecation. Use `color.GREEN` instead.
 
 !!! failure "Removed"
-`Color.blue()` has been removed due to deprecation. Use `color.BLUE` instead.
+
+    `Color.blue()` has been removed due to deprecation. Use `color.BLUE` instead.
 
 !!! failure "Removed"
-`ColorPalette.default()` has been removed due to deprecation. Use [ColorPalette.DEFAULT](https://supervision.roboflow.com/0.22.0/utils/draw/#supervision.draw.color.ColorPalette.DEFAULT) instead.
+
+    `ColorPalette.default()` has been removed due to deprecation. Use [ColorPalette.DEFAULT](https://supervision.roboflow.com/0.22.0/utils/draw/#supervision.draw.color.ColorPalette.DEFAULT) instead.
 
 !!! failure "Removed"
-`FPSMonitor.__call__` has been removed due to deprecation. Use the attribute [FPSMonitor.fps](https://supervision.roboflow.com/0.22.0/utils/video/#supervision.utils.video.FPSMonitor.fps) instead.
+
+    `FPSMonitor.__call__` has been removed due to deprecation. Use the attribute [FPSMonitor.fps](https://supervision.roboflow.com/0.22.0/utils/video/#supervision.utils.video.FPSMonitor.fps) instead.
 
 ### 0.21.0 <small>Jun 5, 2024</small>
 
@@ -508,7 +526,8 @@ annotated_image = edge_annotators.annotate(image.copy(), keypoints)
 - Changed [#1109](https://github.com/roboflow/supervision/pull/1109): [`sv.PolygonZone`](/0.20.0/detection/tools/polygon_zone/#supervision.detection.tools.polygon_zone.PolygonZone) such that the `frame_resolution_wh` argument is no longer required to initialize `sv.PolygonZone`.
 
 !!! failure "Deprecated"
-The `frame_resolution_wh` parameter in `sv.PolygonZone` is deprecated and will be removed in `supervision-0.24.0`.
+
+    The `frame_resolution_wh` parameter in `sv.PolygonZone` is deprecated and will be removed in `supervision-0.24.0`.
 
 - Changed [#1084](https://github.com/roboflow/supervision/pull/1084): [`sv.get_polygon_center`](/0.20.0/utils/geometry/#supervision.geometry.core.utils.get_polygon_center) to calculate a more accurate polygon centroid.
 
@@ -613,12 +632,14 @@ annotated_frame = crop_annotator.annotate(
 - Changed [#787](https://github.com/roboflow/supervision/pull/787): [`sv.ByteTrack`](/0.19.0/trackers/#supervision.tracker.ByteTrack) input arguments and docstrings updated to improve readability and ease of use.
 
 !!! failure "Deprecated"
-The `track_buffer`, `track_thresh`, and `match_thresh` parameters in `sv.ByteTrack` are deprecated and will be removed in `supervision-0.23.0`. Use `lost_track_buffer,` `track_activation_threshold`, and `minimum_matching_threshold` instead.
+
+    The `track_buffer`, `track_thresh`, and `match_thresh` parameters in `sv.ByteTrack` are deprecated and will be removed in `supervision-0.23.0`. Use `lost_track_buffer,` `track_activation_threshold`, and `minimum_matching_threshold` instead.
 
 - Changed [#910](https://github.com/roboflow/supervision/pull/910): [`sv.PolygonZone`](/0.19.0/detection/tools/polygon_zone/#supervision.detection.tools.polygon_zone.PolygonZone) to now accept a list of specific box anchors that must be in zone for a detection to be counted.
 
 !!! failure "Deprecated"
-The `triggering_position ` parameter in `sv.PolygonZone` is deprecated and will be removed in `supervision-0.23.0`. Use `triggering_anchors` instead.
+
+    The `triggering_position ` parameter in `sv.PolygonZone` is deprecated and will be removed in `supervision-0.23.0`. Use `triggering_anchors` instead.
 
 - Changed [#875](https://github.com/roboflow/supervision/pull/875): annotators adding support for Pillow images. All supervision Annotators can now accept an image as either a numpy array or a Pillow Image. They automatically detect its type, draw annotations, and return the output in the same format as the input.
 
@@ -681,14 +702,16 @@ ColorPalette(colors=[Color(r=68, g=1, b=84), Color(r=59, g=82, b=139), ...])
 - Changed [#756](https://github.com/roboflow/supervision/pull/756): [`sv.Color`](/0.18.0/draw/color/#color)'s and [`sv.ColorPalette`](/0.18.0/draw/color/#colorpalette)'s method of accessing predefined colors, transitioning from a function-based approach (`sv.Color.red()`) to a more intuitive and conventional property-based method (`sv.Color.RED`).
 
 !!! failure "Deprecated"
-`sv.ColorPalette.default()` is deprecated and will be removed in `supervision-0.22.0`. Use `sv.ColorPalette.DEFAULT` instead.
+
+    `sv.ColorPalette.default()` is deprecated and will be removed in `supervision-0.22.0`. Use `sv.ColorPalette.DEFAULT` instead.
 
 - Changed [#769](https://github.com/roboflow/supervision/pull/769): [`sv.ColorPalette.DEFAULT`](/0.18.0/draw/color/#colorpalette) value, giving users a more extensive set of annotation colors.
 
 - Changed [#677](https://github.com/roboflow/supervision/pull/677): `sv.Detections.from_roboflow` to [`sv.Detections.from_inference`](/0.18.0/detection/core/#supervision.detection.core.Detections.from_inference) streamlining its functionality to be compatible with both the both [inference](https://github.com/roboflow/inference) pip package and the Robloflow [hosted API](https://docs.roboflow.com/deploy/hosted-api).
 
 !!! failure "Deprecated"
-`Detections.from_roboflow()` is deprecated and will be removed in `supervision-0.22.0`. Use `Detections.from_inference` instead.
+
+    `Detections.from_roboflow()` is deprecated and will be removed in `supervision-0.22.0`. Use `Detections.from_inference` instead.
 
 - Fixed [#735](https://github.com/roboflow/supervision/pull/735): [`sv.LineZone`](/0.18.0/detection/tools/line_zone/#linezone) functionality to accurately update the counter when an object crosses a line from any direction, including from the side. This enhancement enables more precise tracking and analytics, such as calculating individual in/out counts for each lane on the road.
 
@@ -785,7 +808,8 @@ ColorPalette(colors=[Color(r=68, g=1, b=84), Color(r=59, g=82, b=139), ...])
 - Fixed [#430](https://github.com/roboflow/supervision/pull/430): [`sv.ByteTrack`](/0.16.0/trackers/#supervision.tracker.byte_tracker.core.ByteTrack) to return `np.array([], dtype=int)` when `svDetections` is empty.
 
 !!! failure "Deprecated"
-`sv.Detections.from_yolov8` and `sv.Classifications.from_yolov8` as those are now replaced by [`sv.Detections.from_ultralytics`](/0.16.0/detection/core/#supervision.detection.core.Detections.from_ultralytics) and [`sv.Classifications.from_ultralytics`](/0.16.0/classification/core/#supervision.classification.core.Classifications.from_ultralytics).
+
+    `sv.Detections.from_yolov8` and `sv.Classifications.from_yolov8` as those are now replaced by [`sv.Detections.from_ultralytics`](/0.16.0/detection/core/#supervision.detection.core.Detections.from_ultralytics) and [`sv.Classifications.from_ultralytics`](/0.16.0/classification/core/#supervision.classification.core.Classifications.from_ultralytics).
 
 ### 0.15.0 <small>October 5, 2023</small>
 
@@ -852,7 +876,8 @@ ColorPalette(colors=[Color(r=68, g=1, b=84), Color(r=59, g=82, b=139), ...])
 - Added [#281](https://github.com/roboflow/supervision/pull/281): [`sv.Classifications.from_ultralytics`](/0.14.0/classification/core/#supervision.classification.core.Classifications.from_ultralytics) to enable seamless integration with [Ultralytics](https://github.com/ultralytics/ultralytics) framework. This will enable you to use supervision with all [models](https://docs.ultralytics.com/models/) that Ultralytics supports.
 
 !!! failure "Deprecated"
-[sv.Detections.from_yolov8](/0.14.0/detection/core/#supervision.detection.core.Detections.from_yolov8) and [sv.Classifications.from_yolov8](/0.14.0/classification/core/#supervision.classification.core.Classifications.from_yolov8) are now deprecated and will be removed with `supervision-0.16.0` release.
+
+    [sv.Detections.from_yolov8](/0.14.0/detection/core/#supervision.detection.core.Detections.from_yolov8) and [sv.Classifications.from_yolov8](/0.14.0/classification/core/#supervision.classification.core.Classifications.from_yolov8) are now deprecated and will be removed with `supervision-0.16.0` release.
 
 - Added [#341](https://github.com/roboflow/supervision/pull/341): First supervision usage example script showing how to detect and track objects on video using YOLOv8 + Supervision.
 
@@ -889,7 +914,8 @@ ColorPalette(colors=[Color(r=68, g=1, b=84), Color(r=59, g=82, b=139), ...])
 - Added [#222](https://github.com/roboflow/supervision/pull/222): [`sv.Detections.from_ultralytics`](/0.13.0/detection/core/#supervision.detection.core.Detections.from_ultralytics) to enable seamless integration with [Ultralytics](https://github.com/ultralytics/ultralytics) framework. This will enable you to use `supervision` with all [models](https://docs.ultralytics.com/models/) that Ultralytics supports.
 
 !!! failure "Deprecated"
-[`sv.Detections.from_yolov8`](/0.13.0/detection/core/#supervision.detection.core.Detections.from_yolov8) is now deprecated and will be removed with `supervision-0.15.0` release.
+
+    [`sv.Detections.from_yolov8`](/0.13.0/detection/core/#supervision.detection.core.Detections.from_yolov8) is now deprecated and will be removed with `supervision-0.15.0` release.
 
 - Added [#191](https://github.com/roboflow/supervision/pull/191): [`sv.Detections.from_paddledet`](/0.13.0/detection/core/#supervision.detection.core.Detections.from_paddledet) to enable seamless integration with [PaddleDetection](https://github.com/PaddlePaddle/PaddleDetection) framework.
 
@@ -898,7 +924,8 @@ ColorPalette(colors=[Color(r=68, g=1, b=84), Color(r=59, g=82, b=139), ...])
 ### 0.12.0 <small>July 24, 2023</small>
 
 !!! failure "Python 3.7. Support Terminated"
-With the `supervision-0.12.0` release, we are terminating official support for Python 3.7.
+
+    With the `supervision-0.12.0` release, we are terminating official support for Python 3.7.
 
 - Added [#177](https://github.com/roboflow/supervision/pull/177): initial support for object detection model benchmarking with [`sv.ConfusionMatrix`](/0.12.0/metrics/detection/#confusionmatrix).
 
