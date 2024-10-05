@@ -75,6 +75,13 @@ class MeanAveragePrecision(Metric):
                 f"The number of predictions ({len(predictions)}) and"
                 f" targets ({len(targets)}) during the update must be the same."
             )
+        # class-agnostic
+        if self._class_agnostic:
+            # Set all class_ids to 0 to ignore class distinction
+            for prediction in predictions:
+                prediction.class_id[:] = 0
+            for target in targets:
+                target.class_id[:] = 0
 
         self._predictions_list.extend(predictions)
         self._targets_list.extend(targets)
@@ -239,13 +246,18 @@ class MeanAveragePrecision(Metric):
         target_classes: np.ndarray,
         iou: np.ndarray,
         iou_thresholds: np.ndarray,
+        class_agnostic: bool,
     ) -> np.ndarray:
         num_predictions, num_iou_levels = (
             predictions_classes.shape[0],
             iou_thresholds.shape[0],
         )
         correct = np.zeros((num_predictions, num_iou_levels), dtype=bool)
-        correct_class = target_classes[:, None] == predictions_classes
+
+        if class_agnostic:
+            correct_class = np.ones_like(iou, dtype=bool)  # Treat all as the same class
+        else:
+            correct_class = target_classes[:, None] == predictions_classes
 
         for i, iou_level in enumerate(iou_thresholds):
             matched_indices = np.where((iou >= iou_level) & correct_class)
