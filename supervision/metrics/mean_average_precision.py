@@ -184,9 +184,14 @@ class MeanAveragePrecision(Metric):
                             "Unsupported metric target for IoU calculation"
                         )
 
-                    matches = self._match_detection_batch(
-                        predictions.class_id, targets.class_id, iou, iou_thresholds
-                    )
+                    # Match detections: if class_agnostic is set, skip class matching
+                    if self._class_agnostic:
+                        matches = self._match_detection_batch_class_agnostic(iou, iou_thresholds)
+                    else:
+                        matches = self._match_detection_batch(
+                            predictions.class_id, targets.class_id, iou, iou_thresholds
+                        )
+
                     stats.append(
                         (
                             matches,
@@ -246,7 +251,6 @@ class MeanAveragePrecision(Metric):
         target_classes: np.ndarray,
         iou: np.ndarray,
         iou_thresholds: np.ndarray,
-        class_agnostic: bool,
     ) -> np.ndarray:
         num_predictions, num_iou_levels = (
             predictions_classes.shape[0],
@@ -254,10 +258,8 @@ class MeanAveragePrecision(Metric):
         )
         correct = np.zeros((num_predictions, num_iou_levels), dtype=bool)
 
-        if class_agnostic:
-            correct_class = np.ones_like(iou, dtype=bool)  # Treat all as the same class
-        else:
-            correct_class = target_classes[:, None] == predictions_classes
+        
+        correct_class = target_classes[:, None] == predictions_classes
 
         for i, iou_level in enumerate(iou_thresholds):
             matched_indices = np.where((iou >= iou_level) & correct_class)
@@ -275,7 +277,32 @@ class MeanAveragePrecision(Metric):
                 correct[matches[:, 1].astype(int), i] = True
 
         return correct
+    @staticmethod
+    def _match_detection_batch_class_agnostic(
+        iou: np.ndarray,
+        iou_thresholds: np.ndarray,
+    ) -> np.ndarray:
+        """
+        Match detections for class-agnostic case, ignoring the class labels.
+        """
+        num_predictions, num_iou_levels = iou.shape[0], iou_thresholds.shape[0]
+        correct = np.zeros((num_predictions, num_iou_levels), dtype=bool)
 
+        for i, iou_level in enumerate(iou_thresholds):
+            matched_indices = np.where(iou >= iou_level)
+            if matched_indices[0].shape[0]:
+                combined_indices = np.stack(matched_indices, axis=1)
+                iou_values = iou[matched_indices][:, None]
+                matches = np.hstack([combined_indices, iou_values])
+
+                if matched_indices[0].shape[0] > 1:
+                    matches = matches[matches[:, 2].argsort()[::-1]]
+                    matches = matches[np.unique(matches[:, 1], return_index=True)[1]]
+                    matches = matches[np.unique(matches[:, 0], return_index=True)[1]]
+
+                correct[matches[:, 1].astype(int), i] = True
+
+        return correct
     @staticmethod
     def _average_precisions_per_class(
         matches: np.ndarray,
