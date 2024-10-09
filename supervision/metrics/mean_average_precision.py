@@ -478,7 +478,7 @@ class MeanAveragePrecisionResult:
         out_str = (
             f"{self.__class__.__name__}:\n"
             f"Metric target: {self.metric_target}\n"
-            f"Class-agnostic: {self.is_class_agnostic}\n"
+            f"Class agnostic: {self.is_class_agnostic}\n"
             f"mAP @ 50:95: {self.map50_95:.4f}\n"
             f"mAP @ 50:    {self.map50:.4f}\n"
             f"mAP @ 75:    {self.map75:.4f}\n"
