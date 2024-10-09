@@ -443,6 +443,7 @@ class MeanAveragePrecisionResult:
             for large objects.
     """
 
+
     metric_target: MetricTarget
     is_class_agnostic: bool
 
