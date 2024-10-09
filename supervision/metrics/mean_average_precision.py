@@ -444,7 +444,7 @@ class MeanAveragePrecisionResult:
     """
 
     metric_target: MetricTarget
-    is_class_agnostic: 
+    is_class_agnostic: bool
 
     @property
     def map50_95(self) -> float:
