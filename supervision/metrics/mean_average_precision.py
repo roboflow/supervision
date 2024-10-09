@@ -75,9 +75,8 @@ class MeanAveragePrecision(Metric):
                 f"The number of predictions ({len(predictions)}) and"
                 f" targets ({len(targets)}) during the update must be the same."
             )
-        # class-agnostic
+        
         if self._class_agnostic:
-            # Set all class_ids to 0 to ignore class distinction
             for prediction in predictions:
                 prediction.class_id[:] = 0
             for target in targets:
@@ -184,7 +183,7 @@ class MeanAveragePrecision(Metric):
                             "Unsupported metric target for IoU calculation"
                         )
 
-                    # Match detections: if class_agnostic is set, skip class matching
+
                     if self._class_agnostic:
                         matches = self._match_detection_batch_class_agnostic(
                             iou, iou_thresholds
