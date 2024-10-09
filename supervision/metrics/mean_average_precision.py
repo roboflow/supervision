@@ -244,7 +244,7 @@ class MeanAveragePrecision(Metric):
         for r, p in zip(recall[::-1], precision[::-1]):
             precision_levels[recall_levels <= r] = p
 
-        average_precision = (1 / 100 * precision_levels).sum()
+        average_precision = (1 / 101 * precision_levels).sum()
         return average_precision
 
     @staticmethod
