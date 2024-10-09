@@ -186,8 +186,6 @@ class MeanAveragePrecision(Metric):
                             "Unsupported metric target for IoU calculation"
                         )
 
-                    
-                    
                     matches = self._match_detection_batch(
                         predictions.class_id, targets.class_id, iou, iou_thresholds
                     )
