@@ -277,33 +277,6 @@ class MeanAveragePrecision(Metric):
         return correct
 
     @staticmethod
-    def _match_detection_batch_class_agnostic(
-        iou: np.ndarray,
-        iou_thresholds: np.ndarray,
-    ) -> np.ndarray:
-        """
-        Match detections for class-agnostic case, ignoring the class labels.
-        """
-        num_predictions, num_iou_levels = iou.shape[0], iou_thresholds.shape[0]
-        correct = np.zeros((num_predictions, num_iou_levels), dtype=bool)
-
-        for i, iou_level in enumerate(iou_thresholds):
-            matched_indices = np.where(iou >= iou_level)
-            if matched_indices[0].shape[0]:
-                combined_indices = np.stack(matched_indices, axis=1)
-                iou_values = iou[matched_indices][:, None]
-                matches = np.hstack([combined_indices, iou_values])
-
-                if matched_indices[0].shape[0] > 1:
-                    matches = matches[matches[:, 2].argsort()[::-1]]
-                    matches = matches[np.unique(matches[:, 1], return_index=True)[1]]
-                    matches = matches[np.unique(matches[:, 0], return_index=True)[1]]
-
-                correct[matches[:, 1].astype(int), i] = True
-
-        return correct
-
-    @staticmethod
     def _average_precisions_per_class(
         matches: np.ndarray,
         prediction_confidence: np.ndarray,
