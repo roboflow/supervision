@@ -78,9 +78,9 @@ class MeanAveragePrecision(Metric):
         
         if self._class_agnostic:
             for prediction in predictions:
-                prediction.class_id[:] = 0
+                prediction.class_id[:] = -1
             for target in targets:
-                target.class_id[:] = 0
+                target.class_id[:] = -1
 
         self._predictions_list.extend(predictions)
         self._targets_list.extend(targets)
