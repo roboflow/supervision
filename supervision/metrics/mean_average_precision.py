@@ -215,7 +215,7 @@ class MeanAveragePrecision(Metric):
 
         return MeanAveragePrecisionResult(
             metric_target=self._metric_target,
-            is_class_agnostic= self._class_agnostic,
+            is_class_agnostic=self._class_agnostic,
             mAP_scores=mAP_scores,
             iou_thresholds=iou_thresholds,
             matched_classes=unique_classes,
@@ -442,7 +442,6 @@ class MeanAveragePrecisionResult:
         large_objects (Optional[MeanAveragePrecisionResult]): the mAP results
             for large objects.
     """
-
 
     metric_target: MetricTarget
     is_class_agnostic: bool
