@@ -77,6 +77,9 @@ class MeanAveragePrecision(Metric):
             )
 
         if self._class_agnostic:
+            predictions = deepcopy(predictions)
+            targets = deepcopy(targets)
+
             for prediction in predictions:
                 prediction.class_id[:] = -1
             for target in targets:
