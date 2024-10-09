@@ -215,6 +215,7 @@ class MeanAveragePrecision(Metric):
 
         return MeanAveragePrecisionResult(
             metric_target=self._metric_target,
+            is_class_agnostic= self._class_agnostic,
             mAP_scores=mAP_scores,
             iou_thresholds=iou_thresholds,
             matched_classes=unique_classes,
@@ -443,7 +444,7 @@ class MeanAveragePrecisionResult:
     """
 
     metric_target: MetricTarget
-    is_class_agnostic: bool
+    is_class_agnostic: 
 
     @property
     def map50_95(self) -> float:
