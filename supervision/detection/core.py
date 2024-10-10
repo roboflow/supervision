@@ -190,7 +190,7 @@ class Detections:
                 np.array_equal(self.confidence, other.confidence),
                 np.array_equal(self.tracker_id, other.tracker_id),
                 is_data_equal(self.data, other.data),
-                self.metadata == other.metadata
+                self.metadata == other.metadata,
             ]
         )
 
@@ -1048,14 +1048,12 @@ class Detections:
             array([0.1, 0.2, 0.3])
             ```
         """
-        metadata_list = [
-            detections.metadata for detections in detections_list
-        ]
-        
+        metadata_list = [detections.metadata for detections in detections_list]
+
         detections_list = [
             detections for detections in detections_list if not detections.is_empty()
         ]
-        
+
         metadata = merge_metadata(metadata_list)
 
         if len(detections_list) == 0:
@@ -1098,7 +1096,7 @@ class Detections:
             class_id=class_id,
             tracker_id=tracker_id,
             data=data,
-            metadata=metadata
+            metadata=metadata,
         )
 
     def get_anchors_coordinates(self, anchor: Position) -> np.ndarray:
@@ -1212,7 +1210,7 @@ class Detections:
             class_id=self.class_id[index] if self.class_id is not None else None,
             tracker_id=self.tracker_id[index] if self.tracker_id is not None else None,
             data=get_data_item(self.data, index),
-            metadata=self.metadata
+            metadata=self.metadata,
         )
 
     def __setitem__(self, key: str, value: Union[np.ndarray, List]):
@@ -1473,7 +1471,7 @@ def merge_inner_detection_object_pair(
         winning_detection = detections_1
     else:
         winning_detection = detections_2
-        
+
     metadata = merge_metadata([detections_1.metadata, detections_2.metadata])
 
     return Detections(
@@ -1483,7 +1481,7 @@ def merge_inner_detection_object_pair(
         class_id=winning_detection.class_id,
         tracker_id=winning_detection.tracker_id,
         data=winning_detection.data,
-        metadata=metadata
+        metadata=metadata,
     )
 
 

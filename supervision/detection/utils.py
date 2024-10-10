@@ -1,5 +1,5 @@
 from itertools import chain
-from typing import Dict, List, Optional, Tuple, Union, Any
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
@@ -864,6 +864,7 @@ def merge_data(
             )
 
     return merged_data
+
 
 def merge_metadata(metadata_list: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
