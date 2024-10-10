@@ -9,7 +9,7 @@ maintainers = [
 ]
 readme = "README.md"
 license = "MIT"
-packages = [{ include = "supervision" }]
+packages = [{ include = "supervision" }, { include = "supervision/py.typed" }]
 homepage = "https://github.com/roboflow/supervision"
 repository = "https://github.com/roboflow/supervision"
 documentation = "https://supervision.roboflow.com/latest/"
