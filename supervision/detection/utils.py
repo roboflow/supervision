@@ -884,9 +884,13 @@ def merge_metadata(metadata_list: List[Dict[str, Any]]) -> Dict[str, Any]:
         for key, value in metadata.items():
             if key in merged_metadata:
                 if merged_metadata[key] != value:
-                    raise ValueError(f"Conflicting metadata for key: {key}")
+                    if not isinstance(merged_metadata[key], list):
+                        merged_metadata[key] = [merged_metadata[key]]
+                    if value not in merged_metadata[key]:
+                        merged_metadata[key].append(value)
             else:
                 merged_metadata[key] = value
+
     return merged_metadata
 
 
