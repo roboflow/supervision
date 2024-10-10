@@ -1,5 +1,5 @@
 from itertools import chain
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union, Any
 
 import cv2
 import numpy as np
@@ -864,6 +864,29 @@ def merge_data(
             )
 
     return merged_data
+
+def merge_metadata(metadata_list: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Merge metadata from a list of metadata dictionaries.
+
+    This function combines the metadata dictionaries. If a key appears in more than one
+    dictionary, the values must be identical for the merge to succeed.
+
+    Args:
+        metadata_list (List[Dict[str, Any]]): A list of metadata dictionaries to merge.
+
+    Returns:
+        Dict[str, Any]: A single merged metadata dictionary.
+    """
+    merged_metadata = {}
+    for metadata in metadata_list:
+        for key, value in metadata.items():
+            if key in merged_metadata:
+                if merged_metadata[key] != value:
+                    raise ValueError(f"Conflicting metadata for key: {key}")
+            else:
+                merged_metadata[key] = value
+    return merged_metadata
 
 
 def get_data_item(
