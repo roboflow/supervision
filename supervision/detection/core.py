@@ -991,7 +991,6 @@ class Detections:
         """
         empty_detections = Detections.empty()
         empty_detections.data = self.data
-        empty_detections.metadata = self.metadata
         return self == empty_detections
 
     @classmethod
