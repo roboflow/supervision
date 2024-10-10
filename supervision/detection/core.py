@@ -34,6 +34,7 @@ from supervision.detection.utils import (
     is_data_equal,
     mask_to_xyxy,
     merge_data,
+    merge_metadata,
     process_roboflow_result,
     xywh_to_xyxy,
 )
@@ -125,6 +126,9 @@ class Detections:
         data (Dict[str, Union[np.ndarray, List]]): A dictionary containing additional
             data where each key is a string representing the data type, and the value
             is either a NumPy array or a list of corresponding data.
+        metadata (Dict[str, Any]): A dictionary containing collection-level metadata
+            that applies to the entire set of detections. This may include information such
+            as the video name, camera parameters, timestamp, or other global metadata.
     """  # noqa: E501 // docs
 
     xyxy: np.ndarray
@@ -133,6 +137,7 @@ class Detections:
     class_id: Optional[np.ndarray] = None
     tracker_id: Optional[np.ndarray] = None
     data: Dict[str, Union[np.ndarray, List]] = field(default_factory=dict)
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
         validate_detections_fields(
@@ -185,6 +190,7 @@ class Detections:
                 np.array_equal(self.confidence, other.confidence),
                 np.array_equal(self.tracker_id, other.tracker_id),
                 is_data_equal(self.data, other.data),
+                self.metadata == other.metadata,
             ]
         )
 
@@ -958,7 +964,7 @@ class Detections:
         )
 
     @classmethod
-    def empty(cls) -> Detections:
+    def empty(cls, metadata: Optional[Dict[str, Any]] = None) -> Detections:
         """
         Create an empty Detections object with no bounding boxes,
             confidences, or class IDs.
@@ -977,15 +983,21 @@ class Detections:
             xyxy=np.empty((0, 4), dtype=np.float32),
             confidence=np.array([], dtype=np.float32),
             class_id=np.array([], dtype=int),
+            metadata=metadata if metadata is not None else {},
         )
 
     def is_empty(self) -> bool:
         """
         Returns `True` if the `Detections` object is considered empty.
         """
-        empty_detections = Detections.empty()
-        empty_detections.data = self.data
-        return self == empty_detections
+        return (
+            len(self.xyxy) == 0
+            and (self.mask is None or len(self.mask) == 0)
+            and (self.class_id is None or len(self.class_id) == 0)
+            and (self.confidence is None or len(self.confidence) == 0)
+            and (self.tracker_id is None or len(self.tracker_id) == 0)
+            and not self.data
+        )
 
     @classmethod
     def merge(cls, detections_list: List[Detections]) -> Detections:
@@ -1041,12 +1053,16 @@ class Detections:
             array([0.1, 0.2, 0.3])
             ```
         """
+        metadata_list = [detections.metadata for detections in detections_list]
+
         detections_list = [
             detections for detections in detections_list if not detections.is_empty()
         ]
 
+        metadata = merge_metadata(metadata_list)
+
         if len(detections_list) == 0:
-            return Detections.empty()
+            return Detections.empty(metadata=metadata)
 
         for detections in detections_list:
             validate_detections_fields(
@@ -1085,6 +1101,7 @@ class Detections:
             class_id=class_id,
             tracker_id=tracker_id,
             data=data,
+            metadata=metadata,
         )
 
     def get_anchors_coordinates(self, anchor: Position) -> np.ndarray:
@@ -1198,6 +1215,7 @@ class Detections:
             class_id=self.class_id[index] if self.class_id is not None else None,
             tracker_id=self.tracker_id[index] if self.tracker_id is not None else None,
             data=get_data_item(self.data, index),
+            metadata=self.metadata,
         )
 
     def __setitem__(self, key: str, value: Union[np.ndarray, List]):
@@ -1459,6 +1477,8 @@ def merge_inner_detection_object_pair(
     else:
         winning_detection = detections_2
 
+    metadata = merge_metadata([detections_1.metadata, detections_2.metadata])
+
     return Detections(
         xyxy=merged_xyxy,
         mask=merged_mask,
@@ -1466,6 +1486,7 @@ def merge_inner_detection_object_pair(
         class_id=winning_detection.class_id,
         tracker_id=winning_detection.tracker_id,
         data=winning_detection.data,
+        metadata=metadata,
     )
 
 
