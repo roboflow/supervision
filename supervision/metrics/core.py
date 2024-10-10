@@ -4,9 +4,6 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any
 
-CLASS_ID_NONE = -1
-"""Used by metrics module as class ID, when none is present"""
-
 
 class Metric(ABC):
     """
