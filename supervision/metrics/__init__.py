@@ -1,5 +1,4 @@
 from supervision.metrics.core import (
-    CLASS_ID_NONE,
     AveragingMethod,
     Metric,
     MetricTarget,
