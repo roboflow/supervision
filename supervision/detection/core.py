@@ -964,7 +964,7 @@ class Detections:
         )
 
     @classmethod
-    def empty(cls) -> Detections:
+    def empty(cls, metadata: Optional[Dict[str, Any]] = None) -> Detections:
         """
         Create an empty Detections object with no bounding boxes,
             confidences, or class IDs.
@@ -983,15 +983,21 @@ class Detections:
             xyxy=np.empty((0, 4), dtype=np.float32),
             confidence=np.array([], dtype=np.float32),
             class_id=np.array([], dtype=int),
+            metadata=metadata if metadata is not None else {},
         )
 
     def is_empty(self) -> bool:
         """
         Returns `True` if the `Detections` object is considered empty.
         """
-        empty_detections = Detections.empty()
-        empty_detections.data = self.data
-        return self == empty_detections
+        return (
+            len(self.xyxy) == 0
+            and (self.mask is None or len(self.mask) == 0)
+            and (self.class_id is None or len(self.class_id) == 0)
+            and (self.confidence is None or len(self.confidence) == 0)
+            and (self.tracker_id is None or len(self.tracker_id) == 0)
+            and not self.data
+        )
 
     @classmethod
     def merge(cls, detections_list: List[Detections]) -> Detections:
