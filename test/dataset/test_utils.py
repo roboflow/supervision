@@ -11,6 +11,7 @@ from supervision.dataset.utils import (
     map_detections_class_id,
     mask_to_rle,
     merge_class_lists,
+    merge_polygons,
     rle_to_mask,
     train_test_split,
 )
@@ -123,6 +124,63 @@ def test_merge_class_maps(
     with exception:
         result = merge_class_lists(class_lists=class_lists)
         assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    "polygons, resolution_wh, expected_result, exception",
+    [
+        (
+            np.array([[1.0, 1.0, 2.0, 3.0]]),
+            (8, 4),
+            np.array(
+                [
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                ]
+            ),
+            DoesNotRaise(),
+        ),  # single polygon
+        (
+            np.array([[1.0, 1.0, 2.0, 3.0], [1.0, 1.0, 3.0, 2.0]]),
+            (8, 4),
+            np.array(
+                [
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                ]
+            ),
+            DoesNotRaise(),
+        ),  # two polygons
+        (
+            np.array(
+                [[1.0, 0.0, 2.0, 3.0], [1.0, 1.0, 3.0, 2.0], [1.0, 2.0, 1.0, 2.0]]
+            ),
+            (8, 4),
+            np.array(
+                [
+                    [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                ]
+            ),
+            DoesNotRaise(),
+        ),  # multiple polygons
+    ],
+)
+def test_merge_polygons(
+    polygons: List[np.ndarray],
+    resolution_wh: Tuple[int, int],
+    expected_result: np.ndarray,
+    exception: Exception,
+) -> None:
+    with exception:
+        result = merge_polygons(polygons=polygons, resolution_wh=resolution_wh)
+        assert np.array_equal(result, expected_result)
 
 
 @pytest.mark.parametrize(
