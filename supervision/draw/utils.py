@@ -22,7 +22,7 @@ def draw_line(
         scene (np.ndarray): The scene on which the line will be drawn
         start (Point): The starting point of the line
         end (Point): The end point of the line
-        color (Color): The color of the line
+        color (Color): The color of the line, defaults to Color.ROBOFLOW
         thickness (int): The thickness of the line
 
     Returns:
@@ -165,7 +165,7 @@ def draw_polygon(
     Parameters:
         scene (np.ndarray): The scene to draw the polygon on.
         polygon (np.ndarray): The polygon to be drawn, given as a list of vertices.
-        color (Color): The color of the polygon.
+        color (Color): The color of the polygon. Defaults to Color.ROBOFLOW.
         thickness (int): The thickness of the polygon lines, by default 2.
 
     Returns:
@@ -188,7 +188,7 @@ def draw_filled_polygon(
     Parameters:
         scene (np.ndarray): The scene to draw the polygon on.
         polygon (np.ndarray): The polygon to be drawn, given as a list of vertices.
-        color (Color): The color of the polygon.
+        color (Color): The color of the polygon. Defaults to Color.ROBOFLOW.
         opacity (float): The opacity of polygon when drawn on the scene.
 
     Returns:
