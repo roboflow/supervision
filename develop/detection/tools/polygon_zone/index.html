@@ -2469,7 +2469,7 @@ if each detection is within the polygon zone</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The color to draw the polygon lines</p>
+                <p>The color to draw the polygon lines, default is white</p>
               </div>
             </td>
           </tr>
@@ -2674,7 +2674,7 @@ default is cv2.FONT_HERSHEY_SIMPLEX</p>
 <a id="__codelineno-0-88" name="__codelineno-0-88"></a>
 <a id="__codelineno-0-89" name="__codelineno-0-89"></a><span class="sd">    Attributes:</span>
 <a id="__codelineno-0-90" name="__codelineno-0-90"></a><span class="sd">        zone (PolygonZone): The polygon zone to be annotated</span>
-<a id="__codelineno-0-91" name="__codelineno-0-91"></a><span class="sd">        color (Color): The color to draw the polygon lines</span>
+<a id="__codelineno-0-91" name="__codelineno-0-91"></a><span class="sd">        color (Color): The color to draw the polygon lines, default is white</span>
 <a id="__codelineno-0-92" name="__codelineno-0-92"></a><span class="sd">        thickness (int): The thickness of the polygon lines, default is 2</span>
 <a id="__codelineno-0-93" name="__codelineno-0-93"></a><span class="sd">        text_color (Color): The color of the text on the polygon, default is black</span>
 <a id="__codelineno-0-94" name="__codelineno-0-94"></a><span class="sd">        text_scale (float): The scale of the text on the polygon, default is 0.5</span>
@@ -2690,7 +2690,7 @@ default is cv2.FONT_HERSHEY_SIMPLEX</p>
 <a id="__codelineno-0-104" name="__codelineno-0-104"></a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
 <a id="__codelineno-0-105" name="__codelineno-0-105"></a>        <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-106" name="__codelineno-0-106"></a>        <span class="n">zone</span><span class="p">:</span> <span class="n">PolygonZone</span><span class="p">,</span>
-<a id="__codelineno-0-107" name="__codelineno-0-107"></a>        <span class="n">color</span><span class="p">:</span> <span class="n">Color</span><span class="p">,</span>
+<a id="__codelineno-0-107" name="__codelineno-0-107"></a>        <span class="n">color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">=</span> <span class="n">Color</span><span class="o">.</span><span class="n">WHITE</span><span class="p">,</span>
 <a id="__codelineno-0-108" name="__codelineno-0-108"></a>        <span class="n">thickness</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
 <a id="__codelineno-0-109" name="__codelineno-0-109"></a>        <span class="n">text_color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">=</span> <span class="n">Color</span><span class="o">.</span><span class="n">BLACK</span><span class="p">,</span>
 <a id="__codelineno-0-110" name="__codelineno-0-110"></a>        <span class="n">text_scale</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
