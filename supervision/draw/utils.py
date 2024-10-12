@@ -9,7 +9,7 @@ from supervision.geometry.core import Point, Rect
 
 
 def draw_line(
-    scene: np.ndarray, start: Point, end: Point, color: Color, thickness: int = 2
+    scene: np.ndarray, start: Point, end: Point, color: Color = Color.ROBOFLOW, thickness: int = 2
 ) -> np.ndarray:
     """
     Draws a line on a given scene.
@@ -35,7 +35,7 @@ def draw_line(
 
 
 def draw_rectangle(
-    scene: np.ndarray, rect: Rect, color: Color, thickness: int = 2
+    scene: np.ndarray, rect: Rect, color: Color = Color.ROBOFLOW, thickness: int = 2
 ) -> np.ndarray:
     """
     Draws a rectangle on an image.
@@ -60,7 +60,7 @@ def draw_rectangle(
 
 
 def draw_filled_rectangle(
-    scene: np.ndarray, rect: Rect, color: Color, opacity: float = 1
+    scene: np.ndarray, rect: Rect, color: Color = Color.ROBOFLOW, opacity: float = 1
 ) -> np.ndarray:
     """
     Draws a filled rectangle on an image.
@@ -151,7 +151,7 @@ def draw_rounded_rectangle(
 
 
 def draw_polygon(
-    scene: np.ndarray, polygon: np.ndarray, color: Color, thickness: int = 2
+    scene: np.ndarray, polygon: np.ndarray, color: Color = Color.ROBOFLOW, thickness: int = 2
 ) -> np.ndarray:
     """Draw a polygon on a scene.
 
@@ -171,7 +171,7 @@ def draw_polygon(
 
 
 def draw_filled_polygon(
-    scene: np.ndarray, polygon: np.ndarray, color: Color, opacity: float = 1
+    scene: np.ndarray, polygon: np.ndarray, color: Color = Color.ROBOFLOW, opacity: float = 1
 ) -> np.ndarray:
     """Draw a filled polygon on a scene.
 

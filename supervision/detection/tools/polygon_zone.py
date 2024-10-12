@@ -104,7 +104,7 @@ class PolygonZoneAnnotator:
     def __init__(
         self,
         zone: PolygonZone,
-        color: Color,
+        color: Color = Color.ROBOFLOW,
         thickness: int = 2,
         text_color: Color = Color.BLACK,
         text_scale: float = 0.5,
