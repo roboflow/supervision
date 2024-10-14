@@ -1272,9 +1272,36 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#supervision.dataset.utils.rle_to_mask(rle)" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;rle
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#supervision.dataset.utils.rle_to_mask(resolution_wh)" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;resolution_wh
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#supervision.dataset.utils.mask_to_rle" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;mask_to_rle
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#supervision.dataset.utils.mask_to_rle(mask)" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;mask
     </span>
   </a>
   
@@ -1919,9 +1946,36 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#supervision.dataset.utils.rle_to_mask(rle)" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;rle
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#supervision.dataset.utils.rle_to_mask(resolution_wh)" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;resolution_wh
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#supervision.dataset.utils.mask_to_rle" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;mask_to_rle
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#supervision.dataset.utils.mask_to_rle(mask)" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;mask
     </span>
   </a>
   
@@ -1981,9 +2035,11 @@
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>rle</code></td>
             <td>
-                  <code><span title="typing.Union">Union</span>[<span title="numpy.typing.NDArray">NDArray</span>[<span title="numpy.int_">int_</span>], <span title="typing.List">List</span>[int]]</code>
+<h2 id="supervision.dataset.utils.rle_to_mask(rle)" class="doc doc-heading doc-heading-parameter">                  <code>rle</code>
+<a href="#supervision.dataset.utils.rle_to_mask(rle)" class="headerlink" title="Permanent link">&para;</a></h2>            </td>
+            <td>
+                  <code>Union[NDArray[int_], List[int]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -1999,9 +2055,11 @@ assigned as foreground object).</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>resolution_wh</code></td>
             <td>
-                  <code><span title="typing.Tuple">Tuple</span>[int, int]</code>
+<h2 id="supervision.dataset.utils.rle_to_mask(resolution_wh)" class="doc doc-heading doc-heading-parameter">                  <code>resolution_wh</code>
+<a href="#supervision.dataset.utils.rle_to_mask(resolution_wh)" class="headerlink" title="Permanent link">&para;</a></h2>            </td>
+            <td>
+                  <code>Tuple[int, int]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2028,7 +2086,7 @@ of the desired binary mask.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="numpy.typing.NDArray">NDArray</span>[<span title="numpy.bool_">bool_</span>]</code>
+                  <code>NDArray[bool_]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2218,9 +2276,11 @@ number of pixels in the expected mask (computed based on resolution_wh).</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>mask</code></td>
             <td>
-                  <code><span title="numpy.typing.NDArray">NDArray</span>[<span title="numpy.bool_">bool_</span>]</code>
+<h2 id="supervision.dataset.utils.mask_to_rle(mask)" class="doc doc-heading doc-heading-parameter">                  <code>mask</code>
+<a href="#supervision.dataset.utils.mask_to_rle(mask)" class="headerlink" title="Permanent link">&para;</a></h2>            </td>
+            <td>
+                  <code>NDArray[bool_]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2247,7 +2307,7 @@ object and <code>False</code> indicates background.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.List">List</span>[int]</code>
+                  <code>List[int]</code>
             </td>
             <td>
               <div class="doc-md-description">

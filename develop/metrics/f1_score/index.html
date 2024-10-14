@@ -2057,7 +2057,12 @@
 <a id="supervision.metrics.f1_score.F1Score"></a>
     <div class="doc doc-contents first">
             <p class="doc doc-class-bases">
-              Bases: <code><span title="supervision.metrics.core.Metric">Metric</span></code></p>
+              Bases: <code>Metric</code></p>
+
+
+
+
+
 
 
               <details class="quote">
@@ -2800,7 +2805,7 @@ Provides a custom <code>__str__</code> method for pretty printing.</p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.metrics.f1_score.F1ScoreResult.metric_target">metric_target</span></code></td>
             <td>
-                  <code><span title="supervision.metrics.core.MetricTarget">MetricTarget</span></code>
+                  <code>MetricTarget</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2812,7 +2817,7 @@ boxes, masks or oriented bounding boxes.</p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.metrics.f1_score.F1ScoreResult.averaging_method">averaging_method</span></code></td>
             <td>
-                  <code><span title="supervision.metrics.core.AveragingMethod">AveragingMethod</span></code>
+                  <code>AveragingMethod</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2846,7 +2851,7 @@ F1 scores. Determines how the F1 scores are aggregated across classes.</p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.metrics.f1_score.F1ScoreResult.f1_scores">f1_scores</span></code></td>
             <td>
-                  <code><span title="numpy.ndarray">ndarray</span></code>
+                  <code>ndarray</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2858,7 +2863,7 @@ Shape: <code>(num_iou_thresholds,)</code></p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.metrics.f1_score.F1ScoreResult.f1_per_class">f1_per_class</span></code></td>
             <td>
-                  <code><span title="numpy.ndarray">ndarray</span></code>
+                  <code>ndarray</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2870,7 +2875,7 @@ Shape: <code>(num_target_classes, num_iou_thresholds)</code></p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.metrics.f1_score.F1ScoreResult.iou_thresholds">iou_thresholds</span></code></td>
             <td>
-                  <code><span title="numpy.ndarray">ndarray</span></code>
+                  <code>ndarray</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2881,7 +2886,7 @@ Shape: <code>(num_target_classes, num_iou_thresholds)</code></p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.metrics.f1_score.F1ScoreResult.matched_classes">matched_classes</span></code></td>
             <td>
-                  <code><span title="numpy.ndarray">ndarray</span></code>
+                  <code>ndarray</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2893,7 +2898,7 @@ Corresponds to the rows of <code>f1_per_class</code>.</p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.metrics.f1_score.F1ScoreResult.small_objects">small_objects</span></code></td>
             <td>
-                  <code><span title="typing.Optional">Optional</span>[<a class="autorefs autorefs-internal" title="supervision.metrics.f1_score.F1ScoreResult" href="#supervision.metrics.f1_score.F1ScoreResult">F1ScoreResult</a>]</code>
+                  <code>Optional[F1ScoreResult]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2905,7 +2910,7 @@ for small objects.</p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.metrics.f1_score.F1ScoreResult.medium_objects">medium_objects</span></code></td>
             <td>
-                  <code><span title="typing.Optional">Optional</span>[<a class="autorefs autorefs-internal" title="supervision.metrics.f1_score.F1ScoreResult" href="#supervision.metrics.f1_score.F1ScoreResult">F1ScoreResult</a>]</code>
+                  <code>Optional[F1ScoreResult]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2917,7 +2922,7 @@ for medium objects.</p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.metrics.f1_score.F1ScoreResult.large_objects">large_objects</span></code></td>
             <td>
-                  <code><span title="typing.Optional">Optional</span>[<a class="autorefs autorefs-internal" title="supervision.metrics.f1_score.F1ScoreResult" href="#supervision.metrics.f1_score.F1ScoreResult">F1ScoreResult</a>]</code>
+                  <code>Optional[F1ScoreResult]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2928,6 +2933,11 @@ for large objects.</p>
           </tr>
       </tbody>
     </table>
+
+
+
+
+
 
               <details class="quote">
                 <summary>Source code in <code>supervision/metrics/f1_score.py</code></summary>
@@ -3558,7 +3568,7 @@ for large objects.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="pandas.DataFrame">DataFrame</span></code>
+                  <code>DataFrame</code>
             </td>
             <td>
               <div class="doc-md-description">

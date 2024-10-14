@@ -1624,6 +1624,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#supervision.assets.downloader.download_assets(asset_name)" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;asset_name
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#supervision.assets.list.VideoAssets" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;VideoAssets
@@ -1935,6 +1944,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#supervision.assets.downloader.download_assets(asset_name)" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;asset_name
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#supervision.assets.list.VideoAssets" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;VideoAssets
@@ -2007,9 +2025,11 @@ as an extra within the Supervision package.</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>asset_name</code></td>
             <td>
-                  <code><span title="typing.Union">Union</span>[<a class="autorefs autorefs-internal" title="supervision.assets.list.VideoAssets" href="#supervision.assets.list.VideoAssets">VideoAssets</a>, str]</code>
+<h2 id="supervision.assets.downloader.download_assets(asset_name)" class="doc doc-heading doc-heading-parameter">                  <code>asset_name</code>
+<a href="#supervision.assets.downloader.download_assets(asset_name)" class="headerlink" title="Permanent link">&para;</a></h2>            </td>
+            <td>
+                  <code>Union[VideoAssets, str]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2178,7 +2198,7 @@ downloaded.</p>
 <a id="supervision.assets.list.VideoAssets"></a>
     <div class="doc doc-contents first">
             <p class="doc doc-class-bases">
-              Bases: <code><span title="enum.Enum">Enum</span></code></p>
+              Bases: <code>Enum</code></p>
 
 
         <p>Each member of this enum represents a video asset. The value associated with each
@@ -2239,6 +2259,11 @@ member is the filename of the video.</p>
 </tr>
 </tbody>
 </table>
+
+
+
+
+
 
               <details class="quote">
                 <summary>Source code in <code>supervision/assets/list.py</code></summary>
