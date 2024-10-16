@@ -819,7 +819,11 @@ def is_metadata_equal(metadata_a: Dict[str, Any], metadata_b: Dict[str, Any]) ->
         True if the metadata payloads are equal, False otherwise.
     """
     return set(metadata_a.keys()) == set(metadata_b.keys()) and all(
-        np.array_equal(metadata_a[key], metadata_b[key]) for key in metadata_a
+        np.array_equal(metadata_a[key], metadata_b[key])
+        if isinstance(metadata_a[key], np.ndarray)
+        and isinstance(metadata_b[key], np.ndarray)
+        else metadata_a[key] == metadata_b[key]
+        for key in metadata_a
     )
 
 
