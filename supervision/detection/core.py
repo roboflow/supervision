@@ -32,6 +32,7 @@ from supervision.detection.utils import (
     extract_ultralytics_masks,
     get_data_item,
     is_data_equal,
+    is_metadata_equal,
     mask_to_xyxy,
     merge_data,
     merge_metadata,
@@ -190,7 +191,7 @@ class Detections:
                 np.array_equal(self.confidence, other.confidence),
                 np.array_equal(self.tracker_id, other.tracker_id),
                 is_data_equal(self.data, other.data),
-                self.metadata == other.metadata,
+                is_metadata_equal(self.metadata, other.metadata),
             ]
         )
 
@@ -979,6 +980,9 @@ class Detections:
             empty_detections = Detections.empty()
             ```
         """
+        if metadata is not None and not isinstance(metadata, dict):
+            raise TypeError("Metadata must be a dictionary.")
+
         return cls(
             xyxy=np.empty((0, 4), dtype=np.float32),
             confidence=np.array([], dtype=np.float32),
@@ -990,14 +994,9 @@ class Detections:
         """
         Returns `True` if the `Detections` object is considered empty.
         """
-        return (
-            len(self.xyxy) == 0
-            and (self.mask is None or len(self.mask) == 0)
-            and (self.class_id is None or len(self.class_id) == 0)
-            and (self.confidence is None or len(self.confidence) == 0)
-            and (self.tracker_id is None or len(self.tracker_id) == 0)
-            and not self.data
-        )
+        empty_detections = Detections.empty()
+        empty_detections.data = self.data
+        return self == empty_detections
 
     @classmethod
     def merge(cls, detections_list: List[Detections]) -> Detections:

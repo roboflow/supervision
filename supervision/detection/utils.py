@@ -808,6 +808,21 @@ def is_data_equal(data_a: Dict[str, np.ndarray], data_b: Dict[str, np.ndarray]) 
     )
 
 
+def is_metadata_equal(metadata_a: Dict[str, Any], metadata_b: Dict[str, Any]) -> bool:
+    """
+    Compares the metadata payloads of two Detections instances.
+
+    Args:
+        metadata_a, metadata_b: The metadata payloads of the instances.
+
+    Returns:
+        True if the metadata payloads are equal, False otherwise.
+    """
+    return set(metadata_a.keys()) == set(metadata_b.keys()) and all(
+        np.array_equal(metadata_a[key], metadata_b[key]) for key in metadata_a
+    )
+
+
 def merge_data(
     data_list: List[Dict[str, Union[npt.NDArray[np.generic], List]]],
 ) -> Dict[str, Union[npt.NDArray[np.generic], List]]:
@@ -880,15 +895,22 @@ def merge_metadata(metadata_list: List[Dict[str, Any]]) -> Dict[str, Any]:
         Dict[str, Any]: A single merged metadata dictionary.
 
     Raises:
-        ValueError: If there are conflicting values for the same key.
+        ValueError: If there are conflicting values for the same key or if
+        dictionaries have different keys.
     """
-    merged_metadata = {}
+    if not metadata_list:
+        return {}
 
+    all_keys_sets = [set(metadata.keys()) for metadata in metadata_list]
+    if not all(keys_set == all_keys_sets[0] for keys_set in all_keys_sets):
+        raise ValueError("All metadata dictionaries must have the same keys to merge.")
+
+    merged_metadata = {}
     for metadata in metadata_list:
         for key, value in metadata.items():
             if key in merged_metadata:
                 if merged_metadata[key] != value:
-                    raise ValueError(f"Conflicting metadata for key: {key}.")
+                    raise ValueError(f"Conflicting metadata for key: '{key}'.")
             else:
                 merged_metadata[key] = value
 
