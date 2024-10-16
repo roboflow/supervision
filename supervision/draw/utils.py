@@ -9,7 +9,11 @@ from supervision.geometry.core import Point, Rect
 
 
 def draw_line(
-    scene: np.ndarray, start: Point, end: Point, color: Color, thickness: int = 2
+    scene: np.ndarray,
+    start: Point,
+    end: Point,
+    color: Color = Color.ROBOFLOW,
+    thickness: int = 2,
 ) -> np.ndarray:
     """
     Draws a line on a given scene.
@@ -18,7 +22,7 @@ def draw_line(
         scene (np.ndarray): The scene on which the line will be drawn
         start (Point): The starting point of the line
         end (Point): The end point of the line
-        color (Color): The color of the line
+        color (Color): The color of the line, defaults to Color.ROBOFLOW
         thickness (int): The thickness of the line
 
     Returns:
@@ -35,7 +39,7 @@ def draw_line(
 
 
 def draw_rectangle(
-    scene: np.ndarray, rect: Rect, color: Color, thickness: int = 2
+    scene: np.ndarray, rect: Rect, color: Color = Color.ROBOFLOW, thickness: int = 2
 ) -> np.ndarray:
     """
     Draws a rectangle on an image.
@@ -60,7 +64,7 @@ def draw_rectangle(
 
 
 def draw_filled_rectangle(
-    scene: np.ndarray, rect: Rect, color: Color, opacity: float = 1
+    scene: np.ndarray, rect: Rect, color: Color = Color.ROBOFLOW, opacity: float = 1
 ) -> np.ndarray:
     """
     Draws a filled rectangle on an image.
@@ -151,14 +155,17 @@ def draw_rounded_rectangle(
 
 
 def draw_polygon(
-    scene: np.ndarray, polygon: np.ndarray, color: Color, thickness: int = 2
+    scene: np.ndarray,
+    polygon: np.ndarray,
+    color: Color = Color.ROBOFLOW,
+    thickness: int = 2,
 ) -> np.ndarray:
     """Draw a polygon on a scene.
 
     Parameters:
         scene (np.ndarray): The scene to draw the polygon on.
         polygon (np.ndarray): The polygon to be drawn, given as a list of vertices.
-        color (Color): The color of the polygon.
+        color (Color): The color of the polygon. Defaults to Color.ROBOFLOW.
         thickness (int): The thickness of the polygon lines, by default 2.
 
     Returns:
@@ -171,14 +178,17 @@ def draw_polygon(
 
 
 def draw_filled_polygon(
-    scene: np.ndarray, polygon: np.ndarray, color: Color, opacity: float = 1
+    scene: np.ndarray,
+    polygon: np.ndarray,
+    color: Color = Color.ROBOFLOW,
+    opacity: float = 1,
 ) -> np.ndarray:
     """Draw a filled polygon on a scene.
 
     Parameters:
         scene (np.ndarray): The scene to draw the polygon on.
         polygon (np.ndarray): The polygon to be drawn, given as a list of vertices.
-        color (Color): The color of the polygon.
+        color (Color): The color of the polygon. Defaults to Color.ROBOFLOW.
         opacity (float): The opacity of polygon when drawn on the scene.
 
     Returns:

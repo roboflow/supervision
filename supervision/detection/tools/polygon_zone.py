@@ -88,7 +88,7 @@ class PolygonZoneAnnotator:
 
     Attributes:
         zone (PolygonZone): The polygon zone to be annotated
-        color (Color): The color to draw the polygon lines
+        color (Color): The color to draw the polygon lines, default is white
         thickness (int): The thickness of the polygon lines, default is 2
         text_color (Color): The color of the text on the polygon, default is black
         text_scale (float): The scale of the text on the polygon, default is 0.5
@@ -104,7 +104,7 @@ class PolygonZoneAnnotator:
     def __init__(
         self,
         zone: PolygonZone,
-        color: Color,
+        color: Color = Color.WHITE,
         thickness: int = 2,
         text_color: Color = Color.BLACK,
         text_scale: float = 0.5,
