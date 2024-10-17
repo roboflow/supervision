@@ -112,7 +112,6 @@ def save_json_file(data: dict, file_path: Union[str, Path], indent: int = 3) -> 
     Write a dict to a json file.
 
     Args:
-        indent:
         data (dict): dict with unique keys and value as pair.
         file_path (Union[str, Path]): The file path as a string or Path object.
     """
@@ -137,10 +136,9 @@ def read_yaml_file(file_path: Union[str, Path]) -> Dict:
 
 def save_yaml_file(data: dict, file_path: Union[str, Path]) -> None:
     """
-    Save a dict to a json file.
+    Save a dict to a yaml file.
 
     Args:
-        indent:
         data (dict): dict with unique keys and value as pair.
         file_path (Union[str, Path]): The file path as a string or Path object.
     """
