@@ -20,7 +20,7 @@ def indices_to_matches(
 
 def linear_assignment(
     cost_matrix: np.ndarray, thresh: float
-) -> [np.ndarray, Tuple[int], Tuple[int, int]]:
+) -> Tuple[np.ndarray, Tuple[int], Tuple[int, int]]:
     if cost_matrix.size == 0:
         return (
             np.empty((0, 2), dtype=int),

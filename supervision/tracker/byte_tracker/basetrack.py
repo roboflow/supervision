@@ -38,7 +38,7 @@ class BaseTrack:
         self.frame_id = 0
         self.time_since_update = 0
 
-    def activate(self, *args):
+    def activate(self, *args, **kwargs):
         raise NotImplementedError
 
     def predict(self):
