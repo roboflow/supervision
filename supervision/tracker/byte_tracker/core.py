@@ -6,7 +6,6 @@ import numpy as np
 from supervision.detection.core import Detections
 from supervision.detection.utils import box_iou_batch
 from supervision.tracker.byte_tracker import matching
-from supervision.tracker.byte_tracker.basetrack import BaseTrack
 from supervision.tracker.byte_tracker.kalman_filter import KalmanFilter
 
 
@@ -37,7 +36,7 @@ class IdCounter:
         return -1
 
 
-class STrack(BaseTrack):
+class STrack:
     shared_kalman = KalmanFilter()
 
     def __init__(
@@ -48,9 +47,10 @@ class STrack(BaseTrack):
         internal_id_counter: IdCounter,
         external_id_counter: IdCounter,
     ):
-        super().__init__()
         self.state = TrackState.New
         self.is_activated = False
+        self.start_frame = 0
+        self.frame_id = 0
 
         self._tlwh = np.asarray(tlwh, dtype=np.float32)
         self.kalman_filter = None
@@ -193,7 +193,7 @@ class STrack(BaseTrack):
 
     def __repr__(self):
         return "OT_{}_({}-{})".format(
-            self.internal_track_id, self.start_frame, self.end_frame
+            self.internal_track_id, self.start_frame, self.frame_id
         )
 
 
@@ -236,6 +236,7 @@ class ByteTrack:
         self.minimum_matching_threshold = minimum_matching_threshold
 
         self.frame_id = 0
+        self.start_frame = 0
         self.det_thresh = self.track_activation_threshold + 0.1
         self.max_time_lost = int(frame_rate / 30.0 * lost_track_buffer)
         self.minimum_consecutive_frames = minimum_consecutive_frames
@@ -478,7 +479,7 @@ class ByteTrack:
             activated_starcks.append(track)
         """ Step 5: Update state"""
         for track in self.lost_tracks:
-            if self.frame_id - track.end_frame > self.max_time_lost:
+            if self.frame_id - track.frame_id > self.max_time_lost:
                 track.state = TrackState.Removed
                 removed_stracks.append(track)
 
