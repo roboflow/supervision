@@ -9,7 +9,11 @@ from matplotlib import pyplot as plt
 
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
-from supervision.detection.utils import box_iou_batch, mask_iou_batch
+from supervision.detection.utils import (
+    box_iou_batch,
+    mask_iou_batch,
+    oriented_box_iou_batch,
+)
 from supervision.draw.color import LEGACY_COLOR_PALETTE
 from supervision.metrics.core import Metric, MetricTarget
 from supervision.metrics.utils.object_size import (
@@ -37,9 +41,7 @@ class MeanAveragePrecision(Metric):
         """
         self._metric_target = metric_target
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
-            raise NotImplementedError(
-                "Mean Average Precision is not implemented for oriented bounding boxes."
-            )
+            pass
 
         self._class_agnostic = class_agnostic
 
@@ -181,6 +183,10 @@ class MeanAveragePrecision(Metric):
                         iou = box_iou_batch(target_contents, prediction_contents)
                     elif self._metric_target == MetricTarget.MASKS:
                         iou = mask_iou_batch(target_contents, prediction_contents)
+                    elif self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
+                        iou = oriented_box_iou_batch(
+                            target_contents, prediction_contents
+                        )
                     else:
                         raise NotImplementedError(
                             "Unsupported metric target for IoU calculation"
@@ -189,7 +195,6 @@ class MeanAveragePrecision(Metric):
                     matches = self._match_detection_batch(
                         predictions.class_id, targets.class_id, iou, iou_thresholds
                     )
-
                     stats.append(
                         (
                             matches,
@@ -213,7 +218,6 @@ class MeanAveragePrecision(Metric):
 
         return MeanAveragePrecisionResult(
             metric_target=self._metric_target,
-            is_class_agnostic=self._class_agnostic,
             mAP_scores=mAP_scores,
             iou_thresholds=iou_thresholds,
             matched_classes=unique_classes,
@@ -241,7 +245,7 @@ class MeanAveragePrecision(Metric):
         for r, p in zip(recall[::-1], precision[::-1]):
             precision_levels[recall_levels <= r] = p
 
-        average_precision = (1 / 101 * precision_levels).sum()
+        average_precision = (1 / 100 * precision_levels).sum()
         return average_precision
 
     @staticmethod
@@ -256,7 +260,6 @@ class MeanAveragePrecision(Metric):
             iou_thresholds.shape[0],
         )
         correct = np.zeros((num_predictions, num_iou_levels), dtype=bool)
-
         correct_class = target_classes[:, None] == predictions_classes
 
         for i, iou_level in enumerate(iou_thresholds):
@@ -344,8 +347,9 @@ class MeanAveragePrecision(Metric):
                 else self._make_empty_content()
             )
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
-            if obb := detections.data.get(ORIENTED_BOX_COORDINATES):
-                return np.ndarray(obb, dtype=np.float32)
+            obb = detections.data.get(ORIENTED_BOX_COORDINATES)
+            if obb is not None and len(obb) > 0:
+                return np.array(obb, dtype=np.float32)
             return self._make_empty_content()
         raise ValueError(f"Invalid metric target: {self._metric_target}")
 
@@ -395,8 +399,6 @@ class MeanAveragePrecisionResult:
     Attributes:
         metric_target (MetricTarget): the type of data used for the metric -
             boxes, masks or oriented bounding boxes.
-        class_agnostic (bool): When computing class-agnostic results, class ID
-            is set to `-1`.
         mAP_map50_95 (float): the mAP score at IoU thresholds from `0.5` to `0.95`.
         mAP_map50 (float): the mAP score at IoU threshold of `0.5`.
         mAP_map75 (float): the mAP score at IoU threshold of `0.75`.
@@ -416,7 +418,6 @@ class MeanAveragePrecisionResult:
     """
 
     metric_target: MetricTarget
-    is_class_agnostic: bool
 
     @property
     def map50_95(self) -> float:
@@ -451,7 +452,6 @@ class MeanAveragePrecisionResult:
         out_str = (
             f"{self.__class__.__name__}:\n"
             f"Metric target: {self.metric_target}\n"
-            f"Class agnostic: {self.is_class_agnostic}\n"
             f"mAP @ 50:95: {self.map50_95:.4f}\n"
             f"mAP @ 50:    {self.map50:.4f}\n"
             f"mAP @ 75:    {self.map75:.4f}\n"
