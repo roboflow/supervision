@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import List, Tuple
 
 import numpy as np
@@ -5,8 +6,15 @@ import numpy as np
 from supervision.detection.core import Detections
 from supervision.detection.utils import box_iou_batch
 from supervision.tracker.byte_tracker import matching
-from supervision.tracker.byte_tracker.basetrack import BaseTrack, TrackState
+from supervision.tracker.byte_tracker.basetrack import BaseTrack
 from supervision.tracker.byte_tracker.kalman_filter import KalmanFilter
+
+
+class TrackState(Enum):
+    New = 0
+    Tracked = 1
+    Lost = 2
+    Removed = 3
 
 
 class IdCounter:
@@ -41,7 +49,8 @@ class STrack(BaseTrack):
         external_id_counter: IdCounter,
     ):
         super().__init__()
-        # wait activate
+        self.state = TrackState.New
+
         self._tlwh = np.asarray(tlwh, dtype=np.float32)
         self.kalman_filter = None
         self.mean, self.covariance = None, None
@@ -440,7 +449,7 @@ class ByteTrack:
         for it in u_track:
             track = r_tracked_stracks[it]
             if not track.state == TrackState.Lost:
-                track.mark_lost()
+                track.state = TrackState.Lost
                 lost_stracks.append(track)
 
         """Deal with unconfirmed tracks, usually tracks with only one beginning frame"""
@@ -456,7 +465,7 @@ class ByteTrack:
             activated_starcks.append(unconfirmed[itracked])
         for it in u_unconfirmed:
             track = unconfirmed[it]
-            track.mark_removed()
+            track.state = TrackState.Removed
             removed_stracks.append(track)
 
         """ Step 4: Init new stracks"""
@@ -469,7 +478,7 @@ class ByteTrack:
         """ Step 5: Update state"""
         for track in self.lost_tracks:
             if self.frame_id - track.end_frame > self.max_time_lost:
-                track.mark_removed()
+                track.state = TrackState.Removed
                 removed_stracks.append(track)
 
         self.tracked_tracks = [
