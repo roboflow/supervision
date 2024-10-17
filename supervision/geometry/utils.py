@@ -15,7 +15,7 @@ def get_polygon_center(polygon: np.ndarray) -> Point:
     Returns:
         Point: The center of the polygon, represented as a
             Point object with x and y attributes.
-    
+
     Raises:
         ValueError: If the polygon has less than 3 vertices.
 
