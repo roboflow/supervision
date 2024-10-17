@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 
 import numpy as np
 
@@ -9,10 +9,34 @@ from supervision.tracker.byte_tracker.basetrack import BaseTrack, TrackState
 from supervision.tracker.byte_tracker.kalman_filter import KalmanFilter
 
 
+class IdCounter:
+    def __init__(self):
+        self.reset()
+
+    def reset(self) -> None:
+        self._id = self.NO_ID
+
+    def new_id(self) -> int:
+        self._id += 1
+        return self._id
+
+    @property
+    def NO_ID(self) -> int:
+        return 0
+
+
 class STrack(BaseTrack):
     shared_kalman = KalmanFilter()
 
-    def __init__(self, tlwh, score, class_ids, minimum_consecutive_frames):
+    def __init__(
+        self,
+        tlwh,
+        score,
+        class_ids,
+        minimum_consecutive_frames,
+        internal_id_counter: IdCounter,
+        external_id_counter: IdCounter,
+    ):
         super().__init__()
         # wait activate
         self._tlwh = np.asarray(tlwh, dtype=np.float32)
@@ -24,9 +48,12 @@ class STrack(BaseTrack):
         self.class_ids = class_ids
         self.tracklet_len = 0
 
-        self.external_track_id = -1
-
         self.minimum_consecutive_frames = minimum_consecutive_frames
+
+        self.internal_id_counter = internal_id_counter
+        self.external_id_counter = external_id_counter
+        self.internal_track_id = self.internal_id_counter.NO_ID
+        self.external_track_id = self.external_id_counter.NO_ID
 
     def predict(self):
         mean_state = self.mean.copy()
@@ -54,10 +81,10 @@ class STrack(BaseTrack):
                 stracks[i].mean = mean
                 stracks[i].covariance = cov
 
-    def activate(self, kalman_filter, frame_id, track_id):
+    def activate(self, kalman_filter, frame_id):
         """Start a new tracklet"""
         self.kalman_filter = kalman_filter
-        self.internal_track_id = track_id
+        self.internal_track_id = self.internal_id_counter.new_id()
         self.mean, self.covariance = self.kalman_filter.initiate(
             self.tlwh_to_xyah(self._tlwh)
         )
@@ -68,12 +95,12 @@ class STrack(BaseTrack):
             self.is_activated = True
 
         if self.minimum_consecutive_frames == 1:
-            self.external_track_id = track_id
+            self.external_track_id = self.external_id_counter.new_id()
 
         self.frame_id = frame_id
         self.start_frame = frame_id
 
-    def re_activate(self, new_track, frame_id, new_id: Optional[int] = None):
+    def re_activate(self, new_track, frame_id):
         self.mean, self.covariance = self.kalman_filter.update(
             self.mean, self.covariance, self.tlwh_to_xyah(new_track.tlwh)
         )
@@ -81,11 +108,9 @@ class STrack(BaseTrack):
         self.state = TrackState.Tracked
 
         self.frame_id = frame_id
-        if new_id:
-            self.internal_track_id = new_id
         self.score = new_track.score
 
-    def update(self, new_track, frame_id, track_id):
+    def update(self, new_track, frame_id):
         """
         Update a matched track
         :type new_track: STrack
@@ -103,8 +128,8 @@ class STrack(BaseTrack):
         self.state = TrackState.Tracked
         if self.tracklet_len == self.minimum_consecutive_frames:
             self.is_activated = True
-            if self.external_track_id == -1:
-                self.external_track_id = track_id
+            if self.external_track_id == self.external_id_counter.NO_ID:
+                self.external_track_id = self.external_id_counter.new_id()
 
         self.score = new_track.score
 
@@ -160,24 +185,6 @@ class STrack(BaseTrack):
         )
 
 
-def detections2boxes(detections: Detections) -> np.ndarray:
-    """
-    Convert Supervision Detections to numpy tensors for further computation.
-    Args:
-        detections (Detections): Detections/Targets in the format of sv.Detections.
-    Returns:
-        (np.ndarray): Detections as numpy tensors as in
-            `(x_min, y_min, x_max, y_max, confidence, class_id)` order.
-    """
-    return np.hstack(
-        (
-            detections.xyxy,
-            detections.confidence[:, np.newaxis],
-            detections.class_id[:, np.newaxis],
-        )
-    )
-
-
 class ByteTrack:
     """
     Initialize the ByteTrack object.
@@ -216,7 +223,6 @@ class ByteTrack:
         self.track_activation_threshold = track_activation_threshold
         self.minimum_matching_threshold = minimum_matching_threshold
 
-        self._count = 0
         self.frame_id = 0
         self.det_thresh = self.track_activation_threshold + 0.1
         self.max_time_lost = int(frame_rate / 30.0 * lost_track_buffer)
@@ -227,9 +233,8 @@ class ByteTrack:
         self.lost_tracks: List[STrack] = []
         self.removed_tracks: List[STrack] = []
 
-    def _next_id(self) -> int:
-        self._count += 1
-        return self._count
+        self.internal_id_counter = IdCounter()
+        self.external_id_counter = IdCounter()
 
     def update_with_detections(self, detections: Detections) -> Detections:
         """
@@ -271,7 +276,13 @@ class ByteTrack:
             ```
         """
 
-        tensors = detections2boxes(detections=detections)
+        tensors = np.hstack(
+            (
+                detections.xyxy,
+                detections.confidence[:, np.newaxis],
+                detections.class_id[:, np.newaxis],
+            )
+        )
         tracks = self.update_with_tensors(tensors=tensors)
 
         if len(tracks) > 0:
@@ -307,7 +318,9 @@ class ByteTrack:
         ensuring the tracker starts with a clean state for each new video.
         """
         self.frame_id = 0
-        self._count = 0
+        BaseTrack.reset_counter()
+        self.internal_id_counter.reset()
+        self.external_id_counter.reset()
         self.tracked_tracks: List[STrack] = []
         self.lost_tracks: List[STrack] = []
         self.removed_tracks: List[STrack] = []
@@ -348,7 +361,14 @@ class ByteTrack:
         if len(dets) > 0:
             """Detections"""
             detections = [
-                STrack(STrack.tlbr_to_tlwh(tlbr), s, c, self.minimum_consecutive_frames)
+                STrack(
+                    STrack.tlbr_to_tlwh(tlbr),
+                    s,
+                    c,
+                    self.minimum_consecutive_frames,
+                    self.internal_id_counter,
+                    self.external_id_counter,
+                )
                 for (tlbr, s, c) in zip(dets, scores_keep, class_ids_keep)
             ]
         else:
@@ -379,7 +399,7 @@ class ByteTrack:
             track = strack_pool[itracked]
             det = detections[idet]
             if track.state == TrackState.Tracked:
-                track.update(detections[idet], self.frame_id, self._next_id())
+                track.update(detections[idet], self.frame_id)
                 activated_starcks.append(track)
             else:
                 track.re_activate(det, self.frame_id)
@@ -390,7 +410,14 @@ class ByteTrack:
         if len(dets_second) > 0:
             """Detections"""
             detections_second = [
-                STrack(STrack.tlbr_to_tlwh(tlbr), s, c, self.minimum_consecutive_frames)
+                STrack(
+                    STrack.tlbr_to_tlwh(tlbr),
+                    s,
+                    c,
+                    self.minimum_consecutive_frames,
+                    self.internal_id_counter,
+                    self.external_id_counter,
+                )
                 for (tlbr, s, c) in zip(dets_second, scores_second, class_ids_second)
             ]
         else:
@@ -408,7 +435,7 @@ class ByteTrack:
             track = r_tracked_stracks[itracked]
             det = detections_second[idet]
             if track.state == TrackState.Tracked:
-                track.update(det, self.frame_id, self._next_id())
+                track.update(det, self.frame_id)
                 activated_starcks.append(track)
             else:
                 track.re_activate(det, self.frame_id)
@@ -429,9 +456,7 @@ class ByteTrack:
             dists, thresh=0.7
         )
         for itracked, idet in matches:
-            unconfirmed[itracked].update(
-                detections[idet], self.frame_id, self._next_id()
-            )
+            unconfirmed[itracked].update(detections[idet], self.frame_id)
             activated_starcks.append(unconfirmed[itracked])
         for it in u_unconfirmed:
             track = unconfirmed[it]
@@ -443,7 +468,7 @@ class ByteTrack:
             track = detections[inew]
             if track.score < self.det_thresh:
                 continue
-            track.activate(self.kalman_filter, self.frame_id, self._next_id())
+            track.activate(self.kalman_filter, self.frame_id)
             activated_starcks.append(track)
         """ Step 5: Update state"""
         for track in self.lost_tracks:
