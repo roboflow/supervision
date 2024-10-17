@@ -1,8 +1,5 @@
 class BaseTrack:
     def __init__(self):
-        self.is_activated = False
-
-        self.score = 0
         self.start_frame = 0
         self.frame_id = 0
 

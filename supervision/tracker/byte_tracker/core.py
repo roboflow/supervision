@@ -50,6 +50,7 @@ class STrack(BaseTrack):
     ):
         super().__init__()
         self.state = TrackState.New
+        self.is_activated = False
 
         self._tlwh = np.asarray(tlwh, dtype=np.float32)
         self.kalman_filter = None
