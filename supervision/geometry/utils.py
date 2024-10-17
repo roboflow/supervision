@@ -15,6 +15,9 @@ def get_polygon_center(polygon: np.ndarray) -> Point:
     Returns:
         Point: The center of the polygon, represented as a
             Point object with x and y attributes.
+    
+    Raises:
+        ValueError: If the polygon has less than 3 vertices.
 
     Examples:
         ```python
@@ -29,6 +32,9 @@ def get_polygon_center(polygon: np.ndarray) -> Point:
 
     # This is one of the 3 candidate algorithms considered for centroid calculation.
     # For a more detailed discussion, see PR #1084 and commit eb33176
+
+    if len(polygon) < 3:
+        raise ValueError("Polygon must have at least 3 vertices.")
 
     shift_polygon = np.roll(polygon, -1, axis=0)
     signed_areas = np.cross(polygon, shift_polygon) / 2
