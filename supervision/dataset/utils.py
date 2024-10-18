@@ -17,7 +17,7 @@ from supervision.detection.utils import (
 )
 
 if TYPE_CHECKING:
-    from supervision.dataset.core import DetectionDataset
+    from supervision.dataset.core import DetectionDataset, KeyPointDataset
 
 T = TypeVar("T")
 
@@ -99,12 +99,15 @@ def map_detections_class_id(
 
 
 def save_dataset_images(
-    dataset: "DetectionDataset", images_directory_path: str
+    dataset: Union["DetectionDataset", "KeyPointDataset"], images_directory_path: str
 ) -> None:
     Path(images_directory_path).mkdir(parents=True, exist_ok=True)
     for image_path in dataset.image_paths:
         final_path = os.path.join(images_directory_path, Path(image_path).name)
-        if image_path in dataset._images_in_memory:
+        if (
+            hasattr(dataset, "_images_in_memory")
+            and image_path in dataset._images_in_memory
+        ):
             image = dataset._images_in_memory[image_path]
             cv2.imwrite(final_path, image)
         else:
