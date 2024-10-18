@@ -121,11 +121,23 @@
          <lastmod>2024-10-18</lastmod>
     </url>
     <url>
+         <loc>https://supervision.roboflow.com/develop/metrics/common_values/</loc>
+         <lastmod>2024-10-18</lastmod>
+    </url>
+    <url>
          <loc>https://supervision.roboflow.com/develop/metrics/f1_score/</loc>
          <lastmod>2024-10-18</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/metrics/mean_average_precision/</loc>
+         <lastmod>2024-10-18</lastmod>
+    </url>
+    <url>
+         <loc>https://supervision.roboflow.com/develop/metrics/precision/</loc>
+         <lastmod>2024-10-18</lastmod>
+    </url>
+    <url>
+         <loc>https://supervision.roboflow.com/develop/metrics/recall/</loc>
          <lastmod>2024-10-18</lastmod>
     </url>
     <url>
