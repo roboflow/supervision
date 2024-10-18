@@ -23,11 +23,48 @@ if TYPE_CHECKING:
 
 
 class Recall(Metric):
+    """
+    Recall is a metric used to evaluate object detection models. It is the ratio of
+    true positive detections to the total number of ground truth instances. We calculate
+    it at different IoU thresholds.
+
+    In simple terms, Recall is a measure of a model's completeness, calculated as:
+
+    `Recall = TP / (TP + FN)`
+
+    Here, `TP` is the number of true positives (correct detections), and `FN` is the
+    number of false negatives (missed detections).
+
+    Example:
+        ```python
+        import supervision as sv
+        from supervision.metrics import Recall
+
+        predictions = sv.Detections(...)
+        targets = sv.Detections(...)
+
+        recall_metric = Recall()
+        recall_result = recall_metric.update(predictions, targets).compute()
+
+        print(recall_result)
+        print(recall_result.recall_at_50)
+        print(recall_result.small_objects.recall_at_50)
+        ```
+    """
+
     def __init__(
         self,
         metric_target: MetricTarget = MetricTarget.BOXES,
         averaging_method: AveragingMethod = AveragingMethod.WEIGHTED,
     ):
+        """
+        Initialize the Recall metric.
+
+        Args:
+            metric_target (MetricTarget): The type of detection data to use.
+            averaging_method (AveragingMethod): The averaging method used to compute the
+                recall. Determines how the recall is aggregated across classes.
+        """
         self._metric_target = metric_target
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
             raise NotImplementedError(
@@ -40,6 +77,9 @@ class Recall(Metric):
         self._targets_list: List[Detections] = []
 
     def reset(self) -> None:
+        """
+        Reset the metric to its initial state, clearing all stored data.
+        """
         self._predictions_list = []
         self._targets_list = []
 
@@ -48,6 +88,16 @@ class Recall(Metric):
         predictions: Union[Detections, List[Detections]],
         targets: Union[Detections, List[Detections]],
     ) -> Recall:
+        """
+        Add new predictions and targets to the metric, but do not compute the result.
+
+        Args:
+            predictions (Union[Detections, List[Detections]]): The predicted detections.
+            targets (Union[Detections, List[Detections]]): The target detections.
+
+        Returns:
+            (Recall): The updated metric instance.
+        """
         if not isinstance(predictions, list):
             predictions = [predictions]
         if not isinstance(targets, list):
@@ -65,6 +115,13 @@ class Recall(Metric):
         return self
 
     def compute(self) -> RecallResult:
+        """
+        Calculate the precision metric based on the stored predictions and ground-truth
+        data, at different IoU thresholds.
+
+        Returns:
+            (RecallResult): The precision metric result.
+        """
         result = self._compute(self._predictions_list, self._targets_list)
 
         small_predictions, small_targets = self._filter_predictions_and_targets_by_size(
@@ -371,7 +428,6 @@ class RecallResult:
     The results of the recall metric calculation.
 
     Defaults to `0` if no detections or targets were provided.
-    Provides a custom `__str__` method for pretty printing.
 
     Attributes:
         metric_target (MetricTarget): the type of data used for the metric -

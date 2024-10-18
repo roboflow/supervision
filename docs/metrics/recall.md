@@ -3,7 +3,7 @@ comments: true
 status: new
 ---
 
-# F1 Score
+# Recall
 
 <div class="md-typeset">
     <h2><a href="#supervision.metrics.recall.Recall">Recall</a></h2>

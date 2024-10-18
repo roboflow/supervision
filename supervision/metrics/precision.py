@@ -23,11 +23,48 @@ if TYPE_CHECKING:
 
 
 class Precision(Metric):
+    """
+    Precision is a metric used to evaluate object detection models. It is the ratio of
+    true positive detections to the total number of predicted detections. We calculate
+    it at different IoU thresholds.
+
+    In simple terms, Precision is a measure of a model's accuracy, calculated as:
+
+    `Precision = TP / (TP + FP)`
+
+    Here, `TP` is the number of true positives (correct detections), and `FP` is the
+    number of false positive detections (detected, but incorrectly).
+
+    Example:
+        ```python
+        import supervision as sv
+        from supervision.metrics import Precision
+
+        predictions = sv.Detections(...)
+        targets = sv.Detections(...)
+
+        precision_metric = Precision()
+        precision_result = precision_metric.update(predictions, targets).compute()
+
+        print(precision_result)
+        print(precision_result.precision_at_50)
+        print(precision_result.small_objects.precision_at_50)
+        ```
+    """
+
     def __init__(
         self,
         metric_target: MetricTarget = MetricTarget.BOXES,
         averaging_method: AveragingMethod = AveragingMethod.WEIGHTED,
     ):
+        """
+        Initialize the Precision metric.
+
+        Args:
+            metric_target (MetricTarget): The type of detection data to use.
+            averaging_method (AveragingMethod): The averaging method used to compute the
+                precision. Determines how the precision is aggregated across classes.
+        """
         self._metric_target = metric_target
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
             raise NotImplementedError(
@@ -40,6 +77,9 @@ class Precision(Metric):
         self._targets_list: List[Detections] = []
 
     def reset(self) -> None:
+        """
+        Reset the metric to its initial state, clearing all stored data.
+        """
         self._predictions_list = []
         self._targets_list = []
 
@@ -48,6 +88,16 @@ class Precision(Metric):
         predictions: Union[Detections, List[Detections]],
         targets: Union[Detections, List[Detections]],
     ) -> Precision:
+        """
+        Add new predictions and targets to the metric, but do not compute the result.
+
+        Args:
+            predictions (Union[Detections, List[Detections]]): The predicted detections.
+            targets (Union[Detections, List[Detections]]): The target detections.
+
+        Returns:
+            (Precision): The updated metric instance.
+        """
         if not isinstance(predictions, list):
             predictions = [predictions]
         if not isinstance(targets, list):
@@ -65,6 +115,13 @@ class Precision(Metric):
         return self
 
     def compute(self) -> PrecisionResult:
+        """
+        Calculate the precision metric based on the stored predictions and ground-truth
+        data, at different IoU thresholds.
+
+        Returns:
+            (PrecisionResult): The precision metric result.
+        """
         result = self._compute(self._predictions_list, self._targets_list)
 
         small_predictions, small_targets = self._filter_predictions_and_targets_by_size(
@@ -373,7 +430,6 @@ class PrecisionResult:
     The results of the precision metric calculation.
 
     Defaults to `0` if no detections or targets were provided.
-    Provides a custom `__str__` method for pretty printing.
 
     Attributes:
         metric_target (MetricTarget): the type of data used for the metric -

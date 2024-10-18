@@ -3,7 +3,7 @@ comments: true
 status: new
 ---
 
-# F1 Score
+# Precision
 
 <div class="md-typeset">
     <h2><a href="#supervision.metrics.precision.Precision">Precision</a></h2>
