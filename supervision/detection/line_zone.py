@@ -1,8 +1,8 @@
 import math
 import warnings
-from collections import Counter
+from collections import Counter, deque
 from functools import lru_cache
-from typing import Any, Dict, Iterable, List, Literal, Optional, Tuple
+from typing import Any, Deque, Dict, Iterable, List, Literal, Optional, Tuple
 
 import cv2
 import numpy as np
@@ -74,6 +74,7 @@ class LineZone:
             Position.BOTTOM_LEFT,
             Position.BOTTOM_RIGHT,
         ),
+        max_linger: int = 1,
     ):
         """
         Args:
@@ -84,9 +85,16 @@ class LineZone:
                 to consider when deciding on whether the detection
                 has passed the line counter or not. By default, this
                 contains the four corners of the detection's bounding box
+            max_linger: An integer indicating the number of consecutive frames
+                detections should stay away from the line after crossing it
+                to consider crossing completed. This configuration option
+                is useful when dealing with unstable bounding boxes or when
+                detections may linger on the line
         """
         self.vector = Vector(start=start, end=end)
         self.limits = self.calculate_region_of_interest_limits(vector=self.vector)
+        self.max_linger = max(1, max_linger)
+        self.crossing_state: Dict[str, Tuple[List[Any], Deque[bool]]] = {}
         self.tracker_state: Dict[str, bool] = {}
         self._in_count_per_class: Counter = Counter()
         self._out_count_per_class: Counter = Counter()
@@ -233,20 +241,64 @@ class LineZone:
                 continue
 
             tracker_state = has_any_left_trigger[i]
-            if tracker_id not in self.tracker_state:
-                self.tracker_state[tracker_id] = tracker_state
+            if tracker_id not in self.crossing_state:
+                self.crossing_state[tracker_id] = (
+                    class_ids,
+                    deque([tracker_state], maxlen=self.max_linger),
+                )
                 continue
 
-            if self.tracker_state.get(tracker_id) == tracker_state:
+            crossing_state_class_ids, crossing_state = self.crossing_state[tracker_id]
+            prev_frame_tracker_state = crossing_state[-1]
+            if self.max_linger == 1 and prev_frame_tracker_state == tracker_state:
                 continue
 
-            self.tracker_state[tracker_id] = tracker_state
+            crossing_in_progress = (
+                crossing_state.count(True) != 0 and crossing_state.count(False) != 0
+            )
+            crossing_state.appendleft(tracker_state)
+            all_on_same_side = crossing_state.count(not tracker_state) == 0
+            if class_ids:
+                if len(class_ids) != len(crossing_state_class_ids) or not all(
+                    class_ids == crossing_state_class_ids
+                ):
+                    self.crossing_state[tracker_id] = (class_ids, tracker_state)
+            if not all_on_same_side:
+                continue
+            else:
+                if self.max_linger > 1 and not crossing_in_progress:
+                    continue
+
             if tracker_state:
                 self._in_count_per_class[class_ids] += 1
                 crossed_in[i] = True
             else:
                 self._out_count_per_class[class_ids] += 1
                 crossed_out[i] = True
+
+        if self.max_linger == 1:
+            return crossed_in, crossed_out
+
+        this_frame_trackers = set(detections.tracker_id)
+        for tracker_id in list(self.crossing_state.keys()):
+            if tracker_id in this_frame_trackers:
+                continue
+            crossing_state_class_ids, crossing_state = self.crossing_state[tracker_id]
+            crossing_in_progress = (
+                crossing_state.count(True) != 0 and crossing_state.count(False) != 0
+            )
+            if not crossing_in_progress:
+                continue
+            tracker_state = crossing_state[0]
+            crossing_state.appendleft(tracker_state)
+            all_on_same_side = crossing_state.count(not tracker_state) == 0
+            if not all_on_same_side:
+                continue
+
+            if tracker_state:
+                self._in_count_per_class[crossing_state_class_ids] += 1
+            else:
+                self._out_count_per_class[crossing_state_class_ids] += 1
 
         return crossed_in, crossed_out
 
