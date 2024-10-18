@@ -22,30 +22,33 @@ if TYPE_CHECKING:
     import pandas as pd
 
 
-class F1Score(Metric):
+class Recall(Metric):
     """
-    F1 Score is a metric used to evaluate object detection models. It is the harmonic
-    mean of precision and recall, calculated at different IoU thresholds.
+    Recall is a metric used to evaluate object detection models. It is the ratio of
+    true positive detections to the total number of ground truth instances. We calculate
+    it at different IoU thresholds.
 
-    In simple terms, F1 Score is a measure of a model's balance between precision and
-    recall (accuracy and completeness), calculated as:
+    In simple terms, Recall is a measure of a model's completeness, calculated as:
 
-    `F1 = 2 * (precision * recall) / (precision + recall)`
+    `Recall = TP / (TP + FN)`
+
+    Here, `TP` is the number of true positives (correct detections), and `FN` is the
+    number of false negatives (missed detections).
 
     Example:
         ```python
         import supervision as sv
-        from supervision.metrics import F1Score
+        from supervision.metrics import Recall
 
         predictions = sv.Detections(...)
         targets = sv.Detections(...)
 
-        f1_metric = F1Score()
-        f1_result = f1_metric.update(predictions, targets).compute()
+        recall_metric = Recall()
+        recall_result = recall_metric.update(predictions, targets).compute()
 
-        print(f1_result)
-        print(f1_result.f1_50)
-        print(f1_result.small_objects.f1_50)
+        print(recall_result)
+        print(recall_result.recall_at_50)
+        print(recall_result.small_objects.recall_at_50)
         ```
     """
 
@@ -55,17 +58,17 @@ class F1Score(Metric):
         averaging_method: AveragingMethod = AveragingMethod.WEIGHTED,
     ):
         """
-        Initialize the F1Score metric.
+        Initialize the Recall metric.
 
         Args:
             metric_target (MetricTarget): The type of detection data to use.
             averaging_method (AveragingMethod): The averaging method used to compute the
-                F1 scores. Determines how the F1 scores are aggregated across classes.
+                recall. Determines how the recall is aggregated across classes.
         """
         self._metric_target = metric_target
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
             raise NotImplementedError(
-                "F1 score is not implemented for oriented bounding boxes."
+                "Recall is not implemented for oriented bounding boxes."
             )
 
         self._metric_target = metric_target
@@ -84,7 +87,7 @@ class F1Score(Metric):
         self,
         predictions: Union[Detections, List[Detections]],
         targets: Union[Detections, List[Detections]],
-    ) -> F1Score:
+    ) -> Recall:
         """
         Add new predictions and targets to the metric, but do not compute the result.
 
@@ -93,7 +96,7 @@ class F1Score(Metric):
             targets (Union[Detections, List[Detections]]): The target detections.
 
         Returns:
-            (F1Score): The updated metric instance.
+            (Recall): The updated metric instance.
         """
         if not isinstance(predictions, list):
             predictions = [predictions]
@@ -111,13 +114,13 @@ class F1Score(Metric):
 
         return self
 
-    def compute(self) -> F1ScoreResult:
+    def compute(self) -> RecallResult:
         """
-        Calculate the F1 score metric based on the stored predictions and ground-truth
+        Calculate the precision metric based on the stored predictions and ground-truth
         data, at different IoU thresholds.
 
         Returns:
-            (F1ScoreResult): The F1 score metric result.
+            (RecallResult): The precision metric result.
         """
         result = self._compute(self._predictions_list, self._targets_list)
 
@@ -142,7 +145,7 @@ class F1Score(Metric):
 
     def _compute(
         self, predictions_list: List[Detections], targets_list: List[Detections]
-    ) -> F1ScoreResult:
+    ) -> RecallResult:
         iou_thresholds = np.linspace(0.5, 0.95, 10)
         stats = []
 
@@ -184,11 +187,11 @@ class F1Score(Metric):
                     )
 
         if not stats:
-            return F1ScoreResult(
+            return RecallResult(
                 metric_target=self._metric_target,
                 averaging_method=self.averaging_method,
-                f1_scores=np.zeros(iou_thresholds.shape[0]),
-                f1_per_class=np.zeros((0, iou_thresholds.shape[0])),
+                recall_scores=np.zeros(iou_thresholds.shape[0]),
+                recall_per_class=np.zeros((0, iou_thresholds.shape[0])),
                 iou_thresholds=iou_thresholds,
                 matched_classes=np.array([], dtype=int),
                 small_objects=None,
@@ -197,15 +200,15 @@ class F1Score(Metric):
             )
 
         concatenated_stats = [np.concatenate(items, 0) for items in zip(*stats)]
-        f1_scores, f1_per_class, unique_classes = self._compute_f1_for_classes(
-            *concatenated_stats
+        recall_scores, recall_per_class, unique_classes = (
+            self._compute_recall_for_classes(*concatenated_stats)
         )
 
-        return F1ScoreResult(
+        return RecallResult(
             metric_target=self._metric_target,
             averaging_method=self.averaging_method,
-            f1_scores=f1_scores,
-            f1_per_class=f1_per_class,
+            recall_scores=recall_scores,
+            recall_per_class=recall_per_class,
             iou_thresholds=iou_thresholds,
             matched_classes=unique_classes,
             small_objects=None,
@@ -213,7 +216,7 @@ class F1Score(Metric):
             large_objects=None,
         )
 
-    def _compute_f1_for_classes(
+    def _compute_recall_for_classes(
         self,
         matches: np.ndarray,
         prediction_confidence: np.ndarray,
@@ -231,19 +234,19 @@ class F1Score(Metric):
         )
 
         # Shape: CxThx3 -> CxTh
-        f1_per_class = self._compute_f1(confusion_matrix)
+        recall_per_class = self._compute_recall(confusion_matrix)
 
         # Shape: CxTh -> Th
         if self.averaging_method == AveragingMethod.MACRO:
-            f1_scores = np.mean(f1_per_class, axis=0)
+            recall_scores = np.mean(recall_per_class, axis=0)
         elif self.averaging_method == AveragingMethod.MICRO:
             confusion_matrix_merged = confusion_matrix.sum(0)
-            f1_scores = self._compute_f1(confusion_matrix_merged)
+            recall_scores = self._compute_recall(confusion_matrix_merged)
         elif self.averaging_method == AveragingMethod.WEIGHTED:
             class_counts = class_counts.astype(np.float32)
-            f1_scores = np.average(f1_per_class, axis=0, weights=class_counts)
+            recall_scores = np.average(recall_per_class, axis=0, weights=class_counts)
 
-        return f1_scores, f1_per_class, unique_classes
+        return recall_scores, recall_per_class, unique_classes
 
     @staticmethod
     def _match_detection_batch(
@@ -332,16 +335,16 @@ class F1Score(Metric):
         return confusion_matrix
 
     @staticmethod
-    def _compute_f1(confusion_matrix: np.ndarray) -> np.ndarray:
+    def _compute_recall(confusion_matrix: np.ndarray) -> np.ndarray:
         """
-        Broadcastable function, computing the F1 score from the confusion matrix.
+        Broadcastable function, computing the recall from the confusion matrix.
 
         Arguments:
             confusion_matrix: np.ndarray, shape (N, ..., 3), where the last dimension
                 contains the true positives, false positives, and false negatives.
 
         Returns:
-            np.ndarray, shape (N, ...), containing the F1 score for each element.
+            np.ndarray, shape (N, ...), containing the recall for each element.
         """
         if not confusion_matrix.shape[-1] == 3:
             raise ValueError(
@@ -349,14 +352,12 @@ class F1Score(Metric):
                 f"{confusion_matrix.shape}"
             )
         true_positives = confusion_matrix[..., 0]
-        false_positives = confusion_matrix[..., 1]
         false_negatives = confusion_matrix[..., 2]
 
-        # Alternate formula, avoids multiple zero division checks
-        denominator = 2 * true_positives + false_positives + false_negatives
-        f1_score = np.where(denominator == 0, 0, 2 * true_positives / denominator)
+        denominator = true_positives + false_negatives
+        recall = np.where(denominator == 0, 0, true_positives / denominator)
 
-        return f1_score
+        return recall
 
     def _detections_content(self, detections: Detections) -> np.ndarray:
         """Return boxes, masks or oriented bounding boxes from detections."""
@@ -422,9 +423,9 @@ class F1Score(Metric):
 
 
 @dataclass
-class F1ScoreResult:
+class RecallResult:
     """
-    The results of the F1 score metric calculation.
+    The results of the recall metric calculation.
 
     Defaults to `0` if no detections or targets were provided.
 
@@ -432,21 +433,21 @@ class F1ScoreResult:
         metric_target (MetricTarget): the type of data used for the metric -
             boxes, masks or oriented bounding boxes.
         averaging_method (AveragingMethod): the averaging method used to compute the
-            F1 scores. Determines how the F1 scores are aggregated across classes.
-        f1_50 (float): the F1 score at IoU threshold of `0.5`.
-        f1_75 (float): the F1 score at IoU threshold of `0.75`.
-        f1_scores (np.ndarray): the F1 scores at each IoU threshold.
+            recall. Determines how the recall is aggregated across classes.
+        recall_at_50 (float): the recall at IoU threshold of `0.5`.
+        recall_at_75 (float): the recall at IoU threshold of `0.75`.
+        recall_scores (np.ndarray): the recall scores at each IoU threshold.
             Shape: `(num_iou_thresholds,)`
-        f1_per_class (np.ndarray): the F1 scores per class and IoU threshold.
+        recall_per_class (np.ndarray): the recall scores per class and IoU threshold.
             Shape: `(num_target_classes, num_iou_thresholds)`
         iou_thresholds (np.ndarray): the IoU thresholds used in the calculations.
         matched_classes (np.ndarray): the class IDs of all matched classes.
-            Corresponds to the rows of `f1_per_class`.
-        small_objects (Optional[F1ScoreResult]): the F1 metric results
+            Corresponds to the rows of `recall_per_class`.
+        small_objects (Optional[RecallResult]): the Recall metric results
             for small objects.
-        medium_objects (Optional[F1ScoreResult]): the F1 metric results
+        medium_objects (Optional[RecallResult]): the Recall metric results
             for medium objects.
-        large_objects (Optional[F1ScoreResult]): the F1 metric results
+        large_objects (Optional[RecallResult]): the Recall metric results
             for large objects.
     """
 
@@ -454,21 +455,21 @@ class F1ScoreResult:
     averaging_method: AveragingMethod
 
     @property
-    def f1_50(self) -> float:
-        return self.f1_scores[0]
+    def recall_at_50(self) -> float:
+        return self.recall_scores[0]
 
     @property
-    def f1_75(self) -> float:
-        return self.f1_scores[5]
+    def recall_at_75(self) -> float:
+        return self.recall_scores[5]
 
-    f1_scores: np.ndarray
-    f1_per_class: np.ndarray
+    recall_scores: np.ndarray
+    recall_per_class: np.ndarray
     iou_thresholds: np.ndarray
     matched_classes: np.ndarray
 
-    small_objects: Optional[F1ScoreResult]
-    medium_objects: Optional[F1ScoreResult]
-    large_objects: Optional[F1ScoreResult]
+    small_objects: Optional[RecallResult]
+    medium_objects: Optional[RecallResult]
+    large_objects: Optional[RecallResult]
 
     def __str__(self) -> str:
         """
@@ -476,23 +477,25 @@ class F1ScoreResult:
 
         Example:
             ```python
-            print(f1_result)
+            print(recall_result)
             ```
         """
         out_str = (
             f"{self.__class__.__name__}:\n"
-            f"Metric target: {self.metric_target}\n"
+            f"Metric target:    {self.metric_target}\n"
             f"Averaging method: {self.averaging_method}\n"
-            f"F1 @ 50:     {self.f1_50:.4f}\n"
-            f"F1 @ 75:     {self.f1_75:.4f}\n"
-            f"F1 @ thresh: {self.f1_scores}\n"
-            f"IoU thresh:  {self.iou_thresholds}\n"
-            f"F1 per class:\n"
+            f"R @ 50:     {self.recall_at_50:.4f}\n"
+            f"R @ 75:     {self.recall_at_75:.4f}\n"
+            f"R @ thresh: {self.recall_scores}\n"
+            f"IoU thresh: {self.iou_thresholds}\n"
+            f"Recall per class:\n"
         )
-        if self.f1_per_class.size == 0:
+        if self.recall_per_class.size == 0:
             out_str += "  No results\n"
-        for class_id, f1_of_class in zip(self.matched_classes, self.f1_per_class):
-            out_str += f"  {class_id}: {f1_of_class}\n"
+        for class_id, recall_of_class in zip(
+            self.matched_classes, self.recall_per_class
+        ):
+            out_str += f"  {class_id}: {recall_of_class}\n"
 
         indent = "  "
         if self.small_objects is not None:
@@ -518,8 +521,8 @@ class F1ScoreResult:
         import pandas as pd
 
         pandas_data = {
-            "F1@50": self.f1_50,
-            "F1@75": self.f1_75,
+            "R@50": self.recall_at_50,
+            "R@75": self.recall_at_75,
         }
 
         if self.small_objects is not None:
@@ -539,29 +542,29 @@ class F1ScoreResult:
 
     def plot(self):
         """
-        Plot the F1 results.
+        Plot the recall results.
         """
 
-        labels = ["F1@50", "F1@75"]
-        values = [self.f1_50, self.f1_75]
+        labels = ["Recall@50", "Recall@75"]
+        values = [self.recall_at_50, self.recall_at_75]
         colors = [LEGACY_COLOR_PALETTE[0]] * 2
 
         if self.small_objects is not None:
             small_objects = self.small_objects
-            labels += ["Small: F1@50", "Small: F1@75"]
-            values += [small_objects.f1_50, small_objects.f1_75]
+            labels += ["Small: R@50", "Small: R@75"]
+            values += [small_objects.recall_at_50, small_objects.recall_at_75]
             colors += [LEGACY_COLOR_PALETTE[3]] * 2
 
         if self.medium_objects is not None:
             medium_objects = self.medium_objects
-            labels += ["Medium: F1@50", "Medium: F1@75"]
-            values += [medium_objects.f1_50, medium_objects.f1_75]
+            labels += ["Medium: R@50", "Medium: R@75"]
+            values += [medium_objects.recall_at_50, medium_objects.recall_at_75]
             colors += [LEGACY_COLOR_PALETTE[2]] * 2
 
         if self.large_objects is not None:
             large_objects = self.large_objects
-            labels += ["Large: F1@50", "Large: F1@75"]
-            values += [large_objects.f1_50, large_objects.f1_75]
+            labels += ["Large: R@50", "Large: R@75"]
+            values += [large_objects.recall_at_50, large_objects.recall_at_75]
             colors += [LEGACY_COLOR_PALETTE[4]] * 2
 
         plt.rcParams["font.family"] = "monospace"
@@ -570,7 +573,7 @@ class F1ScoreResult:
         ax.set_ylim(0, 1)
         ax.set_ylabel("Value", fontweight="bold")
         title = (
-            f"F1 Score, by Object Size"
+            f"Recall, by Object Size"
             f"\n(target: {self.metric_target.value},"
             f" averaging: {self.averaging_method.value})"
         )

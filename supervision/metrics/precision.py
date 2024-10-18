@@ -22,30 +22,33 @@ if TYPE_CHECKING:
     import pandas as pd
 
 
-class F1Score(Metric):
+class Precision(Metric):
     """
-    F1 Score is a metric used to evaluate object detection models. It is the harmonic
-    mean of precision and recall, calculated at different IoU thresholds.
+    Precision is a metric used to evaluate object detection models. It is the ratio of
+    true positive detections to the total number of predicted detections. We calculate
+    it at different IoU thresholds.
 
-    In simple terms, F1 Score is a measure of a model's balance between precision and
-    recall (accuracy and completeness), calculated as:
+    In simple terms, Precision is a measure of a model's accuracy, calculated as:
 
-    `F1 = 2 * (precision * recall) / (precision + recall)`
+    `Precision = TP / (TP + FP)`
+
+    Here, `TP` is the number of true positives (correct detections), and `FP` is the
+    number of false positive detections (detected, but incorrectly).
 
     Example:
         ```python
         import supervision as sv
-        from supervision.metrics import F1Score
+        from supervision.metrics import Precision
 
         predictions = sv.Detections(...)
         targets = sv.Detections(...)
 
-        f1_metric = F1Score()
-        f1_result = f1_metric.update(predictions, targets).compute()
+        precision_metric = Precision()
+        precision_result = precision_metric.update(predictions, targets).compute()
 
-        print(f1_result)
-        print(f1_result.f1_50)
-        print(f1_result.small_objects.f1_50)
+        print(precision_result)
+        print(precision_result.precision_at_50)
+        print(precision_result.small_objects.precision_at_50)
         ```
     """
 
@@ -55,17 +58,17 @@ class F1Score(Metric):
         averaging_method: AveragingMethod = AveragingMethod.WEIGHTED,
     ):
         """
-        Initialize the F1Score metric.
+        Initialize the Precision metric.
 
         Args:
             metric_target (MetricTarget): The type of detection data to use.
             averaging_method (AveragingMethod): The averaging method used to compute the
-                F1 scores. Determines how the F1 scores are aggregated across classes.
+                precision. Determines how the precision is aggregated across classes.
         """
         self._metric_target = metric_target
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
             raise NotImplementedError(
-                "F1 score is not implemented for oriented bounding boxes."
+                "Precision is not implemented for oriented bounding boxes."
             )
 
         self._metric_target = metric_target
@@ -84,7 +87,7 @@ class F1Score(Metric):
         self,
         predictions: Union[Detections, List[Detections]],
         targets: Union[Detections, List[Detections]],
-    ) -> F1Score:
+    ) -> Precision:
         """
         Add new predictions and targets to the metric, but do not compute the result.
 
@@ -93,7 +96,7 @@ class F1Score(Metric):
             targets (Union[Detections, List[Detections]]): The target detections.
 
         Returns:
-            (F1Score): The updated metric instance.
+            (Precision): The updated metric instance.
         """
         if not isinstance(predictions, list):
             predictions = [predictions]
@@ -111,13 +114,13 @@ class F1Score(Metric):
 
         return self
 
-    def compute(self) -> F1ScoreResult:
+    def compute(self) -> PrecisionResult:
         """
-        Calculate the F1 score metric based on the stored predictions and ground-truth
+        Calculate the precision metric based on the stored predictions and ground-truth
         data, at different IoU thresholds.
 
         Returns:
-            (F1ScoreResult): The F1 score metric result.
+            (PrecisionResult): The precision metric result.
         """
         result = self._compute(self._predictions_list, self._targets_list)
 
@@ -142,7 +145,7 @@ class F1Score(Metric):
 
     def _compute(
         self, predictions_list: List[Detections], targets_list: List[Detections]
-    ) -> F1ScoreResult:
+    ) -> PrecisionResult:
         iou_thresholds = np.linspace(0.5, 0.95, 10)
         stats = []
 
@@ -184,11 +187,11 @@ class F1Score(Metric):
                     )
 
         if not stats:
-            return F1ScoreResult(
+            return PrecisionResult(
                 metric_target=self._metric_target,
                 averaging_method=self.averaging_method,
-                f1_scores=np.zeros(iou_thresholds.shape[0]),
-                f1_per_class=np.zeros((0, iou_thresholds.shape[0])),
+                precision_scores=np.zeros(iou_thresholds.shape[0]),
+                precision_per_class=np.zeros((0, iou_thresholds.shape[0])),
                 iou_thresholds=iou_thresholds,
                 matched_classes=np.array([], dtype=int),
                 small_objects=None,
@@ -197,15 +200,15 @@ class F1Score(Metric):
             )
 
         concatenated_stats = [np.concatenate(items, 0) for items in zip(*stats)]
-        f1_scores, f1_per_class, unique_classes = self._compute_f1_for_classes(
-            *concatenated_stats
+        precision_scores, precision_per_class, unique_classes = (
+            self._compute_precision_for_classes(*concatenated_stats)
         )
 
-        return F1ScoreResult(
+        return PrecisionResult(
             metric_target=self._metric_target,
             averaging_method=self.averaging_method,
-            f1_scores=f1_scores,
-            f1_per_class=f1_per_class,
+            precision_scores=precision_scores,
+            precision_per_class=precision_per_class,
             iou_thresholds=iou_thresholds,
             matched_classes=unique_classes,
             small_objects=None,
@@ -213,7 +216,7 @@ class F1Score(Metric):
             large_objects=None,
         )
 
-    def _compute_f1_for_classes(
+    def _compute_precision_for_classes(
         self,
         matches: np.ndarray,
         prediction_confidence: np.ndarray,
@@ -231,19 +234,21 @@ class F1Score(Metric):
         )
 
         # Shape: CxThx3 -> CxTh
-        f1_per_class = self._compute_f1(confusion_matrix)
+        precision_per_class = self._compute_precision(confusion_matrix)
 
         # Shape: CxTh -> Th
         if self.averaging_method == AveragingMethod.MACRO:
-            f1_scores = np.mean(f1_per_class, axis=0)
+            precision_scores = np.mean(precision_per_class, axis=0)
         elif self.averaging_method == AveragingMethod.MICRO:
             confusion_matrix_merged = confusion_matrix.sum(0)
-            f1_scores = self._compute_f1(confusion_matrix_merged)
+            precision_scores = self._compute_precision(confusion_matrix_merged)
         elif self.averaging_method == AveragingMethod.WEIGHTED:
             class_counts = class_counts.astype(np.float32)
-            f1_scores = np.average(f1_per_class, axis=0, weights=class_counts)
+            precision_scores = np.average(
+                precision_per_class, axis=0, weights=class_counts
+            )
 
-        return f1_scores, f1_per_class, unique_classes
+        return precision_scores, precision_per_class, unique_classes
 
     @staticmethod
     def _match_detection_batch(
@@ -332,16 +337,16 @@ class F1Score(Metric):
         return confusion_matrix
 
     @staticmethod
-    def _compute_f1(confusion_matrix: np.ndarray) -> np.ndarray:
+    def _compute_precision(confusion_matrix: np.ndarray) -> np.ndarray:
         """
-        Broadcastable function, computing the F1 score from the confusion matrix.
+        Broadcastable function, computing the precision from the confusion matrix.
 
         Arguments:
             confusion_matrix: np.ndarray, shape (N, ..., 3), where the last dimension
                 contains the true positives, false positives, and false negatives.
 
         Returns:
-            np.ndarray, shape (N, ...), containing the F1 score for each element.
+            np.ndarray, shape (N, ...), containing the precision for each element.
         """
         if not confusion_matrix.shape[-1] == 3:
             raise ValueError(
@@ -350,13 +355,11 @@ class F1Score(Metric):
             )
         true_positives = confusion_matrix[..., 0]
         false_positives = confusion_matrix[..., 1]
-        false_negatives = confusion_matrix[..., 2]
 
-        # Alternate formula, avoids multiple zero division checks
-        denominator = 2 * true_positives + false_positives + false_negatives
-        f1_score = np.where(denominator == 0, 0, 2 * true_positives / denominator)
+        denominator = true_positives + false_positives
+        precision = np.where(denominator == 0, 0, true_positives / denominator)
 
-        return f1_score
+        return precision
 
     def _detections_content(self, detections: Detections) -> np.ndarray:
         """Return boxes, masks or oriented bounding boxes from detections."""
@@ -422,9 +425,9 @@ class F1Score(Metric):
 
 
 @dataclass
-class F1ScoreResult:
+class PrecisionResult:
     """
-    The results of the F1 score metric calculation.
+    The results of the precision metric calculation.
 
     Defaults to `0` if no detections or targets were provided.
 
@@ -432,21 +435,21 @@ class F1ScoreResult:
         metric_target (MetricTarget): the type of data used for the metric -
             boxes, masks or oriented bounding boxes.
         averaging_method (AveragingMethod): the averaging method used to compute the
-            F1 scores. Determines how the F1 scores are aggregated across classes.
-        f1_50 (float): the F1 score at IoU threshold of `0.5`.
-        f1_75 (float): the F1 score at IoU threshold of `0.75`.
-        f1_scores (np.ndarray): the F1 scores at each IoU threshold.
+            precision. Determines how the precision is aggregated across classes.
+        precision_at_50 (float): the precision at IoU threshold of `0.5`.
+        precision_at_75 (float): the precision at IoU threshold of `0.75`.
+        precision_scores (np.ndarray): the precision scores at each IoU threshold.
             Shape: `(num_iou_thresholds,)`
-        f1_per_class (np.ndarray): the F1 scores per class and IoU threshold.
-            Shape: `(num_target_classes, num_iou_thresholds)`
+        precision_per_class (np.ndarray): the precision scores per class and
+            IoU threshold. Shape: `(num_target_classes, num_iou_thresholds)`
         iou_thresholds (np.ndarray): the IoU thresholds used in the calculations.
         matched_classes (np.ndarray): the class IDs of all matched classes.
-            Corresponds to the rows of `f1_per_class`.
-        small_objects (Optional[F1ScoreResult]): the F1 metric results
+            Corresponds to the rows of `precision_per_class`.
+        small_objects (Optional[PrecisionResult]): the Precision metric results
             for small objects.
-        medium_objects (Optional[F1ScoreResult]): the F1 metric results
+        medium_objects (Optional[PrecisionResult]): the Precision metric results
             for medium objects.
-        large_objects (Optional[F1ScoreResult]): the F1 metric results
+        large_objects (Optional[PrecisionResult]): the Precision metric results
             for large objects.
     """
 
@@ -454,21 +457,21 @@ class F1ScoreResult:
     averaging_method: AveragingMethod
 
     @property
-    def f1_50(self) -> float:
-        return self.f1_scores[0]
+    def precision_at_50(self) -> float:
+        return self.precision_scores[0]
 
     @property
-    def f1_75(self) -> float:
-        return self.f1_scores[5]
+    def precision_at_75(self) -> float:
+        return self.precision_scores[5]
 
-    f1_scores: np.ndarray
-    f1_per_class: np.ndarray
+    precision_scores: np.ndarray
+    precision_per_class: np.ndarray
     iou_thresholds: np.ndarray
     matched_classes: np.ndarray
 
-    small_objects: Optional[F1ScoreResult]
-    medium_objects: Optional[F1ScoreResult]
-    large_objects: Optional[F1ScoreResult]
+    small_objects: Optional[PrecisionResult]
+    medium_objects: Optional[PrecisionResult]
+    large_objects: Optional[PrecisionResult]
 
     def __str__(self) -> str:
         """
@@ -476,23 +479,25 @@ class F1ScoreResult:
 
         Example:
             ```python
-            print(f1_result)
+            print(precision_result)
             ```
         """
         out_str = (
             f"{self.__class__.__name__}:\n"
-            f"Metric target: {self.metric_target}\n"
+            f"Metric target:    {self.metric_target}\n"
             f"Averaging method: {self.averaging_method}\n"
-            f"F1 @ 50:     {self.f1_50:.4f}\n"
-            f"F1 @ 75:     {self.f1_75:.4f}\n"
-            f"F1 @ thresh: {self.f1_scores}\n"
-            f"IoU thresh:  {self.iou_thresholds}\n"
-            f"F1 per class:\n"
+            f"P @ 50:     {self.precision_at_50:.4f}\n"
+            f"P @ 75:     {self.precision_at_75:.4f}\n"
+            f"P @ thresh: {self.precision_scores}\n"
+            f"IoU thresh: {self.iou_thresholds}\n"
+            f"Precision per class:\n"
         )
-        if self.f1_per_class.size == 0:
+        if self.precision_per_class.size == 0:
             out_str += "  No results\n"
-        for class_id, f1_of_class in zip(self.matched_classes, self.f1_per_class):
-            out_str += f"  {class_id}: {f1_of_class}\n"
+        for class_id, precision_of_class in zip(
+            self.matched_classes, self.precision_per_class
+        ):
+            out_str += f"  {class_id}: {precision_of_class}\n"
 
         indent = "  "
         if self.small_objects is not None:
@@ -518,8 +523,8 @@ class F1ScoreResult:
         import pandas as pd
 
         pandas_data = {
-            "F1@50": self.f1_50,
-            "F1@75": self.f1_75,
+            "P@50": self.precision_at_50,
+            "P@75": self.precision_at_75,
         }
 
         if self.small_objects is not None:
@@ -539,29 +544,29 @@ class F1ScoreResult:
 
     def plot(self):
         """
-        Plot the F1 results.
+        Plot the precision results.
         """
 
-        labels = ["F1@50", "F1@75"]
-        values = [self.f1_50, self.f1_75]
+        labels = ["Precision@50", "Precision@75"]
+        values = [self.precision_at_50, self.precision_at_75]
         colors = [LEGACY_COLOR_PALETTE[0]] * 2
 
         if self.small_objects is not None:
             small_objects = self.small_objects
-            labels += ["Small: F1@50", "Small: F1@75"]
-            values += [small_objects.f1_50, small_objects.f1_75]
+            labels += ["Small: P@50", "Small: P@75"]
+            values += [small_objects.precision_at_50, small_objects.precision_at_75]
             colors += [LEGACY_COLOR_PALETTE[3]] * 2
 
         if self.medium_objects is not None:
             medium_objects = self.medium_objects
-            labels += ["Medium: F1@50", "Medium: F1@75"]
-            values += [medium_objects.f1_50, medium_objects.f1_75]
+            labels += ["Medium: P@50", "Medium: P@75"]
+            values += [medium_objects.precision_at_50, medium_objects.precision_at_75]
             colors += [LEGACY_COLOR_PALETTE[2]] * 2
 
         if self.large_objects is not None:
             large_objects = self.large_objects
-            labels += ["Large: F1@50", "Large: F1@75"]
-            values += [large_objects.f1_50, large_objects.f1_75]
+            labels += ["Large: P@50", "Large: P@75"]
+            values += [large_objects.precision_at_50, large_objects.precision_at_75]
             colors += [LEGACY_COLOR_PALETTE[4]] * 2
 
         plt.rcParams["font.family"] = "monospace"
@@ -570,7 +575,7 @@ class F1ScoreResult:
         ax.set_ylim(0, 1)
         ax.set_ylabel("Value", fontweight="bold")
         title = (
-            f"F1 Score, by Object Size"
+            f"Precision, by Object Size"
             f"\n(target: {self.metric_target.value},"
             f" averaging: {self.averaging_method.value})"
         )
