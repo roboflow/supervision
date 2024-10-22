@@ -22,7 +22,7 @@
       
       
       <link rel="icon" href="../../assets/supervision-lenny.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.41">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.42">
     
     
       
@@ -2724,7 +2724,7 @@
 <a id="supervision.keypoint.annotators.VertexAnnotator"></a>
     <div class="doc doc-contents first">
             <p class="doc doc-class-bases">
-              Bases: <code>BaseKeyPointAnnotator</code></p>
+              Bases: <code><span title="supervision.keypoint.annotators.BaseKeyPointAnnotator">BaseKeyPointAnnotator</span></code></p>
 
 
         <p>A class that specializes in drawing skeleton vertices on images. It uses
@@ -2927,7 +2927,7 @@ drawn.</p>
 <h4 id="supervision.keypoint.annotators.VertexAnnotator.__init__(color)" class="doc doc-heading doc-heading-parameter">                  <code>color</code>
 <a href="#supervision.keypoint.annotators.VertexAnnotator.__init__(color)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>Color</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.draw.color.Color" href="../../utils/draw/#supervision.draw.color.Color">Color</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2935,7 +2935,7 @@ drawn.</p>
               </div>
             </td>
             <td>
-                  <code>ROBOFLOW</code>
+                  <code><span title="supervision.draw.color.Color.ROBOFLOW">ROBOFLOW</span></code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -3022,7 +3022,7 @@ points. It draws circles at each key point location.</p>
 <h4 id="supervision.keypoint.annotators.VertexAnnotator.annotate(scene)" class="doc doc-heading doc-heading-parameter">                  <code>scene</code>
 <a href="#supervision.keypoint.annotators.VertexAnnotator.annotate(scene)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>ImageType</code>
+                  <code><span title="supervision.annotators.base.ImageType">ImageType</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3040,7 +3040,7 @@ points. It draws circles at each key point location.</p>
 <h4 id="supervision.keypoint.annotators.VertexAnnotator.annotate(key_points)" class="doc doc-heading doc-heading-parameter">                  <code>key_points</code>
 <a href="#supervision.keypoint.annotators.VertexAnnotator.annotate(key_points)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>KeyPoints</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.keypoint.core.KeyPoints" href="../core/#supervision.keypoint.core.KeyPoints">KeyPoints</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3067,7 +3067,7 @@ consists of x and y coordinates.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>ImageType</code>
+                  <code><span title="supervision.annotators.base.ImageType">ImageType</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3229,7 +3229,7 @@ supervision-annotator-examples/vertex-annotator-example.png" /></p>
 <a id="supervision.keypoint.annotators.EdgeAnnotator"></a>
     <div class="doc doc-contents first">
             <p class="doc doc-class-bases">
-              Bases: <code>BaseKeyPointAnnotator</code></p>
+              Bases: <code><span title="supervision.keypoint.annotators.BaseKeyPointAnnotator">BaseKeyPointAnnotator</span></code></p>
 
 
         <p>A class that specializes in drawing skeleton edges on images using specified key
@@ -3465,7 +3465,7 @@ points. It connects key points with lines to form the skeleton structure.</p>
 <h4 id="supervision.keypoint.annotators.EdgeAnnotator.__init__(color)" class="doc doc-heading doc-heading-parameter">                  <code>color</code>
 <a href="#supervision.keypoint.annotators.EdgeAnnotator.__init__(color)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>Color</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.draw.color.Color" href="../../utils/draw/#supervision.draw.color.Color">Color</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3473,7 +3473,7 @@ points. It connects key points with lines to form the skeleton structure.</p>
               </div>
             </td>
             <td>
-                  <code>ROBOFLOW</code>
+                  <code><span title="supervision.draw.color.Color.ROBOFLOW">ROBOFLOW</span></code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -3497,7 +3497,7 @@ points. It connects key points with lines to form the skeleton structure.</p>
 <h4 id="supervision.keypoint.annotators.EdgeAnnotator.__init__(edges)" class="doc doc-heading doc-heading-parameter">                  <code>edges</code>
 <a href="#supervision.keypoint.annotators.EdgeAnnotator.__init__(edges)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>Optional[List[Tuple[int, int]]]</code>
+                  <code><span title="typing.Optional">Optional</span>[<span title="typing.List">List</span>[<span title="typing.Tuple">Tuple</span>[int, int]]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3582,7 +3582,7 @@ edges.</p>
 <h4 id="supervision.keypoint.annotators.EdgeAnnotator.annotate(scene)" class="doc doc-heading doc-heading-parameter">                  <code>scene</code>
 <a href="#supervision.keypoint.annotators.EdgeAnnotator.annotate(scene)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>ImageType</code>
+                  <code><span title="supervision.annotators.base.ImageType">ImageType</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3600,7 +3600,7 @@ is a flexible type, accepting either <code>numpy.ndarray</code> or
 <h4 id="supervision.keypoint.annotators.EdgeAnnotator.annotate(key_points)" class="doc doc-heading doc-heading-parameter">                  <code>key_points</code>
 <a href="#supervision.keypoint.annotators.EdgeAnnotator.annotate(key_points)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>KeyPoints</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.keypoint.core.KeyPoints" href="../core/#supervision.keypoint.core.KeyPoints">KeyPoints</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3627,7 +3627,7 @@ consists of x and y coordinates.</p>
       <tbody>
           <tr class="doc-section-item">
 <td><code>Returns</code></td>            <td>
-                  <code>ImageType</code>
+                  <code><span title="supervision.annotators.base.ImageType">ImageType</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4365,7 +4365,7 @@ points to determine the locations where the vertices should be drawn.</p>
 <h4 id="supervision.keypoint.annotators.VertexLabelAnnotator.__init__(color)" class="doc doc-heading doc-heading-parameter">                  <code>color</code>
 <a href="#supervision.keypoint.annotators.VertexLabelAnnotator.__init__(color)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>Union[Color, List[Color]]</code>
+                  <code><span title="typing.Union">Union</span>[<a class="autorefs autorefs-internal" title="supervision.draw.color.Color" href="../../utils/draw/#supervision.draw.color.Color">Color</a>, <span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="supervision.draw.color.Color" href="../../utils/draw/#supervision.draw.color.Color">Color</a>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4375,7 +4375,7 @@ for each keypoint.</p>
               </div>
             </td>
             <td>
-                  <code>ROBOFLOW</code>
+                  <code><span title="supervision.draw.color.Color.ROBOFLOW">ROBOFLOW</span></code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -4383,7 +4383,7 @@ for each keypoint.</p>
 <h4 id="supervision.keypoint.annotators.VertexLabelAnnotator.__init__(text_color)" class="doc doc-heading doc-heading-parameter">                  <code>text_color</code>
 <a href="#supervision.keypoint.annotators.VertexLabelAnnotator.__init__(text_color)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>Union[Color, List[Color]]</code>
+                  <code><span title="typing.Union">Union</span>[<a class="autorefs autorefs-internal" title="supervision.draw.color.Color" href="../../utils/draw/#supervision.draw.color.Color">Color</a>, <span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="supervision.draw.color.Color" href="../../utils/draw/#supervision.draw.color.Color">Color</a>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4393,7 +4393,7 @@ for each keypoint.</p>
               </div>
             </td>
             <td>
-                  <code>WHITE</code>
+                  <code><span title="supervision.draw.color.Color.WHITE">WHITE</span></code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -4560,7 +4560,7 @@ boxes. Set to a high value to produce circles.</p>
 <h4 id="supervision.keypoint.annotators.VertexLabelAnnotator.annotate(scene)" class="doc doc-heading doc-heading-parameter">                  <code>scene</code>
 <a href="#supervision.keypoint.annotators.VertexLabelAnnotator.annotate(scene)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>ImageType</code>
+                  <code><span title="supervision.annotators.base.ImageType">ImageType</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4578,7 +4578,7 @@ is a flexible type, accepting either <code>numpy.ndarray</code> or
 <h4 id="supervision.keypoint.annotators.VertexLabelAnnotator.annotate(key_points)" class="doc doc-heading doc-heading-parameter">                  <code>key_points</code>
 <a href="#supervision.keypoint.annotators.VertexLabelAnnotator.annotate(key_points)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>KeyPoints</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.keypoint.core.KeyPoints" href="../core/#supervision.keypoint.core.KeyPoints">KeyPoints</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4595,7 +4595,7 @@ consists of x and y coordinates.</p>
 <h4 id="supervision.keypoint.annotators.VertexLabelAnnotator.annotate(labels)" class="doc doc-heading doc-heading-parameter">                  <code>labels</code>
 <a href="#supervision.keypoint.annotators.VertexLabelAnnotator.annotate(labels)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>Optional[List[str]]</code>
+                  <code><span title="typing.Optional">Optional</span>[<span title="typing.List">List</span>[str]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4622,7 +4622,7 @@ annotated image. If not provided, keypoint indices will be used.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>ImageType</code>
+                  <code><span title="supervision.annotators.base.ImageType">ImageType</span></code>
             </td>
             <td>
               <div class="doc-md-description">

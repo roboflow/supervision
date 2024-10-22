@@ -22,7 +22,7 @@
       
       
       <link rel="icon" href="../../../assets/supervision-lenny.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.41">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.42">
     
     
       
@@ -3314,7 +3314,7 @@ from inside to outside.</p>
 <h4 id="supervision.detection.line_zone.LineZone.__init__(start)" class="doc doc-heading doc-heading-parameter">                  <code>start</code>
 <a href="#supervision.detection.line_zone.LineZone.__init__(start)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>Point</code>
+                  <code><span title="supervision.geometry.core.Point">Point</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3330,7 +3330,7 @@ from inside to outside.</p>
 <h4 id="supervision.detection.line_zone.LineZone.__init__(end)" class="doc doc-heading doc-heading-parameter">                  <code>end</code>
 <a href="#supervision.detection.line_zone.LineZone.__init__(end)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>Point</code>
+                  <code><span title="supervision.geometry.core.Point">Point</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3346,7 +3346,7 @@ from inside to outside.</p>
 <h4 id="supervision.detection.line_zone.LineZone.__init__(triggering_anchors)" class="doc doc-heading doc-heading-parameter">                  <code>triggering_anchors</code>
 <a href="#supervision.detection.line_zone.LineZone.__init__(triggering_anchors)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>List[Position]</code>
+                  <code><span title="typing.List">List</span>[<span title="sv.Position">Position</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3358,7 +3358,7 @@ contains the four corners of the detection's bounding box</p>
               </div>
             </td>
             <td>
-                  <code>(TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT)</code>
+                  <code>(<span title="supervision.geometry.core.Position.TOP_LEFT">TOP_LEFT</span>, <span title="supervision.geometry.core.Position.TOP_RIGHT">TOP_RIGHT</span>, <span title="supervision.geometry.core.Position.BOTTOM_LEFT">BOTTOM_LEFT</span>, <span title="supervision.geometry.core.Position.BOTTOM_RIGHT">BOTTOM_RIGHT</span>)</code>
             </td>
           </tr>
       </tbody>
@@ -3461,7 +3461,7 @@ contains the four corners of the detection's bounding box</p>
 <h4 id="supervision.detection.line_zone.LineZone.trigger(detections)" class="doc doc-heading doc-heading-parameter">                  <code>detections</code>
 <a href="#supervision.detection.line_zone.LineZone.trigger(detections)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>Detections</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../../core/#supervision.detection.core.Detections">Detections</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3488,7 +3488,7 @@ counts.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>Tuple[ndarray, ndarray]</code>
+                  <code><span title="typing.Tuple">Tuple</span>[<span title="numpy.ndarray">ndarray</span>, <span title="numpy.ndarray">ndarray</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4519,7 +4519,7 @@ on an image.</p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.detection.line_zone.LineZoneAnnotator.__init__.color">color</span></code></td>
             <td>
-                  <code>Color</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.draw.color.Color" href="../../../utils/draw/#supervision.draw.color.Color">Color</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4541,7 +4541,7 @@ on an image.</p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.detection.line_zone.LineZoneAnnotator.__init__.text_color">text_color</span></code></td>
             <td>
-                  <code>Color</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.draw.color.Color" href="../../../utils/draw/#supervision.draw.color.Color">Color</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4585,7 +4585,7 @@ on an image.</p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.detection.line_zone.LineZoneAnnotator.__init__.custom_in_text">custom_in_text</span></code></td>
             <td>
-                  <code>Optional[str]</code>
+                  <code><span title="typing.Optional">Optional</span>[str]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4596,7 +4596,7 @@ on an image.</p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.detection.line_zone.LineZoneAnnotator.__init__.custom_out_text">custom_out_text</span></code></td>
             <td>
-                  <code>Optional[str]</code>
+                  <code><span title="typing.Optional">Optional</span>[str]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4806,7 +4806,7 @@ when the label overlaps something important.</p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.detection.line_zone.LineZoneAnnotator.annotate.frame">frame</span></code></td>
             <td>
-                  <code>ndarray</code>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4817,7 +4817,7 @@ when the label overlaps something important.</p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.detection.line_zone.LineZoneAnnotator.annotate.line_counter">line_counter</span></code></td>
             <td>
-                  <code>LineZone</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.detection.line_zone.LineZone" href="#supervision.detection.line_zone.LineZone">LineZone</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4841,7 +4841,7 @@ that will be used to draw the line.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>ndarray</code>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5386,7 +5386,7 @@ that will be used to draw the line.</p>
 <h4 id="supervision.detection.line_zone.LineZoneAnnotatorMulticlass.__init__(table_position)" class="doc doc-heading doc-heading-parameter">                  <code>table_position</code>
 <a href="#supervision.detection.line_zone.LineZoneAnnotatorMulticlass.__init__(table_position)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>Position</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.geometry.core.Position" href="../../../utils/geometry/#supervision.geometry.core.Position">Position</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5394,7 +5394,7 @@ that will be used to draw the line.</p>
               </div>
             </td>
             <td>
-                  <code>TOP_RIGHT</code>
+                  <code><span title="supervision.geometry.core.Position.TOP_RIGHT">TOP_RIGHT</span></code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -5402,7 +5402,7 @@ that will be used to draw the line.</p>
 <h4 id="supervision.detection.line_zone.LineZoneAnnotatorMulticlass.__init__(table_color)" class="doc doc-heading doc-heading-parameter">                  <code>table_color</code>
 <a href="#supervision.detection.line_zone.LineZoneAnnotatorMulticlass.__init__(table_color)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>Color</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.draw.color.Color" href="../../../utils/draw/#supervision.draw.color.Color">Color</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5410,7 +5410,7 @@ that will be used to draw the line.</p>
               </div>
             </td>
             <td>
-                  <code>WHITE</code>
+                  <code><span title="supervision.draw.color.Color.WHITE">WHITE</span></code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -5466,7 +5466,7 @@ that will be used to draw the line.</p>
 <h4 id="supervision.detection.line_zone.LineZoneAnnotatorMulticlass.__init__(text_color)" class="doc doc-heading doc-heading-parameter">                  <code>text_color</code>
 <a href="#supervision.detection.line_zone.LineZoneAnnotatorMulticlass.__init__(text_color)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>Color</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.draw.color.Color" href="../../../utils/draw/#supervision.draw.color.Color">Color</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5474,7 +5474,7 @@ that will be used to draw the line.</p>
               </div>
             </td>
             <td>
-                  <code>BLACK</code>
+                  <code><span title="supervision.draw.color.Color.BLACK">BLACK</span></code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -5672,7 +5672,7 @@ write <code>0: 6</code>.</p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.detection.line_zone.LineZoneAnnotatorMulticlass.annotate.frame">frame</span></code></td>
             <td>
-                  <code>ndarray</code>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5683,7 +5683,7 @@ write <code>0: 6</code>.</p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.detection.line_zone.LineZoneAnnotatorMulticlass.annotate.line_zones">line_zones</span></code></td>
             <td>
-                  <code>List[LineZone]</code>
+                  <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="supervision.detection.line_zone.LineZone" href="#supervision.detection.line_zone.LineZone">LineZone</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5694,7 +5694,7 @@ write <code>0: 6</code>.</p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.detection.line_zone.LineZoneAnnotatorMulticlass.annotate.line_zone_labels">line_zone_labels</span></code></td>
             <td>
-                  <code>Optional[List[str]]</code>
+                  <code><span title="typing.Optional">Optional</span>[<span title="typing.List">List</span>[str]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5718,7 +5718,7 @@ line zone. If not provided, the default labels will be used.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>ndarray</code>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
             </td>
             <td>
               <div class="doc-md-description">

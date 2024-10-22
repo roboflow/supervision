@@ -22,7 +22,7 @@
       
       
       <link rel="icon" href="../../assets/supervision-lenny.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.41">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.42">
     
     
       
@@ -2975,7 +2975,7 @@ Metrics here are part of the legacy evaluation API and will be deprecated in the
           <tr class="doc-section-item">
             <td><code><span title="supervision.metrics.detection.ConfusionMatrix.matrix">matrix</span></code></td>
             <td>
-                  <code>ndarray</code>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2988,7 +2988,7 @@ containing the number of <code>TP</code>, <code>FP</code>, <code>FN</code> and <
           <tr class="doc-section-item">
             <td><code><span title="supervision.metrics.detection.ConfusionMatrix.classes">classes</span></code></td>
             <td>
-                  <code>List[str]</code>
+                  <code><span title="typing.List">List</span>[str]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3922,7 +3922,7 @@ Detections with lower IoU will be classified as <code>FP</code>.</p>
 <h4 id="supervision.metrics.detection.ConfusionMatrix.benchmark(dataset)" class="doc doc-heading doc-heading-parameter">                  <code>dataset</code>
 <a href="#supervision.metrics.detection.ConfusionMatrix.benchmark(dataset)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>DetectionDataset</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.dataset.core.DetectionDataset" href="../../datasets/core/#supervision.dataset.core.DetectionDataset">DetectionDataset</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3938,7 +3938,7 @@ Detections with lower IoU will be classified as <code>FP</code>.</p>
 <h4 id="supervision.metrics.detection.ConfusionMatrix.benchmark(callback)" class="doc doc-heading doc-heading-parameter">                  <code>callback</code>
 <a href="#supervision.metrics.detection.ConfusionMatrix.benchmark(callback)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>Callable[[ndarray], Detections]</code>
+                  <code><span title="typing.Callable">Callable</span>[[<span title="numpy.ndarray">ndarray</span>], <a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../core/#supervision.detection.core.Detections">Detections</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3999,7 +3999,7 @@ Detections with lower IoU will be classified as <code>FP</code>.</p>
       <tbody>
           <tr class="doc-section-item">
 <td><code>ConfusionMatrix</code></td>            <td>
-                  <code>ConfusionMatrix</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.metrics.detection.ConfusionMatrix" href="#supervision.metrics.detection.ConfusionMatrix">ConfusionMatrix</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4200,7 +4200,7 @@ Detections with lower IoU will be classified as <code>FP</code>.</p>
 <h4 id="supervision.metrics.detection.ConfusionMatrix.evaluate_detection_batch(predictions)" class="doc doc-heading doc-heading-parameter">                  <code>predictions</code>
 <a href="#supervision.metrics.detection.ConfusionMatrix.evaluate_detection_batch(predictions)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>ndarray</code>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4219,7 +4219,7 @@ Each row is expected to be in
 <h4 id="supervision.metrics.detection.ConfusionMatrix.evaluate_detection_batch(targets)" class="doc doc-heading doc-heading-parameter">                  <code>targets</code>
 <a href="#supervision.metrics.detection.ConfusionMatrix.evaluate_detection_batch(targets)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>ndarray</code>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4298,7 +4298,7 @@ Detections with lower iou will be classified as <code>FP</code>.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>ndarray</code>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4498,7 +4498,7 @@ Detections with lower iou will be classified as <code>FP</code>.</p>
 <h4 id="supervision.metrics.detection.ConfusionMatrix.from_detections(targets)" class="doc doc-heading doc-heading-parameter">                  <code>targets</code>
 <a href="#supervision.metrics.detection.ConfusionMatrix.from_detections(targets)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>List[Detections]</code>
+                  <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../core/#supervision.detection.core.Detections">Detections</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4514,7 +4514,7 @@ Detections with lower iou will be classified as <code>FP</code>.</p>
 <h4 id="supervision.metrics.detection.ConfusionMatrix.from_detections(predictions)" class="doc doc-heading doc-heading-parameter">                  <code>predictions</code>
 <a href="#supervision.metrics.detection.ConfusionMatrix.from_detections(predictions)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>List[Detections]</code>
+                  <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../core/#supervision.detection.core.Detections">Detections</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4530,7 +4530,7 @@ Detections with lower iou will be classified as <code>FP</code>.</p>
 <h4 id="supervision.metrics.detection.ConfusionMatrix.from_detections(classes)" class="doc doc-heading doc-heading-parameter">                  <code>classes</code>
 <a href="#supervision.metrics.detection.ConfusionMatrix.from_detections(classes)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>List[str]</code>
+                  <code><span title="typing.List">List</span>[str]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4590,7 +4590,7 @@ Detections with lower IoU will be classified as <code>FP</code>.</p>
       <tbody>
           <tr class="doc-section-item">
 <td><code>ConfusionMatrix</code></td>            <td>
-                  <code>ConfusionMatrix</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.metrics.detection.ConfusionMatrix" href="#supervision.metrics.detection.ConfusionMatrix">ConfusionMatrix</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4808,7 +4808,7 @@ Detections with lower IoU will be classified as <code>FP</code>.</p>
 <h4 id="supervision.metrics.detection.ConfusionMatrix.from_tensors(predictions)" class="doc doc-heading doc-heading-parameter">                  <code>predictions</code>
 <a href="#supervision.metrics.detection.ConfusionMatrix.from_tensors(predictions)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>List[ndarray]</code>
+                  <code><span title="typing.List">List</span>[<span title="numpy.ndarray">ndarray</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4827,7 +4827,7 @@ objects. Each row is expected to be in
 <h4 id="supervision.metrics.detection.ConfusionMatrix.from_tensors(targets)" class="doc doc-heading doc-heading-parameter">                  <code>targets</code>
 <a href="#supervision.metrics.detection.ConfusionMatrix.from_tensors(targets)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>List[ndarray]</code>
+                  <code><span title="typing.List">List</span>[<span title="numpy.ndarray">ndarray</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4846,7 +4846,7 @@ ground-truth objects. Each row is expected to be in
 <h4 id="supervision.metrics.detection.ConfusionMatrix.from_tensors(classes)" class="doc doc-heading doc-heading-parameter">                  <code>classes</code>
 <a href="#supervision.metrics.detection.ConfusionMatrix.from_tensors(classes)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>List[str]</code>
+                  <code><span title="typing.List">List</span>[str]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4906,7 +4906,7 @@ Detections with lower iou will be classified as <code>FP</code>.</p>
       <tbody>
           <tr class="doc-section-item">
 <td><code>ConfusionMatrix</code></td>            <td>
-                  <code>ConfusionMatrix</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.metrics.detection.ConfusionMatrix" href="#supervision.metrics.detection.ConfusionMatrix">ConfusionMatrix</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5186,7 +5186,7 @@ Detections with lower iou will be classified as <code>FP</code>.</p>
 <h4 id="supervision.metrics.detection.ConfusionMatrix.plot(save_path)" class="doc doc-heading doc-heading-parameter">                  <code>save_path</code>
 <a href="#supervision.metrics.detection.ConfusionMatrix.plot(save_path)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>Optional[str]</code>
+                  <code><span title="typing.Optional">Optional</span>[str]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5203,7 +5203,7 @@ plot will be displayed.</p>
 <h4 id="supervision.metrics.detection.ConfusionMatrix.plot(title)" class="doc doc-heading doc-heading-parameter">                  <code>title</code>
 <a href="#supervision.metrics.detection.ConfusionMatrix.plot(title)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>Optional[str]</code>
+                  <code><span title="typing.Optional">Optional</span>[str]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5219,7 +5219,7 @@ plot will be displayed.</p>
 <h4 id="supervision.metrics.detection.ConfusionMatrix.plot(classes)" class="doc doc-heading doc-heading-parameter">                  <code>classes</code>
 <a href="#supervision.metrics.detection.ConfusionMatrix.plot(classes)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>Optional[List[str]]</code>
+                  <code><span title="typing.Optional">Optional</span>[<span title="typing.List">List</span>[str]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5252,7 +5252,7 @@ If not provided, all classes will be displayed.</p>
 <h4 id="supervision.metrics.detection.ConfusionMatrix.plot(fig_size)" class="doc doc-heading doc-heading-parameter">                  <code>fig_size</code>
 <a href="#supervision.metrics.detection.ConfusionMatrix.plot(fig_size)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>Tuple[int, int]</code>
+                  <code><span title="typing.Tuple">Tuple</span>[int, int]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5278,7 +5278,7 @@ If not provided, all classes will be displayed.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>Figure</code>
+                  <code><span title="matplotlib.figure.Figure">Figure</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5544,7 +5544,7 @@ an IoU threshold of <code>0.75</code>.</p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.metrics.detection.MeanAveragePrecision.per_class_ap50_95">per_class_ap50_95</span></code></td>
             <td>
-                  <code>ndarray</code>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6308,7 +6308,7 @@ provided for each individual class.</p>
 <h4 id="supervision.metrics.detection.MeanAveragePrecision.benchmark(dataset)" class="doc doc-heading doc-heading-parameter">                  <code>dataset</code>
 <a href="#supervision.metrics.detection.MeanAveragePrecision.benchmark(dataset)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>DetectionDataset</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.dataset.core.DetectionDataset" href="../../datasets/core/#supervision.dataset.core.DetectionDataset">DetectionDataset</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6324,7 +6324,7 @@ provided for each individual class.</p>
 <h4 id="supervision.metrics.detection.MeanAveragePrecision.benchmark(callback)" class="doc doc-heading doc-heading-parameter">                  <code>callback</code>
 <a href="#supervision.metrics.detection.MeanAveragePrecision.benchmark(callback)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>Callable[[ndarray], Detections]</code>
+                  <code><span title="typing.Callable">Callable</span>[[<span title="numpy.ndarray">ndarray</span>], <a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../core/#supervision.detection.core.Detections">Detections</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6497,7 +6497,7 @@ an image as input and returns Detections object.</p>
 <h4 id="supervision.metrics.detection.MeanAveragePrecision.compute_average_precision(recall)" class="doc doc-heading doc-heading-parameter">                  <code>recall</code>
 <a href="#supervision.metrics.detection.MeanAveragePrecision.compute_average_precision(recall)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>ndarray</code>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6513,7 +6513,7 @@ an image as input and returns Detections object.</p>
 <h4 id="supervision.metrics.detection.MeanAveragePrecision.compute_average_precision(precision)" class="doc doc-heading doc-heading-parameter">                  <code>precision</code>
 <a href="#supervision.metrics.detection.MeanAveragePrecision.compute_average_precision(precision)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>ndarray</code>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6639,7 +6639,7 @@ an image as input and returns Detections object.</p>
 <h4 id="supervision.metrics.detection.MeanAveragePrecision.from_detections(targets)" class="doc doc-heading doc-heading-parameter">                  <code>targets</code>
 <a href="#supervision.metrics.detection.MeanAveragePrecision.from_detections(targets)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>List[Detections]</code>
+                  <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../core/#supervision.detection.core.Detections">Detections</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6655,7 +6655,7 @@ an image as input and returns Detections object.</p>
 <h4 id="supervision.metrics.detection.MeanAveragePrecision.from_detections(predictions)" class="doc doc-heading doc-heading-parameter">                  <code>predictions</code>
 <a href="#supervision.metrics.detection.MeanAveragePrecision.from_detections(predictions)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>List[Detections]</code>
+                  <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../core/#supervision.detection.core.Detections">Detections</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6835,7 +6835,7 @@ an image as input and returns Detections object.</p>
 <h4 id="supervision.metrics.detection.MeanAveragePrecision.from_tensors(predictions)" class="doc doc-heading doc-heading-parameter">                  <code>predictions</code>
 <a href="#supervision.metrics.detection.MeanAveragePrecision.from_tensors(predictions)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>List[ndarray]</code>
+                  <code><span title="typing.List">List</span>[<span title="numpy.ndarray">ndarray</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6854,7 +6854,7 @@ in <code>(x_min, y_min, x_max, y_max, class, conf)</code> format.</p>
 <h4 id="supervision.metrics.detection.MeanAveragePrecision.from_tensors(targets)" class="doc doc-heading doc-heading-parameter">                  <code>targets</code>
 <a href="#supervision.metrics.detection.MeanAveragePrecision.from_tensors(targets)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>List[ndarray]</code>
+                  <code><span title="typing.List">List</span>[<span title="numpy.ndarray">ndarray</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -7165,7 +7165,7 @@ number of ground-truth objects. Each row is expected to be in
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">August 28, 2024</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">April 24, 2024</span>
   </span>
 
     

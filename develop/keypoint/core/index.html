@@ -22,7 +22,7 @@
       
       
       <link rel="icon" href="../../assets/supervision-lenny.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.41">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.42">
     
     
       
@@ -2566,7 +2566,7 @@ pose result.</p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.keypoint.core.KeyPoints.xy">xy</span></code></td>
             <td>
-                  <code>ndarray</code>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2579,7 +2579,7 @@ sets of keypoints, where each point is <code>[x, y]</code>.</p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.keypoint.core.KeyPoints.confidence">confidence</span></code></td>
             <td>
-                  <code>Optional[ndarray]</code>
+                  <code><span title="typing.Optional">Optional</span>[<span title="numpy.ndarray">ndarray</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2591,7 +2591,7 @@ sets of keypoints, where each point is <code>[x, y]</code>.</p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.keypoint.core.KeyPoints.class_id">class_id</span></code></td>
             <td>
-                  <code>Optional[ndarray]</code>
+                  <code><span title="typing.Optional">Optional</span>[<span title="numpy.ndarray">ndarray</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2603,7 +2603,7 @@ sets of keypoints, where each point is <code>[x, y]</code>.</p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.keypoint.core.KeyPoints.data">data</span></code></td>
             <td>
-                  <code>Dict[str, Union[ndarray, List]]</code>
+                  <code><span title="typing.Dict">Dict</span>[str, <span title="typing.Union">Union</span>[<span title="numpy.ndarray">ndarray</span>, <span title="typing.List">List</span>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3872,7 +3872,7 @@ corresponding item in the data dictionary.</p>
 <h4 id="supervision.keypoint.core.KeyPoints.__getitem__(index)" class="doc doc-heading doc-heading-parameter">                  <code>index</code>
 <a href="#supervision.keypoint.core.KeyPoints.__getitem__(index)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>Union[int, slice, List[int], ndarray, str]</code>
+                  <code><span title="typing.Union">Union</span>[int, slice, <span title="typing.List">List</span>[int], <span title="numpy.ndarray">ndarray</span>, str]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3900,7 +3900,7 @@ data.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>Union[KeyPoints, List, ndarray, None]</code>
+                  <code><span title="typing.Union">Union</span>[<a class="autorefs autorefs-internal" title="supervision.keypoint.core.KeyPoints" href="#supervision.keypoint.core.KeyPoints">KeyPoints</a>, <span title="typing.List">List</span>, <span title="numpy.ndarray">ndarray</span>, None]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4185,7 +4185,7 @@ data.</p>
 <h4 id="supervision.keypoint.core.KeyPoints.__setitem__(value)" class="doc doc-heading doc-heading-parameter">                  <code>value</code>
 <a href="#supervision.keypoint.core.KeyPoints.__setitem__(value)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>Union[ndarray, List]</code>
+                  <code><span title="typing.Union">Union</span>[<span title="numpy.ndarray">ndarray</span>, <span title="typing.List">List</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4322,7 +4322,7 @@ data.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>KeyPoints</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.keypoint.core.KeyPoints" href="#supervision.keypoint.core.KeyPoints">KeyPoints</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4414,7 +4414,7 @@ data.</p>
 <h4 id="supervision.keypoint.core.KeyPoints.from_detectron2(detectron2_results)" class="doc doc-heading doc-heading-parameter">                  <code>detectron2_results</code>
 <a href="#supervision.keypoint.core.KeyPoints.from_detectron2(detectron2_results)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>Any</code>
+                  <code><span title="typing.Any">Any</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4441,7 +4441,7 @@ Detectron2 model containing instances with prediction data.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>KeyPoints</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.keypoint.core.KeyPoints" href="#supervision.keypoint.core.KeyPoints">KeyPoints</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4642,7 +4642,7 @@ Roboflow API or Inference package containing predictions with keypoints.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>KeyPoints</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.keypoint.core.KeyPoints" href="#supervision.keypoint.core.KeyPoints">KeyPoints</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4883,7 +4883,7 @@ pose landmark detection inference result.</p>
 <h4 id="supervision.keypoint.core.KeyPoints.from_mediapipe(mediapipe_results)" class="doc doc-heading doc-heading-parameter">                  <code>mediapipe_results</code>
 <a href="#supervision.keypoint.core.KeyPoints.from_mediapipe(mediapipe_results)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>Union[PoseLandmarkerResult, FaceLandmarkerResult, SolutionOutputs]</code>
+                  <code><span title="typing.Union">Union</span>[PoseLandmarkerResult, FaceLandmarkerResult, SolutionOutputs]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4901,7 +4901,7 @@ from <code>Pose</code> and <code>FaceMesh</code>.</p>
 <h4 id="supervision.keypoint.core.KeyPoints.from_mediapipe(resolution_wh)" class="doc doc-heading doc-heading-parameter">                  <code>resolution_wh</code>
 <a href="#supervision.keypoint.core.KeyPoints.from_mediapipe(resolution_wh)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>Tuple[int, int]</code>
+                  <code><span title="typing.Tuple">Tuple</span>[int, int]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4928,7 +4928,7 @@ representing the resolution of the frame.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>KeyPoints</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.keypoint.core.KeyPoints" href="#supervision.keypoint.core.KeyPoints">KeyPoints</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5289,7 +5289,7 @@ confidences of each keypoint.</p>
 <h4 id="supervision.keypoint.core.KeyPoints.from_ultralytics(ultralytics_results)" class="doc doc-heading doc-heading-parameter">                  <code>ultralytics_results</code>
 <a href="#supervision.keypoint.core.KeyPoints.from_ultralytics(ultralytics_results)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>Keypoints</code>
+                  <code><span title="ultralytics.engine.results.Keypoints">Keypoints</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5315,7 +5315,7 @@ confidences of each keypoint.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>KeyPoints</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.keypoint.core.KeyPoints" href="#supervision.keypoint.core.KeyPoints">KeyPoints</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5483,7 +5483,7 @@ YOLO NAS.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>KeyPoints</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.keypoint.core.KeyPoints" href="#supervision.keypoint.core.KeyPoints">KeyPoints</a></code>
             </td>
             <td>
               <div class="doc-md-description">

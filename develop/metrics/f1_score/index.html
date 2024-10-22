@@ -22,7 +22,7 @@
       
       
       <link rel="icon" href="../../assets/supervision-lenny.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.41">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.42">
     
     
       
@@ -2339,7 +2339,7 @@
 <a id="supervision.metrics.f1_score.F1Score"></a>
     <div class="doc doc-contents first">
             <p class="doc doc-class-bases">
-              Bases: <code>Metric</code></p>
+              Bases: <code><span title="supervision.metrics.core.Metric">Metric</span></code></p>
 
 
         <p>F1 Score is a metric used to evaluate object detection models. It is the harmonic
@@ -3210,7 +3210,7 @@ recall (accuracy and completeness), calculated as:</p>
 <h4 id="supervision.metrics.f1_score.F1Score.__init__(metric_target)" class="doc doc-heading doc-heading-parameter">                  <code>metric_target</code>
 <a href="#supervision.metrics.f1_score.F1Score.__init__(metric_target)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>MetricTarget</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.metrics.core.MetricTarget" href="../common_values/#supervision.metrics.core.MetricTarget">MetricTarget</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3218,7 +3218,7 @@ recall (accuracy and completeness), calculated as:</p>
               </div>
             </td>
             <td>
-                  <code>BOXES</code>
+                  <code><span title="supervision.metrics.core.MetricTarget.BOXES">BOXES</span></code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -3226,7 +3226,7 @@ recall (accuracy and completeness), calculated as:</p>
 <h4 id="supervision.metrics.f1_score.F1Score.__init__(averaging_method)" class="doc doc-heading doc-heading-parameter">                  <code>averaging_method</code>
 <a href="#supervision.metrics.f1_score.F1Score.__init__(averaging_method)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>AveragingMethod</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.metrics.core.AveragingMethod" href="../common_values/#supervision.metrics.core.AveragingMethod">AveragingMethod</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3235,7 +3235,7 @@ F1 scores. Determines how the F1 scores are aggregated across classes.</p>
               </div>
             </td>
             <td>
-                  <code>WEIGHTED</code>
+                  <code><span title="supervision.metrics.core.AveragingMethod.WEIGHTED">WEIGHTED</span></code>
             </td>
           </tr>
       </tbody>
@@ -3320,7 +3320,7 @@ data, at different IoU thresholds.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>F1ScoreResult</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.metrics.f1_score.F1ScoreResult" href="#supervision.metrics.f1_score.F1ScoreResult">F1ScoreResult</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3456,7 +3456,7 @@ data, at different IoU thresholds.</p>
 <h4 id="supervision.metrics.f1_score.F1Score.update(predictions)" class="doc doc-heading doc-heading-parameter">                  <code>predictions</code>
 <a href="#supervision.metrics.f1_score.F1Score.update(predictions)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>Union[Detections, List[Detections]]</code>
+                  <code><span title="typing.Union">Union</span>[<a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../../detection/core/#supervision.detection.core.Detections">Detections</a>, <span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../../detection/core/#supervision.detection.core.Detections">Detections</a>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3472,7 +3472,7 @@ data, at different IoU thresholds.</p>
 <h4 id="supervision.metrics.f1_score.F1Score.update(targets)" class="doc doc-heading doc-heading-parameter">                  <code>targets</code>
 <a href="#supervision.metrics.f1_score.F1Score.update(targets)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>Union[Detections, List[Detections]]</code>
+                  <code><span title="typing.Union">Union</span>[<a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../../detection/core/#supervision.detection.core.Detections">Detections</a>, <span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../../detection/core/#supervision.detection.core.Detections">Detections</a>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3498,7 +3498,7 @@ data, at different IoU thresholds.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>F1Score</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.metrics.f1_score.F1Score" href="#supervision.metrics.f1_score.F1Score">F1Score</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3613,7 +3613,7 @@ data, at different IoU thresholds.</p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.metrics.f1_score.F1ScoreResult.metric_target">metric_target</span></code></td>
             <td>
-                  <code>MetricTarget</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.metrics.core.MetricTarget" href="../common_values/#supervision.metrics.core.MetricTarget">MetricTarget</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3625,7 +3625,7 @@ boxes, masks or oriented bounding boxes.</p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.metrics.f1_score.F1ScoreResult.averaging_method">averaging_method</span></code></td>
             <td>
-                  <code>AveragingMethod</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.metrics.core.AveragingMethod" href="../common_values/#supervision.metrics.core.AveragingMethod">AveragingMethod</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3659,7 +3659,7 @@ F1 scores. Determines how the F1 scores are aggregated across classes.</p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.metrics.f1_score.F1ScoreResult.f1_scores">f1_scores</span></code></td>
             <td>
-                  <code>ndarray</code>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3671,7 +3671,7 @@ Shape: <code>(num_iou_thresholds,)</code></p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.metrics.f1_score.F1ScoreResult.f1_per_class">f1_per_class</span></code></td>
             <td>
-                  <code>ndarray</code>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3683,7 +3683,7 @@ Shape: <code>(num_target_classes, num_iou_thresholds)</code></p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.metrics.f1_score.F1ScoreResult.iou_thresholds">iou_thresholds</span></code></td>
             <td>
-                  <code>ndarray</code>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3694,7 +3694,7 @@ Shape: <code>(num_target_classes, num_iou_thresholds)</code></p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.metrics.f1_score.F1ScoreResult.matched_classes">matched_classes</span></code></td>
             <td>
-                  <code>ndarray</code>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3706,7 +3706,7 @@ Corresponds to the rows of <code>f1_per_class</code>.</p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.metrics.f1_score.F1ScoreResult.small_objects">small_objects</span></code></td>
             <td>
-                  <code>Optional[F1ScoreResult]</code>
+                  <code><span title="typing.Optional">Optional</span>[<a class="autorefs autorefs-internal" title="supervision.metrics.f1_score.F1ScoreResult" href="#supervision.metrics.f1_score.F1ScoreResult">F1ScoreResult</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3718,7 +3718,7 @@ for small objects.</p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.metrics.f1_score.F1ScoreResult.medium_objects">medium_objects</span></code></td>
             <td>
-                  <code>Optional[F1ScoreResult]</code>
+                  <code><span title="typing.Optional">Optional</span>[<a class="autorefs autorefs-internal" title="supervision.metrics.f1_score.F1ScoreResult" href="#supervision.metrics.f1_score.F1ScoreResult">F1ScoreResult</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3730,7 +3730,7 @@ for medium objects.</p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.metrics.f1_score.F1ScoreResult.large_objects">large_objects</span></code></td>
             <td>
-                  <code>Optional[F1ScoreResult]</code>
+                  <code><span title="typing.Optional">Optional</span>[<a class="autorefs autorefs-internal" title="supervision.metrics.f1_score.F1ScoreResult" href="#supervision.metrics.f1_score.F1ScoreResult">F1ScoreResult</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4374,7 +4374,7 @@ for large objects.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>DataFrame</code>
+                  <code><span title="pandas.DataFrame">DataFrame</span></code>
             </td>
             <td>
               <div class="doc-md-description">

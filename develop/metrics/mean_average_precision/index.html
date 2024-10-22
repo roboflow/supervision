@@ -22,7 +22,7 @@
       
       
       <link rel="icon" href="../../assets/supervision-lenny.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.41">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.42">
     
     
       
@@ -2339,7 +2339,7 @@
 <a id="supervision.metrics.mean_average_precision.MeanAveragePrecision"></a>
     <div class="doc doc-contents first">
             <p class="doc doc-class-bases">
-              Bases: <code>Metric</code></p>
+              Bases: <code><span title="supervision.metrics.core.Metric">Metric</span></code></p>
 
 
         <p>Mean Average Precision (mAP) is a metric used to evaluate object detection models.
@@ -3151,7 +3151,7 @@ It is the average of the precision-recall curves at different IoU thresholds.</p
 <h4 id="supervision.metrics.mean_average_precision.MeanAveragePrecision.__init__(metric_target)" class="doc doc-heading doc-heading-parameter">                  <code>metric_target</code>
 <a href="#supervision.metrics.mean_average_precision.MeanAveragePrecision.__init__(metric_target)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>MetricTarget</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.metrics.core.MetricTarget" href="../common_values/#supervision.metrics.core.MetricTarget">MetricTarget</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3159,7 +3159,7 @@ It is the average of the precision-recall curves at different IoU thresholds.</p
               </div>
             </td>
             <td>
-                  <code>BOXES</code>
+                  <code><span title="supervision.metrics.core.MetricTarget.BOXES">BOXES</span></code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -3258,7 +3258,7 @@ detections at different thresholds.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>MeanAveragePrecisionResult</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.metrics.mean_average_precision.MeanAveragePrecisionResult" href="#supervision.metrics.mean_average_precision.MeanAveragePrecisionResult">MeanAveragePrecisionResult</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3430,7 +3430,7 @@ detections at different thresholds.</p>
 <h4 id="supervision.metrics.mean_average_precision.MeanAveragePrecision.update(predictions)" class="doc doc-heading doc-heading-parameter">                  <code>predictions</code>
 <a href="#supervision.metrics.mean_average_precision.MeanAveragePrecision.update(predictions)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>Union[Detections, List[Detections]]</code>
+                  <code><span title="typing.Union">Union</span>[<a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../../detection/core/#supervision.detection.core.Detections">Detections</a>, <span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../../detection/core/#supervision.detection.core.Detections">Detections</a>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3446,7 +3446,7 @@ detections at different thresholds.</p>
 <h4 id="supervision.metrics.mean_average_precision.MeanAveragePrecision.update(targets)" class="doc doc-heading doc-heading-parameter">                  <code>targets</code>
 <a href="#supervision.metrics.mean_average_precision.MeanAveragePrecision.update(targets)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>Union[Detections, List[Detections]]</code>
+                  <code><span title="typing.Union">Union</span>[<a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../../detection/core/#supervision.detection.core.Detections">Detections</a>, <span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../../detection/core/#supervision.detection.core.Detections">Detections</a>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3472,7 +3472,7 @@ detections at different thresholds.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>MeanAveragePrecision</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.metrics.mean_average_precision.MeanAveragePrecision" href="#supervision.metrics.mean_average_precision.MeanAveragePrecision">MeanAveragePrecision</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3605,7 +3605,7 @@ detections at different thresholds.</p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.metrics.mean_average_precision.MeanAveragePrecisionResult.metric_target">metric_target</span></code></td>
             <td>
-                  <code>MetricTarget</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.metrics.core.MetricTarget" href="../common_values/#supervision.metrics.core.MetricTarget">MetricTarget</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3662,7 +3662,7 @@ is set to <code>-1</code>.</p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.metrics.mean_average_precision.MeanAveragePrecisionResult.mAP_scores">mAP_scores</span></code></td>
             <td>
-                  <code>ndarray</code>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3674,7 +3674,7 @@ Shape: <code>(num_iou_thresholds,)</code></p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.metrics.mean_average_precision.MeanAveragePrecisionResult.ap_per_class">ap_per_class</span></code></td>
             <td>
-                  <code>ndarray</code>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3686,7 +3686,7 @@ class and IoU threshold. Shape: <code>(num_target_classes, num_iou_thresholds)</
           <tr class="doc-section-item">
             <td><code><span title="supervision.metrics.mean_average_precision.MeanAveragePrecisionResult.iou_thresholds">iou_thresholds</span></code></td>
             <td>
-                  <code>ndarray</code>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3697,7 +3697,7 @@ class and IoU threshold. Shape: <code>(num_target_classes, num_iou_thresholds)</
           <tr class="doc-section-item">
             <td><code><span title="supervision.metrics.mean_average_precision.MeanAveragePrecisionResult.matched_classes">matched_classes</span></code></td>
             <td>
-                  <code>ndarray</code>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3709,7 +3709,7 @@ Corresponds to the rows of <code>ap_per_class</code>.</p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.metrics.mean_average_precision.MeanAveragePrecisionResult.small_objects">small_objects</span></code></td>
             <td>
-                  <code>Optional[MeanAveragePrecisionResult]</code>
+                  <code><span title="typing.Optional">Optional</span>[<a class="autorefs autorefs-internal" title="supervision.metrics.mean_average_precision.MeanAveragePrecisionResult" href="#supervision.metrics.mean_average_precision.MeanAveragePrecisionResult">MeanAveragePrecisionResult</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3721,7 +3721,7 @@ for small objects.</p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.metrics.mean_average_precision.MeanAveragePrecisionResult.medium_objects">medium_objects</span></code></td>
             <td>
-                  <code>Optional[MeanAveragePrecisionResult]</code>
+                  <code><span title="typing.Optional">Optional</span>[<a class="autorefs autorefs-internal" title="supervision.metrics.mean_average_precision.MeanAveragePrecisionResult" href="#supervision.metrics.mean_average_precision.MeanAveragePrecisionResult">MeanAveragePrecisionResult</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3733,7 +3733,7 @@ for medium objects.</p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.metrics.mean_average_precision.MeanAveragePrecisionResult.large_objects">large_objects</span></code></td>
             <td>
-                  <code>Optional[MeanAveragePrecisionResult]</code>
+                  <code><span title="typing.Optional">Optional</span>[<a class="autorefs autorefs-internal" title="supervision.metrics.mean_average_precision.MeanAveragePrecisionResult" href="#supervision.metrics.mean_average_precision.MeanAveragePrecisionResult">MeanAveragePrecisionResult</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4421,7 +4421,7 @@ for large objects.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>DataFrame</code>
+                  <code><span title="pandas.DataFrame">DataFrame</span></code>
             </td>
             <td>
               <div class="doc-md-description">

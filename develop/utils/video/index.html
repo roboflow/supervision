@@ -22,7 +22,7 @@
       
       
       <link rel="icon" href="../../assets/supervision-lenny.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.41">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.42">
     
     
       
@@ -2539,7 +2539,7 @@
           <tr class="doc-section-item">
             <td><code><span title="supervision.utils.video.VideoInfo.total_frames">total_frames</span></code></td>
             <td>
-                  <code>Optional[int]</code>
+                  <code><span title="typing.Optional">Optional</span>[int]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2728,7 +2728,7 @@ default is None</p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.utils.video.VideoSink.video_info">video_info</span></code></td>
             <td>
-                  <code>VideoInfo</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.utils.video.VideoInfo" href="#supervision.utils.video.VideoInfo">VideoInfo</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2925,7 +2925,7 @@ and total frame count.</p>
 <h4 id="supervision.utils.video.VideoSink.write_frame(frame)" class="doc doc-heading doc-heading-parameter">                  <code>frame</code>
 <a href="#supervision.utils.video.VideoSink.write_frame(frame)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>ndarray</code>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3404,7 +3404,7 @@ video should generate frames</p>
 <h2 id="supervision.utils.video.get_video_frames_generator(end)" class="doc doc-heading doc-heading-parameter">                  <code>end</code>
 <a href="#supervision.utils.video.get_video_frames_generator(end)" class="headerlink" title="Permanent link">&para;</a></h2>            </td>
             <td>
-                  <code>Optional[int]</code>
+                  <code><span title="typing.Optional">Optional</span>[int]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3449,7 +3449,7 @@ workaround for videos that don't open at all when you set the <code>start</code>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>Generator[ndarray, None, None]</code>
+                  <code><span title="typing.Generator">Generator</span>[<span title="numpy.ndarray">ndarray</span>, None, None]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3637,7 +3637,7 @@ frames of the video.</p>
 <h2 id="supervision.utils.video.process_video(callback)" class="doc doc-heading doc-heading-parameter">                  <code>callback</code>
 <a href="#supervision.utils.video.process_video(callback)" class="headerlink" title="Permanent link">&para;</a></h2>            </td>
             <td>
-                  <code>Callable[[ndarray, int], ndarray]</code>
+                  <code><span title="typing.Callable">Callable</span>[[<span title="numpy.ndarray">ndarray</span>, int], <span title="numpy.ndarray">ndarray</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">

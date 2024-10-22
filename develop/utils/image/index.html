@@ -22,7 +22,7 @@
       
       
       <link rel="icon" href="../../assets/supervision-lenny.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.41">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.42">
     
     
       
@@ -2555,7 +2555,7 @@
 <h2 id="supervision.utils.image.crop_image(image)" class="doc doc-heading doc-heading-parameter">                  <code>image</code>
 <a href="#supervision.utils.image.crop_image(image)" class="headerlink" title="Permanent link">&para;</a></h2>            </td>
             <td>
-                  <code>ImageType</code>
+                  <code><span title="supervision.annotators.base.ImageType">ImageType</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2572,7 +2572,7 @@ accepting either <code>numpy.ndarray</code> or <code>PIL.Image.Image</code>.</p>
 <h2 id="supervision.utils.image.crop_image(xyxy)" class="doc doc-heading doc-heading-parameter">                  <code>xyxy</code>
 <a href="#supervision.utils.image.crop_image(xyxy)" class="headerlink" title="Permanent link">&para;</a></h2>            </td>
             <td>
-                  <code>Union[ndarray, List[int], Tuple[int, int, int, int]]</code>
+                  <code><span title="typing.Union">Union</span>[<span title="numpy.ndarray">ndarray</span>, <span title="typing.List">List</span>[int], <span title="typing.Tuple">Tuple</span>[int, int, int, int]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2600,7 +2600,7 @@ a <code>numpy.ndarray</code>, a <code>list</code>, or a <code>tuple</code>.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>ImageType</code>
+                  <code><span title="supervision.annotators.base.ImageType">ImageType</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2800,7 +2800,7 @@ may be either a <code>numpy.ndarray</code> or <code>PIL.Image.Image</code>.</p>
 <h2 id="supervision.utils.image.scale_image(image)" class="doc doc-heading doc-heading-parameter">                  <code>image</code>
 <a href="#supervision.utils.image.scale_image(image)" class="headerlink" title="Permanent link">&para;</a></h2>            </td>
             <td>
-                  <code>ImageType</code>
+                  <code><span title="supervision.annotators.base.ImageType">ImageType</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2844,7 +2844,7 @@ factor &gt; <code>1.0</code> zooms in, &lt; <code>1.0</code> zooms out.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>ImageType</code>
+                  <code><span title="supervision.annotators.base.ImageType">ImageType</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3057,7 +3057,7 @@ ratio or resize directly to the desired dimensions.</p>
 <h2 id="supervision.utils.image.resize_image(image)" class="doc doc-heading doc-heading-parameter">                  <code>image</code>
 <a href="#supervision.utils.image.resize_image(image)" class="headerlink" title="Permanent link">&para;</a></h2>            </td>
             <td>
-                  <code>ImageType</code>
+                  <code><span title="supervision.annotators.base.ImageType">ImageType</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3074,7 +3074,7 @@ accepting either <code>numpy.ndarray</code> or <code>PIL.Image.Image</code>.</p>
 <h2 id="supervision.utils.image.resize_image(resolution_wh)" class="doc doc-heading doc-heading-parameter">                  <code>resolution_wh</code>
 <a href="#supervision.utils.image.resize_image(resolution_wh)" class="headerlink" title="Permanent link">&para;</a></h2>            </td>
             <td>
-                  <code>Tuple[int, int]</code>
+                  <code><span title="typing.Tuple">Tuple</span>[int, int]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3118,7 +3118,7 @@ aspect ratio. Defaults to <code>False</code>.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>ImageType</code>
+                  <code><span title="supervision.annotators.base.ImageType">ImageType</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3345,7 +3345,7 @@ the original aspect ratio.</p>
 <h2 id="supervision.utils.image.letterbox_image(image)" class="doc doc-heading doc-heading-parameter">                  <code>image</code>
 <a href="#supervision.utils.image.letterbox_image(image)" class="headerlink" title="Permanent link">&para;</a></h2>            </td>
             <td>
-                  <code>ImageType</code>
+                  <code><span title="supervision.annotators.base.ImageType">ImageType</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3362,7 +3362,7 @@ accepting either <code>numpy.ndarray</code> or <code>PIL.Image.Image</code>.</p>
 <h2 id="supervision.utils.image.letterbox_image(resolution_wh)" class="doc doc-heading doc-heading-parameter">                  <code>resolution_wh</code>
 <a href="#supervision.utils.image.letterbox_image(resolution_wh)" class="headerlink" title="Permanent link">&para;</a></h2>            </td>
             <td>
-                  <code>Tuple[int, int]</code>
+                  <code><span title="typing.Tuple">Tuple</span>[int, int]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3379,7 +3379,7 @@ accepting either <code>numpy.ndarray</code> or <code>PIL.Image.Image</code>.</p>
 <h2 id="supervision.utils.image.letterbox_image(color)" class="doc doc-heading doc-heading-parameter">                  <code>color</code>
 <a href="#supervision.utils.image.letterbox_image(color)" class="headerlink" title="Permanent link">&para;</a></h2>            </td>
             <td>
-                  <code>Union[Tuple[int, int, int], Color]</code>
+                  <code><span title="typing.Union">Union</span>[<span title="typing.Tuple">Tuple</span>[int, int, int], <a class="autorefs autorefs-internal" title="supervision.draw.color.Color" href="../draw/#supervision.draw.color.Color">Color</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3388,7 +3388,7 @@ provided it should be in BGR format.</p>
               </div>
             </td>
             <td>
-                  <code>BLACK</code>
+                  <code><span title="supervision.draw.color.Color.BLACK">BLACK</span></code>
             </td>
           </tr>
       </tbody>
@@ -3406,7 +3406,7 @@ provided it should be in BGR format.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>ImageType</code>
+                  <code><span title="supervision.annotators.base.ImageType">ImageType</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3649,7 +3649,7 @@ the image's position is partially or completely outside the scene's bounds.</p>
 <h2 id="supervision.utils.image.overlay_image(image)" class="doc doc-heading doc-heading-parameter">                  <code>image</code>
 <a href="#supervision.utils.image.overlay_image(image)" class="headerlink" title="Permanent link">&para;</a></h2>            </td>
             <td>
-                  <code>ndarray</code>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3665,7 +3665,7 @@ the image's position is partially or completely outside the scene's bounds.</p>
 <h2 id="supervision.utils.image.overlay_image(overlay)" class="doc doc-heading doc-heading-parameter">                  <code>overlay</code>
 <a href="#supervision.utils.image.overlay_image(overlay)" class="headerlink" title="Permanent link">&para;</a></h2>            </td>
             <td>
-                  <code>ndarray</code>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3681,7 +3681,7 @@ the image's position is partially or completely outside the scene's bounds.</p>
 <h2 id="supervision.utils.image.overlay_image(anchor)" class="doc doc-heading doc-heading-parameter">                  <code>anchor</code>
 <a href="#supervision.utils.image.overlay_image(anchor)" class="headerlink" title="Permanent link">&para;</a></h2>            </td>
             <td>
-                  <code>Tuple[int, int]</code>
+                  <code><span title="typing.Tuple">Tuple</span>[int, int]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3708,7 +3708,7 @@ top-left corner of the image will be placed.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>ndarray</code>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4223,7 +4223,7 @@ Defaults to "image_{:05d}.png".</p>
 <h4 id="supervision.utils.image.ImageSink.save_image(image)" class="doc doc-heading doc-heading-parameter">                  <code>image</code>
 <a href="#supervision.utils.image.ImageSink.save_image(image)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>ndarray</code>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4240,7 +4240,7 @@ format.</p>
 <h4 id="supervision.utils.image.ImageSink.save_image(image_name)" class="doc doc-heading doc-heading-parameter">                  <code>image_name</code>
 <a href="#supervision.utils.image.ImageSink.save_image(image_name)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>Optional[str]</code>
+                  <code><span title="typing.Optional">Optional</span>[str]</code>
             </td>
             <td>
               <div class="doc-md-description">

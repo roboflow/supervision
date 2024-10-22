@@ -22,7 +22,7 @@
       
       
       <link rel="icon" href="../../../assets/supervision-lenny.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.41">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.42">
     
     
       
@@ -2263,7 +2263,7 @@ slice, and then merging the detections.</p>
 <h2 id="supervision.detection.tools.inference_slicer.InferenceSlicer(slice_wh)" class="doc doc-heading doc-heading-parameter">                  <code>slice_wh</code>
 <a href="#supervision.detection.tools.inference_slicer.InferenceSlicer(slice_wh)" class="headerlink" title="Permanent link">&para;</a></h2>            </td>
             <td>
-                  <code>Tuple[int, int]</code>
+                  <code><span title="typing.Tuple">Tuple</span>[int, int]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2280,7 +2280,7 @@ tuple should be in the format <code>(width, height)</code>.</p>
 <h2 id="supervision.detection.tools.inference_slicer.InferenceSlicer(overlap_ratio_wh)" class="doc doc-heading doc-heading-parameter">                  <code>overlap_ratio_wh</code>
 <a href="#supervision.detection.tools.inference_slicer.InferenceSlicer(overlap_ratio_wh)" class="headerlink" title="Permanent link">&para;</a></h2>            </td>
             <td>
-                  <code>Optional[Tuple[float, float]]</code>
+                  <code><span title="typing.Optional">Optional</span>[<span title="typing.Tuple">Tuple</span>[float, float]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2300,7 +2300,7 @@ a value close to 1 means high overlap.</p>
 <h2 id="supervision.detection.tools.inference_slicer.InferenceSlicer(overlap_wh)" class="doc doc-heading doc-heading-parameter">                  <code>overlap_wh</code>
 <a href="#supervision.detection.tools.inference_slicer.InferenceSlicer(overlap_wh)" class="headerlink" title="Permanent link">&para;</a></h2>            </td>
             <td>
-                  <code>Optional[Tuple[int, int]]</code>
+                  <code><span title="typing.Optional">Optional</span>[<span title="typing.Tuple">Tuple</span>[int, int]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2319,7 +2319,7 @@ Each value should be greater than or equal to 0. Takes precedence over
 <h2 id="supervision.detection.tools.inference_slicer.InferenceSlicer(overlap_filter)" class="doc doc-heading doc-heading-parameter">                  <code>overlap_filter</code>
 <a href="#supervision.detection.tools.inference_slicer.InferenceSlicer(overlap_filter)" class="headerlink" title="Permanent link">&para;</a></h2>            </td>
             <td>
-                  <code>Union[OverlapFilter, str]</code>
+                  <code><span title="typing.Union">Union</span>[<a class="autorefs autorefs-internal" title="supervision.detection.overlap_filter.OverlapFilter" href="../../double_detection_filter/#supervision.detection.overlap_filter.OverlapFilter">OverlapFilter</a>, str]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2328,7 +2328,7 @@ filtering or merging overlapping detections in slices.</p>
               </div>
             </td>
             <td>
-                  <code>NON_MAX_SUPPRESSION</code>
+                  <code><span title="supervision.detection.overlap_filter.OverlapFilter.NON_MAX_SUPPRESSION">NON_MAX_SUPPRESSION</span></code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -2353,7 +2353,7 @@ used when filtering by overlap.</p>
 <h2 id="supervision.detection.tools.inference_slicer.InferenceSlicer(callback)" class="doc doc-heading doc-heading-parameter">                  <code>callback</code>
 <a href="#supervision.detection.tools.inference_slicer.InferenceSlicer(callback)" class="headerlink" title="Permanent link">&para;</a></h2>            </td>
             <td>
-                  <code>Callable</code>
+                  <code><span title="typing.Callable">Callable</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2920,7 +2920,7 @@ not a multiple of the slice's width or height minus the overlap.</p>
 <h4 id="supervision.detection.tools.inference_slicer.InferenceSlicer.__call__(image)" class="doc doc-heading doc-heading-parameter">                  <code>image</code>
 <a href="#supervision.detection.tools.inference_slicer.InferenceSlicer.__call__(image)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>ndarray</code>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2948,7 +2948,7 @@ performed. The image should be in the format
       <tbody>
           <tr class="doc-section-item">
 <td><code>Detections</code></td>            <td>
-                  <code>Detections</code>
+                  <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../../core/#supervision.detection.core.Detections">Detections</a></code>
             </td>
             <td>
               <div class="doc-md-description">
