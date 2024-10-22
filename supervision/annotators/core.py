@@ -1721,8 +1721,8 @@ class StrobeAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        max_strobes: int = 5,
-        strobe_freq: int = 6,
+        max_strobes: int = 7,
+        strobe_freq: int = 3,
     ):
         """
         Args:
@@ -1744,24 +1744,28 @@ class StrobeAnnotator(BaseAnnotator):
     @ensure_cv2_image_for_annotation
     def annotate(self, scene: ImageType, detections: Detections) -> ImageType:
         assert isinstance(scene, np.ndarray)
-        empty_detections = len(detections) == 0
-        if not empty_detections and detections.mask is None:
+        if not detections.is_empty() and detections.mask is None:
             raise ValueError("Must use detections with mask with StrobeAnnotator")
-        if not empty_detections and self.strobe_idx % self.strobe_freq == 0:
+        if self.strobe_idx % self.strobe_freq == 0:
             self.strobes.append((scene.copy(), detections))
         
+        scene_copy = scene.copy()
         for index, (strobe_source, strobe_detections) in enumerate(self.strobes):
-            strobe = np.zeros_like(strobe_source, dtype=np.uint8)
+            if not strobe_detections.is_empty():
+                strobe = np.zeros_like(strobe_source, dtype=np.uint8)
 
-            opacity = (self.max_strobes - index) / (self.max_strobes + 1)
-            cv2.addWeighted(
-                strobe_source, opacity, scene, 1-opacity, 0, dst=strobe
-            )
-            for mask in strobe_detections.mask:
-                scene[mask] = strobe[mask]
+                opacity = 1 / 1.25**(self.max_strobes - index + 1)
+                cv2.addWeighted(
+                    strobe_source, opacity, scene, 1-opacity, 0, dst=strobe
+                )
+                for mask in strobe_detections.mask:
+                    scene[mask] = strobe[mask]
+        
+        if not detections.is_empty():
+            for mask in detections.mask:
+                scene[mask] = scene_copy[mask]
 
-        if not empty_detections:
-            self.strobe_idx += 1
+        self.strobe_idx += 1
         return scene
 class HeatMapAnnotator(BaseAnnotator):
     """
