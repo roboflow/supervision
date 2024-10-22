@@ -31,6 +31,7 @@ from supervision.utils.image import (
     scale_image,
 )
 from supervision.utils.internal import deprecated
+from collections import deque
 
 
 class BoxAnnotator(BaseAnnotator):
@@ -1707,6 +1708,61 @@ class TraceAnnotator(BaseAnnotator):
         return scene
 
 
+class StrobeAnnotator(BaseAnnotator):
+    """
+    A class for drawing trace paths on an image based on detection coordinates.
+
+    !!! warning
+
+        This annotator uses the `sv.Detections.tracker_id`. Read
+        [here](/latest/trackers/) to learn how to plug
+        tracking into your inference pipeline.
+    """
+
+    def __init__(
+        self,
+        max_strobes: int = 5,
+        strobe_freq: int = 6,
+    ):
+        """
+        Args:
+            color (Union[Color, ColorPalette]): The color to draw the trace, can be
+                a single color or a color palette.
+            position (Position): The position of the trace.
+                Defaults to `CENTER`.
+            trace_length (int): The maximum length of the trace in terms of historical
+                points. Defaults to `30`.
+            thickness (int): The thickness of the trace lines. Defaults to `2`.
+            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
+                Options are `INDEX`, `CLASS`, `TRACK`.
+        """
+        self.max_strobes = max_strobes
+        self.strobes = deque(maxlen=self.max_strobes) 
+        self.strobe_idx = 0
+        self.strobe_freq = strobe_freq
+        
+    @ensure_cv2_image_for_annotation
+    def annotate(self, scene: ImageType, detections: Detections) -> ImageType:
+        assert isinstance(scene, np.ndarray)
+        empty_detections = len(detections) == 0
+        if not empty_detections and detections.mask is None:
+            raise ValueError("Must use detections with mask with StrobeAnnotator")
+        if not empty_detections and self.strobe_idx % self.strobe_freq == 0:
+            self.strobes.append((scene.copy(), detections))
+        
+        for index, (strobe_source, strobe_detections) in enumerate(self.strobes):
+            strobe = np.zeros_like(strobe_source, dtype=np.uint8)
+
+            opacity = (self.max_strobes - index) / (self.max_strobes + 1)
+            cv2.addWeighted(
+                strobe_source, opacity, scene, 1-opacity, 0, dst=strobe
+            )
+            for mask in strobe_detections.mask:
+                scene[mask] = strobe[mask]
+
+        if not empty_detections:
+            self.strobe_idx += 1
+        return scene
 class HeatMapAnnotator(BaseAnnotator):
     """
     A class for drawing heatmaps on an image based on provided detections.
