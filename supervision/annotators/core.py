@@ -1710,13 +1710,7 @@ class TraceAnnotator(BaseAnnotator):
 
 class StrobeAnnotator(BaseAnnotator):
     """
-    A class for drawing trace paths on an image based on detection coordinates.
-
-    !!! warning
-
-        This annotator uses the `sv.Detections.tracker_id`. Read
-        [here](/latest/trackers/) to learn how to plug
-        tracking into your inference pipeline.
+    A class for drawing strobe effects on an image based on provided detections.
     """
 
     def __init__(
@@ -1726,15 +1720,9 @@ class StrobeAnnotator(BaseAnnotator):
     ):
         """
         Args:
-            color (Union[Color, ColorPalette]): The color to draw the trace, can be
-                a single color or a color palette.
-            position (Position): The position of the trace.
-                Defaults to `CENTER`.
-            trace_length (int): The maximum length of the trace in terms of historical
-                points. Defaults to `30`.
-            thickness (int): The thickness of the trace lines. Defaults to `2`.
-            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACK`.
+            max_strobes (int): The maximum number of strobes (ghost images) to
+                keep in memory.
+            strobe_freq (int): The frequency of the strobe effect.
         """
         self.max_strobes = max_strobes
         self.strobes: Deque[Tuple[np.ndarray, np.ndarray]] = deque(
@@ -1745,6 +1733,15 @@ class StrobeAnnotator(BaseAnnotator):
 
     @ensure_cv2_image_for_annotation
     def annotate(self, scene: ImageType, detections: Detections) -> ImageType:
+        """
+        Annotates the scene with a strobe effect based on the provided detections.
+
+        Args:
+            scene (ImageType): The image where the strobe effect will be drawn.
+                `ImageType` is a flexible type, accepting either `numpy.ndarray`
+                or `PIL.Image.Image`.
+            detections (Detections): Object detections to annotate.
+        """
         assert isinstance(scene, np.ndarray)
 
         if not detections.is_empty() and detections.mask is None:
