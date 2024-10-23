@@ -1,6 +1,7 @@
+from collections import deque
 from functools import lru_cache
 from math import sqrt
-from typing import List, Optional, Tuple, Union
+from typing import Deque, List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
@@ -31,7 +32,6 @@ from supervision.utils.image import (
     scale_image,
 )
 from supervision.utils.internal import deprecated
-from collections import deque
 
 
 class BoxAnnotator(BaseAnnotator):
@@ -1721,8 +1721,8 @@ class StrobeAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        max_strobes: int = 7,
-        strobe_freq: int = 3,
+        max_strobes: int = 4,
+        strobe_freq: int = 4,
     ):
         """
         Args:
@@ -1737,36 +1737,36 @@ class StrobeAnnotator(BaseAnnotator):
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.max_strobes = max_strobes
-        self.strobes = deque(maxlen=self.max_strobes) 
+        self.strobes: Deque[Tuple[np.ndarray, np.ndarray]] = deque(
+            maxlen=self.max_strobes
+        )
         self.strobe_idx = 0
         self.strobe_freq = strobe_freq
-        
+
     @ensure_cv2_image_for_annotation
     def annotate(self, scene: ImageType, detections: Detections) -> ImageType:
         assert isinstance(scene, np.ndarray)
+
         if not detections.is_empty() and detections.mask is None:
             raise ValueError("Must use detections with mask with StrobeAnnotator")
-        if self.strobe_idx % self.strobe_freq == 0:
-            self.strobes.append((scene.copy(), detections))
-        
-        scene_copy = scene.copy()
-        for index, (strobe_source, strobe_detections) in enumerate(self.strobes):
-            if not strobe_detections.is_empty():
-                strobe = np.zeros_like(strobe_source, dtype=np.uint8)
 
-                opacity = 1 / 1.25**(self.max_strobes - index + 1)
-                cv2.addWeighted(
-                    strobe_source, opacity, scene, 1-opacity, 0, dst=strobe
-                )
-                for mask in strobe_detections.mask:
-                    scene[mask] = strobe[mask]
-        
-        if not detections.is_empty():
-            for mask in detections.mask:
-                scene[mask] = scene_copy[mask]
+        mask = np.zeros_like(scene, dtype=bool)
+        if detections.mask is not None:
+            mask = np.logical_or.reduce(detections.mask)
+        current_strobe = scene[mask]
+
+        if self.strobe_idx % self.strobe_freq == 0:
+            self.strobes.append((mask, current_strobe.astype(np.float32)))
+
+        for index, (strobe_mask, strobe) in enumerate(self.strobes):
+            opacity = 1 / 1.25 ** (self.max_strobes - index)
+            scene[strobe_mask] = strobe * opacity + scene[strobe_mask] * (1 - opacity)
+        scene[mask] = current_strobe.astype(int)
 
         self.strobe_idx += 1
         return scene
+
+
 class HeatMapAnnotator(BaseAnnotator):
     """
     A class for drawing heatmaps on an image based on provided detections.
