@@ -9,7 +9,7 @@ from matplotlib import pyplot as plt
 
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
-from supervision.detection.utils import box_iou_batch, mask_iou_batch
+from supervision.detection.utils import box_iou_batch, mask_iou_batch, oriented_box_iou_batch
 from supervision.draw.color import LEGACY_COLOR_PALETTE
 from supervision.metrics.core import AveragingMethod, Metric, MetricTarget
 from supervision.metrics.utils.object_size import (
@@ -23,60 +23,17 @@ if TYPE_CHECKING:
 
 
 class F1Score(Metric):
-    """
-    F1 Score is a metric used to evaluate object detection models. It is the harmonic
-    mean of precision and recall, calculated at different IoU thresholds.
-
-    In simple terms, F1 Score is a measure of a model's balance between precision and
-    recall (accuracy and completeness), calculated as:
-
-    `F1 = 2 * (precision * recall) / (precision + recall)`
-
-    Example:
-        ```python
-        import supervision as sv
-        from supervision.metrics import F1Score
-
-        predictions = sv.Detections(...)
-        targets = sv.Detections(...)
-
-        f1_metric = F1Score()
-        f1_result = f1_metric.update(predictions, targets).compute()
-
-        print(f1_result)
-        print(f1_result.f1_50)
-        print(f1_result.small_objects.f1_50)
-        ```
-    """
-
     def __init__(
         self,
         metric_target: MetricTarget = MetricTarget.BOXES,
         averaging_method: AveragingMethod = AveragingMethod.WEIGHTED,
     ):
-        """
-        Initialize the F1Score metric.
-
-        Args:
-            metric_target (MetricTarget): The type of detection data to use.
-            averaging_method (AveragingMethod): The averaging method used to compute the
-                F1 scores. Determines how the F1 scores are aggregated across classes.
-        """
-        self._metric_target = metric_target
-        if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
-            raise NotImplementedError(
-                "F1 score is not implemented for oriented bounding boxes."
-            )
-
         self._metric_target = metric_target
         self.averaging_method = averaging_method
         self._predictions_list: List[Detections] = []
         self._targets_list: List[Detections] = []
 
     def reset(self) -> None:
-        """
-        Reset the metric to its initial state, clearing all stored data.
-        """
         self._predictions_list = []
         self._targets_list = []
 
@@ -85,16 +42,6 @@ class F1Score(Metric):
         predictions: Union[Detections, List[Detections]],
         targets: Union[Detections, List[Detections]],
     ) -> F1Score:
-        """
-        Add new predictions and targets to the metric, but do not compute the result.
-
-        Args:
-            predictions (Union[Detections, List[Detections]]): The predicted detections.
-            targets (Union[Detections, List[Detections]]): The target detections.
-
-        Returns:
-            (F1Score): The updated metric instance.
-        """
         if not isinstance(predictions, list):
             predictions = [predictions]
         if not isinstance(targets, list):
@@ -112,13 +59,6 @@ class F1Score(Metric):
         return self
 
     def compute(self) -> F1ScoreResult:
-        """
-        Calculate the F1 score metric based on the stored predictions and ground-truth
-        data, at different IoU thresholds.
-
-        Returns:
-            (F1ScoreResult): The F1 score metric result.
-        """
         result = self._compute(self._predictions_list, self._targets_list)
 
         small_predictions, small_targets = self._filter_predictions_and_targets_by_size(
@@ -166,6 +106,8 @@ class F1Score(Metric):
                         iou = box_iou_batch(target_contents, prediction_contents)
                     elif self._metric_target == MetricTarget.MASKS:
                         iou = mask_iou_batch(target_contents, prediction_contents)
+                    elif self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
+                        iou = oriented_box_iou_batch(target_contents, prediction_contents)
                     else:
                         raise NotImplementedError(
                             "Unsupported metric target for IoU calculation"
@@ -343,7 +285,7 @@ class F1Score(Metric):
         Returns:
             np.ndarray, shape (N, ...), containing the F1 score for each element.
         """
-        if not confusion_matrix.shape[-1] == 3:
+        if confusion_matrix.shape[-1] != 3:
             raise ValueError(
                 f"Confusion matrix must have shape (..., 3), got "
                 f"{confusion_matrix.shape}"
@@ -370,7 +312,7 @@ class F1Score(Metric):
             )
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
             if obb := detections.data.get(ORIENTED_BOX_COORDINATES):
-                return np.ndarray(obb, dtype=np.float32)
+                return np.array(obb, dtype=np.float32)
             return np.empty((0, 8), dtype=np.float32)
         raise ValueError(f"Invalid metric target: {self._metric_target}")
 
@@ -427,6 +369,7 @@ class F1ScoreResult:
     The results of the F1 score metric calculation.
 
     Defaults to `0` if no detections or targets were provided.
+    Provides a custom `__str__` method for pretty printing.
 
     Attributes:
         metric_target (MetricTarget): the type of data used for the metric -
