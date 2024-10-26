@@ -9,7 +9,11 @@ from matplotlib import pyplot as plt
 
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
-from supervision.detection.utils import box_iou_batch, mask_iou_batch, oriented_box_iou_batch
+from supervision.detection.utils import (
+    box_iou_batch,
+    mask_iou_batch,
+    oriented_box_iou_batch,
+)
 from supervision.draw.color import LEGACY_COLOR_PALETTE
 from supervision.metrics.core import AveragingMethod, Metric, MetricTarget
 from supervision.metrics.utils.object_size import (
@@ -107,7 +111,9 @@ class F1Score(Metric):
                     elif self._metric_target == MetricTarget.MASKS:
                         iou = mask_iou_batch(target_contents, prediction_contents)
                     elif self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
-                        iou = oriented_box_iou_batch(target_contents, prediction_contents)
+                        iou = oriented_box_iou_batch(
+                            target_contents, prediction_contents
+                        )
                     else:
                         raise NotImplementedError(
                             "Unsupported metric target for IoU calculation"
