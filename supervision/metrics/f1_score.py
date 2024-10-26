@@ -23,17 +23,46 @@ if TYPE_CHECKING:
 
 
 class F1Score(Metric):
+    """
+    F1 Score is a metric used to evaluate object detection models. It is the harmonic
+    mean of precision and recall, calculated at different IoU thresholds.
+    In simple terms, F1 Score is a measure of a model's balance between precision and
+    recall (accuracy and completeness), calculated as:
+    `F1 = 2 * (precision * recall) / (precision + recall)`
+    Example:
+        ```python
+        import supervision as sv
+        from supervision.metrics import F1Score
+        predictions = sv.Detections(...)
+        targets = sv.Detections(...)
+        f1_metric = F1Score()
+        f1_result = f1_metric.update(predictions, targets).compute()
+        print(f1_result)
+        print(f1_result.f1_50)
+        print(f1_result.small_objects.f1_50)
+        ```
+    """
     def __init__(
         self,
         metric_target: MetricTarget = MetricTarget.BOXES,
         averaging_method: AveragingMethod = AveragingMethod.WEIGHTED,
     ):
+        """
+        Initialize the F1Score metric.
+        Args:
+            metric_target (MetricTarget): The type of detection data to use.
+            averaging_method (AveragingMethod): The averaging method used to compute the
+                F1 scores. Determines how the F1 scores are aggregated across classes.
+        """
         self._metric_target = metric_target
         self.averaging_method = averaging_method
         self._predictions_list: List[Detections] = []
         self._targets_list: List[Detections] = []
 
     def reset(self) -> None:
+        """
+        Reset the metric to its initial state, clearing all stored data.
+        """
         self._predictions_list = []
         self._targets_list = []
 
@@ -42,6 +71,14 @@ class F1Score(Metric):
         predictions: Union[Detections, List[Detections]],
         targets: Union[Detections, List[Detections]],
     ) -> F1Score:
+        """
+        Add new predictions and targets to the metric, but do not compute the result.
+        Args:
+            predictions (Union[Detections, List[Detections]]): The predicted detections.
+            targets (Union[Detections, List[Detections]]): The target detections.
+        Returns:
+            (F1Score): The updated metric instance.
+        """
         if not isinstance(predictions, list):
             predictions = [predictions]
         if not isinstance(targets, list):
@@ -59,6 +96,12 @@ class F1Score(Metric):
         return self
 
     def compute(self) -> F1ScoreResult:
+        """
+        Calculate the F1 score metric based on the stored predictions and ground-truth
+        data, at different IoU thresholds.
+        Returns:
+            (F1ScoreResult): The F1 score metric result.
+        """
         result = self._compute(self._predictions_list, self._targets_list)
 
         small_predictions, small_targets = self._filter_predictions_and_targets_by_size(
