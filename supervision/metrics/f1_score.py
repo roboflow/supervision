@@ -46,6 +46,7 @@ class F1Score(Metric):
         print(f1_result.small_objects.f1_50)
         ```
     """
+
     def __init__(
         self,
         metric_target: MetricTarget = MetricTarget.BOXES,
