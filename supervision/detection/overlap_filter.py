@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import List, Union
+from typing import List, Tuple, Union
 
 import numpy as np
 import numpy.typing as npt
@@ -38,6 +38,55 @@ def resize_masks(masks: np.ndarray, max_dimension: int = 640) -> np.ndarray:
     return resized_masks
 
 
+def __prepare_data_for_mask_nms(
+    iou_threshold: float,
+    mask_dimension: int,
+    masks: np.ndarray,
+    predictions: np.ndarray,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, int, np.ndarray]:
+    """
+    Get IOUs from mask. Prepare the data for non-max suppression.
+
+    Args:
+        iou_threshold (float): The intersection-over-union threshold
+            to use for non-maximum suppression.
+        mask_dimension (int): The dimension to which the masks should be
+            resized before computing IOU values.
+        masks (np.ndarray): A 3D array of binary masks corresponding to the predictions.
+            Shape: `(N, H, W)`, where N is the number of predictions, and H, W are the
+            dimensions of each
+        predictions (np.ndarray): An array of object detection predictions in the format
+            of `(x_min, y_min, x_max, y_max, score)` or
+            `(x_min, y_min, x_max, y_max, score, class)`. Shape: `(N, 5)` or `(N, 6)`,
+            where N is the number of predictions.
+
+    Returns:
+        Tuple[np.ndarray, np.ndarray, int, np.ndarray]: A tuple containing the
+            predictions, categories, IOUs, number of rows, and the sorted indices.
+
+    Raises:
+        AssertionError: If `iou_threshold` is not within the closed range from
+            `0` to `1`.
+    """
+    assert 0 <= iou_threshold <= 1, (
+        "Value of `iou_threshold` must be in the closed range from 0 to 1, "
+        f"{iou_threshold} given."
+    )
+    rows, columns = predictions.shape
+
+    if columns == 5:
+        predictions = np.c_[predictions, np.zeros(rows)]
+
+    sort_index = predictions[:, 4].argsort()[::-1]
+    predictions = predictions[sort_index]
+    masks = masks[sort_index]
+    masks_resized = resize_masks(masks, mask_dimension)
+    ious = mask_iou_batch(masks_resized, masks_resized)
+    categories = predictions[:, 5]
+
+    return predictions, categories, ious, rows, sort_index
+
+
 def mask_non_max_suppression(
     predictions: np.ndarray,
     masks: np.ndarray,
@@ -68,21 +117,9 @@ def mask_non_max_suppression(
         AssertionError: If `iou_threshold` is not within the closed
             range from `0` to `1`.
     """
-    assert 0 <= iou_threshold <= 1, (
-        "Value of `iou_threshold` must be in the closed range from 0 to 1, "
-        f"{iou_threshold} given."
+    _, categories, ious, rows, sort_index = __prepare_data_for_mask_nms(
+        iou_threshold, mask_dimension, masks, predictions
     )
-    rows, columns = predictions.shape
-
-    if columns == 5:
-        predictions = np.c_[predictions, np.zeros(rows)]
-
-    sort_index = predictions[:, 4].argsort()[::-1]
-    predictions = predictions[sort_index]
-    masks = masks[sort_index]
-    masks_resized = resize_masks(masks, mask_dimension)
-    ious = mask_iou_batch(masks_resized, masks_resized)
-    categories = predictions[:, 5]
 
     keep = np.ones(rows, dtype=bool)
     for i in range(rows):
@@ -91,6 +128,95 @@ def mask_non_max_suppression(
             keep[i + 1 :] = np.where(condition[i + 1 :], False, keep[i + 1 :])
 
     return keep[sort_index.argsort()]
+
+
+def mask_soft_non_max_suppression(
+    predictions: np.ndarray,
+    masks: np.ndarray,
+    iou_threshold: float = 0.5,
+    mask_dimension: int = 640,
+    sigma: float = 0.5,
+) -> np.ndarray:
+    """
+    Perform Soft Non-Maximum Suppression (Soft-NMS) on segmentation predictions.
+
+     Args:
+        predictions (np.ndarray): An array of object detection predictions in
+            the format of `(x_min, y_min, x_max, y_max, score)`
+            or `(x_min, y_min, x_max, y_max, score, class)`.
+        iou_threshold (float): The intersection-over-union threshold
+            to use for non-maximum suppression.
+        sigma (float): The sigma value to use for soft non-maximum suppression.
+
+    Returns:
+        np.ndarray: An array containing the updated confidence scores.
+
+    Raises:
+        AssertionError: If `iou_threshold` is not within the
+            closed range from `0` to `1`.
+        AssertionError: If `sigma` is not within the open range from `0` to `1`.
+    """
+    assert (
+        0 < sigma < 1
+    ), f"Value of `sigma` must be greater than 0 and less than 1, {sigma} given."
+    predictions, categories, ious, rows, sort_index = __prepare_data_for_mask_nms(
+        iou_threshold, mask_dimension, masks, predictions
+    )
+
+    not_this_row = np.ones(rows)
+    for i in range(rows):
+        not_this_row[i] = 0
+        condition = (categories[i] == categories) * not_this_row
+        predictions[:, 4] = predictions[:, 4] * np.exp(
+            -(ious[i] ** 2) / sigma * condition
+        )
+
+    return predictions[sort_index.argsort(), 4]
+
+
+def __prepare_data_for_box_nsm(
+    iou_threshold: float, predictions: np.ndarray
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, int, np.ndarray]:
+    """
+    Prepare the data for non-max suppression.
+
+    Args:
+        iou_threshold (float): The intersection-over-union threshold
+            to use for non-maximum suppression.
+        predictions (np.ndarray): An array of object detection predictions in the
+            format of `(x_min, y_min, x_max, y_max, score)` or
+            `(x_min, y_min, x_max, y_max, score, class)`. Shape: `(N, 5)` or `(N, 6)`,
+            where N is the number of predictions.
+
+    Returns:
+        Tuple[np.ndarray, np.ndarray, np.ndarray, int, np.ndarray]: A tuple containing
+            the predictions, categories, IOUs, number of rows, and the sorted indices
+
+    Raises:
+        AssertionError: If `iou_threshold` is not within the closed range from `0`
+            to `1`.
+
+
+    """
+    assert 0 <= iou_threshold <= 1, (
+        "Value of `iou_threshold` must be in the closed range from 0 to 1, "
+        f"{iou_threshold} given."
+    )
+    rows, columns = predictions.shape
+
+    # add column #5 - category filled with zeros for agnostic nms
+    if columns == 5:
+        predictions = np.c_[predictions, np.zeros(rows)]
+
+    # sort predictions column #4 - score
+    sort_index = np.flip(predictions[:, 4].argsort())
+    predictions = predictions[sort_index]
+    boxes = predictions[:, :4]
+    categories = predictions[:, 5]
+    ious = box_iou_batch(boxes, boxes)
+    ious = ious - np.eye(rows)
+
+    return predictions, categories, ious, rows, sort_index
 
 
 def box_non_max_suppression(
@@ -114,27 +240,11 @@ def box_non_max_suppression(
         AssertionError: If `iou_threshold` is not within the
             closed range from `0` to `1`.
     """
-    assert 0 <= iou_threshold <= 1, (
-        "Value of `iou_threshold` must be in the closed range from 0 to 1, "
-        f"{iou_threshold} given."
+    _, categories, ious, rows, sort_index = __prepare_data_for_box_nsm(
+        iou_threshold, predictions
     )
-    rows, columns = predictions.shape
-
-    # add column #5 - category filled with zeros for agnostic nms
-    if columns == 5:
-        predictions = np.c_[predictions, np.zeros(rows)]
-
-    # sort predictions column #4 - score
-    sort_index = np.flip(predictions[:, 4].argsort())
-    predictions = predictions[sort_index]
-
-    boxes = predictions[:, :4]
-    categories = predictions[:, 5]
-    ious = box_iou_batch(boxes, boxes)
-    ious = ious - np.eye(rows)
 
     keep = np.ones(rows, dtype=bool)
-
     for index, (iou, category) in enumerate(zip(ious, categories)):
         if not keep[index]:
             continue
@@ -145,6 +255,46 @@ def box_non_max_suppression(
         keep = keep & ~condition
 
     return keep[sort_index.argsort()]
+
+
+def box_soft_non_max_suppression(
+    predictions: np.ndarray, iou_threshold: float = 0.5, sigma: float = 0.5
+) -> np.ndarray:
+    """
+    Perform Soft Non-Maximum Suppression (Soft-NMS) on object detection predictions.
+
+    Args:
+        predictions (np.ndarray): An array of object detection predictions in
+            the format of `(x_min, y_min, x_max, y_max, score)`
+            or `(x_min, y_min, x_max, y_max, score, class)`.
+        iou_threshold (float): The intersection-over-union threshold
+            to use for soft non-maximum suppression.
+        sigma (float): The sigma value to use for soft non-maximum suppression.
+
+    Returns:
+        np.ndarray: An array containing the updated confidence scores.
+    Raises:
+        AssertionError: If `iou_threshold` is not within the
+            closed range from `0` to `1`.
+        AssertionError: If `sigma` is not within the opened range from `0` to `1`.
+    """
+
+    assert (
+        0 < sigma < 1
+    ), f"Value of `sigma` must be greater than 0 and less than 1, {sigma} given."
+    predictions, categories, ious, rows, sort_index = __prepare_data_for_box_nsm(
+        iou_threshold, predictions
+    )
+
+    not_this_row = np.ones(rows)
+    for i in range(rows):
+        not_this_row[i] = 0
+        condition = (categories[i] == categories) * not_this_row
+        predictions[:, 4] = predictions[:, 4] * np.exp(
+            -(ious[i] ** 2) / sigma * condition
+        )
+
+    return predictions[sort_index.argsort(), 4]
 
 
 def group_overlapping_boxes(
