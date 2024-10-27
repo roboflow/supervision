@@ -609,7 +609,7 @@ def test_mask_non_max_suppression(
                 ]
             ),
             0.5,
-            1,
+            0.99,
             np.array([0.8]),
             DoesNotRaise(),
         ),  # single mask with category
