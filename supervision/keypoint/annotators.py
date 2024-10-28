@@ -7,6 +7,7 @@ import numpy as np
 
 from supervision import Rect, pad_boxes
 from supervision.annotators.base import ImageType
+from supervision.detection.utils import pad, spread_out
 from supervision.draw.color import Color
 from supervision.draw.utils import draw_rounded_rectangle
 from supervision.keypoint.core import KeyPoints
@@ -201,6 +202,7 @@ class VertexLabelAnnotator:
         text_thickness: int = 1,
         text_padding: int = 10,
         border_radius: int = 0,
+        use_smart_positioning: bool = False,
     ):
         """
         Args:
@@ -215,7 +217,10 @@ class VertexLabelAnnotator:
             text_padding (int): The padding around the text.
             border_radius (int): The radius of the rounded corners of the
                 boxes. Set to a high value to produce circles.
+            use_smart_positioning (bool): Whether to use smart positioning to prevent
+                label overlapping or not.
         """
+        self.use_smart_positioning = use_smart_positioning
         self.border_radius: int = border_radius
         self.color: Union[Color, List[Color]] = color
         self.text_color: Union[Color, List[Color]] = text_color
@@ -357,7 +362,12 @@ class VertexLabelAnnotator:
             ]
         )
 
-        xyxy_padded = pad_boxes(xyxy=xyxy, px=self.text_padding)
+        if self.use_smart_positioning:
+            xyxy_padded = pad(xyxy=xyxy, px=self.text_padding)
+            xyxy_padded = spread_out(xyxy_padded, step=2)
+            xyxy = pad(xyxy=xyxy_padded, px=-self.text_padding)
+        else:
+            xyxy_padded = pad_boxes(xyxy=xyxy, px=self.text_padding)
 
         for text, color, text_color, box, box_padded in zip(
             labels, colors, text_colors, xyxy, xyxy_padded

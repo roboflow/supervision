@@ -1,3 +1,4 @@
+import math
 from itertools import chain
 from typing import Dict, List, Optional, Tuple, Union
 
@@ -1039,3 +1040,85 @@ def cross_product(anchors: np.ndarray, vector: Vector) -> np.ndarray:
     )
     vector_start = np.array([vector.start.x, vector.start.y])
     return np.cross(vector_at_zero, anchors - vector_start)
+
+
+# Intelligent padding functions
+def get_intersection_center(
+    xyxy_1: np.ndarray, xyxy_2: np.ndarray
+) -> Optional[Tuple[float, float]]:
+    overlap_xmin = max(xyxy_1[0], xyxy_2[0])
+    overlap_ymin = max(xyxy_1[1], xyxy_2[1])
+    overlap_xmax = min(xyxy_1[2], xyxy_2[2])
+    overlap_ymax = min(xyxy_1[3], xyxy_2[3])
+
+    if overlap_xmin < overlap_xmax and overlap_ymin < overlap_ymax:
+        x_center = (overlap_xmin + overlap_xmax) / 2
+        y_center = (overlap_ymin + overlap_ymax) / 2
+        return (x_center, y_center)
+    else:
+        return None
+
+
+def get_box_center(xyxy: np.ndarray) -> Tuple[float, float]:
+    x_center = (xyxy[0] + xyxy[2]) / 2
+    y_center = (xyxy[1] + xyxy[3]) / 2
+    return (x_center, y_center)
+
+
+def vector_with_length(
+    xy_1: Tuple[float, float], xy_2: Tuple[float, float], n: float
+) -> Tuple[float, float]:
+    x1, y1 = xy_1
+    x2, y2 = xy_2
+
+    dx = x2 - x1
+    dy = y2 - y1
+
+    if dx == 0 and dy == 0:
+        return 0, 0
+
+    magnitude = math.sqrt(dx**2 + dy**2)
+
+    unit_dx = dx / magnitude
+    unit_dy = dy / magnitude
+
+    v1 = unit_dx * n
+    v2 = unit_dy * n
+
+    return (v1, v2)
+
+
+def pad(xyxy: np.ndarray, px: int, py: Optional[int] = None):
+    if py is None:
+        py = px
+
+    result = xyxy.copy()
+    result[:, [0, 1]] -= [px, py]
+    result[:, [2, 3]] += [px, py]
+
+    return result
+
+
+def spread_out(xyxy: np.ndarray, step) -> np.ndarray:
+    xyxy_padded = pad(xyxy, px=step)
+    while True:
+        iou = box_iou_batch(xyxy_padded, xyxy_padded)
+        np.fill_diagonal(iou, 0)
+
+        if np.all(iou == 0):
+            return pad(xyxy_padded, px=-step)
+
+        i, j = np.unravel_index(np.argmax(iou), iou.shape)
+
+        xyxy_i, xyxy_j = xyxy_padded[i], xyxy_padded[j]
+        intersection_center = get_intersection_center(xyxy_i, xyxy_j)
+        xyxy_i_center = get_box_center(xyxy_i)
+        xyxy_j_center = get_box_center(xyxy_j)
+
+        vector_i = vector_with_length(intersection_center, xyxy_i_center, step)
+        vector_j = vector_with_length(intersection_center, xyxy_j_center, step)
+
+        xyxy_padded[i, [0, 2]] += int(vector_i[0])
+        xyxy_padded[i, [1, 3]] += int(vector_i[1])
+        xyxy_padded[j, [0, 2]] += int(vector_j[0])
+        xyxy_padded[j, [1, 3]] += int(vector_j[1])
