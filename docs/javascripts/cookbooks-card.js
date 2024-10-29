@@ -138,12 +138,3 @@ document.addEventListener("DOMContentLoaded", function () {
         renderCard(element, index);
     });
 });
-
-    
-       
-             
-        
-           
-
-       
- 
