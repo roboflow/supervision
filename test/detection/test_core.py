@@ -1,5 +1,4 @@
 from contextlib import ExitStack as DoesNotRaise
-from test.test_utils import mock_detections
 from typing import List, Optional, Union
 
 import numpy as np
@@ -7,6 +6,7 @@ import pytest
 
 from supervision.detection.core import Detections, merge_inner_detection_object_pair
 from supervision.geometry.core import Position
+from test.test_utils import mock_detections
 
 PREDICTIONS = np.array(
     [
@@ -245,7 +245,6 @@ def test_getitem(
             TEST_DET_1_2,
             DoesNotRaise(),
         ),  # Fields with same keys
-        # Fields and empty
         (
             [TEST_DET_1, Detections.empty()],
             TEST_DET_1,
@@ -264,9 +263,9 @@ def test_getitem(
                 TEST_DET_1,
                 TEST_DET_NONE,
             ],
-            TEST_DET_1,
-            DoesNotRaise(),
-        ),  # Single detection and None fields (+ missing Dict keys)
+            None,
+            pytest.raises(ValueError),
+        ),  # Empty detection, but not Detections.empty()
         # Errors: Non-zero-length differently defined keys & data
         (
             [TEST_DET_1, TEST_DET_DIFFERENT_FIELDS],
@@ -278,6 +277,22 @@ def test_getitem(
             None,
             pytest.raises(ValueError),
         ),  # Non-empty detections with different data keys
+        (
+            [
+                mock_detections(
+                    xyxy=[[10, 10, 20, 20]],
+                    class_id=[1],
+                    mask=[np.zeros((4, 4), dtype=bool)],
+                ),
+                Detections.empty(),
+            ],
+            mock_detections(
+                xyxy=[[10, 10, 20, 20]],
+                class_id=[1],
+                mask=[np.zeros((4, 4), dtype=bool)],
+            ),
+            DoesNotRaise(),
+        ),  # Segmentation + Empty
     ],
 )
 def test_merge(

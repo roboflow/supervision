@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from enum import Enum
 from typing import List, Union
 
@@ -53,9 +55,9 @@ def mask_non_max_suppression(
         masks (np.ndarray): A 3D array of binary masks corresponding to the predictions.
             Shape: `(N, H, W)`, where N is the number of predictions, and H, W are the
             dimensions of each mask.
-        iou_threshold (float, optional): The intersection-over-union threshold
+        iou_threshold (float): The intersection-over-union threshold
             to use for non-maximum suppression.
-        mask_dimension (int, optional): The dimension to which the masks should be
+        mask_dimension (int): The dimension to which the masks should be
             resized before computing IOU values. Defaults to 640.
 
     Returns:
@@ -64,7 +66,7 @@ def mask_non_max_suppression(
 
     Raises:
         AssertionError: If `iou_threshold` is not within the closed
-        range from `0` to `1`.
+            range from `0` to `1`.
     """
     assert 0 <= iou_threshold <= 1, (
         "Value of `iou_threshold` must be in the closed range from 0 to 1, "
@@ -101,7 +103,7 @@ def box_non_max_suppression(
         predictions (np.ndarray): An array of object detection predictions in
             the format of `(x_min, y_min, x_max, y_max, score)`
             or `(x_min, y_min, x_max, y_max, score, class)`.
-        iou_threshold (float, optional): The intersection-over-union threshold
+        iou_threshold (float): The intersection-over-union threshold
             to use for non-maximum suppression.
 
     Returns:
@@ -156,7 +158,7 @@ def group_overlapping_boxes(
         predictions (npt.NDArray[np.float64]): An array of shape `(n, 5)` containing
             the bounding boxes coordinates in format `[x1, y1, x2, y2]`
             and the confidence scores.
-        iou_threshold (float, optional): The intersection-over-union threshold
+        iou_threshold (float): The intersection-over-union threshold
             to use for non-maximum suppression. Defaults to 0.5.
 
     Returns:
@@ -181,7 +183,7 @@ def group_overlapping_boxes(
         ious = ious.flatten()
 
         above_threshold = ious >= iou_threshold
-        merge_group = [idx] + np.flip(order[above_threshold]).tolist()
+        merge_group = [idx, *np.flip(order[above_threshold]).tolist()]
         merge_groups.append(merge_group)
         order = order[~above_threshold]
     return merge_groups
@@ -200,7 +202,7 @@ def box_non_max_merge(
             containing the bounding boxes coordinates in format `[x1, y1, x2, y2]`,
             the confidence scores and class_ids. Omit class_id column to allow
             detections of different classes to be merged.
-        iou_threshold (float, optional): The intersection-over-union threshold
+        iou_threshold (float): The intersection-over-union threshold
             to use for non-maximum suppression. Defaults to 0.5.
 
     Returns:
@@ -248,16 +250,21 @@ class OverlapFilter(Enum):
     NON_MAX_SUPPRESSION = "non_max_suppression"
     NON_MAX_MERGE = "non_max_merge"
 
+    @classmethod
+    def list(cls):
+        return list(map(lambda c: c.value, cls))
 
-def validate_overlap_filter(
-    strategy: Union[OverlapFilter, str],
-) -> OverlapFilter:
-    if isinstance(strategy, str):
-        try:
-            strategy = OverlapFilter(strategy.lower())
-        except ValueError:
-            raise ValueError(
-                f"Invalid strategy value: {strategy}. Must be one of "
-                f"{[e.value for e in OverlapFilter]}"
-            )
-    return strategy
+    @classmethod
+    def from_value(cls, value: Union[OverlapFilter, str]) -> OverlapFilter:
+        if isinstance(value, cls):
+            return value
+        if isinstance(value, str):
+            value = value.lower()
+            try:
+                return cls(value)
+            except ValueError:
+                raise ValueError(f"Invalid value: {value}. Must be one of {cls.list()}")
+        raise ValueError(
+            f"Invalid value type: {type(value)}. Must be an instance of "
+            f"{cls.__name__} or str."
+        )

@@ -8,27 +8,33 @@
     </a>
   </p>
 
-  <br>
+<br>
 
 [notebooks](https://github.com/roboflow/notebooks) | [inference](https://github.com/roboflow/inference) | [autodistill](https://github.com/autodistill/autodistill) | [maestro](https://github.com/roboflow/multimodal-maestro)
 
-  <br>
+<br>
 
 [![version](https://badge.fury.io/py/supervision.svg)](https://badge.fury.io/py/supervision)
 [![downloads](https://img.shields.io/pypi/dm/supervision)](https://pypistats.org/packages/supervision)
+[![snyk](https://snyk.io/advisor/python/supervision/badge.svg)](https://snyk.io/advisor/python/supervision)
 [![license](https://img.shields.io/pypi/l/supervision)](https://github.com/roboflow/supervision/blob/main/LICENSE.md)
 [![python-version](https://img.shields.io/pypi/pyversions/supervision)](https://badge.fury.io/py/supervision)
 [![colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/roboflow/supervision/blob/main/demo.ipynb)
 [![gradio](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/Roboflow/Annotators)
 [![discord](https://img.shields.io/discord/1159501506232451173)](https://discord.gg/GbfgXGJ8Bk)
 [![built-with-material-for-mkdocs](https://img.shields.io/badge/Material_for_MkDocs-526CFE?logo=MaterialForMkDocs&logoColor=white)](https://squidfunk.github.io/mkdocs-material/)
+
+  <div align="center">
+    <a href="https://trendshift.io/repositories/124"  target="_blank"><img src="https://trendshift.io/api/badge/repositories/124" alt="roboflow%2Fsupervision | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+  </div>
+
 </div>
 
 ## 👋 hello
 
 **We write your reusable computer vision tools.** Whether you need to load your dataset from your hard drive, draw detections on an image or video, or count how many detections are in a zone. You can count on us! 🤝
 
-[![supervision-hackfest](https://github.com/roboflow/supervision/assets/26109316/c05cc954-b9a6-4ed5-9a52-d0b4b619ff65)](https://github.com/orgs/roboflow/projects/10)
+[![supervision-hackfest](https://media.roboflow.com/supervision/supervision-hacktoberfest-banner-2024.png)](https://github.com/roboflow/supervision/issues?q=is%3Aissue+is%3Aopen+label%3Ahacktoberfest)
 
 ## 💻 install
 
@@ -53,7 +59,7 @@ import supervision as sv
 from ultralytics import YOLO
 
 image = cv2.imread(...)
-model = YOLO('yolov8s.pt')
+model = YOLO("yolov8s.pt")
 result = model(image)[0]
 detections = sv.Detections.from_ultralytics(result)
 
@@ -66,27 +72,27 @@ len(detections)
 
 - inference
 
-    Running with [Inference](https://github.com/roboflow/inference) requires a [Roboflow API KEY](https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key).
+  Running with [Inference](https://github.com/roboflow/inference) requires a [Roboflow API KEY](https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key).
 
-    ```python
-    import cv2
-    import supervision as sv
-    from inference import get_model
+  ```python
+  import cv2
+  import supervision as sv
+  from inference import get_model
 
-    image = cv2.imread(...)
-    model = get_model(model_id="yolov8s-640", api_key=<ROBOFLOW API KEY>)
-    result = model.infer(image)[0]
-    detections = sv.Detections.from_inference(result)
+  image = cv2.imread(...)
+  model = get_model(model_id="yolov8s-640", api_key=<ROBOFLOW API KEY>)
+  result = model.infer(image)[0]
+  detections = sv.Detections.from_inference(result)
 
-    len(detections)
-    # 5
-    ```
+  len(detections)
+  # 5
+  ```
 
 </details>
 
 ### annotators
 
-Supervision offers a wide range of highly customizable [annotators](https://supervision.roboflow.com/latest/annotators/), allowing you to compose the perfect visualization for your use case.
+Supervision offers a wide range of highly customizable [annotators](https://supervision.roboflow.com/latest/detection/annotators/), allowing you to compose the perfect visualization for your use case.
 
 ```python
 import cv2
@@ -95,33 +101,35 @@ import supervision as sv
 image = cv2.imread(...)
 detections = sv.Detections(...)
 
-bounding_box_annotator = sv.BoundingBoxAnnotator()
-annotated_frame = bounding_box_annotator.annotate(
-    scene=image.copy(),
-    detections=detections
-)
+box_annotator = sv.BoxAnnotator()
+annotated_frame = box_annotator.annotate(
+  scene=image.copy(),
+  detections=detections)
 ```
 
 https://github.com/roboflow/supervision/assets/26109316/691e219c-0565-4403-9218-ab5644f39bce
 
 ### datasets
 
-Supervision provides a set of [utils](https://supervision.roboflow.com/latest/datasets/) that allow you to load, split, merge, and save datasets in one of the supported formats.
+Supervision provides a set of [utils](https://supervision.roboflow.com/latest/datasets/core/) that allow you to load, split, merge, and save datasets in one of the supported formats.
 
 ```python
 import supervision as sv
+from roboflow import Roboflow
 
-dataset = sv.DetectionDataset.from_yolo(
-    images_directory_path=...,
-    annotations_directory_path=...,
-    data_yaml_path=...
+project = Roboflow().workspace(<WORKSPACE_ID>).project(<PROJECT_ID>)
+dataset = project.version(<PROJECT_VERSION>).download("coco")
+
+ds = sv.DetectionDataset.from_coco(
+    images_directory_path=f"{dataset.location}/train",
+    annotations_path=f"{dataset.location}/train/_annotations.coco.json",
 )
 
-dataset.classes
-['dog', 'person']
+path, image, annotation = ds[0]
+    # loads image on demand
 
-len(dataset)
-# 1000
+for path, image, annotation in ds:
+    # loads image on demand
 ```
 
 <details close>
@@ -129,94 +137,94 @@ len(dataset)
 
 - load
 
-  ```python
-  dataset = sv.DetectionDataset.from_yolo(
-      images_directory_path=...,
-      annotations_directory_path=...,
-      data_yaml_path=...
-  )
+    ```python
+    dataset = sv.DetectionDataset.from_yolo(
+        images_directory_path=...,
+        annotations_directory_path=...,
+        data_yaml_path=...
+    )
 
-  dataset = sv.DetectionDataset.from_pascal_voc(
-      images_directory_path=...,
-      annotations_directory_path=...
-  )
+    dataset = sv.DetectionDataset.from_pascal_voc(
+        images_directory_path=...,
+        annotations_directory_path=...
+    )
 
-  dataset = sv.DetectionDataset.from_coco(
-      images_directory_path=...,
-      annotations_path=...
-  )
-  ```
+    dataset = sv.DetectionDataset.from_coco(
+        images_directory_path=...,
+        annotations_path=...
+    )
+    ```
 
 - split
 
-  ```python
-  train_dataset, test_dataset = dataset.split(split_ratio=0.7)
-  test_dataset, valid_dataset = test_dataset.split(split_ratio=0.5)
+    ```python
+    train_dataset, test_dataset = dataset.split(split_ratio=0.7)
+    test_dataset, valid_dataset = test_dataset.split(split_ratio=0.5)
 
-  len(train_dataset), len(test_dataset), len(valid_dataset)
-  # (700, 150, 150)
-  ```
+    len(train_dataset), len(test_dataset), len(valid_dataset)
+    # (700, 150, 150)
+    ```
 
 - merge
 
-  ```python
-  ds_1 = sv.DetectionDataset(...)
-  len(ds_1)
-  # 100
-  ds_1.classes
-  # ['dog', 'person']
+    ```python
+    ds_1 = sv.DetectionDataset(...)
+    len(ds_1)
+    # 100
+    ds_1.classes
+    # ['dog', 'person']
 
-  ds_2 = sv.DetectionDataset(...)
-  len(ds_2)
-  # 200
-  ds_2.classes
-  # ['cat']
+    ds_2 = sv.DetectionDataset(...)
+    len(ds_2)
+    # 200
+    ds_2.classes
+    # ['cat']
 
-  ds_merged = sv.DetectionDataset.merge([ds_1, ds_2])
-  len(ds_merged)
-  # 300
-  ds_merged.classes
-  # ['cat', 'dog', 'person']
-  ```
+    ds_merged = sv.DetectionDataset.merge([ds_1, ds_2])
+    len(ds_merged)
+    # 300
+    ds_merged.classes
+    # ['cat', 'dog', 'person']
+    ```
 
 - save
 
-  ```python
-  dataset.as_yolo(
-      images_directory_path=...,
-      annotations_directory_path=...,
-      data_yaml_path=...
-  )
+    ```python
+    dataset.as_yolo(
+        images_directory_path=...,
+        annotations_directory_path=...,
+        data_yaml_path=...
+    )
 
-  dataset.as_pascal_voc(
-      images_directory_path=...,
-      annotations_directory_path=...
-  )
+    dataset.as_pascal_voc(
+        images_directory_path=...,
+        annotations_directory_path=...
+    )
 
-  dataset.as_coco(
-      images_directory_path=...,
-      annotations_path=...
-  )
-  ```
+    dataset.as_coco(
+        images_directory_path=...,
+        annotations_path=...
+    )
+    ```
 
 - convert
 
-  ```python
-  sv.DetectionDataset.from_yolo(
-      images_directory_path=...,
-      annotations_directory_path=...,
-      data_yaml_path=...
-  ).as_pascal_voc(
-      images_directory_path=...,
-      annotations_directory_path=...
-  )
-  ```
+    ```python
+    sv.DetectionDataset.from_yolo(
+        images_directory_path=...,
+        annotations_directory_path=...,
+        data_yaml_path=...
+    ).as_pascal_voc(
+        images_directory_path=...,
+        annotations_directory_path=...
+    )
+    ```
 
 </details>
 
 ## 🎬 tutorials
 
-Want to learn how to use Supervision? Explore our [how-to guides](https://supervision.roboflow.com/develop/how_to/detect_and_annotate/), [end-to-end examples](https://github.com/roboflow/supervision/tree/develop/examples), and [cookbooks](https://supervision.roboflow.com/develop/cookbooks/)!
+Want to learn how to use Supervision? Explore our [how-to guides](https://supervision.roboflow.com/develop/how_to/detect_and_annotate/), [end-to-end examples](https://github.com/roboflow/supervision/tree/develop/examples), [cheatsheet](https://roboflow.github.io/cheatsheet-supervision/), and [cookbooks](https://supervision.roboflow.com/develop/cookbooks/)!
 
 <br/>
 
@@ -262,7 +270,7 @@ We love your input! Please see our [contributing guide](https://github.com/robof
 
 <div align="center">
 
-  <div align="center">
+<div align="center">
       <a href="https://youtube.com/roboflow">
           <img
             src="https://media.roboflow.com/notebooks/template/icons/purple/youtube.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949634652"
@@ -291,7 +299,7 @@ We love your input! Please see our [contributing guide](https://github.com/robof
           />
       </a>
       <img src="https://raw.githubusercontent.com/ultralytics/assets/main/social/logo-transparent.png" width="3%"/>
-      <a href="https://disuss.roboflow.com">
+      <a href="https://discuss.roboflow.com">
           <img
             src="https://media.roboflow.com/notebooks/template/icons/purple/forum.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949633584"
             width="3%"

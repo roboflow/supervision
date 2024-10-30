@@ -13,7 +13,6 @@ To install the Supervision assets utility, you can use `pip`. This utility is av
 as an extra within the Supervision package.
 
 !!! example "pip install"
-
     ```bash
     pip install "supervision[assets]"
     ```

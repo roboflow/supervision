@@ -7,8 +7,10 @@ except importlib_metadata.PackageNotFoundError:
     __version__ = "development"
 
 from supervision.annotators.core import (
+    BackgroundOverlayAnnotator,
     BlurAnnotator,
     BoundingBoxAnnotator,
+    BoxAnnotator,
     BoxCornerAnnotator,
     CircleAnnotator,
     ColorAnnotator,
@@ -17,6 +19,7 @@ from supervision.annotators.core import (
     EllipseAnnotator,
     HaloAnnotator,
     HeatMapAnnotator,
+    IconAnnotator,
     LabelAnnotator,
     MaskAnnotator,
     OrientedBoxAnnotator,
@@ -36,9 +39,12 @@ from supervision.dataset.core import (
     DetectionDataset,
 )
 from supervision.dataset.utils import mask_to_rle, rle_to_mask
-from supervision.detection.annotate import BoxAnnotator
 from supervision.detection.core import Detections
-from supervision.detection.line_zone import LineZone, LineZoneAnnotator
+from supervision.detection.line_zone import (
+    LineZone,
+    LineZoneAnnotator,
+    LineZoneAnnotatorMulticlass,
+)
 from supervision.detection.lmm import LMM
 from supervision.detection.overlap_filter import (
     OverlapFilter,
@@ -63,15 +69,19 @@ from supervision.detection.utils import (
     mask_to_xyxy,
     move_boxes,
     move_masks,
+    oriented_box_iou_batch,
     pad_boxes,
     polygon_to_mask,
     polygon_to_xyxy,
     scale_boxes,
+    xcycwh_to_xyxy,
+    xywh_to_xyxy,
 )
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import (
     calculate_optimal_line_thickness,
     calculate_optimal_text_scale,
+    draw_filled_polygon,
     draw_filled_rectangle,
     draw_image,
     draw_line,

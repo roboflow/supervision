@@ -1,6 +1,5 @@
 ---
 comments: true
-status: new
 ---
 
 # Detect Small Objects
@@ -21,7 +20,6 @@ Small object detection in high-resolution images presents challenges due to the 
 size relative to the image resolution.
 
 === "Inference"
-
     ```python
     import cv2
     import supervision as sv
@@ -32,17 +30,16 @@ size relative to the image resolution.
     results = model.infer(image)[0]
     detections = sv.Detections.from_inference(results)
 
-    bounding_box_annotator = sv.BoundingBoxAnnotator()
+    box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
 
-    annotated_image = bounding_box_annotator.annotate(
+    annotated_image = box_annotator.annotate(
         scene=image, detections=detections)
     annotated_image = label_annotator.annotate(
         scene=annotated_image, detections=detections)
     ```
 
 === "Ultralytics"
-
     ```python
     import cv2
     import supervision as sv
@@ -53,17 +50,16 @@ size relative to the image resolution.
     results = model(image)[0]
     detections = sv.Detections.from_ultralytics(results)
 
-    bounding_box_annotator = sv.BoundingBoxAnnotator()
+    box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
 
-    annotated_image = bounding_box_annotator.annotate(
+    annotated_image = box_annotator.annotate(
         scene=image, detections=detections)
     annotated_image = label_annotator.annotate(
         scene=annotated_image, detections=detections)
     ```
 
 === "Transformers"
-
     ```python
     import torch
     import supervision as sv
@@ -85,7 +81,7 @@ size relative to the image resolution.
         outputs=outputs, target_sizes=target_size)[0]
     detections = sv.Detections.from_transformers(results)
 
-    bounding_box_annotator = sv.BoundingBoxAnnotator()
+    box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
 
     labels = [
@@ -94,7 +90,7 @@ size relative to the image resolution.
         in detections.class_id
     ]
 
-    annotated_image = bounding_box_annotator.annotate(
+    annotated_image = box_annotator.annotate(
         scene=image, detections=detections)
     annotated_image = label_annotator.annotate(
         scene=annotated_image, detections=detections, labels=labels)
@@ -109,7 +105,6 @@ identification at the cost of processing speed and increased memory usage. This 
 is less effective for ultra-high-resolution images (4K and above).
 
 === "Inference"
-
     ```{ .py hl_lines="5" }
     import cv2
     import supervision as sv
@@ -120,17 +115,16 @@ is less effective for ultra-high-resolution images (4K and above).
     results = model.infer(image)[0]
     detections = sv.Detections.from_inference(results)
 
-    bounding_box_annotator = sv.BoundingBoxAnnotator()
+    box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
 
-    annotated_image = bounding_box_annotator.annotate(
+    annotated_image = box_annotator.annotate(
         scene=image, detections=detections)
     annotated_image = label_annotator.annotate(
         scene=annotated_image, detections=detections)
     ```
 
 === "Ultralytics"
-
     ```{ .py hl_lines="7" }
     import cv2
     import supervision as sv
@@ -141,10 +135,10 @@ is less effective for ultra-high-resolution images (4K and above).
     results = model(image, imgsz=1280)[0]
     detections = sv.Detections.from_ultralytics(results)
 
-    bounding_box_annotator = sv.BoundingBoxAnnotator()
+    box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
 
-    annotated_image = bounding_box_annotator.annotate(
+    annotated_image = box_annotator.annotate(
         scene=image, detections=detections)
     annotated_image = label_annotator.annotate(
         scene=annotated_image, detections=detections)
@@ -163,7 +157,6 @@ objects within each, and aggregating the results.
 </video>
 
 === "Inference"
-
     ```{ .py hl_lines="9-14" }
     import cv2
     import numpy as np
@@ -180,17 +173,16 @@ objects within each, and aggregating the results.
     slicer = sv.InferenceSlicer(callback = callback)
     detections = slicer(image)
 
-    bounding_box_annotator = sv.BoundingBoxAnnotator()
+    box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
 
-    annotated_image = bounding_box_annotator.annotate(
+    annotated_image = box_annotator.annotate(
         scene=image, detections=detections)
     annotated_image = label_annotator.annotate(
         scene=annotated_image, detections=detections)
     ```
 
 === "Ultralytics"
-
     ```{ .py hl_lines="9-14" }
     import cv2
     import numpy as np
@@ -207,17 +199,16 @@ objects within each, and aggregating the results.
     slicer = sv.InferenceSlicer(callback = callback)
     detections = slicer(image)
 
-    bounding_box_annotator = sv.BoundingBoxAnnotator()
+    box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
 
-    annotated_image = bounding_box_annotator.annotate(
+    annotated_image = box_annotator.annotate(
         scene=image, detections=detections)
     annotated_image = label_annotator.annotate(
         scene=annotated_image, detections=detections)
     ```
 
 === "Transformers"
-
     ```{ .py hl_lines="13-28" }
     import cv2
     import torch
@@ -248,7 +239,7 @@ objects within each, and aggregating the results.
     slicer = sv.InferenceSlicer(callback = callback)
     detections = slicer(image)
 
-    bounding_box_annotator = sv.BoundingBoxAnnotator()
+    box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
 
     labels = [
@@ -257,7 +248,7 @@ objects within each, and aggregating the results.
         in detections.class_id
     ]
 
-    annotated_image = bounding_box_annotator.annotate(
+    annotated_image = box_annotator.annotate(
         scene=image, detections=detections)
     annotated_image = label_annotator.annotate(
         scene=annotated_image, detections=detections, labels=labels)
@@ -270,7 +261,6 @@ objects within each, and aggregating the results.
 [`InferenceSlicer`](/latest/detection/tools/inference_slicer/#supervision.detection.tools.inference_slicer.InferenceSlicer) can perform segmentation tasks too.
 
 === "Inference"
-
     ```{ .py hl_lines="6 16 19-20" }
     import cv2
     import numpy as np
@@ -297,7 +287,6 @@ objects within each, and aggregating the results.
     ```
 
 === "Ultralytics"
-
     ```{ .py hl_lines="6 16 19-20" }
     import cv2
     import numpy as np

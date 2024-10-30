@@ -1,6 +1,5 @@
-import warnings
 from dataclasses import replace
-from typing import Iterable, Optional, Tuple
+from typing import Iterable, Optional
 
 import cv2
 import numpy as np
@@ -9,15 +8,20 @@ import numpy.typing as npt
 from supervision import Detections
 from supervision.detection.utils import clip_boxes, polygon_to_mask
 from supervision.draw.color import Color
-from supervision.draw.utils import draw_polygon, draw_text
+from supervision.draw.utils import draw_filled_polygon, draw_polygon, draw_text
 from supervision.geometry.core import Position
 from supervision.geometry.utils import get_polygon_center
-from supervision.utils.internal import SupervisionWarnings, deprecated_parameter
 
 
 class PolygonZone:
     """
     A class for defining a polygon-shaped zone within a frame for detecting objects.
+
+    !!! warning
+
+        LineZone uses the `tracker_id`. Read
+        [here](/latest/trackers/) to learn how to plug
+        tracking into your inference pipeline.
 
     Attributes:
         polygon (np.ndarray): A polygon represented by a numpy array of shape
@@ -28,32 +32,39 @@ class PolygonZone:
             (default: (sv.Position.BOTTOM_CENTER,)).
         current_count (int): The current count of detected objects within the zone
         mask (np.ndarray): The 2D bool mask for the polygon zone
+
+    Example:
+        ```python
+        import supervision as sv
+        from ultralytics import YOLO
+        import numpy as np
+        import cv2
+
+        image = cv2.imread(<SOURCE_IMAGE_PATH>)
+        model = YOLO("yolo11s")
+        tracker = sv.ByteTrack()
+
+        polygon = np.array([[100, 200], [200, 100], [300, 200], [200, 300]])
+        polygon_zone = sv.PolygonZone(polygon=polygon)
+
+        result = model.infer(image)[0]
+        detections = sv.Detections.from_ultralytics(result)
+        detections = tracker.update_with_detections(detections)
+
+        is_detections_in_zone = polygon_zone.trigger(detections)
+        print(polygon_zone.current_count)
+        ```
     """
 
-    @deprecated_parameter(
-        old_parameter="triggering_position",
-        new_parameter="triggering_anchors",
-        map_function=lambda x: [x],
-        warning_message="`{old_parameter}` in `{function_name}` is deprecated and will "
-        "be remove in `supervision-0.23.0`. Use '{new_parameter}' "
-        "instead.",
-    )
     def __init__(
         self,
         polygon: npt.NDArray[np.int64],
-        frame_resolution_wh: Optional[Tuple[int, int]] = None,
         triggering_anchors: Iterable[Position] = (Position.BOTTOM_CENTER,),
     ):
-        if frame_resolution_wh is not None:
-            warnings.warn(
-                "The `frame_resolution_wh` parameter is no longer required and will be "
-                "dropped in version supervision-0.24.0. The mask resolution is now "
-                "calculated automatically based on the polygon coordinates.",
-                category=SupervisionWarnings,
-            )
-
         self.polygon = polygon.astype(int)
         self.triggering_anchors = triggering_anchors
+        if not list(self.triggering_anchors):
+            raise ValueError("Triggering anchors cannot be empty.")
 
         self.current_count = 0
 
@@ -105,7 +116,7 @@ class PolygonZoneAnnotator:
 
     Attributes:
         zone (PolygonZone): The polygon zone to be annotated
-        color (Color): The color to draw the polygon lines
+        color (Color): The color to draw the polygon lines, default is white
         thickness (int): The thickness of the polygon lines, default is 2
         text_color (Color): The color of the text on the polygon, default is black
         text_scale (float): The scale of the text on the polygon, default is 0.5
@@ -115,18 +126,20 @@ class PolygonZoneAnnotator:
             default is cv2.FONT_HERSHEY_SIMPLEX
         center (Tuple[int, int]): The center of the polygon for text placement
         display_in_zone_count (bool): Show the label of the zone or not. Default is True
+        opacity: The opacity of zone filling when drawn on the scene. Default is 0
     """
 
     def __init__(
         self,
         zone: PolygonZone,
-        color: Color,
+        color: Color = Color.WHITE,
         thickness: int = 2,
         text_color: Color = Color.BLACK,
         text_scale: float = 0.5,
         text_thickness: int = 1,
         text_padding: int = 10,
         display_in_zone_count: bool = True,
+        opacity: float = 0,
     ):
         self.zone = zone
         self.color = color
@@ -138,6 +151,7 @@ class PolygonZoneAnnotator:
         self.font = cv2.FONT_HERSHEY_SIMPLEX
         self.center = get_polygon_center(polygon=zone.polygon)
         self.display_in_zone_count = display_in_zone_count
+        self.opacity = opacity
 
     def annotate(self, scene: np.ndarray, label: Optional[str] = None) -> np.ndarray:
         """
@@ -145,18 +159,32 @@ class PolygonZoneAnnotator:
 
         Parameters:
             scene (np.ndarray): The image on which the polygon zone will be annotated
-            label (Optional[str]): An optional label for the count of detected objects
+            label (Optional[str]): A label for the count of detected objects
                 within the polygon zone (default: None)
 
         Returns:
             np.ndarray: The image with the polygon zone and count of detected objects
         """
-        annotated_frame = draw_polygon(
-            scene=scene,
-            polygon=self.zone.polygon,
-            color=self.color,
-            thickness=self.thickness,
-        )
+        if self.opacity == 0:
+            annotated_frame = draw_polygon(
+                scene=scene,
+                polygon=self.zone.polygon,
+                color=self.color,
+                thickness=self.thickness,
+            )
+        else:
+            annotated_frame = draw_filled_polygon(
+                scene=scene.copy(),
+                polygon=self.zone.polygon,
+                color=self.color,
+                opacity=self.opacity,
+            )
+            annotated_frame = draw_polygon(
+                scene=annotated_frame,
+                polygon=self.zone.polygon,
+                color=self.color,
+                thickness=self.thickness,
+            )
 
         if self.display_in_zone_count:
             annotated_frame = draw_text(

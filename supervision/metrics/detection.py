@@ -391,11 +391,10 @@ class ConfusionMatrix:
             ```
         """
         predictions, targets = [], []
-        for img_name, img in dataset.images.items():
-            predictions_batch = callback(img)
+        for _, image, annotation in dataset:
+            predictions_batch = callback(image)
             predictions.append(predictions_batch)
-            targets_batch = dataset.annotations[img_name]
-            targets.append(targets_batch)
+            targets.append(annotation)
         return cls.from_detections(
             predictions=predictions,
             targets=targets,
@@ -441,8 +440,8 @@ class ConfusionMatrix:
         class_names = classes if classes is not None else self.classes
         use_labels_for_ticks = class_names is not None and (0 < len(class_names) < 99)
         if use_labels_for_ticks:
-            x_tick_labels = class_names + ["FN"]
-            y_tick_labels = class_names + ["FP"]
+            x_tick_labels = [*class_names, "FN"]
+            y_tick_labels = [*class_names, "FP"]
             num_ticks = len(x_tick_labels)
         else:
             x_tick_labels = None
@@ -604,11 +603,10 @@ class MeanAveragePrecision:
             ```
         """
         predictions, targets = [], []
-        for img_name, img in dataset.images.items():
-            predictions_batch = callback(img)
+        for _, image, annotation in dataset:
+            predictions_batch = callback(image)
             predictions.append(predictions_batch)
-            targets_batch = dataset.annotations[img_name]
-            targets.append(targets_batch)
+            targets.append(annotation)
         return cls.from_detections(
             predictions=predictions,
             targets=targets,
@@ -666,12 +664,12 @@ class MeanAveragePrecision:
                 np.array([[1.0, 1.0, 2.0, 2.0, 2, 0.8]])
             ]
 
-            mean_average_precison = sv.MeanAveragePrecision.from_tensors(
+            mean_average_precision = sv.MeanAveragePrecision.from_tensors(
                 predictions=predictions,
                 targets=targets,
             )
 
-            print(mean_average_precison.map50_95)
+            print(mean_average_precision.map50_95)
             # 0.6649
             ```
         """
@@ -808,7 +806,7 @@ class MeanAveragePrecision:
             prediction_confidence (np.ndarray): Objectness value from 0-1.
             prediction_class_ids (np.ndarray): Predicted object classes.
             true_class_ids (np.ndarray): True object classes.
-            eps (float, optional): Small value to prevent division by zero.
+            eps (float): Small value to prevent division by zero.
 
         Returns:
             np.ndarray: Average precision for different IoU levels.

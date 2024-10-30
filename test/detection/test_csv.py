@@ -1,11 +1,11 @@
 import csv
 import os
-from test.test_utils import mock_detections
 from typing import Any, Dict, List
 
 import pytest
 
 import supervision as sv
+from test.test_utils import mock_detections
 
 
 @pytest.mark.parametrize(

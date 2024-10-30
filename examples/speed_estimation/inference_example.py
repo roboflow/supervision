@@ -95,14 +95,14 @@ if __name__ == "__main__":
     model = get_roboflow_model(model_id=args.model_id, api_key=args.roboflow_api_key)
 
     byte_track = sv.ByteTrack(
-        frame_rate=video_info.fps, track_thresh=args.confidence_threshold
+        frame_rate=video_info.fps, track_activation_threshold=args.confidence_threshold
     )
 
     thickness = sv.calculate_optimal_line_thickness(
         resolution_wh=video_info.resolution_wh
     )
     text_scale = sv.calculate_optimal_text_scale(resolution_wh=video_info.resolution_wh)
-    bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=thickness)
+    box_annotator = sv.BoxAnnotator(thickness=thickness)
     label_annotator = sv.LabelAnnotator(
         text_scale=text_scale,
         text_thickness=thickness,
@@ -154,7 +154,7 @@ if __name__ == "__main__":
             annotated_frame = trace_annotator.annotate(
                 scene=annotated_frame, detections=detections
             )
-            annotated_frame = bounding_box_annotator.annotate(
+            annotated_frame = box_annotator.annotate(
                 scene=annotated_frame, detections=detections
             )
             annotated_frame = label_annotator.annotate(

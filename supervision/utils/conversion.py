@@ -8,11 +8,13 @@ from PIL import Image
 from supervision.annotators.base import ImageType
 
 
-def convert_for_annotation_method(annotate_func):
+def ensure_cv2_image_for_annotation(annotate_func):
     """
     Decorates `BaseAnnotator.annotate` implementations, converts scene to
     an image type used internally by the annotators, converts back when annotation
     is complete.
+
+    Assumes the annotators modify the scene in-place.
     """
 
     @wraps(annotate_func)
@@ -21,19 +23,22 @@ def convert_for_annotation_method(annotate_func):
             return annotate_func(self, scene, *args, **kwargs)
 
         if isinstance(scene, Image.Image):
-            scene = pillow_to_cv2(scene)
-            annotated = annotate_func(self, scene, *args, **kwargs)
-            return cv2_to_pillow(image=annotated)
+            scene_np = pillow_to_cv2(scene)
+            annotated_np = annotate_func(self, scene_np, *args, **kwargs)
+            scene.paste(cv2_to_pillow(annotated_np))
+            return scene
 
         raise ValueError(f"Unsupported image type: {type(scene)}")
 
     return wrapper
 
 
-def convert_for_image_processing(image_processing_fun):
+def ensure_cv2_image_for_processing(image_processing_fun):
     """
     Decorates image processing functions that accept np.ndarray, converting `image` to
     np.ndarray, converts back when processing is complete.
+
+    Assumes the annotators do NOT modify the scene in-place.
     """
 
     @wraps(image_processing_fun)
@@ -44,9 +49,33 @@ def convert_for_image_processing(image_processing_fun):
         if isinstance(image, Image.Image):
             scene = pillow_to_cv2(image)
             annotated = image_processing_fun(scene, *args, **kwargs)
-            return cv2_to_pillow(image=annotated)
+            return cv2_to_pillow(annotated)
 
         raise ValueError(f"Unsupported image type: {type(image)}")
+
+    return wrapper
+
+
+def ensure_pil_image_for_annotation(annotate_func):
+    """
+    Decorates image processing functions that accept np.ndarray, converting `image` to
+    PIL image, converts back when processing is complete.
+
+    Assumes the annotators modify the scene in-place.
+    """
+
+    @wraps(annotate_func)
+    def wrapper(self, scene: ImageType, *args, **kwargs):
+        if isinstance(scene, np.ndarray):
+            scene_pil = cv2_to_pillow(scene)
+            annotated_pil = annotate_func(self, scene_pil, *args, **kwargs)
+            np.copyto(scene, pillow_to_cv2(annotated_pil))
+            return scene
+
+        if isinstance(scene, Image.Image):
+            return annotate_func(self, scene, *args, **kwargs)
+
+        raise ValueError(f"Unsupported image type: {type(scene)}")
 
     return wrapper
 
@@ -67,7 +96,7 @@ def images_to_cv2(images: List[ImageType]) -> List[np.ndarray]:
     result = []
     for image in images:
         if issubclass(type(image), Image.Image):
-            image = pillow_to_cv2(image=image)
+            image = pillow_to_cv2(image)
         result.append(image)
     return result
 

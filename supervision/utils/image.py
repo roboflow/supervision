@@ -14,8 +14,8 @@ from supervision.draw.color import Color, unify_to_bgr
 from supervision.draw.utils import calculate_optimal_text_scale, draw_text
 from supervision.geometry.core import Point
 from supervision.utils.conversion import (
-    convert_for_image_processing,
     cv2_to_pillow,
+    ensure_cv2_image_for_processing,
     images_to_cv2,
 )
 from supervision.utils.iterables import create_batches, fill
@@ -25,7 +25,7 @@ RelativePosition = Literal["top", "bottom"]
 MAX_COLUMNS_FOR_SINGLE_ROW_GRID = 3
 
 
-@convert_for_image_processing
+@ensure_cv2_image_for_processing
 def crop_image(
     image: ImageType,
     xyxy: Union[npt.NDArray[int], List[int], Tuple[int, int, int, int]],
@@ -86,7 +86,7 @@ def crop_image(
     return image[y_min:y_max, x_min:x_max]
 
 
-@convert_for_image_processing
+@ensure_cv2_image_for_processing
 def scale_image(image: ImageType, scale_factor: float) -> ImageType:
     """
     Scales the given image based on the given scale factor.
@@ -143,7 +143,7 @@ def scale_image(image: ImageType, scale_factor: float) -> ImageType:
     return cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)
 
 
-@convert_for_image_processing
+@ensure_cv2_image_for_processing
 def resize_image(
     image: ImageType,
     resolution_wh: Tuple[int, int],
@@ -158,7 +158,7 @@ def resize_image(
             accepting either `numpy.ndarray` or `PIL.Image.Image`.
         resolution_wh (Tuple[int, int]): The target resolution as
             `(width, height)`.
-        keep_aspect_ratio (bool, optional): Flag to maintain the image's original
+        keep_aspect_ratio (bool): Flag to maintain the image's original
             aspect ratio. Defaults to `False`.
 
     Returns:
@@ -216,7 +216,7 @@ def resize_image(
     return cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)
 
 
-@convert_for_image_processing
+@ensure_cv2_image_for_processing
 def letterbox_image(
     image: ImageType,
     resolution_wh: Tuple[int, int],
@@ -270,6 +270,7 @@ def letterbox_image(
 
     ![letterbox_image](https://media.roboflow.com/supervision-docs/letterbox-image.png){ align=center width="800" }
     """  # noqa E501 // docs
+    assert isinstance(image, np.ndarray)
     color = unify_to_bgr(color=color)
     resized_image = resize_image(
         image=image, resolution_wh=resolution_wh, keep_aspect_ratio=True
@@ -279,7 +280,7 @@ def letterbox_image(
     padding_bottom = resolution_wh[1] - height_new - padding_top
     padding_left = (resolution_wh[0] - width_new) // 2
     padding_right = resolution_wh[0] - width_new - padding_left
-    return cv2.copyMakeBorder(
+    image_with_borders = cv2.copyMakeBorder(
         resized_image,
         padding_top,
         padding_bottom,
@@ -288,6 +289,14 @@ def letterbox_image(
         cv2.BORDER_CONSTANT,
         value=color,
     )
+
+    if image.shape[2] == 4:
+        image[:padding_top, :, 3] = 0
+        image[height_new - padding_bottom :, :, 3] = 0
+        image[:, :padding_left, 3] = 0
+        image[:, width_new - padding_right :, 3] = 0
+
+    return image_with_borders
 
 
 def overlay_image(
@@ -341,9 +350,20 @@ def overlay_image(
     crop_x_max = image_width - max((anchor_x + image_width) - scene_width, 0)
     crop_y_max = image_height - max((anchor_y + image_height) - scene_height, 0)
 
-    image[y_min:y_max, x_min:x_max] = overlay[
-        crop_y_min:crop_y_max, crop_x_min:crop_x_max
-    ]
+    if overlay.shape[2] == 4:
+        b, g, r, alpha = cv2.split(
+            overlay[crop_y_min:crop_y_max, crop_x_min:crop_x_max]
+        )
+        alpha = alpha[:, :, None] / 255.0
+        overlay_color = cv2.merge((b, g, r))
+
+        roi = image[y_min:y_max, x_min:x_max]
+        roi[:] = roi * (1 - alpha) + overlay_color * alpha
+        image[y_min:y_max, x_min:x_max] = roi
+    else:
+        image[y_min:y_max, x_min:x_max] = overlay[
+            crop_y_min:crop_y_max, crop_x_min:crop_x_max
+        ]
 
     return image
 
@@ -360,9 +380,9 @@ class ImageSink:
 
         Args:
             target_dir_path (str): The target directory where images will be saved.
-            overwrite (bool, optional): Whether to overwrite the existing directory.
+            overwrite (bool): Whether to overwrite the existing directory.
                 Defaults to False.
-            image_name_pattern (str, optional): The image file name pattern.
+            image_name_pattern (str): The image file name pattern.
                 Defaults to "image_{:05d}.png".
 
         Examples:
@@ -399,7 +419,7 @@ class ImageSink:
         Args:
             image (np.ndarray): The image to be saved. The image must be in BGR color
                 format.
-            image_name (str, optional): The name to use for the saved image.
+            image_name (Optional[str]): The name to use for the saved image.
                 If not provided, a name will be
                 generated using the `image_name_pattern`.
         """

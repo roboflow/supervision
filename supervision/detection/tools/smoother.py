@@ -41,7 +41,7 @@ class DetectionsSmoother:
         tracker = sv.ByteTrack(frame_rate=video_info.fps)
         smoother = sv.DetectionsSmoother()
 
-        annotator = sv.BoundingBoxAnnotator()
+        box_annotator = sv.BoxAnnotator()
 
         with sv.VideoSink(<TARGET_FILE_PATH>, video_info=video_info) as sink:
             for frame in frame_generator:
@@ -50,10 +50,10 @@ class DetectionsSmoother:
                 detections = tracker.update_with_detections(detections)
                 detections = smoother.update_with_detections(detections)
 
-                annotated_frame = bounding_box_annotator.annotate(frame.copy(), detections)
+                annotated_frame = box_annotator.annotate(frame.copy(), detections)
                 sink.write_frame(annotated_frame)
         ```
-    """  # noqa: E501 // docs
+    """
 
     def __init__(self, length: int = 5) -> None:
         """

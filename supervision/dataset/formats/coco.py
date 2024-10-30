@@ -1,9 +1,8 @@
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import TYPE_CHECKING, Dict, List, Tuple
 
-import cv2
 import numpy as np
 import numpy.typing as npt
 
@@ -20,6 +19,9 @@ from supervision.detection.utils import (
     polygon_to_mask,
 )
 from supervision.utils.file import read_json_file, save_json_file
+
+if TYPE_CHECKING:
+    from supervision.dataset.core import DetectionDataset
 
 
 def coco_categories_to_classes(coco_categories: List[dict]) -> List[str]:
@@ -161,7 +163,7 @@ def load_coco_annotations(
     images_directory_path: str,
     annotations_path: str,
     force_masks: bool = False,
-) -> Tuple[List[str], Dict[str, np.ndarray], Dict[str, Detections]]:
+) -> Tuple[List[str], List[str], Dict[str, Detections]]:
     coco_data = read_json_file(file_path=annotations_path)
     classes = coco_categories_to_classes(coco_categories=coco_data["categories"])
     class_index_mapping = build_coco_class_index_mapping(
@@ -172,7 +174,7 @@ def load_coco_annotations(
         coco_annotations=coco_data["annotations"]
     )
 
-    images = {}
+    images = []
     annotations = {}
 
     for coco_image in coco_images:
@@ -184,7 +186,6 @@ def load_coco_annotations(
         image_annotations = coco_annotations_groups.get(coco_image["id"], [])
         image_path = os.path.join(images_directory_path, image_name)
 
-        image = cv2.imread(image_path)
         annotation = coco_annotations_to_detections(
             image_annotations=image_annotations,
             resolution_wh=(image_width, image_height),
@@ -195,23 +196,20 @@ def load_coco_annotations(
             detections=annotation,
         )
 
-        images[image_path] = image
+        images.append(image_path)
         annotations[image_path] = annotation
 
     return classes, images, annotations
 
 
 def save_coco_annotations(
+    dataset: "DetectionDataset",
     annotation_path: str,
-    images: Dict[str, np.ndarray],
-    annotations: Dict[str, Detections],
-    classes: List[str],
     min_image_area_percentage: float = 0.0,
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.75,
 ) -> None:
     Path(annotation_path).parent.mkdir(parents=True, exist_ok=True)
-    info = {}
     licenses = [
         {
             "id": 1,
@@ -222,10 +220,10 @@ def save_coco_annotations(
 
     coco_annotations = []
     coco_images = []
-    coco_categories = classes_to_coco_categories(classes=classes)
+    coco_categories = classes_to_coco_categories(classes=dataset.classes)
 
     image_id, annotation_id = 1, 1
-    for image_path, image in images.items():
+    for image_path, image, annotation in dataset:
         image_height, image_width, _ = image.shape
         image_name = f"{Path(image_path).stem}{Path(image_path).suffix}"
         coco_image = {
@@ -238,10 +236,8 @@ def save_coco_annotations(
         }
 
         coco_images.append(coco_image)
-        detections = annotations[image_path]
-
         coco_annotation, annotation_id = detections_to_coco_annotations(
-            detections=detections,
+            detections=annotation,
             image_id=image_id,
             annotation_id=annotation_id,
             min_image_area_percentage=min_image_area_percentage,
@@ -253,7 +249,7 @@ def save_coco_annotations(
         image_id += 1
 
     annotation_dict = {
-        "info": info,
+        "info": {},
         "licenses": licenses,
         "categories": coco_categories,
         "images": coco_images,

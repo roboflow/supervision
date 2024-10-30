@@ -1,4 +1,4 @@
-name: Supervision Releases to PyPi
+name: Publish Supervision Releases to PyPI and TestPyPI
 on:
   push:
     tags:
@@ -7,8 +7,10 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-and-publish-pre-release:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
     strategy:
       matrix:
         python-version: ["3.10"]
@@ -27,14 +29,11 @@ jobs:
           python -m pip install --upgrade build twine
           python -m build
           twine check --strict dist/*
+
       - name: 🚀 Publish to PyPi
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          user: ${{ secrets.PYPI_USERNAME }}
-          password: ${{ secrets.PYPI_PASSWORD }}
+        uses: pypa/gh-action-pypi-publish@release/v1.10
+
       - name: 🚀 Publish to Test-PyPi
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@release/v1.10
         with:
           repository-url: https://test.pypi.org/legacy/
-          user: ${{ secrets.PYPI_TEST_USERNAME }}
-          password: ${{ secrets.PYPI_TEST_PASSWORD }}

@@ -6,6 +6,7 @@ import numpy as np
 import numpy.typing as npt
 
 from supervision.config import CLASS_NAME_DATA_FIELD
+from supervision.geometry.core import Vector
 
 MIN_POLYGON_POINT_COUNT = 3
 
@@ -105,7 +106,7 @@ def mask_iou_batch(
     Args:
         masks_true (np.ndarray): 3D `np.ndarray` representing ground-truth masks.
         masks_detection (np.ndarray): 3D `np.ndarray` representing detection masks.
-        memory_limit (int, optional): memory limit in MB, default is 1024 * 5 MB (5GB).
+        memory_limit (int): memory limit in MB, default is 1024 * 5 MB (5GB).
 
     Returns:
         np.ndarray: Pairwise IoU of masks from `masks_true` and `masks_detection`.
@@ -139,6 +140,45 @@ def mask_iou_batch(
     return np.vstack(ious)
 
 
+def oriented_box_iou_batch(
+    boxes_true: np.ndarray, boxes_detection: np.ndarray
+) -> np.ndarray:
+    """
+    Compute Intersection over Union (IoU) of two sets of oriented bounding boxes -
+    `boxes_true` and `boxes_detection`. Both sets of boxes are expected to be in
+    `((x1, y1), (x2, y2), (x3, y3), (x4, y4))` format.
+
+    Args:
+        boxes_true (np.ndarray): a `np.ndarray` representing ground-truth boxes.
+            `shape = (N, 4, 2)` where `N` is number of true objects.
+        boxes_detection (np.ndarray): a `np.ndarray` representing detection boxes.
+            `shape = (M, 4, 2)` where `M` is number of detected objects.
+
+    Returns:
+        np.ndarray: Pairwise IoU of boxes from `boxes_true` and `boxes_detection`.
+            `shape = (N, M)` where `N` is number of true objects and
+            `M` is number of detected objects.
+    """
+
+    boxes_true = boxes_true.reshape(-1, 4, 2)
+    boxes_detection = boxes_detection.reshape(-1, 4, 2)
+
+    max_height = max(boxes_true[:, :, 0].max(), boxes_detection[:, :, 0].max()) + 1
+    # adding 1 because we are 0-indexed
+    max_width = max(boxes_true[:, :, 1].max(), boxes_detection[:, :, 1].max()) + 1
+
+    mask_true = np.zeros((boxes_true.shape[0], max_height, max_width))
+    for i, box_true in enumerate(boxes_true):
+        mask_true[i] = polygon_to_mask(box_true, (max_width, max_height))
+
+    mask_detection = np.zeros((boxes_detection.shape[0], max_height, max_width))
+    for i, box_detection in enumerate(boxes_detection):
+        mask_detection[i] = polygon_to_mask(box_detection, (max_width, max_height))
+
+    ious = mask_iou_batch(mask_true, mask_detection)
+    return ious
+
+
 def clip_boxes(xyxy: np.ndarray, resolution_wh: Tuple[int, int]) -> np.ndarray:
     """
     Clips bounding boxes coordinates to fit within the frame resolution.
@@ -146,7 +186,7 @@ def clip_boxes(xyxy: np.ndarray, resolution_wh: Tuple[int, int]) -> np.ndarray:
     Args:
         xyxy (np.ndarray): A numpy array of shape `(N, 4)` where each
             row corresponds to a bounding box in
-        the format `(x_min, y_min, x_max, y_max)`.
+            the format `(x_min, y_min, x_max, y_max)`.
         resolution_wh (Tuple[int, int]): A tuple of the form `(width, height)`
             representing the resolution of the frame.
 
@@ -154,6 +194,25 @@ def clip_boxes(xyxy: np.ndarray, resolution_wh: Tuple[int, int]) -> np.ndarray:
         np.ndarray: A numpy array of shape `(N, 4)` where each row
             corresponds to a bounding box with coordinates clipped to fit
             within the frame resolution.
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        xyxy = np.array([
+            [10, 20, 300, 200],
+            [15, 25, 350, 450],
+            [-10, -20, 30, 40]
+        ])
+
+        sv.clip_boxes(xyxy=xyxy, resolution_wh=(320, 240))
+        # array([
+        #     [ 10,  20, 300, 200],
+        #     [ 15,  25, 320, 240],
+        #     [  0,   0,  30,  40]
+        # ])
+        ```
     """
     result = np.copy(xyxy)
     width, height = resolution_wh
@@ -180,6 +239,23 @@ def pad_boxes(xyxy: np.ndarray, px: int, py: Optional[int] = None) -> np.ndarray
         np.ndarray: A numpy array of shape `(N, 4)` where each row corresponds to a
             bounding box with coordinates padded according to the provided padding
             values.
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        xyxy = np.array([
+            [10, 20, 30, 40],
+            [15, 25, 35, 45]
+        ])
+
+        sv.pad_boxes(xyxy=xyxy, px=5, py=10)
+        # array([
+        #     [ 5, 10, 35, 50],
+        #     [10, 15, 40, 55]
+        # ])
+        ```
     """
     if py is None:
         py = px
@@ -191,10 +267,78 @@ def pad_boxes(xyxy: np.ndarray, px: int, py: Optional[int] = None) -> np.ndarray
     return result
 
 
-def xywh_to_xyxy(boxes_xywh: np.ndarray) -> np.ndarray:
-    xyxy = boxes_xywh.copy()
-    xyxy[:, 2] = boxes_xywh[:, 0] + boxes_xywh[:, 2]
-    xyxy[:, 3] = boxes_xywh[:, 1] + boxes_xywh[:, 3]
+def xywh_to_xyxy(xywh: np.ndarray) -> np.ndarray:
+    """
+    Converts bounding box coordinates from `(x, y, width, height)`
+    format to `(x_min, y_min, x_max, y_max)` format.
+
+    Args:
+        xywh (np.ndarray): A numpy array of shape `(N, 4)` where each row
+            corresponds to a bounding box in the format `(x, y, width, height)`.
+
+    Returns:
+        np.ndarray: A numpy array of shape `(N, 4)` where each row corresponds
+            to a bounding box in the format `(x_min, y_min, x_max, y_max)`.
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        xywh = np.array([
+            [10, 20, 30, 40],
+            [15, 25, 35, 45]
+        ])
+
+        sv.xywh_to_xyxy(xywh=xywh)
+        # array([
+        #     [10, 20, 40, 60],
+        #     [15, 25, 50, 70]
+        # ])
+        ```
+    """
+    xyxy = xywh.copy()
+    xyxy[:, 2] = xywh[:, 0] + xywh[:, 2]
+    xyxy[:, 3] = xywh[:, 1] + xywh[:, 3]
+    return xyxy
+
+
+def xcycwh_to_xyxy(xcycwh: np.ndarray) -> np.ndarray:
+    """
+    Converts bounding box coordinates from `(center_x, center_y, width, height)`
+    format to `(x_min, y_min, x_max, y_max)` format.
+
+    Args:
+        xcycwh (np.ndarray): A numpy array of shape `(N, 4)` where each row
+            corresponds to a bounding box in the format `(center_x, center_y, width,
+            height)`.
+
+    Returns:
+        np.ndarray: A numpy array of shape `(N, 4)` where each row corresponds
+            to a bounding box in the format `(x_min, y_min, x_max, y_max)`.
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        xcycwh = np.array([
+            [50, 50, 20, 30],
+            [30, 40, 10, 15]
+        ])
+
+        sv.xcycwh_to_xyxy(xcycwh=xcycwh)
+        # array([
+        #     [40, 35, 60, 65],
+        #     [25, 32.5, 35, 47.5]
+        # ])
+        ```
+    """
+    xyxy = xcycwh.copy()
+    xyxy[:, 0] = xcycwh[:, 0] - xcycwh[:, 2] / 2
+    xyxy[:, 1] = xcycwh[:, 1] - xcycwh[:, 3] / 2
+    xyxy[:, 2] = xcycwh[:, 0] + xcycwh[:, 2] / 2
+    xyxy[:, 3] = xcycwh[:, 1] + xcycwh[:, 3] / 2
     return xyxy
 
 
@@ -491,6 +635,61 @@ def move_boxes(
     return xyxy + np.hstack([offset, offset])
 
 
+def move_oriented_boxes(
+    xyxyxyxy: npt.NDArray[np.float64], offset: npt.NDArray[np.int32]
+) -> npt.NDArray[np.float64]:
+    """
+    Parameters:
+    xyxyxyxy (npt.NDArray[np.float64]): An array of shape `(n, 4, 2)` containing the
+    oriented bounding boxes coordinates in format
+    `[[x1, y1], [x2, y2], [x3, y3], [x3, y3]]`
+    offset (np.array): An array of shape `(2,)` containing offset values in format
+        is `[dx, dy]`.
+
+    Returns:
+    npt.NDArray[np.float64]: Repositioned bounding boxes.
+
+    Examples:
+    ```python
+    import numpy as np
+    import supervision as sv
+
+    xyxyxyxy = np.array([
+        [
+            [20, 10],
+            [10, 20],
+            [20, 30],
+            [30, 20]
+        ],
+        [
+            [30 ,30],
+            [20, 40],
+            [30, 50],
+            [40, 40]
+        ]
+    ])
+    offset = np.array([5, 5])
+
+    sv.move_oriented_boxes(xyxy=xyxy, offset=offset)
+    # array([
+    #     [
+    #         [25, 15],
+    #         [15, 25],
+    #         [25, 35],
+    #         [35, 25]
+    #     ],
+    #     [
+    #         [35, 35],
+    #         [25, 45],
+    #         [35, 55],
+    #         [45, 45]
+    #     ]
+    # ])
+    ```
+    """
+    return xyxyxyxy + offset
+
+
 def move_masks(
     masks: npt.NDArray[np.bool_],
     offset: npt.NDArray[np.int32],
@@ -552,7 +751,7 @@ def scale_boxes(
             [30, 30, 40, 40]
         ])
 
-        scaled_bb = sv.scale_boxes(xyxy=xyxy, factor=1.5)
+        sv.scale_boxes(xyxy=xyxy, factor=1.5)
         # array([
         #    [ 7.5,  7.5, 22.5, 22.5],
         #    [27.5, 27.5, 42.5, 42.5]
@@ -631,6 +830,10 @@ def merge_data(
     if not data_list:
         return {}
 
+    all_keys_sets = [set(data.keys()) for data in data_list]
+    if not all(keys_set == all_keys_sets[0] for keys_set in all_keys_sets):
+        raise ValueError("All data dictionaries must have the same keys to merge.")
+
     for data in data_list:
         lengths = [len(value) for value in data.values()]
         if len(set(lengths)) > 1:
@@ -638,21 +841,7 @@ def merge_data(
                 "All data values within a single object must have equal length."
             )
 
-    keys_by_data = [set(data.keys()) for data in data_list]
-    keys_by_data = [keys for keys in keys_by_data if len(keys) > 0]
-    if not keys_by_data:
-        return {}
-
-    common_keys = set.intersection(*keys_by_data)
-    all_keys = set.union(*keys_by_data)
-    if common_keys != all_keys:
-        raise ValueError(
-            f"All sv.Detections.data dictionaries must have the same keys. Common "
-            f"keys: {common_keys}, but some dictionaries have additional keys: "
-            f"{all_keys.difference(common_keys)}."
-        )
-
-    merged_data = {key: [] for key in all_keys}
+    merged_data = {key: [] for key in all_keys_sets[0]}
     for data in data_list:
         for key in data:
             merged_data[key].append(data[key])
@@ -833,3 +1022,20 @@ def contains_multiple_segments(
         mask_uint8, labels, connectivity=connectivity
     )
     return number_of_labels > 2
+
+
+def cross_product(anchors: np.ndarray, vector: Vector) -> np.ndarray:
+    """
+    Get array of cross products of each anchor with a vector.
+    Args:
+        anchors: Array of anchors of shape (number of anchors, detections, 2)
+        vector: Vector to calculate cross product with
+
+    Returns:
+        Array of cross products of shape (number of anchors, detections)
+    """
+    vector_at_zero = np.array(
+        [vector.end.x - vector.start.x, vector.end.y - vector.start.y]
+    )
+    vector_start = np.array([vector.start.x, vector.start.y])
+    return np.cross(vector_at_zero, anchors - vector_start)

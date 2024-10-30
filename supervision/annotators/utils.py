@@ -51,14 +51,17 @@ def resolve_color_idx(
         if detections.class_id is None:
             raise ValueError(
                 "Could not resolve color by class because "
-                "Detections do not have class_id"
+                "Detections do not have class_id. If using an annotator, "
+                "try setting color_lookup to sv.ColorLookup.INDEX or "
+                "sv.ColorLookup.TRACK."
             )
         return detections.class_id[detection_idx]
     elif color_lookup == ColorLookup.TRACK:
         if detections.tracker_id is None:
             raise ValueError(
                 "Could not resolve color by track because "
-                "Detections do not have tracker_id"
+                "Detections do not have tracker_id. Did you call "
+                "tracker.update_with_detections(...) before annotating?"
             )
         return detections.tracker_id[detection_idx]
 

@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 import supervision as sv
 
-COLORS = sv.ColorPalette.default()
+COLORS = sv.ColorPalette.DEFAULT
 
 
 def load_zones_config(file_path: str) -> List[np.ndarray]:
@@ -75,7 +75,7 @@ def detect(
         frame (np.ndarray): The frame to process, expected to be a NumPy array.
         model (RoboflowInferenceModel): The Inference model used for processing the
             frame.
-        confidence_threshold (float, optional): The confidence threshold for filtering
+        confidence_threshold (float): The confidence threshold for filtering
             detections. Default is 0.5.
 
     Returns:

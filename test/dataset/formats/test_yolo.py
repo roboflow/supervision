@@ -13,7 +13,7 @@ from supervision.dataset.formats.yolo import (
 from supervision.detection.core import Detections
 
 
-def _mock_simple_mask(resolution_wh: Tuple[int, int], box: List[int]) -> np.array:
+def _mock_simple_mask(resolution_wh: Tuple[int, int], box: List[int]) -> np.ndarray:
     x_min, y_min, x_max, y_max = box
     mask = np.full(resolution_wh, False, dtype=bool)
     mask[y_min:y_max, x_min:x_max] = True

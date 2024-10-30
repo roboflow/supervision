@@ -1,5 +1,5 @@
 import argparse
-from typing import Dict, Iterable, List, Set
+from typing import Dict, Iterable, List, Optional, Set
 
 import cv2
 import numpy as np
@@ -74,7 +74,7 @@ class VideoProcessor:
         self,
         source_weights_path: str,
         source_video_path: str,
-        target_video_path: str = None,
+        target_video_path: Optional[str] = None,
         confidence_threshold: float = 0.3,
         iou_threshold: float = 0.7,
     ) -> None:
@@ -90,7 +90,7 @@ class VideoProcessor:
         self.zones_in = initiate_polygon_zones(ZONE_IN_POLYGONS, [sv.Position.CENTER])
         self.zones_out = initiate_polygon_zones(ZONE_OUT_POLYGONS, [sv.Position.CENTER])
 
-        self.bounding_box_annotator = sv.BoundingBoxAnnotator(color=COLORS)
+        self.box_annotator = sv.BoxAnnotator(color=COLORS)
         self.label_annotator = sv.LabelAnnotator(
             color=COLORS, text_color=sv.Color.BLACK
         )
@@ -131,9 +131,7 @@ class VideoProcessor:
 
         labels = [f"#{tracker_id}" for tracker_id in detections.tracker_id]
         annotated_frame = self.trace_annotator.annotate(annotated_frame, detections)
-        annotated_frame = self.bounding_box_annotator.annotate(
-            annotated_frame, detections
-        )
+        annotated_frame = self.box_annotator.annotate(annotated_frame, detections)
         annotated_frame = self.label_annotator.annotate(
             annotated_frame, detections, labels
         )

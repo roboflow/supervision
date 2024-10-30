@@ -5,7 +5,9 @@ status: new
 
 # Annotators
 
-=== "BoundingBox"
+Annotators accept detections and apply box or mask visualizations to the detections. Annotators have many available styles.
+
+=== "Box"
 
     ```python
     import supervision as sv
@@ -13,8 +15,8 @@ status: new
     image = ...
     detections = sv.Detections(...)
 
-    bounding_box_annotator = sv.BoundingBoxAnnotator()
-    annotated_frame = bounding_box_annotator.annotate(
+    box_annotator = sv.BoxAnnotator()
+    annotated_frame = box_annotator.annotate(
         scene=image.copy(),
         detections=detections
     )
@@ -300,10 +302,10 @@ status: new
     ]
 
     rich_label_annotator = sv.RichLabelAnnotator(
-        font_path=".../font.ttf",
+        font_path="<TTF_FONT_PATH>",
         text_position=sv.Position.CENTER
     )
-    annotated_frame = label_annotator.annotate(
+    annotated_frame = rich_label_annotator.annotate(
         scene=image.copy(),
         detections=detections,
         labels=labels
@@ -313,6 +315,33 @@ status: new
     <div class="result" markdown>
 
     ![label-annotator-example](https://media.roboflow.com/supervision-annotator-examples/label-annotator-example-purple.png){ align=center width="800" }
+
+    </div>
+
+=== "Icon"
+
+    ```python
+    import supervision as sv
+
+    image = ...
+    detections = sv.Detections(...)
+
+    icon_paths = [
+        "<ICON_PATH>"
+        for _ in detections
+    ]
+
+    icon_annotator = sv.IconAnnotator()
+    annotated_frame = icon_annotator.annotate(
+        scene=image.copy(),
+        detections=detections,
+        icon_path=icon_paths
+    )
+    ```
+
+    <div class="result" markdown>
+
+    ![icon-annotator-example](https://media.roboflow.com/supervision-annotator-examples/icon-annotator-example.png){ align=center width="800" }
 
     </div>
 
@@ -384,7 +413,7 @@ status: new
     trace_annotator = sv.TraceAnnotator()
 
     video_info = sv.VideoInfo.from_video_path(video_path='...')
-    frames_generator = get_video_frames_generator(source_path='...')
+    frames_generator = sv.get_video_frames_generator(source_path='...')
     tracker = sv.ByteTrack()
 
     with sv.VideoSink(target_path='...', video_info=video_info) as sink:
@@ -415,7 +444,7 @@ status: new
     heat_map_annotator = sv.HeatMapAnnotator()
 
     video_info = sv.VideoInfo.from_video_path(video_path='...')
-    frames_generator = get_video_frames_generator(source_path='...')
+    frames_generator = sv.get_video_frames_generator(source_path='...')
 
     with sv.VideoSink(target_path='...', video_info=video_info) as sink:
         for frame in frames_generator:
@@ -433,11 +462,39 @@ status: new
 
     </div>
 
+=== "Background Color"
+
+    ```python
+    import supervision as sv
+
+    image = ...
+    detections = sv.Detections(...)
+
+    background_overlay_annotator = sv.BackgroundOverlayAnnotator()
+    annotated_frame = background_overlay_annotator.annotate(
+        scene=image.copy(),
+        detections=detections
+    )
+    ```
+
+    <div class="result" markdown>
+
+    ![background-overlay-annotator-example](https://media.roboflow.com/supervision-annotator-examples/background-color-annotator-example-purple.png)
+
+    </div>
+
 <div class="md-typeset">
-    <h2><a href="#supervision.annotators.core.BoundingBoxAnnotator">BoundingBoxAnnotator</a></h2>
+    <h2>Try Supervision Annotators on your own image</h2>
+    Visualize annotators on images with COCO classes such as people, vehicles, animals, household items.
 </div>
 
-:::supervision.annotators.core.BoundingBoxAnnotator
+<div style="height: 400px; width: 100%; border-radius: 8px; overflow: hidden;"><iframe src="https://app.roboflow.com/workflows/embed/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ3b3JrZmxvd0lkIjoiNDdtd2xuWW16S25VNWtOYUZjMG8iLCJ3b3Jrc3BhY2VJZCI6ImtyT1RBYm5jRmhvUU1DZExPbGU0IiwidXNlcklkIjoiRVJNUFBZY3FQMmZWWjB1NkRpNXZaYXJDdlZPMiIsImlhdCI6MTcyNjgzOTM2N30.gj2F6SnmmURAScJe4PTC1raUXsAK5mZyrUIGIJ44NhM?hideToolbar=true&hideHeader=true&defaultVisual=true" loading="lazy" title="Roboflow Workflow for Supervision Annotators" style="width: 100%; height: 100%; min-height: 400px; border: none;"></iframe></div>
+
+<div class="md-typeset">
+    <h2><a href="#supervision.annotators.core.BoxAnnotator">BoxAnnotator</a></h2>
+</div>
+
+:::supervision.annotators.core.BoxAnnotator
 
 <div class="md-typeset">
     <h2><a href="#supervision.annotators.core.RoundBoxAnnotator">RoundBoxAnnotator</a></h2>
@@ -530,6 +587,12 @@ status: new
 :::supervision.annotators.core.RichLabelAnnotator
 
 <div class="md-typeset">
+    <h2><a href="#supervision.annotators.core.IconAnnotator">IconAnnotator</a></h2>
+</div>
+
+:::supervision.annotators.core.IconAnnotator
+
+<div class="md-typeset">
     <h2><a href="#supervision.annotators.core.BlurAnnotator">BlurAnnotator</a></h2>
 </div>
 
@@ -552,6 +615,12 @@ status: new
 </div>
 
 :::supervision.annotators.core.CropAnnotator
+
+<div class="md-typeset">
+    <h2><a href="#supervision.annotators.core.BackgroundOverlayAnnotator">BackgroundOverlayAnnotator</a></h2>
+</div>
+
+:::supervision.annotators.core.BackgroundOverlayAnnotator
 
 <div class="md-typeset">
     <h2><a href="#supervision.annotators.core.ColorLookup">ColorLookup</a></h2>
