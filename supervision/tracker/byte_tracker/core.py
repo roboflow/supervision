@@ -323,7 +323,6 @@ class ByteTrack:
         ensuring the tracker starts with a clean state for each new video.
         """
         self.frame_id = 0
-        BaseTrack.reset_counter()
         self.internal_id_counter.reset()
         self.external_id_counter.reset()
         self.tracked_tracks: List[STrack] = []
