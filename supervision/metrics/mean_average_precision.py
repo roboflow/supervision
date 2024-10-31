@@ -193,7 +193,7 @@ class MeanAveragePrecision(Metric):
                             target_contents, prediction_contents
                         )
                     else:
-                        raise NotImplementedError(
+                        raise ValueError(
                             "Unsupported metric target for IoU calculation"
                         )
 
