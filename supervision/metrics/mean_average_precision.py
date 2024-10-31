@@ -27,6 +27,27 @@ if TYPE_CHECKING:
 
 
 class MeanAveragePrecision(Metric):
+    """
+    Mean Average Precision (mAP) is a metric used to evaluate object detection models.
+    It is the average of the precision-recall curves at different IoU thresholds.
+
+    Example:
+        ```python
+        import supervision as sv
+        from supervision.metrics import MeanAveragePrecision
+
+        predictions = sv.Detections(...)
+        targets = sv.Detections(...)
+
+        map_metric = MeanAveragePrecision()
+        map_result = map_metric.update(predictions, targets).compute()
+
+        print(map_result)
+        print(map_result.map50_95)
+        map_result.plot()
+        ```
+    """
+
     def __init__(
         self,
         metric_target: MetricTarget = MetricTarget.BOXES,
@@ -49,6 +70,9 @@ class MeanAveragePrecision(Metric):
         self._targets_list: List[Detections] = []
 
     def reset(self) -> None:
+        """
+        Reset the metric to its initial state, clearing all stored data.
+        """
         self._predictions_list = []
         self._targets_list = []
 
@@ -97,26 +121,10 @@ class MeanAveragePrecision(Metric):
     ) -> MeanAveragePrecisionResult:
         """
         Calculate Mean Average Precision based on predicted and ground-truth
-            detections at different thresholds.
+        detections at different thresholds.
 
         Returns:
-            (MeanAveragePrecisionResult): New instance of MeanAveragePrecision.
-
-        Example:
-            ```python
-            import supervision as sv
-            from supervision.metrics import MeanAveragePrecision
-
-            predictions = sv.Detections(...)
-            targets = sv.Detections(...)
-
-            map_metric = MeanAveragePrecision()
-            map_result = map_metric.update(predictions, targets).compute()
-
-            print(map_result)
-            print(map_result.map50_95)
-            map_result.plot()
-            ```
+            (MeanAveragePrecisionResult): The Mean Average Precision result.
         """
         result = self._compute(self._predictions_list, self._targets_list)
 

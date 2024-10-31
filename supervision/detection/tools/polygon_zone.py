@@ -17,6 +17,12 @@ class PolygonZone:
     """
     A class for defining a polygon-shaped zone within a frame for detecting objects.
 
+    !!! warning
+
+        LineZone uses the `tracker_id`. Read
+        [here](/latest/trackers/) to learn how to plug
+        tracking into your inference pipeline.
+
     Attributes:
         polygon (np.ndarray): A polygon represented by a numpy array of shape
             `(N, 2)`, containing the `x`, `y` coordinates of the points.
@@ -26,6 +32,28 @@ class PolygonZone:
             (default: (sv.Position.BOTTOM_CENTER,)).
         current_count (int): The current count of detected objects within the zone
         mask (np.ndarray): The 2D bool mask for the polygon zone
+
+    Example:
+        ```python
+        import supervision as sv
+        from ultralytics import YOLO
+        import numpy as np
+        import cv2
+
+        image = cv2.imread(<SOURCE_IMAGE_PATH>)
+        model = YOLO("yolo11s")
+        tracker = sv.ByteTrack()
+
+        polygon = np.array([[100, 200], [200, 100], [300, 200], [200, 300]])
+        polygon_zone = sv.PolygonZone(polygon=polygon)
+
+        result = model.infer(image)[0]
+        detections = sv.Detections.from_ultralytics(result)
+        detections = tracker.update_with_detections(detections)
+
+        is_detections_in_zone = polygon_zone.trigger(detections)
+        print(polygon_zone.current_count)
+        ```
     """
 
     def __init__(
