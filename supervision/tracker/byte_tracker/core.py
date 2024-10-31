@@ -276,11 +276,16 @@ class ByteTrack:
             ```
         """
 
+        num_rows = detections.xyxy.shape[0]
+        class_ids = np.full(num_rows, -5)
+        if detections.class_id is not None:
+            class_ids = detections.class_id
+
         tensors = np.hstack(
             (
                 detections.xyxy,
                 detections.confidence[:, np.newaxis],
-                detections.class_id[:, np.newaxis],
+                class_ids[:, np.newaxis],
             )
         )
         tracks = self.update_with_tensors(tensors=tensors)
