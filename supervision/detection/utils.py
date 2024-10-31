@@ -25,8 +25,7 @@ def polygon_to_mask(polygon: np.ndarray, resolution_wh: Tuple[int, int]) -> np.n
     """
     width, height = map(int, resolution_wh)
     mask = np.zeros((height, width), dtype=np.uint8)
-
-    cv2.fillPoly(mask, [polygon], color=1)
+    cv2.fillPoly(mask, [polygon.astype(np.int32)], color=1)
     return mask
 
 
