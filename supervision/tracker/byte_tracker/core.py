@@ -32,7 +32,6 @@ class STrack(BaseTrack):
         self,
         tlwh,
         score,
-        class_ids,
         minimum_consecutive_frames,
         internal_id_counter: IdCounter,
         external_id_counter: IdCounter,
@@ -45,7 +44,6 @@ class STrack(BaseTrack):
         self.is_activated = False
 
         self.score = score
-        self.class_ids = class_ids
         self.tracklet_len = 0
 
         self.minimum_consecutive_frames = minimum_consecutive_frames
@@ -280,7 +278,6 @@ class ByteTrack:
             (
                 detections.xyxy,
                 detections.confidence[:, np.newaxis],
-                detections.class_id[:, np.newaxis],
             )
         )
         tracks = self.update_with_tensors(tensors=tensors)
@@ -340,7 +337,6 @@ class ByteTrack:
         lost_stracks = []
         removed_stracks = []
 
-        class_ids = tensors[:, 5]
         scores = tensors[:, 4]
         bboxes = tensors[:, :4]
 
@@ -354,21 +350,17 @@ class ByteTrack:
         scores_keep = scores[remain_inds]
         scores_second = scores[inds_second]
 
-        class_ids_keep = class_ids[remain_inds]
-        class_ids_second = class_ids[inds_second]
-
         if len(dets) > 0:
             """Detections"""
             detections = [
                 STrack(
                     STrack.tlbr_to_tlwh(tlbr),
                     s,
-                    c,
                     self.minimum_consecutive_frames,
                     self.internal_id_counter,
                     self.external_id_counter,
                 )
-                for (tlbr, s, c) in zip(dets, scores_keep, class_ids_keep)
+                for (tlbr, s) in zip(dets, scores_keep)
             ]
         else:
             detections = []
@@ -412,12 +404,11 @@ class ByteTrack:
                 STrack(
                     STrack.tlbr_to_tlwh(tlbr),
                     s,
-                    c,
                     self.minimum_consecutive_frames,
                     self.internal_id_counter,
                     self.external_id_counter,
                 )
-                for (tlbr, s, c) in zip(dets_second, scores_second, class_ids_second)
+                for (tlbr, s) in zip(dets_second, scores_second)
             ]
         else:
             detections_second = []
