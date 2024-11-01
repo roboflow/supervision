@@ -49,7 +49,6 @@ class ByteTrack:
         self.minimum_matching_threshold = minimum_matching_threshold
 
         self.frame_id = 0
-        self.start_frame = 0
         self.det_thresh = self.track_activation_threshold + 0.1
         self.max_time_lost = int(frame_rate / 30.0 * lost_track_buffer)
         self.minimum_consecutive_frames = minimum_consecutive_frames
