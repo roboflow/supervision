@@ -1,4 +1,3 @@
-from enum import Enum
 from typing import List, Tuple
 
 import numpy as np
@@ -7,194 +6,8 @@ from supervision.detection.core import Detections
 from supervision.detection.utils import box_iou_batch
 from supervision.tracker.byte_tracker import matching
 from supervision.tracker.byte_tracker.kalman_filter import KalmanFilter
-
-
-class TrackState(Enum):
-    New = 0
-    Tracked = 1
-    Lost = 2
-    Removed = 3
-
-
-class IdCounter:
-    def __init__(self, start_id: int = 0):
-        self.start_id = start_id
-        if self.start_id <= self.NO_ID:
-            raise ValueError("start_id must be greater than -1")
-        self.reset()
-
-    def reset(self) -> None:
-        self._id = self.start_id
-
-    def new_id(self) -> int:
-        returned_id = self._id
-        self._id += 1
-        return returned_id
-
-    @property
-    def NO_ID(self) -> int:
-        return -1
-
-
-class STrack:
-    def __init__(
-        self,
-        tlwh,
-        score,
-        minimum_consecutive_frames,
-        shared_kalman: KalmanFilter,
-        internal_id_counter: IdCounter,
-        external_id_counter: IdCounter,
-    ):
-        self.state = TrackState.New
-        self.is_activated = False
-        self.start_frame = 0
-        self.frame_id = 0
-
-        self._tlwh = np.asarray(tlwh, dtype=np.float32)
-        self.kalman_filter = None
-        self.shared_kalman = shared_kalman
-        self.mean, self.covariance = None, None
-        self.is_activated = False
-
-        self.score = score
-        self.tracklet_len = 0
-
-        self.minimum_consecutive_frames = minimum_consecutive_frames
-
-        self.internal_id_counter = internal_id_counter
-        self.external_id_counter = external_id_counter
-        self.internal_track_id = self.internal_id_counter.NO_ID
-        self.external_track_id = self.external_id_counter.NO_ID
-
-    def predict(self):
-        mean_state = self.mean.copy()
-        if self.state != TrackState.Tracked:
-            mean_state[7] = 0
-        self.mean, self.covariance = self.kalman_filter.predict(
-            mean_state, self.covariance
-        )
-
-    @staticmethod
-    def multi_predict(stracks, shared_kalman: KalmanFilter):
-        if len(stracks) > 0:
-            multi_mean = []
-            multi_covariance = []
-            for i, st in enumerate(stracks):
-                multi_mean.append(st.mean.copy())
-                multi_covariance.append(st.covariance)
-                if st.state != TrackState.Tracked:
-                    multi_mean[i][7] = 0
-
-            multi_mean, multi_covariance = shared_kalman.multi_predict(
-                np.asarray(multi_mean), np.asarray(multi_covariance)
-            )
-            for i, (mean, cov) in enumerate(zip(multi_mean, multi_covariance)):
-                stracks[i].mean = mean
-                stracks[i].covariance = cov
-
-    def activate(self, kalman_filter, frame_id):
-        """Start a new tracklet"""
-        self.kalman_filter = kalman_filter
-        self.internal_track_id = self.internal_id_counter.new_id()
-        self.mean, self.covariance = self.kalman_filter.initiate(
-            self.tlwh_to_xyah(self._tlwh)
-        )
-
-        self.tracklet_len = 0
-        self.state = TrackState.Tracked
-        if frame_id == 1:
-            self.is_activated = True
-
-        if self.minimum_consecutive_frames == 1:
-            self.external_track_id = self.external_id_counter.new_id()
-
-        self.frame_id = frame_id
-        self.start_frame = frame_id
-
-    def re_activate(self, new_track, frame_id):
-        self.mean, self.covariance = self.kalman_filter.update(
-            self.mean, self.covariance, self.tlwh_to_xyah(new_track.tlwh)
-        )
-        self.tracklet_len = 0
-        self.state = TrackState.Tracked
-
-        self.frame_id = frame_id
-        self.score = new_track.score
-
-    def update(self, new_track, frame_id):
-        """
-        Update a matched track
-        :type new_track: STrack
-        :type frame_id: int
-        :type update_feature: bool
-        :return:
-        """
-        self.frame_id = frame_id
-        self.tracklet_len += 1
-
-        new_tlwh = new_track.tlwh
-        self.mean, self.covariance = self.kalman_filter.update(
-            self.mean, self.covariance, self.tlwh_to_xyah(new_tlwh)
-        )
-        self.state = TrackState.Tracked
-        if self.tracklet_len == self.minimum_consecutive_frames:
-            self.is_activated = True
-            if self.external_track_id == self.external_id_counter.NO_ID:
-                self.external_track_id = self.external_id_counter.new_id()
-
-        self.score = new_track.score
-
-    @property
-    def tlwh(self):
-        """Get current position in bounding box format `(top left x, top left y,
-        width, height)`.
-        """
-        if self.mean is None:
-            return self._tlwh.copy()
-        ret = self.mean[:4].copy()
-        ret[2] *= ret[3]
-        ret[:2] -= ret[2:] / 2
-        return ret
-
-    @property
-    def tlbr(self):
-        """Convert bounding box to format `(min x, min y, max x, max y)`, i.e.,
-        `(top left, bottom right)`.
-        """
-        ret = self.tlwh.copy()
-        ret[2:] += ret[:2]
-        return ret
-
-    @staticmethod
-    def tlwh_to_xyah(tlwh):
-        """Convert bounding box to format `(center x, center y, aspect ratio,
-        height)`, where the aspect ratio is `width / height`.
-        """
-        ret = np.asarray(tlwh).copy()
-        ret[:2] += ret[2:] / 2
-        ret[2] /= ret[3]
-        return ret
-
-    def to_xyah(self):
-        return self.tlwh_to_xyah(self.tlwh)
-
-    @staticmethod
-    def tlbr_to_tlwh(tlbr):
-        ret = np.asarray(tlbr).copy()
-        ret[2:] -= ret[:2]
-        return ret
-
-    @staticmethod
-    def tlwh_to_tlbr(tlwh):
-        ret = np.asarray(tlwh).copy()
-        ret[2:] += ret[:2]
-        return ret
-
-    def __repr__(self):
-        return "OT_{}_({}-{})".format(
-            self.internal_track_id, self.start_frame, self.frame_id
-        )
+from supervision.tracker.byte_tracker.single_object_track import STrack, TrackState
+from supervision.tracker.byte_tracker.utils import IdCounter
 
 
 class ByteTrack:
@@ -291,7 +104,6 @@ class ByteTrack:
             )
             ```
         """
-
         tensors = np.hstack(
             (
                 detections.xyxy,
@@ -323,7 +135,7 @@ class ByteTrack:
 
             return detections
 
-    def reset(self):
+    def reset(self) -> None:
         """
         Resets the internal state of the ByteTrack tracker.
 
@@ -335,9 +147,9 @@ class ByteTrack:
         self.frame_id = 0
         self.internal_id_counter.reset()
         self.external_id_counter.reset()
-        self.tracked_tracks: List[STrack] = []
-        self.lost_tracks: List[STrack] = []
-        self.removed_tracks: List[STrack] = []
+        self.tracked_tracks = []
+        self.lost_tracks = []
+        self.removed_tracks = []
 
     def update_with_tensors(self, tensors: np.ndarray) -> List[STrack]:
         """
@@ -529,7 +341,7 @@ def joint_tracks(
     return result
 
 
-def sub_tracks(track_list_a: List, track_list_b: List) -> List[int]:
+def sub_tracks(track_list_a: List[STrack], track_list_b: List[STrack]) -> List[int]:
     """
     Returns a list of tracks from track_list_a after removing any tracks
     that share the same internal_track_id with tracks in track_list_b.
@@ -550,7 +362,9 @@ def sub_tracks(track_list_a: List, track_list_b: List) -> List[int]:
     return list(tracks.values())
 
 
-def remove_duplicate_tracks(tracks_a: List, tracks_b: List) -> Tuple[List, List]:
+def remove_duplicate_tracks(
+    tracks_a: List[STrack], tracks_b: List[STrack]
+) -> Tuple[List[STrack], List[STrack]]:
     pairwise_distance = matching.iou_distance(tracks_a, tracks_b)
     matching_pairs = np.where(pairwise_distance < 0.15)
 

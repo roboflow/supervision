@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, List, Tuple
 
 import numpy as np
@@ -38,7 +40,7 @@ def linear_assignment(
     return indices_to_matches(cost_matrix, indices, thresh)
 
 
-def iou_distance(atracks: List, btracks: List) -> np.ndarray:
+def iou_distance(atracks: List[STrack], btracks: List[STrack]) -> np.ndarray:
     if (len(atracks) > 0 and isinstance(atracks[0], np.ndarray)) or (
         len(btracks) > 0 and isinstance(btracks[0], np.ndarray)
     ):
@@ -56,7 +58,7 @@ def iou_distance(atracks: List, btracks: List) -> np.ndarray:
     return cost_matrix
 
 
-def fuse_score(cost_matrix: np.ndarray, stracks: List["STrack"]) -> np.ndarray:
+def fuse_score(cost_matrix: np.ndarray, stracks: List[STrack]) -> np.ndarray:
     if cost_matrix.size == 0:
         return cost_matrix
     iou_sim = 1 - cost_matrix
