@@ -2,7 +2,7 @@ class IdCounter:
     def __init__(self, start_id: int = 0):
         self.start_id = start_id
         if self.start_id <= self.NO_ID:
-            raise ValueError("start_id must be greater than -1")
+            raise ValueError(f"start_id must be greater than {self.NO_ID}")
         self.reset()
 
     def reset(self) -> None:
