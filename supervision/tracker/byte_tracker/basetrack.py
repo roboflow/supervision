@@ -7,10 +7,6 @@ class BaseTrack:
     def end_frame(self) -> int:
         return self.frame_id
 
-    def reset_counter(self):
-        self.frame_id = 0
-        self.start_frame = 0
-
     def activate(self, *args, **kwargs):
         raise NotImplementedError
 
