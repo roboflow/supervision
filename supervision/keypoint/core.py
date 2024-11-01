@@ -558,9 +558,8 @@ class KeyPoints:
             return cls.empty()
 
         return cls(
-            xy=np.array(keypoints_list),
-            confidence=np.array(scores_list),
-            class_id=None,
+            xy=np.array(keypoints_list,dtype=np.float32),
+            confidence=np.array(scores_list,dtype=np.float32),
         )
 
     def __getitem__(
