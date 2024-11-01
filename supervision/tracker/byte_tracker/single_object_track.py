@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from enum import Enum
 from typing import List
 
@@ -14,6 +15,7 @@ class TrackState(Enum):
     Tracked = 1
     Lost = 2
     Removed = 3
+
 
 class STrack:
     def __init__(
@@ -174,4 +176,3 @@ class STrack:
         return "OT_{}_({}-{})".format(
             self.internal_track_id, self.start_frame, self.frame_id
         )
-
