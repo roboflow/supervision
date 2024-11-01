@@ -7,7 +7,7 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 import numpy as np
 import numpy.typing as npt
 
-from supervision.config import CLASS_NAME_DATA_FIELD
+from supervision.config import CLASS_NAME_DATA_FIELD, DESCRIPTORS_FIELD
 from supervision.detection.utils import get_data_item, is_data_equal
 from supervision.validators import validate_keypoints_fields
 
@@ -542,8 +542,10 @@ class KeyPoints:
             ```
         """  # noqa: E501 // docs
 
-        keypoints_list = []
-        scores_list = []
+        keypoints_list: List[np.ndarray] = []
+        scores_list: List[np.ndarray] = []
+        descriptors_list: List[np.ndarray] = []
+        data: Dict[str, Any] = {}
 
         for result in transformers_results:
             if "keypoints" in result:
@@ -554,12 +556,22 @@ class KeyPoints:
                     keypoints_list.append(keypoints)
                     scores_list.append(scores)
 
+            if "descriptors" in result:
+                descriptors = result["descriptors"].detach().numpy()
+
+                if descriptors.size > 0:
+                    descriptors_list.append(descriptors)
+
         if not keypoints_list:
             return cls.empty()
 
+        if descriptors_list:
+            data[DESCRIPTORS_FIELD] = np.array(descriptors_list)
+
         return cls(
-            xy=np.array(keypoints_list,dtype=np.float32),
-            confidence=np.array(scores_list,dtype=np.float32),
+            xy=np.array(keypoints_list, dtype=np.float32),
+            confidence=np.array(scores_list, dtype=np.float32),
+            data=data if data else {},
         )
 
     def __getitem__(
