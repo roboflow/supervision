@@ -1,6 +1,5 @@
-import warnings
 from dataclasses import replace
-from typing import Iterable, Optional, Tuple
+from typing import Iterable, Optional
 
 import cv2
 import numpy as np
@@ -12,12 +11,17 @@ from supervision.draw.color import Color
 from supervision.draw.utils import draw_filled_polygon, draw_polygon, draw_text
 from supervision.geometry.core import Position
 from supervision.geometry.utils import get_polygon_center
-from supervision.utils.internal import SupervisionWarnings
 
 
 class PolygonZone:
     """
     A class for defining a polygon-shaped zone within a frame for detecting objects.
+
+    !!! warning
+
+        LineZone uses the `tracker_id`. Read
+        [here](/latest/trackers/) to learn how to plug
+        tracking into your inference pipeline.
 
     Attributes:
         polygon (np.ndarray): A polygon represented by a numpy array of shape
@@ -28,22 +32,35 @@ class PolygonZone:
             (default: (sv.Position.BOTTOM_CENTER,)).
         current_count (int): The current count of detected objects within the zone
         mask (np.ndarray): The 2D bool mask for the polygon zone
+
+    Example:
+        ```python
+        import supervision as sv
+        from ultralytics import YOLO
+        import numpy as np
+        import cv2
+
+        image = cv2.imread(<SOURCE_IMAGE_PATH>)
+        model = YOLO("yolo11s")
+        tracker = sv.ByteTrack()
+
+        polygon = np.array([[100, 200], [200, 100], [300, 200], [200, 300]])
+        polygon_zone = sv.PolygonZone(polygon=polygon)
+
+        result = model.infer(image)[0]
+        detections = sv.Detections.from_ultralytics(result)
+        detections = tracker.update_with_detections(detections)
+
+        is_detections_in_zone = polygon_zone.trigger(detections)
+        print(polygon_zone.current_count)
+        ```
     """
 
     def __init__(
         self,
         polygon: npt.NDArray[np.int64],
-        frame_resolution_wh: Optional[Tuple[int, int]] = None,
         triggering_anchors: Iterable[Position] = (Position.BOTTOM_CENTER,),
     ):
-        if frame_resolution_wh is not None:
-            warnings.warn(
-                "The `frame_resolution_wh` parameter is no longer required and will be "
-                "dropped in version supervision-0.24.0. The mask resolution is now "
-                "calculated automatically based on the polygon coordinates.",
-                category=SupervisionWarnings,
-            )
-
         self.polygon = polygon.astype(int)
         self.triggering_anchors = triggering_anchors
         if not list(self.triggering_anchors):
@@ -99,7 +116,7 @@ class PolygonZoneAnnotator:
 
     Attributes:
         zone (PolygonZone): The polygon zone to be annotated
-        color (Color): The color to draw the polygon lines
+        color (Color): The color to draw the polygon lines, default is white
         thickness (int): The thickness of the polygon lines, default is 2
         text_color (Color): The color of the text on the polygon, default is black
         text_scale (float): The scale of the text on the polygon, default is 0.5
@@ -115,7 +132,7 @@ class PolygonZoneAnnotator:
     def __init__(
         self,
         zone: PolygonZone,
-        color: Color,
+        color: Color = Color.WHITE,
         thickness: int = 2,
         text_color: Color = Color.BLACK,
         text_scale: float = 0.5,

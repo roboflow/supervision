@@ -7,7 +7,7 @@ ci:
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v5.0.0
     hooks:
       - id: trailing-whitespace
         exclude: test/.*\.py
@@ -25,14 +25,14 @@ repos:
       - id: mixed-line-ending
 
   -   repo: https://github.com/PyCQA/bandit
-      rev: '1.7.9'
+      rev: '1.7.10'
       hooks:
       -   id: bandit
           args: ["-c", "pyproject.toml"]
           additional_dependencies: ["bandit[toml]"]
 
   -   repo: https://github.com/astral-sh/ruff-pre-commit
-      rev: v0.6.7
+      rev: v0.7.1
       hooks:
       -   id: ruff
           args: [--fix, --exit-non-zero-on-fix]
@@ -48,7 +48,7 @@ repos:
   #       args: ["--number"]
 
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.2.6
+    rev: v2.3.0
     hooks:
       - id: codespell
         additional_dependencies:

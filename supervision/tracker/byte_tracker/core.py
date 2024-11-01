@@ -9,11 +9,38 @@ from supervision.tracker.byte_tracker.basetrack import BaseTrack, TrackState
 from supervision.tracker.byte_tracker.kalman_filter import KalmanFilter
 
 
+class IdCounter:
+    def __init__(self, start_id: int = 0):
+        self.start_id = start_id
+        if self.start_id <= self.NO_ID:
+            raise ValueError("start_id must be greater than -1")
+        self.reset()
+
+    def reset(self) -> None:
+        self._id = self.start_id
+
+    def new_id(self) -> int:
+        returned_id = self._id
+        self._id += 1
+        return returned_id
+
+    @property
+    def NO_ID(self) -> int:
+        return -1
+
+
 class STrack(BaseTrack):
     shared_kalman = KalmanFilter()
-    _external_count = 0
 
-    def __init__(self, tlwh, score, class_ids, minimum_consecutive_frames):
+    def __init__(
+        self,
+        tlwh,
+        score,
+        minimum_consecutive_frames,
+        internal_id_counter: IdCounter,
+        external_id_counter: IdCounter,
+    ):
+        super().__init__()
         # wait activate
         self._tlwh = np.asarray(tlwh, dtype=np.float32)
         self.kalman_filter = None
@@ -21,12 +48,14 @@ class STrack(BaseTrack):
         self.is_activated = False
 
         self.score = score
-        self.class_ids = class_ids
         self.tracklet_len = 0
 
-        self.external_track_id = -1
-
         self.minimum_consecutive_frames = minimum_consecutive_frames
+
+        self.internal_id_counter = internal_id_counter
+        self.external_id_counter = external_id_counter
+        self.internal_track_id = self.internal_id_counter.NO_ID
+        self.external_track_id = self.external_id_counter.NO_ID
 
     def predict(self):
         mean_state = self.mean.copy()
@@ -57,7 +86,7 @@ class STrack(BaseTrack):
     def activate(self, kalman_filter, frame_id):
         """Start a new tracklet"""
         self.kalman_filter = kalman_filter
-        self.internal_track_id = self.next_id()
+        self.internal_track_id = self.internal_id_counter.new_id()
         self.mean, self.covariance = self.kalman_filter.initiate(
             self.tlwh_to_xyah(self._tlwh)
         )
@@ -68,12 +97,12 @@ class STrack(BaseTrack):
             self.is_activated = True
 
         if self.minimum_consecutive_frames == 1:
-            self.external_track_id = self.next_external_id()
+            self.external_track_id = self.external_id_counter.new_id()
 
         self.frame_id = frame_id
         self.start_frame = frame_id
 
-    def re_activate(self, new_track, frame_id, new_id=False):
+    def re_activate(self, new_track, frame_id):
         self.mean, self.covariance = self.kalman_filter.update(
             self.mean, self.covariance, self.tlwh_to_xyah(new_track.tlwh)
         )
@@ -81,8 +110,6 @@ class STrack(BaseTrack):
         self.state = TrackState.Tracked
 
         self.frame_id = frame_id
-        if new_id:
-            self.internal_track_id = self.next_id()
         self.score = new_track.score
 
     def update(self, new_track, frame_id):
@@ -103,8 +130,8 @@ class STrack(BaseTrack):
         self.state = TrackState.Tracked
         if self.tracklet_len == self.minimum_consecutive_frames:
             self.is_activated = True
-            if self.external_track_id == -1:
-                self.external_track_id = self.next_external_id()
+            if self.external_track_id == self.external_id_counter.NO_ID:
+                self.external_track_id = self.external_id_counter.new_id()
 
         self.score = new_track.score
 
@@ -143,15 +170,6 @@ class STrack(BaseTrack):
         return self.tlwh_to_xyah(self.tlwh)
 
     @staticmethod
-    def next_external_id():
-        STrack._external_count += 1
-        return STrack._external_count
-
-    @staticmethod
-    def reset_external_counter():
-        STrack._external_count = 0
-
-    @staticmethod
     def tlbr_to_tlwh(tlbr):
         ret = np.asarray(tlbr).copy()
         ret[2:] -= ret[:2]
@@ -167,24 +185,6 @@ class STrack(BaseTrack):
         return "OT_{}_({}-{})".format(
             self.internal_track_id, self.start_frame, self.end_frame
         )
-
-
-def detections2boxes(detections: Detections) -> np.ndarray:
-    """
-    Convert Supervision Detections to numpy tensors for further computation.
-    Args:
-        detections (Detections): Detections/Targets in the format of sv.Detections.
-    Returns:
-        (np.ndarray): Detections as numpy tensors as in
-            `(x_min, y_min, x_max, y_max, confidence, class_id)` order.
-    """
-    return np.hstack(
-        (
-            detections.xyxy,
-            detections.confidence[:, np.newaxis],
-            detections.class_id[:, np.newaxis],
-        )
-    )
 
 
 class ByteTrack:
@@ -235,6 +235,11 @@ class ByteTrack:
         self.lost_tracks: List[STrack] = []
         self.removed_tracks: List[STrack] = []
 
+        # Warning, possible bug: If you also set internal_id to start at 1,
+        # all traces will be connected across objects.
+        self.internal_id_counter = IdCounter()
+        self.external_id_counter = IdCounter(start_id=1)
+
     def update_with_detections(self, detections: Detections) -> Detections:
         """
         Updates the tracker with the provided detections and returns the updated
@@ -275,7 +280,12 @@ class ByteTrack:
             ```
         """
 
-        tensors = detections2boxes(detections=detections)
+        tensors = np.hstack(
+            (
+                detections.xyxy,
+                detections.confidence[:, np.newaxis],
+            )
+        )
         tracks = self.update_with_tensors(tensors=tensors)
 
         if len(tracks) > 0:
@@ -311,11 +321,11 @@ class ByteTrack:
         ensuring the tracker starts with a clean state for each new video.
         """
         self.frame_id = 0
+        self.internal_id_counter.reset()
+        self.external_id_counter.reset()
         self.tracked_tracks: List[STrack] = []
         self.lost_tracks: List[STrack] = []
         self.removed_tracks: List[STrack] = []
-        BaseTrack.reset_counter()
-        STrack.reset_external_counter()
 
     def update_with_tensors(self, tensors: np.ndarray) -> List[STrack]:
         """
@@ -333,7 +343,6 @@ class ByteTrack:
         lost_stracks = []
         removed_stracks = []
 
-        class_ids = tensors[:, 5]
         scores = tensors[:, 4]
         bboxes = tensors[:, :4]
 
@@ -347,14 +356,17 @@ class ByteTrack:
         scores_keep = scores[remain_inds]
         scores_second = scores[inds_second]
 
-        class_ids_keep = class_ids[remain_inds]
-        class_ids_second = class_ids[inds_second]
-
         if len(dets) > 0:
             """Detections"""
             detections = [
-                STrack(STrack.tlbr_to_tlwh(tlbr), s, c, self.minimum_consecutive_frames)
-                for (tlbr, s, c) in zip(dets, scores_keep, class_ids_keep)
+                STrack(
+                    STrack.tlbr_to_tlwh(tlbr),
+                    s,
+                    self.minimum_consecutive_frames,
+                    self.internal_id_counter,
+                    self.external_id_counter,
+                )
+                for (tlbr, s) in zip(dets, scores_keep)
             ]
         else:
             detections = []
@@ -387,7 +399,7 @@ class ByteTrack:
                 track.update(detections[idet], self.frame_id)
                 activated_starcks.append(track)
             else:
-                track.re_activate(det, self.frame_id, new_id=False)
+                track.re_activate(det, self.frame_id)
                 refind_stracks.append(track)
 
         """ Step 3: Second association, with low score detection boxes"""
@@ -395,8 +407,14 @@ class ByteTrack:
         if len(dets_second) > 0:
             """Detections"""
             detections_second = [
-                STrack(STrack.tlbr_to_tlwh(tlbr), s, c, self.minimum_consecutive_frames)
-                for (tlbr, s, c) in zip(dets_second, scores_second, class_ids_second)
+                STrack(
+                    STrack.tlbr_to_tlwh(tlbr),
+                    s,
+                    self.minimum_consecutive_frames,
+                    self.internal_id_counter,
+                    self.external_id_counter,
+                )
+                for (tlbr, s) in zip(dets_second, scores_second)
             ]
         else:
             detections_second = []
@@ -416,7 +434,7 @@ class ByteTrack:
                 track.update(det, self.frame_id)
                 activated_starcks.append(track)
             else:
-                track.re_activate(det, self.frame_id, new_id=False)
+                track.re_activate(det, self.frame_id)
                 refind_stracks.append(track)
 
         for it in u_track:

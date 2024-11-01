@@ -40,7 +40,11 @@ from supervision.dataset.core import (
 )
 from supervision.dataset.utils import mask_to_rle, rle_to_mask
 from supervision.detection.core import Detections
-from supervision.detection.line_zone import LineZone, LineZoneAnnotator
+from supervision.detection.line_zone import (
+    LineZone,
+    LineZoneAnnotator,
+    LineZoneAnnotatorMulticlass,
+)
 from supervision.detection.lmm import LMM
 from supervision.detection.overlap_filter import (
     OverlapFilter,

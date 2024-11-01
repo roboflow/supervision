@@ -1,18 +1,22 @@
 import math
 import warnings
+from collections import Counter
 from functools import lru_cache
-from typing import Any, Dict, Iterable, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Literal, Optional, Tuple
 
 import cv2
 import numpy as np
 
+from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
 from supervision.detection.utils import cross_product
 from supervision.draw.color import Color
-from supervision.draw.utils import draw_text
-from supervision.geometry.core import Point, Position, Vector
+from supervision.draw.utils import draw_rectangle, draw_text
+from supervision.geometry.core import Point, Position, Rect, Vector
 from supervision.utils.image import overlay_image
 from supervision.utils.internal import SupervisionWarnings
+
+TEXT_MARGIN = 10
 
 
 class LineZone:
@@ -84,11 +88,44 @@ class LineZone:
         self.vector = Vector(start=start, end=end)
         self.limits = self.calculate_region_of_interest_limits(vector=self.vector)
         self.tracker_state: Dict[str, bool] = {}
-        self.in_count: int = 0
-        self.out_count: int = 0
+        self._in_count_per_class: Counter = Counter()
+        self._out_count_per_class: Counter = Counter()
         self.triggering_anchors = triggering_anchors
         if not list(self.triggering_anchors):
             raise ValueError("Triggering anchors cannot be empty.")
+        self.class_id_to_name: Dict[int, str] = {}
+
+    @property
+    def in_count(self) -> int:
+        """
+        Number of objects that have crossed the line from
+        outside to inside.
+        """
+        return sum(self._in_count_per_class.values())
+
+    @property
+    def out_count(self) -> int:
+        """
+        Number of objects that have crossed the line from
+        inside to outside.
+        """
+        return sum(self._out_count_per_class.values())
+
+    @property
+    def in_count_per_class(self) -> Dict[int, int]:
+        """
+        Number of objects of each class that have crossed
+        the line from outside to inside.
+        """
+        return dict(self._in_count_per_class)
+
+    @property
+    def out_count_per_class(self) -> Dict[int, int]:
+        """
+        Number of objects of each class that have crossed the line
+        from inside to outside.
+        """
+        return dict(self._out_count_per_class)
 
     @staticmethod
     def calculate_region_of_interest_limits(vector: Vector) -> Tuple[Vector, Vector]:
@@ -173,7 +210,22 @@ class LineZone:
         has_any_left_trigger = np.any(triggers, axis=0)
         has_any_right_trigger = np.any(~triggers, axis=0)
         is_uniformly_triggered = ~(has_any_left_trigger & has_any_right_trigger)
-        for i, tracker_id in enumerate(detections.tracker_id):
+
+        class_ids = (
+            list(detections.class_id)
+            if detections.class_id is not None
+            else [None] * len(detections)
+        )
+        tracker_ids = list(detections.tracker_id)
+
+        if CLASS_NAME_DATA_FIELD in detections.data:
+            class_names = detections.data[CLASS_NAME_DATA_FIELD]
+            for class_id, class_name in zip(class_ids, class_names):
+                if class_id is None:
+                    class_name = "No class"
+                self.class_id_to_name[class_id] = class_name
+
+        for i, (class_ids, tracker_id) in enumerate(zip(class_ids, tracker_ids)):
             if not in_limits[i]:
                 continue
 
@@ -190,10 +242,10 @@ class LineZone:
 
             self.tracker_state[tracker_id] = tracker_state
             if tracker_state:
-                self.in_count += 1
+                self._in_count_per_class[class_ids] += 1
                 crossed_in[i] = True
             else:
-                self.out_count += 1
+                self._out_count_per_class[class_ids] += 1
                 crossed_out[i] = True
 
         return crossed_in, crossed_out
@@ -265,7 +317,7 @@ class LineZoneAnnotator:
                 that will be used to draw the line.
 
         Returns:
-            np.ndarray: The image with the line drawn on it.
+            (np.ndarray): The image with the line drawn on it.
 
         """
         line_start = line_counter.vector.start.as_xy_int_tuple()
@@ -332,7 +384,7 @@ class LineZoneAnnotator:
             line_zone (LineZone): The line zone object.
 
         Returns:
-            float: Line counter angle, in degrees.
+            (float): Line counter angle, in degrees.
         """
         start_point = line_zone.vector.start.as_xy_int_tuple()
         end_point = line_zone.vector.end.as_xy_int_tuple()
@@ -369,7 +421,7 @@ class LineZoneAnnotator:
                 label is rectangular.
 
         Returns:
-            Tuple[int, int]: xy, point in an image where the label will be placed.
+            (Tuple[int, int]): xy, point in an image where the label will be placed.
         """
         line_angle = self._get_line_angle(line_zone)
 
@@ -432,7 +484,7 @@ class LineZoneAnnotator:
                 or out count (below line).
 
         Returns:
-            np.ndarray: The scene with the label drawn on it.
+            (np.ndarray): The scene with the label drawn on it.
         """
         _, text_height = cv2.getTextSize(
             text, cv2.FONT_HERSHEY_SIMPLEX, self.text_scale, self.text_thickness
@@ -476,7 +528,7 @@ class LineZoneAnnotator:
                 or out count (below line).
 
         Returns:
-            np.ndarray: The scene with the label drawn on it.
+            (np.ndarray): The scene with the label drawn on it.
         """
 
         line_angle_degrees = self._get_line_angle(line_zone)
@@ -535,7 +587,7 @@ class LineZoneAnnotator:
             line_angle_degrees (float): The angle of the line in degrees.
 
         Returns:
-            np.ndarray: The label of shape (H, W, 4), in BGRA format.
+            (np.ndarray): The label of shape (H, W, 4), in BGRA format.
         """
         text_width, text_height = cv2.getTextSize(
             text, cv2.FONT_HERSHEY_SIMPLEX, text_scale, text_thickness
@@ -580,3 +632,165 @@ class LineZoneAnnotator:
         annotation = cv2.warpAffine(annotation, rotation_matrix, annotation_shape)
 
         return annotation
+
+
+class LineZoneAnnotatorMulticlass:
+    def __init__(
+        self,
+        *,
+        table_position: Literal[
+            Position.TOP_LEFT,
+            Position.TOP_RIGHT,
+            Position.BOTTOM_LEFT,
+            Position.BOTTOM_RIGHT,
+        ] = Position.TOP_RIGHT,
+        table_color: Color = Color.WHITE,
+        table_margin: int = 10,
+        table_padding: int = 10,
+        table_max_width: int = 400,
+        text_color: Color = Color.BLACK,
+        text_scale: float = 0.75,
+        text_thickness: int = 1,
+        force_draw_class_ids: bool = False,
+    ):
+        """
+        Draw a table showing how many items of each class crossed each line.
+
+        Args:
+            table_position (Position): The position of the table.
+            table_color (Color): The color of the table.
+            table_margin (int): The margin of the table from the image border.
+            table_padding (int): The padding of the table.
+            table_max_width (int): The maximum width of the table.
+            text_color (Color): The color of the text.
+            text_scale (float): The scale of the text.
+            text_thickness (int): The thickness of the text.
+            force_draw_class_ids (bool): Instead of writing the class names,
+                on the table, write the class IDs. E.g. instead of `person: 6`,
+                write `0: 6`.
+        """
+        if table_position not in {
+            Position.TOP_LEFT,
+            Position.TOP_RIGHT,
+            Position.BOTTOM_LEFT,
+            Position.BOTTOM_RIGHT,
+        }:
+            raise ValueError(
+                "Invalid table position. Supported values are:"
+                " TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT."
+            )
+
+        self.table_position = table_position
+        self.table_color = table_color
+        self.table_margin = table_margin
+        self.table_padding = table_padding
+        self.table_max_width = table_max_width
+        self.text_color = text_color
+        self.text_scale = text_scale
+        self.text_thickness = text_thickness
+        self.force_draw_class_ids = force_draw_class_ids
+
+    def annotate(
+        self,
+        frame: np.ndarray,
+        line_zones: List[LineZone],
+        line_zone_labels: Optional[List[str]] = None,
+    ) -> np.ndarray:
+        """
+        Draws a table with the number of objects of each class that crossed each line.
+
+        Attributes:
+            frame (np.ndarray): The image on which the table will be drawn.
+            line_zones (List[LineZone]): The line zones to be annotated.
+            line_zone_labels (Optional[List[str]]): The labels, one for each
+                line zone. If not provided, the default labels will be used.
+
+        Returns:
+            (np.ndarray): The image with the table drawn on it.
+
+        """
+        if line_zone_labels is None:
+            line_zone_labels = [f"Line {i + 1}:" for i in range(len(line_zones))]
+        if len(line_zones) != len(line_zone_labels):
+            raise ValueError("The number of line zones and their labels must match.")
+
+        text_lines = ["Line Crossings:"]
+        for line_zone, line_zone_label in zip(line_zones, line_zone_labels):
+            text_lines.append(line_zone_label)
+            class_id_to_name = line_zone.class_id_to_name
+
+            for direction, count_per_class in [
+                ("In", line_zone.in_count_per_class),
+                ("Out", line_zone.out_count_per_class),
+            ]:
+                if not count_per_class:
+                    continue
+
+                text_lines.append(f" {direction}:")
+                for class_id, count in count_per_class.items():
+                    class_name = (
+                        class_id_to_name.get(class_id, str(class_id))
+                        if not self.force_draw_class_ids
+                        else str(class_id)
+                    )
+                    text_lines.append(f"  {class_name}: {count}")
+
+        table_width, table_height = 0, 0
+        for line in text_lines:
+            text_width, text_height = cv2.getTextSize(
+                line, cv2.FONT_HERSHEY_SIMPLEX, self.text_scale, self.text_thickness
+            )[0]
+            text_height += TEXT_MARGIN
+            table_width = max(table_width, text_width)
+            table_height += text_height
+
+        table_width += 2 * self.table_padding
+        table_height += 2 * self.table_padding
+        table_max_height = frame.shape[0] - 2 * self.table_margin
+        table_height = min(table_height, table_max_height)
+        table_width = min(table_width, self.table_max_width)
+
+        position_map = {
+            Position.TOP_LEFT: (self.table_margin, self.table_margin),
+            Position.TOP_RIGHT: (
+                frame.shape[1] - table_width - self.table_margin,
+                self.table_margin,
+            ),
+            Position.BOTTOM_LEFT: (
+                self.table_margin,
+                frame.shape[0] - table_height - self.table_margin,
+            ),
+            Position.BOTTOM_RIGHT: (
+                frame.shape[1] - table_width - self.table_margin,
+                frame.shape[0] - table_height - self.table_margin,
+            ),
+        }
+        table_x1, table_y1 = position_map[self.table_position]
+
+        table_rect = Rect(
+            x=table_x1, y=table_y1, width=table_width, height=table_height
+        )
+        frame = draw_rectangle(
+            scene=frame, rect=table_rect, color=self.table_color, thickness=-1
+        )
+
+        for i, line in enumerate(text_lines):
+            _, text_height = cv2.getTextSize(
+                line, cv2.FONT_HERSHEY_SIMPLEX, self.text_scale, self.text_thickness
+            )[0]
+            text_height += TEXT_MARGIN
+            anchor_x = table_x1 + self.table_padding
+            anchor_y = table_y1 + self.table_padding + (i + 1) * text_height
+
+            cv2.putText(
+                img=frame,
+                text=line,
+                org=(anchor_x, anchor_y),
+                fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                fontScale=self.text_scale,
+                color=self.text_color.as_bgr(),
+                thickness=self.text_thickness,
+                lineType=cv2.LINE_AA,
+            )
+
+        return frame

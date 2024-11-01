@@ -23,10 +23,9 @@ def polygon_to_mask(polygon: np.ndarray, resolution_wh: Tuple[int, int]) -> np.n
         np.ndarray: The generated 2D mask, where the polygon is marked with
             `1`'s and the rest is filled with `0`'s.
     """
-    width, height = resolution_wh
-    mask = np.zeros((height, width))
-
-    cv2.fillPoly(mask, [polygon], color=1)
+    width, height = map(int, resolution_wh)
+    mask = np.zeros((height, width), dtype=np.uint8)
+    cv2.fillPoly(mask, [polygon.astype(np.int32)], color=1)
     return mask
 
 
@@ -163,9 +162,9 @@ def oriented_box_iou_batch(
     boxes_true = boxes_true.reshape(-1, 4, 2)
     boxes_detection = boxes_detection.reshape(-1, 4, 2)
 
-    max_height = max(boxes_true[:, :, 0].max(), boxes_detection[:, :, 0].max()) + 1
+    max_height = int(max(boxes_true[:, :, 0].max(), boxes_detection[:, :, 0].max()) + 1)
     # adding 1 because we are 0-indexed
-    max_width = max(boxes_true[:, :, 1].max(), boxes_detection[:, :, 1].max()) + 1
+    max_width = int(max(boxes_true[:, :, 1].max(), boxes_detection[:, :, 1].max()) + 1)
 
     mask_true = np.zeros((boxes_true.shape[0], max_height, max_width))
     for i, box_true in enumerate(boxes_true):
