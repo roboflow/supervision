@@ -1609,7 +1609,7 @@ class TraceAnnotator(BaseAnnotator):
         position: Position = Position.CENTER,
         trace_length: int = 30,
         thickness: int = 2,
-        color_lookup: ColorLookup = ColorLookup.INDEX,
+        color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
         """
         Args:
