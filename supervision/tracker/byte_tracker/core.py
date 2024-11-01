@@ -10,19 +10,23 @@ from supervision.tracker.byte_tracker.kalman_filter import KalmanFilter
 
 
 class IdCounter:
-    def __init__(self):
+    def __init__(self, start_id: int = 0):
+        self.start_id = start_id
+        if self.start_id <= self.NO_ID:
+            raise ValueError("start_id must be greater than -1")
         self.reset()
 
     def reset(self) -> None:
-        self._id = self.NO_ID
+        self._id = self.start_id
 
     def new_id(self) -> int:
+        returned_id = self._id
         self._id += 1
-        return self._id
+        return returned_id
 
     @property
     def NO_ID(self) -> int:
-        return 0
+        return -1
 
 
 class STrack(BaseTrack):
@@ -231,8 +235,10 @@ class ByteTrack:
         self.lost_tracks: List[STrack] = []
         self.removed_tracks: List[STrack] = []
 
+        # Warning, possible bug: If you also set internal_id to start at 1,
+        # all traces will be connected across objects.
         self.internal_id_counter = IdCounter()
-        self.external_id_counter = IdCounter()
+        self.external_id_counter = IdCounter(start_id=1)
 
     def update_with_detections(self, detections: Detections) -> Detections:
         """
