@@ -246,25 +246,22 @@ def test_box_non_max_suppression(
 
 
 @pytest.mark.parametrize(
-    "predictions, iou_threshold, sigma, expected_result, exception",
+    "predictions, sigma, expected_result, exception",
     [
         (
             np.empty(shape=(0, 5)),
-            0.5,
             0.1,
             np.array([]),
             DoesNotRaise(),
         ),  # single box with no category
         (
             np.array([[10.0, 10.0, 40.0, 40.0, 0.8]]),
-            0.5,
             0.8,
             np.array([0.8]),
             DoesNotRaise(),
         ),  # single box with no category
         (
             np.array([[10.0, 10.0, 40.0, 40.0, 0.8, 0]]),
-            0.5,
             0.9,
             np.array([0.8]),
             DoesNotRaise(),
@@ -276,7 +273,6 @@ def test_box_non_max_suppression(
                     [15.0, 15.0, 40.0, 40.0, 0.9],
                 ]
             ),
-            0.5,
             0.2,
             np.array([0.07176137, 0.9]),
             DoesNotRaise(),
@@ -288,7 +284,6 @@ def test_box_non_max_suppression(
                     [15.0, 15.0, 40.0, 40.0, 0.9, 1],
                 ]
             ),
-            0.5,
             0.3,
             np.array([0.8, 0.9]),
             DoesNotRaise(),
@@ -300,7 +295,6 @@ def test_box_non_max_suppression(
                     [15.0, 15.0, 40.0, 40.0, 0.9, 0],
                 ]
             ),
-            0.5,
             0.9,
             np.array([0.46814354, 0.9]),
             DoesNotRaise(),
@@ -313,7 +307,6 @@ def test_box_non_max_suppression(
                     [10.0, 10.0, 40.0, 50.0, 0.85],
                 ]
             ),
-            0.5,
             0.7,
             np.array([0.42648529, 0.9, 0.53109062]),
             DoesNotRaise(),
@@ -327,7 +320,6 @@ def test_box_non_max_suppression(
                 ]
             ),
             0.5,
-            0.5,
             np.array([0.8, 0.9, 0.85]),
             DoesNotRaise(),
         ),  # three boxes with same category
@@ -339,7 +331,6 @@ def test_box_non_max_suppression(
                     [10.0, 10.0, 40.0, 50.0, 0.85, 1],
                 ]
             ),
-            0.5,
             0.9,
             np.array([0.55491779, 0.9, 0.85]),
             DoesNotRaise(),
@@ -348,15 +339,12 @@ def test_box_non_max_suppression(
 )
 def test_box_soft_non_max_suppression(
     predictions: np.ndarray,
-    iou_threshold: float,
     sigma: float,
     expected_result: Optional[np.ndarray],
     exception: Exception,
 ) -> None:
     with exception:
-        result = box_soft_non_max_suppression(
-            predictions=predictions, iou_threshold=iou_threshold, sigma=sigma
-        )
+        result = box_soft_non_max_suppression(predictions=predictions, sigma=sigma)
         np.testing.assert_almost_equal(result, expected_result, decimal=5)
 
 
@@ -567,12 +555,11 @@ def test_mask_non_max_suppression(
 
 
 @pytest.mark.parametrize(
-    "predictions, masks, iou_threshold, sigma, expected_result, exception",
+    "predictions, masks, sigma, expected_result, exception",
     [
         (
             np.empty((0, 6)),
             np.empty((0, 5, 5)),
-            0.5,
             0.1,
             np.array([]),
             DoesNotRaise(),
@@ -590,7 +577,6 @@ def test_mask_non_max_suppression(
                     ]
                 ]
             ),
-            0.5,
             0.2,
             np.array([0.8]),
             DoesNotRaise(),
@@ -608,7 +594,6 @@ def test_mask_non_max_suppression(
                     ]
                 ]
             ),
-            0.5,
             0.99,
             np.array([0.8]),
             DoesNotRaise(),
@@ -633,7 +618,6 @@ def test_mask_non_max_suppression(
                     ],
                 ]
             ),
-            0.5,
             0.8,
             np.array([0.8, 0.9]),
             DoesNotRaise(),
@@ -658,7 +642,6 @@ def test_mask_non_max_suppression(
                     ],
                 ]
             ),
-            0.4,
             0.6,
             np.array([0.3831756, 0.9]),
             DoesNotRaise(),
@@ -683,7 +666,6 @@ def test_mask_non_max_suppression(
                     ],
                 ]
             ),
-            0.5,
             0.9,
             np.array([0.8, 0.9]),
             DoesNotRaise(),
@@ -721,7 +703,6 @@ def test_mask_non_max_suppression(
                     ],
                 ]
             ),
-            0.5,
             0.3,
             np.array([0.02853919, 0.85, 0.9]),
             DoesNotRaise(),
@@ -759,7 +740,6 @@ def test_mask_non_max_suppression(
                     ],
                 ]
             ),
-            0.5,
             0.1,
             np.array([0.8, 0.85, 0.9]),
             DoesNotRaise(),
@@ -769,7 +749,6 @@ def test_mask_non_max_suppression(
 def test_mask_soft_non_max_suppression(
     predictions: np.ndarray,
     masks: np.ndarray,
-    iou_threshold: float,
     sigma: float,
     expected_result: Optional[np.ndarray],
     exception: Exception,
@@ -778,7 +757,6 @@ def test_mask_soft_non_max_suppression(
         result = mask_soft_non_max_suppression(
             predictions=predictions,
             masks=masks,
-            iou_threshold=iou_threshold,
             sigma=sigma,
         )
         np.testing.assert_almost_equal(result, expected_result, decimal=6)

@@ -1323,19 +1323,17 @@ class Detections:
         return self[indices]
 
     def with_soft_nms(
-        self, threshold: float = 0.5, class_agnostic: bool = False, sigma: float = 0.5
+        self, sigma: float = 0.5, class_agnostic: bool = False
     ) -> Detections:
         """
         Perform soft non-maximum suppression on the current set of object detections.
 
         Args:
-            threshold (float): The intersection-over-union threshold
-                to use for non-maximum suppression. Defaults to 0.5.
+            sigma (float): The sigma value to use for the soft non-maximum suppression
+                algorithm. Defaults to 0.5.
             class_agnostic (bool): Whether to perform class-agnostic
                 non-maximum suppression. If True, the class_id of each detection
                 will be ignored. Defaults to False.
-            sigma (float): The sigma value to use for the soft non-maximum suppression
-                algorithm. Defaults to 0.5.
 
         Returns:
             Detections: A new Detections object containing the subset of detections
@@ -1370,13 +1368,12 @@ class Detections:
             soft_confidences = mask_soft_non_max_suppression(
                 predictions=predictions,
                 masks=self.mask,
-                iou_threshold=threshold,
                 sigma=sigma,
             )
             self.confidence = soft_confidences
         else:
-            indices, soft_confidences = box_soft_non_max_suppression(
-                predictions=predictions, iou_threshold=threshold, sigma=sigma
+            soft_confidences = box_soft_non_max_suppression(
+                predictions=predictions, sigma=sigma
             )
             self.confidence = soft_confidences
 
