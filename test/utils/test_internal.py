@@ -121,7 +121,7 @@ class MockDataclass:
         (
             Detections.empty(),
             False,
-            {"xyxy", "class_id", "confidence", "mask", "tracker_id", "data"},
+            {"xyxy", "class_id", "confidence", "mask", "tracker_id", "data", "metadata"},
             DoesNotRaise(),
         ),
         (
@@ -134,6 +134,7 @@ class MockDataclass:
                 "mask",
                 "tracker_id",
                 "data",
+                "metadata",
                 "area",
                 "box_area",
             },
@@ -149,6 +150,7 @@ class MockDataclass:
                 "mask",
                 "tracker_id",
                 "data",
+                "metadata"
             },
             DoesNotRaise(),
         ),
@@ -169,13 +171,14 @@ class MockDataclass:
                 "mask",
                 "tracker_id",
                 "data",
+                "metadata"
             },
             DoesNotRaise(),
         ),
         (
             Detections.empty(),
             False,
-            {"xyxy", "class_id", "confidence", "mask", "tracker_id", "data"},
+            {"xyxy", "class_id", "confidence", "mask", "tracker_id", "data", "metadata"},
             DoesNotRaise(),
         ),
     ],
