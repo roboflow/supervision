@@ -820,8 +820,10 @@ def is_metadata_equal(metadata_a: Dict[str, Any], metadata_b: Dict[str, Any]) ->
     """
     return set(metadata_a.keys()) == set(metadata_b.keys()) and all(
         np.array_equal(metadata_a[key], metadata_b[key])
-        if isinstance(metadata_a[key], np.ndarray)
-        and isinstance(metadata_b[key], np.ndarray)
+        if (
+            isinstance(metadata_a[key], np.ndarray)
+            and isinstance(metadata_b[key], np.ndarray)
+        )
         else metadata_a[key] == metadata_b[key]
         for key in metadata_a
     )
@@ -832,6 +834,9 @@ def merge_data(
 ) -> Dict[str, Union[npt.NDArray[np.generic], List]]:
     """
     Merges the data payloads of a list of Detections instances.
+
+    Warning: Assumes that empty detections were filtered-out before passing data to
+    this function.
 
     Args:
         data_list: The data payloads of the Detections instances. Each data payload
@@ -892,6 +897,9 @@ def merge_metadata(metadata_list: List[Dict[str, Any]]) -> Dict[str, Any]:
     This function combines the metadata dictionaries. If a key appears in more than one
     dictionary, the values must be identical for the merge to succeed.
 
+    Warning: Assumes that empty detections were filtered-out before passing metadata to
+    this function.
+
     Args:
         metadata_list (List[Dict[str, Any]]): A list of metadata dictionaries to merge.
 
@@ -909,7 +917,7 @@ def merge_metadata(metadata_list: List[Dict[str, Any]]) -> Dict[str, Any]:
     if not all(keys_set == all_keys_sets[0] for keys_set in all_keys_sets):
         raise ValueError("All metadata dictionaries must have the same keys to merge.")
 
-    merged_metadata = {}
+    merged_metadata: Dict[str, Any] = {}
     for metadata in metadata_list:
         for key, value in metadata.items():
             if key in merged_metadata:

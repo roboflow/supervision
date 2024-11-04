@@ -965,7 +965,7 @@ class Detections:
         )
 
     @classmethod
-    def empty(cls, metadata: Optional[Dict[str, Any]] = None) -> Detections:
+    def empty(cls) -> Detections:
         """
         Create an empty Detections object with no bounding boxes,
             confidences, or class IDs.
@@ -980,14 +980,10 @@ class Detections:
             empty_detections = Detections.empty()
             ```
         """
-        if metadata is not None and not isinstance(metadata, dict):
-            raise TypeError("Metadata must be a dictionary.")
-
         return cls(
             xyxy=np.empty((0, 4), dtype=np.float32),
             confidence=np.array([], dtype=np.float32),
             class_id=np.array([], dtype=int),
-            metadata=metadata if metadata is not None else {},
         )
 
     def is_empty(self) -> bool:
@@ -996,6 +992,7 @@ class Detections:
         """
         empty_detections = Detections.empty()
         empty_detections.data = self.data
+        empty_detections.metadata = self.metadata
         return self == empty_detections
 
     @classmethod
@@ -1052,16 +1049,12 @@ class Detections:
             array([0.1, 0.2, 0.3])
             ```
         """
-        metadata_list = [detections.metadata for detections in detections_list]
-
         detections_list = [
             detections for detections in detections_list if not detections.is_empty()
         ]
 
-        metadata = merge_metadata(metadata_list)
-
         if len(detections_list) == 0:
-            return Detections.empty(metadata=metadata)
+            return Detections.empty()
 
         for detections in detections_list:
             validate_detections_fields(
@@ -1092,6 +1085,9 @@ class Detections:
         tracker_id = stack_or_none("tracker_id")
 
         data = merge_data([d.data for d in detections_list])
+
+        metadata_list = [detections.metadata for detections in detections_list]
+        metadata = merge_metadata(metadata_list)
 
         return cls(
             xyxy=xyxy,
