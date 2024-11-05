@@ -69,7 +69,7 @@ def test_calculate_region_of_interest_limits(
     exception: Exception,
 ) -> None:
     with exception:
-        result = LineZone.calculate_region_of_interest_limits(vector=vector)
+        result = LineZone._calculate_region_of_interest_limits(vector=vector)
         assert result == expected_result
 
 
@@ -493,8 +493,8 @@ def test_line_zone_multiple_detections(
 
 
 @pytest.mark.parametrize(
-    "vector, xyxy_sequence, triggering_anchors, max_linger, expected_crossed_in, "
-    "expected_crossed_out",
+    "vector, xyxy_sequence, triggering_anchors, crossing_acceptance_threshold, "
+    "expected_crossed_in, expected_crossed_out",
     [
         (  # Detection lingers around line, all crosses counted
             Vector(Point(0, 0), Point(10, 0)),
@@ -578,7 +578,7 @@ def test_line_zone_one_detection_long_horizon(
     vector: Vector,
     xyxy_sequence: List[List[float]],
     triggering_anchors: List[Position],
-    max_linger: int,
+    crossing_acceptance_threshold: int,
     expected_crossed_in: List[bool],
     expected_crossed_out: List[bool],
 ) -> None:
@@ -586,7 +586,7 @@ def test_line_zone_one_detection_long_horizon(
         start=vector.start,
         end=vector.end,
         triggering_anchors=triggering_anchors,
-        max_linger=max_linger,
+        crossing_acceptance_threshold=crossing_acceptance_threshold,
     )
 
     crossed_in_list = []
@@ -609,8 +609,9 @@ def test_line_zone_one_detection_long_horizon(
 
 
 @pytest.mark.parametrize(
-    "vector, xyxy_sequence, anchors, max_linger, expected_crossed_in, "
-    "expected_crossed_out, expected_count_in, expected_count_out, exception",
+    "vector, xyxy_sequence, anchors, crossing_acceptance_threshold, "
+    "expected_crossed_in, expected_crossed_out, expected_count_in, "
+    "expected_count_out, exception",
     [
         (  # One stays, one crosses, one disappears before crossing
             Vector(Point(0, 0), Point(10, 0)),
@@ -659,11 +660,7 @@ def test_line_zone_one_detection_long_horizon(
             [
                 [False, False, False],
                 [False, True, False],
-                [
-                    False,
-                    False,
-                    True,
-                ],
+                [False, False, True],
                 [False, True],
                 [False, False],
             ],
@@ -736,7 +733,7 @@ def test_line_zone_one_detection_long_horizon(
                 [False, False],
                 [False, False],
             ],
-            [0, 0, 0, 1, 2],
+            [0, 0, 0, 0, 1],
             [0, 0, 0, 0, 0],
             DoesNotRaise(),
         ),
@@ -746,7 +743,7 @@ def test_line_zone_long_horizon_disappearing_detections(
     vector: Vector,
     xyxy_sequence: List[List[Optional[List[float]]]],
     anchors: List[Position],
-    max_linger: int,
+    crossing_acceptance_threshold: int,
     expected_crossed_in: List[List[bool]],
     expected_crossed_out: List[List[bool]],
     expected_count_in: List[int],
@@ -758,7 +755,7 @@ def test_line_zone_long_horizon_disappearing_detections(
             start=vector.start,
             end=vector.end,
             triggering_anchors=anchors,
-            max_linger=max_linger,
+            crossing_acceptance_threshold=crossing_acceptance_threshold,
         )
         crossed_in_list = []
         crossed_out_list = []
