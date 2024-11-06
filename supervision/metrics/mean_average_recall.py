@@ -29,7 +29,14 @@ if TYPE_CHECKING:
 class MeanAverageRecall(Metric):
     """
     Mean Average Recall (mAR) metric for object detection evaluation.
-    It calculates the average recall across different IoU thresholds.
+    Calculates the average recall across different IoU thresholds and detection limits.
+
+    The metric evaluates:
+        - IoU thresholds from 0.5 to 0.95 with 0.05 step
+        - Different maximum detection limits [1, 10, 100]
+        - Size-specific evaluation (small, medium, large objects)
+
+    When no detections or targets are present, returns 0.0.
 
     Example:
         ```python
@@ -309,15 +316,21 @@ class MeanAverageRecallResult:
     Defaults to `0.0` when no detections or targets are present.
 
     Attributes:
-        metric_target (MetricTarget): the type of data used for the metric
-        is_class_agnostic (bool): When computing class-agnostic results, class ID is set to `-1`
-        mean_average_recall (float): the global mAR score
-        ar_per_class (np.ndarray): the average recall scores per class
-        matched_classes (np.ndarray): the class IDs of all matched classes
-        small_objects (Optional[MeanAverageRecallResult]): the mAR results for small objects
-        medium_objects (Optional[MeanAverageRecallResult]): the mAR results for medium objects
-        large_objects (Optional[MeanAverageRecallResult]): the mAR results for large objects
-    """  # noqa: E501 // docs
+        metric_target (MetricTarget): The type of data used for the metric
+            (boxes, masks, or oriented bounding boxes)
+        is_class_agnostic (bool): When computing class-agnostic results,
+            class ID is set to `-1`
+        mean_average_recall (float): The global mAR score averaged across classes,
+            IoU thresholds, and detection limits
+        ar_per_class (np.ndarray): The average recall scores per class
+        matched_classes (np.ndarray): The class IDs of all matched classes
+        small_objects (Optional[MeanAverageRecallResult]): The mAR results for
+            small objects (area < 32²)
+        medium_objects (Optional[MeanAverageRecallResult]): The mAR results for
+            medium objects (32² ≤ area < 96²)
+        large_objects (Optional[MeanAverageRecallResult]): The mAR results for
+            large objects (area ≥ 96²)
+    """
 
     metric_target: MetricTarget
     is_class_agnostic: bool
