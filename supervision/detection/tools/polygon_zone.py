@@ -19,7 +19,7 @@ class PolygonZone:
 
     !!! warning
 
-        LineZone uses the `tracker_id`. Read
+        PolygonZone uses the `tracker_id`. Read
         [here](/latest/trackers/) to learn how to plug
         tracking into your inference pipeline.
 

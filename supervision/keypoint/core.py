@@ -612,3 +612,11 @@ class KeyPoints:
             ```
         """
         return cls(xy=np.empty((0, 0, 2), dtype=np.float32))
+
+    def is_empty(self) -> bool:
+        """
+        Returns `True` if the `KeyPoints` object is considered empty.
+        """
+        empty_keypoints = KeyPoints.empty()
+        empty_keypoints.data = self.data
+        return self == empty_keypoints
