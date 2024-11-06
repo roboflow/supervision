@@ -59,7 +59,7 @@ class MeanAverageRecall(Metric):
         self,
         metric_target: MetricTarget = MetricTarget.BOXES,
         class_agnostic: bool = False,
-        max_detections: List[int] = [1, 10, 100],  # Add max_detections parameter
+        max_detections: List[int] = [1, 10, 100],
     ):
         """
         Initialize the Mean Average Recall metric.
@@ -131,7 +131,6 @@ class MeanAverageRecall(Metric):
         """
         result = self._compute(self._predictions_list, self._targets_list)
 
-        # Compute size-specific results
         for size_category, container in [
             (ObjectSizeCategory.SMALL, "small_objects"),
             (ObjectSizeCategory.MEDIUM, "medium_objects"),
@@ -244,41 +243,10 @@ class MeanAverageRecall(Metric):
         return MeanAverageRecallResult(
             metric_target=self._metric_target,
             is_class_agnostic=self._class_agnostic,
-            mean_average_recall=np.mean(ar_per_class),
+            mean_average_recall=float(np.mean(ar_per_class)),
             ar_per_class=ar_per_class,
             matched_classes=unique_classes,
         )
-
-    @staticmethod
-    def _match_detection_batch(
-        predictions_classes: np.ndarray,
-        target_classes: np.ndarray,
-        iou: np.ndarray,
-        iou_thresholds: np.ndarray,
-    ) -> np.ndarray:
-        num_predictions, num_iou_levels = (
-            predictions_classes.shape[0],
-            iou_thresholds.shape[0],
-        )
-        correct = np.zeros((num_predictions, num_iou_levels), dtype=bool)
-        correct_class = target_classes[:, None] == predictions_classes
-
-        for i, iou_level in enumerate(iou_thresholds):
-            matched_indices = np.where((iou >= iou_level) & correct_class)
-
-            if matched_indices[0].shape[0]:
-                combined_indices = np.stack(matched_indices, axis=1)
-                iou_values = iou[matched_indices][:, None]
-                matches = np.hstack([combined_indices, iou_values])
-
-                if matched_indices[0].shape[0] > 1:
-                    matches = matches[matches[:, 2].argsort()[::-1]]
-                    matches = matches[np.unique(matches[:, 1], return_index=True)[1]]
-                    matches = matches[np.unique(matches[:, 0], return_index=True)[1]]
-
-                correct[matches[:, 1].astype(int), i] = True
-
-        return correct
 
     def _detections_content(self, detections: Detections) -> np.ndarray:
         """Return boxes, masks or oriented bounding boxes from detections."""
