@@ -52,9 +52,11 @@ class MeanAverageRecall(Metric):
         self,
         metric_target: MetricTarget = MetricTarget.BOXES,
         class_agnostic: bool = False,
+        max_detections: List[int] = [1, 10, 100],  # Add max_detections parameter
     ):
         self._metric_target = metric_target
         self._class_agnostic = class_agnostic
+        self._max_detections = max_detections
         self._predictions_list: List[Detections] = []
         self._targets_list: List[Detections] = []
 
@@ -153,11 +155,15 @@ class MeanAverageRecall(Metric):
             else:
                 raise ValueError("Unsupported metric target for IoU calculation")
 
-            # Calculate recall per class
+            # For each class
             unique_classes = np.unique(targets.class_id)
             for class_id in unique_classes:
                 target_mask = targets.class_id == class_id
-                pred_mask = predictions.class_id == class_id
+                pred_mask = (
+                    predictions.class_id == class_id
+                    if not self._class_agnostic
+                    else slice(None)
+                )
 
                 if not any(target_mask):
                     continue
@@ -166,13 +172,18 @@ class MeanAverageRecall(Metric):
                 if any(pred_mask):
                     class_iou = class_iou[:, pred_mask]
 
-                recalls = []
-                for threshold in iou_thresholds:
-                    matches = (class_iou > threshold).any(axis=1)
-                    recall = matches.mean() if len(matches) > 0 else 0.0
-                    recalls.append(recall)
+                # Calculate recall for each max detection limit
+                recalls_at_k = []
+                for k in self._max_detections:
+                    recalls_at_iou = []
+                    for threshold in iou_thresholds:
+                        matches = (class_iou > threshold).any(axis=1)
+                        recall = matches[:k].mean() if len(matches) > 0 else 0.0
+                        recalls_at_iou.append(recall)
+                    recalls_at_k.append(np.mean(recalls_at_iou))
 
-                all_recalls.append(self._compute_average_recall(recalls))
+                # Store the maximum recall across different k values
+                all_recalls.append(max(recalls_at_k))
                 all_class_ids.append(class_id)
 
         if not all_recalls:
@@ -272,7 +283,11 @@ class MeanAverageRecall(Metric):
     def _filter_detections_by_size(
         self, detections: Detections, size_category: ObjectSizeCategory
     ) -> Detections:
-        """Return a copy of detections with contents filtered by object size."""
+        """Return a copy of detections with contents filtered by object size.
+        Small: area < 32^2
+        Medium: 32^2 <= area < 96^2
+        Large: area >= 96^2
+        """
         new_detections = deepcopy(detections)
         if detections.is_empty() or size_category == ObjectSizeCategory.ANY:
             return new_detections
