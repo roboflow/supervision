@@ -1125,6 +1125,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#supervision.keypoint.core.KeyPoints.is_empty" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;is_empty
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1908,6 +1917,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../utils/datatypes/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Datatypes
+  </span>
+  
+    
+  
+  
+    <span class="md-status md-status--new"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -2441,6 +2478,15 @@
         
       </ul>
     </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#supervision.keypoint.core.KeyPoints.is_empty" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;is_empty
+    </span>
+  </a>
   
 </li>
         
@@ -3223,7 +3269,15 @@ is either a NumPy array or a list of corresponding data of length <code>n</code>
 <span class="normal"><a href="#__codelineno-0-611">611</a></span>
 <span class="normal"><a href="#__codelineno-0-612">612</a></span>
 <span class="normal"><a href="#__codelineno-0-613">613</a></span>
-<span class="normal"><a href="#__codelineno-0-614">614</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-15" name="__codelineno-0-15"></a><span class="nd">@dataclass</span>
+<span class="normal"><a href="#__codelineno-0-614">614</a></span>
+<span class="normal"><a href="#__codelineno-0-615">615</a></span>
+<span class="normal"><a href="#__codelineno-0-616">616</a></span>
+<span class="normal"><a href="#__codelineno-0-617">617</a></span>
+<span class="normal"><a href="#__codelineno-0-618">618</a></span>
+<span class="normal"><a href="#__codelineno-0-619">619</a></span>
+<span class="normal"><a href="#__codelineno-0-620">620</a></span>
+<span class="normal"><a href="#__codelineno-0-621">621</a></span>
+<span class="normal"><a href="#__codelineno-0-622">622</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-15" name="__codelineno-0-15"></a><span class="nd">@dataclass</span>
 <a id="__codelineno-0-16" name="__codelineno-0-16"></a><span class="k">class</span> <span class="nc">KeyPoints</span><span class="p">:</span>
 <a id="__codelineno-0-17" name="__codelineno-0-17"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-18" name="__codelineno-0-18"></a><span class="sd">    The `sv.KeyPoints` class in the Supervision library standardizes results from</span>
@@ -3823,6 +3877,14 @@ is either a NumPy array or a list of corresponding data of length <code>n</code>
 <a id="__codelineno-0-612" name="__codelineno-0-612"></a><span class="sd">            ```</span>
 <a id="__codelineno-0-613" name="__codelineno-0-613"></a><span class="sd">        &quot;&quot;&quot;</span>
 <a id="__codelineno-0-614" name="__codelineno-0-614"></a>        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">xy</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+<a id="__codelineno-0-615" name="__codelineno-0-615"></a>
+<a id="__codelineno-0-616" name="__codelineno-0-616"></a>    <span class="k">def</span> <span class="nf">is_empty</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<a id="__codelineno-0-617" name="__codelineno-0-617"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-618" name="__codelineno-0-618"></a><span class="sd">        Returns `True` if the `KeyPoints` object is considered empty.</span>
+<a id="__codelineno-0-619" name="__codelineno-0-619"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-620" name="__codelineno-0-620"></a>        <span class="n">empty_keypoints</span> <span class="o">=</span> <span class="n">KeyPoints</span><span class="o">.</span><span class="n">empty</span><span class="p">()</span>
+<a id="__codelineno-0-621" name="__codelineno-0-621"></a>        <span class="n">empty_keypoints</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span>
+<a id="__codelineno-0-622" name="__codelineno-0-622"></a>        <span class="k">return</span> <span class="bp">self</span> <span class="o">==</span> <span class="n">empty_keypoints</span>
 </code></pre></div></td></tr></table></div>
               </details>
 
@@ -5629,6 +5691,40 @@ and class names, and confidences of each keypoint.</p>
 <a id="__codelineno-0-457" name="__codelineno-0-457"></a>        <span class="n">class_id</span><span class="o">=</span><span class="n">class_id</span><span class="p">,</span>
 <a id="__codelineno-0-458" name="__codelineno-0-458"></a>        <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
 <a id="__codelineno-0-459" name="__codelineno-0-459"></a>    <span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="supervision.keypoint.core.KeyPoints.is_empty" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">is_empty</span><span class="p">()</span></code>
+
+<a href="#supervision.keypoint.core.KeyPoints.is_empty" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Returns <code>True</code> if the <code>KeyPoints</code> object is considered empty.</p>
+
+            <details class="quote">
+              <summary>Source code in <code>supervision/keypoint/core.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-616">616</a></span>
+<span class="normal"><a href="#__codelineno-0-617">617</a></span>
+<span class="normal"><a href="#__codelineno-0-618">618</a></span>
+<span class="normal"><a href="#__codelineno-0-619">619</a></span>
+<span class="normal"><a href="#__codelineno-0-620">620</a></span>
+<span class="normal"><a href="#__codelineno-0-621">621</a></span>
+<span class="normal"><a href="#__codelineno-0-622">622</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-616" name="__codelineno-0-616"></a><span class="k">def</span> <span class="nf">is_empty</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<a id="__codelineno-0-617" name="__codelineno-0-617"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-618" name="__codelineno-0-618"></a><span class="sd">    Returns `True` if the `KeyPoints` object is considered empty.</span>
+<a id="__codelineno-0-619" name="__codelineno-0-619"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-620" name="__codelineno-0-620"></a>    <span class="n">empty_keypoints</span> <span class="o">=</span> <span class="n">KeyPoints</span><span class="o">.</span><span class="n">empty</span><span class="p">()</span>
+<a id="__codelineno-0-621" name="__codelineno-0-621"></a>    <span class="n">empty_keypoints</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span>
+<a id="__codelineno-0-622" name="__codelineno-0-622"></a>    <span class="k">return</span> <span class="bp">self</span> <span class="o">==</span> <span class="n">empty_keypoints</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
