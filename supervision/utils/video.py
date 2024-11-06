@@ -65,8 +65,9 @@ class VideoSink:
 
     Attributes:
         target_path (str): The path to the output file where the video will be saved.
-        video_info (VideoInfo): Information about the video resolution, fps,
-            and total frame count.
+        video_info (Optional[VideoInfo]): Information about the output video resolution,
+            fps, and total frame count. If not provided, the information will be inferred
+            from the video path.
         codec (str): FOURCC code for video format
 
     Example:
@@ -82,8 +83,16 @@ class VideoSink:
         ```
     """  # noqa: E501 // docs
 
-    def __init__(self, target_path: str, video_info: VideoInfo, codec: str = "mp4v"):
+    def __init__(
+        self,
+        target_path: str,
+        video_info: Optional[VideoInfo] = None,
+        codec: str = "mp4v",
+    ):
         self.target_path = target_path
+
+        if video_info is None:
+            video_info = VideoInfo.from_video_path(target_path)
         self.video_info = video_info
         self.__codec = codec
         self.__writer = None
