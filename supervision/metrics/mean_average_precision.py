@@ -406,7 +406,7 @@ class MeanAveragePrecisionResult:
     Attributes:
         metric_target (MetricTarget): the type of data used for the metric -
             boxes, masks or oriented bounding boxes.
-        class_agnostic (bool): When computing class-agnostic results, class ID
+        is_class_agnostic (bool): When computing class-agnostic results, class ID
             is set to `-1`.
         mAP_map50_95 (float): the mAP score at IoU thresholds from `0.5` to `0.95`.
         mAP_map50 (float): the mAP score at IoU threshold of `0.5`.

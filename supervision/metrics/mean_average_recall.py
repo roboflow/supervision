@@ -61,6 +61,15 @@ class MeanAverageRecall(Metric):
         class_agnostic: bool = False,
         max_detections: List[int] = [1, 10, 100],  # Add max_detections parameter
     ):
+        """
+        Initialize the Mean Average Recall metric.
+
+        Args:
+            metric_target (MetricTarget): The type of detection data to use.
+            class_agnostic (bool): Whether to treat all data as a single class.
+            max_detections (List[int]): The maximum number of detections to consider
+                when calculating the average recall.
+        """
         self._metric_target = metric_target
         self._class_agnostic = class_agnostic
         self._max_detections = max_detections
@@ -68,6 +77,9 @@ class MeanAverageRecall(Metric):
         self._targets_list: List[Detections] = []
 
     def reset(self) -> None:
+        """
+        Reset the metric to its initial state, clearing all stored data.
+        """
         self._predictions_list = []
         self._targets_list = []
 
@@ -76,6 +88,16 @@ class MeanAverageRecall(Metric):
         predictions: Union[Detections, List[Detections]],
         targets: Union[Detections, List[Detections]],
     ) -> MeanAverageRecall:
+        """
+        Add new predictions and targets to the metric, but do not compute the result.
+
+        Args:
+            predictions (Union[Detections, List[Detections]]): The predicted detections.
+            targets (Union[Detections, List[Detections]]): The ground-truth detections.
+
+        Returns:
+            (MeanAverageRecall): The updated metric instance.
+        """
         if not isinstance(predictions, list):
             predictions = [predictions]
         if not isinstance(targets, list):
@@ -100,6 +122,13 @@ class MeanAverageRecall(Metric):
         return self
 
     def compute(self) -> MeanAverageRecallResult:
+        """
+        Calculate Mean Average Recall based on predicted and ground-truth
+        detections at different thresholds.
+
+        Returns:
+            (MeanAverageRecallResult): The Mean Average Recall result.
+        """
         result = self._compute(self._predictions_list, self._targets_list)
 
         # Compute size-specific results
@@ -317,19 +346,19 @@ class MeanAverageRecallResult:
 
     Attributes:
         metric_target (MetricTarget): The type of data used for the metric
-            (boxes, masks, or oriented bounding boxes)
+            (boxes, masks, or oriented bounding boxes).
         is_class_agnostic (bool): When computing class-agnostic results,
-            class ID is set to `-1`
+            class ID is set to `-1`.
         mean_average_recall (float): The global mAR score averaged across classes,
-            IoU thresholds, and detection limits
-        ar_per_class (np.ndarray): The average recall scores per class
-        matched_classes (np.ndarray): The class IDs of all matched classes
+            IoU thresholds, and detection limits.
+        ar_per_class (np.ndarray): The average recall scores per class.
+        matched_classes (np.ndarray): The class IDs of all matched classes.
         small_objects (Optional[MeanAverageRecallResult]): The mAR results for
-            small objects (area < 32²)
+            small objects (area < 32²).
         medium_objects (Optional[MeanAverageRecallResult]): The mAR results for
-            medium objects (32² ≤ area < 96²)
+            medium objects (32² ≤ area < 96²).
         large_objects (Optional[MeanAverageRecallResult]): The mAR results for
-            large objects (area ≥ 96²)
+            large objects (area ≥ 96²).
     """
 
     metric_target: MetricTarget
@@ -342,6 +371,14 @@ class MeanAverageRecallResult:
     large_objects: Optional[MeanAverageRecallResult] = None
 
     def __str__(self) -> str:
+        """
+        Format as a pretty string.
+
+        Example:
+            ```python
+            print(mar_result)
+            ```
+        """
         out_str = (
             f"{self.__class__.__name__}:\n"
             f"Metric target: {self.metric_target}\n"
@@ -368,6 +405,12 @@ class MeanAverageRecallResult:
         return out_str
 
     def to_pandas(self) -> "pd.DataFrame":
+        """
+        Convert the result to a pandas DataFrame.
+
+        Returns:
+            (pd.DataFrame): The result as a pandas DataFrame.
+        """
         ensure_pandas_installed()
         import pandas as pd
 
@@ -391,6 +434,9 @@ class MeanAverageRecallResult:
         return pd.DataFrame(pandas_data, index=[0])
 
     def plot(self):
+        """
+        Plot the mAR results.
+        """
         labels = ["mAR"]
         values = [self.mean_average_recall]
         colors = [LEGACY_COLOR_PALETTE[0]]
