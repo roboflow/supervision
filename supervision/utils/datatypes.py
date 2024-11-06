@@ -37,11 +37,17 @@ def keypoints_to_detections(
     for i, xy in enumerate(keypoints.xy):
         if selected_keypoint_indices:
             xy = xy[selected_keypoint_indices]
-        x_min = xy[:, 0].min()
-        x_max = xy[:, 0].max()
-        y_min = xy[:, 1].min()
-        y_max = xy[:, 1].max()
-        xyxy = np.array([[x_min, y_min, x_max, y_max]], dtype=np.float32)
+
+        # [0, 0] used by some frameworks to indicate missing keypoints
+        xy = xy[~np.all(xy == 0, axis=1)]
+        if len(xy) == 0:
+            xyxy = np.array([[0, 0, 0, 0]], dtype=np.float32)
+        else:
+            x_min = xy[:, 0].min()
+            x_max = xy[:, 0].max()
+            y_min = xy[:, 1].min()
+            y_max = xy[:, 1].max()
+            xyxy = np.array([[x_min, y_min, x_max, y_max]], dtype=np.float32)
 
         if keypoints.confidence is None:
             confidence = None
@@ -61,5 +67,6 @@ def keypoints_to_detections(
     detections = Detections.merge(detections_list)
     detections.class_id = keypoints.class_id
     detections.data = keypoints.data
+    detections = detections[detections.area > 0]
 
     return detections
