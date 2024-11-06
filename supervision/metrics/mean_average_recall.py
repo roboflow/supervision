@@ -123,14 +123,13 @@ class MeanAverageRecall(Metric):
             return MeanAverageRecallResult(
                 metric_target=self._metric_target,
                 is_class_agnostic=self._class_agnostic,
-                mean_average_recall=1.0,
+                mean_average_recall=0.0,
                 ar_per_class=np.array([]),
                 matched_classes=np.array([]),
             )
 
         all_recalls = []
         all_class_ids = []
-
         iou_thresholds = np.linspace(0.5, 0.95, 10)
 
         for predictions, targets in zip(predictions_list, targets_list):
@@ -190,7 +189,7 @@ class MeanAverageRecall(Metric):
             return MeanAverageRecallResult(
                 metric_target=self._metric_target,
                 is_class_agnostic=self._class_agnostic,
-                mean_average_recall=1.0,
+                mean_average_recall=0.0,
                 ar_per_class=np.array([]),
                 matched_classes=np.array([]),
             )
@@ -213,15 +212,6 @@ class MeanAverageRecall(Metric):
             ar_per_class=ar_per_class,
             matched_classes=unique_classes,
         )
-
-    @staticmethod
-    def _compute_average_recall(recall: np.ndarray) -> float:
-        """
-        Compute the average recall across IoU thresholds.
-        """
-        if len(recall) == 0:
-            return 0.0
-        return np.mean(recall)
 
     @staticmethod
     def _match_detection_batch(
@@ -316,7 +306,7 @@ class MeanAverageRecallResult:
     """
     The result of the Mean Average Recall calculation.
 
-    Defaults to `1.0` when no detections or targets are present.
+    Defaults to `0.0` when no detections or targets are present.
 
     Attributes:
         metric_target (MetricTarget): the type of data used for the metric
@@ -327,7 +317,7 @@ class MeanAverageRecallResult:
         small_objects (Optional[MeanAverageRecallResult]): the mAR results for small objects
         medium_objects (Optional[MeanAverageRecallResult]): the mAR results for medium objects
         large_objects (Optional[MeanAverageRecallResult]): the mAR results for large objects
-    """
+    """  # noqa: E501 // docs
 
     metric_target: MetricTarget
     is_class_agnostic: bool
