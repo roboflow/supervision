@@ -771,6 +771,19 @@ class LineZoneAnnotatorMulticlass:
         line_zones: List[LineZone],
         line_zone_labels: Optional[List[str]] = None,
     ) -> np.ndarray:
+        """
+        Draws a table with the number of objects of each class that crossed each line.
+
+        Attributes:
+            frame (np.ndarray): The image on which the table will be drawn.
+            line_zones (List[LineZone]): The line zones to be annotated.
+            line_zone_labels (Optional[List[str]]): The labels, one for each
+                line zone. If not provided, the default labels will be used.
+
+        Returns:
+            (np.ndarray): The image with the table drawn on it.
+
+        """
         if line_zone_labels is None:
             line_zone_labels = [f"Line {i + 1}:" for i in range(len(line_zones))]
         if len(line_zones) != len(line_zone_labels):

@@ -1,5 +1,5 @@
 from itertools import chain
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
@@ -23,10 +23,9 @@ def polygon_to_mask(polygon: np.ndarray, resolution_wh: Tuple[int, int]) -> np.n
         np.ndarray: The generated 2D mask, where the polygon is marked with
             `1`'s and the rest is filled with `0`'s.
     """
-    width, height = resolution_wh
-    mask = np.zeros((height, width))
-
-    cv2.fillPoly(mask, [polygon], color=1)
+    width, height = map(int, resolution_wh)
+    mask = np.zeros((height, width), dtype=np.uint8)
+    cv2.fillPoly(mask, [polygon.astype(np.int32)], color=1)
     return mask
 
 
@@ -163,9 +162,9 @@ def oriented_box_iou_batch(
     boxes_true = boxes_true.reshape(-1, 4, 2)
     boxes_detection = boxes_detection.reshape(-1, 4, 2)
 
-    max_height = max(boxes_true[:, :, 0].max(), boxes_detection[:, :, 0].max()) + 1
+    max_height = int(max(boxes_true[:, :, 0].max(), boxes_detection[:, :, 0].max()) + 1)
     # adding 1 because we are 0-indexed
-    max_width = max(boxes_true[:, :, 1].max(), boxes_detection[:, :, 1].max()) + 1
+    max_width = int(max(boxes_true[:, :, 1].max(), boxes_detection[:, :, 1].max()) + 1)
 
     mask_true = np.zeros((boxes_true.shape[0], max_height, max_width))
     for i, box_true in enumerate(boxes_true):
@@ -808,11 +807,35 @@ def is_data_equal(data_a: Dict[str, np.ndarray], data_b: Dict[str, np.ndarray]) 
     )
 
 
+def is_metadata_equal(metadata_a: Dict[str, Any], metadata_b: Dict[str, Any]) -> bool:
+    """
+    Compares the metadata payloads of two Detections instances.
+
+    Args:
+        metadata_a, metadata_b: The metadata payloads of the instances.
+
+    Returns:
+        True if the metadata payloads are equal, False otherwise.
+    """
+    return set(metadata_a.keys()) == set(metadata_b.keys()) and all(
+        np.array_equal(metadata_a[key], metadata_b[key])
+        if (
+            isinstance(metadata_a[key], np.ndarray)
+            and isinstance(metadata_b[key], np.ndarray)
+        )
+        else metadata_a[key] == metadata_b[key]
+        for key in metadata_a
+    )
+
+
 def merge_data(
     data_list: List[Dict[str, Union[npt.NDArray[np.generic], List]]],
 ) -> Dict[str, Union[npt.NDArray[np.generic], List]]:
     """
     Merges the data payloads of a list of Detections instances.
+
+    Warning: Assumes that empty detections were filtered-out before passing data to
+    this function.
 
     Args:
         data_list: The data payloads of the Detections instances. Each data payload
@@ -864,6 +887,45 @@ def merge_data(
             )
 
     return merged_data
+
+
+def merge_metadata(metadata_list: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Merge metadata from a list of metadata dictionaries.
+
+    This function combines the metadata dictionaries. If a key appears in more than one
+    dictionary, the values must be identical for the merge to succeed.
+
+    Warning: Assumes that empty detections were filtered-out before passing metadata to
+    this function.
+
+    Args:
+        metadata_list (List[Dict[str, Any]]): A list of metadata dictionaries to merge.
+
+    Returns:
+        Dict[str, Any]: A single merged metadata dictionary.
+
+    Raises:
+        ValueError: If there are conflicting values for the same key or if
+        dictionaries have different keys.
+    """
+    if not metadata_list:
+        return {}
+
+    all_keys_sets = [set(metadata.keys()) for metadata in metadata_list]
+    if not all(keys_set == all_keys_sets[0] for keys_set in all_keys_sets):
+        raise ValueError("All metadata dictionaries must have the same keys to merge.")
+
+    merged_metadata: Dict[str, Any] = {}
+    for metadata in metadata_list:
+        for key, value in metadata.items():
+            if key in merged_metadata:
+                if merged_metadata[key] != value:
+                    raise ValueError(f"Conflicting metadata for key: '{key}'.")
+            else:
+                merged_metadata[key] = value
+
+    return merged_metadata
 
 
 def get_data_item(
