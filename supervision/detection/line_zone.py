@@ -79,7 +79,7 @@ class LineZone:
             Position.BOTTOM_LEFT,
             Position.BOTTOM_RIGHT,
         ),
-        crossing_acceptance_threshold: int = 1,
+        minimum_crossing_threshold: int = 1,
     ):
         """
         Args:
@@ -90,7 +90,7 @@ class LineZone:
                 to consider when deciding on whether the detection
                 has passed the line counter or not. By default, this
                 contains the four corners of the detection's bounding box
-            crossing_acceptance_threshold (int): Detection needs to be seen
+            minimum_crossing_threshold (int): Detection needs to be seen
                 on the other side of the line for this many frames to be
                 considered as having crossed the line. This is useful when
                 dealing with unstable bounding boxes or when detections
@@ -98,7 +98,7 @@ class LineZone:
         """
         self.vector = Vector(start=start, end=end)
         self.limits = self._calculate_region_of_interest_limits(vector=self.vector)
-        self.crossing_history_length = max(2, crossing_acceptance_threshold + 1)
+        self.crossing_history_length = max(2, minimum_crossing_threshold + 1)
         self.crossing_state_history: Dict[int, Deque[bool]] = defaultdict(
             lambda: deque(maxlen=self.crossing_history_length)
         )

@@ -493,7 +493,7 @@ def test_line_zone_multiple_detections(
 
 
 @pytest.mark.parametrize(
-    "vector, xyxy_sequence, triggering_anchors, crossing_acceptance_threshold, "
+    "vector, xyxy_sequence, triggering_anchors, minimum_crossing_threshold, "
     "expected_crossed_in, expected_crossed_out",
     [
         (  # Detection lingers around line, all crosses counted
@@ -578,7 +578,7 @@ def test_line_zone_one_detection_long_horizon(
     vector: Vector,
     xyxy_sequence: List[List[float]],
     triggering_anchors: List[Position],
-    crossing_acceptance_threshold: int,
+    minimum_crossing_threshold: int,
     expected_crossed_in: List[bool],
     expected_crossed_out: List[bool],
 ) -> None:
@@ -586,7 +586,7 @@ def test_line_zone_one_detection_long_horizon(
         start=vector.start,
         end=vector.end,
         triggering_anchors=triggering_anchors,
-        crossing_acceptance_threshold=crossing_acceptance_threshold,
+        minimum_crossing_threshold=minimum_crossing_threshold,
     )
 
     crossed_in_list = []
@@ -609,7 +609,7 @@ def test_line_zone_one_detection_long_horizon(
 
 
 @pytest.mark.parametrize(
-    "vector, xyxy_sequence, anchors, crossing_acceptance_threshold, "
+    "vector, xyxy_sequence, anchors, minimum_crossing_threshold, "
     "expected_crossed_in, expected_crossed_out, expected_count_in, "
     "expected_count_out, exception",
     [
@@ -743,7 +743,7 @@ def test_line_zone_long_horizon_disappearing_detections(
     vector: Vector,
     xyxy_sequence: List[List[Optional[List[float]]]],
     anchors: List[Position],
-    crossing_acceptance_threshold: int,
+    minimum_crossing_threshold: int,
     expected_crossed_in: List[List[bool]],
     expected_crossed_out: List[List[bool]],
     expected_count_in: List[int],
@@ -755,7 +755,7 @@ def test_line_zone_long_horizon_disappearing_detections(
             start=vector.start,
             end=vector.end,
             triggering_anchors=anchors,
-            crossing_acceptance_threshold=crossing_acceptance_threshold,
+            minimum_crossing_threshold=minimum_crossing_threshold,
         )
         crossed_in_list = []
         crossed_out_list = []
