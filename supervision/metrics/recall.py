@@ -115,11 +115,11 @@ class Recall(Metric):
 
     def compute(self) -> RecallResult:
         """
-        Calculate the precision metric based on the stored predictions and ground-truth
+        Calculate the recall metric based on the stored predictions and ground-truth
         data, at different IoU thresholds.
 
         Returns:
-            (RecallResult): The precision metric result.
+            (RecallResult): The recall metric result.
         """
         result = self._compute(self._predictions_list, self._targets_list)
 
