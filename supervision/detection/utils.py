@@ -1,4 +1,3 @@
-import math
 from itertools import chain
 from typing import Dict, List, Optional, Tuple, Union
 
@@ -1055,12 +1054,16 @@ def get_box_intersection(
     else:
         return None
 
+
 def get_unit_vector(xy_1: np.ndarray, xy_2: np.ndarray) -> np.ndarray:
     direction = xy_2 - xy_1
     magnitude = np.linalg.norm(direction)
     return direction / magnitude if magnitude > 0 else np.zeros(2)
 
-def spread_out_boxes(xyxy: np.ndarray, step: int, max_iterations: int = 100) -> np.ndarray:
+
+def spread_out_boxes(
+    xyxy: np.ndarray, step: int, max_iterations: int = 100
+) -> np.ndarray:
     if len(xyxy) == 0:
         return xyxy
 
@@ -1076,8 +1079,9 @@ def spread_out_boxes(xyxy: np.ndarray, step: int, max_iterations: int = 100) -> 
 
         xyxy_i, xyxy_j = xyxy_padded[i], xyxy_padded[j]
         box_intersection = get_box_intersection(xyxy_i, xyxy_j)
-        assert box_intersection is not None, \
-            "Since we checked IoU already, boxes should always intersect"
+        assert (
+            box_intersection is not None
+        ), "Since we checked IoU already, boxes should always intersect"
 
         intersection_center = (box_intersection[:2] + box_intersection[2:]) / 2
         xyxy_i_center = (xyxy_i[:2] + xyxy_i[2:]) / 2

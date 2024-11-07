@@ -5,11 +5,11 @@ from typing import List, Optional, Tuple, Union
 import cv2
 import numpy as np
 
-from supervision.geometry.core import Rect
 from supervision.annotators.base import ImageType
 from supervision.detection.utils import pad_boxes, spread_out_boxes
 from supervision.draw.color import Color
 from supervision.draw.utils import draw_rounded_rectangle
+from supervision.geometry.core import Rect
 from supervision.keypoint.core import KeyPoints
 from supervision.keypoint.skeletons import SKELETONS_BY_VERTEX_COUNT
 from supervision.utils.conversion import ensure_cv2_image_for_annotation
@@ -348,23 +348,23 @@ class VertexLabelAnnotator:
         text_colors = text_colors[mask]
         labels = labels[mask]
 
-        xyxy = np.array([
-            self.get_text_bounding_box(
-                text=label,
-                font=font,
-                text_scale=self.text_scale,
-                text_thickness=self.text_thickness,
-                center_coordinates=tuple(anchor),
-            )
-            for anchor, label in zip(anchors, labels)
-        ])
+        xyxy = np.array(
+            [
+                self.get_text_bounding_box(
+                    text=label,
+                    font=font,
+                    text_scale=self.text_scale,
+                    text_thickness=self.text_thickness,
+                    center_coordinates=tuple(anchor),
+                )
+                for anchor, label in zip(anchors, labels)
+            ]
+        )
         xyxy_padded = pad_boxes(xyxy=xyxy, px=self.text_padding)
 
         if self.spread_out:
             xyxy_padded = spread_out_boxes(
-                xyxy_padded,
-                step=2,
-                max_iterations=len(xyxy_padded) * 20
+                xyxy_padded, step=2, max_iterations=len(xyxy_padded) * 20
             )
             xyxy = pad_boxes(xyxy=xyxy_padded, px=-self.text_padding)
 

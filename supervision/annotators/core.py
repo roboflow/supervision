@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from functools import lru_cache
 from math import sqrt
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
@@ -1154,10 +1154,7 @@ class LabelAnnotator(BaseAnnotator):
         )
 
         if self.spread_out:
-            xyxy = spread_out_boxes(
-                xyxy,
-                step=2,
-                max_iterations=len(xyxy) * 20)
+            xyxy = spread_out_boxes(xyxy, step=2, max_iterations=len(xyxy) * 20)
 
         self._draw_labels(
             scene=scene,
@@ -1189,23 +1186,25 @@ class LabelAnnotator(BaseAnnotator):
                 thickness=self.text_thickness,
             )[0]
 
-            text_properties.append(self._TextProperties(
-                text=label,
-                width=text_w,
-                height=text_h,
-                width_padded=text_w + 2 * self.text_padding,
-                height_padded=text_h + 2 * self.text_padding,
-            ))
+            text_properties.append(
+                self._TextProperties(
+                    text=label,
+                    width=text_w,
+                    height=text_h,
+                    width_padded=text_w + 2 * self.text_padding,
+                    height_padded=text_h + 2 * self.text_padding,
+                )
+            )
 
         return text_properties
 
     @staticmethod
     def _get_labels_text(
-        detections: Detections, custom_labels: Optional[List[str]]) -> List[str]:
-        
+        detections: Detections, custom_labels: Optional[List[str]]
+    ) -> List[str]:
         if custom_labels is not None:
             return custom_labels
-        
+
         labels = []
         for idx in range(len(detections)):
             if CLASS_NAME_DATA_FIELD in detections.data:
@@ -1248,9 +1247,9 @@ class LabelAnnotator(BaseAnnotator):
         detections: Detections,
         custom_color_lookup: Optional[np.ndarray],
     ) -> None:
-        assert len(xyxy) == len(text_properties) == len(detections), (
-            f"Number of text properties ({len(text_properties)}), xyxy ({len(xyxy)}) and detections ({len(detections)}) do not match."
-        )
+        assert (
+            len(xyxy) == len(text_properties) == len(detections)
+        ), f"Number of text properties ({len(text_properties)}), xyxy ({len(xyxy)}) and detections ({len(detections)}) do not match."
 
         color_lookup = (
             custom_color_lookup
@@ -1449,9 +1448,7 @@ class RichLabelAnnotator(BaseAnnotator):
         )
 
         if self.spread_out:
-            xyxy = spread_out_boxes(
-                xyxy, step=2, max_iterations=len(xyxy) * 20
-            )
+            xyxy = spread_out_boxes(xyxy, step=2, max_iterations=len(xyxy) * 20)
 
         self._draw_labels(
             draw=draw,
@@ -1459,7 +1456,7 @@ class RichLabelAnnotator(BaseAnnotator):
             labels=labels_text,
             text_properties=text_properties,
             detections=detections,
-            custom_color_lookup=custom_color_lookup
+            custom_color_lookup=custom_color_lookup,
         )
 
         return scene
@@ -1485,19 +1482,26 @@ class RichLabelAnnotator(BaseAnnotator):
             width_padded = text_width + 2 * self.text_padding
             height_padded = text_height + 2 * self.text_padding
 
-            text_properties.append(self._TextProperties(
-                text=label,
-                width=text_width,
-                height=text_height,
-                width_padded=width_padded,
-                height_padded=height_padded,
-                text_left=text_left,
-                text_top=text_top,
-            ))
+            text_properties.append(
+                self._TextProperties(
+                    text=label,
+                    width=text_width,
+                    height=text_height,
+                    width_padded=width_padded,
+                    height_padded=height_padded,
+                    text_left=text_left,
+                    text_top=text_top,
+                )
+            )
 
         return text_properties
-        
-    def _calculate_label_positions(self, detections: Detections, text_properties: List[_TextProperties], text_anchor: Position) -> np.ndarray:
+
+    def _calculate_label_positions(
+        self,
+        detections: Detections,
+        text_properties: List[_TextProperties],
+        text_anchor: Position,
+    ) -> np.ndarray:
         anchor_coordinates = detections.get_anchors_coordinates(
             anchor=self.text_anchor
         ).astype(int)
@@ -1516,7 +1520,9 @@ class RichLabelAnnotator(BaseAnnotator):
 
         return np.array(xyxy)
 
-    def _calculate_text_dimensions(self, draw, label_text: str) -> Tuple[Tuple[int, int], Tuple[int, int]]:
+    def _calculate_text_dimensions(
+        self, draw, label_text: str
+    ) -> Tuple[Tuple[int, int], Tuple[int, int]]:
         """
         Calculate text dimensions and offsets for the given label text.
         Args:
@@ -1535,11 +1541,11 @@ class RichLabelAnnotator(BaseAnnotator):
 
     @staticmethod
     def _get_labels_text(
-        detections: Detections, custom_labels: Optional[List[str]]) -> List[str]:
-        
+        detections: Detections, custom_labels: Optional[List[str]]
+    ) -> List[str]:
         if custom_labels is not None:
             return custom_labels
-        
+
         labels = []
         for idx in range(len(detections)):
             if CLASS_NAME_DATA_FIELD in detections.data:
@@ -1599,7 +1605,6 @@ class RichLabelAnnotator(BaseAnnotator):
                 fill=text_color.as_rgb(),
             )
 
-
     @staticmethod
     def _load_font(font_size: int, font_path: Optional[str]):
         def load_default_font(size):
@@ -1607,15 +1612,16 @@ class RichLabelAnnotator(BaseAnnotator):
                 return ImageFont.load_default(size)
             except TypeError:
                 return ImageFont.load_default()
-        
+
         if font_path is None:
             return load_default_font(font_size)
-    
+
         try:
             return ImageFont.truetype(font_path, font_size)
         except OSError:
             print(f"Font path '{font_path}' not found. Using PIL's default font.")
             return load_default_font(font_size)
+
 
 class IconAnnotator(BaseAnnotator):
     """
