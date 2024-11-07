@@ -1291,6 +1291,27 @@
     mAP
   </span>
   
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../mean_average_recall/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    mAR
+  </span>
+  
     
   
   
@@ -1580,13 +1601,6 @@
   <span class="md-ellipsis">
     F1 Score
   </span>
-  
-    
-  
-  
-    <span class="md-status md-status--new"></span>
-  
-
   
 
       </a>
@@ -2897,11 +2911,11 @@ number of false negatives (missed detections).</p>
 <a id="__codelineno-0-115" name="__codelineno-0-115"></a>
 <a id="__codelineno-0-116" name="__codelineno-0-116"></a>    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RecallResult</span><span class="p">:</span>
 <a id="__codelineno-0-117" name="__codelineno-0-117"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-118" name="__codelineno-0-118"></a><span class="sd">        Calculate the precision metric based on the stored predictions and ground-truth</span>
+<a id="__codelineno-0-118" name="__codelineno-0-118"></a><span class="sd">        Calculate the recall metric based on the stored predictions and ground-truth</span>
 <a id="__codelineno-0-119" name="__codelineno-0-119"></a><span class="sd">        data, at different IoU thresholds.</span>
 <a id="__codelineno-0-120" name="__codelineno-0-120"></a>
 <a id="__codelineno-0-121" name="__codelineno-0-121"></a><span class="sd">        Returns:</span>
-<a id="__codelineno-0-122" name="__codelineno-0-122"></a><span class="sd">            (RecallResult): The precision metric result.</span>
+<a id="__codelineno-0-122" name="__codelineno-0-122"></a><span class="sd">            (RecallResult): The recall metric result.</span>
 <a id="__codelineno-0-123" name="__codelineno-0-123"></a><span class="sd">        &quot;&quot;&quot;</span>
 <a id="__codelineno-0-124" name="__codelineno-0-124"></a>        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_predictions_list</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_targets_list</span><span class="p">)</span>
 <a id="__codelineno-0-125" name="__codelineno-0-125"></a>
@@ -3345,7 +3359,7 @@ recall. Determines how the recall is aggregated across classes.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Calculate the precision metric based on the stored predictions and ground-truth
+        <p>Calculate the recall metric based on the stored predictions and ground-truth
 data, at different IoU thresholds.</p>
 
 
@@ -3364,7 +3378,7 @@ data, at different IoU thresholds.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The precision metric result.</p>
+                <p>The recall metric result.</p>
               </div>
             </td>
           </tr>
@@ -3402,11 +3416,11 @@ data, at different IoU thresholds.</p>
 <span class="normal"><a href="#__codelineno-0-142">142</a></span>
 <span class="normal"><a href="#__codelineno-0-143">143</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-116" name="__codelineno-0-116"></a><span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RecallResult</span><span class="p">:</span>
 <a id="__codelineno-0-117" name="__codelineno-0-117"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-118" name="__codelineno-0-118"></a><span class="sd">    Calculate the precision metric based on the stored predictions and ground-truth</span>
+<a id="__codelineno-0-118" name="__codelineno-0-118"></a><span class="sd">    Calculate the recall metric based on the stored predictions and ground-truth</span>
 <a id="__codelineno-0-119" name="__codelineno-0-119"></a><span class="sd">    data, at different IoU thresholds.</span>
 <a id="__codelineno-0-120" name="__codelineno-0-120"></a>
 <a id="__codelineno-0-121" name="__codelineno-0-121"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-122" name="__codelineno-0-122"></a><span class="sd">        (RecallResult): The precision metric result.</span>
+<a id="__codelineno-0-122" name="__codelineno-0-122"></a><span class="sd">        (RecallResult): The recall metric result.</span>
 <a id="__codelineno-0-123" name="__codelineno-0-123"></a><span class="sd">    &quot;&quot;&quot;</span>
 <a id="__codelineno-0-124" name="__codelineno-0-124"></a>    <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_predictions_list</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_targets_list</span><span class="p">)</span>
 <a id="__codelineno-0-125" name="__codelineno-0-125"></a>
