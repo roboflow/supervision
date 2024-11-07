@@ -5,9 +5,9 @@ from typing import List, Optional, Tuple, Union
 import cv2
 import numpy as np
 
-from supervision import Rect, pad_boxes
+from supervision.geometry.core import Rect
 from supervision.annotators.base import ImageType
-from supervision.detection.utils import pad, spread_out
+from supervision.detection.utils import pad_boxes, spread_out_boxes
 from supervision.draw.color import Color
 from supervision.draw.utils import draw_rounded_rectangle
 from supervision.keypoint.core import KeyPoints
@@ -202,7 +202,7 @@ class VertexLabelAnnotator:
         text_thickness: int = 1,
         text_padding: int = 10,
         border_radius: int = 0,
-        use_smart_positioning: bool = False,
+        spread_out: bool = False,
     ):
         """
         Args:
@@ -217,16 +217,15 @@ class VertexLabelAnnotator:
             text_padding (int): The padding around the text.
             border_radius (int): The radius of the rounded corners of the
                 boxes. Set to a high value to produce circles.
-            use_smart_positioning (bool): Whether to use smart positioning to prevent
-                label overlapping or not.
+            spread_out (bool): Spread out the labels to avoid overlap.
         """
-        self.use_smart_positioning = use_smart_positioning
         self.border_radius: int = border_radius
         self.color: Union[Color, List[Color]] = color
         self.text_color: Union[Color, List[Color]] = text_color
         self.text_scale: float = text_scale
         self.text_thickness: int = text_thickness
         self.text_padding: int = text_padding
+        self.spread_out = spread_out
 
     def annotate(
         self,
@@ -349,25 +348,25 @@ class VertexLabelAnnotator:
         text_colors = text_colors[mask]
         labels = labels[mask]
 
-        xyxy = np.array(
-            [
-                self.get_text_bounding_box(
-                    text=label,
-                    font=font,
-                    text_scale=self.text_scale,
-                    text_thickness=self.text_thickness,
-                    center_coordinates=tuple(anchor),
-                )
-                for anchor, label in zip(anchors, labels)
-            ]
-        )
+        xyxy = np.array([
+            self.get_text_bounding_box(
+                text=label,
+                font=font,
+                text_scale=self.text_scale,
+                text_thickness=self.text_thickness,
+                center_coordinates=tuple(anchor),
+            )
+            for anchor, label in zip(anchors, labels)
+        ])
+        xyxy_padded = pad_boxes(xyxy=xyxy, px=self.text_padding)
 
-        if self.use_smart_positioning:
-            xyxy_padded = pad(xyxy=xyxy, px=self.text_padding)
-            xyxy_padded = spread_out(xyxy_padded, step=2)
-            xyxy = pad(xyxy=xyxy_padded, px=-self.text_padding)
-        else:
-            xyxy_padded = pad_boxes(xyxy=xyxy, px=self.text_padding)
+        if self.spread_out:
+            xyxy_padded = spread_out_boxes(
+                xyxy_padded,
+                step=2,
+                max_iterations=len(xyxy_padded) * 20
+            )
+            xyxy = pad_boxes(xyxy=xyxy_padded, px=-self.text_padding)
 
         for text, color, text_color, box, box_padded in zip(
             labels, colors, text_colors, xyxy, xyxy_padded
