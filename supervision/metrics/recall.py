@@ -50,9 +50,26 @@ class Recall(Metric):
         recall_metric = Recall()
         recall_result = recall_metric.update(predictions, targets).compute()
 
-        print(recall_result)
         print(recall_result.recall_at_50)
-        print(recall_result.small_objects.recall_at_50)
+        # 0.7615
+
+        print(recall_result)
+        # RecallResult:
+        # Metric target:    MetricTarget.BOXES
+        # Averaging method: AveragingMethod.WEIGHTED
+        # R @ 50:     0.7615
+        # R @ 75:     0.7462
+        # R @ thresh: [0.76151  0.76011  0.76011  0.75732  ...]
+        # IoU thresh: [0.5  0.55  0.6  ...]
+        # Recall per class:
+        # 0: [0.78571  0.78571  0.78571  ...]
+        # ...
+        # Small objects: ...
+        # Medium objects: ...
+        # Large objects: ...
+
+        recall_result.plot()
+
         ```
 
     ![example_plot](\
@@ -495,6 +512,19 @@ class RecallResult:
         Example:
             ```python
             print(recall_result)
+            # RecallResult:
+            # Metric target:    MetricTarget.BOXES
+            # Averaging method: AveragingMethod.WEIGHTED
+            # R @ 50:     0.7615
+            # R @ 75:     0.7462
+            # R @ thresh: [0.76151  0.76011  0.76011  0.75732  ...]
+            # IoU thresh: [0.5  0.55  0.6  ...]
+            # Recall per class:
+            # 0: [0.78571  0.78571  0.78571  ...]
+            # ...
+            # Small objects: ...
+            # Medium objects: ...
+            # Large objects: ...
             ```
         """
         out_str = (
@@ -560,6 +590,10 @@ class RecallResult:
     def plot(self):
         """
         Plot the recall results.
+
+        ![example_plot](\
+            https://media.roboflow.com/supervision-docs/metrics/recall_plot_example.png\
+            ){ align=center width="800" }
         """
 
         labels = ["Recall@50", "Recall@75"]

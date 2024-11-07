@@ -50,8 +50,24 @@ class Precision(Metric):
         precision_metric = Precision()
         precision_result = precision_metric.update(predictions, targets).compute()
 
-        print(precision_result)
         print(precision_result.precision_at_50)
+        # 0.8099
+
+        print(precision_result)
+        # PrecisionResult:
+        # Metric target:  MetricTarget.BOXES
+        # Averaging method: AveragingMethod.WEIGHTED
+        # P @ 50:     0.8099
+        # P @ 75:     0.7969
+        # P @ thresh: [0.80992  0.80905  0.80905  ...]
+        # IoU thresh: [0.5  0.55  0.6  ...]
+        # Precision per class:
+        # 0: [0.64706  0.64706  0.64706   ...]
+        # ...
+        # Small objects: ...
+        # Medium objects: ...
+        # Large objects: ...
+
         print(precision_result.small_objects.precision_at_50)
         ```
 
@@ -497,6 +513,19 @@ class PrecisionResult:
         Example:
             ```python
             print(precision_result)
+            # PrecisionResult:
+            # Metric target:  MetricTarget.BOXES
+            # Averaging method: AveragingMethod.WEIGHTED
+            # P @ 50:     0.8099
+            # P @ 75:     0.7969
+            # P @ thresh: [0.80992  0.80905  0.80905  ...]
+            # IoU thresh: [0.5  0.55  0.6  ...]
+            # Precision per class:
+            # 0: [0.64706  0.64706  0.64706   ...]
+            # ...
+            # Small objects: ...
+            # Medium objects: ...
+            # Large objects: ...
             ```
         """
         out_str = (
@@ -562,6 +591,10 @@ class PrecisionResult:
     def plot(self):
         """
         Plot the precision results.
+
+        ![example_plot](\
+            https://media.roboflow.com/supervision-docs/metrics/precision_plot_example.png\
+            ){ align=center width="800" }
         """
 
         labels = ["Precision@50", "Precision@75"]
