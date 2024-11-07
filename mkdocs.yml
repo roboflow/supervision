@@ -79,7 +79,6 @@ nav:
           - File: utils/file.md
           - Draw: utils/draw.md
           - Geometry: utils/geometry.md
-          - Datatypes: utils/datatypes.md
       - Assets: assets.md
   - Cookbooks: cookbooks.md
   - Cheatsheet: https://roboflow.github.io/cheatsheet-supervision/

@@ -1,5 +1,6 @@
 ---
 comments: true
+status: new
 ---
 
 # Track Objects
@@ -317,7 +318,7 @@ movement patterns and interactions between objects in the video.
 
 ## Tracking Key Points
 
-Keypoint tracking is currently supported via the conversion of `KeyPoints` to `Detections`. This is achieved with the [`keypoints_to_detections`](/latest/utils/datatypes/#supervision.utils.datatypes.keypoints_to_detections) function. We'll use a different video as well as [`DetectionsSmoother`](/latest/detection/tools/smoother/) to stabilize the boxes.
+Keypoint tracking is currently supported via the conversion of `KeyPoints` to `Detections`. This is achieved with the [`KeyPoints.as_detections()`](/latest/keypoint/core/#supervision.keypoint.core.KeyPoints.as_detections) function. We'll use a different video as well as [`DetectionsSmoother`](/latest/detection/tools/smoother/) to stabilize the boxes.
 
 !!! tip
 
@@ -340,7 +341,7 @@ Keypoint tracking is currently supported via the conversion of `KeyPoints` to `D
     def callback(frame: np.ndarray, _: int) -> np.ndarray:
         results = model(frame)[0]
         keypoints = sv.KeyPoints.from_ultralytics(results)
-        detections = sv.keypoints_to_detections(keypoints)
+        detections = keypoints.as_detections()
         detections = tracker.update_with_detections(detections)
         detections = smoother.update_with_detections(detections)
 
@@ -382,7 +383,7 @@ Keypoint tracking is currently supported via the conversion of `KeyPoints` to `D
     def callback(frame: np.ndarray, _: int) -> np.ndarray:
         results = model.infer(frame)[0]
         keypoints = sv.KeyPoints.from_inference(results)
-        detections = sv.keypoints_to_detections(keypoints)
+        detections = keypoints.as_detections()
         detections = tracker.update_with_detections(detections)
         detections = smoother.update_with_detections(detections)
 
