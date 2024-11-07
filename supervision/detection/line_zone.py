@@ -42,6 +42,10 @@ class LineZone:
             to inside.
         out_count (int): The number of objects that have crossed the line from inside
             to outside.
+        in_count_per_class (Dict[int, int]): Number of objects of each class that have
+            crossed the line from outside to inside.
+        out_count_per_class (Dict[int, int]): Number of objects of each class that have
+            crossed the line from inside to outside.
 
     Example:
         ```python
@@ -107,34 +111,18 @@ class LineZone:
 
     @property
     def in_count(self) -> int:
-        """
-        Number of objects that have crossed the line from
-        outside to inside.
-        """
         return sum(self._in_count_per_class.values())
 
     @property
     def out_count(self) -> int:
-        """
-        Number of objects that have crossed the line from
-        inside to outside.
-        """
         return sum(self._out_count_per_class.values())
 
     @property
     def in_count_per_class(self) -> Dict[int, int]:
-        """
-        Number of objects of each class that have crossed
-        the line from outside to inside.
-        """
         return dict(self._in_count_per_class)
 
     @property
     def out_count_per_class(self) -> Dict[int, int]:
-        """
-        Number of objects of each class that have crossed the line
-        from inside to outside.
-        """
         return dict(self._out_count_per_class)
 
     def trigger(self, detections: Detections) -> Tuple[np.ndarray, np.ndarray]:
