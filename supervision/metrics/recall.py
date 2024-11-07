@@ -478,11 +478,11 @@ class RecallResult:
         matched_classes (np.ndarray): the class IDs of all matched classes.
             Corresponds to the rows of `recall_per_class`.
         small_objects (Optional[RecallResult]): the Recall metric results
-            for small objects.
+            for small objects (area < 32²).
         medium_objects (Optional[RecallResult]): the Recall metric results
-            for medium objects.
+            for medium objects (32² ≤ area < 96²).
         large_objects (Optional[RecallResult]): the Recall metric results
-            for large objects.
+            for large objects (area ≥ 96²).
     """
 
     metric_target: MetricTarget

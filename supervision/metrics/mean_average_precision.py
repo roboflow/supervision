@@ -440,11 +440,11 @@ class MeanAveragePrecisionResult:
         matched_classes (np.ndarray): the class IDs of all matched classes.
             Corresponds to the rows of `ap_per_class`.
         small_objects (Optional[MeanAveragePrecisionResult]): the mAP results
-            for small objects.
+            for small objects (area < 32²).
         medium_objects (Optional[MeanAveragePrecisionResult]): the mAP results
-            for medium objects.
+            for medium objects (32² ≤ area < 96²).
         large_objects (Optional[MeanAveragePrecisionResult]): the mAP results
-            for large objects.
+            for large objects (area ≥ 96²).
     """
 
     metric_target: MetricTarget
