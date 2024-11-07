@@ -171,14 +171,28 @@ class MeanAverageRecall(Metric):
             if targets.is_empty():
                 continue
 
-            prediction_contents = self._detections_content(predictions)
-            target_contents = self._detections_content(targets)
-
             if predictions.is_empty():
                 unique_classes = np.unique(targets.class_id)
                 all_class_ids.extend(unique_classes)
                 all_recalls.extend([0.0] * len(unique_classes))
                 continue
+
+            if predictions.confidence is not None and len(predictions.confidence) > 0:
+                sort_idx = np.argsort(-predictions.confidence)
+                sorted_predictions = deepcopy(predictions)
+                sorted_predictions.xyxy = predictions.xyxy[sort_idx]
+                if predictions.mask is not None:
+                    sorted_predictions.mask = predictions.mask[sort_idx]
+                sorted_predictions.class_id = predictions.class_id[sort_idx]
+                sorted_predictions.confidence = predictions.confidence[sort_idx]
+                if predictions.data:
+                    for key, value in predictions.data.items():
+                        sorted_predictions.data[key] = np.array(value)[sort_idx]
+            else:
+                sorted_predictions = predictions
+
+            prediction_contents = self._detections_content(sorted_predictions)
+            target_contents = self._detections_content(targets)
 
             if self._metric_target == MetricTarget.BOXES:
                 iou = box_iou_batch(target_contents, prediction_contents)
@@ -206,7 +220,7 @@ class MeanAverageRecall(Metric):
                 if any(pred_mask):
                     class_iou = class_iou[:, pred_mask]
 
-                # Calculate recall for each max detection limit
+                # Calculate recall for each max detection limit and take the average
                 recalls_at_k = []
                 for k in self._max_detections:
                     recalls_at_iou = []
@@ -216,8 +230,8 @@ class MeanAverageRecall(Metric):
                         recalls_at_iou.append(recall)
                     recalls_at_k.append(np.mean(recalls_at_iou))
 
-                # Store the maximum recall across different k values
-                all_recalls.append(max(recalls_at_k))
+                # Store the average recall across different k values
+                all_recalls.append(np.mean(recalls_at_k))
                 all_class_ids.append(class_id)
 
         if not all_recalls:
