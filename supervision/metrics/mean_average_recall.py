@@ -15,7 +15,7 @@ from supervision.detection.utils import (
     oriented_box_iou_batch,
 )
 from supervision.draw.color import LEGACY_COLOR_PALETTE
-from supervision.metrics.core import AveragingMethod, Metric, MetricTarget
+from supervision.metrics.core import Metric, MetricTarget
 from supervision.metrics.utils.object_size import (
     ObjectSizeCategory,
     get_detection_size_category,
@@ -26,54 +26,71 @@ if TYPE_CHECKING:
     import pandas as pd
 
 
-class Recall(Metric):
+class MeanAverageRecall(Metric):
     """
-    Recall is a metric used to evaluate object detection models. It is the ratio of
-    true positive detections to the total number of ground truth instances. We calculate
-    it at different IoU thresholds.
+    Mean Average Recall (mAR) measures how well the model detects
+    and retrieves relevant objects by averaging recall over multiple
+    IoU thresholds, classes and detection limits.
 
-    In simple terms, Recall is a measure of a model's completeness, calculated as:
-
-    `Recall = TP / (TP + FN)`
-
-    Here, `TP` is the number of true positives (correct detections), and `FN` is the
-    number of false negatives (missed detections).
+    Intuitively, while Recall measures the ability to find all relevant
+    objects, mAR narrows down how many detections are considered for each
+    class. For example, mAR @ 100 considers the top 100 highest confidence
+    detections for each class. mAR @ 1 considers only the highest
+    confidence detection for each class.
 
     Example:
         ```python
         import supervision as sv
-        from supervision.metrics import Recall
+        from supervision.metrics import MeanAverageRecall
 
         predictions = sv.Detections(...)
         targets = sv.Detections(...)
 
-        recall_metric = Recall()
-        recall_result = recall_metric.update(predictions, targets).compute()
+        map_metric = MeanAverageRecall()
+        map_result = map_metric.update(predictions, targets).compute()
 
-        print(recall_result)
-        print(recall_result.recall_at_50)
-        print(recall_result.small_objects.recall_at_50)
+        print(mar_results.mar_at_100)
+        # 0.5241
+
+        print(mar_results)
+        # MeanAverageRecallResult:
+        # Metric target:    MetricTarget.BOXES
+        # mAR @ 1:    0.1362
+        # mAR @ 10:   0.4239
+        # mAR @ 100:  0.5241
+        # max detections: [1  10 100]
+        # IoU thresh:     [0.5  0.55  0.6  ...]
+        # mAR per class:
+        # 0: [0.78571  0.78571  0.78571  ...]
+        # ...
+        # Small objects: ...
+        # Medium objects: ...
+        # Large objects: ...
+
+        mar_results.plot()
         ```
+
+    ![example_plot](\
+        https://media.roboflow.com/supervision-docs/metrics/mAR_plot_example.png\
+        ){ align=center width="800" }
     """
 
     def __init__(
         self,
         metric_target: MetricTarget = MetricTarget.BOXES,
-        averaging_method: AveragingMethod = AveragingMethod.WEIGHTED,
     ):
         """
-        Initialize the Recall metric.
+        Initialize the Mean Average Recall metric.
 
         Args:
             metric_target (MetricTarget): The type of detection data to use.
-            averaging_method (AveragingMethod): The averaging method used to compute the
-                recall. Determines how the recall is aggregated across classes.
         """
         self._metric_target = metric_target
-        self.averaging_method = averaging_method
 
         self._predictions_list: List[Detections] = []
         self._targets_list: List[Detections] = []
+
+        self.max_detections = np.array([1, 10, 100])
 
     def reset(self) -> None:
         """
@@ -86,7 +103,7 @@ class Recall(Metric):
         self,
         predictions: Union[Detections, List[Detections]],
         targets: Union[Detections, List[Detections]],
-    ) -> Recall:
+    ) -> MeanAverageRecall:
         """
         Add new predictions and targets to the metric, but do not compute the result.
 
@@ -113,13 +130,13 @@ class Recall(Metric):
 
         return self
 
-    def compute(self) -> RecallResult:
+    def compute(self) -> MeanAverageRecallResult:
         """
-        Calculate the recall metric based on the stored predictions and ground-truth
-        data, at different IoU thresholds.
+        Calculate the Mean Average Recall metric based on the stored predictions
+        and ground-truth, at different IoU thresholds and maximum detection counts.
 
         Returns:
-            (RecallResult): The recall metric result.
+            (MeanAverageRecallResult): The Mean Average Recall metric result.
         """
         result = self._compute(self._predictions_list, self._targets_list)
 
@@ -144,7 +161,7 @@ class Recall(Metric):
 
     def _compute(
         self, predictions_list: List[Detections], targets_list: List[Detections]
-    ) -> RecallResult:
+    ) -> MeanAverageRecallResult:
         iou_thresholds = np.linspace(0.5, 0.95, 10)
         stats = []
 
@@ -190,11 +207,11 @@ class Recall(Metric):
                     )
 
         if not stats:
-            return RecallResult(
+            return MeanAverageRecallResult(
                 metric_target=self._metric_target,
-                averaging_method=self.averaging_method,
                 recall_scores=np.zeros(iou_thresholds.shape[0]),
                 recall_per_class=np.zeros((0, iou_thresholds.shape[0])),
+                max_detections=self.max_detections,
                 iou_thresholds=iou_thresholds,
                 matched_classes=np.array([], dtype=int),
                 small_objects=None,
@@ -203,15 +220,15 @@ class Recall(Metric):
             )
 
         concatenated_stats = [np.concatenate(items, 0) for items in zip(*stats)]
-        recall_scores, recall_per_class, unique_classes = (
-            self._compute_recall_for_classes(*concatenated_stats)
+        recall_scores_per_k, recall_per_class, unique_classes = (
+            self._compute_average_recall_for_classes(*concatenated_stats)
         )
 
-        return RecallResult(
+        return MeanAverageRecallResult(
             metric_target=self._metric_target,
-            averaging_method=self.averaging_method,
-            recall_scores=recall_scores,
+            recall_scores=recall_scores_per_k,
             recall_per_class=recall_per_class,
+            max_detections=self.max_detections,
             iou_thresholds=iou_thresholds,
             matched_classes=unique_classes,
             small_objects=None,
@@ -219,7 +236,7 @@ class Recall(Metric):
             large_objects=None,
         )
 
-    def _compute_recall_for_classes(
+    def _compute_average_recall_for_classes(
         self,
         matches: np.ndarray,
         prediction_confidence: np.ndarray,
@@ -231,23 +248,27 @@ class Recall(Metric):
         prediction_class_ids = prediction_class_ids[sorted_indices]
         unique_classes, class_counts = np.unique(true_class_ids, return_counts=True)
 
-        # Shape: PxTh,P,C,C -> CxThx3
-        confusion_matrix = self._compute_confusion_matrix(
-            matches, prediction_class_ids, unique_classes, class_counts
-        )
+        recalls_at_k = []
+        for max_detections in self.max_detections:
+            # Shape: PxTh,P,C,C -> CxThx3
+            confusion_matrix = self._compute_confusion_matrix(
+                matches,
+                prediction_class_ids,
+                unique_classes,
+                class_counts,
+                max_detections=max_detections,
+            )
 
-        # Shape: CxThx3 -> CxTh
-        recall_per_class = self._compute_recall(confusion_matrix)
+            # Shape: CxThx3 -> CxTh
+            recall_per_class = self._compute_recall(confusion_matrix)
+            recalls_at_k.append(recall_per_class)
 
-        # Shape: CxTh -> Th
-        if self.averaging_method == AveragingMethod.MACRO:
-            recall_scores = np.mean(recall_per_class, axis=0)
-        elif self.averaging_method == AveragingMethod.MICRO:
-            confusion_matrix_merged = confusion_matrix.sum(0)
-            recall_scores = self._compute_recall(confusion_matrix_merged)
-        elif self.averaging_method == AveragingMethod.WEIGHTED:
-            class_counts = class_counts.astype(np.float32)
-            recall_scores = np.average(recall_per_class, axis=0, weights=class_counts)
+        # Shape: KxCxTh -> KxC
+        recalls_at_k = np.array(recalls_at_k)
+        average_recall_per_class = np.mean(recalls_at_k, axis=2)
+
+        # Shape: KxC -> K
+        recall_scores = np.mean(average_recall_per_class, axis=1)
 
         return recall_scores, recall_per_class, unique_classes
 
@@ -288,6 +309,7 @@ class Recall(Metric):
         sorted_prediction_class_ids: np.ndarray,
         unique_classes: np.ndarray,
         class_counts: np.ndarray,
+        max_detections: Optional[int] = None,
     ) -> np.ndarray:
         """
         Compute the confusion matrix for each class and IoU threshold.
@@ -295,7 +317,7 @@ class Recall(Metric):
         Assumes the matches and prediction_class_ids are sorted by confidence
         in descending order.
 
-        Arguments:
+        Args:
             sorted_matches: np.ndarray, bool, shape (P, Th), that is True
                 if the prediction is a true positive at the given IoU threshold.
             sorted_prediction_class_ids: np.ndarray, int, shape (P,), containing
@@ -304,12 +326,14 @@ class Recall(Metric):
                 class ids.
             class_counts: np.ndarray, int, shape (C,), containing the number
                 of true instances for each class.
+            max_detections: Optional[int], the maximum number of detections to
+                consider for each class. Extra detections are considered false
+                positives. By default, all detections are considered.
 
         Returns:
             np.ndarray, shape (C, Th, 3), containing the true positives, false
                 positives, and false negatives for each class and IoU threshold.
         """
-
         num_thresholds = sorted_matches.shape[1]
         num_classes = unique_classes.shape[0]
 
@@ -328,8 +352,11 @@ class Recall(Metric):
                 false_positives = np.full(num_thresholds, num_predictions)
                 false_negatives = np.zeros(num_thresholds)
             else:
-                true_positives = sorted_matches[is_class].sum(0)
-                false_positives = (1 - sorted_matches[is_class]).sum(0)
+                limited_matches = sorted_matches[is_class][slice(max_detections)]
+                true_positives = limited_matches.sum(0)
+
+                false_positives = (1 - limited_matches).sum(0)
+                false_negatives = num_true - true_positives
                 false_negatives = num_true - true_positives
             confusion_matrix[class_idx] = np.stack(
                 [true_positives, false_positives, false_negatives], axis=1
@@ -420,9 +447,6 @@ class Recall(Metric):
         targets_list: List[Detections],
         size_category: ObjectSizeCategory,
     ) -> Tuple[List[Detections], List[Detections]]:
-        """
-        Filter predictions and targets by object size category.
-        """
         new_predictions_list = []
         new_targets_list = []
         for predictions, targets in zip(predictions_list, targets_list):
@@ -436,53 +460,85 @@ class Recall(Metric):
 
 
 @dataclass
-class RecallResult:
+class MeanAverageRecallResult:
+    # """
+    # The results of the recall metric calculation.
+
+    # Defaults to `0` if no detections or targets were provided.
+
+    # Attributes:
+    #     metric_target (MetricTarget): the type of data used for the metric -
+    #         boxes, masks or oriented bounding boxes.
+    #     averaging_method (AveragingMethod): the averaging method used to compute the
+    #         recall. Determines how the recall is aggregated across classes.
+    #     recall_at_50 (float): the recall at IoU threshold of `0.5`.
+    #     recall_at_75 (float): the recall at IoU threshold of `0.75`.
+    #     recall_scores (np.ndarray): the recall scores at each IoU threshold.
+    #         Shape: `(num_iou_thresholds,)`
+    #     recall_per_class (np.ndarray): the recall scores per class and IoU threshold.
+    #         Shape: `(num_target_classes, num_iou_thresholds)`
+    #     iou_thresholds (np.ndarray): the IoU thresholds used in the calculations.
+    #     matched_classes (np.ndarray): the class IDs of all matched classes.
+    #         Corresponds to the rows of `recall_per_class`.
+    #     small_objects (Optional[RecallResult]): the Recall metric results
+    #         for small objects.
+    #     medium_objects (Optional[RecallResult]): the Recall metric results
+    #         for medium objects.
+    #     large_objects (Optional[RecallResult]): the Recall metric results
+    #         for large objects.
+    # """
     """
-    The results of the recall metric calculation.
+    The results of the Mean Average Recall metric calculation.
 
     Defaults to `0` if no detections or targets were provided.
 
     Attributes:
         metric_target (MetricTarget): the type of data used for the metric -
             boxes, masks or oriented bounding boxes.
-        averaging_method (AveragingMethod): the averaging method used to compute the
-            recall. Determines how the recall is aggregated across classes.
-        recall_at_50 (float): the recall at IoU threshold of `0.5`.
-        recall_at_75 (float): the recall at IoU threshold of `0.75`.
-        recall_scores (np.ndarray): the recall scores at each IoU threshold.
-            Shape: `(num_iou_thresholds,)`
+        mAR_at_1 (float): the Mean Average Recall, when considering only the top
+            highest confidence detection for each class.
+        mAR_at_10 (float): the Mean Average Recall, when considering top 10
+            highest confidence detections for each class.
+        mAR_at_100 (float): the Mean Average Recall, when considering top 100
+            highest confidence detections for each class.
         recall_per_class (np.ndarray): the recall scores per class and IoU threshold.
             Shape: `(num_target_classes, num_iou_thresholds)`
+        max_detections (np.ndarray): the array with maximum number of detections
+            considered.
         iou_thresholds (np.ndarray): the IoU thresholds used in the calculations.
         matched_classes (np.ndarray): the class IDs of all matched classes.
             Corresponds to the rows of `recall_per_class`.
-        small_objects (Optional[RecallResult]): the Recall metric results
-            for small objects.
-        medium_objects (Optional[RecallResult]): the Recall metric results
-            for medium objects.
-        large_objects (Optional[RecallResult]): the Recall metric results
-            for large objects.
+        small_objects (Optional[MeanAverageRecallResult]): the Mean Average Recall
+            metric results for small objects (area < 32²).
+        medium_objects (Optional[MeanAverageRecallResult]): the Mean Average Recall
+            metric results for medium objects (32² ≤ area < 96²).
+        large_objects (Optional[MeanAverageRecallResult]): the Mean Average Recall
+            metric results for large objects (area ≥ 96²).
     """
 
     metric_target: MetricTarget
-    averaging_method: AveragingMethod
 
     @property
-    def recall_at_50(self) -> float:
+    def mAR_at_1(self) -> float:
         return self.recall_scores[0]
 
     @property
-    def recall_at_75(self) -> float:
-        return self.recall_scores[5]
+    def mAR_at_10(self) -> float:
+        return self.recall_scores[1]
+
+    @property
+    def mAR_at_100(self) -> float:
+        return self.recall_scores[2]
 
     recall_scores: np.ndarray
     recall_per_class: np.ndarray
+    max_detections: np.ndarray
     iou_thresholds: np.ndarray
     matched_classes: np.ndarray
 
-    small_objects: Optional[RecallResult]
-    medium_objects: Optional[RecallResult]
-    large_objects: Optional[RecallResult]
+    small_objects: Optional[MeanAverageRecallResult]
+    medium_objects: Optional[MeanAverageRecallResult]
+    large_objects: Optional[MeanAverageRecallResult]
 
     def __str__(self) -> str:
         """
@@ -490,18 +546,30 @@ class RecallResult:
 
         Example:
             ```python
-            print(recall_result)
+            # MeanAverageRecallResult:
+            # Metric target:    MetricTarget.BOXES
+            # mAR @ 1:    0.1362
+            # mAR @ 10:   0.4239
+            # mAR @ 100:  0.5241
+            # max detections: [1  10 100]
+            # IoU thresh:     [0.5  0.55  0.6  ...]
+            # mAR per class:
+            # 0: [0.78571  0.78571  0.78571  ...]
+            # ...
+            # Small objects: ...
+            # Medium objects: ...
+            # Large objects: ...
             ```
         """
         out_str = (
             f"{self.__class__.__name__}:\n"
-            f"Metric target:    {self.metric_target}\n"
-            f"Averaging method: {self.averaging_method}\n"
-            f"R @ 50:     {self.recall_at_50:.4f}\n"
-            f"R @ 75:     {self.recall_at_75:.4f}\n"
-            f"R @ thresh: {self.recall_scores}\n"
-            f"IoU thresh: {self.iou_thresholds}\n"
-            f"Recall per class:\n"
+            f"Metric target:  {self.metric_target}\n"
+            f"mAR @ 1:    {self.mAR_at_1:.4f}\n"
+            f"mAR @ 10:   {self.mAR_at_10:.4f}\n"
+            f"mAR @ 100:  {self.mAR_at_100:.4f}\n"
+            f"max detections: {self.max_detections}\n"
+            f"IoU thresh:     {self.iou_thresholds}\n"
+            f"mAR per class:\n"
         )
         if self.recall_per_class.size == 0:
             out_str += "  No results\n"
@@ -534,8 +602,9 @@ class RecallResult:
         import pandas as pd
 
         pandas_data = {
-            "R@50": self.recall_at_50,
-            "R@75": self.recall_at_75,
+            "mAR @ 1": self.mAR_at_1,
+            "mAR @ 10": self.mAR_at_10,
+            "mAR @ 100": self.mAR_at_100,
         }
 
         if self.small_objects is not None:
@@ -555,30 +624,45 @@ class RecallResult:
 
     def plot(self):
         """
-        Plot the recall results.
-        """
+        Plot the Mean Average Recall results.
 
-        labels = ["Recall@50", "Recall@75"]
-        values = [self.recall_at_50, self.recall_at_75]
-        colors = [LEGACY_COLOR_PALETTE[0]] * 2
+        ![example_plot](\
+            https://media.roboflow.com/supervision-docs/metrics/mAR_plot_example.png\
+            ){ align=center width="800" }
+        """
+        labels = ["mAR @ 1", "mAR @ 10", "mAR @ 100"]
+        values = [self.mAR_at_1, self.mAR_at_10, self.mAR_at_100]
+        colors = [LEGACY_COLOR_PALETTE[0]] * 3
 
         if self.small_objects is not None:
             small_objects = self.small_objects
-            labels += ["Small: R@50", "Small: R@75"]
-            values += [small_objects.recall_at_50, small_objects.recall_at_75]
-            colors += [LEGACY_COLOR_PALETTE[3]] * 2
+            labels += ["Small: mAR @ 1", "Small: mAR @ 10", "Small: mAR @ 100"]
+            values += [
+                small_objects.mAR_at_1,
+                small_objects.mAR_at_10,
+                small_objects.mAR_at_100,
+            ]
+            colors += [LEGACY_COLOR_PALETTE[3]] * 3
 
         if self.medium_objects is not None:
             medium_objects = self.medium_objects
-            labels += ["Medium: R@50", "Medium: R@75"]
-            values += [medium_objects.recall_at_50, medium_objects.recall_at_75]
-            colors += [LEGACY_COLOR_PALETTE[2]] * 2
+            labels += ["Medium: mAR @ 1", "Medium: mAR @ 10", "Medium: mAR @ 100"]
+            values += [
+                medium_objects.mAR_at_1,
+                medium_objects.mAR_at_10,
+                medium_objects.mAR_at_100,
+            ]
+            colors += [LEGACY_COLOR_PALETTE[2]] * 3
 
         if self.large_objects is not None:
             large_objects = self.large_objects
-            labels += ["Large: R@50", "Large: R@75"]
-            values += [large_objects.recall_at_50, large_objects.recall_at_75]
-            colors += [LEGACY_COLOR_PALETTE[4]] * 2
+            labels += ["Large: mAR @ 1", "Large: mAR @ 10", "Large: mAR @ 100"]
+            values += [
+                large_objects.mAR_at_1,
+                large_objects.mAR_at_10,
+                large_objects.mAR_at_100,
+            ]
+            colors += [LEGACY_COLOR_PALETTE[4]] * 3
 
         plt.rcParams["font.family"] = "monospace"
 
@@ -586,9 +670,8 @@ class RecallResult:
         ax.set_ylim(0, 1)
         ax.set_ylabel("Value", fontweight="bold")
         title = (
-            f"Recall, by Object Size"
-            f"\n(target: {self.metric_target.value},"
-            f" averaging: {self.averaging_method.value})"
+            f"Mean Average Recall, by Object Size"
+            f"\n(target: {self.metric_target.value})"
         )
         ax.set_title(title, fontweight="bold")
 
