@@ -1247,9 +1247,11 @@ class LabelAnnotator(BaseAnnotator):
         detections: Detections,
         custom_color_lookup: Optional[np.ndarray],
     ) -> None:
-        assert (
-            len(xyxy) == len(text_properties) == len(detections)
-        ), f"Number of text properties ({len(text_properties)}), xyxy ({len(xyxy)}) and detections ({len(detections)}) do not match."
+        assert len(xyxy) == len(text_properties) == len(detections), (
+            f"Number of text properties ({len(text_properties)}), "
+            f"xyxy ({len(xyxy)}) and detections ({len(detections)}) "
+            "do not match."
+        )
 
         color_lookup = (
             custom_color_lookup
@@ -1442,7 +1444,6 @@ class RichLabelAnnotator(BaseAnnotator):
         labels = self._get_labels_text(detections, labels)
         text_properties = self._get_text_properties(draw, labels)
 
-        labels_text = self._get_labels_text(detections, labels)
         xyxy = self._calculate_label_positions(
             detections, text_properties, self.text_anchor
         )
@@ -1453,7 +1454,6 @@ class RichLabelAnnotator(BaseAnnotator):
         self._draw_labels(
             draw=draw,
             xyxy=xyxy,
-            labels=labels_text,
             text_properties=text_properties,
             detections=detections,
             custom_color_lookup=custom_color_lookup,
@@ -1520,25 +1520,6 @@ class RichLabelAnnotator(BaseAnnotator):
 
         return np.array(xyxy)
 
-    def _calculate_text_dimensions(
-        self, draw, label_text: str
-    ) -> Tuple[Tuple[int, int], Tuple[int, int]]:
-        """
-        Calculate text dimensions and offsets for the given label text.
-        Args:
-            label_text: The text to measure
-        Returns:
-            (Tuple[int, int]): ((left_offset, top_offset), (padded_width, padded_height))
-        """
-        text_left, text_top, text_right, text_bottom = draw.textbbox(
-            (0, 0), label_text, font=self.font
-        )
-        text_width = text_right - text_left
-        text_height = text_bottom - text_top
-        padded_width = text_width + 2 * self.text_padding
-        padded_height = text_height + 2 * self.text_padding
-        return (text_left, text_top), (padded_width, padded_height)
-
     @staticmethod
     def _get_labels_text(
         detections: Detections, custom_labels: Optional[List[str]]
@@ -1560,7 +1541,6 @@ class RichLabelAnnotator(BaseAnnotator):
         self,
         draw,
         xyxy: np.ndarray,
-        labels: List[str],
         text_properties: List[_TextProperties],
         detections: Detections,
         custom_color_lookup: Optional[np.ndarray],
@@ -1600,7 +1580,7 @@ class RichLabelAnnotator(BaseAnnotator):
             )
             draw.text(
                 xy=(label_x_position, label_y_position),
-                text=labels[idx],
+                text=text_properties[idx].text,
                 font=self.font,
                 fill=text_color.as_rgb(),
             )
