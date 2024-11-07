@@ -46,6 +46,10 @@ class MeanAveragePrecision(Metric):
         print(map_result.map50_95)
         map_result.plot()
         ```
+
+    ![example_plot](\
+        https://media.roboflow.com/supervision-docs/metrics/mAP_plot_example.png\
+        ){ align=center width="800" }
     """
 
     def __init__(

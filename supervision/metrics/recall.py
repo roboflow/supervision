@@ -54,6 +54,10 @@ class Recall(Metric):
         print(recall_result.recall_at_50)
         print(recall_result.small_objects.recall_at_50)
         ```
+
+    ![example_plot](\
+        https://media.roboflow.com/supervision-docs/metrics/recall_plot_example.png\
+        ){ align=center width="800" }
     """
 
     def __init__(

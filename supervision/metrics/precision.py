@@ -54,6 +54,10 @@ class Precision(Metric):
         print(precision_result.precision_at_50)
         print(precision_result.small_objects.precision_at_50)
         ```
+
+    ![example_plot](\
+        https://media.roboflow.com/supervision-docs/metrics/precision_plot_example.png\
+        ){ align=center width="800" }
     """
 
     def __init__(

@@ -51,6 +51,10 @@ class F1Score(Metric):
         print(f1_result.f1_50)
         print(f1_result.small_objects.f1_50)
         ```
+
+    ![example_plot](\
+        https://media.roboflow.com/supervision-docs/metrics/f1_plot_example.png\
+        ){ align=center width="800" }
     """
 
     def __init__(
