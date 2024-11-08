@@ -33,6 +33,8 @@ from supervision.utils.image import (
 )
 from supervision.utils.internal import deprecated
 
+CV2_FONT = cv2.FONT_HERSHEY_SIMPLEX
+
 
 class BoxAnnotator(BaseAnnotator):
     """
@@ -1053,8 +1055,6 @@ class LabelAnnotator(BaseAnnotator):
         width_padded: int
         height_padded: int
 
-    _FONT = cv2.FONT_HERSHEY_SIMPLEX
-
     def __init__(
         self,
         color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
@@ -1181,7 +1181,7 @@ class LabelAnnotator(BaseAnnotator):
         for label in labels:
             (text_w, text_h) = cv2.getTextSize(
                 text=label,
-                fontFace=self._FONT,
+                fontFace=CV2_FONT,
                 fontScale=self.text_scale,
                 thickness=self.text_thickness,
             )[0]
@@ -1286,7 +1286,7 @@ class LabelAnnotator(BaseAnnotator):
                 img=scene,
                 text=text_properties[idx].text,
                 org=(text_x, text_y),
-                fontFace=self._FONT,
+                fontFace=CV2_FONT,
                 fontScale=self.text_scale,
                 color=text_color.as_bgr(),
                 thickness=self.text_thickness,
