@@ -919,11 +919,27 @@ def merge_metadata(metadata_list: List[Dict[str, Any]]) -> Dict[str, Any]:
     merged_metadata: Dict[str, Any] = {}
     for metadata in metadata_list:
         for key, value in metadata.items():
-            if key in merged_metadata:
+            if key not in merged_metadata:
+                merged_metadata[key] = value
+                continue
+
+            other_value = merged_metadata[key]
+            if isinstance(value, np.ndarray) and isinstance(other_value, np.ndarray):
+                if not np.array_equal(merged_metadata[key], value):
+                    raise ValueError(
+                        f"Conflicting metadata for key: '{key}': "
+                        "{type(value)}, {type(other_value)}."
+                    )
+            elif isinstance(value, np.ndarray) or isinstance(other_value, np.ndarray):
+                # Since [] == np.array([]).
+                raise ValueError(
+                    f"Conflicting metadata for key: '{key}': "
+                    "{type(value)}, {type(other_value)}."
+                )
+            else:
+                print("hm")
                 if merged_metadata[key] != value:
                     raise ValueError(f"Conflicting metadata for key: '{key}'.")
-            else:
-                merged_metadata[key] = value
 
     return merged_metadata
 
