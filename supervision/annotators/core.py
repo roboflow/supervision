@@ -1065,7 +1065,7 @@ class LabelAnnotator(BaseAnnotator):
         text_position: Position = Position.TOP_LEFT,
         color_lookup: ColorLookup = ColorLookup.CLASS,
         border_radius: int = 0,
-        spread_out: bool = False,
+        smart_positions: bool = False,
     ):
         """
         Args:
@@ -1082,7 +1082,7 @@ class LabelAnnotator(BaseAnnotator):
                 Options are `INDEX`, `CLASS`, `TRACK`.
             border_radius (int): The radius to apply round edges. If the selected
                 value is higher than the lower dimension, width or height, is clipped.
-            spread_out (bool): Spread out the labels to avoid overlapping.
+            smart_positions (bool): Spread out the labels to avoid overlapping.
         """
         self.border_radius: int = border_radius
         self.color: Union[Color, ColorPalette] = color
@@ -1092,7 +1092,7 @@ class LabelAnnotator(BaseAnnotator):
         self.text_padding: int = text_padding
         self.text_anchor: Position = text_position
         self.color_lookup: ColorLookup = color_lookup
-        self.spread_out = spread_out
+        self.smart_positions = smart_positions
 
     @ensure_cv2_image_for_annotation
     def annotate(
@@ -1153,7 +1153,7 @@ class LabelAnnotator(BaseAnnotator):
             detections, text_properties, self.text_anchor
         )
 
-        if self.spread_out:
+        if self.smart_positions:
             xyxy = spread_out_boxes(xyxy, step=2, max_iterations=len(xyxy) * 20)
 
         self._draw_labels(
@@ -1362,7 +1362,7 @@ class RichLabelAnnotator(BaseAnnotator):
         text_position: Position = Position.TOP_LEFT,
         color_lookup: ColorLookup = ColorLookup.CLASS,
         border_radius: int = 0,
-        spread_out: bool = False,
+        smart_positions: bool = False,
     ):
         """
         Args:
@@ -1379,7 +1379,7 @@ class RichLabelAnnotator(BaseAnnotator):
                 Options are `INDEX`, `CLASS`, `TRACK`.
             border_radius (int): The radius to apply round edges. If the selected
                 value is higher than the lower dimension, width or height, is clipped.
-            spread_out (bool): Spread out the labels to avoid overlapping.
+            smart_positions (bool): Spread out the labels to avoid overlapping.
         """
         self.color = color
         self.text_color = text_color
@@ -1387,7 +1387,7 @@ class RichLabelAnnotator(BaseAnnotator):
         self.text_anchor = text_position
         self.color_lookup = color_lookup
         self.border_radius = border_radius
-        self.spread_out = spread_out
+        self.smart_positions = smart_positions
         self.font = self._load_font(font_size, font_path)
 
     @ensure_pil_image_for_annotation
@@ -1448,7 +1448,7 @@ class RichLabelAnnotator(BaseAnnotator):
             detections, text_properties, self.text_anchor
         )
 
-        if self.spread_out:
+        if self.smart_positions:
             xyxy = spread_out_boxes(xyxy, step=2, max_iterations=len(xyxy) * 20)
 
         self._draw_labels(
