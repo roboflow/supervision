@@ -1062,37 +1062,52 @@ def get_unit_vector(xy_1: np.ndarray, xy_2: np.ndarray) -> np.ndarray:
 
 
 def spread_out_boxes(
-    xyxy: np.ndarray, step: int, max_iterations: int = 100
+    xyxy: np.ndarray,
+    max_iterations: int = 100,
+    force_multiplier: float = 0.03,
 ) -> np.ndarray:
+    """
+    Spread out boxes that overlap with each other.
+
+    Args:
+        xyxy: Numpy array of shape (N, 4) where N is the number of boxes.
+        max_iterations: Maximum number of iterations to run the algorithm for.
+        force_multiplier: Multiplier to scale the force vectors by. Similar to
+            learning rate in gradient descent.
+    """
     if len(xyxy) == 0:
         return xyxy
 
-    xyxy_padded = pad_boxes(xyxy, px=step)
+    xyxy_padded = pad_boxes(xyxy, px=1)
     for _ in range(max_iterations):
+        # NxN
         iou = box_iou_batch(xyxy_padded, xyxy_padded)
         np.fill_diagonal(iou, 0)
-
         if np.all(iou == 0):
             break
 
-        i, j = np.unravel_index(np.argmax(iou), iou.shape)
+        overlap_mask = iou > 0
 
-        xyxy_i, xyxy_j = xyxy_padded[i], xyxy_padded[j]
-        box_intersection = get_box_intersection(xyxy_i, xyxy_j)
-        assert (
-            box_intersection is not None
-        ), "Since we checked IoU already, boxes should always intersect"
+        # Nx2
+        centers = (xyxy_padded[:, :2] + xyxy_padded[:, 2:]) / 2
 
-        intersection_center = (box_intersection[:2] + box_intersection[2:]) / 2
-        xyxy_i_center = (xyxy_i[:2] + xyxy_i[2:]) / 2
-        xyxy_j_center = (xyxy_j[:2] + xyxy_j[2:]) / 2
+        # NxNx2
+        delta_centers = centers[:, np.newaxis, :] - centers[np.newaxis, :, :]
+        delta_centers *= overlap_mask[:, :, np.newaxis]
 
-        unit_vector_i = get_unit_vector(intersection_center, xyxy_i_center)
-        unit_vector_j = get_unit_vector(intersection_center, xyxy_j_center)
+        # Nx2
+        force_vectors = np.sum(delta_centers, axis=1)
+        force_vectors *= force_multiplier
+        force_vectors[(force_vectors > 0) & (force_vectors < 1)] = 1
+        force_vectors[(force_vectors < 0) & (force_vectors > -1)] = -1
 
-        xyxy_padded[i, [0, 2]] += int(unit_vector_i[0] * step)
-        xyxy_padded[i, [1, 3]] += int(unit_vector_i[1] * step)
-        xyxy_padded[j, [0, 2]] += int(unit_vector_j[0] * step)
-        xyxy_padded[j, [1, 3]] += int(unit_vector_j[1] * step)
+        # Reduce motion along primary axis
+        primary_axis = np.argmax(np.abs(force_vectors), axis=1)
+        force_vectors[np.arange(len(force_vectors)), primary_axis] /= 2
 
-    return pad_boxes(xyxy_padded, px=-step)
+        force_vectors = force_vectors.astype(int)
+
+        xyxy_padded[:, [0, 1]] += force_vectors
+        xyxy_padded[:, [2, 3]] += force_vectors
+
+    return pad_boxes(xyxy_padded, px=-1)

@@ -363,9 +363,7 @@ class VertexLabelAnnotator:
         xyxy_padded = pad_boxes(xyxy=xyxy, px=self.text_padding)
 
         if self.smart_positions:
-            xyxy_padded = spread_out_boxes(
-                xyxy_padded, step=2, max_iterations=len(xyxy_padded) * 20
-            )
+            xyxy_padded = spread_out_boxes(xyxy_padded)
             xyxy = pad_boxes(xyxy=xyxy_padded, px=-self.text_padding)
 
         for text, color, text_color, box, box_padded in zip(

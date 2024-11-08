@@ -1154,7 +1154,7 @@ class LabelAnnotator(BaseAnnotator):
         )
 
         if self.smart_positions:
-            xyxy = spread_out_boxes(xyxy, step=2, max_iterations=len(xyxy) * 20)
+            xyxy = spread_out_boxes(xyxy)
 
         self._draw_labels(
             scene=scene,
@@ -1449,7 +1449,7 @@ class RichLabelAnnotator(BaseAnnotator):
         )
 
         if self.smart_positions:
-            xyxy = spread_out_boxes(xyxy, step=2, max_iterations=len(xyxy) * 20)
+            xyxy = spread_out_boxes(xyxy)
 
         self._draw_labels(
             draw=draw,
