@@ -840,9 +840,10 @@ class Detections:
 
         if lmm == LMM.PALIGEMMA:
             assert isinstance(result, str)
-            xyxy, class_id, class_name = from_paligemma(result, **kwargs)
+            xyxy, class_id, class_name, mask = from_paligemma(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
-            return cls(xyxy=xyxy, class_id=class_id, data=data)
+            mask = mask if mask is not None else None
+            return cls(xyxy=xyxy, class_id=class_id, mask=mask, data=data)
 
         if lmm == LMM.FLORENCE_2:
             assert isinstance(result, dict)
