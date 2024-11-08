@@ -129,12 +129,7 @@ def from_paligemma(
 
         return xyxy, class_id, class_name, None
 
-    return (
-        np.empty((0, 4), dtype=float), 
-        None, 
-        np.array([], dtype=str),
-        None
-    )
+    return (np.empty((0, 4), dtype=float), None, np.array([], dtype=str), None)
 
 
 def from_florence_2(
