@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from functools import lru_cache
 from math import sqrt
 from typing import List, Optional, Tuple, Union
@@ -1047,14 +1046,6 @@ class LabelAnnotator(BaseAnnotator):
     A class for annotating labels on an image using provided detections.
     """
 
-    @dataclass
-    class _TextProperties:
-        text: str
-        width: int
-        height: int
-        width_padded: int
-        height_padded: int
-
     def __init__(
         self,
         color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
@@ -1147,19 +1138,17 @@ class LabelAnnotator(BaseAnnotator):
         self._validate_labels(labels, detections)
 
         labels = self._get_labels_text(detections, labels)
-        text_properties = self._get_text_properties(labels)
-
-        xyxy = self._calculate_label_positions(
-            detections, text_properties, self.text_anchor
-        )
+        label_properties = self._get_label_properties(detections, labels)
+        xyxy = label_properties[:, :4]
 
         if self.smart_positions:
             xyxy = spread_out_boxes(xyxy)
+            label_properties[:, :4] = xyxy
 
         self._draw_labels(
             scene=scene,
-            xyxy=xyxy,
-            text_properties=text_properties,
+            labels=labels,
+            label_properties=label_properties,
             detections=detections,
             custom_color_lookup=custom_color_lookup,
         )
@@ -1174,11 +1163,17 @@ class LabelAnnotator(BaseAnnotator):
                 f"should have exactly 1 label."
             )
 
-    def _get_text_properties(self, labels: List[str]) -> List[_TextProperties]:
-        """Gets text content and dimensions for all detections."""
-        text_properties = []
+    def _get_label_properties(
+        self,
+        detections: Detections,
+        labels: List[str],
+    ) -> np.ndarray:
+        label_properties = []
+        anchors_coordinates = detections.get_anchors_coordinates(
+            anchor=self.text_anchor
+        ).astype(int)
 
-        for label in labels:
+        for label, center_coords in zip(labels, anchors_coordinates):
             (text_w, text_h) = cv2.getTextSize(
                 text=label,
                 fontFace=CV2_FONT,
@@ -1186,17 +1181,23 @@ class LabelAnnotator(BaseAnnotator):
                 thickness=self.text_thickness,
             )[0]
 
-            text_properties.append(
-                self._TextProperties(
-                    text=label,
-                    width=text_w,
-                    height=text_h,
-                    width_padded=text_w + 2 * self.text_padding,
-                    height_padded=text_h + 2 * self.text_padding,
-                )
+            width_padded = text_w + 2 * self.text_padding
+            height_padded = text_h + 2 * self.text_padding
+
+            text_background_xyxy = resolve_text_background_xyxy(
+                center_coordinates=tuple(center_coords),
+                text_wh=(width_padded, height_padded),
+                position=self.text_anchor,
             )
 
-        return text_properties
+            label_properties.append(
+                [
+                    *text_background_xyxy,
+                    text_h,
+                ]
+            )
+
+        return np.array(label_properties).reshape(-1, 5)
 
     @staticmethod
     def _get_labels_text(
@@ -1215,41 +1216,17 @@ class LabelAnnotator(BaseAnnotator):
                 labels.append(str(idx))
         return labels
 
-    def _calculate_label_positions(
-        self,
-        detections: Detections,
-        text_properties: List[_TextProperties],
-        text_anchor: Position,
-    ) -> np.ndarray:
-        anchors_coordinates = detections.get_anchors_coordinates(
-            anchor=text_anchor
-        ).astype(int)
-
-        xyxy = []
-        for idx, center_coords in enumerate(anchors_coordinates):
-            text_background_xyxy = resolve_text_background_xyxy(
-                center_coordinates=tuple(center_coords),
-                text_wh=(
-                    text_properties[idx].width_padded,
-                    text_properties[idx].height_padded,
-                ),
-                position=text_anchor,
-            )
-            xyxy.append(text_background_xyxy)
-
-        return np.array(xyxy)
-
     def _draw_labels(
         self,
         scene: np.ndarray,
-        xyxy: np.ndarray,
-        text_properties: List[_TextProperties],
+        labels: List[str],
+        label_properties: np.ndarray,
         detections: Detections,
         custom_color_lookup: Optional[np.ndarray],
     ) -> None:
-        assert len(xyxy) == len(text_properties) == len(detections), (
-            f"Number of text properties ({len(text_properties)}), "
-            f"xyxy ({len(xyxy)}) and detections ({len(detections)}) "
+        assert len(labels) == len(label_properties) == len(detections), (
+            f"Number of label properties ({len(label_properties)}), "
+            f"labels ({len(labels)}) and detections ({len(detections)}) "
             "do not match."
         )
 
@@ -1259,7 +1236,7 @@ class LabelAnnotator(BaseAnnotator):
             else self.color_lookup
         )
 
-        for idx, box_xyxy in enumerate(xyxy):
+        for idx, label_property in enumerate(label_properties):
             background_color = resolve_color(
                 color=self.color,
                 detections=detections,
@@ -1273,6 +1250,8 @@ class LabelAnnotator(BaseAnnotator):
                 color_lookup=color_lookup,
             )
 
+            box_xyxy = label_property[:4]
+            text_height_padded = label_property[4]
             self.draw_rounded_rectangle(
                 scene=scene,
                 xyxy=box_xyxy,
@@ -1281,10 +1260,10 @@ class LabelAnnotator(BaseAnnotator):
             )
 
             text_x = box_xyxy[0] + self.text_padding
-            text_y = box_xyxy[1] + self.text_padding + text_properties[idx].height
+            text_y = box_xyxy[1] + self.text_padding + text_height_padded
             cv2.putText(
                 img=scene,
-                text=text_properties[idx].text,
+                text=labels[idx],
                 org=(text_x, text_y),
                 fontFace=CV2_FONT,
                 fontScale=self.text_scale,
@@ -1341,16 +1320,6 @@ class RichLabelAnnotator(BaseAnnotator):
     A class for annotating labels on an image using provided detections,
     with support for Unicode characters by using a custom font.
     """
-
-    @dataclass
-    class _TextProperties:
-        text: str
-        width: int
-        height: int
-        width_padded: int
-        height_padded: int
-        text_left: int
-        text_top: int
 
     def __init__(
         self,
@@ -1442,19 +1411,17 @@ class RichLabelAnnotator(BaseAnnotator):
 
         draw = ImageDraw.Draw(scene)
         labels = self._get_labels_text(detections, labels)
-        text_properties = self._get_text_properties(draw, labels)
-
-        xyxy = self._calculate_label_positions(
-            detections, text_properties, self.text_anchor
-        )
+        label_properties = self._get_label_properties(draw, detections, labels)
+        xyxy = label_properties[:, :4]
 
         if self.smart_positions:
             xyxy = spread_out_boxes(xyxy)
+            label_properties[:, :4] = xyxy
 
         self._draw_labels(
             draw=draw,
-            xyxy=xyxy,
-            text_properties=text_properties,
+            labels=labels,
+            label_properties=label_properties,
             detections=detections,
             custom_color_lookup=custom_color_lookup,
         )
@@ -1469,11 +1436,16 @@ class RichLabelAnnotator(BaseAnnotator):
                 f"should have exactly 1 label."
             )
 
-    def _get_text_properties(self, draw, labels: List[str]) -> List[_TextProperties]:
-        """Gets text content and dimensions for all detections."""
-        text_properties = []
+    def _get_label_properties(
+        self, draw, detections: Detections, labels: List[str]
+    ) -> np.ndarray:
+        label_properties = []
 
-        for label in labels:
+        anchor_coordinates = detections.get_anchors_coordinates(
+            anchor=self.text_anchor
+        ).astype(int)
+
+        for label, center_coords in zip(labels, anchor_coordinates):
             text_left, text_top, text_right, text_bottom = draw.textbbox(
                 (0, 0), label, font=self.font
             )
@@ -1482,43 +1454,15 @@ class RichLabelAnnotator(BaseAnnotator):
             width_padded = text_width + 2 * self.text_padding
             height_padded = text_height + 2 * self.text_padding
 
-            text_properties.append(
-                self._TextProperties(
-                    text=label,
-                    width=text_width,
-                    height=text_height,
-                    width_padded=width_padded,
-                    height_padded=height_padded,
-                    text_left=text_left,
-                    text_top=text_top,
-                )
-            )
-
-        return text_properties
-
-    def _calculate_label_positions(
-        self,
-        detections: Detections,
-        text_properties: List[_TextProperties],
-        text_anchor: Position,
-    ) -> np.ndarray:
-        anchor_coordinates = detections.get_anchors_coordinates(
-            anchor=self.text_anchor
-        ).astype(int)
-
-        xyxy = []
-        for idx, center_coords in enumerate(anchor_coordinates):
             text_background_xyxy = resolve_text_background_xyxy(
                 center_coordinates=tuple(center_coords),
-                text_wh=(
-                    text_properties[idx].width_padded,
-                    text_properties[idx].height_padded,
-                ),
-                position=text_anchor,
+                text_wh=(width_padded, height_padded),
+                position=self.text_anchor,
             )
-            xyxy.append(text_background_xyxy)
 
-        return np.array(xyxy)
+            label_properties.append([*text_background_xyxy, text_left, text_top])
+
+        return np.array(label_properties).reshape(-1, 6)
 
     @staticmethod
     def _get_labels_text(
@@ -1540,18 +1484,23 @@ class RichLabelAnnotator(BaseAnnotator):
     def _draw_labels(
         self,
         draw,
-        xyxy: np.ndarray,
-        text_properties: List[_TextProperties],
+        labels: List[str],
+        label_properties: np.ndarray,
         detections: Detections,
         custom_color_lookup: Optional[np.ndarray],
     ) -> None:
+        assert len(labels) == len(label_properties) == len(detections), (
+            f"Number of label properties ({len(label_properties)}), "
+            f"labels ({len(labels)}) and detections ({len(detections)}) "
+            "do not match."
+        )
         color_lookup = (
             custom_color_lookup
             if custom_color_lookup is not None
             else self.color_lookup
         )
 
-        for idx, box_xyxy in enumerate(xyxy):
+        for idx, label_property in enumerate(label_properties):
             background_color = resolve_color(
                 color=self.color,
                 detections=detections,
@@ -1565,12 +1514,11 @@ class RichLabelAnnotator(BaseAnnotator):
                 color_lookup=color_lookup,
             )
 
-            label_x_position = (
-                box_xyxy[0] + self.text_padding - text_properties[idx].text_left
-            )
-            label_y_position = (
-                box_xyxy[1] + self.text_padding - text_properties[idx].text_top
-            )
+            box_xyxy = label_property[:4]
+            text_left = label_property[4]
+            text_top = label_property[5]
+            label_x_position = box_xyxy[0] + self.text_padding - text_left
+            label_y_position = box_xyxy[1] + self.text_padding - text_top
 
             draw.rounded_rectangle(
                 tuple(box_xyxy),
@@ -1580,7 +1528,7 @@ class RichLabelAnnotator(BaseAnnotator):
             )
             draw.text(
                 xy=(label_x_position, label_y_position),
-                text=text_properties[idx].text,
+                text=labels[idx],
                 font=self.font,
                 fill=text_color.as_rgb(),
             )
