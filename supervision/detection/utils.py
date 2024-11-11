@@ -1041,26 +1041,6 @@ def cross_product(anchors: np.ndarray, vector: Vector) -> np.ndarray:
     return np.cross(vector_at_zero, anchors - vector_start)
 
 
-def get_box_intersection(
-    xyxy_1: np.ndarray, xyxy_2: np.ndarray
-) -> Optional[np.ndarray]:
-    overlap_xmin = max(xyxy_1[0], xyxy_2[0])
-    overlap_ymin = max(xyxy_1[1], xyxy_2[1])
-    overlap_xmax = min(xyxy_1[2], xyxy_2[2])
-    overlap_ymax = min(xyxy_1[3], xyxy_2[3])
-
-    if overlap_xmin < overlap_xmax and overlap_ymin < overlap_ymax:
-        return np.array([overlap_xmin, overlap_ymin, overlap_xmax, overlap_ymax])
-    else:
-        return None
-
-
-def get_unit_vector(xy_1: np.ndarray, xy_2: np.ndarray) -> np.ndarray:
-    direction = xy_2 - xy_1
-    magnitude = np.linalg.norm(direction)
-    return direction / magnitude if magnitude > 0 else np.zeros(2)
-
-
 def spread_out_boxes(
     xyxy: np.ndarray,
     max_iterations: int = 100,
