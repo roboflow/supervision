@@ -1168,6 +1168,13 @@ class LabelAnnotator(BaseAnnotator):
         detections: Detections,
         labels: List[str],
     ) -> np.ndarray:
+        """
+        Calculate the numerical properties required to draw the labels on the image.
+
+        Returns:
+            (np.ndarray): An array of label properties, containing columns:
+                `min_x`, `min_y`, `max_x`, `max_y`, `padded_text_height`.
+        """
         label_properties = []
         anchors_coordinates = detections.get_anchors_coordinates(
             anchor=self.text_anchor
@@ -1439,6 +1446,15 @@ class RichLabelAnnotator(BaseAnnotator):
     def _get_label_properties(
         self, draw, detections: Detections, labels: List[str]
     ) -> np.ndarray:
+        """
+        Calculate the numerical properties required to draw the labels on the image.
+
+        Returns:
+            (np.ndarray): An array of label properties, containing columns:
+                `min_x`, `min_y`, `max_x`, `max_y`, `text_left_coordinate`,
+                `text_top_coordinate`. The first 4 values are already padded
+                with `text_padding`.
+        """
         label_properties = []
 
         anchor_coordinates = detections.get_anchors_coordinates(
