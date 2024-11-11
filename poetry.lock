@@ -4733,13 +4733,13 @@ test = ["websockets"]
 
 [[package]]
 name = "wheel"
-version = "0.44.0"
+version = "0.45.0"
 description = "A built-package format for Python"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "wheel-0.44.0-py3-none-any.whl", hash = "sha256:2376a90c98cc337d18623527a97c31797bd02bad0033d41547043a1cbfbe448f"},
-    {file = "wheel-0.44.0.tar.gz", hash = "sha256:a29c3f2817e95ab89aa4660681ad547c0e9547f20e75b0562fe7723c9a2a9d49"},
+    {file = "wheel-0.45.0-py3-none-any.whl", hash = "sha256:52f0baa5e6522155090a09c6bd95718cc46956d1b51d537ea5454249edb671c7"},
+    {file = "wheel-0.45.0.tar.gz", hash = "sha256:a57353941a3183b3d5365346b567a260a0602a0f8a635926a7dede41b94c674a"},
 ]
 
 [package.extras]
@@ -4782,4 +4782,4 @@ metrics = ["pandas", "pandas-stubs"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "51d7489c6d66912ca4946850539636cfedb1c08b1a71747384ff732c4519cd8e"
+content-hash = "85f56a451ee3e0f2c00c8a39b1433d4fb54a239f14f4878e5ded30bc63729734"
