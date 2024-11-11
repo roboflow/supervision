@@ -1139,9 +1139,9 @@ class LabelAnnotator(BaseAnnotator):
 
         labels = self._get_labels_text(detections, labels)
         label_properties = self._get_label_properties(detections, labels)
-        xyxy = label_properties[:, :4]
 
         if self.smart_position:
+            xyxy = label_properties[:, :4]
             xyxy = spread_out_boxes(xyxy)
             label_properties[:, :4] = xyxy
 
@@ -1412,9 +1412,9 @@ class RichLabelAnnotator(BaseAnnotator):
         draw = ImageDraw.Draw(scene)
         labels = self._get_labels_text(detections, labels)
         label_properties = self._get_label_properties(draw, detections, labels)
-        xyxy = label_properties[:, :4]
 
         if self.smart_position:
+            xyxy = label_properties[:, :4]
             xyxy = spread_out_boxes(xyxy)
             label_properties[:, :4] = xyxy
 
