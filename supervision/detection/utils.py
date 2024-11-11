@@ -1086,13 +1086,8 @@ def spread_out_boxes(
         force_vectors = force_vectors[:, np.newaxis] * direction_vectors
 
         force_vectors *= 10
-        force_vectors[(force_vectors > 0) & (force_vectors < 1)] = 1
-        force_vectors[(force_vectors < 0) & (force_vectors > -1)] = -1
-
-        # Move along main axis only.
-        force_vectors[
-            np.arange(len(force_vectors)), np.argmin(force_vectors, axis=1)
-        ] = 0
+        force_vectors[(force_vectors > 0) & (force_vectors < 2)] = 2
+        force_vectors[(force_vectors < 0) & (force_vectors > -2)] = -2
 
         force_vectors = force_vectors.astype(int)
 
