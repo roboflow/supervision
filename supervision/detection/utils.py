@@ -1044,7 +1044,6 @@ def cross_product(anchors: np.ndarray, vector: Vector) -> np.ndarray:
 def spread_out_boxes(
     xyxy: np.ndarray,
     max_iterations: int = 100,
-    force_multiplier: float = 0.03,
 ) -> np.ndarray:
     """
     Spread out boxes that overlap with each other.
@@ -1052,8 +1051,6 @@ def spread_out_boxes(
     Args:
         xyxy: Numpy array of shape (N, 4) where N is the number of boxes.
         max_iterations: Maximum number of iterations to run the algorithm for.
-        force_multiplier: Multiplier to scale the force vectors by. Similar to
-            learning rate in gradient descent.
     """
     if len(xyxy) == 0:
         return xyxy
@@ -1076,14 +1073,26 @@ def spread_out_boxes(
         delta_centers *= overlap_mask[:, :, np.newaxis]
 
         # Nx2
-        force_vectors = np.sum(delta_centers, axis=1)
-        force_vectors *= force_multiplier
+        delta_sum = np.sum(delta_centers, axis=1)
+        delta_magnitude = np.linalg.norm(delta_sum, axis=1, keepdims=True)
+        direction_vectors = np.divide(
+            delta_sum,
+            delta_magnitude,
+            out=np.zeros_like(delta_sum),
+            where=delta_magnitude != 0,
+        )
+
+        force_vectors = np.sum(iou, axis=1)
+        force_vectors = force_vectors[:, np.newaxis] * direction_vectors
+
+        force_vectors *= 10
         force_vectors[(force_vectors > 0) & (force_vectors < 1)] = 1
         force_vectors[(force_vectors < 0) & (force_vectors > -1)] = -1
 
-        # Reduce motion along primary axis
-        primary_axis = np.argmax(np.abs(force_vectors), axis=1)
-        force_vectors[np.arange(len(force_vectors)), primary_axis] /= 2
+        # Move along main axis only.
+        force_vectors[
+            np.arange(len(force_vectors)), np.argmin(force_vectors, axis=1)
+        ] = 0
 
         force_vectors = force_vectors.astype(int)
 
