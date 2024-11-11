@@ -202,7 +202,7 @@ class VertexLabelAnnotator:
         text_thickness: int = 1,
         text_padding: int = 10,
         border_radius: int = 0,
-        smart_positions: bool = False,
+        smart_position: bool = False,
     ):
         """
         Args:
@@ -217,7 +217,7 @@ class VertexLabelAnnotator:
             text_padding (int): The padding around the text.
             border_radius (int): The radius of the rounded corners of the
                 boxes. Set to a high value to produce circles.
-            smart_positions (bool): Spread out the labels to avoid overlap.
+            smart_position (bool): Spread out the labels to avoid overlap.
         """
         self.border_radius: int = border_radius
         self.color: Union[Color, List[Color]] = color
@@ -225,7 +225,7 @@ class VertexLabelAnnotator:
         self.text_scale: float = text_scale
         self.text_thickness: int = text_thickness
         self.text_padding: int = text_padding
-        self.smart_positions = smart_positions
+        self.smart_position = smart_position
 
     def annotate(
         self,
@@ -362,7 +362,7 @@ class VertexLabelAnnotator:
         )
         xyxy_padded = pad_boxes(xyxy=xyxy, px=self.text_padding)
 
-        if self.smart_positions:
+        if self.smart_position:
             xyxy_padded = spread_out_boxes(xyxy_padded)
             xyxy = pad_boxes(xyxy=xyxy_padded, px=-self.text_padding)
 
