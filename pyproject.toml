@@ -84,7 +84,7 @@ metrics = ["pandas", "pandas-stubs"]
 [tool.poetry.group.dev.dependencies]
 twine = "^5.1.1"
 pytest = ">=7.2.2,<9.0.0"
-wheel = ">=0.40,<0.45"
+wheel = ">=0.40,<0.46"
 build = ">=0.10,<1.3"
 ruff = ">=0.1.0"
 mypy = "^1.4.1"
