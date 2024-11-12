@@ -572,6 +572,13 @@
     Track Objects on Video
   </span>
   
+    
+  
+  
+    <span class="md-status md-status--new"></span>
+  
+
+  
 
       </a>
     </li>
@@ -1342,6 +1349,13 @@
   <span class="md-ellipsis">
     Core
   </span>
+  
+    
+  
+  
+    <span class="md-status md-status--new"></span>
+  
+
   
 
       </a>
@@ -2125,34 +2139,6 @@
   <span class="md-ellipsis">
     Geometry
   </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../utils/datatypes/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Datatypes
-  </span>
-  
-    
-  
-  
-    <span class="md-status md-status--new"></span>
-  
-
   
 
       </a>
@@ -5496,23 +5482,7 @@ object and <code>False</code> indicates background.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/detection/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-971"> 971</a></span>
-<span class="normal"><a href="#__codelineno-0-972"> 972</a></span>
-<span class="normal"><a href="#__codelineno-0-973"> 973</a></span>
-<span class="normal"><a href="#__codelineno-0-974"> 974</a></span>
-<span class="normal"><a href="#__codelineno-0-975"> 975</a></span>
-<span class="normal"><a href="#__codelineno-0-976"> 976</a></span>
-<span class="normal"><a href="#__codelineno-0-977"> 977</a></span>
-<span class="normal"><a href="#__codelineno-0-978"> 978</a></span>
-<span class="normal"><a href="#__codelineno-0-979"> 979</a></span>
-<span class="normal"><a href="#__codelineno-0-980"> 980</a></span>
-<span class="normal"><a href="#__codelineno-0-981"> 981</a></span>
-<span class="normal"><a href="#__codelineno-0-982"> 982</a></span>
-<span class="normal"><a href="#__codelineno-0-983"> 983</a></span>
-<span class="normal"><a href="#__codelineno-0-984"> 984</a></span>
-<span class="normal"><a href="#__codelineno-0-985"> 985</a></span>
-<span class="normal"><a href="#__codelineno-0-986"> 986</a></span>
-<span class="normal"><a href="#__codelineno-0-987"> 987</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-987"> 987</a></span>
 <span class="normal"><a href="#__codelineno-0-988"> 988</a></span>
 <span class="normal"><a href="#__codelineno-0-989"> 989</a></span>
 <span class="normal"><a href="#__codelineno-0-990"> 990</a></span>
@@ -5546,57 +5516,73 @@ object and <code>False</code> indicates background.</p>
 <span class="normal"><a href="#__codelineno-0-1018">1018</a></span>
 <span class="normal"><a href="#__codelineno-0-1019">1019</a></span>
 <span class="normal"><a href="#__codelineno-0-1020">1020</a></span>
-<span class="normal"><a href="#__codelineno-0-1021">1021</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-971" name="__codelineno-0-971"></a><span class="k">def</span> <span class="nf">contains_holes</span><span class="p">(</span><span class="n">mask</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<a id="__codelineno-0-972" name="__codelineno-0-972"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-973" name="__codelineno-0-973"></a><span class="sd">    Checks if the binary mask contains holes (background pixels fully enclosed by</span>
-<a id="__codelineno-0-974" name="__codelineno-0-974"></a><span class="sd">    foreground pixels).</span>
-<a id="__codelineno-0-975" name="__codelineno-0-975"></a>
-<a id="__codelineno-0-976" name="__codelineno-0-976"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-977" name="__codelineno-0-977"></a><span class="sd">        mask (npt.NDArray[np.bool_]): 2D binary mask where `True` indicates foreground</span>
-<a id="__codelineno-0-978" name="__codelineno-0-978"></a><span class="sd">            object and `False` indicates background.</span>
-<a id="__codelineno-0-979" name="__codelineno-0-979"></a>
-<a id="__codelineno-0-980" name="__codelineno-0-980"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-981" name="__codelineno-0-981"></a><span class="sd">        True if holes are detected, False otherwise.</span>
-<a id="__codelineno-0-982" name="__codelineno-0-982"></a>
-<a id="__codelineno-0-983" name="__codelineno-0-983"></a><span class="sd">    Examples:</span>
-<a id="__codelineno-0-984" name="__codelineno-0-984"></a><span class="sd">        ```python</span>
-<a id="__codelineno-0-985" name="__codelineno-0-985"></a><span class="sd">        import numpy as np</span>
-<a id="__codelineno-0-986" name="__codelineno-0-986"></a><span class="sd">        import supervision as sv</span>
-<a id="__codelineno-0-987" name="__codelineno-0-987"></a>
-<a id="__codelineno-0-988" name="__codelineno-0-988"></a><span class="sd">        mask = np.array([</span>
-<a id="__codelineno-0-989" name="__codelineno-0-989"></a><span class="sd">            [0, 0, 0, 0, 0],</span>
-<a id="__codelineno-0-990" name="__codelineno-0-990"></a><span class="sd">            [0, 1, 1, 1, 0],</span>
-<a id="__codelineno-0-991" name="__codelineno-0-991"></a><span class="sd">            [0, 1, 0, 1, 0],</span>
-<a id="__codelineno-0-992" name="__codelineno-0-992"></a><span class="sd">            [0, 1, 1, 1, 0],</span>
-<a id="__codelineno-0-993" name="__codelineno-0-993"></a><span class="sd">            [0, 0, 0, 0, 0]</span>
-<a id="__codelineno-0-994" name="__codelineno-0-994"></a><span class="sd">        ]).astype(bool)</span>
+<span class="normal"><a href="#__codelineno-0-1021">1021</a></span>
+<span class="normal"><a href="#__codelineno-0-1022">1022</a></span>
+<span class="normal"><a href="#__codelineno-0-1023">1023</a></span>
+<span class="normal"><a href="#__codelineno-0-1024">1024</a></span>
+<span class="normal"><a href="#__codelineno-0-1025">1025</a></span>
+<span class="normal"><a href="#__codelineno-0-1026">1026</a></span>
+<span class="normal"><a href="#__codelineno-0-1027">1027</a></span>
+<span class="normal"><a href="#__codelineno-0-1028">1028</a></span>
+<span class="normal"><a href="#__codelineno-0-1029">1029</a></span>
+<span class="normal"><a href="#__codelineno-0-1030">1030</a></span>
+<span class="normal"><a href="#__codelineno-0-1031">1031</a></span>
+<span class="normal"><a href="#__codelineno-0-1032">1032</a></span>
+<span class="normal"><a href="#__codelineno-0-1033">1033</a></span>
+<span class="normal"><a href="#__codelineno-0-1034">1034</a></span>
+<span class="normal"><a href="#__codelineno-0-1035">1035</a></span>
+<span class="normal"><a href="#__codelineno-0-1036">1036</a></span>
+<span class="normal"><a href="#__codelineno-0-1037">1037</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-987" name="__codelineno-0-987"></a><span class="k">def</span> <span class="nf">contains_holes</span><span class="p">(</span><span class="n">mask</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<a id="__codelineno-0-988" name="__codelineno-0-988"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-989" name="__codelineno-0-989"></a><span class="sd">    Checks if the binary mask contains holes (background pixels fully enclosed by</span>
+<a id="__codelineno-0-990" name="__codelineno-0-990"></a><span class="sd">    foreground pixels).</span>
+<a id="__codelineno-0-991" name="__codelineno-0-991"></a>
+<a id="__codelineno-0-992" name="__codelineno-0-992"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-993" name="__codelineno-0-993"></a><span class="sd">        mask (npt.NDArray[np.bool_]): 2D binary mask where `True` indicates foreground</span>
+<a id="__codelineno-0-994" name="__codelineno-0-994"></a><span class="sd">            object and `False` indicates background.</span>
 <a id="__codelineno-0-995" name="__codelineno-0-995"></a>
-<a id="__codelineno-0-996" name="__codelineno-0-996"></a><span class="sd">        sv.contains_holes(mask=mask)</span>
-<a id="__codelineno-0-997" name="__codelineno-0-997"></a><span class="sd">        # True</span>
+<a id="__codelineno-0-996" name="__codelineno-0-996"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-997" name="__codelineno-0-997"></a><span class="sd">        True if holes are detected, False otherwise.</span>
 <a id="__codelineno-0-998" name="__codelineno-0-998"></a>
-<a id="__codelineno-0-999" name="__codelineno-0-999"></a><span class="sd">        mask = np.array([</span>
-<a id="__codelineno-0-1000" name="__codelineno-0-1000"></a><span class="sd">            [0, 0, 0, 0, 0],</span>
-<a id="__codelineno-0-1001" name="__codelineno-0-1001"></a><span class="sd">            [0, 1, 1, 1, 0],</span>
-<a id="__codelineno-0-1002" name="__codelineno-0-1002"></a><span class="sd">            [0, 1, 1, 1, 0],</span>
-<a id="__codelineno-0-1003" name="__codelineno-0-1003"></a><span class="sd">            [0, 1, 1, 1, 0],</span>
-<a id="__codelineno-0-1004" name="__codelineno-0-1004"></a><span class="sd">            [0, 0, 0, 0, 0]</span>
-<a id="__codelineno-0-1005" name="__codelineno-0-1005"></a><span class="sd">        ]).astype(bool)</span>
-<a id="__codelineno-0-1006" name="__codelineno-0-1006"></a>
-<a id="__codelineno-0-1007" name="__codelineno-0-1007"></a><span class="sd">        sv.contains_holes(mask=mask)</span>
-<a id="__codelineno-0-1008" name="__codelineno-0-1008"></a><span class="sd">        # False</span>
-<a id="__codelineno-0-1009" name="__codelineno-0-1009"></a><span class="sd">        ```</span>
-<a id="__codelineno-0-1010" name="__codelineno-0-1010"></a>
-<a id="__codelineno-0-1011" name="__codelineno-0-1011"></a><span class="sd">    ![contains_holes](https://media.roboflow.com/supervision-docs/contains-holes.png){ align=center width=&quot;800&quot; }</span>
-<a id="__codelineno-0-1012" name="__codelineno-0-1012"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa E501 // docs</span>
-<a id="__codelineno-0-1013" name="__codelineno-0-1013"></a>    <span class="n">mask_uint8</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
-<a id="__codelineno-0-1014" name="__codelineno-0-1014"></a>    <span class="n">_</span><span class="p">,</span> <span class="n">hierarchy</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">findContours</span><span class="p">(</span><span class="n">mask_uint8</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">RETR_CCOMP</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">CHAIN_APPROX_SIMPLE</span><span class="p">)</span>
-<a id="__codelineno-0-1015" name="__codelineno-0-1015"></a>
-<a id="__codelineno-0-1016" name="__codelineno-0-1016"></a>    <span class="k">if</span> <span class="n">hierarchy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-1017" name="__codelineno-0-1017"></a>        <span class="n">parent_contour_index</span> <span class="o">=</span> <span class="mi">3</span>
-<a id="__codelineno-0-1018" name="__codelineno-0-1018"></a>        <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hierarchy</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
-<a id="__codelineno-0-1019" name="__codelineno-0-1019"></a>            <span class="k">if</span> <span class="n">h</span><span class="p">[</span><span class="n">parent_contour_index</span><span class="p">]</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
-<a id="__codelineno-0-1020" name="__codelineno-0-1020"></a>                <span class="k">return</span> <span class="kc">True</span>
-<a id="__codelineno-0-1021" name="__codelineno-0-1021"></a>    <span class="k">return</span> <span class="kc">False</span>
+<a id="__codelineno-0-999" name="__codelineno-0-999"></a><span class="sd">    Examples:</span>
+<a id="__codelineno-0-1000" name="__codelineno-0-1000"></a><span class="sd">        ```python</span>
+<a id="__codelineno-0-1001" name="__codelineno-0-1001"></a><span class="sd">        import numpy as np</span>
+<a id="__codelineno-0-1002" name="__codelineno-0-1002"></a><span class="sd">        import supervision as sv</span>
+<a id="__codelineno-0-1003" name="__codelineno-0-1003"></a>
+<a id="__codelineno-0-1004" name="__codelineno-0-1004"></a><span class="sd">        mask = np.array([</span>
+<a id="__codelineno-0-1005" name="__codelineno-0-1005"></a><span class="sd">            [0, 0, 0, 0, 0],</span>
+<a id="__codelineno-0-1006" name="__codelineno-0-1006"></a><span class="sd">            [0, 1, 1, 1, 0],</span>
+<a id="__codelineno-0-1007" name="__codelineno-0-1007"></a><span class="sd">            [0, 1, 0, 1, 0],</span>
+<a id="__codelineno-0-1008" name="__codelineno-0-1008"></a><span class="sd">            [0, 1, 1, 1, 0],</span>
+<a id="__codelineno-0-1009" name="__codelineno-0-1009"></a><span class="sd">            [0, 0, 0, 0, 0]</span>
+<a id="__codelineno-0-1010" name="__codelineno-0-1010"></a><span class="sd">        ]).astype(bool)</span>
+<a id="__codelineno-0-1011" name="__codelineno-0-1011"></a>
+<a id="__codelineno-0-1012" name="__codelineno-0-1012"></a><span class="sd">        sv.contains_holes(mask=mask)</span>
+<a id="__codelineno-0-1013" name="__codelineno-0-1013"></a><span class="sd">        # True</span>
+<a id="__codelineno-0-1014" name="__codelineno-0-1014"></a>
+<a id="__codelineno-0-1015" name="__codelineno-0-1015"></a><span class="sd">        mask = np.array([</span>
+<a id="__codelineno-0-1016" name="__codelineno-0-1016"></a><span class="sd">            [0, 0, 0, 0, 0],</span>
+<a id="__codelineno-0-1017" name="__codelineno-0-1017"></a><span class="sd">            [0, 1, 1, 1, 0],</span>
+<a id="__codelineno-0-1018" name="__codelineno-0-1018"></a><span class="sd">            [0, 1, 1, 1, 0],</span>
+<a id="__codelineno-0-1019" name="__codelineno-0-1019"></a><span class="sd">            [0, 1, 1, 1, 0],</span>
+<a id="__codelineno-0-1020" name="__codelineno-0-1020"></a><span class="sd">            [0, 0, 0, 0, 0]</span>
+<a id="__codelineno-0-1021" name="__codelineno-0-1021"></a><span class="sd">        ]).astype(bool)</span>
+<a id="__codelineno-0-1022" name="__codelineno-0-1022"></a>
+<a id="__codelineno-0-1023" name="__codelineno-0-1023"></a><span class="sd">        sv.contains_holes(mask=mask)</span>
+<a id="__codelineno-0-1024" name="__codelineno-0-1024"></a><span class="sd">        # False</span>
+<a id="__codelineno-0-1025" name="__codelineno-0-1025"></a><span class="sd">        ```</span>
+<a id="__codelineno-0-1026" name="__codelineno-0-1026"></a>
+<a id="__codelineno-0-1027" name="__codelineno-0-1027"></a><span class="sd">    ![contains_holes](https://media.roboflow.com/supervision-docs/contains-holes.png){ align=center width=&quot;800&quot; }</span>
+<a id="__codelineno-0-1028" name="__codelineno-0-1028"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa E501 // docs</span>
+<a id="__codelineno-0-1029" name="__codelineno-0-1029"></a>    <span class="n">mask_uint8</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+<a id="__codelineno-0-1030" name="__codelineno-0-1030"></a>    <span class="n">_</span><span class="p">,</span> <span class="n">hierarchy</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">findContours</span><span class="p">(</span><span class="n">mask_uint8</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">RETR_CCOMP</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">CHAIN_APPROX_SIMPLE</span><span class="p">)</span>
+<a id="__codelineno-0-1031" name="__codelineno-0-1031"></a>
+<a id="__codelineno-0-1032" name="__codelineno-0-1032"></a>    <span class="k">if</span> <span class="n">hierarchy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-1033" name="__codelineno-0-1033"></a>        <span class="n">parent_contour_index</span> <span class="o">=</span> <span class="mi">3</span>
+<a id="__codelineno-0-1034" name="__codelineno-0-1034"></a>        <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hierarchy</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+<a id="__codelineno-0-1035" name="__codelineno-0-1035"></a>            <span class="k">if</span> <span class="n">h</span><span class="p">[</span><span class="n">parent_contour_index</span><span class="p">]</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+<a id="__codelineno-0-1036" name="__codelineno-0-1036"></a>                <span class="k">return</span> <span class="kc">True</span>
+<a id="__codelineno-0-1037" name="__codelineno-0-1037"></a>    <span class="k">return</span> <span class="kc">False</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -5747,23 +5733,7 @@ connected by their edges or corners touch.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/detection/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1024">1024</a></span>
-<span class="normal"><a href="#__codelineno-0-1025">1025</a></span>
-<span class="normal"><a href="#__codelineno-0-1026">1026</a></span>
-<span class="normal"><a href="#__codelineno-0-1027">1027</a></span>
-<span class="normal"><a href="#__codelineno-0-1028">1028</a></span>
-<span class="normal"><a href="#__codelineno-0-1029">1029</a></span>
-<span class="normal"><a href="#__codelineno-0-1030">1030</a></span>
-<span class="normal"><a href="#__codelineno-0-1031">1031</a></span>
-<span class="normal"><a href="#__codelineno-0-1032">1032</a></span>
-<span class="normal"><a href="#__codelineno-0-1033">1033</a></span>
-<span class="normal"><a href="#__codelineno-0-1034">1034</a></span>
-<span class="normal"><a href="#__codelineno-0-1035">1035</a></span>
-<span class="normal"><a href="#__codelineno-0-1036">1036</a></span>
-<span class="normal"><a href="#__codelineno-0-1037">1037</a></span>
-<span class="normal"><a href="#__codelineno-0-1038">1038</a></span>
-<span class="normal"><a href="#__codelineno-0-1039">1039</a></span>
-<span class="normal"><a href="#__codelineno-0-1040">1040</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1040">1040</a></span>
 <span class="normal"><a href="#__codelineno-0-1041">1041</a></span>
 <span class="normal"><a href="#__codelineno-0-1042">1042</a></span>
 <span class="normal"><a href="#__codelineno-0-1043">1043</a></span>
@@ -5809,69 +5779,85 @@ connected by their edges or corners touch.</p>
 <span class="normal"><a href="#__codelineno-0-1083">1083</a></span>
 <span class="normal"><a href="#__codelineno-0-1084">1084</a></span>
 <span class="normal"><a href="#__codelineno-0-1085">1085</a></span>
-<span class="normal"><a href="#__codelineno-0-1086">1086</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-1024" name="__codelineno-0-1024"></a><span class="k">def</span> <span class="nf">contains_multiple_segments</span><span class="p">(</span>
-<a id="__codelineno-0-1025" name="__codelineno-0-1025"></a>    <span class="n">mask</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">],</span> <span class="n">connectivity</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span>
-<a id="__codelineno-0-1026" name="__codelineno-0-1026"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<a id="__codelineno-0-1027" name="__codelineno-0-1027"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-1028" name="__codelineno-0-1028"></a><span class="sd">    Checks if the binary mask contains multiple unconnected foreground segments.</span>
-<a id="__codelineno-0-1029" name="__codelineno-0-1029"></a>
-<a id="__codelineno-0-1030" name="__codelineno-0-1030"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-1031" name="__codelineno-0-1031"></a><span class="sd">        mask (npt.NDArray[np.bool_]): 2D binary mask where `True` indicates foreground</span>
-<a id="__codelineno-0-1032" name="__codelineno-0-1032"></a><span class="sd">            object and `False` indicates background.</span>
-<a id="__codelineno-0-1033" name="__codelineno-0-1033"></a><span class="sd">        connectivity (int) : Default: 4 is 4-way connectivity, which means that</span>
-<a id="__codelineno-0-1034" name="__codelineno-0-1034"></a><span class="sd">            foreground pixels are the part of the same segment/component</span>
-<a id="__codelineno-0-1035" name="__codelineno-0-1035"></a><span class="sd">            if their edges touch.</span>
-<a id="__codelineno-0-1036" name="__codelineno-0-1036"></a><span class="sd">            Alternatively: 8 for 8-way connectivity, when foreground pixels are</span>
-<a id="__codelineno-0-1037" name="__codelineno-0-1037"></a><span class="sd">            connected by their edges or corners touch.</span>
-<a id="__codelineno-0-1038" name="__codelineno-0-1038"></a>
-<a id="__codelineno-0-1039" name="__codelineno-0-1039"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-1040" name="__codelineno-0-1040"></a><span class="sd">        True when the mask contains multiple not connected components, False otherwise.</span>
-<a id="__codelineno-0-1041" name="__codelineno-0-1041"></a>
-<a id="__codelineno-0-1042" name="__codelineno-0-1042"></a><span class="sd">    Raises:</span>
-<a id="__codelineno-0-1043" name="__codelineno-0-1043"></a><span class="sd">        ValueError: If connectivity(int) parameter value is not 4 or 8.</span>
-<a id="__codelineno-0-1044" name="__codelineno-0-1044"></a>
-<a id="__codelineno-0-1045" name="__codelineno-0-1045"></a><span class="sd">    Examples:</span>
-<a id="__codelineno-0-1046" name="__codelineno-0-1046"></a><span class="sd">        ```python</span>
-<a id="__codelineno-0-1047" name="__codelineno-0-1047"></a><span class="sd">        import numpy as np</span>
-<a id="__codelineno-0-1048" name="__codelineno-0-1048"></a><span class="sd">        import supervision as sv</span>
-<a id="__codelineno-0-1049" name="__codelineno-0-1049"></a>
-<a id="__codelineno-0-1050" name="__codelineno-0-1050"></a><span class="sd">        mask = np.array([</span>
-<a id="__codelineno-0-1051" name="__codelineno-0-1051"></a><span class="sd">            [0, 0, 0, 0, 0, 0],</span>
-<a id="__codelineno-0-1052" name="__codelineno-0-1052"></a><span class="sd">            [0, 1, 1, 0, 1, 1],</span>
-<a id="__codelineno-0-1053" name="__codelineno-0-1053"></a><span class="sd">            [0, 1, 1, 0, 1, 1],</span>
-<a id="__codelineno-0-1054" name="__codelineno-0-1054"></a><span class="sd">            [0, 0, 0, 0, 0, 0],</span>
-<a id="__codelineno-0-1055" name="__codelineno-0-1055"></a><span class="sd">            [0, 1, 1, 1, 0, 0],</span>
-<a id="__codelineno-0-1056" name="__codelineno-0-1056"></a><span class="sd">            [0, 1, 1, 1, 0, 0]</span>
-<a id="__codelineno-0-1057" name="__codelineno-0-1057"></a><span class="sd">        ]).astype(bool)</span>
-<a id="__codelineno-0-1058" name="__codelineno-0-1058"></a>
-<a id="__codelineno-0-1059" name="__codelineno-0-1059"></a><span class="sd">        sv.contains_multiple_segments(mask=mask, connectivity=4)</span>
-<a id="__codelineno-0-1060" name="__codelineno-0-1060"></a><span class="sd">        # True</span>
-<a id="__codelineno-0-1061" name="__codelineno-0-1061"></a>
-<a id="__codelineno-0-1062" name="__codelineno-0-1062"></a><span class="sd">        mask = np.array([</span>
-<a id="__codelineno-0-1063" name="__codelineno-0-1063"></a><span class="sd">            [0, 0, 0, 0, 0, 0],</span>
-<a id="__codelineno-0-1064" name="__codelineno-0-1064"></a><span class="sd">            [0, 1, 1, 1, 1, 1],</span>
-<a id="__codelineno-0-1065" name="__codelineno-0-1065"></a><span class="sd">            [0, 1, 1, 1, 1, 1],</span>
-<a id="__codelineno-0-1066" name="__codelineno-0-1066"></a><span class="sd">            [0, 1, 1, 1, 1, 1],</span>
-<a id="__codelineno-0-1067" name="__codelineno-0-1067"></a><span class="sd">            [0, 1, 1, 1, 1, 1],</span>
-<a id="__codelineno-0-1068" name="__codelineno-0-1068"></a><span class="sd">            [0, 0, 0, 0, 0, 0]</span>
-<a id="__codelineno-0-1069" name="__codelineno-0-1069"></a><span class="sd">        ]).astype(bool)</span>
-<a id="__codelineno-0-1070" name="__codelineno-0-1070"></a>
-<a id="__codelineno-0-1071" name="__codelineno-0-1071"></a><span class="sd">        sv.contains_multiple_segments(mask=mask, connectivity=4)</span>
-<a id="__codelineno-0-1072" name="__codelineno-0-1072"></a><span class="sd">        # False</span>
-<a id="__codelineno-0-1073" name="__codelineno-0-1073"></a><span class="sd">        ```</span>
+<span class="normal"><a href="#__codelineno-0-1086">1086</a></span>
+<span class="normal"><a href="#__codelineno-0-1087">1087</a></span>
+<span class="normal"><a href="#__codelineno-0-1088">1088</a></span>
+<span class="normal"><a href="#__codelineno-0-1089">1089</a></span>
+<span class="normal"><a href="#__codelineno-0-1090">1090</a></span>
+<span class="normal"><a href="#__codelineno-0-1091">1091</a></span>
+<span class="normal"><a href="#__codelineno-0-1092">1092</a></span>
+<span class="normal"><a href="#__codelineno-0-1093">1093</a></span>
+<span class="normal"><a href="#__codelineno-0-1094">1094</a></span>
+<span class="normal"><a href="#__codelineno-0-1095">1095</a></span>
+<span class="normal"><a href="#__codelineno-0-1096">1096</a></span>
+<span class="normal"><a href="#__codelineno-0-1097">1097</a></span>
+<span class="normal"><a href="#__codelineno-0-1098">1098</a></span>
+<span class="normal"><a href="#__codelineno-0-1099">1099</a></span>
+<span class="normal"><a href="#__codelineno-0-1100">1100</a></span>
+<span class="normal"><a href="#__codelineno-0-1101">1101</a></span>
+<span class="normal"><a href="#__codelineno-0-1102">1102</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-1040" name="__codelineno-0-1040"></a><span class="k">def</span> <span class="nf">contains_multiple_segments</span><span class="p">(</span>
+<a id="__codelineno-0-1041" name="__codelineno-0-1041"></a>    <span class="n">mask</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">],</span> <span class="n">connectivity</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span>
+<a id="__codelineno-0-1042" name="__codelineno-0-1042"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<a id="__codelineno-0-1043" name="__codelineno-0-1043"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-1044" name="__codelineno-0-1044"></a><span class="sd">    Checks if the binary mask contains multiple unconnected foreground segments.</span>
+<a id="__codelineno-0-1045" name="__codelineno-0-1045"></a>
+<a id="__codelineno-0-1046" name="__codelineno-0-1046"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-1047" name="__codelineno-0-1047"></a><span class="sd">        mask (npt.NDArray[np.bool_]): 2D binary mask where `True` indicates foreground</span>
+<a id="__codelineno-0-1048" name="__codelineno-0-1048"></a><span class="sd">            object and `False` indicates background.</span>
+<a id="__codelineno-0-1049" name="__codelineno-0-1049"></a><span class="sd">        connectivity (int) : Default: 4 is 4-way connectivity, which means that</span>
+<a id="__codelineno-0-1050" name="__codelineno-0-1050"></a><span class="sd">            foreground pixels are the part of the same segment/component</span>
+<a id="__codelineno-0-1051" name="__codelineno-0-1051"></a><span class="sd">            if their edges touch.</span>
+<a id="__codelineno-0-1052" name="__codelineno-0-1052"></a><span class="sd">            Alternatively: 8 for 8-way connectivity, when foreground pixels are</span>
+<a id="__codelineno-0-1053" name="__codelineno-0-1053"></a><span class="sd">            connected by their edges or corners touch.</span>
+<a id="__codelineno-0-1054" name="__codelineno-0-1054"></a>
+<a id="__codelineno-0-1055" name="__codelineno-0-1055"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-1056" name="__codelineno-0-1056"></a><span class="sd">        True when the mask contains multiple not connected components, False otherwise.</span>
+<a id="__codelineno-0-1057" name="__codelineno-0-1057"></a>
+<a id="__codelineno-0-1058" name="__codelineno-0-1058"></a><span class="sd">    Raises:</span>
+<a id="__codelineno-0-1059" name="__codelineno-0-1059"></a><span class="sd">        ValueError: If connectivity(int) parameter value is not 4 or 8.</span>
+<a id="__codelineno-0-1060" name="__codelineno-0-1060"></a>
+<a id="__codelineno-0-1061" name="__codelineno-0-1061"></a><span class="sd">    Examples:</span>
+<a id="__codelineno-0-1062" name="__codelineno-0-1062"></a><span class="sd">        ```python</span>
+<a id="__codelineno-0-1063" name="__codelineno-0-1063"></a><span class="sd">        import numpy as np</span>
+<a id="__codelineno-0-1064" name="__codelineno-0-1064"></a><span class="sd">        import supervision as sv</span>
+<a id="__codelineno-0-1065" name="__codelineno-0-1065"></a>
+<a id="__codelineno-0-1066" name="__codelineno-0-1066"></a><span class="sd">        mask = np.array([</span>
+<a id="__codelineno-0-1067" name="__codelineno-0-1067"></a><span class="sd">            [0, 0, 0, 0, 0, 0],</span>
+<a id="__codelineno-0-1068" name="__codelineno-0-1068"></a><span class="sd">            [0, 1, 1, 0, 1, 1],</span>
+<a id="__codelineno-0-1069" name="__codelineno-0-1069"></a><span class="sd">            [0, 1, 1, 0, 1, 1],</span>
+<a id="__codelineno-0-1070" name="__codelineno-0-1070"></a><span class="sd">            [0, 0, 0, 0, 0, 0],</span>
+<a id="__codelineno-0-1071" name="__codelineno-0-1071"></a><span class="sd">            [0, 1, 1, 1, 0, 0],</span>
+<a id="__codelineno-0-1072" name="__codelineno-0-1072"></a><span class="sd">            [0, 1, 1, 1, 0, 0]</span>
+<a id="__codelineno-0-1073" name="__codelineno-0-1073"></a><span class="sd">        ]).astype(bool)</span>
 <a id="__codelineno-0-1074" name="__codelineno-0-1074"></a>
-<a id="__codelineno-0-1075" name="__codelineno-0-1075"></a><span class="sd">    ![contains_multiple_segments](https://media.roboflow.com/supervision-docs/contains-multiple-segments.png){ align=center width=&quot;800&quot; }</span>
-<a id="__codelineno-0-1076" name="__codelineno-0-1076"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa E501 // docs</span>
-<a id="__codelineno-0-1077" name="__codelineno-0-1077"></a>    <span class="k">if</span> <span class="n">connectivity</span> <span class="o">!=</span> <span class="mi">4</span> <span class="ow">and</span> <span class="n">connectivity</span> <span class="o">!=</span> <span class="mi">8</span><span class="p">:</span>
-<a id="__codelineno-0-1078" name="__codelineno-0-1078"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-<a id="__codelineno-0-1079" name="__codelineno-0-1079"></a>            <span class="s2">&quot;Incorrect connectivity value. Possible connectivity values: 4 or 8.&quot;</span>
-<a id="__codelineno-0-1080" name="__codelineno-0-1080"></a>        <span class="p">)</span>
-<a id="__codelineno-0-1081" name="__codelineno-0-1081"></a>    <span class="n">mask_uint8</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
-<a id="__codelineno-0-1082" name="__codelineno-0-1082"></a>    <span class="n">labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">mask_uint8</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-<a id="__codelineno-0-1083" name="__codelineno-0-1083"></a>    <span class="n">number_of_labels</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">connectedComponents</span><span class="p">(</span>
-<a id="__codelineno-0-1084" name="__codelineno-0-1084"></a>        <span class="n">mask_uint8</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">connectivity</span><span class="o">=</span><span class="n">connectivity</span>
-<a id="__codelineno-0-1085" name="__codelineno-0-1085"></a>    <span class="p">)</span>
-<a id="__codelineno-0-1086" name="__codelineno-0-1086"></a>    <span class="k">return</span> <span class="n">number_of_labels</span> <span class="o">&gt;</span> <span class="mi">2</span>
+<a id="__codelineno-0-1075" name="__codelineno-0-1075"></a><span class="sd">        sv.contains_multiple_segments(mask=mask, connectivity=4)</span>
+<a id="__codelineno-0-1076" name="__codelineno-0-1076"></a><span class="sd">        # True</span>
+<a id="__codelineno-0-1077" name="__codelineno-0-1077"></a>
+<a id="__codelineno-0-1078" name="__codelineno-0-1078"></a><span class="sd">        mask = np.array([</span>
+<a id="__codelineno-0-1079" name="__codelineno-0-1079"></a><span class="sd">            [0, 0, 0, 0, 0, 0],</span>
+<a id="__codelineno-0-1080" name="__codelineno-0-1080"></a><span class="sd">            [0, 1, 1, 1, 1, 1],</span>
+<a id="__codelineno-0-1081" name="__codelineno-0-1081"></a><span class="sd">            [0, 1, 1, 1, 1, 1],</span>
+<a id="__codelineno-0-1082" name="__codelineno-0-1082"></a><span class="sd">            [0, 1, 1, 1, 1, 1],</span>
+<a id="__codelineno-0-1083" name="__codelineno-0-1083"></a><span class="sd">            [0, 1, 1, 1, 1, 1],</span>
+<a id="__codelineno-0-1084" name="__codelineno-0-1084"></a><span class="sd">            [0, 0, 0, 0, 0, 0]</span>
+<a id="__codelineno-0-1085" name="__codelineno-0-1085"></a><span class="sd">        ]).astype(bool)</span>
+<a id="__codelineno-0-1086" name="__codelineno-0-1086"></a>
+<a id="__codelineno-0-1087" name="__codelineno-0-1087"></a><span class="sd">        sv.contains_multiple_segments(mask=mask, connectivity=4)</span>
+<a id="__codelineno-0-1088" name="__codelineno-0-1088"></a><span class="sd">        # False</span>
+<a id="__codelineno-0-1089" name="__codelineno-0-1089"></a><span class="sd">        ```</span>
+<a id="__codelineno-0-1090" name="__codelineno-0-1090"></a>
+<a id="__codelineno-0-1091" name="__codelineno-0-1091"></a><span class="sd">    ![contains_multiple_segments](https://media.roboflow.com/supervision-docs/contains-multiple-segments.png){ align=center width=&quot;800&quot; }</span>
+<a id="__codelineno-0-1092" name="__codelineno-0-1092"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa E501 // docs</span>
+<a id="__codelineno-0-1093" name="__codelineno-0-1093"></a>    <span class="k">if</span> <span class="n">connectivity</span> <span class="o">!=</span> <span class="mi">4</span> <span class="ow">and</span> <span class="n">connectivity</span> <span class="o">!=</span> <span class="mi">8</span><span class="p">:</span>
+<a id="__codelineno-0-1094" name="__codelineno-0-1094"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+<a id="__codelineno-0-1095" name="__codelineno-0-1095"></a>            <span class="s2">&quot;Incorrect connectivity value. Possible connectivity values: 4 or 8.&quot;</span>
+<a id="__codelineno-0-1096" name="__codelineno-0-1096"></a>        <span class="p">)</span>
+<a id="__codelineno-0-1097" name="__codelineno-0-1097"></a>    <span class="n">mask_uint8</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+<a id="__codelineno-0-1098" name="__codelineno-0-1098"></a>    <span class="n">labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">mask_uint8</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+<a id="__codelineno-0-1099" name="__codelineno-0-1099"></a>    <span class="n">number_of_labels</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">connectedComponents</span><span class="p">(</span>
+<a id="__codelineno-0-1100" name="__codelineno-0-1100"></a>        <span class="n">mask_uint8</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">connectivity</span><span class="o">=</span><span class="n">connectivity</span>
+<a id="__codelineno-0-1101" name="__codelineno-0-1101"></a>    <span class="p">)</span>
+<a id="__codelineno-0-1102" name="__codelineno-0-1102"></a>    <span class="k">return</span> <span class="n">number_of_labels</span> <span class="o">&gt;</span> <span class="mi">2</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
