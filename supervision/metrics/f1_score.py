@@ -47,10 +47,30 @@ class F1Score(Metric):
         f1_metric = F1Score()
         f1_result = f1_metric.update(predictions, targets).compute()
 
-        print(f1_result)
         print(f1_result.f1_50)
-        print(f1_result.small_objects.f1_50)
+        # 0.7618
+
+        print(f1_result)
+        # F1ScoreResult:
+        # Metric target: MetricTarget.BOXES
+        # Averaging method: AveragingMethod.WEIGHTED
+        # F1 @ 50:     0.7618
+        # F1 @ 75:     0.7487
+        # F1 @ thresh: [0.76175  0.76068  0.76068]
+        # IoU thresh:  [0.5  0.55  0.6  ...]
+        # F1 per class:
+        # 0: [0.70968  0.70968  0.70968  ...]
+        # ...
+        # Small objects: ...
+        # Medium objects: ...
+        # Large objects: ...
+
+        f1_result.plot()
         ```
+
+    ![example_plot](\
+        https://media.roboflow.com/supervision-docs/metrics/f1_plot_example.png\
+        ){ align=center width="800" }
     """
 
     def __init__(
@@ -456,11 +476,11 @@ class F1ScoreResult:
         matched_classes (np.ndarray): the class IDs of all matched classes.
             Corresponds to the rows of `f1_per_class`.
         small_objects (Optional[F1ScoreResult]): the F1 metric results
-            for small objects.
+            for small objects (area < 32²).
         medium_objects (Optional[F1ScoreResult]): the F1 metric results
-            for medium objects.
+            for medium objects (32² ≤ area < 96²).
         large_objects (Optional[F1ScoreResult]): the F1 metric results
-            for large objects.
+            for large objects (area ≥ 96²).
     """
 
     metric_target: MetricTarget
@@ -490,6 +510,19 @@ class F1ScoreResult:
         Example:
             ```python
             print(f1_result)
+            # F1ScoreResult:
+            # Metric target: MetricTarget.BOXES
+            # Averaging method: AveragingMethod.WEIGHTED
+            # F1 @ 50:     0.7618
+            # F1 @ 75:     0.7487
+            # F1 @ thresh: [0.76175  0.76068  0.76068]
+            # IoU thresh:  [0.5  0.55  0.6  ...]
+            # F1 per class:
+            # 0: [0.70968  0.70968  0.70968  ...]
+            # ...
+            # Small objects: ...
+            # Medium objects: ...
+            # Large objects: ...
             ```
         """
         out_str = (
@@ -553,6 +586,10 @@ class F1ScoreResult:
     def plot(self):
         """
         Plot the F1 results.
+
+        ![example_plot](\
+            https://media.roboflow.com/supervision-docs/metrics/f1_plot_example.png\
+            ){ align=center width="800" }
         """
 
         labels = ["F1@50", "F1@75"]

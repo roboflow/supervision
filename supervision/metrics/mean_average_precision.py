@@ -42,10 +42,31 @@ class MeanAveragePrecision(Metric):
         map_metric = MeanAveragePrecision()
         map_result = map_metric.update(predictions, targets).compute()
 
-        print(map_result)
         print(map_result.map50_95)
+        # 0.4674
+
+        print(map_result)
+        # MeanAveragePrecisionResult:
+        # Metric target: MetricTarget.BOXES
+        # Class agnostic: False
+        # mAP @ 50:95: 0.4674
+        # mAP @ 50:    0.5048
+        # mAP @ 75:    0.4796
+        # mAP scores: [0.50485  0.50377  0.50377  ...]
+        # IoU thresh: [0.5  0.55  0.6  ...]
+        # AP per class:
+        # 0: [0.67699  0.67699  0.67699  ...]
+        # ...
+        # Small objects: ...
+        # Medium objects: ...
+        # Large objects: ...
+
         map_result.plot()
         ```
+
+    ![example_plot](\
+        https://media.roboflow.com/supervision-docs/metrics/mAP_plot_example.png\
+        ){ align=center width="800" }
     """
 
     def __init__(
@@ -419,11 +440,11 @@ class MeanAveragePrecisionResult:
         matched_classes (np.ndarray): the class IDs of all matched classes.
             Corresponds to the rows of `ap_per_class`.
         small_objects (Optional[MeanAveragePrecisionResult]): the mAP results
-            for small objects.
+            for small objects (area < 32²).
         medium_objects (Optional[MeanAveragePrecisionResult]): the mAP results
-            for medium objects.
+            for medium objects (32² ≤ area < 96²).
         large_objects (Optional[MeanAveragePrecisionResult]): the mAP results
-            for large objects.
+            for large objects (area ≥ 96²).
     """
 
     metric_target: MetricTarget
@@ -456,6 +477,20 @@ class MeanAveragePrecisionResult:
         Example:
             ```python
             print(map_result)
+            # MeanAveragePrecisionResult:
+            # Metric target: MetricTarget.BOXES
+            # Class agnostic: False
+            # mAP @ 50:95: 0.4674
+            # mAP @ 50:    0.5048
+            # mAP @ 75:    0.4796
+            # mAP scores: [0.50485  0.50377  0.50377  ...]
+            # IoU thresh: [0.5  0.55  0.6  ...]
+            # AP per class:
+            # 0: [0.67699  0.67699  0.67699  ...]
+            # ...
+            # Small objects: ...
+            # Medium objects: ...
+            # Large objects: ...
             ```
         """
 
@@ -527,6 +562,10 @@ class MeanAveragePrecisionResult:
     def plot(self):
         """
         Plot the mAP results.
+
+        ![example_plot](\
+            https://media.roboflow.com/supervision-docs/metrics/mAP_plot_example.png\
+            ){ align=center width="800" }
         """
 
         labels = ["mAP@50:95", "mAP@50", "mAP@75"]

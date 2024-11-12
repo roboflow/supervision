@@ -42,6 +42,10 @@ class LineZone:
             to inside.
         out_count (int): The number of objects that have crossed the line from inside
             to outside.
+        in_count_per_class (Dict[int, int]): Number of objects of each class that have
+            crossed the line from outside to inside.
+        out_count_per_class (Dict[int, int]): Number of objects of each class that have
+            crossed the line from inside to outside.
 
     Example:
         ```python
@@ -75,7 +79,7 @@ class LineZone:
             Position.BOTTOM_LEFT,
             Position.BOTTOM_RIGHT,
         ),
-        crossing_acceptance_threshold: int = 1,
+        minimum_crossing_threshold: int = 1,
     ):
         """
         Args:
@@ -86,7 +90,7 @@ class LineZone:
                 to consider when deciding on whether the detection
                 has passed the line counter or not. By default, this
                 contains the four corners of the detection's bounding box
-            crossing_acceptance_threshold (int): Detection needs to be seen
+            minimum_crossing_threshold (int): Detection needs to be seen
                 on the other side of the line for this many frames to be
                 considered as having crossed the line. This is useful when
                 dealing with unstable bounding boxes or when detections
@@ -94,7 +98,7 @@ class LineZone:
         """
         self.vector = Vector(start=start, end=end)
         self.limits = self._calculate_region_of_interest_limits(vector=self.vector)
-        self.crossing_history_length = max(2, crossing_acceptance_threshold + 1)
+        self.crossing_history_length = max(2, minimum_crossing_threshold + 1)
         self.crossing_state_history: Dict[int, Deque[bool]] = defaultdict(
             lambda: deque(maxlen=self.crossing_history_length)
         )
@@ -107,34 +111,18 @@ class LineZone:
 
     @property
     def in_count(self) -> int:
-        """
-        Number of objects that have crossed the line from
-        outside to inside.
-        """
         return sum(self._in_count_per_class.values())
 
     @property
     def out_count(self) -> int:
-        """
-        Number of objects that have crossed the line from
-        inside to outside.
-        """
         return sum(self._out_count_per_class.values())
 
     @property
     def in_count_per_class(self) -> Dict[int, int]:
-        """
-        Number of objects of each class that have crossed
-        the line from outside to inside.
-        """
         return dict(self._in_count_per_class)
 
     @property
     def out_count_per_class(self) -> Dict[int, int]:
-        """
-        Number of objects of each class that have crossed the line
-        from inside to outside.
-        """
         return dict(self._out_count_per_class)
 
     def trigger(self, detections: Detections) -> Tuple[np.ndarray, np.ndarray]:
