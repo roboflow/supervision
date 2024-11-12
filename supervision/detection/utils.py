@@ -1101,3 +1101,59 @@ def cross_product(anchors: np.ndarray, vector: Vector) -> np.ndarray:
     )
     vector_start = np.array([vector.start.x, vector.start.y])
     return np.cross(vector_at_zero, anchors - vector_start)
+
+
+def spread_out_boxes(
+    xyxy: np.ndarray,
+    max_iterations: int = 100,
+) -> np.ndarray:
+    """
+    Spread out boxes that overlap with each other.
+
+    Args:
+        xyxy: Numpy array of shape (N, 4) where N is the number of boxes.
+        max_iterations: Maximum number of iterations to run the algorithm for.
+    """
+    if len(xyxy) == 0:
+        return xyxy
+
+    xyxy_padded = pad_boxes(xyxy, px=1)
+    for _ in range(max_iterations):
+        # NxN
+        iou = box_iou_batch(xyxy_padded, xyxy_padded)
+        np.fill_diagonal(iou, 0)
+        if np.all(iou == 0):
+            break
+
+        overlap_mask = iou > 0
+
+        # Nx2
+        centers = (xyxy_padded[:, :2] + xyxy_padded[:, 2:]) / 2
+
+        # NxNx2
+        delta_centers = centers[:, np.newaxis, :] - centers[np.newaxis, :, :]
+        delta_centers *= overlap_mask[:, :, np.newaxis]
+
+        # Nx2
+        delta_sum = np.sum(delta_centers, axis=1)
+        delta_magnitude = np.linalg.norm(delta_sum, axis=1, keepdims=True)
+        direction_vectors = np.divide(
+            delta_sum,
+            delta_magnitude,
+            out=np.zeros_like(delta_sum),
+            where=delta_magnitude != 0,
+        )
+
+        force_vectors = np.sum(iou, axis=1)
+        force_vectors = force_vectors[:, np.newaxis] * direction_vectors
+
+        force_vectors *= 10
+        force_vectors[(force_vectors > 0) & (force_vectors < 2)] = 2
+        force_vectors[(force_vectors < 0) & (force_vectors > -2)] = -2
+
+        force_vectors = force_vectors.astype(int)
+
+        xyxy_padded[:, [0, 1]] += force_vectors
+        xyxy_padded[:, [2, 3]] += force_vectors
+
+    return pad_boxes(xyxy_padded, px=-1)

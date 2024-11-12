@@ -5,10 +5,11 @@ from typing import List, Optional, Tuple, Union
 import cv2
 import numpy as np
 
-from supervision import Rect, pad_boxes
 from supervision.annotators.base import ImageType
+from supervision.detection.utils import pad_boxes, spread_out_boxes
 from supervision.draw.color import Color
 from supervision.draw.utils import draw_rounded_rectangle
+from supervision.geometry.core import Rect
 from supervision.keypoint.core import KeyPoints
 from supervision.keypoint.skeletons import SKELETONS_BY_VERTEX_COUNT
 from supervision.utils.conversion import ensure_cv2_image_for_annotation
@@ -201,6 +202,7 @@ class VertexLabelAnnotator:
         text_thickness: int = 1,
         text_padding: int = 10,
         border_radius: int = 0,
+        smart_position: bool = False,
     ):
         """
         Args:
@@ -215,6 +217,7 @@ class VertexLabelAnnotator:
             text_padding (int): The padding around the text.
             border_radius (int): The radius of the rounded corners of the
                 boxes. Set to a high value to produce circles.
+            smart_position (bool): Spread out the labels to avoid overlap.
         """
         self.border_radius: int = border_radius
         self.color: Union[Color, List[Color]] = color
@@ -222,6 +225,7 @@ class VertexLabelAnnotator:
         self.text_scale: float = text_scale
         self.text_thickness: int = text_thickness
         self.text_padding: int = text_padding
+        self.smart_position = smart_position
 
     def annotate(
         self,
@@ -356,8 +360,11 @@ class VertexLabelAnnotator:
                 for anchor, label in zip(anchors, labels)
             ]
         )
-
         xyxy_padded = pad_boxes(xyxy=xyxy, px=self.text_padding)
+
+        if self.smart_position:
+            xyxy_padded = spread_out_boxes(xyxy_padded)
+            xyxy = pad_boxes(xyxy=xyxy_padded, px=-self.text_padding)
 
         for text, color, text_color, box, box_padded in zip(
             labels, colors, text_colors, xyxy, xyxy_padded
