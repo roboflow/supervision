@@ -1,5 +1,5 @@
 from itertools import chain
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
@@ -23,10 +23,9 @@ def polygon_to_mask(polygon: np.ndarray, resolution_wh: Tuple[int, int]) -> np.n
         np.ndarray: The generated 2D mask, where the polygon is marked with
             `1`'s and the rest is filled with `0`'s.
     """
-    width, height = resolution_wh
-    mask = np.zeros((height, width))
-
-    cv2.fillPoly(mask, [polygon], color=1)
+    width, height = map(int, resolution_wh)
+    mask = np.zeros((height, width), dtype=np.uint8)
+    cv2.fillPoly(mask, [polygon.astype(np.int32)], color=1)
     return mask
 
 
@@ -163,9 +162,9 @@ def oriented_box_iou_batch(
     boxes_true = boxes_true.reshape(-1, 4, 2)
     boxes_detection = boxes_detection.reshape(-1, 4, 2)
 
-    max_height = max(boxes_true[:, :, 0].max(), boxes_detection[:, :, 0].max()) + 1
+    max_height = int(max(boxes_true[:, :, 0].max(), boxes_detection[:, :, 0].max()) + 1)
     # adding 1 because we are 0-indexed
-    max_width = max(boxes_true[:, :, 1].max(), boxes_detection[:, :, 1].max()) + 1
+    max_width = int(max(boxes_true[:, :, 1].max(), boxes_detection[:, :, 1].max()) + 1)
 
     mask_true = np.zeros((boxes_true.shape[0], max_height, max_width))
     for i, box_true in enumerate(boxes_true):
@@ -808,11 +807,35 @@ def is_data_equal(data_a: Dict[str, np.ndarray], data_b: Dict[str, np.ndarray]) 
     )
 
 
+def is_metadata_equal(metadata_a: Dict[str, Any], metadata_b: Dict[str, Any]) -> bool:
+    """
+    Compares the metadata payloads of two Detections instances.
+
+    Args:
+        metadata_a, metadata_b: The metadata payloads of the instances.
+
+    Returns:
+        True if the metadata payloads are equal, False otherwise.
+    """
+    return set(metadata_a.keys()) == set(metadata_b.keys()) and all(
+        np.array_equal(metadata_a[key], metadata_b[key])
+        if (
+            isinstance(metadata_a[key], np.ndarray)
+            and isinstance(metadata_b[key], np.ndarray)
+        )
+        else metadata_a[key] == metadata_b[key]
+        for key in metadata_a
+    )
+
+
 def merge_data(
     data_list: List[Dict[str, Union[npt.NDArray[np.generic], List]]],
 ) -> Dict[str, Union[npt.NDArray[np.generic], List]]:
     """
     Merges the data payloads of a list of Detections instances.
+
+    Warning: Assumes that empty detections were filtered-out before passing data to
+    this function.
 
     Args:
         data_list: The data payloads of the Detections instances. Each data payload
@@ -864,6 +887,61 @@ def merge_data(
             )
 
     return merged_data
+
+
+def merge_metadata(metadata_list: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Merge metadata from a list of metadata dictionaries.
+
+    This function combines the metadata dictionaries. If a key appears in more than one
+    dictionary, the values must be identical for the merge to succeed.
+
+    Warning: Assumes that empty detections were filtered-out before passing metadata to
+    this function.
+
+    Args:
+        metadata_list (List[Dict[str, Any]]): A list of metadata dictionaries to merge.
+
+    Returns:
+        Dict[str, Any]: A single merged metadata dictionary.
+
+    Raises:
+        ValueError: If there are conflicting values for the same key or if
+        dictionaries have different keys.
+    """
+    if not metadata_list:
+        return {}
+
+    all_keys_sets = [set(metadata.keys()) for metadata in metadata_list]
+    if not all(keys_set == all_keys_sets[0] for keys_set in all_keys_sets):
+        raise ValueError("All metadata dictionaries must have the same keys to merge.")
+
+    merged_metadata: Dict[str, Any] = {}
+    for metadata in metadata_list:
+        for key, value in metadata.items():
+            if key not in merged_metadata:
+                merged_metadata[key] = value
+                continue
+
+            other_value = merged_metadata[key]
+            if isinstance(value, np.ndarray) and isinstance(other_value, np.ndarray):
+                if not np.array_equal(merged_metadata[key], value):
+                    raise ValueError(
+                        f"Conflicting metadata for key: '{key}': "
+                        "{type(value)}, {type(other_value)}."
+                    )
+            elif isinstance(value, np.ndarray) or isinstance(other_value, np.ndarray):
+                # Since [] == np.array([]).
+                raise ValueError(
+                    f"Conflicting metadata for key: '{key}': "
+                    "{type(value)}, {type(other_value)}."
+                )
+            else:
+                print("hm")
+                if merged_metadata[key] != value:
+                    raise ValueError(f"Conflicting metadata for key: '{key}'.")
+
+    return merged_metadata
 
 
 def get_data_item(
@@ -1039,3 +1117,59 @@ def cross_product(anchors: np.ndarray, vector: Vector) -> np.ndarray:
     )
     vector_start = np.array([vector.start.x, vector.start.y])
     return np.cross(vector_at_zero, anchors - vector_start)
+
+
+def spread_out_boxes(
+    xyxy: np.ndarray,
+    max_iterations: int = 100,
+) -> np.ndarray:
+    """
+    Spread out boxes that overlap with each other.
+
+    Args:
+        xyxy: Numpy array of shape (N, 4) where N is the number of boxes.
+        max_iterations: Maximum number of iterations to run the algorithm for.
+    """
+    if len(xyxy) == 0:
+        return xyxy
+
+    xyxy_padded = pad_boxes(xyxy, px=1)
+    for _ in range(max_iterations):
+        # NxN
+        iou = box_iou_batch(xyxy_padded, xyxy_padded)
+        np.fill_diagonal(iou, 0)
+        if np.all(iou == 0):
+            break
+
+        overlap_mask = iou > 0
+
+        # Nx2
+        centers = (xyxy_padded[:, :2] + xyxy_padded[:, 2:]) / 2
+
+        # NxNx2
+        delta_centers = centers[:, np.newaxis, :] - centers[np.newaxis, :, :]
+        delta_centers *= overlap_mask[:, :, np.newaxis]
+
+        # Nx2
+        delta_sum = np.sum(delta_centers, axis=1)
+        delta_magnitude = np.linalg.norm(delta_sum, axis=1, keepdims=True)
+        direction_vectors = np.divide(
+            delta_sum,
+            delta_magnitude,
+            out=np.zeros_like(delta_sum),
+            where=delta_magnitude != 0,
+        )
+
+        force_vectors = np.sum(iou, axis=1)
+        force_vectors = force_vectors[:, np.newaxis] * direction_vectors
+
+        force_vectors *= 10
+        force_vectors[(force_vectors > 0) & (force_vectors < 2)] = 2
+        force_vectors[(force_vectors < 0) & (force_vectors > -2)] = -2
+
+        force_vectors = force_vectors.astype(int)
+
+        xyxy_padded[:, [0, 1]] += force_vectors
+        xyxy_padded[:, [2, 3]] += force_vectors
+
+    return pad_boxes(xyxy_padded, px=-1)

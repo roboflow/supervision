@@ -66,7 +66,11 @@ nav:
           - Utils: datasets/utils.md
       - Metrics:
           - mAP: metrics/mean_average_precision.md
+          - mAR: metrics/mean_average_recall.md
+          - Precision: metrics/precision.md
+          - Recall: metrics/recall.md
           - F1 Score: metrics/f1_score.md
+          - Common Values: metrics/common_values.md
           - Legacy Metrics: detection/metrics.md
       - Utils:
           - Video: utils/video.md

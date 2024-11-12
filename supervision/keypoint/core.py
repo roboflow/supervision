@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from contextlib import suppress
 from dataclasses import dataclass, field
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 import numpy.typing as npt
 
 from supervision.config import CLASS_NAME_DATA_FIELD
+from supervision.detection.core import Detections
 from supervision.detection.utils import get_data_item, is_data_equal
 from supervision.validators import validate_keypoints_fields
 
@@ -612,3 +613,75 @@ class KeyPoints:
             ```
         """
         return cls(xy=np.empty((0, 0, 2), dtype=np.float32))
+
+    def is_empty(self) -> bool:
+        """
+        Returns `True` if the `KeyPoints` object is considered empty.
+        """
+        empty_keypoints = KeyPoints.empty()
+        empty_keypoints.data = self.data
+        return self == empty_keypoints
+
+    def as_detections(
+        self, selected_keypoint_indices: Optional[Iterable[int]] = None
+    ) -> Detections:
+        """
+        Convert a KeyPoints object to a Detections object. This
+        approximates the bounding box of the detected object by
+        taking the bounding box that fits all keypoints.
+
+        Arguments:
+            selected_keypoint_indices (Optional[Iterable[int]]): The
+                indices of the keypoints to include in the bounding box
+                calculation. This helps focus on a subset of keypoints,
+                e.g. when some are occluded. Captures all keypoints by default.
+
+        Returns:
+            detections (Detections): The converted detections object.
+
+        Example:
+            ```python
+            keypoints = sv.KeyPoints.from_inference(...)
+            detections = keypoints.as_detections()
+            ```
+        """
+        if self.is_empty():
+            return Detections.empty()
+
+        detections_list = []
+        for i, xy in enumerate(self.xy):
+            if selected_keypoint_indices:
+                xy = xy[selected_keypoint_indices]
+
+            # [0, 0] used by some frameworks to indicate missing keypoints
+            xy = xy[~np.all(xy == 0, axis=1)]
+            if len(xy) == 0:
+                xyxy = np.array([[0, 0, 0, 0]], dtype=np.float32)
+            else:
+                x_min = xy[:, 0].min()
+                x_max = xy[:, 0].max()
+                y_min = xy[:, 1].min()
+                y_max = xy[:, 1].max()
+                xyxy = np.array([[x_min, y_min, x_max, y_max]], dtype=np.float32)
+
+            if self.confidence is None:
+                confidence = None
+            else:
+                confidence = self.confidence[i]
+                if selected_keypoint_indices:
+                    confidence = confidence[selected_keypoint_indices]
+                confidence = np.array([confidence.mean()], dtype=np.float32)
+
+            detections_list.append(
+                Detections(
+                    xyxy=xyxy,
+                    confidence=confidence,
+                )
+            )
+
+        detections = Detections.merge(detections_list)
+        detections.class_id = self.class_id
+        detections.data = self.data
+        detections = detections[detections.area > 0]
+
+        return detections

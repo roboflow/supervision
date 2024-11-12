@@ -9,7 +9,11 @@ from matplotlib import pyplot as plt
 
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
-from supervision.detection.utils import box_iou_batch, mask_iou_batch
+from supervision.detection.utils import (
+    box_iou_batch,
+    mask_iou_batch,
+    oriented_box_iou_batch,
+)
 from supervision.draw.color import LEGACY_COLOR_PALETTE
 from supervision.metrics.core import AveragingMethod, Metric, MetricTarget
 from supervision.metrics.utils.object_size import (
@@ -23,23 +27,75 @@ if TYPE_CHECKING:
 
 
 class F1Score(Metric):
+    """
+    F1 Score is a metric used to evaluate object detection models. It is the harmonic
+    mean of precision and recall, calculated at different IoU thresholds.
+
+    In simple terms, F1 Score is a measure of a model's balance between precision and
+    recall (accuracy and completeness), calculated as:
+
+    `F1 = 2 * (precision * recall) / (precision + recall)`
+
+    Example:
+        ```python
+        import supervision as sv
+        from supervision.metrics import F1Score
+
+        predictions = sv.Detections(...)
+        targets = sv.Detections(...)
+
+        f1_metric = F1Score()
+        f1_result = f1_metric.update(predictions, targets).compute()
+
+        print(f1_result.f1_50)
+        # 0.7618
+
+        print(f1_result)
+        # F1ScoreResult:
+        # Metric target: MetricTarget.BOXES
+        # Averaging method: AveragingMethod.WEIGHTED
+        # F1 @ 50:     0.7618
+        # F1 @ 75:     0.7487
+        # F1 @ thresh: [0.76175  0.76068  0.76068]
+        # IoU thresh:  [0.5  0.55  0.6  ...]
+        # F1 per class:
+        # 0: [0.70968  0.70968  0.70968  ...]
+        # ...
+        # Small objects: ...
+        # Medium objects: ...
+        # Large objects: ...
+
+        f1_result.plot()
+        ```
+
+    ![example_plot](\
+        https://media.roboflow.com/supervision-docs/metrics/f1_plot_example.png\
+        ){ align=center width="800" }
+    """
+
     def __init__(
         self,
         metric_target: MetricTarget = MetricTarget.BOXES,
         averaging_method: AveragingMethod = AveragingMethod.WEIGHTED,
     ):
-        self._metric_target = metric_target
-        if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
-            raise NotImplementedError(
-                "F1 score is not implemented for oriented bounding boxes."
-            )
+        """
+        Initialize the F1Score metric.
 
+        Args:
+            metric_target (MetricTarget): The type of detection data to use.
+            averaging_method (AveragingMethod): The averaging method used to compute the
+                F1 scores. Determines how the F1 scores are aggregated across classes.
+        """
         self._metric_target = metric_target
         self.averaging_method = averaging_method
+
         self._predictions_list: List[Detections] = []
         self._targets_list: List[Detections] = []
 
     def reset(self) -> None:
+        """
+        Reset the metric to its initial state, clearing all stored data.
+        """
         self._predictions_list = []
         self._targets_list = []
 
@@ -48,6 +104,16 @@ class F1Score(Metric):
         predictions: Union[Detections, List[Detections]],
         targets: Union[Detections, List[Detections]],
     ) -> F1Score:
+        """
+        Add new predictions and targets to the metric, but do not compute the result.
+
+        Args:
+            predictions (Union[Detections, List[Detections]]): The predicted detections.
+            targets (Union[Detections, List[Detections]]): The target detections.
+
+        Returns:
+            (F1Score): The updated metric instance.
+        """
         if not isinstance(predictions, list):
             predictions = [predictions]
         if not isinstance(targets, list):
@@ -65,6 +131,13 @@ class F1Score(Metric):
         return self
 
     def compute(self) -> F1ScoreResult:
+        """
+        Calculate the F1 score metric based on the stored predictions and ground-truth
+        data, at different IoU thresholds.
+
+        Returns:
+            (F1ScoreResult): The F1 score metric result.
+        """
         result = self._compute(self._predictions_list, self._targets_list)
 
         small_predictions, small_targets = self._filter_predictions_and_targets_by_size(
@@ -112,8 +185,12 @@ class F1Score(Metric):
                         iou = box_iou_batch(target_contents, prediction_contents)
                     elif self._metric_target == MetricTarget.MASKS:
                         iou = mask_iou_batch(target_contents, prediction_contents)
+                    elif self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
+                        iou = oriented_box_iou_batch(
+                            target_contents, prediction_contents
+                        )
                     else:
-                        raise NotImplementedError(
+                        raise ValueError(
                             "Unsupported metric target for IoU calculation"
                         )
 
@@ -312,12 +389,22 @@ class F1Score(Metric):
             return (
                 detections.mask
                 if detections.mask is not None
-                else np.empty((0, 0, 0), dtype=bool)
+                else self._make_empty_content()
             )
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
-            if obb := detections.data.get(ORIENTED_BOX_COORDINATES):
-                return np.ndarray(obb, dtype=np.float32)
-            return np.empty((0, 8), dtype=np.float32)
+            obb = detections.data.get(ORIENTED_BOX_COORDINATES)
+            if obb is not None and len(obb) > 0:
+                return np.array(obb, dtype=np.float32)
+            return self._make_empty_content()
+        raise ValueError(f"Invalid metric target: {self._metric_target}")
+
+    def _make_empty_content(self) -> np.ndarray:
+        if self._metric_target == MetricTarget.BOXES:
+            return np.empty((0, 4), dtype=np.float32)
+        if self._metric_target == MetricTarget.MASKS:
+            return np.empty((0, 0, 0), dtype=bool)
+        if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
+            return np.empty((0, 4, 2), dtype=np.float32)
         raise ValueError(f"Invalid metric target: {self._metric_target}")
 
     def _filter_detections_by_size(
@@ -373,7 +460,6 @@ class F1ScoreResult:
     The results of the F1 score metric calculation.
 
     Defaults to `0` if no detections or targets were provided.
-    Provides a custom `__str__` method for pretty printing.
 
     Attributes:
         metric_target (MetricTarget): the type of data used for the metric -
@@ -390,11 +476,11 @@ class F1ScoreResult:
         matched_classes (np.ndarray): the class IDs of all matched classes.
             Corresponds to the rows of `f1_per_class`.
         small_objects (Optional[F1ScoreResult]): the F1 metric results
-            for small objects.
+            for small objects (area < 32²).
         medium_objects (Optional[F1ScoreResult]): the F1 metric results
-            for medium objects.
+            for medium objects (32² ≤ area < 96²).
         large_objects (Optional[F1ScoreResult]): the F1 metric results
-            for large objects.
+            for large objects (area ≥ 96²).
     """
 
     metric_target: MetricTarget
@@ -424,6 +510,19 @@ class F1ScoreResult:
         Example:
             ```python
             print(f1_result)
+            # F1ScoreResult:
+            # Metric target: MetricTarget.BOXES
+            # Averaging method: AveragingMethod.WEIGHTED
+            # F1 @ 50:     0.7618
+            # F1 @ 75:     0.7487
+            # F1 @ thresh: [0.76175  0.76068  0.76068]
+            # IoU thresh:  [0.5  0.55  0.6  ...]
+            # F1 per class:
+            # 0: [0.70968  0.70968  0.70968  ...]
+            # ...
+            # Small objects: ...
+            # Medium objects: ...
+            # Large objects: ...
             ```
         """
         out_str = (
@@ -487,6 +586,10 @@ class F1ScoreResult:
     def plot(self):
         """
         Plot the F1 results.
+
+        ![example_plot](\
+            https://media.roboflow.com/supervision-docs/metrics/f1_plot_example.png\
+            ){ align=center width="800" }
         """
 
         labels = ["F1@50", "F1@75"]

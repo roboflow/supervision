@@ -17,6 +17,12 @@ class PolygonZone:
     """
     A class for defining a polygon-shaped zone within a frame for detecting objects.
 
+    !!! warning
+
+        PolygonZone uses the `tracker_id`. Read
+        [here](/latest/trackers/) to learn how to plug
+        tracking into your inference pipeline.
+
     Attributes:
         polygon (np.ndarray): A polygon represented by a numpy array of shape
             `(N, 2)`, containing the `x`, `y` coordinates of the points.
@@ -26,6 +32,28 @@ class PolygonZone:
             (default: (sv.Position.BOTTOM_CENTER,)).
         current_count (int): The current count of detected objects within the zone
         mask (np.ndarray): The 2D bool mask for the polygon zone
+
+    Example:
+        ```python
+        import supervision as sv
+        from ultralytics import YOLO
+        import numpy as np
+        import cv2
+
+        image = cv2.imread(<SOURCE_IMAGE_PATH>)
+        model = YOLO("yolo11s")
+        tracker = sv.ByteTrack()
+
+        polygon = np.array([[100, 200], [200, 100], [300, 200], [200, 300]])
+        polygon_zone = sv.PolygonZone(polygon=polygon)
+
+        result = model.infer(image)[0]
+        detections = sv.Detections.from_ultralytics(result)
+        detections = tracker.update_with_detections(detections)
+
+        is_detections_in_zone = polygon_zone.trigger(detections)
+        print(polygon_zone.current_count)
+        ```
     """
 
     def __init__(
@@ -88,7 +116,7 @@ class PolygonZoneAnnotator:
 
     Attributes:
         zone (PolygonZone): The polygon zone to be annotated
-        color (Color): The color to draw the polygon lines
+        color (Color): The color to draw the polygon lines, default is white
         thickness (int): The thickness of the polygon lines, default is 2
         text_color (Color): The color of the text on the polygon, default is black
         text_scale (float): The scale of the text on the polygon, default is 0.5
@@ -104,7 +132,7 @@ class PolygonZoneAnnotator:
     def __init__(
         self,
         zone: PolygonZone,
-        color: Color,
+        color: Color = Color.WHITE,
         thickness: int = 2,
         text_color: Color = Color.BLACK,
         text_scale: float = 0.5,
