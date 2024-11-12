@@ -1173,3 +1173,53 @@ def spread_out_boxes(
         xyxy_padded[:, [2, 3]] += force_vectors
 
     return pad_boxes(xyxy_padded, px=-1)
+
+
+# Overlap estimation
+def generate_mask_from_detections(img_shape: tuple[int, int], detection) -> np.ndarray:
+    """convert bounding polygon coord to binary mask"""
+    # Create binary mask
+    mask = np.zeros(img_shape[:2], np.uint8)
+
+    # Segmentation case
+    if "mask" in detection:
+        mask = detection["mask"]
+
+    # Object detection case
+    elif "xyxy" in detection:
+        x1, y1, x2, y2 = map(int, detection["xyxy"])
+        cv2.rectangle(mask, (x1, y1), (x2, y2), color=(1,), thickness=cv2.FILLED)
+
+    # Oriented Bounding box detection case
+    elif "polygon" in detection:
+        contour = np.array(detection["polygon"], dtype=np.int32).reshape(-1, 1, 2)
+        mask = cv2.drawContours(mask, [contour], -1, color=(1,), thickness=cv2.FILLED)
+
+    return mask
+
+
+def calculate_overlap_area(zone_mask: np.ndarray, masks: List[np.ndarray]) -> float:
+    """calculate how much % of the zone is occupied"""
+    # create one mask from the object masks as the union
+
+    union_mask = np.bitwise_or.reduce(np.stack(masks), axis=0)
+
+    # Calculate the overlap mask between union_mask & zone_mask
+    overlap_mask = np.bitwise_and(union_mask, zone_mask)
+
+    # Calculate sizes
+    overlap_size = np.sum(overlap_mask)
+    zone_size = np.sum(zone_mask)
+
+    return 100 * overlap_size / zone_size
+
+
+def calculate_overlap_with_zone(
+    zone_mask: np.ndarray,
+    detections,
+    img_shape: tuple[int, int],
+    show_plot: bool = True,
+) -> float:
+    masks = [generate_mask_from_detections(img_shape, det) for det in detections]
+    return calculate_overlap_area(zone_mask, masks)
+
