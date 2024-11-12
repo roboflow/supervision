@@ -1222,4 +1222,3 @@ def calculate_overlap_with_zone(
 ) -> float:
     masks = [generate_mask_from_detections(img_shape, det) for det in detections]
     return calculate_overlap_area(zone_mask, masks)
-
