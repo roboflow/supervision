@@ -4561,7 +4561,7 @@ test = ["devpi-process (>=1.0.2)", "pytest (>=8.3.3)", "pytest-mock (>=3.14)"]
 name = "tqdm"
 version = "4.67.0"
 description = "Fast, Extensible Progress Meter"
-optional = true
+optional = false
 python-versions = ">=3.7"
 files = [
     {file = "tqdm-4.67.0-py3-none-any.whl", hash = "sha256:0cd8af9d56911acab92182e88d763100d4788bdf421d251616040cc4d44863be"},
@@ -4930,10 +4930,9 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 type = ["pytest-mypy"]
 
 [extras]
-assets = ["requests", "tqdm"]
 metrics = ["pandas"]
 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "7661beeb9043afebaa1e53cd4d9ebc7d07b35dfa97b7006295300e9f16dfe437"
+content-hash = "4b1374cb6ea9100c5bed238a30153051ae9946a23c8c93e0abe1e80a29bb6860"
