@@ -1,6 +1,5 @@
 ---
 comments: true
-status: new
 ---
 
 # Assets
@@ -11,12 +10,12 @@ that you can use in your demos.
 ## Install extra
 
 To install the Supervision assets utility, you can use `pip`. This utility is available
-as an extra within the Supervision package.
+within the Supervision package.
 
 !!! example "pip install"
 
     ```bash
-    pip install "supervision[assets]"
+    pip install "supervision"
     ```
 
 <div class="md-typeset">
