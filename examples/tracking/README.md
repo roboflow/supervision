@@ -10,7 +10,7 @@ detection and Supervision for tracking and annotation.
 - clone repository and navigate to example directory
 
     ```bash
-    git clone https://github.com/roboflow/supervision.git
+    git clone --depth 1 -b develop https://github.com/roboflow/supervision.git
     cd supervision/examples/tracking
     ```
 
