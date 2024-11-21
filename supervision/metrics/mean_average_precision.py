@@ -9,7 +9,11 @@ from matplotlib import pyplot as plt
 
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
-from supervision.detection.utils import box_iou_batch, mask_iou_batch
+from supervision.detection.utils import (
+    box_iou_batch,
+    mask_iou_batch,
+    oriented_box_iou_batch,
+)
 from supervision.draw.color import LEGACY_COLOR_PALETTE
 from supervision.metrics.core import Metric, MetricTarget
 from supervision.metrics.utils.object_size import (
@@ -38,10 +42,31 @@ class MeanAveragePrecision(Metric):
         map_metric = MeanAveragePrecision()
         map_result = map_metric.update(predictions, targets).compute()
 
-        print(map_result)
         print(map_result.map50_95)
+        # 0.4674
+
+        print(map_result)
+        # MeanAveragePrecisionResult:
+        # Metric target: MetricTarget.BOXES
+        # Class agnostic: False
+        # mAP @ 50:95: 0.4674
+        # mAP @ 50:    0.5048
+        # mAP @ 75:    0.4796
+        # mAP scores: [0.50485  0.50377  0.50377  ...]
+        # IoU thresh: [0.5  0.55  0.6  ...]
+        # AP per class:
+        # 0: [0.67699  0.67699  0.67699  ...]
+        # ...
+        # Small objects: ...
+        # Medium objects: ...
+        # Large objects: ...
+
         map_result.plot()
         ```
+
+    ![example_plot](\
+        https://media.roboflow.com/supervision-docs/metrics/mAP_plot_example.png\
+        ){ align=center width="800" }
     """
 
     def __init__(
@@ -57,11 +82,6 @@ class MeanAveragePrecision(Metric):
             class_agnostic (bool): Whether to treat all data as a single class.
         """
         self._metric_target = metric_target
-        if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
-            raise NotImplementedError(
-                "Mean Average Precision is not implemented for oriented bounding boxes."
-            )
-
         self._class_agnostic = class_agnostic
 
         self._predictions_list: List[Detections] = []
@@ -189,8 +209,12 @@ class MeanAveragePrecision(Metric):
                         iou = box_iou_batch(target_contents, prediction_contents)
                     elif self._metric_target == MetricTarget.MASKS:
                         iou = mask_iou_batch(target_contents, prediction_contents)
+                    elif self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
+                        iou = oriented_box_iou_batch(
+                            target_contents, prediction_contents
+                        )
                     else:
-                        raise NotImplementedError(
+                        raise ValueError(
                             "Unsupported metric target for IoU calculation"
                         )
 
@@ -264,7 +288,6 @@ class MeanAveragePrecision(Metric):
             iou_thresholds.shape[0],
         )
         correct = np.zeros((num_predictions, num_iou_levels), dtype=bool)
-
         correct_class = target_classes[:, None] == predictions_classes
 
         for i, iou_level in enumerate(iou_thresholds):
@@ -352,8 +375,9 @@ class MeanAveragePrecision(Metric):
                 else self._make_empty_content()
             )
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
-            if obb := detections.data.get(ORIENTED_BOX_COORDINATES):
-                return np.ndarray(obb, dtype=np.float32)
+            obb = detections.data.get(ORIENTED_BOX_COORDINATES)
+            if obb is not None and len(obb) > 0:
+                return np.array(obb, dtype=np.float32)
             return self._make_empty_content()
         raise ValueError(f"Invalid metric target: {self._metric_target}")
 
@@ -363,7 +387,7 @@ class MeanAveragePrecision(Metric):
         if self._metric_target == MetricTarget.MASKS:
             return np.empty((0, 0, 0), dtype=bool)
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
-            return np.empty((0, 8), dtype=np.float32)
+            return np.empty((0, 4, 2), dtype=np.float32)
         raise ValueError(f"Invalid metric target: {self._metric_target}")
 
     def _filter_detections_by_size(
@@ -416,11 +440,11 @@ class MeanAveragePrecisionResult:
         matched_classes (np.ndarray): the class IDs of all matched classes.
             Corresponds to the rows of `ap_per_class`.
         small_objects (Optional[MeanAveragePrecisionResult]): the mAP results
-            for small objects.
+            for small objects (area < 32²).
         medium_objects (Optional[MeanAveragePrecisionResult]): the mAP results
-            for medium objects.
+            for medium objects (32² ≤ area < 96²).
         large_objects (Optional[MeanAveragePrecisionResult]): the mAP results
-            for large objects.
+            for large objects (area ≥ 96²).
     """
 
     metric_target: MetricTarget
@@ -453,6 +477,20 @@ class MeanAveragePrecisionResult:
         Example:
             ```python
             print(map_result)
+            # MeanAveragePrecisionResult:
+            # Metric target: MetricTarget.BOXES
+            # Class agnostic: False
+            # mAP @ 50:95: 0.4674
+            # mAP @ 50:    0.5048
+            # mAP @ 75:    0.4796
+            # mAP scores: [0.50485  0.50377  0.50377  ...]
+            # IoU thresh: [0.5  0.55  0.6  ...]
+            # AP per class:
+            # 0: [0.67699  0.67699  0.67699  ...]
+            # ...
+            # Small objects: ...
+            # Medium objects: ...
+            # Large objects: ...
             ```
         """
 
@@ -524,6 +562,10 @@ class MeanAveragePrecisionResult:
     def plot(self):
         """
         Plot the mAP results.
+
+        ![example_plot](\
+            https://media.roboflow.com/supervision-docs/metrics/mAP_plot_example.png\
+            ){ align=center width="800" }
         """
 
         labels = ["mAP@50:95", "mAP@50", "mAP@75"]

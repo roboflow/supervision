@@ -1,5 +1,149 @@
 # CHANGELOG
 
+### 0.25.0 <small>Nov 12, 2024</small>
+
+- No removals or deprecations in this release!
+
+- Essential update to the [`LineZone`](https://supervision.roboflow.com/0.25.0/detection/tools/line_zone/): when computing line crossings, detections that jitter might be counted twice (or more). This can now be solved with the `minimum_crossing_threshold` argument. If you set it to `2` or more, extra frames will be used to confirm the crossing, improving the accuracy significantly. ([#1540](https://github.com/roboflow/supervision/pull/1540))
+
+- It is now possible to track objects detected as [`KeyPoints`](https://supervision.roboflow.com/0.25.0/keypoint/core/#supervision.keypoint.core.KeyPoints). See the complete step-by-step guide in the [Object Tracking Guide](https://supervision.roboflow.com/latest/how_to/track_objects/#keypoints). ([#1658](https://github.com/roboflow/supervision/pull/1658))
+
+```python
+import numpy as np
+import supervision as sv
+from ultralytics import YOLO
+
+model = YOLO("yolov8m-pose.pt")
+tracker = sv.ByteTrack()
+trace_annotator = sv.TraceAnnotator()
+
+def callback(frame: np.ndarray, _: int) -> np.ndarray:
+    results = model(frame)[0]
+    key_points = sv.KeyPoints.from_ultralytics(results)
+
+    detections = key_points.as_detections()
+    detections = tracker.update_with_detections(detections)
+
+    annotated_image = trace_annotator.annotate(frame.copy(), detections)
+    return annotated_image
+
+sv.process_video(
+    source_path="input_video.mp4",
+    target_path="output_video.mp4",
+    callback=callback
+)
+```
+
+- Added `is_empty` method to [`KeyPoints`](https://supervision.roboflow.com/0.25.0/keypoint/core/#supervision.keypoint.core.KeyPoints) to check if there are any keypoints in the object. ([#1658](https://github.com/roboflow/supervision/pull/1658))
+
+- Added `as_detections` method to [`KeyPoints`](https://supervision.roboflow.com/0.25.0/keypoint/core/#supervision.keypoint.core.KeyPoints) that converts `KeyPoints` to `Detections`. ([#1658](https://github.com/roboflow/supervision/pull/1658))
+
+- Added a new video to `supervision[assets]`. ([#1657](https://github.com/roboflow/supervision/pull/1657))
+
+```python
+from supervision.assets import download_assets, VideoAssets
+
+path_to_video = download_assets(VideoAssets.SKIING)
+```
+
+- Supervision can now be used with [`Python 3.13`](https://docs.python.org/3/whatsnew/3.13.html). The most renowned update is the ability to run Python [without Global Interpreter Lock (GIL)](https://docs.python.org/3/whatsnew/3.13.html#whatsnew313-free-threaded-cpython). We expect support for this among our dependencies to be inconsistent, but if you do attempt it - let us know the results! ([#1595](https://github.com/roboflow/supervision/pull/1595))
+
+- Added [`Mean Average Recall`](https://supervision.roboflow.com/latest/metrics/mean_average_recall/) mAR metric, which returns a recall score, averaged over IoU thresholds, detected object classes, and limits imposed on maximum considered detections. ([#1661](https://github.com/roboflow/supervision/pull/1661))
+
+```python
+import supervision as sv
+from supervision.metrics import MeanAverageRecall
+
+predictions = sv.Detections(...)
+targets = sv.Detections(...)
+
+map_metric = MeanAverageRecall()
+map_result = map_metric.update(predictions, targets).compute()
+
+map_result.plot()
+```
+
+- Added [`Precision`](https://supervision.roboflow.com/latest/metrics/precision/) and [`Recall`](https://supervision.roboflow.com/latest/metrics/recall/) metrics, providing a baseline for comparing model outputs to ground truth or another model ([#1609](https://github.com/roboflow/supervision/pull/1609))
+
+```python
+import supervision as sv
+from supervision.metrics import Recall
+
+predictions = sv.Detections(...)
+targets = sv.Detections(...)
+
+recall_metric = Recall()
+recall_result = recall_metric.update(predictions, targets).compute()
+
+recall_result.plot()
+```
+
+- All Metrics now support Oriented Bounding Boxes (OBB) ([#1593](https://github.com/roboflow/supervision/pull/1593))
+
+```python
+import supervision as sv
+from supervision.metrics import F1_Score
+
+predictions = sv.Detections(...)
+targets = sv.Detections(...)
+
+f1_metric = MeanAverageRecall(metric_target=sv.MetricTarget.ORIENTED_BOUNDING_BOXES)
+f1_result = f1_metric.update(predictions, targets).compute()
+```
+
+- Introducing Smart Labels! When `smart_position` is set for [`LabelAnnotator`](https://supervision.roboflow.com/0.25.0/detection/annotators/#supervision.annotators.core.LabelAnnotator), [`RichLabelAnnotator`](https://supervision.roboflow.com/0.25.0/detection/annotators/#supervision.annotators.core.RichLabelAnnotator) or [`VertexLabelAnnotator`](https://supervision.roboflow.com/0.25.0/detection/annotators/#supervision.annotators.core.RichLabelAnnotator), the labels will move around to avoid overlapping others. ([#1625](https://github.com/roboflow/supervision/pull/1625))
+
+```python
+import supervision as sv
+from ultralytics import YOLO
+
+image = cv2.imread("image.jpg")
+
+label_annotator = sv.LabelAnnotator(smart_position=True)
+
+model = YOLO("yolo11m.pt")
+results = model(image)[0]
+detections = sv.Detections.from_ultralytics(results)
+
+annotated_frame = label_annotator.annotate(first_frame.copy(), detections)
+sv.plot_image(annotated_frame)
+```
+
+- Added the `metadata` variable to [`Detections`](https://supervision.roboflow.com/0.25.0/detection/core/#supervision.detection.core.Detections). It allows you to store custom data per-image, rather than per-detected-object as was possible with `data` variable. For example, `metadata` could be used to store the source video path, camera model or camera parameters. ([#1589](https://github.com/roboflow/supervision/pull/1589))
+
+```python
+import supervision as sv
+from ultralytics import YOLO
+
+model = YOLO("yolov8m")
+
+result = model("image.png")[0]
+detections = sv.Detections.from_ultralytics(result)
+
+# Items in `data` must match length of detections
+object_ids = [num for num in range(len(detections))]
+detections.data["object_number"] = object_ids
+
+# Items in `metadata` can be of any length.
+detections.metadata["camera_model"] = "Luxonis OAK-D"
+```
+
+- Added a `py.typed` type hints metafile. It should provide a stronger signal to type annotators and IDEs that type support is available. ([#1586](https://github.com/roboflow/supervision/pull/1586))
+
+- `ByteTrack` no longer requires `detections` to have a `class_id` ([#1637](https://github.com/roboflow/supervision/pull/1637))
+- `draw_line`, `draw_rectangle`, `draw_filled_rectangle`, `draw_polygon`, `draw_filled_polygon` and `PolygonZoneAnnotator` now comes with a default color ([#1591](https://github.com/roboflow/supervision/pull/1591))
+- Dataset classes are treated as case-sensitive when merging multiple datasets. ([#1643](https://github.com/roboflow/supervision/pull/1643))
+- Expanded [metrics documentation](https://supervision.roboflow.com/0.25.0/metrics/f1_score/) with example plots and printed results ([#1660](https://github.com/roboflow/supervision/pull/1660))
+- Added usage example for polygon zone ([#1608](https://github.com/roboflow/supervision/pull/1608))
+- Small improvements to error handling in polygons: ([#1602](https://github.com/roboflow/supervision/pull/1602))
+
+- Updated [`ByteTrack`](https://supervision.roboflow.com/0.25.0/trackers/#supervision.tracker.byte_tracker.core.ByteTrack), removing shared variables. Previously, multiple instances of `ByteTrack` would share some date, requiring liberal use of `tracker.reset()`. ([#1603](https://github.com/roboflow/supervision/pull/1603)), ([#1528](https://github.com/roboflow/supervision/pull/1528))
+- Fixed a bug where `class_agnostic` setting in `MeanAveragePrecision` would not work. ([#1577](https://github.com/roboflow/supervision/pull/1577)) hacktoberfest
+- Removed welcome workflow from our CI system. ([#1596](https://github.com/roboflow/supervision/pull/1596))
+
+- Large refactor of `ByteTrack`: STrack moved to separate class, removed superfluous `BaseTrack` class, removed unused variables ([#1603](https://github.com/roboflow/supervision/pull/1603))
+- Large refactor of `RichLabelAnnotator`, matching its contents with `LabelAnnotator`. ([#1625](https://github.com/roboflow/supervision/pull/1625))
+
 ### 0.24.0 <small>Oct 4, 2024</small>
 
 - Added [F1 score](https://supervision.roboflow.com/0.24.0/metrics/f1_score/#supervision.metrics.f1_score.F1Score) as a new metric for detection and segmentation. [#1521](https://github.com/roboflow/supervision/pull/1521)

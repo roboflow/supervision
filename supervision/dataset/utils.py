@@ -55,7 +55,7 @@ def merge_class_lists(class_lists: List[List[str]]) -> List[str]:
 
     for class_list in class_lists:
         for class_name in class_list:
-            unique_classes.add(class_name.lower())
+            unique_classes.add(class_name)
 
     return sorted(list(unique_classes))
 
