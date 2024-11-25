@@ -22,19 +22,19 @@ from supervision.metrics.utils.object_size import (
 
 __all__ = [
     "AveragingMethod",
-    "Metric",
-    "MetricTarget",
     "F1Score",
     "F1ScoreResult",
     "MeanAveragePrecision",
     "MeanAveragePrecisionResult",
     "MeanAverageRecall",
     "MeanAverageRecallResult",
+    "Metric",
+    "MetricTarget",
+    "ObjectSizeCategory",
     "Precision",
     "PrecisionResult",
     "Recall",
     "RecallResult",
-    "ObjectSizeCategory",
     "get_detection_size_category",
     "get_object_size_category",
 ]
