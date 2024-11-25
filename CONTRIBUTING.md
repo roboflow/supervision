@@ -128,14 +128,25 @@ PRs must pass all tests and linting requirements before they can be merged.
 
 Before starting your work on the project, set up your development environment:
 
-1. Clone your fork of the project:
+1. Clone your fork of the project (recommended to use shallow clone of develop branch):
+
+    **Option A: Recommended for most contributors (shallow clone of develop branch):**
+
+    ```bash
+    git clone --depth 1 -b develop https://github.com/YOUR_USERNAME/supervision.git
+    cd supervision
+    ```
+
+    Replace `YOUR_USERNAME` with your GitHub username.
+
+    > Note: Using `--depth 1` creates a shallow clone with minimal history and `-b develop` ensures you start with the development branch. This significantly reduces download size while providing everything needed to contribute.
+
+    **Option B: Full repository clone (if you need complete history):**
 
     ```bash
     git clone https://github.com/YOUR_USERNAME/supervision.git
     cd supervision
     ```
-
-    Replace `YOUR_USERNAME` with your GitHub username.
 
 2. Create and activate a virtual environment:
 

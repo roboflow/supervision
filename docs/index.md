@@ -63,7 +63,7 @@ You can install `supervision` in a
     === "virtualenv"
         ```bash
         # clone repository and navigate to root directory
-        git clone https://github.com/roboflow/supervision.git
+        git clone --depth 1 -b develop https://github.com/roboflow/supervision.git
         cd supervision
 
         # setup python environment and activate it
@@ -78,7 +78,7 @@ You can install `supervision` in a
     === "poetry"
         ```bash
         # clone repository and navigate to root directory
-        git clone https://github.com/roboflow/supervision.git
+        git clone --depth 1 -b develop https://github.com/roboflow/supervision.git
         cd supervision
 
         # setup python environment and activate it
