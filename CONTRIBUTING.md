@@ -146,7 +146,6 @@ Before starting your work on the project, set up your development environment:
     ```bash
     git clone https://github.com/YOUR_USERNAME/supervision.git
     cd supervision
-    git checkout develop
     ```
 
 2. Create and activate a virtual environment:
