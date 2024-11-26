@@ -117,7 +117,7 @@ class Detections:
         xyxy (np.ndarray): An array of shape `(n, 4)` containing
             the bounding boxes coordinates in format `[x1, y1, x2, y2]`
         mask: (Optional[np.ndarray]): An array of shape
-            `(n, H, W)` containing the segmentation masks.
+            `(n, H, W)` containing the segmentation masks (`bool` data type).
         confidence (Optional[np.ndarray]): An array of shape
             `(n,)` containing the confidence scores of the detections.
         class_id (Optional[np.ndarray]): An array of shape
