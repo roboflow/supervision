@@ -3472,7 +3472,7 @@ the bounding boxes coordinates in format <code>[x1, y1, x2, y2]</code></p>
             <td>
               <div class="doc-md-description">
                 <p>(Optional[np.ndarray]): An array of shape
-<code>(n, H, W)</code> containing the segmentation masks.</p>
+<code>(n, H, W)</code> containing the segmentation masks (<code>bool</code> data type).</p>
               </div>
             </td>
           </tr>
@@ -4967,7 +4967,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 <a id="__codelineno-0-117" name="__codelineno-0-117"></a><span class="sd">        xyxy (np.ndarray): An array of shape `(n, 4)` containing</span>
 <a id="__codelineno-0-118" name="__codelineno-0-118"></a><span class="sd">            the bounding boxes coordinates in format `[x1, y1, x2, y2]`</span>
 <a id="__codelineno-0-119" name="__codelineno-0-119"></a><span class="sd">        mask: (Optional[np.ndarray]): An array of shape</span>
-<a id="__codelineno-0-120" name="__codelineno-0-120"></a><span class="sd">            `(n, H, W)` containing the segmentation masks.</span>
+<a id="__codelineno-0-120" name="__codelineno-0-120"></a><span class="sd">            `(n, H, W)` containing the segmentation masks (`bool` data type).</span>
 <a id="__codelineno-0-121" name="__codelineno-0-121"></a><span class="sd">        confidence (Optional[np.ndarray]): An array of shape</span>
 <a id="__codelineno-0-122" name="__codelineno-0-122"></a><span class="sd">            `(n,)` containing the confidence scores of the detections.</span>
 <a id="__codelineno-0-123" name="__codelineno-0-123"></a><span class="sd">        class_id (Optional[np.ndarray]): An array of shape</span>
