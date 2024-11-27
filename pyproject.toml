@@ -76,6 +76,7 @@ pillow = ">=9.4"
 requests = ">=2.26.0"
 tqdm = ">=4.62.3"
 # pandas: picked lowest major version that supports Python 3.8
+# pandas 2.2.3 has been released with support for Python 3.13
 pandas = [
     { version = ">=2.0.0", python = "<3.13",optional = true },
     { version = ">=2.2.3", python = ">=3.13",optional = true },
