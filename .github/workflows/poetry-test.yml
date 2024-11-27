@@ -36,11 +36,5 @@ jobs:
       - name: 🚀 Do Install the package Test
         run: poetry install --with dev --extras metrics
 
-      - name: 🐚 Start Poetry Shell
-        run: poetry shell
-
-      - name: 📄 Create a simple script
-        run: echo "import supervision " > simple_script.py
-
       - name: 🧪 Run the simple script
-        run: python simple_script.py
+        run: poetry run python -c "import supervision; from supervision import assets; from supervision import metrics; print(supervision.__version__)"
