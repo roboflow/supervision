@@ -25,5 +25,5 @@ jobs:
           pip install .
           pip install pytest
 
-      - name: 🧪 Test
+      - name: 🧪 PyTest
         run: "python -m pytest ./test"

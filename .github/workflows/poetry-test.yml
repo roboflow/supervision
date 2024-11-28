@@ -36,5 +36,8 @@ jobs:
       - name: 🚀 Do Install the package Test
         run: poetry install --with dev --extras metrics
 
-      - name: 🧪 Run the simple script
+      - name: 🧪 Run the Import test
         run: poetry run python -c "import supervision; from supervision import assets; from supervision import metrics; print(supervision.__version__)"
+
+      - name: 🧪 Run the pytests
+        run: poetry run python -m pytest ./test
