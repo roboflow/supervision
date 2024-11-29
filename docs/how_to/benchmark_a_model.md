@@ -3,9 +3,9 @@ comments: true
 status: new
 ---
 
-# Benchmark a Model
+![Corgi Example](https://media.roboflow.com/supervision/image-examples/how-to/benchmark-models/corgi-sorted-2.png)
 
-## Overview
+# Benchmark a Model
 
 Have you ever trained multiple detection models and wondered which one performs best on your specific use case? Or maybe you've downloaded a pre-trained model and want to verify its performance on your dataset? Model benchmarking is essential for making informed decisions about which model to deploy in production.
 
@@ -23,6 +23,8 @@ This guide will show an easy way to benchmark your results using `supervision`. 
 10. [Bonus: Model Leaderboard](#model-leaderboard)
 
 This guide will use an instance segmentation model, but it applies to object detection, instance segmentation, and oriented bounding box models (OBB) too.
+
+A condensed version of this guide is available as a [Colab Notebook](https://colab.research.google.com/drive/1HoOY9pZoVwGiRMmLHtir0qT6Uj45w6Ps?usp=sharing).
 
 ## Loading a Dataset
 
@@ -53,7 +55,7 @@ project = rf.workspace("<WORKSPACE_NAME>").project("<PROJECT_NAME>")
 dataset = project.version(<DATASET_VERSION_NUMBER>).download("<FORMAT>")
 ```
 
-If your dataset is fromUniverse, go to `Dataset > Download Dataset > select the format (e.g. YOLOv11) > Show download code.
+If your dataset is from Universe, go to `Dataset` > `Download Dataset` > select the format (e.g. `YOLOv11`) > `Show download code`.
 
 If labeling your own data, go to the [dashboard](https://app.roboflow.com/) and check this [guide](https://docs.roboflow.com/api-reference/workspace-and-project-ids) to find your workspace and project IDs.
 
@@ -272,7 +274,7 @@ Let's also remove the predictions that are not in the dataset classes.
 
         remap_classes(
             detections=predictions,
-            class_ids_from_to={27: 0},
+            class_ids_from_to={16: 0},
             class_names_from_to={"dog": "Corgi"}
         )
         predictions = predictions[
@@ -431,6 +433,8 @@ Even better, the repository is open source! You can see how the models were benc
 ## Conclusion
 
 In this guide, you've learned how to set up your environment, train or use pre-trained models, visualize predictions, and evaluate model performance with metrics like [mAP](https://supervision.roboflow.com/latest/metrics/mean_average_precision/), [F1 score](https://supervision.roboflow.com/latest/metrics/f1_score/), and got to know our Model Leaderboard.
+
+A condensed version of this guide is also available as a [Colab Notebook](https://colab.research.google.com/drive/1HoOY9pZoVwGiRMmLHtir0qT6Uj45w6Ps?usp=sharing).
 
 For more details, be sure to check out our [documentation](https://supervision.roboflow.com/latest/) and join our community discussions. If you find any issues, please let us know on [GitHub](https://github.com/roboflow/supervision/issues).
 
