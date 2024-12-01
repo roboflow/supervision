@@ -1,0 +1,34 @@
+name: 🧪 Docs Test WorkFlow 📚
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  docs-build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🔄 Checkout code
+        uses: actions/checkout@v4
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: 📦 Install mkdocs-material
+        run: pip install "mkdocs-material[all]"
+      - name: 📦 Install mkdocstrings[python]
+        run: pip install "mkdocstrings[python]"
+      - name: 📦 Install mkdocs-material[imaging]
+        run: pip install "mkdocs-material[imaging]"
+      - name: 📦 Install mike
+        run: pip install "mike"
+      - name: 📦 Install mkdocs-git-revision-date-localized-plugin
+        run: pip install "mkdocs-git-revision-date-localized-plugin"
+      - name: 📦 Install JupyterLab
+        run: pip install jupyterlab
+      - name: 📦 Install mkdocs-jupyter
+        run: pip install mkdocs-jupyter
+      - name: 📦 Install mkdocs-git-committers-plugin-2
+        run: pip install mkdocs-git-committers-plugin-2
+      - name: 🧪 Test documentation build
+        run: mkdocs build --verbose

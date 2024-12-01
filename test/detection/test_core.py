@@ -153,7 +153,10 @@ def test_getitem(
             DoesNotRaise(),
         ),  # single detection with xyxy field
         (
-            [mock_detections(xyxy=[[10, 10, 20, 20]]), Detections.empty()],
+            [
+                mock_detections(xyxy=[[10, 10, 20, 20]]),
+                mock_detections(xyxy=np.empty((0, 4), dtype=np.float32)),
+            ],
             mock_detections(xyxy=[[10, 10, 20, 20]]),
             DoesNotRaise(),
         ),  # single detection with xyxy field + empty detection
@@ -171,7 +174,7 @@ def test_getitem(
                 mock_detections(xyxy=[[20, 20, 30, 30]]),
             ],
             mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
-            DoesNotRaise(),
+            pytest.raises(ValueError),
         ),  # detection with xyxy, class_id fields + detection with xyxy field
         (
             [
@@ -181,6 +184,16 @@ def test_getitem(
             mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]], class_id=[0, 1]),
             DoesNotRaise(),
         ),  # two detections with xyxy, class_id fields
+        (
+            [
+                mock_detections(xyxy=[[10, 10, 20, 20]], data={"test": [1]}),
+                mock_detections(xyxy=[[20, 20, 30, 30]], data={"test": [2]}),
+            ],
+            mock_detections(
+                xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]], data={"test": [1, 2]}
+            ),
+            DoesNotRaise(),
+        ),  # two detections with xyxy, data fields
     ],
 )
 def test_merge(
@@ -273,3 +286,54 @@ def test_get_anchor_coordinates(
     result = detections.get_anchors_coordinates(anchor)
     with exception:
         assert np.array_equal(result, expected_result)
+
+
+@pytest.mark.parametrize(
+    "detections_a, detections_b, expected_result",
+    [
+        (
+            Detections.empty(),
+            Detections.empty(),
+            True,
+        ),  # empty detections
+        (
+            mock_detections(xyxy=[[10, 10, 20, 20]]),
+            mock_detections(xyxy=[[10, 10, 20, 20]]),
+            True,
+        ),  # detections with xyxy field
+        (
+            mock_detections(xyxy=[[10, 10, 20, 20]], confidence=[0.5]),
+            mock_detections(xyxy=[[10, 10, 20, 20]], confidence=[0.5]),
+            True,
+        ),  # detections with xyxy, confidence fields
+        (
+            mock_detections(xyxy=[[10, 10, 20, 20]], confidence=[0.5]),
+            mock_detections(xyxy=[[10, 10, 20, 20]]),
+            False,
+        ),  # detection with xyxy field + detection with xyxy, confidence fields
+        (
+            mock_detections(xyxy=[[10, 10, 20, 20]], data={"test": [1]}),
+            mock_detections(xyxy=[[10, 10, 20, 20]], data={"test": [1]}),
+            True,
+        ),  # detections with xyxy, data fields
+        (
+            mock_detections(xyxy=[[10, 10, 20, 20]], data={"test": [1]}),
+            mock_detections(xyxy=[[10, 10, 20, 20]]),
+            False,
+        ),  # detection with xyxy field + detection with xyxy, data fields
+        (
+            mock_detections(xyxy=[[10, 10, 20, 20]], data={"test_1": [1]}),
+            mock_detections(xyxy=[[10, 10, 20, 20]], data={"test_2": [1]}),
+            False,
+        ),  # detections with xyxy, and different data field names
+        (
+            mock_detections(xyxy=[[10, 10, 20, 20]], data={"test_1": [1]}),
+            mock_detections(xyxy=[[10, 10, 20, 20]], data={"test_1": [3]}),
+            False,
+        ),  # detections with xyxy, and different data field values
+    ],
+)
+def test_equal(
+    detections_a: Detections, detections_b: Detections, expected_result: bool
+) -> None:
+    assert (detections_a == detections_b) == expected_result

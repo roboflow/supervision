@@ -1,7 +1,10 @@
-from typing import List, Optional, Tuple
+from itertools import chain
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
+
+from supervision.config import CLASS_NAME_DATA_FIELD
 
 MIN_POLYGON_POINT_COUNT = 3
 
@@ -56,7 +59,168 @@ def box_iou_batch(boxes_true: np.ndarray, boxes_detection: np.ndarray) -> np.nda
     return area_inter / (area_true[:, None] + area_detection - area_inter)
 
 
-def non_max_suppression(
+def _mask_iou_batch_split(
+    masks_true: np.ndarray, masks_detection: np.ndarray
+) -> np.ndarray:
+    """
+    Internal function.
+    Compute Intersection over Union (IoU) of two sets of masks -
+        `masks_true` and `masks_detection`.
+
+    Args:
+        masks_true (np.ndarray): 3D `np.ndarray` representing ground-truth masks.
+        masks_detection (np.ndarray): 3D `np.ndarray` representing detection masks.
+
+    Returns:
+        np.ndarray: Pairwise IoU of masks from `masks_true` and `masks_detection`.
+    """
+    intersection_area = np.logical_and(masks_true[:, None], masks_detection).sum(
+        axis=(2, 3)
+    )
+
+    masks_true_area = masks_true.sum(axis=(1, 2))
+    masks_detection_area = masks_detection.sum(axis=(1, 2))
+    union_area = masks_true_area[:, None] + masks_detection_area - intersection_area
+
+    return np.divide(
+        intersection_area,
+        union_area,
+        out=np.zeros_like(intersection_area, dtype=float),
+        where=union_area != 0,
+    )
+
+
+def mask_iou_batch(
+    masks_true: np.ndarray,
+    masks_detection: np.ndarray,
+    memory_limit: int = 1024 * 5,
+) -> np.ndarray:
+    """
+    Compute Intersection over Union (IoU) of two sets of masks -
+        `masks_true` and `masks_detection`.
+
+    Args:
+        masks_true (np.ndarray): 3D `np.ndarray` representing ground-truth masks.
+        masks_detection (np.ndarray): 3D `np.ndarray` representing detection masks.
+        memory_limit (int, optional): memory limit in MB, default is 1024 * 5 MB (5GB).
+
+    Returns:
+        np.ndarray: Pairwise IoU of masks from `masks_true` and `masks_detection`.
+    """
+    memory = (
+        masks_true.shape[0]
+        * masks_true.shape[1]
+        * masks_true.shape[2]
+        * masks_detection.shape[0]
+        / 1024
+        / 1024
+    )
+    if memory <= memory_limit:
+        return _mask_iou_batch_split(masks_true, masks_detection)
+
+    ious = []
+    step = max(
+        memory_limit
+        * 1024
+        * 1024
+        // (
+            masks_detection.shape[0]
+            * masks_detection.shape[1]
+            * masks_detection.shape[2]
+        ),
+        1,
+    )
+    for i in range(0, masks_true.shape[0], step):
+        ious.append(_mask_iou_batch_split(masks_true[i : i + step], masks_detection))
+
+    return np.vstack(ious)
+
+
+def resize_masks(masks: np.ndarray, max_dimension: int = 640) -> np.ndarray:
+    """
+    Resize all masks in the array to have a maximum dimension of max_dimension,
+    maintaining aspect ratio.
+
+    Args:
+        masks (np.ndarray): 3D array of binary masks with shape (N, H, W).
+        max_dimension (int): The maximum dimension for the resized masks.
+
+    Returns:
+        np.ndarray: Array of resized masks.
+    """
+    max_height = np.max(masks.shape[1])
+    max_width = np.max(masks.shape[2])
+    scale = min(max_dimension / max_height, max_dimension / max_width)
+
+    new_height = int(scale * max_height)
+    new_width = int(scale * max_width)
+
+    x = np.linspace(0, max_width - 1, new_width).astype(int)
+    y = np.linspace(0, max_height - 1, new_height).astype(int)
+    xv, yv = np.meshgrid(x, y)
+
+    resized_masks = masks[:, yv, xv]
+
+    resized_masks = resized_masks.reshape(masks.shape[0], new_height, new_width)
+    return resized_masks
+
+
+def mask_non_max_suppression(
+    predictions: np.ndarray,
+    masks: np.ndarray,
+    iou_threshold: float = 0.5,
+    mask_dimension: int = 640,
+) -> np.ndarray:
+    """
+    Perform Non-Maximum Suppression (NMS) on segmentation predictions.
+
+    Args:
+        predictions (np.ndarray): A 2D array of object detection predictions in
+            the format of `(x_min, y_min, x_max, y_max, score)`
+            or `(x_min, y_min, x_max, y_max, score, class)`. Shape: `(N, 5)` or
+            `(N, 6)`, where N is the number of predictions.
+        masks (np.ndarray): A 3D array of binary masks corresponding to the predictions.
+            Shape: `(N, H, W)`, where N is the number of predictions, and H, W are the
+            dimensions of each mask.
+        iou_threshold (float, optional): The intersection-over-union threshold
+            to use for non-maximum suppression.
+        mask_dimension (int, optional): The dimension to which the masks should be
+            resized before computing IOU values. Defaults to 640.
+
+    Returns:
+        np.ndarray: A boolean array indicating which predictions to keep after
+            non-maximum suppression.
+
+    Raises:
+        AssertionError: If `iou_threshold` is not within the closed
+        range from `0` to `1`.
+    """
+    assert 0 <= iou_threshold <= 1, (
+        "Value of `iou_threshold` must be in the closed range from 0 to 1, "
+        f"{iou_threshold} given."
+    )
+    rows, columns = predictions.shape
+
+    if columns == 5:
+        predictions = np.c_[predictions, np.zeros(rows)]
+
+    sort_index = predictions[:, 4].argsort()[::-1]
+    predictions = predictions[sort_index]
+    masks = masks[sort_index]
+    masks_resized = resize_masks(masks, mask_dimension)
+    ious = mask_iou_batch(masks_resized, masks_resized)
+    categories = predictions[:, 5]
+
+    keep = np.ones(rows, dtype=bool)
+    for i in range(rows):
+        if keep[i]:
+            condition = (ious[i] > iou_threshold) & (categories[i] == categories)
+            keep[i + 1 :] = np.where(condition[i + 1 :], False, keep[i + 1 :])
+
+    return keep[sort_index.argsort()]
+
+
+def box_non_max_suppression(
     predictions: np.ndarray, iou_threshold: float = 0.5
 ) -> np.ndarray:
     """
@@ -299,7 +463,6 @@ def extract_ultralytics_masks(yolov8_results) -> Optional[np.ndarray]:
     orig_shape = yolov8_results.orig_shape
     inference_shape = tuple(yolov8_results.masks.data.shape[1:])
 
-    gain = 0
     pad = (0, 0)
 
     if inference_shape != orig_shape:
@@ -331,13 +494,28 @@ def extract_ultralytics_masks(yolov8_results) -> Optional[np.ndarray]:
 
 def process_roboflow_result(
     roboflow_result: dict,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, Optional[np.ndarray], np.ndarray]:
+) -> Tuple[
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    Optional[np.ndarray],
+    Optional[np.ndarray],
+    Dict[str, List[np.ndarray]],
+]:
     if not roboflow_result["predictions"]:
-        return np.empty((0, 4)), np.empty(0), np.empty(0), None, None
+        return (
+            np.empty((0, 4)),
+            np.empty(0),
+            np.empty(0),
+            None,
+            None,
+            {CLASS_NAME_DATA_FIELD: np.empty(0)},
+        )
 
     xyxy = []
     confidence = []
     class_id = []
+    class_name = []
     masks = []
     tracker_ids = []
 
@@ -357,6 +535,7 @@ def process_roboflow_result(
         if "points" not in prediction:
             xyxy.append([x_min, y_min, x_max, y_max])
             class_id.append(prediction["class_id"])
+            class_name.append(prediction["class"])
             confidence.append(prediction["confidence"])
             if "tracker_id" in prediction:
                 tracker_ids.append(prediction["tracker_id"])
@@ -367,6 +546,7 @@ def process_roboflow_result(
             mask = polygon_to_mask(polygon, resolution_wh=(image_width, image_height))
             xyxy.append([x_min, y_min, x_max, y_max])
             class_id.append(prediction["class_id"])
+            class_name.append(prediction["class"])
             confidence.append(prediction["confidence"])
             masks.append(mask)
             if "tracker_id" in prediction:
@@ -375,24 +555,75 @@ def process_roboflow_result(
     xyxy = np.array(xyxy) if len(xyxy) > 0 else np.empty((0, 4))
     confidence = np.array(confidence) if len(confidence) > 0 else np.empty(0)
     class_id = np.array(class_id).astype(int) if len(class_id) > 0 else np.empty(0)
+    class_name = np.array(class_name) if len(class_name) > 0 else np.empty(0)
     masks = np.array(masks, dtype=bool) if len(masks) > 0 else None
     tracker_id = np.array(tracker_ids).astype(int) if len(tracker_ids) > 0 else None
+    data = {CLASS_NAME_DATA_FIELD: class_name}
 
-    return xyxy, confidence, class_id, masks, tracker_id
+    return xyxy, confidence, class_id, masks, tracker_id, data
 
 
 def move_boxes(xyxy: np.ndarray, offset: np.ndarray) -> np.ndarray:
     """
-    Args:
+    Parameters:
         xyxy (np.ndarray): An array of shape `(n, 4)` containing the bounding boxes
             coordinates in format `[x1, y1, x2, y2]`
         offset (np.array): An array of shape `(2,)` containing offset values in format
             is `[dx, dy]`.
 
     Returns:
-        (np.ndarray) repositioned bounding boxes
+        np.ndarray: Repositioned bounding boxes.
+
+    Example:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        boxes = np.array([[10, 10, 20, 20], [30, 30, 40, 40]])
+        offset = np.array([5, 5])
+        moved_box = sv.move_boxes(boxes, offset)
+        print(moved_box)
+        # np.array([
+        #    [15, 15, 25, 25],
+        #     [35, 35, 45, 45]
+        # ])
+        ```
     """
     return xyxy + np.hstack([offset, offset])
+
+
+def scale_boxes(xyxy: np.ndarray, factor: float) -> np.ndarray:
+    """
+    Scale the dimensions of bounding boxes.
+
+    Parameters:
+        xyxy (np.ndarray): An array of shape `(n, 4)` containing the bounding boxes
+            coordinates in format `[x1, y1, x2, y2]`
+        factor (float): A float value representing the factor by which the box
+            dimensions are scaled. A factor greater than 1 enlarges the boxes, while a
+            factor less than 1 shrinks them.
+
+    Returns:
+        np.ndarray: Scaled bounding boxes.
+
+    Example:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        boxes = np.array([[10, 10, 20, 20], [30, 30, 40, 40]])
+        factor = 1.5
+        scaled_bb = sv.scale_boxes(boxes, factor)
+        print(scaled_bb)
+        # np.array([
+        #    [ 7.5,  7.5, 22.5, 22.5],
+        #    [27.5, 27.5, 42.5, 42.5]
+        # ])
+        ```
+    """
+    centers = (xyxy[:, :2] + xyxy[:, 2:]) / 2
+    new_sizes = (xyxy[:, 2:] - xyxy[:, :2]) * factor
+    return np.concatenate((centers - new_sizes / 2, centers + new_sizes / 2), axis=1)
 
 
 def calculate_masks_centroids(masks: np.ndarray) -> np.ndarray:
@@ -423,3 +654,204 @@ def calculate_masks_centroids(masks: np.ndarray) -> np.ndarray:
     centroid_y = sum_over_mask(vertical_indices, aggregation_axis) / total_pixels
 
     return np.column_stack((centroid_x, centroid_y)).astype(int)
+
+
+def validate_xyxy(xyxy: Any) -> None:
+    expected_shape = "(_, 4)"
+    actual_shape = str(getattr(xyxy, "shape", None))
+    is_valid = isinstance(xyxy, np.ndarray) and xyxy.ndim == 2 and xyxy.shape[1] == 4
+    if not is_valid:
+        raise ValueError(
+            f"xyxy must be a 2D np.ndarray with shape {expected_shape}, but got shape "
+            f"{actual_shape}"
+        )
+
+
+def validate_mask(mask: Any, n: int) -> None:
+    expected_shape = f"({n}, H, W)"
+    actual_shape = str(getattr(mask, "shape", None))
+    is_valid = mask is None or (
+        isinstance(mask, np.ndarray) and len(mask.shape) == 3 and mask.shape[0] == n
+    )
+    if not is_valid:
+        raise ValueError(
+            f"mask must be a 3D np.ndarray with shape {expected_shape}, but got shape "
+            f"{actual_shape}"
+        )
+
+
+def validate_class_id(class_id: Any, n: int) -> None:
+    expected_shape = f"({n},)"
+    actual_shape = str(getattr(class_id, "shape", None))
+    is_valid = class_id is None or (
+        isinstance(class_id, np.ndarray) and class_id.shape == (n,)
+    )
+    if not is_valid:
+        raise ValueError(
+            f"class_id must be a 1D np.ndarray with shape {expected_shape}, but got "
+            f"shape {actual_shape}"
+        )
+
+
+def validate_confidence(confidence: Any, n: int) -> None:
+    expected_shape = f"({n},)"
+    actual_shape = str(getattr(confidence, "shape", None))
+    is_valid = confidence is None or (
+        isinstance(confidence, np.ndarray) and confidence.shape == (n,)
+    )
+    if not is_valid:
+        raise ValueError(
+            f"confidence must be a 1D np.ndarray with shape {expected_shape}, but got "
+            f"shape {actual_shape}"
+        )
+
+
+def validate_tracker_id(tracker_id: Any, n: int) -> None:
+    expected_shape = f"({n},)"
+    actual_shape = str(getattr(tracker_id, "shape", None))
+    is_valid = tracker_id is None or (
+        isinstance(tracker_id, np.ndarray) and tracker_id.shape == (n,)
+    )
+    if not is_valid:
+        raise ValueError(
+            f"tracker_id must be a 1D np.ndarray with shape {expected_shape}, but got "
+            f"shape {actual_shape}"
+        )
+
+
+def validate_data(data: Dict[str, Any], n: int) -> None:
+    for key, value in data.items():
+        if isinstance(value, list):
+            if len(value) != n:
+                raise ValueError(f"Length of list for key '{key}' must be {n}")
+        elif isinstance(value, np.ndarray):
+            if value.ndim == 1 and value.shape[0] != n:
+                raise ValueError(f"Shape of np.ndarray for key '{key}' must be ({n},)")
+            elif value.ndim > 1 and value.shape[0] != n:
+                raise ValueError(
+                    f"First dimension of np.ndarray for key '{key}' must have size {n}"
+                )
+        else:
+            raise ValueError(f"Value for key '{key}' must be a list or np.ndarray")
+
+
+def validate_detections_fields(
+    xyxy: Any,
+    mask: Any,
+    class_id: Any,
+    confidence: Any,
+    tracker_id: Any,
+    data: Dict[str, Any],
+) -> None:
+    validate_xyxy(xyxy)
+    n = len(xyxy)
+    validate_mask(mask, n)
+    validate_class_id(class_id, n)
+    validate_confidence(confidence, n)
+    validate_tracker_id(tracker_id, n)
+    validate_data(data, n)
+
+
+def is_data_equal(data_a: Dict[str, np.ndarray], data_b: Dict[str, np.ndarray]) -> bool:
+    """
+    Compares the data payloads of two Detections instances.
+
+    Args:
+        data_a, data_b: The data payloads of the instances.
+
+    Returns:
+        True if the data payloads are equal, False otherwise.
+    """
+    return set(data_a.keys()) == set(data_b.keys()) and all(
+        np.array_equal(data_a[key], data_b[key]) for key in data_a
+    )
+
+
+def merge_data(
+    data_list: List[Dict[str, Union[np.ndarray, List]]],
+) -> Dict[str, Union[np.ndarray, List]]:
+    """
+    Merges the data payloads of a list of Detections instances.
+
+    Args:
+        data_list: The data payloads of the instances.
+
+    Returns:
+        A single data payload containing the merged data, preserving the original data
+            types (list or np.ndarray).
+
+    Raises:
+        ValueError: If data values within a single object have different lengths or if
+            dictionaries have different keys.
+    """
+    if not data_list:
+        return {}
+
+    all_keys_sets = [set(data.keys()) for data in data_list]
+    if not all(keys_set == all_keys_sets[0] for keys_set in all_keys_sets):
+        raise ValueError("All data dictionaries must have the same keys to merge.")
+
+    for data in data_list:
+        lengths = [len(value) for value in data.values()]
+        if len(set(lengths)) > 1:
+            raise ValueError(
+                "All data values within a single object must have equal length."
+            )
+
+    merged_data = {key: [] for key in all_keys_sets[0]}
+
+    for data in data_list:
+        for key in merged_data:
+            merged_data[key].append(data[key])
+
+    for key in merged_data:
+        if all(isinstance(item, list) for item in merged_data[key]):
+            merged_data[key] = list(chain.from_iterable(merged_data[key]))
+        elif all(isinstance(item, np.ndarray) for item in merged_data[key]):
+            ndim = merged_data[key][0].ndim
+            if ndim == 1:
+                merged_data[key] = np.hstack(merged_data[key])
+            elif ndim > 1:
+                merged_data[key] = np.vstack(merged_data[key])
+            else:
+                raise ValueError(f"Unexpected array dimension for key '{key}'.")
+        else:
+            raise ValueError(
+                f"Inconsistent data types for key '{key}'. Only np.ndarray and list "
+                f"types are allowed."
+            )
+
+    return merged_data
+
+
+def get_data_item(
+    data: Dict[str, Union[np.ndarray, List]],
+    index: Union[int, slice, List[int], np.ndarray],
+) -> Dict[str, Union[np.ndarray, List]]:
+    """
+    Retrieve a subset of the data dictionary based on the given index.
+
+    Args:
+        data: The data dictionary of the Detections object.
+        index: The index or indices specifying the subset to retrieve.
+
+    Returns:
+        A subset of the data dictionary corresponding to the specified index.
+    """
+    subset_data = {}
+    for key, value in data.items():
+        if isinstance(value, np.ndarray):
+            subset_data[key] = value[index]
+        elif isinstance(value, list):
+            if isinstance(index, slice):
+                subset_data[key] = value[index]
+            elif isinstance(index, (list, np.ndarray)):
+                subset_data[key] = [value[i] for i in index]
+            elif isinstance(index, int):
+                subset_data[key] = [value[index]]
+            else:
+                raise TypeError(f"Unsupported index type: {type(index)}")
+        else:
+            raise TypeError(f"Unsupported data type for key '{key}': {type(value)}")
+
+    return subset_data

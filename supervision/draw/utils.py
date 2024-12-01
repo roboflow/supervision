@@ -1,5 +1,5 @@
 import os
-from typing import Optional, Union
+from typing import Optional, Tuple, Union
 
 import cv2
 import numpy as np
@@ -105,7 +105,7 @@ def draw_text(
     scene: np.ndarray,
     text: str,
     text_anchor: Point,
-    text_color: Color = Color.black(),
+    text_color: Color = Color.BLACK,
     text_scale: float = 0.5,
     text_thickness: int = 1,
     text_padding: int = 10,
@@ -135,9 +135,11 @@ def draw_text(
 
     Examples:
         ```python
-        >>> scene = np.zeros((100, 100, 3), dtype=np.uint8)
-        >>> text_anchor = Point(x=50, y=50)
-        >>> scene = draw_text(scene=scene, text="Hello, world!",text_anchor=text_anchor)
+        import numpy as np
+
+        scene = np.zeros((100, 100, 3), dtype=np.uint8)
+        text_anchor = Point(x=50, y=50)
+        scene = draw_text(scene=scene, text="Hello, world!",text_anchor=text_anchor)
         ```
     """
     text_width, text_height = cv2.getTextSize(
@@ -146,9 +148,12 @@ def draw_text(
         fontScale=text_scale,
         thickness=text_thickness,
     )[0]
+
+    text_anchor_x, text_anchor_y = text_anchor.as_xy_int_tuple()
+
     text_rect = Rect(
-        x=text_anchor.x - text_width // 2,
-        y=text_anchor.y - text_height // 2,
+        x=text_anchor_x - text_width // 2,
+        y=text_anchor_y - text_height // 2,
         width=text_width,
         height=text_height,
     ).pad(text_padding)
@@ -161,7 +166,7 @@ def draw_text(
     cv2.putText(
         img=scene,
         text=text,
-        org=(text_anchor.x - text_width // 2, text_anchor.y + text_height // 2),
+        org=(text_anchor_x - text_width // 2, text_anchor_y + text_height // 2),
         fontFace=text_font,
         fontScale=text_scale,
         color=text_color.as_bgr(),
@@ -231,3 +236,41 @@ def draw_image(
     scene[rect.y : rect.y + rect.height, rect.x : rect.x + rect.width] = blended_roi
 
     return scene
+
+
+def calculate_dynamic_text_scale(resolution_wh: Tuple[int, int]) -> float:
+    """
+    Calculate a dynamic font scale based on the resolution of an image.
+
+    Parameters:
+         resolution_wh (Tuple[int, int]): A tuple representing the width and height
+                 of the image.
+
+    Returns:
+         float: The calculated font scale factor.
+    """
+    return min(resolution_wh) * 1e-3
+
+
+def calculate_dynamic_line_thickness(resolution_wh: Tuple[int, int]) -> int:
+    """
+    Calculate a dynamic line thickness based on the resolution of an image.
+
+    Parameters:
+        resolution_wh (Tuple[int, int]): A tuple representing the width and height
+                of the image.
+
+    Returns:
+        int: The calculated line thickness in pixels.
+    """
+    min_dimension = min(resolution_wh)
+    if min_dimension < 480:
+        return 2
+    if min_dimension < 720:
+        return 2
+    if min_dimension < 1080:
+        return 2
+    if min_dimension < 2160:
+        return 4
+    else:
+        return 4

@@ -106,7 +106,7 @@ def detections_to_coco_annotations(
     approximation_percentage: float = 0.75,
 ) -> Tuple[List[Dict], int]:
     coco_annotations = []
-    for xyxy, mask, _, class_id, _ in detections:
+    for xyxy, mask, _, class_id, _, _ in detections:
         box_width, box_height = xyxy[2] - xyxy[0], xyxy[3] - xyxy[1]
         polygon = []
         if mask is not None:

@@ -1,16 +1,16 @@
-## Supervision Examples
+# Examples
 
 This repository is packed with real-world use-cases, provided through Python scripts or
 interactive notebooks. Browse through to understand how the Supervision library
 interfaces with diverse applications.
 
-|               **Title**                |             **Contributor**              |
-|:--------------------------------------:|:----------------------------------------:|
-|         [Tracking](./tracking)         | [@SkalskiP](https://github.com/SkalskiP) |
-| [Traffic Analysis](./traffic_analysis) | [@SkalskiP](https://github.com/SkalskiP) |
+- [tracking](./tracking) by [@SkalskiP](https://github.com/SkalskiP)
+- [count people in zone](./count_people_in_zone) by [@SkalskiP](https://github.com/SkalskiP)
+- [traffic analysis](./traffic_analysis) by [@SkalskiP](https://github.com/SkalskiP)
+- [speed estimation](./speed_estimation) by [@SkalskiP](https://github.com/SkalskiP)
+- [heatmap and track](./heatmap_and_track/) by [@HinePo](https://github.com/HinePo)
 
-
-## Guidelines for Contributing
+## Contributing
 
 We welcome contributions from the community in the form of examples, applications, and
 guides. To contribute, please follow these steps:

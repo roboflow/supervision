@@ -1,5 +1,5 @@
 from dataclasses import replace
-from typing import Optional, Tuple
+from typing import Iterable, Optional, Tuple
 
 import cv2
 import numpy as np
@@ -10,6 +10,7 @@ from supervision.draw.color import Color
 from supervision.draw.utils import draw_polygon, draw_text
 from supervision.geometry.core import Position
 from supervision.geometry.utils import get_polygon_center
+from supervision.utils.internal import deprecated_parameter
 
 
 class PolygonZone:
@@ -20,21 +21,32 @@ class PolygonZone:
         polygon (np.ndarray): A polygon represented by a numpy array of shape
             `(N, 2)`, containing the `x`, `y` coordinates of the points.
         frame_resolution_wh (Tuple[int, int]): The frame resolution (width, height)
-        triggering_position (Position): The position within the bounding
-            box that triggers the zone (default: Position.BOTTOM_CENTER)
+        triggering_anchors (Iterable[sv.Position]): A list of positions specifying
+            which anchors of the detections bounding box to consider when deciding on
+            whether the detection fits within the PolygonZone
+            (default: (sv.Position.BOTTOM_CENTER,)).
         current_count (int): The current count of detected objects within the zone
         mask (np.ndarray): The 2D bool mask for the polygon zone
     """
 
+    @deprecated_parameter(
+        old_parameter="triggering_position",
+        new_parameter="triggering_anchors",
+        map_function=lambda x: [x],
+        warning_message="`{old_parameter}` in `{function_name}` is deprecated and will "
+        "be remove in `supervision-0.23.0`. Use '{new_parameter}' "
+        "instead.",
+    )
     def __init__(
         self,
         polygon: np.ndarray,
         frame_resolution_wh: Tuple[int, int],
-        triggering_position: Position = Position.BOTTOM_CENTER,
+        triggering_anchors: Iterable[Position] = (Position.BOTTOM_CENTER,),
     ):
         self.polygon = polygon.astype(int)
         self.frame_resolution_wh = frame_resolution_wh
-        self.triggering_position = triggering_position
+        self.triggering_anchors = triggering_anchors
+
         self.current_count = 0
 
         width, height = frame_resolution_wh
@@ -59,10 +71,20 @@ class PolygonZone:
             xyxy=detections.xyxy, resolution_wh=self.frame_resolution_wh
         )
         clipped_detections = replace(detections, xyxy=clipped_xyxy)
-        clipped_anchors = np.ceil(
-            clipped_detections.get_anchors_coordinates(anchor=self.triggering_position)
-        ).astype(int)
-        is_in_zone = self.mask[clipped_anchors[:, 1], clipped_anchors[:, 0]]
+        all_clipped_anchors = np.array(
+            [
+                np.ceil(clipped_detections.get_anchors_coordinates(anchor)).astype(int)
+                for anchor in self.triggering_anchors
+            ]
+        )
+
+        is_in_zone = (
+            self.mask[all_clipped_anchors[:, :, 1], all_clipped_anchors[:, :, 0]]
+            .transpose()
+            .astype(bool)
+        )
+        is_in_zone = np.all(is_in_zone, axis=1)
+
         self.current_count = int(np.sum(is_in_zone))
         return is_in_zone.astype(bool)
 
@@ -83,6 +105,7 @@ class PolygonZoneAnnotator:
         font (int): The font type for the text on the polygon,
             default is cv2.FONT_HERSHEY_SIMPLEX
         center (Tuple[int, int]): The center of the polygon for text placement
+        display_in_zone_count (bool): Show the label of the zone or not. Default is True
     """
 
     def __init__(
@@ -90,10 +113,11 @@ class PolygonZoneAnnotator:
         zone: PolygonZone,
         color: Color,
         thickness: int = 2,
-        text_color: Color = Color.black(),
+        text_color: Color = Color.BLACK,
         text_scale: float = 0.5,
         text_thickness: int = 1,
         text_padding: int = 10,
+        display_in_zone_count: bool = True,
     ):
         self.zone = zone
         self.color = color
@@ -104,6 +128,7 @@ class PolygonZoneAnnotator:
         self.text_padding = text_padding
         self.font = cv2.FONT_HERSHEY_SIMPLEX
         self.center = get_polygon_center(polygon=zone.polygon)
+        self.display_in_zone_count = display_in_zone_count
 
     def annotate(self, scene: np.ndarray, label: Optional[str] = None) -> np.ndarray:
         """
@@ -124,16 +149,17 @@ class PolygonZoneAnnotator:
             thickness=self.thickness,
         )
 
-        annotated_frame = draw_text(
-            scene=annotated_frame,
-            text=str(self.zone.current_count) if label is None else label,
-            text_anchor=self.center,
-            background_color=self.color,
-            text_color=self.text_color,
-            text_scale=self.text_scale,
-            text_thickness=self.text_thickness,
-            text_padding=self.text_padding,
-            text_font=self.font,
-        )
+        if self.display_in_zone_count:
+            annotated_frame = draw_text(
+                scene=annotated_frame,
+                text=str(self.zone.current_count) if label is None else label,
+                text_anchor=self.center,
+                background_color=self.color,
+                text_color=self.text_color,
+                text_scale=self.text_scale,
+                text_thickness=self.text_thickness,
+                text_padding=self.text_padding,
+                text_font=self.font,
+            )
 
         return annotated_frame

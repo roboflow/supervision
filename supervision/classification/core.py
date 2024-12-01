@@ -59,18 +59,18 @@ class Classifications:
 
         Example:
             ```python
-            >>> from PIL import Image
-            >>> import clip
-            >>> import supervision as sv
+            from PIL import Image
+            import clip
+            import supervision as sv
 
-            >>> model, preprocess = clip.load('ViT-B/32')
+            model, preprocess = clip.load('ViT-B/32')
 
-            >>> image = cv2.imread(SOURCE_IMAGE_PATH)
-            >>> image = preprocess(image).unsqueeze(0)
+            image = cv2.imread(SOURCE_IMAGE_PATH)
+            image = preprocess(image).unsqueeze(0)
 
-            >>> text = clip.tokenize(["a diagram", "a dog", "a cat"])
-            >>> output, _ = model(image, text)
-            >>> classifications = sv.Classifications.from_clip(output)
+            text = clip.tokenize(["a diagram", "a dog", "a cat"])
+            output, _ = model(image, text)
+            classifications = sv.Classifications.from_clip(output)
             ```
         """
 
@@ -97,15 +97,15 @@ class Classifications:
 
         Example:
             ```python
-            >>> import cv2
-            >>> from ultralytics import YOLO
-            >>> import supervision as sv
+            import cv2
+            from ultralytics import YOLO
+            import supervision as sv
 
-            >>> image = cv2.imread(SOURCE_IMAGE_PATH)
-            >>> model = YOLO('yolov8n-cls.pt')
+            image = cv2.imread(SOURCE_IMAGE_PATH)
+            model = YOLO('yolov8n-cls.pt')
 
-            >>> output = model(image)[0]
-            >>> classifications = sv.Classifications.from_ultralytics(output)
+            output = model(image)[0]
+            classifications = sv.Classifications.from_ultralytics(output)
             ```
         """
         confidence = ultralytics_results.probs.data.cpu().numpy()
@@ -118,32 +118,32 @@ class Classifications:
         [timm](https://huggingface.co/docs/hub/timm) inference result.
 
         Args:
-            timm_results: The inference result from timm model.
+            timm_results (torch.Tensor): The inference result from timm model.
 
         Returns:
             Classifications: A new Classifications object.
 
         Example:
             ```python
-            >>> from PIL import Image
-            >>> import timm
-            >>> from timm.data import resolve_data_config, create_transform
-            >>> import supervision as sv
+            from PIL import Image
+            import timm
+            from timm.data import resolve_data_config, create_transform
+            import supervision as sv
 
-            >>> model = timm.create_model(
-            ...     model_name='hf-hub:nateraw/resnet50-oxford-iiit-pet',
-            ...     pretrained=True
-            ... ).eval()
+            model = timm.create_model(
+                model_name='hf-hub:nateraw/resnet50-oxford-iiit-pet',
+                pretrained=True
+            ).eval()
 
-            >>> config = resolve_data_config({}, model=model)
-            >>> transform = create_transform(**config)
+            config = resolve_data_config({}, model=model)
+            transform = create_transform(**config)
 
-            >>> image = Image.open(SOURCE_IMAGE_PATH).convert('RGB')
-            >>> x = transform(image).unsqueeze(0)
+            image = Image.open(SOURCE_IMAGE_PATH).convert('RGB')
+            x = transform(image).unsqueeze(0)
 
-            >>> output = model(x)
+            output = model(x)
 
-            >>> classifications = sv.Classifications.from_timm(output)
+            classifications = sv.Classifications.from_timm(output)
             ```
         """
         confidence = timm_results.cpu().detach().numpy()[0]
@@ -168,11 +168,11 @@ class Classifications:
 
         Example:
             ```python
-            >>> import supervision as sv
+            import supervision as sv
 
-            >>> classifications = sv.Classifications(...)
+            classifications = sv.Classifications(...)
 
-            >>> classifications.get_top_k(1)
+            classifications.get_top_k(1)
 
             (array([1]), array([0.9]))
             ```

@@ -1,10 +1,8 @@
-name: Docs WorkFlow
+name: Docs WorkFlow - Develop Tag 📚
 
 on:
   push:
     branches:
-      - master
-      - main
       - develop
 
 permissions:
@@ -16,10 +14,34 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - name: 🔄 Checkout code
+        uses: actions/checkout@v4
         with:
-          python-version: 3.x
-      - run: pip install mkdocs-material
-      - run: pip install "mkdocstrings[python]"
-      - run: mkdocs gh-deploy --force
+          fetch-depth: 0
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: 📦 Install mkdocs-material
+        run: pip install "mkdocs-material[all]"
+      - name: 📦 Install mkdocstrings[python]
+        run: pip install "mkdocstrings[python]"
+      - name: 📦 Install mkdocs-material[imaging]
+        run: pip install "mkdocs-material[imaging]"
+      - name: 📦 Install mike
+        run: pip install "mike"
+      - name: 📦 Install mkdocs-git-revision-date-localized-plugin
+        run: pip install "mkdocs-git-revision-date-localized-plugin"
+      - name: 📦 Install JupyterLab
+        run: pip install jupyterlab
+      - name: 📦 Install mkdocs-jupyter
+        run: pip install mkdocs-jupyter
+      - name: 📦 Install mkdocs-git-committers-plugin-2
+        run: pip install mkdocs-git-committers-plugin-2
+      - name: ⚙️ Configure git for github-actions
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: 🚀 Deploy MkDoc-Material with mike
+        run: |
+          MKDOCS_GIT_COMMITTERS_APIKEY=${{ secrets.GITHUB_TOKEN }} mike deploy --push develop

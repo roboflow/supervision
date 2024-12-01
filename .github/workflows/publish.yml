@@ -3,8 +3,6 @@ on:
   push:
     tags:
       - '[0-9]+.[0-9]+[0-9]+.[0-9]'
-      - '[0-9]+.[0-9]+[0-9]+.[0-9]'
-      - '[0-9]+.[0-9]+[0-9]+.[0-9]'
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -21,7 +19,7 @@ jobs:
         with:
           ref: ${{ github.head_ref }}
       - name: 🐍 Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 

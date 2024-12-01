@@ -194,7 +194,7 @@ def detections_to_yolo_annotations(
     approximation_percentage: float = 0.75,
 ) -> List[str]:
     annotation = []
-    for xyxy, mask, _, class_id, _ in detections:
+    for xyxy, mask, _, class_id, _, _ in detections:
         if mask is not None:
             polygons = approximate_mask_with_polygons(
                 mask=mask,

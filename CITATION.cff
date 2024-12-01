@@ -15,7 +15,7 @@ url: 'https://roboflow.github.io/supervision/'
 abstract: >-
   supervision features a range of utilities for use in
   computer vision projects, from detections processing and
-  filtering to confusion matrix calcuation.
+  filtering to confusion matrix calculation.
 keywords:
   - computer vision
   - image processing

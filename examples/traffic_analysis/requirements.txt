@@ -1,4 +1,5 @@
-supervision>=0.15.0rc1
+gdown
+inference
+supervision>=0.19.0rc5
 tqdm
 ultralytics
-gdown

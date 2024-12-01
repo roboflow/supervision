@@ -20,13 +20,13 @@ def crop_image(image: np.ndarray, xyxy: np.ndarray) -> np.ndarray:
 
     Examples:
         ```python
-        >>> import supervision as sv
+        import supervision as sv
 
-        >>> detection = sv.Detections(...)
-        >>> with sv.ImageSink(target_dir_path='target/directory/path') as sink:
-        ...     for xyxy in detection.xyxy:
-        ...         cropped_image = sv.crop_image(image=image, xyxy=xyxy)
-        ...         sink.save_image(image=image)
+        detection = sv.Detections(...)
+        with sv.ImageSink(target_dir_path='target/directory/path') as sink:
+            for xyxy in detection.xyxy:
+                cropped_image = sv.crop_image(image=image, xyxy=xyxy)
+                sink.save_image(image=cropped_image)
         ```
     """
 
@@ -55,13 +55,13 @@ class ImageSink:
 
         Examples:
             ```python
-            >>> import supervision as sv
+            import supervision as sv
 
-            >>> with sv.ImageSink(target_dir_path='target/directory/path',
-            ...                   overwrite=True) as sink:
-            ...     for image in sv.get_video_frames_generator(
-            ...         source_path='source_video.mp4', stride=2):
-            ...         sink.save_image(image=image)
+            with sv.ImageSink(target_dir_path='target/directory/path',
+                              overwrite=True) as sink:
+                for image in sv.get_video_frames_generator(
+                    source_path='source_video.mp4', stride=2):
+                    sink.save_image(image=image)
             ```
         """
 

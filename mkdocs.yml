@@ -5,34 +5,43 @@ site_description: A set of easy-to-use utilities that will come in handy in any 
 repo_name: roboflow/supervision
 repo_url: https://github.com/roboflow/supervision
 edit_uri: https://github.com/roboflow/supervision/tree/main/docs
-copyright: Roboflow 2023. All rights reserved.
+copyright: Roboflow 2024. All rights reserved.
 
 extra:
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/roboflow
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/supervision
+    - icon: fontawesome/brands/docker
+      link: https://hub.docker.com/u/roboflow
     - icon: fontawesome/brands/youtube
       link: https://www.youtube.com/roboflow
     - icon: fontawesome/brands/linkedin
-      link: https://www.linkedin.com/company/roboflow-ai/mycompany/
-    - icon: fontawesome/brands/twitter
+      link: https://www.linkedin.com/company/roboflow-ai/
+    - icon: fontawesome/brands/x-twitter
       link: https://twitter.com/roboflow
+    - icon: fontawesome/brands/discord
+      link: https://discord.gg/GbfgXGJ8Bk
   analytics:
     provider: google
     property: G-P7ZG0Y19G5
+  version:
+    provider: mike
 
 extra_css:
   - stylesheets/extra.css
+  - stylesheets/cookbooks-card.css
+
 
 nav:
   - Home: index.md
   - How to:
       - Detect and Annotate: how_to/detect_and_annotate.md
-      - Process Video: how_to/process_video.md
       - Track Objects: how_to/track_objects.md
       - Filter Detections: how_to/filter_detections.md
-      - Evaluate Model: how_to/evaluate_model.md
   - API:
+    - Annotators: annotators.md
     - Classifications:
         - Core: classification/core.md
     - Detections:
@@ -42,7 +51,8 @@ nav:
         - Line Zone: detection/tools/line_zone.md
         - Polygon Zone: detection/tools/polygon_zone.md
         - Inference Slicer: detection/tools/inference_slicer.md
-    - Annotators: annotators.md
+        - Detection Smoother: detection/tools/smoother.md
+        - Save Detections: detection/tools/save_detections.md
     - Trackers: trackers.md
     - Datasets: datasets.md
     - Metrics:
@@ -50,18 +60,40 @@ nav:
     - Draw:
         - Color: draw/color.md
         - Utils: draw/utils.md
+    - Geometry:
+        - Position: geometry/core.md
     - Utils:
         - Video: utils/video.md
         - Image: utils/image.md
         - Notebook: utils/notebook.md
         - File: utils/file.md
-  - Assets: assets.md
-  - Changelog: changelog.md
+    - Assets: assets.md
+  - Cookbooks: cookbooks.md
+  - Contribute:
+    - Contributing: contributing.md
+    - Code of Conduct: code_of_conduct.md
+    - License: license.md
+  - Changelog:
+        - Changelog: changelog.md
+        - Deprecated: deprecated.md
+
+
 
 theme:
   name: 'material'
+  icon:
+    edit: material/pencil
   logo: assets/supervision-lenny.png
   favicon: assets/supervision-lenny.png
+  custom_dir: docs/theme
+  features:
+    - navigation.tracking
+    - content.code.copy
+    - content.action.edit
+    - content.tooltips
+    - content.code.annotate
+    - navigation.tabs
+
   palette:
     # Palette for light mode
     - scheme: default
@@ -76,18 +108,46 @@ theme:
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
+
+
   font:
     text: Roboto
     code: Roboto Mono
-  features:
-    - content.code.copy
+    features:
+      - content.code.copy
+      - content.code.annotate
 
 plugins:
-  - social:
-      cards_layout_dir: docs/layouts
-      cards_layout: custom
-  - mkdocstrings
   - search
+  - mkdocs-jupyter:
+        kernel_name: python3
+        execute: false
+        include_source: True
+        include_requirejs: true
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          options:
+            parameter_headings: true
+            paths: [supervision]
+            load_external_modules: true
+            allow_inspection: true
+            show_bases: true
+            group_by_category: true
+            docstring_style: google
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            show_category_heading: true
+          domains: [std, py]
+  - git-committers:
+      repository: roboflow/supervision
+      branch: develop
+      token: !ENV ["GITHUB_TOKEN"]
+  - git-revision-date-localized:
+      enable_creation_date: true
+
+
 
 markdown_extensions:
   - admonition
@@ -99,7 +159,16 @@ markdown_extensions:
       alternate_style: true
   - toc:
       permalink: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.snippets:
+      check_paths: true
+  - pymdownx.highlight:
+      anchor_linenums: true
 
 extra_javascript:
   - "https://widget.kapa.ai/kapa-widget.bundle.js"
-  - "javascript/init_kapa_widget.js"
+  - "javascripts/init_kapa_widget.js"
+  - "javascripts/cookbooks-card.js"
+  - "https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js"

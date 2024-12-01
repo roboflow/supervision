@@ -1,6 +1,6 @@
 <div align="center">
   <p>
-    <a align="center" href="" target="_blank">
+    <a align="center" href="" target="https://supervision.roboflow.com">
       <img
         width="100%"
         src="https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png?updatedAt=1678995927529"
@@ -10,286 +10,226 @@
 
   <br>
 
-  [notebooks](https://github.com/roboflow/notebooks) | [inference](https://github.com/roboflow/inference) | [autodistill](https://github.com/autodistill/autodistill) | [collect](https://github.com/roboflow/roboflow-collect)
+[notebooks](https://github.com/roboflow/notebooks) | [inference](https://github.com/roboflow/inference) | [autodistill](https://github.com/autodistill/autodistill) | [maestro](https://github.com/roboflow/multimodal-maestro)
 
   <br>
 
-  [![version](https://badge.fury.io/py/supervision.svg)](https://badge.fury.io/py/supervision)
-  [![downloads](https://img.shields.io/pypi/dm/supervision)](https://pypistats.org/packages/supervision)
-  [![license](https://img.shields.io/pypi/l/supervision)](https://github.com/roboflow/supervision/blob/main/LICENSE.md)
-  [![python-version](https://img.shields.io/pypi/pyversions/supervision)](https://badge.fury.io/py/supervision)
-  [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/roboflow/supervision/blob/main/demo.ipynb)
-  [![Gradio](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/Roboflow/Annotators)
-  [![Discord](https://img.shields.io/discord/1159501506232451173)](https://discord.gg/GbfgXGJ8Bk)
-
+[![version](https://badge.fury.io/py/supervision.svg)](https://badge.fury.io/py/supervision)
+[![downloads](https://img.shields.io/pypi/dm/supervision)](https://pypistats.org/packages/supervision)
+[![license](https://img.shields.io/pypi/l/supervision)](https://github.com/roboflow/supervision/blob/main/LICENSE.md)
+[![python-version](https://img.shields.io/pypi/pyversions/supervision)](https://badge.fury.io/py/supervision)
+[![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/roboflow/supervision/blob/main/demo.ipynb)
+[![Gradio](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/Roboflow/Annotators)
+[![Discord](https://img.shields.io/discord/1159501506232451173)](https://discord.gg/GbfgXGJ8Bk)
+[![Built with Material for MkDocs](https://img.shields.io/badge/Material_for_MkDocs-526CFE?logo=MaterialForMkDocs&logoColor=white)](https://squidfunk.github.io/mkdocs-material/)
 </div>
 
 ## 👋 hello
 
 **We write your reusable computer vision tools.** Whether you need to load your dataset from your hard drive, draw detections on an image or video, or count how many detections are in a zone. You can count on us! 🤝
 
+[![supervision-hackfest](https://github.com/roboflow/supervision/assets/26109316/c05cc954-b9a6-4ed5-9a52-d0b4b619ff65)](https://github.com/orgs/roboflow/projects/10)
+
 ## 💻 install
 
 Pip install the supervision package in a
-[**3.11>=Python>=3.8**](https://www.python.org/) environment.
+[**Python>=3.8**](https://www.python.org/) environment.
 
 ```bash
-pip install supervision[desktop]
+pip install supervision
 ```
 
 Read more about desktop, headless, and local installation in our [guide](https://roboflow.github.io/supervision/).
 
 ## 🔥 quickstart
 
-### [detections processing](https://roboflow.github.io/supervision/detection/core/)
+### models
+
+Supervision was designed to be model agnostic. Just plug in any classification, detection, or segmentation model. For your convenience, we have created [connectors](https://supervision.roboflow.com/latest/detection/core/#detections) for the most popular libraries like Ultralytics, Transformers, or MMDetection.
 
 ```python
->>> import supervision as sv
->>> from ultralytics import YOLO
+import cv2
+import supervision as sv
+from ultralytics import YOLO
 
->>> model = YOLO('yolov8s.pt')
->>> result = model(IMAGE)[0]
->>> detections = sv.Detections.from_ultralytics(result)
+image = cv2.imread(...)
+model = YOLO('yolov8s.pt')
+result = model(image)[0]
+detections = sv.Detections.from_ultralytics(result)
 
->>> len(detections)
-5
+len(detections)
+# 5
 ```
 
-<details close>
-<summary>👉 more detections utils</summary>
+<details>
+<summary>👉 more model connectors</summary>
 
-- Easily switch inference pipeline between supported object detection/instance segmentation models
+- inference
 
-    ```python
-    >>> import supervision as sv
-    >>> from segment_anything import sam_model_registry, SamAutomaticMaskGenerator
-
-    >>> sam = sam_model_registry[MODEL_TYPE](checkpoint=CHECKPOINT_PATH).to(device=DEVICE)
-    >>> mask_generator = SamAutomaticMaskGenerator(sam)
-    >>> sam_result = mask_generator.generate(IMAGE)
-    >>> detections = sv.Detections.from_sam(sam_result=sam_result)
-    ```
-
-- [Advanced filtering](https://roboflow.github.io/supervision/quickstart/detections/)
+    Running with [Inference](https://github.com/roboflow/inference) requires a [Roboflow API KEY](https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key).
 
     ```python
-    >>> detections = detections[detections.class_id == 0]
-    >>> detections = detections[detections.confidence > 0.5]
-    >>> detections = detections[detections.area > 1000]
-    ```
+    import cv2
+    import supervision as sv
+    from inference.models.utils import get_roboflow_model
 
-- Image annotation
+    image = cv2.imread(...)
+    model = get_roboflow_model(model_id="yolov8s-640", api_key=<ROBOFLOW API KEY>)
+    result = model.infer(image)[0]
+    detections = sv.Detections.from_inference(result)
 
-    ```python
-    >>> import supervision as sv
+    len(detections)
+    # 5
 
-    >>> box_annotator = sv.BoxAnnotator()
-    >>> annotated_frame = box_annotator.annotate(
-    ...     scene=IMAGE,
-    ...     detections=detections
-    ... )
     ```
 
 </details>
 
-### [datasets processing](https://roboflow.github.io/supervision/dataset/core/)
+### annotators
+
+Supervision offers a wide range of highly customizable [annotators](https://supervision.roboflow.com/latest/annotators/), allowing you to compose the perfect visualization for your use case.
 
 ```python
->>> import supervision as sv
+import cv2
+import supervision as sv
 
->>> dataset = sv.DetectionDataset.from_yolo(
-...     images_directory_path='...',
-...     annotations_directory_path='...',
-...     data_yaml_path='...'
-... )
+image = cv2.imread(...)
+detections = sv.Detections(...)
 
->>> dataset.classes
+bounding_box_annotator = sv.BoundingBoxAnnotator()
+annotated_frame = bounding_box_annotator.annotate(
+    scene=image.copy(),
+    detections=detections
+)
+```
+
+https://github.com/roboflow/supervision/assets/26109316/691e219c-0565-4403-9218-ab5644f39bce
+
+### datasets
+
+Supervision provides a set of [utils](https://supervision.roboflow.com/latest/datasets/) that allow you to load, split, merge, and save datasets in one of the supported formats.
+
+```python
+import supervision as sv
+
+dataset = sv.DetectionDataset.from_yolo(
+    images_directory_path=...,
+    annotations_directory_path=...,
+    data_yaml_path=...
+)
+
+dataset.classes
 ['dog', 'person']
 
->>> len(dataset)
-1000
+len(dataset)
+# 1000
 ```
 
 <details close>
 <summary>👉 more dataset utils</summary>
 
-- Load object detection/instance segmentation datasets in one of the supported formats
+- load
 
-    ```python
-    >>> dataset = sv.DetectionDataset.from_yolo(
-    ...     images_directory_path='...',
-    ...     annotations_directory_path='...',
-    ...     data_yaml_path='...'
-    ... )
+  ```python
+  dataset = sv.DetectionDataset.from_yolo(
+      images_directory_path=...,
+      annotations_directory_path=...,
+      data_yaml_path=...
+  )
 
-    >>> dataset = sv.DetectionDataset.from_pascal_voc(
-    ...     images_directory_path='...',
-    ...     annotations_directory_path='...'
-    ... )
+  dataset = sv.DetectionDataset.from_pascal_voc(
+      images_directory_path=...,
+      annotations_directory_path=...
+  )
 
-    >>> dataset = sv.DetectionDataset.from_coco(
-    ...     images_directory_path='...',
-    ...     annotations_path='...'
-    ... )
-    ```
+  dataset = sv.DetectionDataset.from_coco(
+      images_directory_path=...,
+      annotations_path=...
+  )
+  ```
 
-- Loop over dataset entries
+- split
 
-    ```python
-    >>> for name, image, labels in dataset:
-    ...     print(labels.xyxy)
+  ```python
+  train_dataset, test_dataset = dataset.split(split_ratio=0.7)
+  test_dataset, valid_dataset = test_dataset.split(split_ratio=0.5)
 
-    array([[404.      , 719.      , 538.      , 884.5     ],
-           [155.      , 497.      , 404.      , 833.5     ],
-           [ 20.154999, 347.825   , 416.125   , 915.895   ]], dtype=float32)
-    ```
+  len(train_dataset), len(test_dataset), len(valid_dataset)
+  # (700, 150, 150)
+  ```
 
-- Split dataset for training, testing, and validation
+- merge
 
-    ```python
-    >>> train_dataset, test_dataset = dataset.split(split_ratio=0.7)
-    >>> test_dataset, valid_dataset = test_dataset.split(split_ratio=0.5)
+  ```python
+  ds_1 = sv.DetectionDataset(...)
+  len(ds_1)
+  # 100
+  ds_1.classes
+  # ['dog', 'person']
 
-    >>> len(train_dataset), len(test_dataset), len(valid_dataset)
-    (700, 150, 150)
-    ```
+  ds_2 = sv.DetectionDataset(...)
+  len(ds_2)
+  # 200
+  ds_2.classes
+  # ['cat']
 
-- Merge multiple datasets
+  ds_merged = sv.DetectionDataset.merge([ds_1, ds_2])
+  len(ds_merged)
+  # 300
+  ds_merged.classes
+  # ['cat', 'dog', 'person']
+  ```
 
-    ```python
-    >>> ds_1 = sv.DetectionDataset(...)
-    >>> len(ds_1)
-    100
-    >>> ds_1.classes
-    ['dog', 'person']
+- save
 
-    >>> ds_2 = sv.DetectionDataset(...)
-    >>> len(ds_2)
-    200
-    >>> ds_2.classes
-    ['cat']
+  ```python
+  dataset.as_yolo(
+      images_directory_path=...,
+      annotations_directory_path=...,
+      data_yaml_path=...
+  )
 
-    >>> ds_merged = sv.DetectionDataset.merge([ds_1, ds_2])
-    >>> len(ds_merged)
-    300
-    >>> ds_merged.classes
-    ['cat', 'dog', 'person']
-    ```
+  dataset.as_pascal_voc(
+      images_directory_path=...,
+      annotations_directory_path=...
+  )
 
-- Save object detection/instance segmentation datasets in one of the supported formats
+  dataset.as_coco(
+      images_directory_path=...,
+      annotations_path=...
+  )
+  ```
 
-    ```python
-    >>> dataset.as_yolo(
-    ...     images_directory_path='...',
-    ...     annotations_directory_path='...',
-    ...     data_yaml_path='...'
-    ... )
+- convert
 
-    >>> dataset.as_pascal_voc(
-    ...     images_directory_path='...',
-    ...     annotations_directory_path='...'
-    ... )
-
-    >>> dataset.as_coco(
-    ...     images_directory_path='...',
-    ...     annotations_path='...'
-    ... )
-    ```
-
-- Convert labels between supported formats
-
-    ```python
-    >>> sv.DetectionDataset.from_yolo(
-    ...     images_directory_path='...',
-    ...     annotations_directory_path='...',
-    ...     data_yaml_path='...'
-    ... ).as_pascal_voc(
-    ...     images_directory_path='...',
-    ...     annotations_directory_path='...'
-    ... )
-    ```
-
-- Load classification datasets in one of the supported formats
-
-    ```python
-    >>> cs = sv.ClassificationDataset.from_folder_structure(
-    ...     root_directory_path='...'
-    ... )
-    ```
-
-- Save classification datasets in one of the supported formats
-
-    ```python
-    >>> cs.as_folder_structure(
-    ...     root_directory_path='...'
-    ... )
-    ```
-
-</details>
-
-### [model evaluation](https://roboflow.github.io/supervision/metrics/detection/)
-
-```python
->>> import supervision as sv
-
->>> dataset = sv.DetectionDataset.from_yolo(...)
-
->>> def callback(image: np.ndarray) -> sv.Detections:
-...     ...
-
->>> confusion_matrix = sv.ConfusionMatrix.benchmark(
-...     dataset = dataset,
-...     callback = callback
-... )
-
->>> confusion_matrix.matrix
-array([
-    [0., 0., 0., 0.],
-    [0., 1., 0., 1.],
-    [0., 1., 1., 0.],
-    [1., 1., 0., 0.]
-])
-```
-
-<details close>
-<summary>👉 more metrics</summary>
-
-- Mean average precision (mAP) for object detection tasks.
-
-    ```python
-    >>> import supervision as sv
-
-    >>> dataset = sv.DetectionDataset.from_yolo(...)
-
-    >>> def callback(image: np.ndarray) -> sv.Detections:
-    ...     ...
-
-    >>> mean_average_precision = sv.MeanAveragePrecision.benchmark(
-    ...     dataset = dataset,
-    ...     callback = callback
-    ... )
-
-    >>> mean_average_precision.map50_95
-    0.433
-    ```
+  ```python
+  sv.DetectionDataset.from_yolo(
+      images_directory_path=...,
+      annotations_directory_path=...,
+      data_yaml_path=...
+  ).as_pascal_voc(
+      images_directory_path=...,
+      annotations_directory_path=...
+  )
+  ```
 
 </details>
 
 ## 🎬 tutorials
 
 <p align="left">
-<a href="https://youtu.be/4Q3ut7vqD5o" title="Traffic Analysis with YOLOv8 and ByteTrack - Vehicle Detection and Tracking"><img src="https://github.com/roboflow/supervision/assets/26109316/54afdf1c-218c-4451-8f12-627fb85f1682" alt="Traffic Analysis with YOLOv8 and ByteTrack - Vehicle Detection and Tracking" width="300px" align="left" /></a>
-<a href="https://youtu.be/4Q3ut7vqD5o" title="Traffic Analysis with YOLOv8 and ByteTrack - Vehicle Detection and Tracking"><strong>Traffic Analysis with YOLOv8 and ByteTrack - Vehicle Detection and Tracking</strong></a>
-<div><strong>Created: 6 Sep 2023</strong> | <strong>Updated: 6 Sep 2023</strong></div>
-<br/> In this video, we explore real-time traffic analysis using YOLOv8 and ByteTrack to detect and track vehicles on aerial images. Harnessing the power of Python and Supervision, we delve deep into assigning cars to specific entry zones and understanding their direction of movement. By visualizing their paths, we gain insights into traffic flow across bustling roundabouts... </p>
+<a href="https://youtu.be/uWP6UjDeZvY" title="Speed Estimation & Vehicle Tracking | Computer Vision | Open Source"><img src="https://github.com/SkalskiP/SkalskiP/assets/26109316/61a444c8-b135-48ce-b979-2a5ab47c5a91" alt="Speed Estimation & Vehicle Tracking | Computer Vision | Open Source" width="300px" align="left" /></a>
+<a href="https://youtu.be/uWP6UjDeZvY" title="Speed Estimation & Vehicle Tracking | Computer Vision | Open Source"><strong>Speed Estimation & Vehicle Tracking | Computer Vision | Open Source</strong></a>
+<div><strong>Created: 11 Jan 2024</strong> | <strong>Updated: 11 Jan 2024</strong></div>
+<br/> Learn how to track and estimate the speed of vehicles using YOLO, ByteTrack, and Roboflow Inference. This comprehensive tutorial covers object detection, multi-object tracking, filtering detections, perspective transformation, speed estimation, visualization improvements, and more.</p>
 
 <br/>
 
 <p align="left">
-<a href="https://youtu.be/D-D6ZmadzPE" title="SAM - Segment Anything Model by Meta AI: Complete Guide"><img src="https://github.com/SkalskiP/SkalskiP/assets/26109316/6913ff11-53c6-4341-8d90-eaff3023c3fd" alt="SAM - Segment Anything Model by Meta AI: Complete Guide" width="300px" align="left" /></a>
-<a href="https://youtu.be/D-D6ZmadzPE" title="SAM - Segment Anything Model by Meta AI: Complete Guide"><strong>SAM - Segment Anything Model by Meta AI: Complete Guide</strong></a>
-<div><strong>Created: 11 Apr 2023</strong> | <strong>Updated: 11 Apr 2023</strong></div>
-<br/> Discover the incredible potential of Meta AI's Segment Anything Model (SAM)! We dive into SAM, an efficient and promptable model for image segmentation, which has revolutionized computer vision tasks. With over 1 billion masks on 11M licensed and privacy-respecting images, SAM's zero-shot performance is often competitive with or even superior to prior fully supervised results... </p>
+<a href="https://youtu.be/4Q3ut7vqD5o" title="Traffic Analysis with YOLOv8 and ByteTrack - Vehicle Detection and Tracking"><img src="https://github.com/roboflow/supervision/assets/26109316/54afdf1c-218c-4451-8f12-627fb85f1682" alt="Traffic Analysis with YOLOv8 and ByteTrack - Vehicle Detection and Tracking" width="300px" align="left" /></a>
+<a href="https://youtu.be/4Q3ut7vqD5o" title="Traffic Analysis with YOLOv8 and ByteTrack - Vehicle Detection and Tracking"><strong>Traffic Analysis with YOLOv8 and ByteTrack - Vehicle Detection and Tracking</strong></a>
+<div><strong>Created: 6 Sep 2023</strong> | <strong>Updated: 6 Sep 2023</strong></div>
+<br/> In this video, we explore real-time traffic analysis using YOLOv8 and ByteTrack to detect and track vehicles on aerial images. Harnessing the power of Python and Supervision, we delve deep into assigning cars to specific entry zones and understanding their direction of movement. By visualizing their paths, we gain insights into traffic flow across bustling roundabouts... </p>
 
 ## 💜 built with supervision
 
@@ -298,6 +238,8 @@ Did you build something cool using supervision? [Let us know!](https://github.co
 https://user-images.githubusercontent.com/26109316/207858600-ee862b22-0353-440b-ad85-caa0c4777904.mp4
 
 https://github.com/roboflow/supervision/assets/26109316/c9436828-9fbf-4c25-ae8c-60e9c81b3900
+
+https://github.com/roboflow/supervision/assets/26109316/3ac6982f-4943-4108-9b7f-51787ef1a69f
 
 ## 📚 documentation
 
