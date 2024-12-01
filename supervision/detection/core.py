@@ -1391,7 +1391,7 @@ class Detections:
             result.append(merged_detections)
 
         return Detections.merge(result)
-    
+
         @classmethod
     def from_gcp_vision(cls, gcp_results, size) -> Detections:
         """
