@@ -215,9 +215,11 @@ class Detections:
                 xyxy=ultralytics_results.obb.xyxy.cpu().numpy(),
                 confidence=ultralytics_results.obb.conf.cpu().numpy(),
                 class_id=class_id,
-                tracker_id=ultralytics_results.obb.id.int().cpu().numpy()
-                if ultralytics_results.obb.id is not None
-                else None,
+                tracker_id=(
+                    ultralytics_results.obb.id.int().cpu().numpy()
+                    if ultralytics_results.obb.id is not None
+                    else None
+                ),
                 data={
                     ORIENTED_BOX_COORDINATES: oriented_box_coordinates,
                     CLASS_NAME_DATA_FIELD: class_names,
@@ -231,9 +233,11 @@ class Detections:
             confidence=ultralytics_results.boxes.conf.cpu().numpy(),
             class_id=class_id,
             mask=extract_ultralytics_masks(ultralytics_results),
-            tracker_id=ultralytics_results.boxes.id.int().cpu().numpy()
-            if ultralytics_results.boxes.id is not None
-            else None,
+            tracker_id=(
+                ultralytics_results.boxes.id.int().cpu().numpy()
+                if ultralytics_results.boxes.id is not None
+                else None
+            ),
             data={CLASS_NAME_DATA_FIELD: class_names},
         )
 
@@ -793,6 +797,8 @@ class Detections:
 
                 class_ids.append(new_id)
 
+        class_names = [class_id_reference[class_id] for class_id in class_ids]
+
         if len(xyxys) == 0:
             return cls.empty()
 
@@ -800,6 +806,7 @@ class Detections:
             xyxy=np.array(xyxys),
             class_id=np.array(class_ids),
             confidence=np.array(confidences),
+            data={CLASS_NAME_DATA_FIELD: np.array(class_names)},
         )
 
     @classmethod
