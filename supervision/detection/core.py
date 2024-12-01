@@ -797,7 +797,8 @@ class Detections:
 
                 class_ids.append(new_id)
 
-        class_names = [class_id_reference[class_id] for class_id in class_ids]
+        id_to_class_name = {id_: name for name, id_ in class_id_reference.items()}
+        class_names = [id_to_class_name[class_id] for class_id in class_ids]
 
         if len(xyxys) == 0:
             return cls.empty()
