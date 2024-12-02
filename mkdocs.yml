@@ -42,6 +42,7 @@ nav:
       - Detect Small Objects: how_to/detect_small_objects.md
       - Track Objects on Video: how_to/track_objects.md
       - Process Datasets: how_to/process_datasets.md
+      - Benchmark a Model: how_to/benchmark_a_model.md
 
   - Reference - Code API:
       - Detection and Segmentation:
