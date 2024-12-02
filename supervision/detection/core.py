@@ -269,9 +269,11 @@ class Detections:
                 xyxy=ultralytics_results.obb.xyxy.cpu().numpy(),
                 confidence=ultralytics_results.obb.conf.cpu().numpy(),
                 class_id=class_id,
-                tracker_id=ultralytics_results.obb.id.int().cpu().numpy()
-                if ultralytics_results.obb.id is not None
-                else None,
+                tracker_id=(
+                    ultralytics_results.obb.id.int().cpu().numpy()
+                    if ultralytics_results.obb.id is not None
+                    else None
+                ),
                 data={
                     ORIENTED_BOX_COORDINATES: oriented_box_coordinates,
                     CLASS_NAME_DATA_FIELD: class_names,
@@ -293,9 +295,11 @@ class Detections:
             confidence=ultralytics_results.boxes.conf.cpu().numpy(),
             class_id=class_id,
             mask=extract_ultralytics_masks(ultralytics_results),
-            tracker_id=ultralytics_results.boxes.id.int().cpu().numpy()
-            if ultralytics_results.boxes.id is not None
-            else None,
+            tracker_id=(
+                ultralytics_results.boxes.id.int().cpu().numpy()
+                if ultralytics_results.boxes.id is not None
+                else None
+            ),
             data={CLASS_NAME_DATA_FIELD: class_names},
         )
 
@@ -447,9 +451,11 @@ class Detections:
             xyxy=mmdet_results.pred_instances.bboxes.cpu().numpy(),
             confidence=mmdet_results.pred_instances.scores.cpu().numpy(),
             class_id=mmdet_results.pred_instances.labels.cpu().numpy().astype(int),
-            mask=mmdet_results.pred_instances.masks.cpu().numpy()
-            if "masks" in mmdet_results.pred_instances
-            else None,
+            mask=(
+                mmdet_results.pred_instances.masks.cpu().numpy()
+                if "masks" in mmdet_results.pred_instances
+                else None
+            ),
         )
 
     @classmethod
@@ -567,9 +573,11 @@ class Detections:
         return cls(
             xyxy=detectron2_results["instances"].pred_boxes.tensor.cpu().numpy(),
             confidence=detectron2_results["instances"].scores.cpu().numpy(),
-            mask=detectron2_results["instances"].pred_masks.cpu().numpy()
-            if hasattr(detectron2_results["instances"], "pred_masks")
-            else None,
+            mask=(
+                detectron2_results["instances"].pred_masks.cpu().numpy()
+                if hasattr(detectron2_results["instances"], "pred_masks")
+                else None
+            ),
             class_id=detectron2_results["instances"]
             .pred_classes.cpu()
             .numpy()
@@ -1392,7 +1400,7 @@ class Detections:
 
         return Detections.merge(result)
 
-        @classmethod
+    @classmethod
     def from_gcp_vision(cls, gcp_results, size) -> Detections:
         """
         Creates a Detections instance from the
