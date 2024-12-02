@@ -4493,25 +4493,29 @@ test = ["argcomplete (>=3.0.3)", "mypy (>=1.7.0)", "pre-commit", "pytest (>=7.0,
 
 [[package]]
 name = "twine"
-version = "5.1.1"
+version = "6.0.1"
 description = "Collection of utilities for publishing packages on PyPI"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "twine-5.1.1-py3-none-any.whl", hash = "sha256:215dbe7b4b94c2c50a7315c0275d2258399280fbb7d04182c7e55e24b5f93997"},
-    {file = "twine-5.1.1.tar.gz", hash = "sha256:9aa0825139c02b3434d913545c7b847a21c835e11597f5255842d457da2322db"},
+    {file = "twine-6.0.1-py3-none-any.whl", hash = "sha256:9c6025b203b51521d53e200f4a08b116dee7500a38591668c6a6033117bdc218"},
+    {file = "twine-6.0.1.tar.gz", hash = "sha256:36158b09df5406e1c9c1fb8edb24fc2be387709443e7376689b938531582ee27"},
 ]
 
 [package.dependencies]
-importlib-metadata = ">=3.6"
-keyring = ">=15.1"
-pkginfo = ">=1.8.1,<1.11"
+importlib-metadata = {version = ">=3.6", markers = "python_version < \"3.10\""}
+keyring = {version = ">=15.1", markers = "platform_machine != \"ppc64le\" and platform_machine != \"s390x\""}
+packaging = "*"
+pkginfo = ">=1.8.1"
 readme-renderer = ">=35.0"
 requests = ">=2.20"
 requests-toolbelt = ">=0.8.0,<0.9.0 || >0.9.0"
 rfc3986 = ">=1.4.0"
 rich = ">=12.0.0"
 urllib3 = ">=1.26.0"
+
+[package.extras]
+keyring = ["keyring (>=15.1)"]
 
 [[package]]
 name = "types-cffi"
@@ -4836,4 +4840,4 @@ metrics = ["pandas"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "4b1374cb6ea9100c5bed238a30153051ae9946a23c8c93e0abe1e80a29bb6860"
+content-hash = "59d4b27ceced6305239faf417ad95293fe8fff2901b86b223447aecc31a8df45"
