@@ -762,6 +762,47 @@ def scale_boxes(
     return np.concatenate((centers - new_sizes / 2, centers + new_sizes / 2), axis=1)
 
 
+def resolve_letterbox(xyxy: npt.NDArray[np.float64], letterbox_wh: Tuple[int, int], resolution_wh: Tuple[int, int]) -> npt.NDArray[np.float64]:
+    """
+    Resolves the bounding box coordinates from letterbox format to the required resolution.
+    Args:
+        xyxy (npt.NDArray[np.float64]): An array of shape `(n, 4)` containing the
+            bounding boxes coordinates in format `[x1, y1, x2, y2]`
+        letterbox_wh (Tuple[int, int]): The target resolution as `(width, height)`.
+        resolution_wh (Tuple[int, int]): The target resolution as `(width, height)`.
+
+    Returns:
+        Detections: A new Detections object with the bounding box coordinates resolved to the
+            target resolution.
+    """
+
+    input_w, input_h = resolution_wh
+    letterbox_w, letterbox_h = letterbox_wh
+
+    target_ratio = letterbox_w / letterbox_h
+    image_ratio = input_w / input_h
+    if image_ratio >= target_ratio:
+        width_new = letterbox_w
+        height_new = int(letterbox_w / image_ratio)
+    else:
+        height_new = letterbox_h
+        width_new = int(letterbox_h * image_ratio)
+
+    scale = input_w / width_new
+
+    padding_top = (letterbox_h - height_new)  // 2
+    padding_left = (letterbox_w - width_new) // 2
+
+    boxes = xyxy.copy()
+    boxes[:, [0, 2]] -= padding_left
+    boxes[:, [1, 3]] -= padding_top
+
+    boxes[:, [0, 2]] *= scale
+    boxes[:, [1, 3]] *= scale
+
+    return boxes
+    
+
 def calculate_masks_centroids(masks: np.ndarray) -> np.ndarray:
     """
     Calculate the centroids of binary masks in a tensor.
