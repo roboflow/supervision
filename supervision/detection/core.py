@@ -1201,10 +1201,10 @@ class Detections:
         """
         if isinstance(index, str):
             return self.data.get(index)
-        if isinstance(index, int):
-            index = [index]
         if self.is_empty():
             return Detections.empty()
+        if isinstance(index, int):
+            index = [index]
         return Detections(
             xyxy=self.xyxy[index],
             mask=self.mask[index] if self.mask is not None else None,
