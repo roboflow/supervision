@@ -72,6 +72,12 @@ status: new
 :::supervision.detection.utils.scale_boxes
 
 <div class="md-typeset">
+  <h2><a href="#supervision.detection.utils.resolve_letterbox">resolve_letterbox</a></h2>
+</div>
+
+:::supervision.detection.utils.resolve_letterbox
+
+<div class="md-typeset">
   <h2><a href="#supervision.detection.utils.clip_boxes">clip_boxes</a></h2>
 </div>
 
