@@ -762,13 +762,13 @@ def scale_boxes(
     return np.concatenate((centers - new_sizes / 2, centers + new_sizes / 2), axis=1)
 
 
-def resolve_letterbox(
-    xyxy: npt.NDArray[np.float64],
-    letterbox_wh: Tuple[int, int],
-    resolution_wh: Tuple[int, int],
-) -> npt.NDArray[np.float64]:
+
+def resolve_letterbox(xyxy: npt.NDArray[np.float64],
+                      letterbox_wh: Tuple[int, int],
+                      resolution_wh: Tuple[int, int]) -> npt.NDArray[np.float64]:
     """
-    Resolves the bounding box coordinates from letterbox format to the required resolution.
+    Resolves the bounding box coordinates from letterbox format
+    to the required resolution.
     Args:
         xyxy (npt.NDArray[np.float64]): An array of shape `(n, 4)` containing the
             bounding boxes coordinates in format `[x1, y1, x2, y2]`
@@ -776,8 +776,8 @@ def resolve_letterbox(
         resolution_wh (Tuple[int, int]): The target resolution as `(width, height)`.
 
     Returns:
-        Detections: A new Detections object with the bounding box coordinates resolved to the
-            target resolution.
+        Detections: A new Detections object with the bounding box coordinates resolved
+        to the target resolution.
     """
 
     input_w, input_h = resolution_wh
@@ -794,7 +794,7 @@ def resolve_letterbox(
 
     scale = input_w / width_new
 
-    padding_top = (letterbox_h - height_new) // 2
+    padding_top = (letterbox_h - height_new)  // 2
     padding_left = (letterbox_w - width_new) // 2
 
     boxes = xyxy.copy()
