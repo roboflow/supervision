@@ -762,7 +762,11 @@ def scale_boxes(
     return np.concatenate((centers - new_sizes / 2, centers + new_sizes / 2), axis=1)
 
 
-def resolve_letterbox(xyxy: npt.NDArray[np.float64], letterbox_wh: Tuple[int, int], resolution_wh: Tuple[int, int]) -> npt.NDArray[np.float64]:
+def resolve_letterbox(
+    xyxy: npt.NDArray[np.float64],
+    letterbox_wh: Tuple[int, int],
+    resolution_wh: Tuple[int, int],
+) -> npt.NDArray[np.float64]:
     """
     Resolves the bounding box coordinates from letterbox format to the required resolution.
     Args:
@@ -790,7 +794,7 @@ def resolve_letterbox(xyxy: npt.NDArray[np.float64], letterbox_wh: Tuple[int, in
 
     scale = input_w / width_new
 
-    padding_top = (letterbox_h - height_new)  // 2
+    padding_top = (letterbox_h - height_new) // 2
     padding_left = (letterbox_w - width_new) // 2
 
     boxes = xyxy.copy()
@@ -801,7 +805,7 @@ def resolve_letterbox(xyxy: npt.NDArray[np.float64], letterbox_wh: Tuple[int, in
     boxes[:, [1, 3]] *= scale
 
     return boxes
-    
+
 
 def calculate_masks_centroids(masks: np.ndarray) -> np.ndarray:
     """

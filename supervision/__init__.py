@@ -73,10 +73,10 @@ from supervision.detection.utils import (
     pad_boxes,
     polygon_to_mask,
     polygon_to_xyxy,
+    resolve_letterbox,
     scale_boxes,
     xcycwh_to_xyxy,
     xywh_to_xyxy,
-    resolve_letterbox,
 )
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import (
@@ -218,9 +218,9 @@ __all__ = [
     "polygon_to_xyxy",
     "process_video",
     "resize_image",
+    "resolve_letterbox",
     "rle_to_mask",
     "scale_boxes",
-    "resolve_letterbox",
     "scale_image",
     "xcycwh_to_xyxy",
     "xywh_to_xyxy",
