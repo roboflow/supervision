@@ -2,8 +2,8 @@ import os
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
-import cv2
 import numpy as np
+from PIL import Image
 
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.dataset.utils import approximate_mask_with_polygons
@@ -153,7 +153,7 @@ def load_yolo_annotations(
     image_paths = [
         str(path)
         for path in list_files_with_extensions(
-            directory=images_directory_path, extensions=["jpg", "jpeg", "png"]
+            directory=images_directory_path, extensions=["*"]
         )
     ]
 
@@ -167,10 +167,15 @@ def load_yolo_annotations(
             annotations[image_path] = Detections.empty()
             continue
 
-        image = cv2.imread(image_path)
+        # PIL is much faster than cv2 for checking image shape and mode: https://github.com/roboflow/supervision/issues/1554
+        image = Image.open(image_path)
         lines = read_txt_file(file_path=annotation_path, skip_empty=True)
-        h, w, _ = image.shape
+        w, h = image.size
         resolution_wh = (w, h)
+        if image.mode != "RGB":
+            raise ValueError(
+                f"Images must be 'RGB', but {image_path} is '{image.mode}'."
+            )
 
         with_masks = _with_mask(lines=lines)
         with_masks = force_masks if force_masks else with_masks
