@@ -1201,6 +1201,8 @@ class Detections:
         """
         if isinstance(index, str):
             return self.data.get(index)
+        if self.is_empty():
+            return Detections.empty()
         if isinstance(index, int):
             index = [index]
         return Detections(
