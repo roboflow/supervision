@@ -225,10 +225,10 @@ TEST_DET_DIFFERENT_METADATA = Detections(
         ),
         (
             Detections.empty(),
-            np.isin(Detections.empty()["class_name"], [0, 1, 2]),
+            np.isin(Detections.empty()["class_name"], ["cat", "dog"]),
             Detections.empty(),
             DoesNotRaise(),
-        ),
+        ),  # Filter an empty detections by specific class names
     ],
 )
 def test_getitem(
