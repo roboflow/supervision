@@ -4922,7 +4922,9 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 <span class="normal"><a href="#__codelineno-0-1390">1390</a></span>
 <span class="normal"><a href="#__codelineno-0-1391">1391</a></span>
 <span class="normal"><a href="#__codelineno-0-1392">1392</a></span>
-<span class="normal"><a href="#__codelineno-0-1393">1393</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-47" name="__codelineno-0-47"></a><span class="nd">@dataclass</span>
+<span class="normal"><a href="#__codelineno-0-1393">1393</a></span>
+<span class="normal"><a href="#__codelineno-0-1394">1394</a></span>
+<span class="normal"><a href="#__codelineno-0-1395">1395</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-47" name="__codelineno-0-47"></a><span class="nd">@dataclass</span>
 <a id="__codelineno-0-48" name="__codelineno-0-48"></a><span class="k">class</span> <span class="nc">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-49" name="__codelineno-0-49"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-50" name="__codelineno-0-50"></a><span class="sd">    The `sv.Detections` class in the Supervision library standardizes results from</span>
@@ -6079,196 +6081,198 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 <a id="__codelineno-0-1201" name="__codelineno-0-1201"></a><span class="sd">        &quot;&quot;&quot;</span>
 <a id="__codelineno-0-1202" name="__codelineno-0-1202"></a>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
 <a id="__codelineno-0-1203" name="__codelineno-0-1203"></a>            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
-<a id="__codelineno-0-1204" name="__codelineno-0-1204"></a>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
-<a id="__codelineno-0-1205" name="__codelineno-0-1205"></a>            <span class="n">index</span> <span class="o">=</span> <span class="p">[</span><span class="n">index</span><span class="p">]</span>
-<a id="__codelineno-0-1206" name="__codelineno-0-1206"></a>        <span class="k">return</span> <span class="n">Detections</span><span class="p">(</span>
-<a id="__codelineno-0-1207" name="__codelineno-0-1207"></a>            <span class="n">xyxy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">[</span><span class="n">index</span><span class="p">],</span>
-<a id="__codelineno-0-1208" name="__codelineno-0-1208"></a>            <span class="n">mask</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-1209" name="__codelineno-0-1209"></a>            <span class="n">confidence</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-1210" name="__codelineno-0-1210"></a>            <span class="n">class_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">class_id</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-1211" name="__codelineno-0-1211"></a>            <span class="n">tracker_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tracker_id</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tracker_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-1212" name="__codelineno-0-1212"></a>            <span class="n">data</span><span class="o">=</span><span class="n">get_data_item</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">index</span><span class="p">),</span>
-<a id="__codelineno-0-1213" name="__codelineno-0-1213"></a>            <span class="n">metadata</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">,</span>
-<a id="__codelineno-0-1214" name="__codelineno-0-1214"></a>        <span class="p">)</span>
-<a id="__codelineno-0-1215" name="__codelineno-0-1215"></a>
-<a id="__codelineno-0-1216" name="__codelineno-0-1216"></a>    <span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">List</span><span class="p">]):</span>
-<a id="__codelineno-0-1217" name="__codelineno-0-1217"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-1218" name="__codelineno-0-1218"></a><span class="sd">        Set a value in the data dictionary of the Detections object.</span>
-<a id="__codelineno-0-1219" name="__codelineno-0-1219"></a>
-<a id="__codelineno-0-1220" name="__codelineno-0-1220"></a><span class="sd">        Args:</span>
-<a id="__codelineno-0-1221" name="__codelineno-0-1221"></a><span class="sd">            key (str): The key in the data dictionary to set.</span>
-<a id="__codelineno-0-1222" name="__codelineno-0-1222"></a><span class="sd">            value (Union[np.ndarray, List]): The value to set for the key.</span>
-<a id="__codelineno-0-1223" name="__codelineno-0-1223"></a>
-<a id="__codelineno-0-1224" name="__codelineno-0-1224"></a><span class="sd">        Example:</span>
-<a id="__codelineno-0-1225" name="__codelineno-0-1225"></a><span class="sd">            ```python</span>
-<a id="__codelineno-0-1226" name="__codelineno-0-1226"></a><span class="sd">            import cv2</span>
-<a id="__codelineno-0-1227" name="__codelineno-0-1227"></a><span class="sd">            import supervision as sv</span>
-<a id="__codelineno-0-1228" name="__codelineno-0-1228"></a><span class="sd">            from ultralytics import YOLO</span>
-<a id="__codelineno-0-1229" name="__codelineno-0-1229"></a>
-<a id="__codelineno-0-1230" name="__codelineno-0-1230"></a><span class="sd">            image = cv2.imread(&lt;SOURCE_IMAGE_PATH&gt;)</span>
-<a id="__codelineno-0-1231" name="__codelineno-0-1231"></a><span class="sd">            model = YOLO(&#39;yolov8s.pt&#39;)</span>
-<a id="__codelineno-0-1232" name="__codelineno-0-1232"></a>
-<a id="__codelineno-0-1233" name="__codelineno-0-1233"></a><span class="sd">            result = model(image)[0]</span>
-<a id="__codelineno-0-1234" name="__codelineno-0-1234"></a><span class="sd">            detections = sv.Detections.from_ultralytics(result)</span>
-<a id="__codelineno-0-1235" name="__codelineno-0-1235"></a>
-<a id="__codelineno-0-1236" name="__codelineno-0-1236"></a><span class="sd">            detections[&#39;names&#39;] = [</span>
-<a id="__codelineno-0-1237" name="__codelineno-0-1237"></a><span class="sd">                 model.model.names[class_id]</span>
-<a id="__codelineno-0-1238" name="__codelineno-0-1238"></a><span class="sd">                 for class_id</span>
-<a id="__codelineno-0-1239" name="__codelineno-0-1239"></a><span class="sd">                 in detections.class_id</span>
-<a id="__codelineno-0-1240" name="__codelineno-0-1240"></a><span class="sd">             ]</span>
-<a id="__codelineno-0-1241" name="__codelineno-0-1241"></a><span class="sd">            ```</span>
-<a id="__codelineno-0-1242" name="__codelineno-0-1242"></a><span class="sd">        &quot;&quot;&quot;</span>
-<a id="__codelineno-0-1243" name="__codelineno-0-1243"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
-<a id="__codelineno-0-1244" name="__codelineno-0-1244"></a>            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Value must be a np.ndarray or a list&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-1245" name="__codelineno-0-1245"></a>
-<a id="__codelineno-0-1246" name="__codelineno-0-1246"></a>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-<a id="__codelineno-0-1247" name="__codelineno-0-1247"></a>            <span class="n">value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
-<a id="__codelineno-0-1248" name="__codelineno-0-1248"></a>
-<a id="__codelineno-0-1249" name="__codelineno-0-1249"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+<a id="__codelineno-0-1204" name="__codelineno-0-1204"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_empty</span><span class="p">():</span>
+<a id="__codelineno-0-1205" name="__codelineno-0-1205"></a>            <span class="k">return</span> <span class="n">Detections</span><span class="o">.</span><span class="n">empty</span><span class="p">()</span>
+<a id="__codelineno-0-1206" name="__codelineno-0-1206"></a>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+<a id="__codelineno-0-1207" name="__codelineno-0-1207"></a>            <span class="n">index</span> <span class="o">=</span> <span class="p">[</span><span class="n">index</span><span class="p">]</span>
+<a id="__codelineno-0-1208" name="__codelineno-0-1208"></a>        <span class="k">return</span> <span class="n">Detections</span><span class="p">(</span>
+<a id="__codelineno-0-1209" name="__codelineno-0-1209"></a>            <span class="n">xyxy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">[</span><span class="n">index</span><span class="p">],</span>
+<a id="__codelineno-0-1210" name="__codelineno-0-1210"></a>            <span class="n">mask</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-1211" name="__codelineno-0-1211"></a>            <span class="n">confidence</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-1212" name="__codelineno-0-1212"></a>            <span class="n">class_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">class_id</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-1213" name="__codelineno-0-1213"></a>            <span class="n">tracker_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tracker_id</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tracker_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-1214" name="__codelineno-0-1214"></a>            <span class="n">data</span><span class="o">=</span><span class="n">get_data_item</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">index</span><span class="p">),</span>
+<a id="__codelineno-0-1215" name="__codelineno-0-1215"></a>            <span class="n">metadata</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">,</span>
+<a id="__codelineno-0-1216" name="__codelineno-0-1216"></a>        <span class="p">)</span>
+<a id="__codelineno-0-1217" name="__codelineno-0-1217"></a>
+<a id="__codelineno-0-1218" name="__codelineno-0-1218"></a>    <span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">List</span><span class="p">]):</span>
+<a id="__codelineno-0-1219" name="__codelineno-0-1219"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-1220" name="__codelineno-0-1220"></a><span class="sd">        Set a value in the data dictionary of the Detections object.</span>
+<a id="__codelineno-0-1221" name="__codelineno-0-1221"></a>
+<a id="__codelineno-0-1222" name="__codelineno-0-1222"></a><span class="sd">        Args:</span>
+<a id="__codelineno-0-1223" name="__codelineno-0-1223"></a><span class="sd">            key (str): The key in the data dictionary to set.</span>
+<a id="__codelineno-0-1224" name="__codelineno-0-1224"></a><span class="sd">            value (Union[np.ndarray, List]): The value to set for the key.</span>
+<a id="__codelineno-0-1225" name="__codelineno-0-1225"></a>
+<a id="__codelineno-0-1226" name="__codelineno-0-1226"></a><span class="sd">        Example:</span>
+<a id="__codelineno-0-1227" name="__codelineno-0-1227"></a><span class="sd">            ```python</span>
+<a id="__codelineno-0-1228" name="__codelineno-0-1228"></a><span class="sd">            import cv2</span>
+<a id="__codelineno-0-1229" name="__codelineno-0-1229"></a><span class="sd">            import supervision as sv</span>
+<a id="__codelineno-0-1230" name="__codelineno-0-1230"></a><span class="sd">            from ultralytics import YOLO</span>
+<a id="__codelineno-0-1231" name="__codelineno-0-1231"></a>
+<a id="__codelineno-0-1232" name="__codelineno-0-1232"></a><span class="sd">            image = cv2.imread(&lt;SOURCE_IMAGE_PATH&gt;)</span>
+<a id="__codelineno-0-1233" name="__codelineno-0-1233"></a><span class="sd">            model = YOLO(&#39;yolov8s.pt&#39;)</span>
+<a id="__codelineno-0-1234" name="__codelineno-0-1234"></a>
+<a id="__codelineno-0-1235" name="__codelineno-0-1235"></a><span class="sd">            result = model(image)[0]</span>
+<a id="__codelineno-0-1236" name="__codelineno-0-1236"></a><span class="sd">            detections = sv.Detections.from_ultralytics(result)</span>
+<a id="__codelineno-0-1237" name="__codelineno-0-1237"></a>
+<a id="__codelineno-0-1238" name="__codelineno-0-1238"></a><span class="sd">            detections[&#39;names&#39;] = [</span>
+<a id="__codelineno-0-1239" name="__codelineno-0-1239"></a><span class="sd">                 model.model.names[class_id]</span>
+<a id="__codelineno-0-1240" name="__codelineno-0-1240"></a><span class="sd">                 for class_id</span>
+<a id="__codelineno-0-1241" name="__codelineno-0-1241"></a><span class="sd">                 in detections.class_id</span>
+<a id="__codelineno-0-1242" name="__codelineno-0-1242"></a><span class="sd">             ]</span>
+<a id="__codelineno-0-1243" name="__codelineno-0-1243"></a><span class="sd">            ```</span>
+<a id="__codelineno-0-1244" name="__codelineno-0-1244"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-1245" name="__codelineno-0-1245"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+<a id="__codelineno-0-1246" name="__codelineno-0-1246"></a>            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Value must be a np.ndarray or a list&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-1247" name="__codelineno-0-1247"></a>
+<a id="__codelineno-0-1248" name="__codelineno-0-1248"></a>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+<a id="__codelineno-0-1249" name="__codelineno-0-1249"></a>            <span class="n">value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
 <a id="__codelineno-0-1250" name="__codelineno-0-1250"></a>
-<a id="__codelineno-0-1251" name="__codelineno-0-1251"></a>    <span class="nd">@property</span>
-<a id="__codelineno-0-1252" name="__codelineno-0-1252"></a>    <span class="k">def</span> <span class="nf">area</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<a id="__codelineno-0-1253" name="__codelineno-0-1253"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-1254" name="__codelineno-0-1254"></a><span class="sd">        Calculate the area of each detection in the set of object detections.</span>
-<a id="__codelineno-0-1255" name="__codelineno-0-1255"></a><span class="sd">        If masks field is defined property returns are of each mask.</span>
-<a id="__codelineno-0-1256" name="__codelineno-0-1256"></a><span class="sd">        If only box is given property return area of each box.</span>
-<a id="__codelineno-0-1257" name="__codelineno-0-1257"></a>
-<a id="__codelineno-0-1258" name="__codelineno-0-1258"></a><span class="sd">        Returns:</span>
-<a id="__codelineno-0-1259" name="__codelineno-0-1259"></a><span class="sd">          np.ndarray: An array of floats containing the area of each detection</span>
-<a id="__codelineno-0-1260" name="__codelineno-0-1260"></a><span class="sd">            in the format of `(area_1, area_2, , area_n)`,</span>
-<a id="__codelineno-0-1261" name="__codelineno-0-1261"></a><span class="sd">            where n is the number of detections.</span>
-<a id="__codelineno-0-1262" name="__codelineno-0-1262"></a><span class="sd">        &quot;&quot;&quot;</span>
-<a id="__codelineno-0-1263" name="__codelineno-0-1263"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-1264" name="__codelineno-0-1264"></a>            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span> <span class="k">for</span> <span class="n">mask</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">])</span>
-<a id="__codelineno-0-1265" name="__codelineno-0-1265"></a>        <span class="k">else</span><span class="p">:</span>
-<a id="__codelineno-0-1266" name="__codelineno-0-1266"></a>            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">box_area</span>
-<a id="__codelineno-0-1267" name="__codelineno-0-1267"></a>
-<a id="__codelineno-0-1268" name="__codelineno-0-1268"></a>    <span class="nd">@property</span>
-<a id="__codelineno-0-1269" name="__codelineno-0-1269"></a>    <span class="k">def</span> <span class="nf">box_area</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<a id="__codelineno-0-1270" name="__codelineno-0-1270"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-1271" name="__codelineno-0-1271"></a><span class="sd">        Calculate the area of each bounding box in the set of object detections.</span>
-<a id="__codelineno-0-1272" name="__codelineno-0-1272"></a>
-<a id="__codelineno-0-1273" name="__codelineno-0-1273"></a><span class="sd">        Returns:</span>
-<a id="__codelineno-0-1274" name="__codelineno-0-1274"></a><span class="sd">            np.ndarray: An array of floats containing the area of each bounding</span>
-<a id="__codelineno-0-1275" name="__codelineno-0-1275"></a><span class="sd">                box in the format of `(area_1, area_2, , area_n)`,</span>
-<a id="__codelineno-0-1276" name="__codelineno-0-1276"></a><span class="sd">                where n is the number of detections.</span>
-<a id="__codelineno-0-1277" name="__codelineno-0-1277"></a><span class="sd">        &quot;&quot;&quot;</span>
-<a id="__codelineno-0-1278" name="__codelineno-0-1278"></a>        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>
-<a id="__codelineno-0-1279" name="__codelineno-0-1279"></a>
-<a id="__codelineno-0-1280" name="__codelineno-0-1280"></a>    <span class="k">def</span> <span class="nf">with_nms</span><span class="p">(</span>
-<a id="__codelineno-0-1281" name="__codelineno-0-1281"></a>        <span class="bp">self</span><span class="p">,</span> <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">class_agnostic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
-<a id="__codelineno-0-1282" name="__codelineno-0-1282"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
-<a id="__codelineno-0-1283" name="__codelineno-0-1283"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-1284" name="__codelineno-0-1284"></a><span class="sd">        Performs non-max suppression on detection set. If the detections result</span>
-<a id="__codelineno-0-1285" name="__codelineno-0-1285"></a><span class="sd">        from a segmentation model, the IoU mask is applied. Otherwise, box IoU is used.</span>
-<a id="__codelineno-0-1286" name="__codelineno-0-1286"></a>
-<a id="__codelineno-0-1287" name="__codelineno-0-1287"></a><span class="sd">        Args:</span>
-<a id="__codelineno-0-1288" name="__codelineno-0-1288"></a><span class="sd">            threshold (float): The intersection-over-union threshold</span>
-<a id="__codelineno-0-1289" name="__codelineno-0-1289"></a><span class="sd">                to use for non-maximum suppression. I&#39;m the lower the value the more</span>
-<a id="__codelineno-0-1290" name="__codelineno-0-1290"></a><span class="sd">                restrictive the NMS becomes. Defaults to 0.5.</span>
-<a id="__codelineno-0-1291" name="__codelineno-0-1291"></a><span class="sd">            class_agnostic (bool): Whether to perform class-agnostic</span>
-<a id="__codelineno-0-1292" name="__codelineno-0-1292"></a><span class="sd">                non-maximum suppression. If True, the class_id of each detection</span>
-<a id="__codelineno-0-1293" name="__codelineno-0-1293"></a><span class="sd">                will be ignored. Defaults to False.</span>
-<a id="__codelineno-0-1294" name="__codelineno-0-1294"></a>
-<a id="__codelineno-0-1295" name="__codelineno-0-1295"></a><span class="sd">        Returns:</span>
-<a id="__codelineno-0-1296" name="__codelineno-0-1296"></a><span class="sd">            Detections: A new Detections object containing the subset of detections</span>
-<a id="__codelineno-0-1297" name="__codelineno-0-1297"></a><span class="sd">                after non-maximum suppression.</span>
-<a id="__codelineno-0-1298" name="__codelineno-0-1298"></a>
-<a id="__codelineno-0-1299" name="__codelineno-0-1299"></a><span class="sd">        Raises:</span>
-<a id="__codelineno-0-1300" name="__codelineno-0-1300"></a><span class="sd">            AssertionError: If `confidence` is None and class_agnostic is False.</span>
-<a id="__codelineno-0-1301" name="__codelineno-0-1301"></a><span class="sd">                If `class_id` is None and class_agnostic is False.</span>
-<a id="__codelineno-0-1302" name="__codelineno-0-1302"></a><span class="sd">        &quot;&quot;&quot;</span>
-<a id="__codelineno-0-1303" name="__codelineno-0-1303"></a>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-<a id="__codelineno-0-1304" name="__codelineno-0-1304"></a>            <span class="k">return</span> <span class="bp">self</span>
-<a id="__codelineno-0-1305" name="__codelineno-0-1305"></a>
-<a id="__codelineno-0-1306" name="__codelineno-0-1306"></a>        <span class="k">assert</span> <span class="p">(</span>
-<a id="__codelineno-0-1307" name="__codelineno-0-1307"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-<a id="__codelineno-0-1308" name="__codelineno-0-1308"></a>        <span class="p">),</span> <span class="s2">&quot;Detections confidence must be given for NMS to be executed.&quot;</span>
-<a id="__codelineno-0-1309" name="__codelineno-0-1309"></a>
-<a id="__codelineno-0-1310" name="__codelineno-0-1310"></a>        <span class="k">if</span> <span class="n">class_agnostic</span><span class="p">:</span>
-<a id="__codelineno-0-1311" name="__codelineno-0-1311"></a>            <span class="n">predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
-<a id="__codelineno-0-1312" name="__codelineno-0-1312"></a>        <span class="k">else</span><span class="p">:</span>
-<a id="__codelineno-0-1313" name="__codelineno-0-1313"></a>            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
-<a id="__codelineno-0-1314" name="__codelineno-0-1314"></a>                <span class="s2">&quot;Detections class_id must be given for NMS to be executed. If you&quot;</span>
-<a id="__codelineno-0-1315" name="__codelineno-0-1315"></a>                <span class="s2">&quot; intended to perform class agnostic NMS set class_agnostic=True.&quot;</span>
-<a id="__codelineno-0-1316" name="__codelineno-0-1316"></a>            <span class="p">)</span>
-<a id="__codelineno-0-1317" name="__codelineno-0-1317"></a>            <span class="n">predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span>
-<a id="__codelineno-0-1318" name="__codelineno-0-1318"></a>                <span class="p">(</span>
-<a id="__codelineno-0-1319" name="__codelineno-0-1319"></a>                    <span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">,</span>
-<a id="__codelineno-0-1320" name="__codelineno-0-1320"></a>                    <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
-<a id="__codelineno-0-1321" name="__codelineno-0-1321"></a>                    <span class="bp">self</span><span class="o">.</span><span class="n">class_id</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
-<a id="__codelineno-0-1322" name="__codelineno-0-1322"></a>                <span class="p">)</span>
-<a id="__codelineno-0-1323" name="__codelineno-0-1323"></a>            <span class="p">)</span>
-<a id="__codelineno-0-1324" name="__codelineno-0-1324"></a>
-<a id="__codelineno-0-1325" name="__codelineno-0-1325"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-1326" name="__codelineno-0-1326"></a>            <span class="n">indices</span> <span class="o">=</span> <span class="n">mask_non_max_suppression</span><span class="p">(</span>
-<a id="__codelineno-0-1327" name="__codelineno-0-1327"></a>                <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span> <span class="n">masks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span> <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span>
-<a id="__codelineno-0-1328" name="__codelineno-0-1328"></a>            <span class="p">)</span>
-<a id="__codelineno-0-1329" name="__codelineno-0-1329"></a>        <span class="k">else</span><span class="p">:</span>
-<a id="__codelineno-0-1330" name="__codelineno-0-1330"></a>            <span class="n">indices</span> <span class="o">=</span> <span class="n">box_non_max_suppression</span><span class="p">(</span>
-<a id="__codelineno-0-1331" name="__codelineno-0-1331"></a>                <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span> <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span>
-<a id="__codelineno-0-1332" name="__codelineno-0-1332"></a>            <span class="p">)</span>
-<a id="__codelineno-0-1333" name="__codelineno-0-1333"></a>
-<a id="__codelineno-0-1334" name="__codelineno-0-1334"></a>        <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="n">indices</span><span class="p">]</span>
+<a id="__codelineno-0-1251" name="__codelineno-0-1251"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+<a id="__codelineno-0-1252" name="__codelineno-0-1252"></a>
+<a id="__codelineno-0-1253" name="__codelineno-0-1253"></a>    <span class="nd">@property</span>
+<a id="__codelineno-0-1254" name="__codelineno-0-1254"></a>    <span class="k">def</span> <span class="nf">area</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a id="__codelineno-0-1255" name="__codelineno-0-1255"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-1256" name="__codelineno-0-1256"></a><span class="sd">        Calculate the area of each detection in the set of object detections.</span>
+<a id="__codelineno-0-1257" name="__codelineno-0-1257"></a><span class="sd">        If masks field is defined property returns are of each mask.</span>
+<a id="__codelineno-0-1258" name="__codelineno-0-1258"></a><span class="sd">        If only box is given property return area of each box.</span>
+<a id="__codelineno-0-1259" name="__codelineno-0-1259"></a>
+<a id="__codelineno-0-1260" name="__codelineno-0-1260"></a><span class="sd">        Returns:</span>
+<a id="__codelineno-0-1261" name="__codelineno-0-1261"></a><span class="sd">          np.ndarray: An array of floats containing the area of each detection</span>
+<a id="__codelineno-0-1262" name="__codelineno-0-1262"></a><span class="sd">            in the format of `(area_1, area_2, , area_n)`,</span>
+<a id="__codelineno-0-1263" name="__codelineno-0-1263"></a><span class="sd">            where n is the number of detections.</span>
+<a id="__codelineno-0-1264" name="__codelineno-0-1264"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-1265" name="__codelineno-0-1265"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-1266" name="__codelineno-0-1266"></a>            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span> <span class="k">for</span> <span class="n">mask</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">])</span>
+<a id="__codelineno-0-1267" name="__codelineno-0-1267"></a>        <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-0-1268" name="__codelineno-0-1268"></a>            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">box_area</span>
+<a id="__codelineno-0-1269" name="__codelineno-0-1269"></a>
+<a id="__codelineno-0-1270" name="__codelineno-0-1270"></a>    <span class="nd">@property</span>
+<a id="__codelineno-0-1271" name="__codelineno-0-1271"></a>    <span class="k">def</span> <span class="nf">box_area</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a id="__codelineno-0-1272" name="__codelineno-0-1272"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-1273" name="__codelineno-0-1273"></a><span class="sd">        Calculate the area of each bounding box in the set of object detections.</span>
+<a id="__codelineno-0-1274" name="__codelineno-0-1274"></a>
+<a id="__codelineno-0-1275" name="__codelineno-0-1275"></a><span class="sd">        Returns:</span>
+<a id="__codelineno-0-1276" name="__codelineno-0-1276"></a><span class="sd">            np.ndarray: An array of floats containing the area of each bounding</span>
+<a id="__codelineno-0-1277" name="__codelineno-0-1277"></a><span class="sd">                box in the format of `(area_1, area_2, , area_n)`,</span>
+<a id="__codelineno-0-1278" name="__codelineno-0-1278"></a><span class="sd">                where n is the number of detections.</span>
+<a id="__codelineno-0-1279" name="__codelineno-0-1279"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-1280" name="__codelineno-0-1280"></a>        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>
+<a id="__codelineno-0-1281" name="__codelineno-0-1281"></a>
+<a id="__codelineno-0-1282" name="__codelineno-0-1282"></a>    <span class="k">def</span> <span class="nf">with_nms</span><span class="p">(</span>
+<a id="__codelineno-0-1283" name="__codelineno-0-1283"></a>        <span class="bp">self</span><span class="p">,</span> <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">class_agnostic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<a id="__codelineno-0-1284" name="__codelineno-0-1284"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+<a id="__codelineno-0-1285" name="__codelineno-0-1285"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-1286" name="__codelineno-0-1286"></a><span class="sd">        Performs non-max suppression on detection set. If the detections result</span>
+<a id="__codelineno-0-1287" name="__codelineno-0-1287"></a><span class="sd">        from a segmentation model, the IoU mask is applied. Otherwise, box IoU is used.</span>
+<a id="__codelineno-0-1288" name="__codelineno-0-1288"></a>
+<a id="__codelineno-0-1289" name="__codelineno-0-1289"></a><span class="sd">        Args:</span>
+<a id="__codelineno-0-1290" name="__codelineno-0-1290"></a><span class="sd">            threshold (float): The intersection-over-union threshold</span>
+<a id="__codelineno-0-1291" name="__codelineno-0-1291"></a><span class="sd">                to use for non-maximum suppression. I&#39;m the lower the value the more</span>
+<a id="__codelineno-0-1292" name="__codelineno-0-1292"></a><span class="sd">                restrictive the NMS becomes. Defaults to 0.5.</span>
+<a id="__codelineno-0-1293" name="__codelineno-0-1293"></a><span class="sd">            class_agnostic (bool): Whether to perform class-agnostic</span>
+<a id="__codelineno-0-1294" name="__codelineno-0-1294"></a><span class="sd">                non-maximum suppression. If True, the class_id of each detection</span>
+<a id="__codelineno-0-1295" name="__codelineno-0-1295"></a><span class="sd">                will be ignored. Defaults to False.</span>
+<a id="__codelineno-0-1296" name="__codelineno-0-1296"></a>
+<a id="__codelineno-0-1297" name="__codelineno-0-1297"></a><span class="sd">        Returns:</span>
+<a id="__codelineno-0-1298" name="__codelineno-0-1298"></a><span class="sd">            Detections: A new Detections object containing the subset of detections</span>
+<a id="__codelineno-0-1299" name="__codelineno-0-1299"></a><span class="sd">                after non-maximum suppression.</span>
+<a id="__codelineno-0-1300" name="__codelineno-0-1300"></a>
+<a id="__codelineno-0-1301" name="__codelineno-0-1301"></a><span class="sd">        Raises:</span>
+<a id="__codelineno-0-1302" name="__codelineno-0-1302"></a><span class="sd">            AssertionError: If `confidence` is None and class_agnostic is False.</span>
+<a id="__codelineno-0-1303" name="__codelineno-0-1303"></a><span class="sd">                If `class_id` is None and class_agnostic is False.</span>
+<a id="__codelineno-0-1304" name="__codelineno-0-1304"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-1305" name="__codelineno-0-1305"></a>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+<a id="__codelineno-0-1306" name="__codelineno-0-1306"></a>            <span class="k">return</span> <span class="bp">self</span>
+<a id="__codelineno-0-1307" name="__codelineno-0-1307"></a>
+<a id="__codelineno-0-1308" name="__codelineno-0-1308"></a>        <span class="k">assert</span> <span class="p">(</span>
+<a id="__codelineno-0-1309" name="__codelineno-0-1309"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+<a id="__codelineno-0-1310" name="__codelineno-0-1310"></a>        <span class="p">),</span> <span class="s2">&quot;Detections confidence must be given for NMS to be executed.&quot;</span>
+<a id="__codelineno-0-1311" name="__codelineno-0-1311"></a>
+<a id="__codelineno-0-1312" name="__codelineno-0-1312"></a>        <span class="k">if</span> <span class="n">class_agnostic</span><span class="p">:</span>
+<a id="__codelineno-0-1313" name="__codelineno-0-1313"></a>            <span class="n">predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
+<a id="__codelineno-0-1314" name="__codelineno-0-1314"></a>        <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-0-1315" name="__codelineno-0-1315"></a>            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
+<a id="__codelineno-0-1316" name="__codelineno-0-1316"></a>                <span class="s2">&quot;Detections class_id must be given for NMS to be executed. If you&quot;</span>
+<a id="__codelineno-0-1317" name="__codelineno-0-1317"></a>                <span class="s2">&quot; intended to perform class agnostic NMS set class_agnostic=True.&quot;</span>
+<a id="__codelineno-0-1318" name="__codelineno-0-1318"></a>            <span class="p">)</span>
+<a id="__codelineno-0-1319" name="__codelineno-0-1319"></a>            <span class="n">predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span>
+<a id="__codelineno-0-1320" name="__codelineno-0-1320"></a>                <span class="p">(</span>
+<a id="__codelineno-0-1321" name="__codelineno-0-1321"></a>                    <span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">,</span>
+<a id="__codelineno-0-1322" name="__codelineno-0-1322"></a>                    <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+<a id="__codelineno-0-1323" name="__codelineno-0-1323"></a>                    <span class="bp">self</span><span class="o">.</span><span class="n">class_id</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+<a id="__codelineno-0-1324" name="__codelineno-0-1324"></a>                <span class="p">)</span>
+<a id="__codelineno-0-1325" name="__codelineno-0-1325"></a>            <span class="p">)</span>
+<a id="__codelineno-0-1326" name="__codelineno-0-1326"></a>
+<a id="__codelineno-0-1327" name="__codelineno-0-1327"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-1328" name="__codelineno-0-1328"></a>            <span class="n">indices</span> <span class="o">=</span> <span class="n">mask_non_max_suppression</span><span class="p">(</span>
+<a id="__codelineno-0-1329" name="__codelineno-0-1329"></a>                <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span> <span class="n">masks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span> <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span>
+<a id="__codelineno-0-1330" name="__codelineno-0-1330"></a>            <span class="p">)</span>
+<a id="__codelineno-0-1331" name="__codelineno-0-1331"></a>        <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-0-1332" name="__codelineno-0-1332"></a>            <span class="n">indices</span> <span class="o">=</span> <span class="n">box_non_max_suppression</span><span class="p">(</span>
+<a id="__codelineno-0-1333" name="__codelineno-0-1333"></a>                <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span> <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span>
+<a id="__codelineno-0-1334" name="__codelineno-0-1334"></a>            <span class="p">)</span>
 <a id="__codelineno-0-1335" name="__codelineno-0-1335"></a>
-<a id="__codelineno-0-1336" name="__codelineno-0-1336"></a>    <span class="k">def</span> <span class="nf">with_nmm</span><span class="p">(</span>
-<a id="__codelineno-0-1337" name="__codelineno-0-1337"></a>        <span class="bp">self</span><span class="p">,</span> <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">class_agnostic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
-<a id="__codelineno-0-1338" name="__codelineno-0-1338"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
-<a id="__codelineno-0-1339" name="__codelineno-0-1339"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-1340" name="__codelineno-0-1340"></a><span class="sd">        Perform non-maximum merging on the current set of object detections.</span>
-<a id="__codelineno-0-1341" name="__codelineno-0-1341"></a>
-<a id="__codelineno-0-1342" name="__codelineno-0-1342"></a><span class="sd">        Args:</span>
-<a id="__codelineno-0-1343" name="__codelineno-0-1343"></a><span class="sd">            threshold (float): The intersection-over-union threshold</span>
-<a id="__codelineno-0-1344" name="__codelineno-0-1344"></a><span class="sd">                to use for non-maximum merging. Defaults to 0.5.</span>
-<a id="__codelineno-0-1345" name="__codelineno-0-1345"></a><span class="sd">            class_agnostic (bool): Whether to perform class-agnostic</span>
-<a id="__codelineno-0-1346" name="__codelineno-0-1346"></a><span class="sd">                non-maximum merging. If True, the class_id of each detection</span>
-<a id="__codelineno-0-1347" name="__codelineno-0-1347"></a><span class="sd">                will be ignored. Defaults to False.</span>
-<a id="__codelineno-0-1348" name="__codelineno-0-1348"></a>
-<a id="__codelineno-0-1349" name="__codelineno-0-1349"></a><span class="sd">        Returns:</span>
-<a id="__codelineno-0-1350" name="__codelineno-0-1350"></a><span class="sd">            Detections: A new Detections object containing the subset of detections</span>
-<a id="__codelineno-0-1351" name="__codelineno-0-1351"></a><span class="sd">                after non-maximum merging.</span>
-<a id="__codelineno-0-1352" name="__codelineno-0-1352"></a>
-<a id="__codelineno-0-1353" name="__codelineno-0-1353"></a><span class="sd">        Raises:</span>
-<a id="__codelineno-0-1354" name="__codelineno-0-1354"></a><span class="sd">            AssertionError: If `confidence` is None or `class_id` is None and</span>
-<a id="__codelineno-0-1355" name="__codelineno-0-1355"></a><span class="sd">                class_agnostic is False.</span>
-<a id="__codelineno-0-1356" name="__codelineno-0-1356"></a>
-<a id="__codelineno-0-1357" name="__codelineno-0-1357"></a><span class="sd">        ![non-max-merging](https://media.roboflow.com/supervision-docs/non-max-merging.png){ align=center width=&quot;800&quot; }</span>
-<a id="__codelineno-0-1358" name="__codelineno-0-1358"></a><span class="sd">        &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
-<a id="__codelineno-0-1359" name="__codelineno-0-1359"></a>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-<a id="__codelineno-0-1360" name="__codelineno-0-1360"></a>            <span class="k">return</span> <span class="bp">self</span>
-<a id="__codelineno-0-1361" name="__codelineno-0-1361"></a>
-<a id="__codelineno-0-1362" name="__codelineno-0-1362"></a>        <span class="k">assert</span> <span class="p">(</span>
-<a id="__codelineno-0-1363" name="__codelineno-0-1363"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-<a id="__codelineno-0-1364" name="__codelineno-0-1364"></a>        <span class="p">),</span> <span class="s2">&quot;Detections confidence must be given for NMM to be executed.&quot;</span>
-<a id="__codelineno-0-1365" name="__codelineno-0-1365"></a>
-<a id="__codelineno-0-1366" name="__codelineno-0-1366"></a>        <span class="k">if</span> <span class="n">class_agnostic</span><span class="p">:</span>
-<a id="__codelineno-0-1367" name="__codelineno-0-1367"></a>            <span class="n">predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
-<a id="__codelineno-0-1368" name="__codelineno-0-1368"></a>        <span class="k">else</span><span class="p">:</span>
-<a id="__codelineno-0-1369" name="__codelineno-0-1369"></a>            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
-<a id="__codelineno-0-1370" name="__codelineno-0-1370"></a>                <span class="s2">&quot;Detections class_id must be given for NMM to be executed. If you&quot;</span>
-<a id="__codelineno-0-1371" name="__codelineno-0-1371"></a>                <span class="s2">&quot; intended to perform class agnostic NMM set class_agnostic=True.&quot;</span>
-<a id="__codelineno-0-1372" name="__codelineno-0-1372"></a>            <span class="p">)</span>
-<a id="__codelineno-0-1373" name="__codelineno-0-1373"></a>            <span class="n">predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span>
-<a id="__codelineno-0-1374" name="__codelineno-0-1374"></a>                <span class="p">(</span>
-<a id="__codelineno-0-1375" name="__codelineno-0-1375"></a>                    <span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">,</span>
-<a id="__codelineno-0-1376" name="__codelineno-0-1376"></a>                    <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
-<a id="__codelineno-0-1377" name="__codelineno-0-1377"></a>                    <span class="bp">self</span><span class="o">.</span><span class="n">class_id</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
-<a id="__codelineno-0-1378" name="__codelineno-0-1378"></a>                <span class="p">)</span>
-<a id="__codelineno-0-1379" name="__codelineno-0-1379"></a>            <span class="p">)</span>
-<a id="__codelineno-0-1380" name="__codelineno-0-1380"></a>
-<a id="__codelineno-0-1381" name="__codelineno-0-1381"></a>        <span class="n">merge_groups</span> <span class="o">=</span> <span class="n">box_non_max_merge</span><span class="p">(</span>
-<a id="__codelineno-0-1382" name="__codelineno-0-1382"></a>            <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span> <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span>
-<a id="__codelineno-0-1383" name="__codelineno-0-1383"></a>        <span class="p">)</span>
-<a id="__codelineno-0-1384" name="__codelineno-0-1384"></a>
-<a id="__codelineno-0-1385" name="__codelineno-0-1385"></a>        <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
-<a id="__codelineno-0-1386" name="__codelineno-0-1386"></a>        <span class="k">for</span> <span class="n">merge_group</span> <span class="ow">in</span> <span class="n">merge_groups</span><span class="p">:</span>
-<a id="__codelineno-0-1387" name="__codelineno-0-1387"></a>            <span class="n">unmerged_detections</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">merge_group</span><span class="p">]</span>
-<a id="__codelineno-0-1388" name="__codelineno-0-1388"></a>            <span class="n">merged_detections</span> <span class="o">=</span> <span class="n">merge_inner_detections_objects</span><span class="p">(</span>
-<a id="__codelineno-0-1389" name="__codelineno-0-1389"></a>                <span class="n">unmerged_detections</span><span class="p">,</span> <span class="n">threshold</span>
-<a id="__codelineno-0-1390" name="__codelineno-0-1390"></a>            <span class="p">)</span>
-<a id="__codelineno-0-1391" name="__codelineno-0-1391"></a>            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">merged_detections</span><span class="p">)</span>
-<a id="__codelineno-0-1392" name="__codelineno-0-1392"></a>
-<a id="__codelineno-0-1393" name="__codelineno-0-1393"></a>        <span class="k">return</span> <span class="n">Detections</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+<a id="__codelineno-0-1336" name="__codelineno-0-1336"></a>        <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="n">indices</span><span class="p">]</span>
+<a id="__codelineno-0-1337" name="__codelineno-0-1337"></a>
+<a id="__codelineno-0-1338" name="__codelineno-0-1338"></a>    <span class="k">def</span> <span class="nf">with_nmm</span><span class="p">(</span>
+<a id="__codelineno-0-1339" name="__codelineno-0-1339"></a>        <span class="bp">self</span><span class="p">,</span> <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">class_agnostic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<a id="__codelineno-0-1340" name="__codelineno-0-1340"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+<a id="__codelineno-0-1341" name="__codelineno-0-1341"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-1342" name="__codelineno-0-1342"></a><span class="sd">        Perform non-maximum merging on the current set of object detections.</span>
+<a id="__codelineno-0-1343" name="__codelineno-0-1343"></a>
+<a id="__codelineno-0-1344" name="__codelineno-0-1344"></a><span class="sd">        Args:</span>
+<a id="__codelineno-0-1345" name="__codelineno-0-1345"></a><span class="sd">            threshold (float): The intersection-over-union threshold</span>
+<a id="__codelineno-0-1346" name="__codelineno-0-1346"></a><span class="sd">                to use for non-maximum merging. Defaults to 0.5.</span>
+<a id="__codelineno-0-1347" name="__codelineno-0-1347"></a><span class="sd">            class_agnostic (bool): Whether to perform class-agnostic</span>
+<a id="__codelineno-0-1348" name="__codelineno-0-1348"></a><span class="sd">                non-maximum merging. If True, the class_id of each detection</span>
+<a id="__codelineno-0-1349" name="__codelineno-0-1349"></a><span class="sd">                will be ignored. Defaults to False.</span>
+<a id="__codelineno-0-1350" name="__codelineno-0-1350"></a>
+<a id="__codelineno-0-1351" name="__codelineno-0-1351"></a><span class="sd">        Returns:</span>
+<a id="__codelineno-0-1352" name="__codelineno-0-1352"></a><span class="sd">            Detections: A new Detections object containing the subset of detections</span>
+<a id="__codelineno-0-1353" name="__codelineno-0-1353"></a><span class="sd">                after non-maximum merging.</span>
+<a id="__codelineno-0-1354" name="__codelineno-0-1354"></a>
+<a id="__codelineno-0-1355" name="__codelineno-0-1355"></a><span class="sd">        Raises:</span>
+<a id="__codelineno-0-1356" name="__codelineno-0-1356"></a><span class="sd">            AssertionError: If `confidence` is None or `class_id` is None and</span>
+<a id="__codelineno-0-1357" name="__codelineno-0-1357"></a><span class="sd">                class_agnostic is False.</span>
+<a id="__codelineno-0-1358" name="__codelineno-0-1358"></a>
+<a id="__codelineno-0-1359" name="__codelineno-0-1359"></a><span class="sd">        ![non-max-merging](https://media.roboflow.com/supervision-docs/non-max-merging.png){ align=center width=&quot;800&quot; }</span>
+<a id="__codelineno-0-1360" name="__codelineno-0-1360"></a><span class="sd">        &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
+<a id="__codelineno-0-1361" name="__codelineno-0-1361"></a>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+<a id="__codelineno-0-1362" name="__codelineno-0-1362"></a>            <span class="k">return</span> <span class="bp">self</span>
+<a id="__codelineno-0-1363" name="__codelineno-0-1363"></a>
+<a id="__codelineno-0-1364" name="__codelineno-0-1364"></a>        <span class="k">assert</span> <span class="p">(</span>
+<a id="__codelineno-0-1365" name="__codelineno-0-1365"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+<a id="__codelineno-0-1366" name="__codelineno-0-1366"></a>        <span class="p">),</span> <span class="s2">&quot;Detections confidence must be given for NMM to be executed.&quot;</span>
+<a id="__codelineno-0-1367" name="__codelineno-0-1367"></a>
+<a id="__codelineno-0-1368" name="__codelineno-0-1368"></a>        <span class="k">if</span> <span class="n">class_agnostic</span><span class="p">:</span>
+<a id="__codelineno-0-1369" name="__codelineno-0-1369"></a>            <span class="n">predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
+<a id="__codelineno-0-1370" name="__codelineno-0-1370"></a>        <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-0-1371" name="__codelineno-0-1371"></a>            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
+<a id="__codelineno-0-1372" name="__codelineno-0-1372"></a>                <span class="s2">&quot;Detections class_id must be given for NMM to be executed. If you&quot;</span>
+<a id="__codelineno-0-1373" name="__codelineno-0-1373"></a>                <span class="s2">&quot; intended to perform class agnostic NMM set class_agnostic=True.&quot;</span>
+<a id="__codelineno-0-1374" name="__codelineno-0-1374"></a>            <span class="p">)</span>
+<a id="__codelineno-0-1375" name="__codelineno-0-1375"></a>            <span class="n">predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span>
+<a id="__codelineno-0-1376" name="__codelineno-0-1376"></a>                <span class="p">(</span>
+<a id="__codelineno-0-1377" name="__codelineno-0-1377"></a>                    <span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">,</span>
+<a id="__codelineno-0-1378" name="__codelineno-0-1378"></a>                    <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+<a id="__codelineno-0-1379" name="__codelineno-0-1379"></a>                    <span class="bp">self</span><span class="o">.</span><span class="n">class_id</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+<a id="__codelineno-0-1380" name="__codelineno-0-1380"></a>                <span class="p">)</span>
+<a id="__codelineno-0-1381" name="__codelineno-0-1381"></a>            <span class="p">)</span>
+<a id="__codelineno-0-1382" name="__codelineno-0-1382"></a>
+<a id="__codelineno-0-1383" name="__codelineno-0-1383"></a>        <span class="n">merge_groups</span> <span class="o">=</span> <span class="n">box_non_max_merge</span><span class="p">(</span>
+<a id="__codelineno-0-1384" name="__codelineno-0-1384"></a>            <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span> <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span>
+<a id="__codelineno-0-1385" name="__codelineno-0-1385"></a>        <span class="p">)</span>
+<a id="__codelineno-0-1386" name="__codelineno-0-1386"></a>
+<a id="__codelineno-0-1387" name="__codelineno-0-1387"></a>        <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="__codelineno-0-1388" name="__codelineno-0-1388"></a>        <span class="k">for</span> <span class="n">merge_group</span> <span class="ow">in</span> <span class="n">merge_groups</span><span class="p">:</span>
+<a id="__codelineno-0-1389" name="__codelineno-0-1389"></a>            <span class="n">unmerged_detections</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">merge_group</span><span class="p">]</span>
+<a id="__codelineno-0-1390" name="__codelineno-0-1390"></a>            <span class="n">merged_detections</span> <span class="o">=</span> <span class="n">merge_inner_detections_objects</span><span class="p">(</span>
+<a id="__codelineno-0-1391" name="__codelineno-0-1391"></a>                <span class="n">unmerged_detections</span><span class="p">,</span> <span class="n">threshold</span>
+<a id="__codelineno-0-1392" name="__codelineno-0-1392"></a>            <span class="p">)</span>
+<a id="__codelineno-0-1393" name="__codelineno-0-1393"></a>            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">merged_detections</span><span class="p">)</span>
+<a id="__codelineno-0-1394" name="__codelineno-0-1394"></a>
+<a id="__codelineno-0-1395" name="__codelineno-0-1395"></a>        <span class="k">return</span> <span class="n">Detections</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
               </details>
 
@@ -6515,7 +6519,9 @@ the data field.</p>
 <span class="normal"><a href="#__codelineno-0-1211">1211</a></span>
 <span class="normal"><a href="#__codelineno-0-1212">1212</a></span>
 <span class="normal"><a href="#__codelineno-0-1213">1213</a></span>
-<span class="normal"><a href="#__codelineno-0-1214">1214</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-1168" name="__codelineno-0-1168"></a><span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span>
+<span class="normal"><a href="#__codelineno-0-1214">1214</a></span>
+<span class="normal"><a href="#__codelineno-0-1215">1215</a></span>
+<span class="normal"><a href="#__codelineno-0-1216">1216</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-1168" name="__codelineno-0-1168"></a><span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span>
 <a id="__codelineno-0-1169" name="__codelineno-0-1169"></a>    <span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">slice</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
 <a id="__codelineno-0-1170" name="__codelineno-0-1170"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Detections</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
 <a id="__codelineno-0-1171" name="__codelineno-0-1171"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -6551,17 +6557,19 @@ the data field.</p>
 <a id="__codelineno-0-1201" name="__codelineno-0-1201"></a><span class="sd">    &quot;&quot;&quot;</span>
 <a id="__codelineno-0-1202" name="__codelineno-0-1202"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
 <a id="__codelineno-0-1203" name="__codelineno-0-1203"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
-<a id="__codelineno-0-1204" name="__codelineno-0-1204"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
-<a id="__codelineno-0-1205" name="__codelineno-0-1205"></a>        <span class="n">index</span> <span class="o">=</span> <span class="p">[</span><span class="n">index</span><span class="p">]</span>
-<a id="__codelineno-0-1206" name="__codelineno-0-1206"></a>    <span class="k">return</span> <span class="n">Detections</span><span class="p">(</span>
-<a id="__codelineno-0-1207" name="__codelineno-0-1207"></a>        <span class="n">xyxy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">[</span><span class="n">index</span><span class="p">],</span>
-<a id="__codelineno-0-1208" name="__codelineno-0-1208"></a>        <span class="n">mask</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-1209" name="__codelineno-0-1209"></a>        <span class="n">confidence</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-1210" name="__codelineno-0-1210"></a>        <span class="n">class_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">class_id</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-1211" name="__codelineno-0-1211"></a>        <span class="n">tracker_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tracker_id</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tracker_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-1212" name="__codelineno-0-1212"></a>        <span class="n">data</span><span class="o">=</span><span class="n">get_data_item</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">index</span><span class="p">),</span>
-<a id="__codelineno-0-1213" name="__codelineno-0-1213"></a>        <span class="n">metadata</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">,</span>
-<a id="__codelineno-0-1214" name="__codelineno-0-1214"></a>    <span class="p">)</span>
+<a id="__codelineno-0-1204" name="__codelineno-0-1204"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_empty</span><span class="p">():</span>
+<a id="__codelineno-0-1205" name="__codelineno-0-1205"></a>        <span class="k">return</span> <span class="n">Detections</span><span class="o">.</span><span class="n">empty</span><span class="p">()</span>
+<a id="__codelineno-0-1206" name="__codelineno-0-1206"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+<a id="__codelineno-0-1207" name="__codelineno-0-1207"></a>        <span class="n">index</span> <span class="o">=</span> <span class="p">[</span><span class="n">index</span><span class="p">]</span>
+<a id="__codelineno-0-1208" name="__codelineno-0-1208"></a>    <span class="k">return</span> <span class="n">Detections</span><span class="p">(</span>
+<a id="__codelineno-0-1209" name="__codelineno-0-1209"></a>        <span class="n">xyxy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">[</span><span class="n">index</span><span class="p">],</span>
+<a id="__codelineno-0-1210" name="__codelineno-0-1210"></a>        <span class="n">mask</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-1211" name="__codelineno-0-1211"></a>        <span class="n">confidence</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-1212" name="__codelineno-0-1212"></a>        <span class="n">class_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">class_id</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-1213" name="__codelineno-0-1213"></a>        <span class="n">tracker_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tracker_id</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tracker_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-1214" name="__codelineno-0-1214"></a>        <span class="n">data</span><span class="o">=</span><span class="n">get_data_item</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">index</span><span class="p">),</span>
+<a id="__codelineno-0-1215" name="__codelineno-0-1215"></a>        <span class="n">metadata</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">,</span>
+<a id="__codelineno-0-1216" name="__codelineno-0-1216"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -6751,9 +6759,7 @@ the data field.</p>
 </details>
             <details class="quote">
               <summary>Source code in <code>supervision/detection/core.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1216">1216</a></span>
-<span class="normal"><a href="#__codelineno-0-1217">1217</a></span>
-<span class="normal"><a href="#__codelineno-0-1218">1218</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1218">1218</a></span>
 <span class="normal"><a href="#__codelineno-0-1219">1219</a></span>
 <span class="normal"><a href="#__codelineno-0-1220">1220</a></span>
 <span class="normal"><a href="#__codelineno-0-1221">1221</a></span>
@@ -6784,40 +6790,42 @@ the data field.</p>
 <span class="normal"><a href="#__codelineno-0-1246">1246</a></span>
 <span class="normal"><a href="#__codelineno-0-1247">1247</a></span>
 <span class="normal"><a href="#__codelineno-0-1248">1248</a></span>
-<span class="normal"><a href="#__codelineno-0-1249">1249</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-1216" name="__codelineno-0-1216"></a><span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">List</span><span class="p">]):</span>
-<a id="__codelineno-0-1217" name="__codelineno-0-1217"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-1218" name="__codelineno-0-1218"></a><span class="sd">    Set a value in the data dictionary of the Detections object.</span>
-<a id="__codelineno-0-1219" name="__codelineno-0-1219"></a>
-<a id="__codelineno-0-1220" name="__codelineno-0-1220"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-1221" name="__codelineno-0-1221"></a><span class="sd">        key (str): The key in the data dictionary to set.</span>
-<a id="__codelineno-0-1222" name="__codelineno-0-1222"></a><span class="sd">        value (Union[np.ndarray, List]): The value to set for the key.</span>
-<a id="__codelineno-0-1223" name="__codelineno-0-1223"></a>
-<a id="__codelineno-0-1224" name="__codelineno-0-1224"></a><span class="sd">    Example:</span>
-<a id="__codelineno-0-1225" name="__codelineno-0-1225"></a><span class="sd">        ```python</span>
-<a id="__codelineno-0-1226" name="__codelineno-0-1226"></a><span class="sd">        import cv2</span>
-<a id="__codelineno-0-1227" name="__codelineno-0-1227"></a><span class="sd">        import supervision as sv</span>
-<a id="__codelineno-0-1228" name="__codelineno-0-1228"></a><span class="sd">        from ultralytics import YOLO</span>
-<a id="__codelineno-0-1229" name="__codelineno-0-1229"></a>
-<a id="__codelineno-0-1230" name="__codelineno-0-1230"></a><span class="sd">        image = cv2.imread(&lt;SOURCE_IMAGE_PATH&gt;)</span>
-<a id="__codelineno-0-1231" name="__codelineno-0-1231"></a><span class="sd">        model = YOLO(&#39;yolov8s.pt&#39;)</span>
-<a id="__codelineno-0-1232" name="__codelineno-0-1232"></a>
-<a id="__codelineno-0-1233" name="__codelineno-0-1233"></a><span class="sd">        result = model(image)[0]</span>
-<a id="__codelineno-0-1234" name="__codelineno-0-1234"></a><span class="sd">        detections = sv.Detections.from_ultralytics(result)</span>
-<a id="__codelineno-0-1235" name="__codelineno-0-1235"></a>
-<a id="__codelineno-0-1236" name="__codelineno-0-1236"></a><span class="sd">        detections[&#39;names&#39;] = [</span>
-<a id="__codelineno-0-1237" name="__codelineno-0-1237"></a><span class="sd">             model.model.names[class_id]</span>
-<a id="__codelineno-0-1238" name="__codelineno-0-1238"></a><span class="sd">             for class_id</span>
-<a id="__codelineno-0-1239" name="__codelineno-0-1239"></a><span class="sd">             in detections.class_id</span>
-<a id="__codelineno-0-1240" name="__codelineno-0-1240"></a><span class="sd">         ]</span>
-<a id="__codelineno-0-1241" name="__codelineno-0-1241"></a><span class="sd">        ```</span>
-<a id="__codelineno-0-1242" name="__codelineno-0-1242"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-1243" name="__codelineno-0-1243"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
-<a id="__codelineno-0-1244" name="__codelineno-0-1244"></a>        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Value must be a np.ndarray or a list&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-1245" name="__codelineno-0-1245"></a>
-<a id="__codelineno-0-1246" name="__codelineno-0-1246"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-<a id="__codelineno-0-1247" name="__codelineno-0-1247"></a>        <span class="n">value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
-<a id="__codelineno-0-1248" name="__codelineno-0-1248"></a>
-<a id="__codelineno-0-1249" name="__codelineno-0-1249"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+<span class="normal"><a href="#__codelineno-0-1249">1249</a></span>
+<span class="normal"><a href="#__codelineno-0-1250">1250</a></span>
+<span class="normal"><a href="#__codelineno-0-1251">1251</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-1218" name="__codelineno-0-1218"></a><span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">List</span><span class="p">]):</span>
+<a id="__codelineno-0-1219" name="__codelineno-0-1219"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-1220" name="__codelineno-0-1220"></a><span class="sd">    Set a value in the data dictionary of the Detections object.</span>
+<a id="__codelineno-0-1221" name="__codelineno-0-1221"></a>
+<a id="__codelineno-0-1222" name="__codelineno-0-1222"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-1223" name="__codelineno-0-1223"></a><span class="sd">        key (str): The key in the data dictionary to set.</span>
+<a id="__codelineno-0-1224" name="__codelineno-0-1224"></a><span class="sd">        value (Union[np.ndarray, List]): The value to set for the key.</span>
+<a id="__codelineno-0-1225" name="__codelineno-0-1225"></a>
+<a id="__codelineno-0-1226" name="__codelineno-0-1226"></a><span class="sd">    Example:</span>
+<a id="__codelineno-0-1227" name="__codelineno-0-1227"></a><span class="sd">        ```python</span>
+<a id="__codelineno-0-1228" name="__codelineno-0-1228"></a><span class="sd">        import cv2</span>
+<a id="__codelineno-0-1229" name="__codelineno-0-1229"></a><span class="sd">        import supervision as sv</span>
+<a id="__codelineno-0-1230" name="__codelineno-0-1230"></a><span class="sd">        from ultralytics import YOLO</span>
+<a id="__codelineno-0-1231" name="__codelineno-0-1231"></a>
+<a id="__codelineno-0-1232" name="__codelineno-0-1232"></a><span class="sd">        image = cv2.imread(&lt;SOURCE_IMAGE_PATH&gt;)</span>
+<a id="__codelineno-0-1233" name="__codelineno-0-1233"></a><span class="sd">        model = YOLO(&#39;yolov8s.pt&#39;)</span>
+<a id="__codelineno-0-1234" name="__codelineno-0-1234"></a>
+<a id="__codelineno-0-1235" name="__codelineno-0-1235"></a><span class="sd">        result = model(image)[0]</span>
+<a id="__codelineno-0-1236" name="__codelineno-0-1236"></a><span class="sd">        detections = sv.Detections.from_ultralytics(result)</span>
+<a id="__codelineno-0-1237" name="__codelineno-0-1237"></a>
+<a id="__codelineno-0-1238" name="__codelineno-0-1238"></a><span class="sd">        detections[&#39;names&#39;] = [</span>
+<a id="__codelineno-0-1239" name="__codelineno-0-1239"></a><span class="sd">             model.model.names[class_id]</span>
+<a id="__codelineno-0-1240" name="__codelineno-0-1240"></a><span class="sd">             for class_id</span>
+<a id="__codelineno-0-1241" name="__codelineno-0-1241"></a><span class="sd">             in detections.class_id</span>
+<a id="__codelineno-0-1242" name="__codelineno-0-1242"></a><span class="sd">         ]</span>
+<a id="__codelineno-0-1243" name="__codelineno-0-1243"></a><span class="sd">        ```</span>
+<a id="__codelineno-0-1244" name="__codelineno-0-1244"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-1245" name="__codelineno-0-1245"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+<a id="__codelineno-0-1246" name="__codelineno-0-1246"></a>        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Value must be a np.ndarray or a list&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-1247" name="__codelineno-0-1247"></a>
+<a id="__codelineno-0-1248" name="__codelineno-0-1248"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+<a id="__codelineno-0-1249" name="__codelineno-0-1249"></a>        <span class="n">value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+<a id="__codelineno-0-1250" name="__codelineno-0-1250"></a>
+<a id="__codelineno-0-1251" name="__codelineno-0-1251"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -10710,9 +10718,7 @@ class_agnostic is False.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/detection/core.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1336">1336</a></span>
-<span class="normal"><a href="#__codelineno-0-1337">1337</a></span>
-<span class="normal"><a href="#__codelineno-0-1338">1338</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1338">1338</a></span>
 <span class="normal"><a href="#__codelineno-0-1339">1339</a></span>
 <span class="normal"><a href="#__codelineno-0-1340">1340</a></span>
 <span class="normal"><a href="#__codelineno-0-1341">1341</a></span>
@@ -10767,64 +10773,66 @@ class_agnostic is False.</p>
 <span class="normal"><a href="#__codelineno-0-1390">1390</a></span>
 <span class="normal"><a href="#__codelineno-0-1391">1391</a></span>
 <span class="normal"><a href="#__codelineno-0-1392">1392</a></span>
-<span class="normal"><a href="#__codelineno-0-1393">1393</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-1336" name="__codelineno-0-1336"></a><span class="k">def</span> <span class="nf">with_nmm</span><span class="p">(</span>
-<a id="__codelineno-0-1337" name="__codelineno-0-1337"></a>    <span class="bp">self</span><span class="p">,</span> <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">class_agnostic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
-<a id="__codelineno-0-1338" name="__codelineno-0-1338"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
-<a id="__codelineno-0-1339" name="__codelineno-0-1339"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-1340" name="__codelineno-0-1340"></a><span class="sd">    Perform non-maximum merging on the current set of object detections.</span>
-<a id="__codelineno-0-1341" name="__codelineno-0-1341"></a>
-<a id="__codelineno-0-1342" name="__codelineno-0-1342"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-1343" name="__codelineno-0-1343"></a><span class="sd">        threshold (float): The intersection-over-union threshold</span>
-<a id="__codelineno-0-1344" name="__codelineno-0-1344"></a><span class="sd">            to use for non-maximum merging. Defaults to 0.5.</span>
-<a id="__codelineno-0-1345" name="__codelineno-0-1345"></a><span class="sd">        class_agnostic (bool): Whether to perform class-agnostic</span>
-<a id="__codelineno-0-1346" name="__codelineno-0-1346"></a><span class="sd">            non-maximum merging. If True, the class_id of each detection</span>
-<a id="__codelineno-0-1347" name="__codelineno-0-1347"></a><span class="sd">            will be ignored. Defaults to False.</span>
-<a id="__codelineno-0-1348" name="__codelineno-0-1348"></a>
-<a id="__codelineno-0-1349" name="__codelineno-0-1349"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-1350" name="__codelineno-0-1350"></a><span class="sd">        Detections: A new Detections object containing the subset of detections</span>
-<a id="__codelineno-0-1351" name="__codelineno-0-1351"></a><span class="sd">            after non-maximum merging.</span>
-<a id="__codelineno-0-1352" name="__codelineno-0-1352"></a>
-<a id="__codelineno-0-1353" name="__codelineno-0-1353"></a><span class="sd">    Raises:</span>
-<a id="__codelineno-0-1354" name="__codelineno-0-1354"></a><span class="sd">        AssertionError: If `confidence` is None or `class_id` is None and</span>
-<a id="__codelineno-0-1355" name="__codelineno-0-1355"></a><span class="sd">            class_agnostic is False.</span>
-<a id="__codelineno-0-1356" name="__codelineno-0-1356"></a>
-<a id="__codelineno-0-1357" name="__codelineno-0-1357"></a><span class="sd">    ![non-max-merging](https://media.roboflow.com/supervision-docs/non-max-merging.png){ align=center width=&quot;800&quot; }</span>
-<a id="__codelineno-0-1358" name="__codelineno-0-1358"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
-<a id="__codelineno-0-1359" name="__codelineno-0-1359"></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-<a id="__codelineno-0-1360" name="__codelineno-0-1360"></a>        <span class="k">return</span> <span class="bp">self</span>
-<a id="__codelineno-0-1361" name="__codelineno-0-1361"></a>
-<a id="__codelineno-0-1362" name="__codelineno-0-1362"></a>    <span class="k">assert</span> <span class="p">(</span>
-<a id="__codelineno-0-1363" name="__codelineno-0-1363"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-<a id="__codelineno-0-1364" name="__codelineno-0-1364"></a>    <span class="p">),</span> <span class="s2">&quot;Detections confidence must be given for NMM to be executed.&quot;</span>
-<a id="__codelineno-0-1365" name="__codelineno-0-1365"></a>
-<a id="__codelineno-0-1366" name="__codelineno-0-1366"></a>    <span class="k">if</span> <span class="n">class_agnostic</span><span class="p">:</span>
-<a id="__codelineno-0-1367" name="__codelineno-0-1367"></a>        <span class="n">predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
-<a id="__codelineno-0-1368" name="__codelineno-0-1368"></a>    <span class="k">else</span><span class="p">:</span>
-<a id="__codelineno-0-1369" name="__codelineno-0-1369"></a>        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
-<a id="__codelineno-0-1370" name="__codelineno-0-1370"></a>            <span class="s2">&quot;Detections class_id must be given for NMM to be executed. If you&quot;</span>
-<a id="__codelineno-0-1371" name="__codelineno-0-1371"></a>            <span class="s2">&quot; intended to perform class agnostic NMM set class_agnostic=True.&quot;</span>
-<a id="__codelineno-0-1372" name="__codelineno-0-1372"></a>        <span class="p">)</span>
-<a id="__codelineno-0-1373" name="__codelineno-0-1373"></a>        <span class="n">predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span>
-<a id="__codelineno-0-1374" name="__codelineno-0-1374"></a>            <span class="p">(</span>
-<a id="__codelineno-0-1375" name="__codelineno-0-1375"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">,</span>
-<a id="__codelineno-0-1376" name="__codelineno-0-1376"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
-<a id="__codelineno-0-1377" name="__codelineno-0-1377"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">class_id</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
-<a id="__codelineno-0-1378" name="__codelineno-0-1378"></a>            <span class="p">)</span>
-<a id="__codelineno-0-1379" name="__codelineno-0-1379"></a>        <span class="p">)</span>
-<a id="__codelineno-0-1380" name="__codelineno-0-1380"></a>
-<a id="__codelineno-0-1381" name="__codelineno-0-1381"></a>    <span class="n">merge_groups</span> <span class="o">=</span> <span class="n">box_non_max_merge</span><span class="p">(</span>
-<a id="__codelineno-0-1382" name="__codelineno-0-1382"></a>        <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span> <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span>
-<a id="__codelineno-0-1383" name="__codelineno-0-1383"></a>    <span class="p">)</span>
-<a id="__codelineno-0-1384" name="__codelineno-0-1384"></a>
-<a id="__codelineno-0-1385" name="__codelineno-0-1385"></a>    <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
-<a id="__codelineno-0-1386" name="__codelineno-0-1386"></a>    <span class="k">for</span> <span class="n">merge_group</span> <span class="ow">in</span> <span class="n">merge_groups</span><span class="p">:</span>
-<a id="__codelineno-0-1387" name="__codelineno-0-1387"></a>        <span class="n">unmerged_detections</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">merge_group</span><span class="p">]</span>
-<a id="__codelineno-0-1388" name="__codelineno-0-1388"></a>        <span class="n">merged_detections</span> <span class="o">=</span> <span class="n">merge_inner_detections_objects</span><span class="p">(</span>
-<a id="__codelineno-0-1389" name="__codelineno-0-1389"></a>            <span class="n">unmerged_detections</span><span class="p">,</span> <span class="n">threshold</span>
-<a id="__codelineno-0-1390" name="__codelineno-0-1390"></a>        <span class="p">)</span>
-<a id="__codelineno-0-1391" name="__codelineno-0-1391"></a>        <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">merged_detections</span><span class="p">)</span>
-<a id="__codelineno-0-1392" name="__codelineno-0-1392"></a>
-<a id="__codelineno-0-1393" name="__codelineno-0-1393"></a>    <span class="k">return</span> <span class="n">Detections</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+<span class="normal"><a href="#__codelineno-0-1393">1393</a></span>
+<span class="normal"><a href="#__codelineno-0-1394">1394</a></span>
+<span class="normal"><a href="#__codelineno-0-1395">1395</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-1338" name="__codelineno-0-1338"></a><span class="k">def</span> <span class="nf">with_nmm</span><span class="p">(</span>
+<a id="__codelineno-0-1339" name="__codelineno-0-1339"></a>    <span class="bp">self</span><span class="p">,</span> <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">class_agnostic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<a id="__codelineno-0-1340" name="__codelineno-0-1340"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+<a id="__codelineno-0-1341" name="__codelineno-0-1341"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-1342" name="__codelineno-0-1342"></a><span class="sd">    Perform non-maximum merging on the current set of object detections.</span>
+<a id="__codelineno-0-1343" name="__codelineno-0-1343"></a>
+<a id="__codelineno-0-1344" name="__codelineno-0-1344"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-1345" name="__codelineno-0-1345"></a><span class="sd">        threshold (float): The intersection-over-union threshold</span>
+<a id="__codelineno-0-1346" name="__codelineno-0-1346"></a><span class="sd">            to use for non-maximum merging. Defaults to 0.5.</span>
+<a id="__codelineno-0-1347" name="__codelineno-0-1347"></a><span class="sd">        class_agnostic (bool): Whether to perform class-agnostic</span>
+<a id="__codelineno-0-1348" name="__codelineno-0-1348"></a><span class="sd">            non-maximum merging. If True, the class_id of each detection</span>
+<a id="__codelineno-0-1349" name="__codelineno-0-1349"></a><span class="sd">            will be ignored. Defaults to False.</span>
+<a id="__codelineno-0-1350" name="__codelineno-0-1350"></a>
+<a id="__codelineno-0-1351" name="__codelineno-0-1351"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-1352" name="__codelineno-0-1352"></a><span class="sd">        Detections: A new Detections object containing the subset of detections</span>
+<a id="__codelineno-0-1353" name="__codelineno-0-1353"></a><span class="sd">            after non-maximum merging.</span>
+<a id="__codelineno-0-1354" name="__codelineno-0-1354"></a>
+<a id="__codelineno-0-1355" name="__codelineno-0-1355"></a><span class="sd">    Raises:</span>
+<a id="__codelineno-0-1356" name="__codelineno-0-1356"></a><span class="sd">        AssertionError: If `confidence` is None or `class_id` is None and</span>
+<a id="__codelineno-0-1357" name="__codelineno-0-1357"></a><span class="sd">            class_agnostic is False.</span>
+<a id="__codelineno-0-1358" name="__codelineno-0-1358"></a>
+<a id="__codelineno-0-1359" name="__codelineno-0-1359"></a><span class="sd">    ![non-max-merging](https://media.roboflow.com/supervision-docs/non-max-merging.png){ align=center width=&quot;800&quot; }</span>
+<a id="__codelineno-0-1360" name="__codelineno-0-1360"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
+<a id="__codelineno-0-1361" name="__codelineno-0-1361"></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+<a id="__codelineno-0-1362" name="__codelineno-0-1362"></a>        <span class="k">return</span> <span class="bp">self</span>
+<a id="__codelineno-0-1363" name="__codelineno-0-1363"></a>
+<a id="__codelineno-0-1364" name="__codelineno-0-1364"></a>    <span class="k">assert</span> <span class="p">(</span>
+<a id="__codelineno-0-1365" name="__codelineno-0-1365"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+<a id="__codelineno-0-1366" name="__codelineno-0-1366"></a>    <span class="p">),</span> <span class="s2">&quot;Detections confidence must be given for NMM to be executed.&quot;</span>
+<a id="__codelineno-0-1367" name="__codelineno-0-1367"></a>
+<a id="__codelineno-0-1368" name="__codelineno-0-1368"></a>    <span class="k">if</span> <span class="n">class_agnostic</span><span class="p">:</span>
+<a id="__codelineno-0-1369" name="__codelineno-0-1369"></a>        <span class="n">predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
+<a id="__codelineno-0-1370" name="__codelineno-0-1370"></a>    <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-0-1371" name="__codelineno-0-1371"></a>        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
+<a id="__codelineno-0-1372" name="__codelineno-0-1372"></a>            <span class="s2">&quot;Detections class_id must be given for NMM to be executed. If you&quot;</span>
+<a id="__codelineno-0-1373" name="__codelineno-0-1373"></a>            <span class="s2">&quot; intended to perform class agnostic NMM set class_agnostic=True.&quot;</span>
+<a id="__codelineno-0-1374" name="__codelineno-0-1374"></a>        <span class="p">)</span>
+<a id="__codelineno-0-1375" name="__codelineno-0-1375"></a>        <span class="n">predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span>
+<a id="__codelineno-0-1376" name="__codelineno-0-1376"></a>            <span class="p">(</span>
+<a id="__codelineno-0-1377" name="__codelineno-0-1377"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">,</span>
+<a id="__codelineno-0-1378" name="__codelineno-0-1378"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+<a id="__codelineno-0-1379" name="__codelineno-0-1379"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">class_id</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+<a id="__codelineno-0-1380" name="__codelineno-0-1380"></a>            <span class="p">)</span>
+<a id="__codelineno-0-1381" name="__codelineno-0-1381"></a>        <span class="p">)</span>
+<a id="__codelineno-0-1382" name="__codelineno-0-1382"></a>
+<a id="__codelineno-0-1383" name="__codelineno-0-1383"></a>    <span class="n">merge_groups</span> <span class="o">=</span> <span class="n">box_non_max_merge</span><span class="p">(</span>
+<a id="__codelineno-0-1384" name="__codelineno-0-1384"></a>        <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span> <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span>
+<a id="__codelineno-0-1385" name="__codelineno-0-1385"></a>    <span class="p">)</span>
+<a id="__codelineno-0-1386" name="__codelineno-0-1386"></a>
+<a id="__codelineno-0-1387" name="__codelineno-0-1387"></a>    <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="__codelineno-0-1388" name="__codelineno-0-1388"></a>    <span class="k">for</span> <span class="n">merge_group</span> <span class="ow">in</span> <span class="n">merge_groups</span><span class="p">:</span>
+<a id="__codelineno-0-1389" name="__codelineno-0-1389"></a>        <span class="n">unmerged_detections</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">merge_group</span><span class="p">]</span>
+<a id="__codelineno-0-1390" name="__codelineno-0-1390"></a>        <span class="n">merged_detections</span> <span class="o">=</span> <span class="n">merge_inner_detections_objects</span><span class="p">(</span>
+<a id="__codelineno-0-1391" name="__codelineno-0-1391"></a>            <span class="n">unmerged_detections</span><span class="p">,</span> <span class="n">threshold</span>
+<a id="__codelineno-0-1392" name="__codelineno-0-1392"></a>        <span class="p">)</span>
+<a id="__codelineno-0-1393" name="__codelineno-0-1393"></a>        <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">merged_detections</span><span class="p">)</span>
+<a id="__codelineno-0-1394" name="__codelineno-0-1394"></a>
+<a id="__codelineno-0-1395" name="__codelineno-0-1395"></a>    <span class="k">return</span> <span class="n">Detections</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -10946,9 +10954,7 @@ If <code>class_id</code> is None and class_agnostic is False.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/detection/core.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1280">1280</a></span>
-<span class="normal"><a href="#__codelineno-0-1281">1281</a></span>
-<span class="normal"><a href="#__codelineno-0-1282">1282</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1282">1282</a></span>
 <span class="normal"><a href="#__codelineno-0-1283">1283</a></span>
 <span class="normal"><a href="#__codelineno-0-1284">1284</a></span>
 <span class="normal"><a href="#__codelineno-0-1285">1285</a></span>
@@ -11000,61 +11006,63 @@ If <code>class_id</code> is None and class_agnostic is False.</p>
 <span class="normal"><a href="#__codelineno-0-1331">1331</a></span>
 <span class="normal"><a href="#__codelineno-0-1332">1332</a></span>
 <span class="normal"><a href="#__codelineno-0-1333">1333</a></span>
-<span class="normal"><a href="#__codelineno-0-1334">1334</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-1280" name="__codelineno-0-1280"></a><span class="k">def</span> <span class="nf">with_nms</span><span class="p">(</span>
-<a id="__codelineno-0-1281" name="__codelineno-0-1281"></a>    <span class="bp">self</span><span class="p">,</span> <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">class_agnostic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
-<a id="__codelineno-0-1282" name="__codelineno-0-1282"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
-<a id="__codelineno-0-1283" name="__codelineno-0-1283"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-1284" name="__codelineno-0-1284"></a><span class="sd">    Performs non-max suppression on detection set. If the detections result</span>
-<a id="__codelineno-0-1285" name="__codelineno-0-1285"></a><span class="sd">    from a segmentation model, the IoU mask is applied. Otherwise, box IoU is used.</span>
-<a id="__codelineno-0-1286" name="__codelineno-0-1286"></a>
-<a id="__codelineno-0-1287" name="__codelineno-0-1287"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-1288" name="__codelineno-0-1288"></a><span class="sd">        threshold (float): The intersection-over-union threshold</span>
-<a id="__codelineno-0-1289" name="__codelineno-0-1289"></a><span class="sd">            to use for non-maximum suppression. I&#39;m the lower the value the more</span>
-<a id="__codelineno-0-1290" name="__codelineno-0-1290"></a><span class="sd">            restrictive the NMS becomes. Defaults to 0.5.</span>
-<a id="__codelineno-0-1291" name="__codelineno-0-1291"></a><span class="sd">        class_agnostic (bool): Whether to perform class-agnostic</span>
-<a id="__codelineno-0-1292" name="__codelineno-0-1292"></a><span class="sd">            non-maximum suppression. If True, the class_id of each detection</span>
-<a id="__codelineno-0-1293" name="__codelineno-0-1293"></a><span class="sd">            will be ignored. Defaults to False.</span>
-<a id="__codelineno-0-1294" name="__codelineno-0-1294"></a>
-<a id="__codelineno-0-1295" name="__codelineno-0-1295"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-1296" name="__codelineno-0-1296"></a><span class="sd">        Detections: A new Detections object containing the subset of detections</span>
-<a id="__codelineno-0-1297" name="__codelineno-0-1297"></a><span class="sd">            after non-maximum suppression.</span>
-<a id="__codelineno-0-1298" name="__codelineno-0-1298"></a>
-<a id="__codelineno-0-1299" name="__codelineno-0-1299"></a><span class="sd">    Raises:</span>
-<a id="__codelineno-0-1300" name="__codelineno-0-1300"></a><span class="sd">        AssertionError: If `confidence` is None and class_agnostic is False.</span>
-<a id="__codelineno-0-1301" name="__codelineno-0-1301"></a><span class="sd">            If `class_id` is None and class_agnostic is False.</span>
-<a id="__codelineno-0-1302" name="__codelineno-0-1302"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-1303" name="__codelineno-0-1303"></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-<a id="__codelineno-0-1304" name="__codelineno-0-1304"></a>        <span class="k">return</span> <span class="bp">self</span>
-<a id="__codelineno-0-1305" name="__codelineno-0-1305"></a>
-<a id="__codelineno-0-1306" name="__codelineno-0-1306"></a>    <span class="k">assert</span> <span class="p">(</span>
-<a id="__codelineno-0-1307" name="__codelineno-0-1307"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-<a id="__codelineno-0-1308" name="__codelineno-0-1308"></a>    <span class="p">),</span> <span class="s2">&quot;Detections confidence must be given for NMS to be executed.&quot;</span>
-<a id="__codelineno-0-1309" name="__codelineno-0-1309"></a>
-<a id="__codelineno-0-1310" name="__codelineno-0-1310"></a>    <span class="k">if</span> <span class="n">class_agnostic</span><span class="p">:</span>
-<a id="__codelineno-0-1311" name="__codelineno-0-1311"></a>        <span class="n">predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
-<a id="__codelineno-0-1312" name="__codelineno-0-1312"></a>    <span class="k">else</span><span class="p">:</span>
-<a id="__codelineno-0-1313" name="__codelineno-0-1313"></a>        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
-<a id="__codelineno-0-1314" name="__codelineno-0-1314"></a>            <span class="s2">&quot;Detections class_id must be given for NMS to be executed. If you&quot;</span>
-<a id="__codelineno-0-1315" name="__codelineno-0-1315"></a>            <span class="s2">&quot; intended to perform class agnostic NMS set class_agnostic=True.&quot;</span>
-<a id="__codelineno-0-1316" name="__codelineno-0-1316"></a>        <span class="p">)</span>
-<a id="__codelineno-0-1317" name="__codelineno-0-1317"></a>        <span class="n">predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span>
-<a id="__codelineno-0-1318" name="__codelineno-0-1318"></a>            <span class="p">(</span>
-<a id="__codelineno-0-1319" name="__codelineno-0-1319"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">,</span>
-<a id="__codelineno-0-1320" name="__codelineno-0-1320"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
-<a id="__codelineno-0-1321" name="__codelineno-0-1321"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">class_id</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
-<a id="__codelineno-0-1322" name="__codelineno-0-1322"></a>            <span class="p">)</span>
-<a id="__codelineno-0-1323" name="__codelineno-0-1323"></a>        <span class="p">)</span>
-<a id="__codelineno-0-1324" name="__codelineno-0-1324"></a>
-<a id="__codelineno-0-1325" name="__codelineno-0-1325"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-1326" name="__codelineno-0-1326"></a>        <span class="n">indices</span> <span class="o">=</span> <span class="n">mask_non_max_suppression</span><span class="p">(</span>
-<a id="__codelineno-0-1327" name="__codelineno-0-1327"></a>            <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span> <span class="n">masks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span> <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span>
-<a id="__codelineno-0-1328" name="__codelineno-0-1328"></a>        <span class="p">)</span>
-<a id="__codelineno-0-1329" name="__codelineno-0-1329"></a>    <span class="k">else</span><span class="p">:</span>
-<a id="__codelineno-0-1330" name="__codelineno-0-1330"></a>        <span class="n">indices</span> <span class="o">=</span> <span class="n">box_non_max_suppression</span><span class="p">(</span>
-<a id="__codelineno-0-1331" name="__codelineno-0-1331"></a>            <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span> <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span>
-<a id="__codelineno-0-1332" name="__codelineno-0-1332"></a>        <span class="p">)</span>
-<a id="__codelineno-0-1333" name="__codelineno-0-1333"></a>
-<a id="__codelineno-0-1334" name="__codelineno-0-1334"></a>    <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="n">indices</span><span class="p">]</span>
+<span class="normal"><a href="#__codelineno-0-1334">1334</a></span>
+<span class="normal"><a href="#__codelineno-0-1335">1335</a></span>
+<span class="normal"><a href="#__codelineno-0-1336">1336</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-1282" name="__codelineno-0-1282"></a><span class="k">def</span> <span class="nf">with_nms</span><span class="p">(</span>
+<a id="__codelineno-0-1283" name="__codelineno-0-1283"></a>    <span class="bp">self</span><span class="p">,</span> <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">class_agnostic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<a id="__codelineno-0-1284" name="__codelineno-0-1284"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+<a id="__codelineno-0-1285" name="__codelineno-0-1285"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-1286" name="__codelineno-0-1286"></a><span class="sd">    Performs non-max suppression on detection set. If the detections result</span>
+<a id="__codelineno-0-1287" name="__codelineno-0-1287"></a><span class="sd">    from a segmentation model, the IoU mask is applied. Otherwise, box IoU is used.</span>
+<a id="__codelineno-0-1288" name="__codelineno-0-1288"></a>
+<a id="__codelineno-0-1289" name="__codelineno-0-1289"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-1290" name="__codelineno-0-1290"></a><span class="sd">        threshold (float): The intersection-over-union threshold</span>
+<a id="__codelineno-0-1291" name="__codelineno-0-1291"></a><span class="sd">            to use for non-maximum suppression. I&#39;m the lower the value the more</span>
+<a id="__codelineno-0-1292" name="__codelineno-0-1292"></a><span class="sd">            restrictive the NMS becomes. Defaults to 0.5.</span>
+<a id="__codelineno-0-1293" name="__codelineno-0-1293"></a><span class="sd">        class_agnostic (bool): Whether to perform class-agnostic</span>
+<a id="__codelineno-0-1294" name="__codelineno-0-1294"></a><span class="sd">            non-maximum suppression. If True, the class_id of each detection</span>
+<a id="__codelineno-0-1295" name="__codelineno-0-1295"></a><span class="sd">            will be ignored. Defaults to False.</span>
+<a id="__codelineno-0-1296" name="__codelineno-0-1296"></a>
+<a id="__codelineno-0-1297" name="__codelineno-0-1297"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-1298" name="__codelineno-0-1298"></a><span class="sd">        Detections: A new Detections object containing the subset of detections</span>
+<a id="__codelineno-0-1299" name="__codelineno-0-1299"></a><span class="sd">            after non-maximum suppression.</span>
+<a id="__codelineno-0-1300" name="__codelineno-0-1300"></a>
+<a id="__codelineno-0-1301" name="__codelineno-0-1301"></a><span class="sd">    Raises:</span>
+<a id="__codelineno-0-1302" name="__codelineno-0-1302"></a><span class="sd">        AssertionError: If `confidence` is None and class_agnostic is False.</span>
+<a id="__codelineno-0-1303" name="__codelineno-0-1303"></a><span class="sd">            If `class_id` is None and class_agnostic is False.</span>
+<a id="__codelineno-0-1304" name="__codelineno-0-1304"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-1305" name="__codelineno-0-1305"></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+<a id="__codelineno-0-1306" name="__codelineno-0-1306"></a>        <span class="k">return</span> <span class="bp">self</span>
+<a id="__codelineno-0-1307" name="__codelineno-0-1307"></a>
+<a id="__codelineno-0-1308" name="__codelineno-0-1308"></a>    <span class="k">assert</span> <span class="p">(</span>
+<a id="__codelineno-0-1309" name="__codelineno-0-1309"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+<a id="__codelineno-0-1310" name="__codelineno-0-1310"></a>    <span class="p">),</span> <span class="s2">&quot;Detections confidence must be given for NMS to be executed.&quot;</span>
+<a id="__codelineno-0-1311" name="__codelineno-0-1311"></a>
+<a id="__codelineno-0-1312" name="__codelineno-0-1312"></a>    <span class="k">if</span> <span class="n">class_agnostic</span><span class="p">:</span>
+<a id="__codelineno-0-1313" name="__codelineno-0-1313"></a>        <span class="n">predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
+<a id="__codelineno-0-1314" name="__codelineno-0-1314"></a>    <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-0-1315" name="__codelineno-0-1315"></a>        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
+<a id="__codelineno-0-1316" name="__codelineno-0-1316"></a>            <span class="s2">&quot;Detections class_id must be given for NMS to be executed. If you&quot;</span>
+<a id="__codelineno-0-1317" name="__codelineno-0-1317"></a>            <span class="s2">&quot; intended to perform class agnostic NMS set class_agnostic=True.&quot;</span>
+<a id="__codelineno-0-1318" name="__codelineno-0-1318"></a>        <span class="p">)</span>
+<a id="__codelineno-0-1319" name="__codelineno-0-1319"></a>        <span class="n">predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span>
+<a id="__codelineno-0-1320" name="__codelineno-0-1320"></a>            <span class="p">(</span>
+<a id="__codelineno-0-1321" name="__codelineno-0-1321"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">,</span>
+<a id="__codelineno-0-1322" name="__codelineno-0-1322"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+<a id="__codelineno-0-1323" name="__codelineno-0-1323"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">class_id</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+<a id="__codelineno-0-1324" name="__codelineno-0-1324"></a>            <span class="p">)</span>
+<a id="__codelineno-0-1325" name="__codelineno-0-1325"></a>        <span class="p">)</span>
+<a id="__codelineno-0-1326" name="__codelineno-0-1326"></a>
+<a id="__codelineno-0-1327" name="__codelineno-0-1327"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-1328" name="__codelineno-0-1328"></a>        <span class="n">indices</span> <span class="o">=</span> <span class="n">mask_non_max_suppression</span><span class="p">(</span>
+<a id="__codelineno-0-1329" name="__codelineno-0-1329"></a>            <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span> <span class="n">masks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span> <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span>
+<a id="__codelineno-0-1330" name="__codelineno-0-1330"></a>        <span class="p">)</span>
+<a id="__codelineno-0-1331" name="__codelineno-0-1331"></a>    <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-0-1332" name="__codelineno-0-1332"></a>        <span class="n">indices</span> <span class="o">=</span> <span class="n">box_non_max_suppression</span><span class="p">(</span>
+<a id="__codelineno-0-1333" name="__codelineno-0-1333"></a>            <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span> <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span>
+<a id="__codelineno-0-1334" name="__codelineno-0-1334"></a>        <span class="p">)</span>
+<a id="__codelineno-0-1335" name="__codelineno-0-1335"></a>
+<a id="__codelineno-0-1336" name="__codelineno-0-1336"></a>    <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="n">indices</span><span class="p">]</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
