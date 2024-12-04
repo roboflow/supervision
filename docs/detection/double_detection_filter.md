@@ -17,10 +17,23 @@ comments: true
 :::supervision.detection.overlap_filter.box_non_max_suppression
 
 <div class="md-typeset">
+  <h2><a href="#supervision.detection.overlap_filter.box_soft_non_max_suppression">box_soft_non_max_suppression</a></h2>
+</div>
+
+:::supervision.detection.overlap_filter.box_soft_non_max_suppression
+
+
+<div class="md-typeset">
   <h2><a href="#supervision.detection.overlap_filter.mask_non_max_suppression">mask_non_max_suppression</a></h2>
 </div>
 
 :::supervision.detection.overlap_filter.mask_non_max_suppression
+
+<div class="md-typeset">
+  <h2><a href="#supervision.detection.overlap_filter.mask_soft_non_max_suppression">mask_soft_non_max_suppression</a></h2>
+</div>
+
+:::supervision.detection.overlap_filter.mask_soft_non_max_suppression
 
 <div class="md-typeset">
   <h2><a href="#supervision.detection.overlap_filter.box_non_max_merge">box_non_max_merge</a></h2>
