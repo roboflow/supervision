@@ -105,7 +105,7 @@ Let's load a model.
     Similarly to Inference, Ultralytics allows you to run a variety of models.
 
     ```bash
-    pip install ultralytics
+    pip install "ultralytics<=8.3.40"
     ```
 
     ```python
