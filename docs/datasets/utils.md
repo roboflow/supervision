@@ -15,3 +15,9 @@ comments: true
 </div>
 
 :::supervision.dataset.utils.mask_to_rle
+
+<div class="md-typeset">
+  <h2><a href="#supervision.dataset.utils.merge_polygons">merge_polygons</a></h2>
+</div>
+
+:::supervision.dataset.utils.merge_polygons
