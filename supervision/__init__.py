@@ -40,6 +40,7 @@ from supervision.dataset.core import (
 )
 from supervision.dataset.utils import mask_to_rle, rle_to_mask
 from supervision.detection.core import Detections
+from supervision.detection.detection_utils import scale_detections
 from supervision.detection.line_zone import (
     LineZone,
     LineZoneAnnotator,
@@ -219,6 +220,7 @@ __all__ = [
     "resize_image",
     "rle_to_mask",
     "scale_boxes",
+    "scale_detections",
     "scale_image",
     "xcycwh_to_xyxy",
     "xywh_to_xyxy",
