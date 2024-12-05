@@ -24,6 +24,10 @@ def scale_detections(
     Returns:
         Detections: A new Detections object with scaled to target resolution.
     """
+
+    if detections.xyxy is None:
+        return detections
+
     input_w, input_h = resolution_wh
     letterbox_w, letterbox_h = letterbox_wh
 
