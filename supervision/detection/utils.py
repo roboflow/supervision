@@ -11,6 +11,25 @@ from supervision.geometry.core import Vector
 MIN_POLYGON_POINT_COUNT = 3
 
 
+def xyxy_to_polygons(box: np.ndarray) -> np.ndarray:
+    """
+    Convert an array of boxes to an array of polygons.
+    Retains the input datatype.
+
+    Args:
+        box (np.ndarray): An array of boxes (N, 4), where each box is represented as a
+            list of four coordinates in the format `(x_min, y_min, x_max, y_max)`.
+
+    Returns:
+        np.ndarray: An array of polygons (N, 4, 2), where each polygon is
+            represented as a list of four coordinates in the format `(x, y)`.
+    """
+    polygon = np.zeros((box.shape[0], 4, 2), dtype=box.dtype)
+    polygon[:, :, 0] = box[:, [0, 2, 2, 0]]
+    polygon[:, :, 1] = box[:, [1, 1, 3, 3]]
+    return polygon
+
+
 def polygon_to_mask(polygon: np.ndarray, resolution_wh: Tuple[int, int]) -> np.ndarray:
     """Generate a mask from a polygon.
 
