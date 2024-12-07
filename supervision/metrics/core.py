@@ -33,6 +33,20 @@ class Metric(ABC):
         raise NotImplementedError
 
 
+class MetricResult(ABC):
+    """
+    Base class for all metric results.
+    """
+
+    @abstractmethod
+    def to_pandas():
+        raise NotImplementedError()
+
+    @abstractmethod
+    def plot():
+        raise NotImplementedError()
+
+
 class MetricTarget(Enum):
     """
     Specifies what type of detection is used to compute the metric.

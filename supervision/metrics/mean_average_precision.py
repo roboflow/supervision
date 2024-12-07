@@ -15,7 +15,7 @@ from supervision.detection.utils import (
     oriented_box_iou_batch,
 )
 from supervision.draw.color import LEGACY_COLOR_PALETTE
-from supervision.metrics.core import Metric, MetricTarget
+from supervision.metrics.core import Metric, MetricTarget, MetricResult
 from supervision.metrics.utils.object_size import (
     ObjectSizeCategory,
     get_detection_size_category,
@@ -418,7 +418,7 @@ class MeanAveragePrecision(Metric):
 
 
 @dataclass
-class MeanAveragePrecisionResult:
+class MeanAveragePrecisionResult(MetricResult):
     """
     The result of the Mean Average Precision calculation.
 

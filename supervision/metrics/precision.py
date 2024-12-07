@@ -15,7 +15,7 @@ from supervision.detection.utils import (
     oriented_box_iou_batch,
 )
 from supervision.draw.color import LEGACY_COLOR_PALETTE
-from supervision.metrics.core import AveragingMethod, Metric, MetricTarget
+from supervision.metrics.core import AveragingMethod, Metric, MetricTarget, MetricResult
 from supervision.metrics.utils.object_size import (
     ObjectSizeCategory,
     get_detection_size_category,
@@ -458,7 +458,7 @@ class Precision(Metric):
 
 
 @dataclass
-class PrecisionResult:
+class PrecisionResult(MetricResult):
     """
     The results of the precision metric calculation.
 
