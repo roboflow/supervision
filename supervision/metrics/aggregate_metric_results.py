@@ -13,7 +13,22 @@ def aggregate_metric_results(
     include_object_sizes=False,
 ) -> "pd.DataFrame":
     """
-    Raises when different types of metrics results are passed in
+    Convert a list of results to a pandas DataFrame.
+
+    Args:
+        metrics_results (List[MetricResult]): List of results to be aggregated.
+        model_names (List[str]): List of model names corresponding to the results.
+        include_object_sizes (bool, optional): Whether to include object sizes in the
+            DataFrame. Defaults to False.
+
+    Raises:
+        ValueError: `metrics_results` can not be empty
+        ValueError: All elements of `metrics_results` must be of the same type
+        ValueError: Base class of elements in `metrics_results` must be of type
+            `MetricResult`
+
+    Returns:
+        pd.DataFrame: The results as a DataFrame.
     """
     ensure_pandas_installed()
     import pandas as pd
@@ -46,4 +61,3 @@ def aggregate_metric_results(
         df_merged = df_merged.drop(columns=list(df_merged.filter(regex=regex_pattern)))
 
     return df_merged
-
