@@ -12,20 +12,20 @@ jobs:
     permissions:
       contents: read
       pull-requests: write  # Required for commenting on PRs
-    
+
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    
+
     steps:
     - name: Fetch pull request branch
       uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
       with:
         repository: ${{ github.event.pull_request.head.repo.full_name }}
         ref: ${{ github.event.pull_request.head.sha }}
-        
+
     - name: Fetch base develop branch
       run: git fetch -u "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" develop:develop
-      
+
     - name: Create message
       env:
         HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}

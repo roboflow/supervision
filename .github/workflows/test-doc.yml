@@ -16,12 +16,12 @@ jobs:
     steps:
       - name: 🔄 Checkout code
         uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
-        
+
       - name: 🐍 Set up Python
         uses: actions/setup-python@b64ffcaf5b410884ad320a9cfac8866006a109aa # v5.0.0
         with:
           python-version: '3.10'
-          
+
       - name: 🏗️ Install dependencies and Test Docs Build
         run: |
           python -m pip install --upgrade pip

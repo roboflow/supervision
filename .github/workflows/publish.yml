@@ -24,7 +24,7 @@ jobs:
         uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
         with:
           ref: ${{ github.head_ref }}
-          
+
       - name: 🐍 Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@b64ffcaf5b410884ad320a9cfac8866006a109aa # v5.0.0
         with:

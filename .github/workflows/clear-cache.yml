@@ -24,7 +24,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
             })
-            
+
             let deletedCount = 0
             for (const cache of caches.data.actions_caches) {
               console.log(`Deleting cache: ${cache.key} (${cache.size_in_bytes} bytes)`)
