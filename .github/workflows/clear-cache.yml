@@ -2,32 +2,41 @@
 name: Clear cache
 
 on:
-    schedule:
-      - cron: '0 0 1 * *'
-    workflow_dispatch:
+  schedule:
+    - cron: '0 0 1 * *'  # Run at midnight on the first day of every month
+  workflow_dispatch:
 
+# Restrict permissions by default
 permissions:
-  actions: write
+  actions: write  # Required for cache management
 
 jobs:
   clear-cache:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Clear cache
-        uses: actions/github-script@v7
+        uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410 # v6.4.1
         with:
           script: |
-            console.log("About to clear")
+            console.log("Starting cache cleanup...")
             const caches = await github.rest.actions.getActionsCacheList({
               owner: context.repo.owner,
               repo: context.repo.repo,
             })
+            
+            let deletedCount = 0
             for (const cache of caches.data.actions_caches) {
-              console.log(cache)
-              github.rest.actions.deleteActionsCacheById({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                cache_id: cache.id,
-              })
+              console.log(`Deleting cache: ${cache.key} (${cache.size_in_bytes} bytes)`)
+              try {
+                await github.rest.actions.deleteActionsCacheById({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  cache_id: cache.id,
+                })
+                deletedCount++
+              } catch (error) {
+                console.error(`Failed to delete cache ${cache.key}: ${error.message}`)
+              }
             }
-            console.log("Clear completed")
+            console.log(`Cache cleanup completed. Deleted ${deletedCount} caches.`)

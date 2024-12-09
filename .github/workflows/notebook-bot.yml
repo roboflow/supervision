@@ -4,24 +4,28 @@ on:
   pull_request_target:
     types: [opened, reopened]
 
-permissions:
-  contents: read
+# Restrict permissions by default
+permissions: {}
 
 jobs:
   comment-welcome:
     permissions:
       contents: read
-      pull-requests: write
-
+      pull-requests: write  # Required for commenting on PRs
+    
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
     steps:
     - name: Fetch pull request branch
-      uses: actions/checkout@v4
+      uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
       with:
         repository: ${{ github.event.pull_request.head.repo.full_name }}
         ref: ${{ github.event.pull_request.head.sha }}
+        
     - name: Fetch base develop branch
       run: git fetch -u "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" develop:develop
+      
     - name: Create message
       env:
         HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
@@ -49,16 +53,20 @@ jobs:
           msg+="If commits are added to the pull request, synchronize your local branch: <code>git pull origin $HEAD_REF</code>\n"
         fi
         echo "MESSAGE=$msg" >> $GITHUB_ENV
-    - name: Post comment
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        ISSUE_URL: ${{ github.event.pull_request.issue_url }}
-      run: |
-        # Env var defined in previous step. Escape string for JSON.
-        body="$(echo -n -e $MESSAGE | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')"
-        # Add comment to pull request.
-        curl -X POST \
-          -H "Accept: application/vnd.github.v3+json" \
-          -H "Authorization: token $GITHUB_TOKEN" \
-          "${ISSUE_URL}/comments" \
-          --data "{\"body\": $body}"
+
+    - name: Find Comment
+      uses: peter-evans/find-comment@a54c31d7fa095754bfef525c0c8e5e5674c4b4b1 # v2.4.0
+      id: find-comment
+      with:
+        issue-number: ${{ github.event.pull_request.number }}
+        body-includes: Preview and run these notebook edits
+        comment-author: github-actions[bot]
+
+    - name: Add or update comment
+      uses: peter-evans/create-or-update-comment@23ff15729ef2fc348714a3bb66d2f655ca9066f2 # v3.1.0
+      if: env.MESSAGE != ''
+      with:
+        comment-id: ${{ steps.find-comment.outputs.comment-id }}
+        issue-number: ${{ github.event.pull_request.number }}
+        body: ${{ env.MESSAGE }}
+        edit-mode: replace

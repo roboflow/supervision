@@ -1,30 +1,36 @@
 name: Publish Supervision Pre-Releases to PyPI and TestPyPI
+
 on:
   push:
     tags:
       - "[0-9]+.[0-9]+[0-9]+.[0-9]+a[0-9]"
       - "[0-9]+.[0-9]+[0-9]+.[0-9]+b[0-9]"
       - "[0-9]+.[0-9]+[0-9]+.[0-9]+rc[0-9]"
-
   workflow_dispatch:
+
+# Restrict permissions by default
+permissions: {}
 
 jobs:
   build-and-publish-pre-release-pypi:
     name: Build and publish to PyPI
     runs-on: ubuntu-latest
     environment: test
+    timeout-minutes: 15
     permissions:
-      id-token: write
+      id-token: write  # Required for PyPI publishing
+      contents: read   # Required for checkout
     strategy:
       matrix:
         python-version: ["3.10"]
     steps:
       - name: 🛎️ Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
         with:
           ref: ${{ github.head_ref }}
+          
       - name: 🐍 Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@b64ffcaf5b410884ad320a9cfac8866006a109aa # v5.0.0
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -35,9 +41,9 @@ jobs:
           twine check --strict dist/*
 
       - name: 🚀 Publish to PyPi
-        uses: pypa/gh-action-pypi-publish@release/v1.10
+        uses: pypa/gh-action-pypi-publish@2f6f737ca5f74c637829c0f5c3acd0e29ea5e8bf # v1.8.11
 
       - name: 🚀 Publish to Test-PyPi
-        uses: pypa/gh-action-pypi-publish@release/v1.10
+        uses: pypa/gh-action-pypi-publish@2f6f737ca5f74c637829c0f5c3acd0e29ea5e8bf # v1.8.11
         with:
           repository-url: https://test.pypi.org/legacy/
