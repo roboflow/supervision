@@ -4,17 +4,25 @@ on:
   pull_request:
     branches: [main, develop]
 
+permissions:
+  contents: read
+  checks: write    # Required for test reporting
+  pull-requests: write  # Required for PR comments
+
 jobs:
   build-dev-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
       matrix:
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
+      fail-fast: false  # Continue with other versions if one fails
     steps:
       - name: 🛎️ Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
+
       - name: 🐍 Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@b64ffcaf5b410884ad320a9cfac8866006a109aa # v5.0.0
         with:
           python-version: ${{ matrix.python-version }}
           check-latest: true
