@@ -50,13 +50,30 @@ supervision package for multiple tasks such as drawing heatmap annotations, trac
 
 ## ⚙️ run
 
+Before running the script, make sure to download the YOLO weights:
 ```bash
+# Download YOLOv8n weights (if you don't have your own weights file)
+wget https://github.com/ultralytics/assets/releases/download/v0.0.0/yolov8n.pt -O weight.pt
+# Or using curl
+curl -L https://github.com/ultralytics/assets/releases/download/v0.0.0/yolov8n.pt -o weight.pt
+```
+
+Then run the script:
+```bash
+# Run with default demo video (people-walking.mp4)
 python script.py \
     --source_weights_path weight.pt \
-    --source_video_path  input_video.mp4 \
     --confidence_threshold 0.3 \
     --iou_threshold 0.5 \
-    --target_video_path  output_video.mp4
+    --target_video_path output_video.mp4
+
+# Or run with your own video file
+python script.py \
+    --source_weights_path weight.pt \
+    --source_video_path your_video.mp4 \
+    --confidence_threshold 0.3 \
+    --iou_threshold 0.5 \
+    --target_video_path output_video.mp4
 ```
 
 ## © license
