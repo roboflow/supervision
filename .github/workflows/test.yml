@@ -11,12 +11,13 @@ permissions:
 
 jobs:
   build-dev-test:
-    runs-on: ubuntu-latest
     timeout-minutes: 10
     strategy:
       matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
       fail-fast: false # Continue with other versions if one fails
+    runs-on: ${{ matrix.os }}
     steps:
       - name: 📥 Checkout the repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
