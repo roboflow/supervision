@@ -366,6 +366,12 @@ Annotators accept detections and apply box or mask visualizations to the detecti
             detections=detections
         )
         ```
+        <div class="result" markdown>
+
+        ![crop-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
+        crop-annotator-example.png){ align=center width="800" }
+
+        </div>
     -->
 
 === "Blur"

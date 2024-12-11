@@ -2533,6 +2533,9 @@ class CropAnnotator(BaseAnnotator):
                 detections=detections
             )
             ```
+
+        ![crop-annotator-example](https://media.roboflow.com/
+        supervision-annotator-examples/crop-annotator-example.png)
         """
         assert isinstance(scene, np.ndarray)
         crops = [
