@@ -10,7 +10,7 @@ from PIL import Image, ImageDraw, ImageFont
 from supervision.annotators.base import BaseAnnotator, ImageType
 from supervision.annotators.utils import (
     ColorLookup,
-    Trace, 
+    Trace,
     resolve_color,
     resolve_text_background_xyxy,
 )
