@@ -22,16 +22,13 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: 🏗️ Install dependencies and Test Docs Build
+      - name: 📜 Setup Poetry
+        uses: abatilo/actions-poetry@e78f54a89cb052fff327414dd9ff010b5d2b4dbd # v3.0.1
+        
+      - name: 🏗️ Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install \
-            "mkdocs-material==9.5.2" \
-            "mkdocstrings[python]==0.24.0" \
-            "mkdocs-material[imaging]==9.5.2" \
-            "mike==2.0.0" \
-            "mkdocs-git-revision-date-localized-plugin==1.2.1" \
-            "jupyterlab==4.0.9" \
-            "mkdocs-jupyter==0.24.6" \
-            "mkdocs-git-committers-plugin-2==2.2.2"
+          python install --group docs
+          
+      - name: 🧪 Test Docs Build
+        run: |
           mkdocs build --verbose
