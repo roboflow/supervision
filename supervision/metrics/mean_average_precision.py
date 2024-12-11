@@ -559,19 +559,19 @@ class MeanAveragePrecisionResult(MetricResult):
             index=[0],
         )
 
-    def plot(self, return_params=False):
+    def _get_plot_details(self) -> Tuple[List[str], List[float], str, List[str]]:
         """
-        Plot the mAP results.
+        Obtain the metric details for plotting them.
 
-        ![example_plot](\
-            https://media.roboflow.com/supervision-docs/metrics/mAP_plot_example.png\
-            ){ align=center width="800" }
+        Returns:
+            Tuple[List[str], List[float], str, List[str]]: The details for plotting the
+                metric. It is a tuple of four elements: a list of labels, a list of
+                values, the title of the plot and the bar colors.
         """
-
         labels = ["mAP@50:95", "mAP@50", "mAP@75"]
         values = [self.map50_95, self.map50, self.map75]
         colors = [LEGACY_COLOR_PALETTE[0]] * 3
-        plot_title = "Mean Average Precision"
+        title = "Mean Average Precision"
 
         if self.small_objects is not None:
             labels += ["Small: mAP@50:95", "Small: mAP@50", "Small: mAP@75"]
@@ -600,15 +600,25 @@ class MeanAveragePrecisionResult(MetricResult):
             ]
             colors += [LEGACY_COLOR_PALETTE[4]] * 3
 
-        if return_params:
-            return labels, values, plot_title
+        return labels, values, title, colors
+
+    def plot(self):
+        """
+        Plot the mAP results.
+
+        ![example_plot](\
+            https://media.roboflow.com/supervision-docs/metrics/mAP_plot_example.png\
+            ){ align=center width="800" }
+        """
+
+        labels, values, title, colors = self._get_plot_details()
 
         plt.rcParams["font.family"] = "monospace"
 
         _, ax = plt.subplots(figsize=(10, 6))
         ax.set_ylim(0, 1)
         ax.set_ylabel("Value", fontweight="bold")
-        ax.set_title(plot_title, fontweight="bold")
+        ax.set_title(title, fontweight="bold")
 
         x_positions = range(len(labels))
         bars = ax.bar(x_positions, values, color=colors, align="center")

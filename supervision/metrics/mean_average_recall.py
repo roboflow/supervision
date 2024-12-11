@@ -15,7 +15,7 @@ from supervision.detection.utils import (
     oriented_box_iou_batch,
 )
 from supervision.draw.color import LEGACY_COLOR_PALETTE
-from supervision.metrics.core import Metric, MetricTarget, MetricResult
+from supervision.metrics.core import Metric, MetricResult, MetricTarget
 from supervision.metrics.utils.object_size import (
     ObjectSizeCategory,
     get_detection_size_category,
@@ -622,13 +622,14 @@ class MeanAverageRecallResult(MetricResult):
 
         return pd.DataFrame(pandas_data, index=[0])
 
-    def plot(self):
+    def _get_plot_details(self) -> Tuple[List[str], List[float], str, List[str]]:
         """
-        Plot the Mean Average Recall results.
+        Obtain the metric details for plotting them.
 
-        ![example_plot](\
-            https://media.roboflow.com/supervision-docs/metrics/mAR_plot_example.png\
-            ){ align=center width="800" }
+        Returns:
+            Tuple[List[str], List[float], str, List[str]]: The details for plotting the
+                metric. It is a tuple of four elements: a list of labels, a list of
+                values, the title of the plot and the bar colors.
         """
         labels = ["mAR @ 1", "mAR @ 10", "mAR @ 100"]
         values = [self.mAR_at_1, self.mAR_at_10, self.mAR_at_100]
@@ -664,15 +665,28 @@ class MeanAverageRecallResult(MetricResult):
             ]
             colors += [LEGACY_COLOR_PALETTE[4]] * 3
 
+        title = (
+            f"Mean Average Recall, by Object Size"
+            f"\n(target: {self.metric_target.value})"
+        )
+        return labels, values, title, colors
+
+    def plot(self):
+        """
+        Plot the Mean Average Recall results.
+
+        ![example_plot](\
+            https://media.roboflow.com/supervision-docs/metrics/mAR_plot_example.png\
+            ){ align=center width="800" }
+        """
+
+        labels, values, title, colors = self._get_plot_details()
+
         plt.rcParams["font.family"] = "monospace"
 
         _, ax = plt.subplots(figsize=(10, 6))
         ax.set_ylim(0, 1)
         ax.set_ylabel("Value", fontweight="bold")
-        title = (
-            f"Mean Average Recall, by Object Size"
-            f"\n(target: {self.metric_target.value})"
-        )
         ax.set_title(title, fontweight="bold")
 
         x_positions = range(len(labels))

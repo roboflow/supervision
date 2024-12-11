@@ -46,6 +46,10 @@ class MetricResult(ABC):
     def plot():
         raise NotImplementedError()
 
+    @abstractmethod
+    def _get_plot_details():
+        raise NotImplementedError()
+
 
 class MetricTarget(Enum):
     """
