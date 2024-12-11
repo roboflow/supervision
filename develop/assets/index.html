@@ -2206,7 +2206,16 @@ downloaded.</p>
 </details>
             <details class="quote">
               <summary>Source code in <code>supervision/assets/downloader.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-44">44</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-35">35</a></span>
+<span class="normal"><a href="#__codelineno-0-36">36</a></span>
+<span class="normal"><a href="#__codelineno-0-37">37</a></span>
+<span class="normal"><a href="#__codelineno-0-38">38</a></span>
+<span class="normal"><a href="#__codelineno-0-39">39</a></span>
+<span class="normal"><a href="#__codelineno-0-40">40</a></span>
+<span class="normal"><a href="#__codelineno-0-41">41</a></span>
+<span class="normal"><a href="#__codelineno-0-42">42</a></span>
+<span class="normal"><a href="#__codelineno-0-43">43</a></span>
+<span class="normal"><a href="#__codelineno-0-44">44</a></span>
 <span class="normal"><a href="#__codelineno-0-45">45</a></span>
 <span class="normal"><a href="#__codelineno-0-46">46</a></span>
 <span class="normal"><a href="#__codelineno-0-47">47</a></span>
@@ -2248,67 +2257,58 @@ downloaded.</p>
 <span class="normal"><a href="#__codelineno-0-83">83</a></span>
 <span class="normal"><a href="#__codelineno-0-84">84</a></span>
 <span class="normal"><a href="#__codelineno-0-85">85</a></span>
-<span class="normal"><a href="#__codelineno-0-86">86</a></span>
-<span class="normal"><a href="#__codelineno-0-87">87</a></span>
-<span class="normal"><a href="#__codelineno-0-88">88</a></span>
-<span class="normal"><a href="#__codelineno-0-89">89</a></span>
-<span class="normal"><a href="#__codelineno-0-90">90</a></span>
-<span class="normal"><a href="#__codelineno-0-91">91</a></span>
-<span class="normal"><a href="#__codelineno-0-92">92</a></span>
-<span class="normal"><a href="#__codelineno-0-93">93</a></span>
-<span class="normal"><a href="#__codelineno-0-94">94</a></span>
-<span class="normal"><a href="#__codelineno-0-95">95</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-44" name="__codelineno-0-44"></a><span class="k">def</span> <span class="nf">download_assets</span><span class="p">(</span><span class="n">asset_name</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">VideoAssets</span><span class="p">,</span> <span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<a id="__codelineno-0-45" name="__codelineno-0-45"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-46" name="__codelineno-0-46"></a><span class="sd">    Download a specified asset if it doesn&#39;t already exist or is corrupted.</span>
-<a id="__codelineno-0-47" name="__codelineno-0-47"></a>
-<a id="__codelineno-0-48" name="__codelineno-0-48"></a><span class="sd">    Parameters:</span>
-<a id="__codelineno-0-49" name="__codelineno-0-49"></a><span class="sd">        asset_name (Union[VideoAssets, str]): The name or type of the asset to be</span>
-<a id="__codelineno-0-50" name="__codelineno-0-50"></a><span class="sd">            downloaded.</span>
-<a id="__codelineno-0-51" name="__codelineno-0-51"></a>
-<a id="__codelineno-0-52" name="__codelineno-0-52"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-53" name="__codelineno-0-53"></a><span class="sd">        str: The filename of the downloaded asset.</span>
+<span class="normal"><a href="#__codelineno-0-86">86</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-35" name="__codelineno-0-35"></a><span class="k">def</span> <span class="nf">download_assets</span><span class="p">(</span><span class="n">asset_name</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">VideoAssets</span><span class="p">,</span> <span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<a id="__codelineno-0-36" name="__codelineno-0-36"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-37" name="__codelineno-0-37"></a><span class="sd">    Download a specified asset if it doesn&#39;t already exist or is corrupted.</span>
+<a id="__codelineno-0-38" name="__codelineno-0-38"></a>
+<a id="__codelineno-0-39" name="__codelineno-0-39"></a><span class="sd">    Parameters:</span>
+<a id="__codelineno-0-40" name="__codelineno-0-40"></a><span class="sd">        asset_name (Union[VideoAssets, str]): The name or type of the asset to be</span>
+<a id="__codelineno-0-41" name="__codelineno-0-41"></a><span class="sd">            downloaded.</span>
+<a id="__codelineno-0-42" name="__codelineno-0-42"></a>
+<a id="__codelineno-0-43" name="__codelineno-0-43"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-44" name="__codelineno-0-44"></a><span class="sd">        str: The filename of the downloaded asset.</span>
+<a id="__codelineno-0-45" name="__codelineno-0-45"></a>
+<a id="__codelineno-0-46" name="__codelineno-0-46"></a><span class="sd">    Example:</span>
+<a id="__codelineno-0-47" name="__codelineno-0-47"></a><span class="sd">        ```python</span>
+<a id="__codelineno-0-48" name="__codelineno-0-48"></a><span class="sd">        from supervision.assets import download_assets, VideoAssets</span>
+<a id="__codelineno-0-49" name="__codelineno-0-49"></a>
+<a id="__codelineno-0-50" name="__codelineno-0-50"></a><span class="sd">        download_assets(VideoAssets.VEHICLES)</span>
+<a id="__codelineno-0-51" name="__codelineno-0-51"></a><span class="sd">        &quot;vehicles.mp4&quot;</span>
+<a id="__codelineno-0-52" name="__codelineno-0-52"></a><span class="sd">        ```</span>
+<a id="__codelineno-0-53" name="__codelineno-0-53"></a><span class="sd">    &quot;&quot;&quot;</span>
 <a id="__codelineno-0-54" name="__codelineno-0-54"></a>
-<a id="__codelineno-0-55" name="__codelineno-0-55"></a><span class="sd">    Example:</span>
-<a id="__codelineno-0-56" name="__codelineno-0-56"></a><span class="sd">        ```python</span>
-<a id="__codelineno-0-57" name="__codelineno-0-57"></a><span class="sd">        from supervision.assets import download_assets, VideoAssets</span>
-<a id="__codelineno-0-58" name="__codelineno-0-58"></a>
-<a id="__codelineno-0-59" name="__codelineno-0-59"></a><span class="sd">        download_assets(VideoAssets.VEHICLES)</span>
-<a id="__codelineno-0-60" name="__codelineno-0-60"></a><span class="sd">        &quot;vehicles.mp4&quot;</span>
-<a id="__codelineno-0-61" name="__codelineno-0-61"></a><span class="sd">        ```</span>
-<a id="__codelineno-0-62" name="__codelineno-0-62"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-63" name="__codelineno-0-63"></a>
-<a id="__codelineno-0-64" name="__codelineno-0-64"></a>    <span class="n">filename</span> <span class="o">=</span> <span class="n">asset_name</span><span class="o">.</span><span class="n">value</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">asset_name</span><span class="p">,</span> <span class="n">VideoAssets</span><span class="p">)</span> <span class="k">else</span> <span class="n">asset_name</span>
+<a id="__codelineno-0-55" name="__codelineno-0-55"></a>    <span class="n">filename</span> <span class="o">=</span> <span class="n">asset_name</span><span class="o">.</span><span class="n">value</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">asset_name</span><span class="p">,</span> <span class="n">VideoAssets</span><span class="p">)</span> <span class="k">else</span> <span class="n">asset_name</span>
+<a id="__codelineno-0-56" name="__codelineno-0-56"></a>
+<a id="__codelineno-0-57" name="__codelineno-0-57"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">Path</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">and</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">VIDEO_ASSETS</span><span class="p">:</span>
+<a id="__codelineno-0-58" name="__codelineno-0-58"></a>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Downloading </span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2"> assets </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-59" name="__codelineno-0-59"></a>        <span class="n">response</span> <span class="o">=</span> <span class="n">get</span><span class="p">(</span><span class="n">VIDEO_ASSETS</span><span class="p">[</span><span class="n">filename</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">allow_redirects</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-0-60" name="__codelineno-0-60"></a>        <span class="n">response</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
+<a id="__codelineno-0-61" name="__codelineno-0-61"></a>
+<a id="__codelineno-0-62" name="__codelineno-0-62"></a>        <span class="n">file_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Content-Length&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+<a id="__codelineno-0-63" name="__codelineno-0-63"></a>        <span class="n">folder_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span><span class="o">.</span><span class="n">expanduser</span><span class="p">()</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+<a id="__codelineno-0-64" name="__codelineno-0-64"></a>        <span class="n">folder_path</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <a id="__codelineno-0-65" name="__codelineno-0-65"></a>
-<a id="__codelineno-0-66" name="__codelineno-0-66"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">Path</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">and</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">VIDEO_ASSETS</span><span class="p">:</span>
-<a id="__codelineno-0-67" name="__codelineno-0-67"></a>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Downloading </span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2"> assets </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-68" name="__codelineno-0-68"></a>        <span class="n">response</span> <span class="o">=</span> <span class="n">get</span><span class="p">(</span><span class="n">VIDEO_ASSETS</span><span class="p">[</span><span class="n">filename</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">allow_redirects</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<a id="__codelineno-0-69" name="__codelineno-0-69"></a>        <span class="n">response</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
-<a id="__codelineno-0-70" name="__codelineno-0-70"></a>
-<a id="__codelineno-0-71" name="__codelineno-0-71"></a>        <span class="n">file_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Content-Length&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
-<a id="__codelineno-0-72" name="__codelineno-0-72"></a>        <span class="n">folder_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span><span class="o">.</span><span class="n">expanduser</span><span class="p">()</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
-<a id="__codelineno-0-73" name="__codelineno-0-73"></a>        <span class="n">folder_path</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<a id="__codelineno-0-74" name="__codelineno-0-74"></a>
-<a id="__codelineno-0-75" name="__codelineno-0-75"></a>        <span class="k">with</span> <span class="n">tqdm</span><span class="o">.</span><span class="n">wrapattr</span><span class="p">(</span>
-<a id="__codelineno-0-76" name="__codelineno-0-76"></a>            <span class="n">response</span><span class="o">.</span><span class="n">raw</span><span class="p">,</span> <span class="s2">&quot;read&quot;</span><span class="p">,</span> <span class="n">total</span><span class="o">=</span><span class="n">file_size</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">colour</span><span class="o">=</span><span class="s2">&quot;#a351fb&quot;</span>
-<a id="__codelineno-0-77" name="__codelineno-0-77"></a>        <span class="p">)</span> <span class="k">as</span> <span class="n">raw_resp</span><span class="p">:</span>
-<a id="__codelineno-0-78" name="__codelineno-0-78"></a>            <span class="k">with</span> <span class="n">folder_path</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
-<a id="__codelineno-0-79" name="__codelineno-0-79"></a>                <span class="n">copyfileobj</span><span class="p">(</span><span class="n">raw_resp</span><span class="p">,</span> <span class="n">file</span><span class="p">)</span>
-<a id="__codelineno-0-80" name="__codelineno-0-80"></a>
-<a id="__codelineno-0-81" name="__codelineno-0-81"></a>    <span class="k">elif</span> <span class="n">Path</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
-<a id="__codelineno-0-82" name="__codelineno-0-82"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_md5_hash_matching</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">VIDEO_ASSETS</span><span class="p">[</span><span class="n">filename</span><span class="p">][</span><span class="mi">1</span><span class="p">]):</span>
-<a id="__codelineno-0-83" name="__codelineno-0-83"></a>            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;File corrupted. Re-downloading... </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-84" name="__codelineno-0-84"></a>            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
-<a id="__codelineno-0-85" name="__codelineno-0-85"></a>            <span class="k">return</span> <span class="n">download_assets</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
-<a id="__codelineno-0-86" name="__codelineno-0-86"></a>
-<a id="__codelineno-0-87" name="__codelineno-0-87"></a>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2"> asset download complete. </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-88" name="__codelineno-0-88"></a>
-<a id="__codelineno-0-89" name="__codelineno-0-89"></a>    <span class="k">else</span><span class="p">:</span>
-<a id="__codelineno-0-90" name="__codelineno-0-90"></a>        <span class="n">valid_assets</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">asset</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">asset</span> <span class="ow">in</span> <span class="n">VideoAssets</span><span class="p">)</span>
-<a id="__codelineno-0-91" name="__codelineno-0-91"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-<a id="__codelineno-0-92" name="__codelineno-0-92"></a>            <span class="sa">f</span><span class="s2">&quot;Invalid asset. It should be one of the following: </span><span class="si">{</span><span class="n">valid_assets</span><span class="si">}</span><span class="s2">.&quot;</span>
-<a id="__codelineno-0-93" name="__codelineno-0-93"></a>        <span class="p">)</span>
-<a id="__codelineno-0-94" name="__codelineno-0-94"></a>
-<a id="__codelineno-0-95" name="__codelineno-0-95"></a>    <span class="k">return</span> <span class="n">filename</span>
+<a id="__codelineno-0-66" name="__codelineno-0-66"></a>        <span class="k">with</span> <span class="n">tqdm</span><span class="o">.</span><span class="n">wrapattr</span><span class="p">(</span>
+<a id="__codelineno-0-67" name="__codelineno-0-67"></a>            <span class="n">response</span><span class="o">.</span><span class="n">raw</span><span class="p">,</span> <span class="s2">&quot;read&quot;</span><span class="p">,</span> <span class="n">total</span><span class="o">=</span><span class="n">file_size</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">colour</span><span class="o">=</span><span class="s2">&quot;#a351fb&quot;</span>
+<a id="__codelineno-0-68" name="__codelineno-0-68"></a>        <span class="p">)</span> <span class="k">as</span> <span class="n">raw_resp</span><span class="p">:</span>
+<a id="__codelineno-0-69" name="__codelineno-0-69"></a>            <span class="k">with</span> <span class="n">folder_path</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+<a id="__codelineno-0-70" name="__codelineno-0-70"></a>                <span class="n">copyfileobj</span><span class="p">(</span><span class="n">raw_resp</span><span class="p">,</span> <span class="n">file</span><span class="p">)</span>
+<a id="__codelineno-0-71" name="__codelineno-0-71"></a>
+<a id="__codelineno-0-72" name="__codelineno-0-72"></a>    <span class="k">elif</span> <span class="n">Path</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+<a id="__codelineno-0-73" name="__codelineno-0-73"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_md5_hash_matching</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">VIDEO_ASSETS</span><span class="p">[</span><span class="n">filename</span><span class="p">][</span><span class="mi">1</span><span class="p">]):</span>
+<a id="__codelineno-0-74" name="__codelineno-0-74"></a>            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;File corrupted. Re-downloading... </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-75" name="__codelineno-0-75"></a>            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+<a id="__codelineno-0-76" name="__codelineno-0-76"></a>            <span class="k">return</span> <span class="n">download_assets</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+<a id="__codelineno-0-77" name="__codelineno-0-77"></a>
+<a id="__codelineno-0-78" name="__codelineno-0-78"></a>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2"> asset download complete. </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-79" name="__codelineno-0-79"></a>
+<a id="__codelineno-0-80" name="__codelineno-0-80"></a>    <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-0-81" name="__codelineno-0-81"></a>        <span class="n">valid_assets</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">asset</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">asset</span> <span class="ow">in</span> <span class="n">VideoAssets</span><span class="p">)</span>
+<a id="__codelineno-0-82" name="__codelineno-0-82"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+<a id="__codelineno-0-83" name="__codelineno-0-83"></a>            <span class="sa">f</span><span class="s2">&quot;Invalid asset. It should be one of the following: </span><span class="si">{</span><span class="n">valid_assets</span><span class="si">}</span><span class="s2">.&quot;</span>
+<a id="__codelineno-0-84" name="__codelineno-0-84"></a>        <span class="p">)</span>
+<a id="__codelineno-0-85" name="__codelineno-0-85"></a>
+<a id="__codelineno-0-86" name="__codelineno-0-86"></a>    <span class="k">return</span> <span class="n">filename</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
