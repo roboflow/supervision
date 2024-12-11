@@ -26,7 +26,7 @@ def aggregate_metric_results(
             DataFrame. Defaults to False.
 
     Raises:
-        ValueError: `metrics_results` can not be empty
+        ValueError: List `metrics_results` can not be empty
         ValueError: All elements of `metrics_results` must be of the same type
         ValueError: Base class of elements in `metrics_results` must be of type
             `MetricResult`
@@ -39,15 +39,15 @@ def aggregate_metric_results(
 
     assert len(metrics_results) == len(
         model_names
-    ), "Number of metrics results and model names must be equal"
+    ), "Length of metrics_results and model_names must be equal"
 
     if len(metrics_results) == 0:
-        raise ValueError("metrics_results must not be empty")
+        raise ValueError("List metrics_results must not be empty")
 
     first_elem_type = type(metrics_results[0])
     all_same_type = all(isinstance(x, first_elem_type) for x in metrics_results)
     if not all_same_type:
-        raise ValueError("All metrics_results must be of the same type")
+        raise ValueError("All metrics_results elements must be of the same type")
 
     if not isinstance(metrics_results[0], MetricResult):
         raise ValueError("Base class of metrics_results must be of type MetricResult")
@@ -82,22 +82,22 @@ def plot_aggregate_metric_results(
             plot. Defaults to False.
 
     Raises:
-        ValueError: `metrics_results` can not be empty
+        ValueError: List `metrics_results` can not be empty
         ValueError: All elements of `metrics_results` must be of the same type
         ValueError: Base class of elements in `metrics_results` must be of type
             `MetricResult`
     """
     assert len(metrics_results) == len(
         model_names
-    ), "Number of metrics results and model names must be equal"
+    ), "Length of metrics_results and model_names must be equal"
 
     if len(metrics_results) == 0:
-        raise ValueError("metrics_results must not be empty")
+        raise ValueError("List metrics_results must not be empty")
 
     first_elem_type = type(metrics_results[0])
     all_same_type = all(isinstance(x, first_elem_type) for x in metrics_results)
     if not all_same_type:
-        raise ValueError("All metrics_results must be of the same type")
+        raise ValueError("All metrics_results elements must be of the same type")
 
     if not isinstance(metrics_results[0], MetricResult):
         raise ValueError("Base class of metrics_results must be of type MetricResult")
