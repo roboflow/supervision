@@ -10,7 +10,7 @@ from PIL import Image, ImageDraw, ImageFont
 from supervision.annotators.base import BaseAnnotator, ImageType
 from supervision.annotators.utils import (
     ColorLookup,
-    Trace,
+    Trace, 
     resolve_color,
     resolve_text_background_xyxy,
 )
@@ -2756,6 +2756,25 @@ class ComparisonAnnotator:
 
         Returns:
             The annotated image.
+
+        Example:
+            ```python
+            import supervision as sv
+
+            image = ...
+            detections_1 = sv.Detections(...)
+            detections_2 = sv.Detections(...)
+
+            comparison_annotator = sv.ComparisonAnnotator()
+            annotated_frame = comparison_annotator.annotate(
+                scene=image.copy(),
+                detections_1=detections_1,
+                detections_2=detections_2
+            )
+            ```
+
+        ![comparison-annotator-example](https://media.roboflow.com/
+        supervision-annotator-examples/comparison-annotator-example.png)
         """
         assert isinstance(scene, np.ndarray)
         if detections_1.is_empty() and detections_2.is_empty():
