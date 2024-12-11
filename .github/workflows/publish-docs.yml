@@ -50,10 +50,10 @@ jobs:
       - name: 🚀 Deploy Development Docs
         if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
         run: |
-          MKDOCS_GIT_COMMITTERS_APIKEY=${{ secrets.GITHUB_TOKEN }} mike deploy --push --update-aliases develop
+          MKDOCS_GIT_COMMITTERS_APIKEY=${{ secrets.GITHUB_TOKEN }} poetry run mike deploy --push develop
 
       - name: 🚀 Deploy Release Docs
         if: github.event_name == 'release' && github.event.action == 'published'
         run: |
           latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
-          MKDOCS_GIT_COMMITTERS_APIKEY=${{ secrets.GITHUB_TOKEN }} mike deploy --push --update-aliases $latest_tag latest
+          MKDOCS_GIT_COMMITTERS_APIKEY=${{ secrets.GITHUB_TOKEN }} poetry run mike deploy --push --update-aliases $latest_tag latest

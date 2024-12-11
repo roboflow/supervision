@@ -34,4 +34,4 @@ jobs:
 
       - name: 🧪 Test Docs Build
         run: |
-          mkdocs build --verbose
+          poetry run mkdocs build --verbose

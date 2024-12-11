@@ -96,6 +96,8 @@ metrics = ["pandas"]
 
 [tool.poetry.group.test.dependencies]
 pytest = ">=7.2.2,<9.0.0"
+pytest-md = "^0.2.0"
+pytest-emoji = "^0.2.0"
 
 [tool.poetry.group.dev.dependencies]
 twine = ">=5.1.1,<7.0.0"
