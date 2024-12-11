@@ -1,14 +1,13 @@
-
 name: Clear cache
 
 on:
   schedule:
-    - cron: '0 0 1 * *'  # Run at midnight on the first day of every month
+    - cron: "0 0 1 * *" # Run at midnight on the first day of every month
   workflow_dispatch:
 
 # Restrict permissions by default
 permissions:
-  actions: write  # Required for cache management
+  actions: write # Required for cache management
 
 jobs:
   clear-cache:

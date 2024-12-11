@@ -12,7 +12,7 @@ jobs:
   build-and-publish-pre-release:
     runs-on: ubuntu-latest
     environment: release
-    timeout-minutes: 15
+    timeout-minutes: 10
     permissions:
       id-token: write # Required for PyPI publishing
       contents: read # Required for checkout

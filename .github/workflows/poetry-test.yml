@@ -12,6 +12,7 @@ on:
 
 jobs:
   poetry-tests:
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
