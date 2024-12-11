@@ -103,18 +103,19 @@ def plot_aggregate_metric_results(
         raise ValueError("Base class of metrics_results must be of type MetricResult")
 
     model_values = []
-    labels, value, plot_title = metrics_results[0].plot(return_params=True)
-    model_values.append(value)
+    labels, values, title, _ = metrics_results[0]._get_plot_details()
+    model_values.append(values)
 
     for metric in metrics_results[1:]:
-        _, value, _ = metric.plot(return_params=True)
-        model_values.append(value)
+        _, values, _, _ = metric._get_plot_details()
+        model_values.append(values)
 
     if not include_object_sizes:
-        labels = labels[0:3]
+        labels_length = 3 if len(labels) % 3 == 0 else 2
+        labels = labels[:labels_length]
         aux_values = []
         for values in model_values:
-            aux_values.append(values[0:3])
+            aux_values.append(values[:labels_length])
         model_values = aux_values
 
     n = len(model_names)
@@ -127,7 +128,7 @@ def plot_aggregate_metric_results(
     _, ax = plt.subplots(figsize=(10, 6))
     ax.set_ylim(0, 1)
     ax.set_ylabel("Value", fontweight="bold")
-    ax.set_title(plot_title, fontweight="bold")
+    ax.set_title(title, fontweight="bold")
 
     ax.set_xticks(x_positions)
     ax.set_xticklabels(labels, rotation=45, ha="right")
