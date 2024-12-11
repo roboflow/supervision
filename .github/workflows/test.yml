@@ -42,3 +42,4 @@ jobs:
           custom-arguments: "-q"
           click-to-expand: true
           report-title: "Test Report"
+          custom-pytest: "poetry run pytest"

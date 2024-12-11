@@ -30,7 +30,7 @@ jobs:
 
       - name: 🏗️ Install dependencies
         run: |
-          python install --group docs
+          poetry install --with=docs
 
       - name: 🧪 Test Docs Build
         run: |

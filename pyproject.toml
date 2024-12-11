@@ -121,7 +121,7 @@ mkdocstrings = ">=0.25.2,<0.27.0"
 mkdocstrings-python = "^1.10.9"
 mike = "^2.0.0"
 # For Documentation Development use Python 3.10 or above
-# Use Latest mkdocs-jupyter min 0.24.6 for Jupyter Notebook Theme support
+# Use Latest mkdocs-jupyter min 0.24.6 for Jupyter Notebook Theme support
 mkdocs-jupyter = "^0.24.3"
 mkdocs-git-committers-plugin-2 = "^2.4.1"
 mkdocs-git-revision-date-localized-plugin = "^1.2.4"
