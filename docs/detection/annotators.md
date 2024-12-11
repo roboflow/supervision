@@ -28,26 +28,28 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 
     </div>
 
-=== "RoundBox"
+    <!--
+    === "RoundBox"
 
-    ```python
-    import supervision as sv
+        ```python
+        import supervision as sv
 
-    image = ...
-    detections = sv.Detections(...)
+        image = ...
+        detections = sv.Detections(...)
 
-    round_box_annotator = sv.RoundBoxAnnotator()
-    annotated_frame = round_box_annotator.annotate(
-        scene=image.copy(),
-        detections=detections
-    )
-    ```
+        round_box_annotator = sv.RoundBoxAnnotator()
+        annotated_frame = round_box_annotator.annotate(
+            scene=image.copy(),
+            detections=detections
+        )
+        ```
 
-    <div class="result" markdown>
+        <div class="result" markdown>
 
-    ![round-box-annotator-example](https://media.roboflow.com/supervision-annotator-examples/round-box-annotator-example-purple.png){ align=center width="800" }
+        ![round-box-annotator-example](https://media.roboflow.com/supervision-annotator-examples/round-box-annotator-example-purple.png){ align=center width="800" }
 
-    </div>
+        </div>
+    -->
 
 === "BoxCorner"
 
@@ -234,7 +236,8 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 
     <div class="result" markdown>
 
-    ![mask-annotator-example](https://media.roboflow.com/supervision-annotator-examples/mask-annotator-example-purple.png){ align=center width="800" }
+    ![mask-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
+    mask-annotator-example-purple.png){ align=center width="800" }
 
     </div>
 
@@ -255,7 +258,8 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 
     <div class="result" markdown>
 
-    ![polygon-annotator-example](https://media.roboflow.com/supervision-annotator-examples/polygon-annotator-example-purple.png){ align=center width="800" }
+    ![polygon-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
+    polygon-annotator-example-purple.png){ align=center width="800" }
 
     </div>
 
@@ -283,7 +287,8 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 
     <div class="result" markdown>
 
-    ![label-annotator-example](https://media.roboflow.com/supervision-annotator-examples/label-annotator-example-purple.png){ align=center width="800" }
+    ![label-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
+    label-annotator-example-purple.png){ align=center width="800" }
 
     </div>
 
@@ -314,7 +319,8 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 
     <div class="result" markdown>
 
-    ![label-annotator-example](https://media.roboflow.com/supervision-annotator-examples/label-annotator-example-purple.png){ align=center width="800" }
+    ![label-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
+    label-annotator-example-purple.png){ align=center width="800" }
 
     </div>
 
@@ -341,24 +347,32 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 
     <div class="result" markdown>
 
-    ![icon-annotator-example](https://media.roboflow.com/supervision-annotator-examples/icon-annotator-example.png){ align=center width="800" }
+    ![icon-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
+    icon-annotator-example.png){ align=center width="800" }
 
     </div>
 
-=== "Crop"
+    <!-- === "Crop"
 
-    ```python
-    import supervision as sv
+        ```python
+        import supervision as sv
 
-    image = ...
-    detections = sv.Detections(...)
+        image = ...
+        detections = sv.Detections(...)
 
-    crop_annotator = sv.CropAnnotator()
-    annotated_frame = crop_annotator.annotate(
-        scene=image.copy(),
-        detections=detections
-    )
-    ```
+        crop_annotator = sv.CropAnnotator()
+        annotated_frame = crop_annotator.annotate(
+            scene=image.copy(),
+            detections=detections
+        )
+        ```
+        <div class="result" markdown>
+
+        ![crop-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
+        crop-annotator-example.png){ align=center width="800" }
+
+        </div>
+    -->
 
 === "Blur"
 
@@ -377,7 +391,8 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 
     <div class="result" markdown>
 
-    ![blur-annotator-example](https://media.roboflow.com/supervision-annotator-examples/blur-annotator-example-purple.png){ align=center width="800" }
+    ![blur-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
+    blur-annotator-example-purple.png){ align=center width="800" }
 
     </div>
 
@@ -398,7 +413,8 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 
     <div class="result" markdown>
 
-    ![pixelate-annotator-example](https://media.roboflow.com/supervision-annotator-examples/pixelate-annotator-example-10.png){ align=center width="800" }
+    ![pixelate-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
+    pixelate-annotator-example-10.png){ align=center width="800" }
 
     </div>
 
@@ -429,7 +445,8 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 
     <div class="result" markdown>
 
-    ![trace-annotator-example](https://media.roboflow.com/supervision-annotator-examples/trace-annotator-example-purple.png){ align=center width="800" }
+    ![trace-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
+    trace-annotator-example-purple.png){ align=center width="800" }
 
     </div>
 
@@ -458,7 +475,8 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 
     <div class="result" markdown>
 
-    ![heat-map-annotator-example](https://media.roboflow.com/supervision-annotator-examples/heat-map-annotator-example-purple.png){ align=center width="800" }
+    ![heat-map-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
+    heat-map-annotator-example-purple.png){ align=center width="800" }
 
     </div>
 
@@ -479,7 +497,31 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 
     <div class="result" markdown>
 
-    ![background-overlay-annotator-example](https://media.roboflow.com/supervision-annotator-examples/background-color-annotator-example-purple.png)
+    ![background-overlay-annotator-example](https://media.roboflow.com/supervision-annotator-examples/background-color-annotator-example-purple.png){ align=center width="800" }
+
+    </div>
+
+=== "Comparison"
+
+    ```python
+    import supervision as sv
+
+    image = ...
+    detections_1 = sv.Detections(...)
+    detections_2 = sv.Detections(...)
+
+    comparison_annotator = sv.ComparisonAnnotator()
+    annotated_frame = comparison_annotator.annotate(
+        scene=image.copy(),
+        detections_1=detections_1,
+        detections_2=detections_2
+    )
+    ```
+
+    <div class="result" markdown>
+
+    ![comparison-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
+    comparison-annotator-example.png){ align=center width="800" }
 
     </div>
 
@@ -621,6 +663,12 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 </div>
 
 :::supervision.annotators.core.BackgroundOverlayAnnotator
+
+<div class="md-typeset">
+    <h2><a href="#supervision.annotators.core.ComparisonAnnotator">ComparisonAnnotator</a></h2>
+</div>
+
+:::supervision.annotators.core.ComparisonAnnotator
 
 <div class="md-typeset">
     <h2><a href="#supervision.annotators.core.ColorLookup">ColorLookup</a></h2>
