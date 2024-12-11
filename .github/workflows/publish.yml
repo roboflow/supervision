@@ -10,6 +10,7 @@ permissions: {} # Explicitly remove all permissions by default
 
 jobs:
   build-and-publish-pre-release:
+    name: Publish Release Package
     runs-on: ubuntu-latest
     environment: release
     timeout-minutes: 10

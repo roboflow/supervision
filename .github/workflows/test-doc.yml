@@ -11,6 +11,7 @@ permissions:
 
 jobs:
   docs-build-test:
+    name: Test docs build
     runs-on: ubuntu-latest
     timeout-minutes: 10
     strategy:

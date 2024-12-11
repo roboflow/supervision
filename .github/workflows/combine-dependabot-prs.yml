@@ -12,8 +12,8 @@ permissions:
 
 jobs:
   combine-prs:
+    name: Combine
     runs-on: ubuntu-latest
-
     steps:
       - name: combine-prs
         id: combine-prs

@@ -11,6 +11,7 @@ permissions:
 
 jobs:
   clear-cache:
+    name: Clear cache
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

@@ -10,7 +10,8 @@ permissions:
   pull-requests: write # Required for PR comments
 
 jobs:
-  build-dev-test:
+  pytest:
+    name: PyTest
     timeout-minutes: 10
     strategy:
       matrix:

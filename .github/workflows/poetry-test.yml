@@ -12,6 +12,7 @@ on:
 
 jobs:
   poetry-tests:
+    name: Poetry install and check
     timeout-minutes: 10
     strategy:
       fail-fast: false
