@@ -14,6 +14,7 @@ from supervision.annotators.core import (
     BoxCornerAnnotator,
     CircleAnnotator,
     ColorAnnotator,
+    ComparisonAnnotator,
     CropAnnotator,
     DotAnnotator,
     EllipseAnnotator,
@@ -76,6 +77,7 @@ from supervision.detection.utils import (
     scale_boxes,
     xcycwh_to_xyxy,
     xywh_to_xyxy,
+    xyxy_to_polygons,
 )
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import (
@@ -136,6 +138,7 @@ __all__ = [
     "ColorAnnotator",
     "ColorLookup",
     "ColorPalette",
+    "ComparisonAnnotator",
     "ConfusionMatrix",
     "CropAnnotator",
     "DetectionDataset",
@@ -222,4 +225,5 @@ __all__ = [
     "scale_image",
     "xcycwh_to_xyxy",
     "xywh_to_xyxy",
+    "xyxy_to_polygons",
 ]
