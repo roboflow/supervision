@@ -11,39 +11,33 @@ Have you ever trained multiple detection models and wondered which one performs 
 
 This guide will show an easy way to benchmark your results using `supervision`. It will go over:
 
-1. [Loading a dataset](#loading-a-dataset)
-2. [Loading a model](#loading-a-model)
+1. [Download a Dataset](#download-a-dataset)
+2. [Load a Model](#load-a-model)
 3. [Benchmarking Basics](#benchmarking-basics)
-4. [Running a Model](#running-a-model)
-5. [Remapping Classes](#remapping-classes)
-6. [Visual Benchmarking](#visual-benchmarking)
-7. [Benchmarking Metrics](#benchmarking-metrics)
-8. [Mean Average Precision (mAP)](#mean-average-precision-map)
-9. [F1 Score](#f1-score)
-10. [Bonus: Model Leaderboard](#model-leaderboard)
+4. [Load the Test Set](#load-the-test-set)
+5. [Run the Model](#run-the-model)
+6. [Remap Classes](#remap-classes)
+7. [Visualize Predictions](#visualize-predictions)
+8. [Benchmark with Metrics](#benchmark-with-metrics)
+9. [Mean Average Precision (mAP)](#mean-average-precision-map)
+10. [F1 Score](#f1-score)
+11. [Bonus: Model Leaderboard](#model-leaderboard)
 
 This guide will use an instance segmentation model, but it applies to object detection, instance segmentation, and oriented bounding box models (OBB) too.
 
-A condensed version of this guide is available as a [Colab Notebook](https://colab.research.google.com/drive/1HoOY9pZoVwGiRMmLHtir0qT6Uj45w6Ps?usp=sharing).
+!!! tip
 
-## Loading a Dataset
-
-Suppose you start with a dataset. Perhaps you found it on [Universe](https://universe.roboflow.com/); perhaps you [labeled your own](https://roboflow.com/how-to-label/yolo11). In either case, this guide assumes you know of a labelled dataset at hand.
+    This guide is also available as a [Colab Notebook](https://colab.research.google.com/drive/1HoOY9pZoVwGiRMmLHtir0qT6Uj45w6Ps?usp=sharing).
 
 We'll use the following libraries:
 
-- `roboflow` to manage the dataset and deploy models
-- `inference` to run the models
-- `supervision` to evaluate the model results
+- [`roboflow`](https://github.com/roboflow/roboflow-python) to manage the dataset and deploy models
+- [`inference`](https://github.com/roboflow/inference) to run the models
+- [`supervision`](https://github.com/roboflow/supervision) to evaluate the model results
 
-```bash
-pip install roboflow supervision
-pip install git+https://github.com/roboflow/inference.git@linas/allow-latest-rc-supervision
-```
+## Download a Dataset
 
-!!! info
-
-    We're updating `inference` at the moment. Please install it as shown above.
+Suppose you start with a dataset. Perhaps you found it on [Universe](https://universe.roboflow.com/); perhaps you [labeled your own](https://roboflow.com/how-to-label/yolo11). In either case, this guide assumes you know of a labelled dataset at hand.
 
 Here's how you can download a dataset:
 
@@ -61,19 +55,39 @@ If labeling your own data, go to the [dashboard](https://app.roboflow.com/) and 
 
 In this guide, we shall use a small [Corgi v2](https://universe.roboflow.com/model-examples/segmented-animals-basic) dataset. It is well-labeled and comes with a test set.
 
-```python
-from roboflow import Roboflow
+=== "YOLO"
 
-rf = Roboflow(api_key="<YOUR_API_KEY>")
-project = rf.workspace("fbamse1-gm2os").project("corgi-v2")
-dataset = project.version(4).download("yolov11")
-```
+    ```python
+    from roboflow import Roboflow
 
-This will create a folder called `Corgi-v2-4` with the dataset in the current working directory, with `train`, `test`, and `valid` folders and a `data.yaml` file.
+    rf = Roboflow(api_key="<YOUR_API_KEY>")
+    project = rf.workspace("fbamse1-gm2os").project("corgi-v2")
+    dataset = project.version(4).download("yolov11")
+    ```
 
-## Loading a Model
+=== "COCO"
 
-Let's load a model.
+    ```python
+    from roboflow import Roboflow
+
+    rf = Roboflow(api_key="<YOUR_API_KEY>")
+    project = rf.workspace("fbamse1-gm2os").project("corgi-v2")
+    dataset = project.version(4).download("coco")
+    ```
+
+=== "Pascal VOC"
+
+    ```python
+    from roboflow import Roboflow
+
+    rf = Roboflow(api_key="<YOUR_API_KEY>")
+    project = rf.workspace("fbamse1-gm2os").project("corgi-v2")
+    dataset = project.version(4).download("voc")
+    ```
+
+This will create a folder called `Corgi-v2-4` with the dataset in the current working directory.
+
+## Load a Model
 
 === "Inference, Local"
 
@@ -131,7 +145,45 @@ Several other problems may arise:
 - **Data Contamination**: The `test` set may not be split correctly, with images from the test set also present in `training` or `validation` set and used during training. In this case, the results will be overly optimistic. This also applies when **very similar** images are used for training and testing - e.g. those taken in the same environment, same lighting conditions, similar angle, etc.
 - **Missing Test Set**: Some datasets do not come with a test set. In this case, you should collect and [label](https://roboflow.com/annotate) your own data. Alternatively, a validation set could be used, but the results could be overly optimistic. Make sure to test in the real world as soon as possible.
 
-## Running a Model
+## Load the Test Set
+
+`supervision`provides tools to work with many [Dataset](https://supervision.roboflow.com/latest/datasets/core/) formats. This will make it easy to iterate over the test set images and annotations.
+
+=== "YOLO"
+
+    ```python
+    from supervision import DetectionDataset
+
+    test_set = DetectionDataset.from_yolo(
+        images_directory_path=f"{dataset.location}/test/images",
+        annotations_directory_path=f"{dataset.location}/test/labels",
+        data_yaml_path=f"{dataset.location}/data.yaml"
+    )
+    ```
+
+=== "COCO"
+
+    ```python
+    from supervision import DetectionDataset
+
+    test_set = DetectionDataset.from_coco(
+        images_directory_path=f"{dataset.location}/test",
+        annotations_path=f"{dataset.location}/test/_annotations.coco.json",
+    )
+    ```
+
+=== "Pascal VOC"
+
+    ```python
+    from supervision import DetectionDataset
+
+    test_set = DetectionDataset.from_voc(
+        images_directory_path=f"{dataset.location}/test/images",
+        annotations_directory_path=f"{dataset.location}/test/labels"
+    )
+    ```
+
+## Run the Model
 
 At this stage, you should have:
 
@@ -145,12 +197,6 @@ We'll use `supervision` to create a dataset iterator, and then run the model on 
 
     ```python
     import supervision as sv
-
-    test_set = sv.DetectionDataset.from_yolo(
-        images_directory_path=f"{dataset.location}/test/images",
-        annotations_directory_path=f"{dataset.location}/test/labels",
-        data_yaml_path=f"{dataset.location}/data.yaml"
-    )
 
     image_paths = []
     predictions_list = []
@@ -170,12 +216,6 @@ We'll use `supervision` to create a dataset iterator, and then run the model on 
     ```python
     import supervision as sv
 
-    test_set = sv.DetectionDataset.from_yolo(
-        images_directory_path=f"{dataset.location}/test/images",
-        annotations_directory_path=f"{dataset.location}/test/labels",
-        data_yaml_path=f"{dataset.location}/data.yaml"
-    )
-
     image_paths = []
     predictions_list = []
     targets_list = []
@@ -189,9 +229,9 @@ We'll use `supervision` to create a dataset iterator, and then run the model on 
         targets_list.append(label)
     ```
 
-## Remapping classes
+## Remap classes
 
-Did you notice an issue in the above logic?
+Did you notice an issue in the logic above?
 Since we're using an unrelated dataset, the class names and IDs may be different from what the model was trained on.
 
 We need to remap them to match the dataset classes. Here's how to do it:
@@ -286,10 +326,10 @@ Let's also remove the predictions that are not in the dataset classes.
         targets_list.append(label)
     ```
 
-## Visualizing Predictions
+## Visualize Predictions
 
 The first step in evaluating your model’s performance is to visualize its predictions.
-This gives an intuitive sense of how well your model is detecting objects and where it might be failing.
+This gives an intuitive sense of how well your model is detecting objects and where it might be failing. We can use the recent [`ComparisonAnnotator`](https://supervision.roboflow.com/develop/detection/annotators/#supervision.annotators.core.ComparisonAnnotator) for this task.
 
 ```python
 import supervision as sv
@@ -297,17 +337,18 @@ import supervision as sv
 N = 9
 GRID_SIZE = (3, 3)
 
-target_annotator = sv.PolygonAnnotator(color=sv.Color.from_hex("#8315f9"), thickness=8)
-prediction_annotator = sv.PolygonAnnotator(color=sv.Color.from_hex("#00cfc6"), thickness=6)
-
+comparison_annotator = sv.ComparisonAnnotator()
 
 annotated_images = []
 for image_path, predictions, targets in zip(
-  image_paths[:N], predictions_list[:N], targets_list[:N]
+    image_paths[:N], predictions_list[:N], targets_list[:N]
 ):
     annotated_image = cv2.imread(image_path)
-    annotated_image = target_annotator.annotate(scene=annotated_image, detections=targets)
-    annotated_image = prediction_annotator.annotate(scene=annotated_image, detections=prediction)
+    annotated_image = comparison_annotator.annotate(
+        scene=annotated_image,
+        detections_1=predictions,
+        detections_2=targets
+    )
     annotated_images.append(annotated_image)
 
 sv.plot_images_grid(images=annotated_images, grid_size=GRID_SIZE)
@@ -319,11 +360,9 @@ Here, predictions in purple are targets (ground truth), and predictions in teal 
 
 !!! tip
 
-    Use `sv.BoxAnnotator` for object detection and `sv.OrientedBoxAnnotator` for OBB.
+    The [`ComparisonAnnotator`](https://supervision.roboflow.com/develop/detection/annotators/#supervision.annotators.core.ComparisonAnnotator) supports object detection, instance segmentation, and OBB!
 
-    See [annotator documentation](https://supervision.roboflow.com/latest/detection/annotators/) for even more options.
-
-## Benchmarking Metrics
+## Benchmark with Metrics
 
 With multiple models, fine details matter. Visual inspection may not be enough. `supervision` provides a collection of metrics that help obtain precise numerical results of model performance.
 
@@ -332,7 +371,7 @@ With multiple models, fine details matter. Visual inspection may not be enough. 
 We'll start with [MeanAveragePrecision (mAP)](https://supervision.roboflow.com/latest/metrics/mean_average_precision/#supervision.metrics.mean_average_precision.MeanAveragePrecision), which is the most commonly used metric for object detection. It measures the average precision across all classes and IoU thresholds.
 
 For a thorough explanation, check out our [blog](https://blog.roboflow.com/mean-average-precision/) and [Youtube video](https://www.youtube.com/watch?v=oqXDdxF_Wuw).
-
+e
 Here, the most popular value is `mAP 50:95`. It represents the average precision across all classes and IoU thresholds (`0.5` to `0.95`), whereas other values such as `mAP 50` or `mAP 75` only consider a single IoU threshold (`0.5` and `0.75` respectively).
 
 Let's compute the mAP:
@@ -434,8 +473,6 @@ Even better, the repository is open source! You can see how the models were benc
 
 In this guide, you've learned how to set up your environment, train or use pre-trained models, visualize predictions, and evaluate model performance with metrics like [mAP](https://supervision.roboflow.com/latest/metrics/mean_average_precision/), [F1 score](https://supervision.roboflow.com/latest/metrics/f1_score/), and got to know our Model Leaderboard.
 
-A condensed version of this guide is also available as a [Colab Notebook](https://colab.research.google.com/drive/1HoOY9pZoVwGiRMmLHtir0qT6Uj45w6Ps?usp=sharing).
-
-For more details, be sure to check out our [documentation](https://supervision.roboflow.com/latest/) and join our community discussions. If you find any issues, please let us know on [GitHub](https://github.com/roboflow/supervision/issues).
+For more details, be sure to check out the [Colab Notebook](https://colab.research.google.com/drive/1HoOY9pZoVwGiRMmLHtir0qT6Uj45w6Ps?usp=sharing), our [documentation](https://supervision.roboflow.com/latest/) or drop by our [discussion board](https://discuss.roboflow.com/). If you find any issues, please let us know on [GitHub](https://github.com/roboflow/supervision/issues).
 
 Best of luck with your benchmarking!
