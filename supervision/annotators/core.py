@@ -2707,9 +2707,9 @@ class ComparisonAnnotator:
 
     def __init__(
         self,
-        color_1: Color = Color.RED,
-        color_2: Color = Color.GREEN,
-        color_overlap: Color = Color.BLUE,
+        color_1: Color = Color.ROBOFLOW,
+        color_2: Color = Color.RED,
+        color_overlap: Color = Color.GREEN,
         *,
         opacity: float = 0.75,
         label_1: str = "",
