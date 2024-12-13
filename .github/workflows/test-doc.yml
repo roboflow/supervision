@@ -4,18 +4,35 @@ on:
   pull_request:
     branches: [main, develop]
 
+# Restrict permissions by default
+permissions:
+  contents: read # Required for checkout
+  checks: write # Required for test reporting
+
 jobs:
   docs-build-test:
+    name: Test docs build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        python-version: ["3.10"]
     steps:
-      - name: 🔄 Checkout code
-        uses: actions/checkout@v4
-      - name: 🐍 Set up Python
-        uses: actions/setup-python@v5
+      - name: 📥 Checkout the repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: 🐍 Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
         with:
-          python-version: '3.10'
-      - name:  🏗️ Install dependencies and Test Docs Build
+          python-version: ${{ matrix.python-version }}
+
+      - name: 📜 Setup Poetry
+        uses: abatilo/actions-poetry@e78f54a89cb052fff327414dd9ff010b5d2b4dbd # v3.0.1
+
+      - name: 🏗️ Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install "mkdocs-material" "mkdocstrings[python]" "mkdocs-material[imaging]" mike "mkdocs-git-revision-date-localized-plugin" jupyterlab mkdocs-jupyter mkdocs-git-committers-plugin-2
-          mkdocs build --verbose
+          poetry install --with=docs
+
+      - name: 🧪 Test Docs Build
+        run: |
+          poetry run mkdocs build --verbose

@@ -85,14 +85,19 @@ tqdm = ">=4.62.3"
 # pandas: picked lowest major version that supports Python 3.8
 # pandas 2.2.3 has been released with support for Python 3.13
 pandas = [
-    { version = ">=2.0.0", python = "<3.13",optional = true },
-    { version = ">=2.2.3", python = ">=3.13",optional = true },
+    { version = ">=2.0.0", python = "<3.13", optional = true },
+    { version = ">=2.2.3", python = ">=3.13", optional = true },
 ]
 
 opencv-python = ">=4.5.5.64"
 
 [tool.poetry.extras]
 metrics = ["pandas"]
+
+[tool.poetry.group.test.dependencies]
+pytest = ">=7.2.2,<9.0.0"
+pytest-md = "^0.2.0"
+pytest-emoji = "^0.2.0"
 
 [tool.poetry.group.dev.dependencies]
 twine = ">=5.1.1,<7.0.0"
@@ -118,7 +123,7 @@ mkdocstrings = ">=0.25.2,<0.27.0"
 mkdocstrings-python = "^1.10.9"
 mike = "^2.0.0"
 # For Documentation Development use Python 3.10 or above
-# Use Latest mkdocs-jupyter min 0.24.6 for Jupyter Notebook Theme support
+# Use Latest mkdocs-jupyter min 0.24.6 for Jupyter Notebook Theme support
 mkdocs-jupyter = "^0.24.3"
 mkdocs-git-committers-plugin-2 = "^2.4.1"
 mkdocs-git-revision-date-localized-plugin = "^1.2.4"
@@ -133,6 +138,8 @@ types-requests = "^2.32.0.20240712"
 types-tqdm = "^4.66.0.20240417"
 pandas-stubs = ">=2.0.0.230412"
 
+[tool.poetry.group.build.dependencies]
+twine = ">=5.1.1,<7.0.0"
 
 [tool.bandit]
 target = ["test", "supervision"]
