@@ -178,7 +178,8 @@ markdown_extensions:
       anchor_linenums: true
 
 extra_javascript:
-  - "javascripts/init_kapa_widget.js"
+  # disabled until 0.27.0, so we can test its functionality
+  # - "javascripts/init_kapa_widget.js"
   - "javascripts/cookbooks-card.js"
   - "https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js"
 
