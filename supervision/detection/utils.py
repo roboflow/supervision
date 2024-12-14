@@ -720,25 +720,54 @@ def move_masks(
         masks (npt.NDArray[np.bool_]): A 3D array of binary masks corresponding to the
             predictions. Shape: `(N, H, W)`, where N is the number of predictions, and
             H, W are the dimensions of each mask.
-        offset (npt.NDArray[np.int32]): An array of shape `(2,)` containing non-negative
-            int values `[dx, dy]`.
+        offset (npt.NDArray[np.int32]): An array of shape `(2,)` containing int values
+            `[dx, dy]`. Supports both positive and negative values for bidirectional
+            movement.
         resolution_wh (Tuple[int, int]): The width and height of the desired mask
             resolution.
 
     Returns:
         (npt.NDArray[np.bool_]) repositioned masks, optionally padded to the specified
             shape.
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        # Create a sample mask
+        mask = np.zeros((1, 4, 4), dtype=bool)
+        mask[0, 1:3, 1:3] = True
+
+        # Move mask left and up
+        offset = np.array([-1, -1])
+        moved_mask = sv.move_masks(mask, offset, resolution_wh=(4, 4))
+
+        # Move mask right and down
+        offset = np.array([1, 1])
+        moved_mask = sv.move_masks(mask, offset, resolution_wh=(4, 4))
+        ```
     """
-
-    if offset[0] < 0 or offset[1] < 0:
-        raise ValueError(f"Offset values must be non-negative integers. Got: {offset}")
-
     mask_array = np.full((masks.shape[0], resolution_wh[1], resolution_wh[0]), False)
-    mask_array[
-        :,
-        offset[1] : masks.shape[1] + offset[1],
-        offset[0] : masks.shape[2] + offset[0],
-    ] = masks
+
+    # For negative offsets, copying starting portion of mask
+    if offset[0] <= 0 and offset[1] <= 0:
+        w = min(
+            masks.shape[2], resolution_wh[0] + offset[0]
+        )  # How much to copy horizontally
+        h = min(
+            masks.shape[1], resolution_wh[1] + offset[1]
+        )  # How much to copy vertically
+
+        mask_array[:, 0:h, 0:w] = masks[:, 0:h, 0:w]
+    else:
+        # For positive offsets, using original logic
+        w = min(masks.shape[2], resolution_wh[0] - offset[0])
+        h = min(masks.shape[1], resolution_wh[1] - offset[1])
+
+        mask_array[:, offset[1] : offset[1] + h, offset[0] : offset[0] + w] = masks[
+            :, 0:h, 0:w
+        ]
 
     return mask_array
 

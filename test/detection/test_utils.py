@@ -16,6 +16,7 @@ from supervision.detection.utils import (
     merge_data,
     merge_metadata,
     move_boxes,
+    move_masks,
     process_roboflow_result,
     scale_boxes,
     xcycwh_to_xyxy,
@@ -440,6 +441,80 @@ def test_move_boxes(
     with exception:
         result = move_boxes(xyxy=xyxy, offset=offset)
         assert np.array_equal(result, expected_result)
+
+
+@pytest.mark.parametrize(
+    "masks, offset, resolution_wh, expected_result, exception",
+    [
+        # Test case 1: Positive offset (existing behavior)
+        (
+            np.array([[[True, True], [True, True]]]),
+            np.array([1, 1]),
+            (3, 3),
+            np.array(
+                [[[False, False, False], [False, True, True], [False, True, True]]]
+            ),
+            DoesNotRaise(),
+        ),
+        # Test case 2: Negative offset (new behavior)
+        (
+            np.array([[[True, True], [True, True]]]),
+            np.array([-1, -1]),
+            (3, 3),
+            np.array(
+                [[[True, True, False], [True, True, False], [False, False, False]]]
+            ),
+            DoesNotRaise(),
+        ),
+        # Test case 3: Zero offset
+        (
+            np.array([[[True, True], [True, True]]]),
+            np.array([0, 0]),
+            (2, 2),
+            np.array([[[True, True], [True, True]]]),
+            DoesNotRaise(),
+        ),
+        # Test case 4: Partial out of bounds (positive)
+        (
+            np.array([[[True, True], [True, True]]]),
+            np.array([1, 1]),
+            (2, 2),
+            np.array([[[False, False], [False, True]]]),
+            DoesNotRaise(),
+        ),
+        # Test case 5: Partial out of bounds (negative)
+        (
+            np.array([[[True, True], [True, True]]]),
+            np.array([-1, -1]),
+            (2, 2),
+            np.array([[[True, False], [False, False]]]),
+            DoesNotRaise(),
+        ),
+        # Test case 6: Multiple masks
+        (
+            np.array([[[True, True], [True, True]], [[True, False], [False, True]]]),
+            np.array([1, 1]),
+            (3, 3),
+            np.array(
+                [
+                    [[False, False, False], [False, True, True], [False, True, True]],
+                    [[False, False, False], [False, True, False], [False, False, True]],
+                ]
+            ),
+            DoesNotRaise(),
+        ),
+    ],
+)
+def test_move_masks(
+    masks: np.ndarray,
+    offset: np.ndarray,
+    resolution_wh: Tuple[int, int],
+    expected_result: np.ndarray,
+    exception: Exception,
+) -> None:
+    with exception:
+        result = move_masks(masks=masks, offset=offset, resolution_wh=resolution_wh)
+        np.testing.assert_array_equal(result, expected_result)
 
 
 @pytest.mark.parametrize(
