@@ -36,7 +36,7 @@ jobs:
         run: |
           poetry install --with=build
           poetry build
-          twine check --strict dist/*
+          poetry run twine check --strict dist/*
 
       - name: 🚀 Publish to PyPi
         uses: pypa/gh-action-pypi-publish@67339c736fd9354cd4f8cb0b744f2b82a74b5c70 # v1.12.3
