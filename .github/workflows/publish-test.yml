@@ -14,7 +14,7 @@ jobs:
   build-and-publish-pre-release:
     name: Publish  Pre-releasePackage
     runs-on: ubuntu-latest
-    environment: release
+    environment: test
     timeout-minutes: 10
     permissions:
       id-token: write # Required for PyPI publishing
