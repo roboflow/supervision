@@ -747,7 +747,7 @@ def move_masks(
         #         [False, False,  True,  True],
         #         [False, False,  True,  True]]], dtype=bool)
 
-        offset = np.array([-2, 2]) 
+        offset = np.array([-2, 2])
         sv.move_masks(mask, offset, resolution_wh=(4, 4))
         # array([[[False, False, False, False],
         #         [False, False, False, False],
@@ -780,9 +780,11 @@ def move_masks(
         destination_y_end = offset[1] + source_y_end - source_y_start
 
     if source_x_end > source_x_start and source_y_end > source_y_start:
-        mask_array[:, destination_y_start:destination_y_end, 
-                  destination_x_start:destination_x_end] = \
-            masks[:, source_y_start:source_y_end, source_x_start:source_x_end]
+        mask_array[
+            :,
+            destination_y_start:destination_y_end,
+            destination_x_start:destination_x_end,
+        ] = masks[:, source_y_start:source_y_end, source_x_start:source_x_end]
 
     return mask_array
 

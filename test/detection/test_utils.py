@@ -447,122 +447,248 @@ def test_move_boxes(
     "masks, offset, resolution_wh, expected_result, exception",
     [
         (
-            np.array([[[False, False, False, False],
-                [False, True,  True,  False],
-                [False, True,  True,  False],
-                [False, False, False, False]]], dtype=bool),
+            np.array(
+                [
+                    [
+                        [False, False, False, False],
+                        [False, True, True, False],
+                        [False, True, True, False],
+                        [False, False, False, False],
+                    ]
+                ],
+                dtype=bool,
+            ),
             np.array([0, 0]),
             (4, 4),
-            np.array([[[False, False, False, False],
-                [False, True,  True,  False],
-                [False, True,  True,  False],
-                [False, False, False, False]]], dtype=bool),
+            np.array(
+                [
+                    [
+                        [False, False, False, False],
+                        [False, True, True, False],
+                        [False, True, True, False],
+                        [False, False, False, False],
+                    ]
+                ],
+                dtype=bool,
+            ),
             DoesNotRaise(),
         ),
         (
-            np.array([[[False, False, False, False],
-                [False, True,  True,  False],
-                [False, True,  True,  False],
-                [False, False, False, False]]], dtype=bool),
+            np.array(
+                [
+                    [
+                        [False, False, False, False],
+                        [False, True, True, False],
+                        [False, True, True, False],
+                        [False, False, False, False],
+                    ]
+                ],
+                dtype=bool,
+            ),
             np.array([-1, -1]),
             (4, 4),
-            np.array([[[ True,  True, False, False],
-                [ True,  True, False, False],
-                [False, False, False, False],
-                [False, False, False, False]]], dtype=bool),
+            np.array(
+                [
+                    [
+                        [True, True, False, False],
+                        [True, True, False, False],
+                        [False, False, False, False],
+                        [False, False, False, False],
+                    ]
+                ],
+                dtype=bool,
+            ),
             DoesNotRaise(),
         ),
         (
-            np.array([[[False, False, False, False],
-                [False, True,  True,  False],
-                [False, True,  True,  False],
-                [False, False, False, False]]], dtype=bool),
+            np.array(
+                [
+                    [
+                        [False, False, False, False],
+                        [False, True, True, False],
+                        [False, True, True, False],
+                        [False, False, False, False],
+                    ]
+                ],
+                dtype=bool,
+            ),
             np.array([-2, -2]),
             (4, 4),
-            np.array([[[ True, False, False, False],
-                [False, False, False, False],
-                [False, False, False, False],
-                [False, False, False, False]]], dtype=bool),
+            np.array(
+                [
+                    [
+                        [True, False, False, False],
+                        [False, False, False, False],
+                        [False, False, False, False],
+                        [False, False, False, False],
+                    ]
+                ],
+                dtype=bool,
+            ),
             DoesNotRaise(),
         ),
         (
-            np.array([[[False, False, False, False],
-                [False, True,  True,  False],
-                [False, True,  True,  False],
-                [False, False, False, False]]], dtype=bool),
+            np.array(
+                [
+                    [
+                        [False, False, False, False],
+                        [False, True, True, False],
+                        [False, True, True, False],
+                        [False, False, False, False],
+                    ]
+                ],
+                dtype=bool,
+            ),
             np.array([-3, -3]),
             (4, 4),
-            np.array([[[False, False, False, False],
-                [False, False, False, False],
-                [False, False, False, False],
-                [False, False, False, False]]], dtype=bool),
+            np.array(
+                [
+                    [
+                        [False, False, False, False],
+                        [False, False, False, False],
+                        [False, False, False, False],
+                        [False, False, False, False],
+                    ]
+                ],
+                dtype=bool,
+            ),
             DoesNotRaise(),
         ),
         (
-            np.array([[[False, False, False, False],
-                [False, True,  True,  False],
-                [False, True,  True,  False],
-                [False, False, False, False]]], dtype=bool),
+            np.array(
+                [
+                    [
+                        [False, False, False, False],
+                        [False, True, True, False],
+                        [False, True, True, False],
+                        [False, False, False, False],
+                    ]
+                ],
+                dtype=bool,
+            ),
             np.array([-2, -1]),
             (4, 4),
-            np.array([[[ True, False, False, False],
-                [ True, False, False, False],
-                [False, False, False, False],
-                [False, False, False, False]]], dtype=bool),
+            np.array(
+                [
+                    [
+                        [True, False, False, False],
+                        [True, False, False, False],
+                        [False, False, False, False],
+                        [False, False, False, False],
+                    ]
+                ],
+                dtype=bool,
+            ),
             DoesNotRaise(),
         ),
         (
-            np.array([[[False, False, False, False],
-                [False, True,  True,  False],
-                [False, True,  True,  False],
-                [False, False, False, False]]], dtype=bool),
+            np.array(
+                [
+                    [
+                        [False, False, False, False],
+                        [False, True, True, False],
+                        [False, True, True, False],
+                        [False, False, False, False],
+                    ]
+                ],
+                dtype=bool,
+            ),
             np.array([-1, -2]),
             (4, 4),
-            np.array([[[ True,  True, False, False],
-                [False, False, False, False],
-                [False, False, False, False],
-                [False, False, False, False]]], dtype=bool),
+            np.array(
+                [
+                    [
+                        [True, True, False, False],
+                        [False, False, False, False],
+                        [False, False, False, False],
+                        [False, False, False, False],
+                    ]
+                ],
+                dtype=bool,
+            ),
             DoesNotRaise(),
         ),
         (
-            np.array([[[False, False, False, False],
-                [False, True,  True,  False],
-                [False, True,  True,  False],
-                [False, False, False, False]]], dtype=bool),
+            np.array(
+                [
+                    [
+                        [False, False, False, False],
+                        [False, True, True, False],
+                        [False, True, True, False],
+                        [False, False, False, False],
+                    ]
+                ],
+                dtype=bool,
+            ),
             np.array([-2, 2]),
             (4, 4),
-            np.array([[[False, False, False, False],
-                [False, False, False, False],
-                [False, False, False, False],
-                [ True, False, False, False]]], dtype=bool),
+            np.array(
+                [
+                    [
+                        [False, False, False, False],
+                        [False, False, False, False],
+                        [False, False, False, False],
+                        [True, False, False, False],
+                    ]
+                ],
+                dtype=bool,
+            ),
             DoesNotRaise(),
         ),
         (
-            np.array([[[False, False, False, False],
-                [False, True,  True,  False],
-                [False, True,  True,  False],
-                [False, False, False, False]]], dtype=bool),
+            np.array(
+                [
+                    [
+                        [False, False, False, False],
+                        [False, True, True, False],
+                        [False, True, True, False],
+                        [False, False, False, False],
+                    ]
+                ],
+                dtype=bool,
+            ),
             np.array([3, 3]),
             (4, 4),
-            np.array([[[False, False, False, False],
-                [False, False, False, False],
-                [False, False, False, False],
-                [False, False, False, False]]], dtype=bool),
+            np.array(
+                [
+                    [
+                        [False, False, False, False],
+                        [False, False, False, False],
+                        [False, False, False, False],
+                        [False, False, False, False],
+                    ]
+                ],
+                dtype=bool,
+            ),
             DoesNotRaise(),
         ),
         (
-            np.array([[[False, False, False, False],
-                [False, True,  True,  False],
-                [False, True,  True,  False],
-                [False, False, False, False]]], dtype=bool),
+            np.array(
+                [
+                    [
+                        [False, False, False, False],
+                        [False, True, True, False],
+                        [False, True, True, False],
+                        [False, False, False, False],
+                    ]
+                ],
+                dtype=bool,
+            ),
             np.array([3, 3]),
             (6, 6),
-            np.array([[[False, False, False, False, False, False],
-                [False, False, False, False, False, False],
-                [False, False, False, False, False, False],
-                [False, False, False, False, False, False],
-                [False, False, False, False,  True,  True],
-                [False, False, False, False,  True,  True]]], dtype=bool),
+            np.array(
+                [
+                    [
+                        [False, False, False, False, False, False],
+                        [False, False, False, False, False, False],
+                        [False, False, False, False, False, False],
+                        [False, False, False, False, False, False],
+                        [False, False, False, False, True, True],
+                        [False, False, False, False, True, True],
+                    ]
+                ],
+                dtype=bool,
+            ),
             DoesNotRaise(),
         ),
     ],
