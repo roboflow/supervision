@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "supervision"
-version = "0.26.0rc1"
+version = "0.26.0rc2"
 description = "A set of easy-to-use utils that will come in handy in any Computer Vision project"
 authors = ["Piotr Skalski <piotr.skalski92@gmail.com>"]
 maintainers = [
