@@ -13,7 +13,7 @@ https://github.com/roboflow/supervision/assets/26109316/c9436828-9fbf-4c25-ae8c-
 - clone repository and navigate to example directory
 
     ```bash
-    git clone https://github.com/roboflow/supervision.git
+    git clone --depth 1 -b develop https://github.com/roboflow/supervision.git
     cd supervision/examples/traffic_analysis
     ```
 

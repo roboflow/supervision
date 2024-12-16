@@ -11,6 +11,25 @@ from supervision.geometry.core import Vector
 MIN_POLYGON_POINT_COUNT = 3
 
 
+def xyxy_to_polygons(box: np.ndarray) -> np.ndarray:
+    """
+    Convert an array of boxes to an array of polygons.
+    Retains the input datatype.
+
+    Args:
+        box (np.ndarray): An array of boxes (N, 4), where each box is represented as a
+            list of four coordinates in the format `(x_min, y_min, x_max, y_max)`.
+
+    Returns:
+        np.ndarray: An array of polygons (N, 4, 2), where each polygon is
+            represented as a list of four coordinates in the format `(x, y)`.
+    """
+    polygon = np.zeros((box.shape[0], 4, 2), dtype=box.dtype)
+    polygon[:, :, 0] = box[:, [0, 2, 2, 0]]
+    polygon[:, :, 1] = box[:, [1, 1, 3, 3]]
+    return polygon
+
+
 def polygon_to_mask(polygon: np.ndarray, resolution_wh: Tuple[int, int]) -> np.ndarray:
     """Generate a mask from a polygon.
 
@@ -701,25 +720,71 @@ def move_masks(
         masks (npt.NDArray[np.bool_]): A 3D array of binary masks corresponding to the
             predictions. Shape: `(N, H, W)`, where N is the number of predictions, and
             H, W are the dimensions of each mask.
-        offset (npt.NDArray[np.int32]): An array of shape `(2,)` containing non-negative
-            int values `[dx, dy]`.
+        offset (npt.NDArray[np.int32]): An array of shape `(2,)` containing int values
+            `[dx, dy]`. Supports both positive and negative values for bidirectional
+            movement.
         resolution_wh (Tuple[int, int]): The width and height of the desired mask
             resolution.
 
     Returns:
         (npt.NDArray[np.bool_]) repositioned masks, optionally padded to the specified
             shape.
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        mask = np.array([[[False, False, False, False],
+                         [False, True,  True,  False],
+                         [False, True,  True,  False],
+                         [False, False, False, False]]], dtype=bool)
+
+        offset = np.array([1, 1])
+        sv.move_masks(mask, offset, resolution_wh=(4, 4))
+        # array([[[False, False, False, False],
+        #         [False, False, False, False],
+        #         [False, False,  True,  True],
+        #         [False, False,  True,  True]]], dtype=bool)
+
+        offset = np.array([-2, 2])
+        sv.move_masks(mask, offset, resolution_wh=(4, 4))
+        # array([[[False, False, False, False],
+        #         [False, False, False, False],
+        #         [False, False, False, False],
+        #         [True,  False, False, False]]], dtype=bool)
+        ```
     """
-
-    if offset[0] < 0 or offset[1] < 0:
-        raise ValueError(f"Offset values must be non-negative integers. Got: {offset}")
-
     mask_array = np.full((masks.shape[0], resolution_wh[1], resolution_wh[0]), False)
-    mask_array[
-        :,
-        offset[1] : masks.shape[1] + offset[1],
-        offset[0] : masks.shape[2] + offset[0],
-    ] = masks
+
+    if offset[0] < 0:
+        source_x_start = -offset[0]
+        source_x_end = min(masks.shape[2], resolution_wh[0] - offset[0])
+        destination_x_start = 0
+        destination_x_end = min(resolution_wh[0], masks.shape[2] + offset[0])
+    else:
+        source_x_start = 0
+        source_x_end = min(masks.shape[2], resolution_wh[0] - offset[0])
+        destination_x_start = offset[0]
+        destination_x_end = offset[0] + source_x_end - source_x_start
+
+    if offset[1] < 0:
+        source_y_start = -offset[1]
+        source_y_end = min(masks.shape[1], resolution_wh[1] - offset[1])
+        destination_y_start = 0
+        destination_y_end = min(resolution_wh[1], masks.shape[1] + offset[1])
+    else:
+        source_y_start = 0
+        source_y_end = min(masks.shape[1], resolution_wh[1] - offset[1])
+        destination_y_start = offset[1]
+        destination_y_end = offset[1] + source_y_end - source_y_start
+
+    if source_x_end > source_x_start and source_y_end > source_y_start:
+        mask_array[
+            :,
+            destination_y_start:destination_y_end,
+            destination_x_start:destination_x_end,
+        ] = masks[:, source_y_start:source_y_end, source_x_start:source_x_end]
 
     return mask_array
 

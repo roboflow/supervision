@@ -4,19 +4,10 @@ from pathlib import Path
 from shutil import copyfileobj
 from typing import Union
 
-from supervision.assets.list import VIDEO_ASSETS, VideoAssets
+from requests import get
+from tqdm.auto import tqdm
 
-try:
-    from requests import get
-    from tqdm.auto import tqdm
-except ImportError:
-    raise ValueError(
-        "\n"
-        "Please install requests and tqdm to download assets \n"
-        "or install supervision with assets \n"
-        "pip install supervision[assets] \n"
-        "\n"
-    )
+from supervision.assets.list import VIDEO_ASSETS, VideoAssets
 
 
 def is_md5_hash_matching(filename: str, original_md5_hash: str) -> bool:

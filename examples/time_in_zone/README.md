@@ -16,7 +16,7 @@ https://github.com/roboflow/supervision/assets/26109316/d051cc8a-dd15-41d4-aa36-
 - clone repository and navigate to example directory
 
     ```bash
-    git clone https://github.com/roboflow/supervision.git
+    git clone --depth 1 -b develop https://github.com/roboflow/supervision.git
     cd supervision/examples/time_in_zone
     ```
 

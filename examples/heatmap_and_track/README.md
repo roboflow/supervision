@@ -11,7 +11,7 @@ supervision package for multiple tasks such as drawing heatmap annotations, trac
 - clone repository and navigate to example directory
 
     ```bash
-    git clone https://github.com/roboflow/supervision.git
+    git clone --depth 1 -b develop https://github.com/roboflow/supervision.git
     cd supervision/examples/heatmap_and_track
     ```
 

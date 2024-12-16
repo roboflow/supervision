@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from contextlib import suppress
 from dataclasses import dataclass, field
 from typing import Any, Dict, Iterable, Iterator, List, Optional, Tuple, Union
 
@@ -204,9 +203,10 @@ class KeyPoints:
                 "You can retrieve it like so:  inference_result = model.infer(image)[0]"
             )
 
-        with suppress(AttributeError):
+        if hasattr(inference_result, "dict"):
             inference_result = inference_result.dict(exclude_none=True, by_alias=True)
-
+        elif hasattr(inference_result, "json"):
+            inference_result = inference_result.json()
         if not inference_result.get("predictions"):
             return cls.empty()
 
