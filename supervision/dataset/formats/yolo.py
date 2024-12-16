@@ -44,16 +44,14 @@ def _parse_polygon(values: List[str]) -> np.ndarray:
     return np.array(values, dtype=np.float32).reshape(-1, 2)
 
 
-def _polygons_to_masks(
-    polygons: List[np.ndarray], resolution_wh: Tuple[int, int]
-) -> np.ndarray:
-    return np.array(
-        [
-            polygon_to_mask(polygon=polygon, resolution_wh=resolution_wh)
-            for polygon in polygons
-        ],
-        dtype=bool,
-    )
+def _polygons_to_masks(polygon: list[np.ndarray], resolution_wh: Tuple[int, int]) -> np.ndarray:
+    polygon_int = np.round(polygon).astype(np.int32)
+    mask = np.zeros((resolution_wh[1], resolution_wh[0]), dtype=np.uint8)
+    
+    cv2.fillPoly(mask, [polygon_int], 1)
+
+    return mask.astype(bool)
+
 
 
 def _with_mask(lines: List[str]) -> bool:
@@ -115,9 +113,9 @@ def yolo_annotations_to_detections(
         return Detections(class_id=class_id, xyxy=xyxy, data=data)
 
     polygons = [
-        (polygon * np.array(resolution_wh)).astype(int) for polygon in relative_polygon
+        (polygon * np.array(resolution_wh)) for polygon in relative_polygon
     ]
-    mask = _polygons_to_masks(polygons=polygons, resolution_wh=resolution_wh)
+    mask = _polygons_to_masks(polygon=polygons, resolution_wh=resolution_wh)
     return Detections(class_id=class_id, xyxy=xyxy, data=data, mask=mask)
 
 
