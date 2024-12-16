@@ -735,39 +735,54 @@ def move_masks(
         import numpy as np
         import supervision as sv
 
-        # Create a sample mask
-        mask = np.zeros((1, 4, 4), dtype=bool)
-        mask[0, 1:3, 1:3] = True
+        mask = np.array([[[False, False, False, False],
+                         [False, True,  True,  False],
+                         [False, True,  True,  False],
+                         [False, False, False, False]]], dtype=bool)
 
-        # Move mask left and up
-        offset = np.array([-1, -1])
-        moved_mask = sv.move_masks(mask, offset, resolution_wh=(4, 4))
-
-        # Move mask right and down
         offset = np.array([1, 1])
-        moved_mask = sv.move_masks(mask, offset, resolution_wh=(4, 4))
+        sv.move_masks(mask, offset, resolution_wh=(4, 4))
+        # array([[[False, False, False, False],
+        #         [False, False, False, False],
+        #         [False, False,  True,  True],
+        #         [False, False,  True,  True]]], dtype=bool)
+
+        offset = np.array([-2, 2]) 
+        sv.move_masks(mask, offset, resolution_wh=(4, 4))
+        # array([[[False, False, False, False],
+        #         [False, False, False, False],
+        #         [False, False, False, False],
+        #         [True,  False, False, False]]], dtype=bool)
         ```
     """
     mask_array = np.full((masks.shape[0], resolution_wh[1], resolution_wh[0]), False)
 
-    # For negative offsets, copying starting portion of mask
-    if offset[0] <= 0 and offset[1] <= 0:
-        w = min(
-            masks.shape[2], resolution_wh[0] + offset[0]
-        )  # How much to copy horizontally
-        h = min(
-            masks.shape[1], resolution_wh[1] + offset[1]
-        )  # How much to copy vertically
-
-        mask_array[:, 0:h, 0:w] = masks[:, 0:h, 0:w]
+    if offset[0] < 0:
+        source_x_start = -offset[0]
+        source_x_end = min(masks.shape[2], resolution_wh[0] - offset[0])
+        destination_x_start = 0
+        destination_x_end = min(resolution_wh[0], masks.shape[2] + offset[0])
     else:
-        # For positive offsets, using original logic
-        w = min(masks.shape[2], resolution_wh[0] - offset[0])
-        h = min(masks.shape[1], resolution_wh[1] - offset[1])
+        source_x_start = 0
+        source_x_end = min(masks.shape[2], resolution_wh[0] - offset[0])
+        destination_x_start = offset[0]
+        destination_x_end = offset[0] + source_x_end - source_x_start
 
-        mask_array[:, offset[1] : offset[1] + h, offset[0] : offset[0] + w] = masks[
-            :, 0:h, 0:w
-        ]
+    if offset[1] < 0:
+        source_y_start = -offset[1]
+        source_y_end = min(masks.shape[1], resolution_wh[1] - offset[1])
+        destination_y_start = 0
+        destination_y_end = min(resolution_wh[1], masks.shape[1] + offset[1])
+    else:
+        source_y_start = 0
+        source_y_end = min(masks.shape[1], resolution_wh[1] - offset[1])
+        destination_y_start = offset[1]
+        destination_y_end = offset[1] + source_y_end - source_y_start
+
+    if source_x_end > source_x_start and source_y_end > source_y_start:
+        mask_array[:, destination_y_start:destination_y_end, 
+                  destination_x_start:destination_x_end] = \
+            masks[:, source_y_start:source_y_end, source_x_start:source_x_end]
 
     return mask_array
 
