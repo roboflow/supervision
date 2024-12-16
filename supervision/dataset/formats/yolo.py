@@ -143,6 +143,7 @@ def load_yolo_annotations(
             where pairs of [x, y] are box corners.
 
     Returns:
+    
         Tuple[List[str], List[str], Dict[str, Detections]]:
             A tuple containing a list of class names, a dictionary with
             image names as keys and images as values, and a dictionary
