@@ -2,4 +2,4 @@ gdown
 inference==0.9.17
 supervision>=0.20.0
 tqdm
-ultralytics
+ultralytics<=8.3.40

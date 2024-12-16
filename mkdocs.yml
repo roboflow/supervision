@@ -42,6 +42,7 @@ nav:
       - Detect Small Objects: how_to/detect_small_objects.md
       - Track Objects on Video: how_to/track_objects.md
       - Process Datasets: how_to/process_datasets.md
+      - Benchmark a Model: how_to/benchmark_a_model.md
 
   - Reference - Code API:
       - Detection and Segmentation:
@@ -177,8 +178,8 @@ markdown_extensions:
       anchor_linenums: true
 
 extra_javascript:
-  - "https://widget.kapa.ai/kapa-widget.bundle.js"
-  - "javascripts/init_kapa_widget.js"
+  # disabled until 0.27.0, so we can test its functionality
+  # - "javascripts/init_kapa_widget.js"
   - "javascripts/cookbooks-card.js"
   - "https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js"
 
