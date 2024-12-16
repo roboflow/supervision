@@ -268,9 +268,11 @@ class Detections:
                 xyxy=ultralytics_results.obb.xyxy.cpu().numpy(),
                 confidence=ultralytics_results.obb.conf.cpu().numpy(),
                 class_id=class_id,
-                tracker_id=ultralytics_results.obb.id.int().cpu().numpy()
-                if ultralytics_results.obb.id is not None
-                else None,
+                tracker_id=(
+                    ultralytics_results.obb.id.int().cpu().numpy()
+                    if ultralytics_results.obb.id is not None
+                    else None
+                ),
                 data={
                     ORIENTED_BOX_COORDINATES: oriented_box_coordinates,
                     CLASS_NAME_DATA_FIELD: class_names,
@@ -292,9 +294,11 @@ class Detections:
             confidence=ultralytics_results.boxes.conf.cpu().numpy(),
             class_id=class_id,
             mask=extract_ultralytics_masks(ultralytics_results),
-            tracker_id=ultralytics_results.boxes.id.int().cpu().numpy()
-            if ultralytics_results.boxes.id is not None
-            else None,
+            tracker_id=(
+                ultralytics_results.boxes.id.int().cpu().numpy()
+                if ultralytics_results.boxes.id is not None
+                else None
+            ),
             data={CLASS_NAME_DATA_FIELD: class_names},
         )
 
@@ -446,9 +450,11 @@ class Detections:
             xyxy=mmdet_results.pred_instances.bboxes.cpu().numpy(),
             confidence=mmdet_results.pred_instances.scores.cpu().numpy(),
             class_id=mmdet_results.pred_instances.labels.cpu().numpy().astype(int),
-            mask=mmdet_results.pred_instances.masks.cpu().numpy()
-            if "masks" in mmdet_results.pred_instances
-            else None,
+            mask=(
+                mmdet_results.pred_instances.masks.cpu().numpy()
+                if "masks" in mmdet_results.pred_instances
+                else None
+            ),
         )
 
     @classmethod
@@ -566,9 +572,11 @@ class Detections:
         return cls(
             xyxy=detectron2_results["instances"].pred_boxes.tensor.cpu().numpy(),
             confidence=detectron2_results["instances"].scores.cpu().numpy(),
-            mask=detectron2_results["instances"].pred_masks.cpu().numpy()
-            if hasattr(detectron2_results["instances"], "pred_masks")
-            else None,
+            mask=(
+                detectron2_results["instances"].pred_masks.cpu().numpy()
+                if hasattr(detectron2_results["instances"], "pred_masks")
+                else None
+            ),
             class_id=detectron2_results["instances"]
             .pred_classes.cpu()
             .numpy()
@@ -1394,6 +1402,102 @@ class Detections:
             result.append(merged_detections)
 
         return Detections.merge(result)
+
+    @classmethod
+    def from_gcp_vision(cls, gcp_results, size) -> Detections:
+        """
+        Creates a Detections instance from the
+            [Google Cloud Cloud Vision API's](https://cloud.google.com/vision/docs)
+            inference result.
+
+        Args:
+            gcp_results (List[dict]): The output results from GCP from
+                the `localized_object_annotations`.
+            size (Tuple[int, int]): The height, then width of the input image.
+
+        Returns:
+            Detections: A new Detections object.
+
+        Example:
+            ```python
+            >>> import supervision as sv
+            >>> from google.cloud import vision
+            >>> from PIL import Image
+
+            >>> image_path = "/content/people.jpeg"
+            >>> img = Image.open(image_path)
+
+            >>> client = vision.ImageAnnotatorClient()
+
+            >>> with open(image_path, "rb") as image_file:
+            >>>     content = image_file.read()
+
+            >>> image = vision.Image(content=content)
+
+            >>> result = client.object_localization(image=image)
+            >>> objects = result.localized_object_annotations
+
+            >>> detections = sv.Detections.from_gcp_vision(
+            >>>     gcp_results=objects,
+            >>>     size=(img.height, img.width)
+            >>> )
+            ```
+        """
+        xyxys, confidences, class_ids = [], [], []
+
+        class_id_reference = {}
+
+        for object_ in gcp_results:
+            # bounding boxes must be in the format [x0, y0, x1, y1]
+            # not the polygons returned by the GCP Vision API
+
+            object_bboxes = []
+
+            for vertex in object_.bounding_poly.normalized_vertices:
+                object_bboxes.append([vertex.x, vertex.y])
+
+            object_bboxes = np.array(object_bboxes)
+
+            x0 = object_bboxes[:, 0].min()
+            y0 = object_bboxes[:, 1].min()
+            x1 = object_bboxes[:, 0].max()
+            y1 = object_bboxes[:, 1].max()
+
+            height, width = size
+
+            # normalize as image size, not 0-1
+            x0 *= width
+            y0 *= height
+            x1 *= width
+            y1 *= height
+
+            class_name = object_.name
+
+            xyxys.append([x0, y0, x1, y1])
+
+            confidences.append(object_.score)
+
+            if class_id_reference.get(class_name):
+                class_ids.append(class_id_reference[class_name])
+            else:
+                new_id = len(class_id_reference) + 1
+
+                class_id_reference[class_name] = new_id
+
+                class_ids.append(new_id)
+
+        id_to_class_name = {id_: name for name, id_ in class_id_reference.items()}
+        class_names = [id_to_class_name[class_id] for class_id in class_ids]
+
+        if len(xyxys) == 0:
+            return cls.empty()
+
+        return cls(
+            xyxy=np.array(xyxys),
+            class_id=np.array(class_ids),
+            confidence=np.array(confidences),
+            data={CLASS_NAME_DATA_FIELD: np.array(class_names)},
+        )
 
 
 def merge_inner_detection_object_pair(
