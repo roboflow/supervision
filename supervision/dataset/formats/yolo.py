@@ -8,7 +8,7 @@ import numpy as np
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.dataset.utils import approximate_mask_with_polygons
 from supervision.detection.core import Detections
-from supervision.detection.utils import polygon_to_mask, polygon_to_xyxy
+from supervision.detection.utils import polygon_to_xyxy
 from supervision.utils.file import (
     list_files_with_extensions,
     read_txt_file,
@@ -44,14 +44,15 @@ def _parse_polygon(values: List[str]) -> np.ndarray:
     return np.array(values, dtype=np.float32).reshape(-1, 2)
 
 
-def _polygons_to_masks(polygon: list[np.ndarray], resolution_wh: Tuple[int, int]) -> np.ndarray:
+def _polygons_to_masks(
+    polygon: list[np.ndarray], resolution_wh: Tuple[int, int]
+) -> np.ndarray:
     polygon_int = np.round(polygon).astype(np.int32)
     mask = np.zeros((resolution_wh[1], resolution_wh[0]), dtype=np.uint8)
-    
+
     cv2.fillPoly(mask, [polygon_int], 1)
 
     return mask.astype(bool)
-
 
 
 def _with_mask(lines: List[str]) -> bool:
@@ -112,9 +113,7 @@ def yolo_annotations_to_detections(
     if not with_masks:
         return Detections(class_id=class_id, xyxy=xyxy, data=data)
 
-    polygons = [
-        (polygon * np.array(resolution_wh)) for polygon in relative_polygon
-    ]
+    polygons = [(polygon * np.array(resolution_wh)) for polygon in relative_polygon]
     mask = _polygons_to_masks(polygon=polygons, resolution_wh=resolution_wh)
     return Detections(class_id=class_id, xyxy=xyxy, data=data, mask=mask)
 
@@ -143,7 +142,7 @@ def load_yolo_annotations(
             where pairs of [x, y] are box corners.
 
     Returns:
-    
+
         Tuple[List[str], List[str], Dict[str, Detections]]:
             A tuple containing a list of class names, a dictionary with
             image names as keys and images as values, and a dictionary
