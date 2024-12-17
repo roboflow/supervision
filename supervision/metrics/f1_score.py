@@ -621,10 +621,10 @@ class F1ScoreResult:
         ax.set_ylabel("Value", fontweight="bold")
         title = (
             f"F1 Score, by Object Size"
-            f"\n(target: {self.metric_target.value},"
+            f"\n\n(target: {self.metric_target.value},"  # Added extra newline here
             f" averaging: {self.averaging_method.value})"
         )
-        ax.set_title(title, fontweight="bold")
+        ax.set_title(title, fontweight="bold", pad=20)  # Added padding
 
         x_positions = range(len(labels))
         bars = ax.bar(x_positions, values, color=colors, align="center")
