@@ -14,7 +14,7 @@ from supervision.detection.utils import (
     mask_iou_batch,
     oriented_box_iou_batch,
 )
-from supervision.draw.color import LEGACY_COLOR_PALETTE
+from supervision.draw.color import LEGACY_COLOR_PALETTE, ROBOFLOW_COLOR_PALETTE
 from supervision.metrics.core import AveragingMethod, Metric, MetricTarget
 from supervision.metrics.utils.object_size import (
     ObjectSizeCategory,
@@ -594,25 +594,25 @@ class F1ScoreResult:
 
         labels = ["F1@50", "F1@75"]
         values = [self.f1_50, self.f1_75]
-        colors = [LEGACY_COLOR_PALETTE[0]] * 2
+        colors = [ROBOFLOW_COLOR_PALETTE[0]] * 2
 
         if self.small_objects is not None:
             small_objects = self.small_objects
             labels += ["Small: F1@50", "Small: F1@75"]
             values += [small_objects.f1_50, small_objects.f1_75]
-            colors += [LEGACY_COLOR_PALETTE[3]] * 2
+            colors += [ROBOFLOW_COLOR_PALETTE[3]] * 2
 
         if self.medium_objects is not None:
             medium_objects = self.medium_objects
             labels += ["Medium: F1@50", "Medium: F1@75"]
             values += [medium_objects.f1_50, medium_objects.f1_75]
-            colors += [LEGACY_COLOR_PALETTE[2]] * 2
+            colors += [ROBOFLOW_COLOR_PALETTE[2]] * 2
 
         if self.large_objects is not None:
             large_objects = self.large_objects
             labels += ["Large: F1@50", "Large: F1@75"]
             values += [large_objects.f1_50, large_objects.f1_75]
-            colors += [LEGACY_COLOR_PALETTE[4]] * 2
+            colors += [ROBOFLOW_COLOR_PALETTE[4]] * 2
 
         plt.rcParams["font.family"] = "monospace"
 
@@ -641,8 +641,6 @@ class F1ScoreResult:
                 ha="center",
                 va="bottom",
             )
-
-        plt.rcParams["font.family"] = "sans-serif"
 
         plt.tight_layout()
         plt.show()
