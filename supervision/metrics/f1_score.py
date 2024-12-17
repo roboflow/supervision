@@ -614,8 +614,6 @@ class F1ScoreResult:
             values += [large_objects.f1_50, large_objects.f1_75]
             colors += [ROBOFLOW_COLOR_PALETTE[4]] * 2
 
-        plt.rcParams["font.family"] = "monospace"
-
         _, ax = plt.subplots(figsize=(10, 6))
         ax.set_ylim(0, 1.2)
         ax.set_ylabel("Value", fontweight="bold")
@@ -624,7 +622,7 @@ class F1ScoreResult:
             f"\n(target: {self.metric_target.value},"
             f" averaging: {self.averaging_method.value})"
         )
-        ax.set_title(title, fontweight="bold")
+        ax.set_title(title, fontweight="bold", pad=20)
 
         x_positions = range(len(labels))
         bars = ax.bar(x_positions, values, color=colors, align="center")
