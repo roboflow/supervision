@@ -87,25 +87,25 @@ class PolygonZone:
                 if each detection is within the polygon zone
         """
 
-        clipped_xyxy = clip_boxes(
-            xyxy=detections.xyxy, resolution_wh=self.frame_resolution_wh
+        original_anchors = np.array([
+            np.ceil(detections.get_anchors_coordinates(anchor)).astype(int)
+            for anchor in self.triggering_anchors
+        ])
+        
+        original_anchors_clamped = np.clip(
+            original_anchors,
+            a_min=[0, 0],
+            a_max=[self.mask.shape[1] - 1, self.mask.shape[0] - 1]
         )
-        clipped_detections = replace(detections, xyxy=clipped_xyxy)
-        all_clipped_anchors = np.array(
-            [
-                np.ceil(clipped_detections.get_anchors_coordinates(anchor)).astype(int)
-                for anchor in self.triggering_anchors
-            ]
-        )
-
-        is_in_zone: npt.NDArray[np.bool_] = (
-            self.mask[all_clipped_anchors[:, :, 1], all_clipped_anchors[:, :, 0]]
-            .transpose()
-            .astype(bool)
-        )
-
-        is_in_zone: npt.NDArray[np.bool_] = np.all(is_in_zone, axis=1)
+        
+        is_in_zone_original = self.mask[
+            original_anchors_clamped[:, :, 1],
+            original_anchors_clamped[:, :, 0]
+        ].transpose().astype(bool)
+        
+        is_in_zone = np.all(is_in_zone_original, axis=1)
         self.current_count = int(np.sum(is_in_zone))
+        
         return is_in_zone.astype(bool)
 
 
