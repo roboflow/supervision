@@ -51,7 +51,7 @@ def _polygons_to_masks(
     mask = np.zeros((resolution_wh[1], resolution_wh[0]), dtype=np.uint8)
 
     cv2.fillPoly(mask, [polygon_int], 1)
-
+    mask = mask[None, ...]
     return mask.astype(bool)
 
 
