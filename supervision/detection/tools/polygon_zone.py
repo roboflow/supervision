@@ -1,4 +1,3 @@
-from dataclasses import replace
 from typing import Iterable, Optional
 
 import cv2
@@ -6,7 +5,7 @@ import numpy as np
 import numpy.typing as npt
 
 from supervision import Detections
-from supervision.detection.utils import clip_boxes, polygon_to_mask
+from supervision.detection.utils import polygon_to_mask
 from supervision.draw.color import Color
 from supervision.draw.utils import draw_filled_polygon, draw_polygon, draw_text
 from supervision.geometry.core import Position
@@ -87,25 +86,30 @@ class PolygonZone:
                 if each detection is within the polygon zone
         """
 
-        original_anchors = np.array([
-            np.ceil(detections.get_anchors_coordinates(anchor)).astype(int)
-            for anchor in self.triggering_anchors
-        ])
-        
+        original_anchors = np.array(
+            [
+                np.ceil(detections.get_anchors_coordinates(anchor)).astype(int)
+                for anchor in self.triggering_anchors
+            ]
+        )
+
         original_anchors_clamped = np.clip(
             original_anchors,
             a_min=[0, 0],
-            a_max=[self.mask.shape[1] - 1, self.mask.shape[0] - 1]
+            a_max=[self.mask.shape[1] - 1, self.mask.shape[0] - 1],
         )
-        
-        is_in_zone_original = self.mask[
-            original_anchors_clamped[:, :, 1],
-            original_anchors_clamped[:, :, 0]
-        ].transpose().astype(bool)
-        
+
+        is_in_zone_original = (
+            self.mask[
+                original_anchors_clamped[:, :, 1], original_anchors_clamped[:, :, 0]
+            ]
+            .transpose()
+            .astype(bool)
+        )
+
         is_in_zone = np.all(is_in_zone_original, axis=1)
         self.current_count = int(np.sum(is_in_zone))
-        
+
         return is_in_zone.astype(bool)
 
 
