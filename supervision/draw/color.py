@@ -8,27 +8,27 @@ import matplotlib.pyplot as plt
 from supervision.utils.internal import classproperty
 
 DEFAULT_COLOR_PALETTE = [
-    "A351FB",
-    "FF4040",
-    "FFA1A0",
-    "FF7633",
-    "FFB633",
-    "D1D435",
-    "4CFB12",
-    "94CF1A",
-    "40DE8A",
-    "1B9640",
-    "00D6C1",
-    "2E9CAA",
-    "00C4FF",
-    "364797",
-    "6675FF",
-    "0019EF",
-    "863AFF",
-    "530087",
-    "CD3AFF",
-    "FF97CA",
-    "FF39C9",
+    "#A351FB",
+    "#FF4040",
+    "#FFA1A0",
+    "#FF7633",
+    "#FFB633",
+    "#D1D435",
+    "#4CFB12",
+    "#94CF1A",
+    "#40DE8A",
+    "#1B9640",
+    "#00D6C1",
+    "#2E9CAA",
+    "#00C4FF",
+    "#364797",
+    "#6675FF",
+    "#0019EF",
+    "#863AFF",
+    "#530087",
+    "#CD3AFF",
+    "#FF97CA",
+    "#FF39C9",
 ]
 
 LEGACY_COLOR_PALETTE = [
@@ -51,7 +51,14 @@ LEGACY_COLOR_PALETTE = [
     "#AAFFC3",
 ]
 
-ROBOFLOW_COLOR_PALETTE = ["C28DFC", "A351FB", "8315F9", "6706CE", "5905B3", "4D049A"]
+ROBOFLOW_COLOR_PALETTE = [
+    "#C28DFC", 
+    "#A351FB", 
+    "#8315F9", 
+    "#6706CE", 
+    "#5905B3", 
+    "#4D049A"
+]
 
 
 def _validate_color_hex(color_hex: str):
