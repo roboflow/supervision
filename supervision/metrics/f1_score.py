@@ -617,14 +617,14 @@ class F1ScoreResult:
         plt.rcParams["font.family"] = "monospace"
 
         _, ax = plt.subplots(figsize=(10, 6))
-        ax.set_ylim(0, 1)
+        ax.set_ylim(0, 1.2)
         ax.set_ylabel("Value", fontweight="bold")
         title = (
             f"F1 Score, by Object Size"
-            f"\n\n(target: {self.metric_target.value},"  # Added extra newline here
+            f"\n(target: {self.metric_target.value},"
             f" averaging: {self.averaging_method.value})"
         )
-        ax.set_title(title, fontweight="bold", pad=20)  # Added padding
+        ax.set_title(title, fontweight="bold")
 
         x_positions = range(len(labels))
         bars = ax.bar(x_positions, values, color=colors, align="center")
