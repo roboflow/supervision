@@ -598,31 +598,39 @@ class F1ScoreResult:
 
         if self.small_objects is not None:
             small_objects = self.small_objects
-            labels += ["Small: F1@50", "Small: F1@75"]
+            labels += ["small: F1@50", "small: F1@75"]
             values += [small_objects.f1_50, small_objects.f1_75]
             colors += [ROBOFLOW_COLOR_PALETTE[3]] * 2
 
         if self.medium_objects is not None:
             medium_objects = self.medium_objects
-            labels += ["Medium: F1@50", "Medium: F1@75"]
+            labels += ["medium: F1@50", "medium: F1@75"]
             values += [medium_objects.f1_50, medium_objects.f1_75]
             colors += [ROBOFLOW_COLOR_PALETTE[2]] * 2
 
         if self.large_objects is not None:
             large_objects = self.large_objects
-            labels += ["Large: F1@50", "Large: F1@75"]
+            labels += ["large: F1@50", "large: F1@75"]
             values += [large_objects.f1_50, large_objects.f1_75]
             colors += [ROBOFLOW_COLOR_PALETTE[4]] * 2
 
         _, ax = plt.subplots(figsize=(10, 6))
         ax.set_ylim(0, 1.2)
-        ax.set_ylabel("Value", fontweight="bold")
-        title = (
-            f"F1 Score, by Object Size"
-            f"\n(target: {self.metric_target.value},"
-            f" averaging: {self.averaging_method.value})"
-        )
+        ax.set_ylabel("value")
+        ax.set_xlabel("F1 Score @ IoU Threshold")
+        title = "F1 Score, by Object Size"
+        subtitle = f"target: {self.metric_target.value}, averaging: {self.averaging_method.value}"
         ax.set_title(title, fontweight="bold", pad=20)
+        ax.text(
+            0.5,
+            1.05,
+            subtitle,
+            ha='center',
+            va='bottom',
+            transform=ax.transAxes,
+            fontsize=10,
+            fontstyle='italic'
+        )
 
         x_positions = range(len(labels))
         bars = ax.bar(x_positions, values, color=colors, align="center")
