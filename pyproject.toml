@@ -1,18 +1,14 @@
-[tool.poetry]
+[project]
 name = "supervision"
-version = "0.26.0rc2"
 description = "A set of easy-to-use utils that will come in handy in any Computer Vision project"
-authors = ["Piotr Skalski <piotr.skalski92@gmail.com>"]
-maintainers = [
-    "Piotr Skalski <piotr.skalski92@gmail.com>",
-    "Linas Kondrackis <linas@roboflow.com>",
-]
+license = { text = "MIT" }
 readme = "README.md"
-license = "MIT"
-packages = [{ include = "supervision" }, { include = "supervision/py.typed" }]
-homepage = "https://github.com/roboflow/supervision"
-repository = "https://github.com/roboflow/supervision"
-documentation = "https://supervision.roboflow.com/latest/"
+authors = [
+    { name = "Piotr Skalski", email = "piotr.skalski92@gmail.com" }
+]
+maintainers = [
+    { name = "Piotr Skalski", email = "piotr.skalski92@gmail.com" },
+]
 keywords = [
     "machine-learning",
     "deep-learning",
@@ -22,7 +18,6 @@ keywords = [
     "AI",
     "Roboflow",
 ]
-
 classifiers = [
     'Development Status :: 4 - Beta',
     'Intended Audience :: Developers',
@@ -40,6 +35,20 @@ classifiers = [
     'Operating System :: POSIX :: Linux',
     'Operating System :: MacOS',
 ]
+dynamic = ["version", "dependencies","requires-python"]
+
+[project.urls]
+Homepage = "https://github.com/roboflow/supervision"
+Repository = "https://github.com/roboflow/supervision"
+Documentation = "https://supervision.roboflow.com/latest/"
+
+[project.optional-dependencies]
+metrics = ["pandas"]
+
+[tool.poetry]
+# Keep version here since it's dynamic
+version = "0.26.0rc2"
+packages = [{ include = "supervision" }, { include = "supervision/py.typed" }]
 
 [tool.poetry.dependencies]
 python = "^3.8"
@@ -90,9 +99,6 @@ pandas = [
 ]
 
 opencv-python = ">=4.5.5.64"
-
-[tool.poetry.extras]
-metrics = ["pandas"]
 
 [tool.poetry.group.test.dependencies]
 pytest = ">=7.2.2,<9.0.0"
