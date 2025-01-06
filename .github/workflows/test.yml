@@ -29,19 +29,12 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: 📜 Setup Poetry
-        uses: abatilo/actions-poetry@e78f54a89cb052fff327414dd9ff010b5d2b4dbd # v3.0.1
+        uses: abatilo/actions-poetry@3765cf608f2d4a72178a9fc5b918668e542b89b1 # v4.0.0
 
       - name: 📦 Install dependencies
         run: |
           poetry install --with=test
 
-      - name: Run pytest
-        uses: pavelzw/pytest-action@510c5e90c360a185039bea56ce8b3e7e51a16507 # v2.2.0
-        with:
-          verbose: true
-          emoji: true
-          job-summary: true
-          custom-arguments: "-q"
-          click-to-expand: true
-          report-title: "Test Report"
-          custom-pytest: "poetry run pytest"
+      - name: 🧪 Run pytest
+        run: |
+            poetry run pytest
