@@ -39,9 +39,9 @@ classifiers = [
 ]
 dependencies = [
     "numpy>=1.21.2",
-    "scipy==1.10.0; python_version < '3.9'",
-    "scipy>=1.10.0; python_version >= '3.9'",
-    "scipy>=1.14.1; python_version >= '3.13'",
+    "scipy (==1.10.0); python_version < '3.9'",
+    "scipy (>=1.10.0,<1.14.1) ; python_version >= '3.9' and python_version < '3.13'",
+    "scipy (>=1.14.1); python_version >= '3.13'",
     "matplotlib>=3.6.0",
     "pyyaml>=5.3",
     "defusedxml>=0.7.1",

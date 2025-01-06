@@ -31,7 +31,7 @@ description = "Disable App Nap on macOS >= 10.9"
 optional = false
 python-versions = ">=3.6"
 groups = ["dev", "docs"]
-markers = "(sys_platform == \"darwin\" or platform_system == \"Darwin\") and (python_version <= \"3.11\" or python_version >= \"3.12\")"
+markers = "(python_version <= \"3.11\" or python_version >= \"3.12\") and (sys_platform == \"darwin\" or platform_system == \"Darwin\")"
 files = [
     {file = "appnope-0.1.4-py2.py3-none-any.whl", hash = "sha256:502575ee11cd7a28c0205f379b525beefebab9d161b7c964670864014ed7213c"},
     {file = "appnope-0.1.4.tar.gz", hash = "sha256:1de3860566df9caf38f01f86f65e0e13e379af54f9e4bee1e66b48f2efffd1ee"},
@@ -229,7 +229,7 @@ description = "Backport of CPython tarfile module"
 optional = false
 python-versions = ">=3.8"
 groups = ["build"]
-markers = "python_version < \"3.9\" and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Linux\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"aarch64\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Darwin\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"arm64\") or python_version >= \"3.9\" and python_version <= \"3.11\" and (platform_machine != \"ppc64le\" and platform_machine != \"s390x\")"
+markers = "python_version <= \"3.11\" and (python_version < \"3.9\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Linux\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"aarch64\" or python_version >= \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Darwin\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"arm64\" or python_version >= \"3.9\")"
 files = [
     {file = "backports.tarfile-1.2.0-py3-none-any.whl", hash = "sha256:77e284d754527b01fb1e6fa8a1afe577858ebe4e9dad8919e34c862cb399bc34"},
     {file = "backports_tarfile-1.2.0.tar.gz", hash = "sha256:d75e02c268746e1b8144c278978b6e98e85de6ad16f8e4b0844a154557eca991"},
@@ -457,7 +457,7 @@ files = [
     {file = "cffi-1.17.1-cp39-cp39-win_amd64.whl", hash = "sha256:d016c76bdd850f3c626af19b0542c9677ba156e4ee4fccfdd7848803533ef662"},
     {file = "cffi-1.17.1.tar.gz", hash = "sha256:1c39c6016c32bc48dd54561950ebd6836e1670f2ae46128f67cf49e789c52824"},
 ]
-markers = {build = "(platform_machine != \"ppc64le\" and platform_machine != \"s390x\" or python_version < \"3.9\") and sys_platform == \"linux\" and platform_python_implementation != \"PyPy\" and (python_version <= \"3.11\" or python_version >= \"3.12\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Linux\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"aarch64\" or python_version >= \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Darwin\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"arm64\" or python_version >= \"3.9\")", dev = "python_version <= \"3.11\" or python_version >= \"3.12\"", docs = "python_version <= \"3.11\" or python_version >= \"3.12\""}
+markers = {build = "(python_version <= \"3.11\" or python_version >= \"3.12\") and sys_platform == \"linux\" and platform_python_implementation != \"PyPy\" and (platform_machine != \"ppc64le\" and platform_machine != \"s390x\" or python_version < \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Linux\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"aarch64\" or python_version >= \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Darwin\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"arm64\" or python_version >= \"3.9\")", dev = "python_version <= \"3.11\" or python_version >= \"3.12\"", docs = "python_version <= \"3.11\" or python_version >= \"3.12\""}
 
 [package.dependencies]
 pycparser = "*"
@@ -783,7 +783,7 @@ description = "cryptography is a package which provides cryptographic recipes an
 optional = false
 python-versions = ">=3.7"
 groups = ["build"]
-markers = "(platform_machine != \"ppc64le\" and platform_machine != \"s390x\" or python_version < \"3.9\") and sys_platform == \"linux\" and (python_version <= \"3.11\" or python_version >= \"3.12\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Linux\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"aarch64\" or python_version >= \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Darwin\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"arm64\" or python_version >= \"3.9\")"
+markers = "(python_version <= \"3.11\" or python_version >= \"3.12\") and sys_platform == \"linux\" and (platform_machine != \"ppc64le\" and platform_machine != \"s390x\" or python_version < \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Linux\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"aarch64\" or python_version >= \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Darwin\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"arm64\" or python_version >= \"3.9\")"
 files = [
     {file = "cryptography-43.0.3-cp37-abi3-macosx_10_9_universal2.whl", hash = "sha256:bf7a1932ac4176486eab36a19ed4c0492da5d97123f1406cf15e41b05e787d2e"},
     {file = "cryptography-43.0.3-cp37-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:63efa177ff54aec6e1c0aefaa1a241232dcd37413835a9b674b6e3f0ae2bfd3e"},
@@ -1556,7 +1556,7 @@ description = "Low-level, pure Python DBus protocol wrapper."
 optional = false
 python-versions = ">=3.7"
 groups = ["build"]
-markers = "(platform_machine != \"ppc64le\" and platform_machine != \"s390x\" or python_version < \"3.9\") and sys_platform == \"linux\" and (python_version <= \"3.11\" or python_version >= \"3.12\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Linux\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"aarch64\" or python_version >= \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Darwin\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"arm64\" or python_version >= \"3.9\")"
+markers = "(python_version <= \"3.11\" or python_version >= \"3.12\") and sys_platform == \"linux\" and (platform_machine != \"ppc64le\" and platform_machine != \"s390x\" or python_version < \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Linux\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"aarch64\" or python_version >= \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Darwin\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"arm64\" or python_version >= \"3.9\")"
 files = [
     {file = "jeepney-0.8.0-py3-none-any.whl", hash = "sha256:c0a454ad016ca575060802ee4d590dd912e35c122fa04e70306de3d076cce755"},
     {file = "jeepney-0.8.0.tar.gz", hash = "sha256:5efe48d255973902f6badc3ce55e2aa6c5c3b3bc642059ef3a91247bcfcc5806"},
@@ -3348,7 +3348,7 @@ files = [
     {file = "ptyprocess-0.7.0-py2.py3-none-any.whl", hash = "sha256:4b41f3967fce3af57cc7e94b888626c18bf37a083e3651ca8feeb66d492fef35"},
     {file = "ptyprocess-0.7.0.tar.gz", hash = "sha256:5c5d0a3b48ceee0b48485e0c26037c0acd7d29765ca3fbb5cb3831d347423220"},
 ]
-markers = {dev = "(os_name != \"nt\" or sys_platform != \"win32\") and (python_version <= \"3.11\" or python_version >= \"3.12\")", docs = "(python_version <= \"3.11\" or python_version >= \"3.12\") and sys_platform != \"win32\""}
+markers = {dev = "(python_version <= \"3.11\" or python_version >= \"3.12\") and (os_name != \"nt\" or sys_platform != \"win32\")", docs = "(python_version <= \"3.11\" or python_version >= \"3.12\") and sys_platform != \"win32\""}
 
 [[package]]
 name = "pure-eval"
@@ -3377,7 +3377,7 @@ files = [
     {file = "pycparser-2.22-py3-none-any.whl", hash = "sha256:c3702b6d3dd8c7abc1afa565d7e63d53a1d0bd86cdc24edd75470f4de499cfcc"},
     {file = "pycparser-2.22.tar.gz", hash = "sha256:491c8be9c040f5390f5bf44a5b07752bd07f56edf992381b05c701439eec10f6"},
 ]
-markers = {build = "(platform_machine != \"ppc64le\" and platform_machine != \"s390x\" or python_version < \"3.9\") and sys_platform == \"linux\" and platform_python_implementation != \"PyPy\" and (python_version <= \"3.11\" or python_version >= \"3.12\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Linux\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"aarch64\" or python_version >= \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Darwin\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"arm64\" or python_version >= \"3.9\")", dev = "python_version <= \"3.11\" or python_version >= \"3.12\"", docs = "python_version <= \"3.11\" or python_version >= \"3.12\""}
+markers = {build = "(python_version <= \"3.11\" or python_version >= \"3.12\") and sys_platform == \"linux\" and platform_python_implementation != \"PyPy\" and (platform_machine != \"ppc64le\" and platform_machine != \"s390x\" or python_version < \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Linux\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"aarch64\" or python_version >= \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Darwin\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"arm64\" or python_version >= \"3.9\")", dev = "python_version <= \"3.11\" or python_version >= \"3.12\"", docs = "python_version <= \"3.11\" or python_version >= \"3.12\""}
 
 [[package]]
 name = "pygments"
@@ -3544,7 +3544,7 @@ description = "Python for Window Extensions"
 optional = false
 python-versions = "*"
 groups = ["dev", "docs"]
-markers = "sys_platform == \"win32\" and platform_python_implementation != \"PyPy\" and (python_version <= \"3.11\" or python_version >= \"3.12\")"
+markers = "(python_version <= \"3.11\" or python_version >= \"3.12\") and platform_python_implementation != \"PyPy\" and sys_platform == \"win32\""
 files = [
     {file = "pywin32-308-cp310-cp310-win32.whl", hash = "sha256:796ff4426437896550d2981b9c2ac0ffd75238ad9ea2d3bfa67a1abd546d262e"},
     {file = "pywin32-308-cp310-cp310-win_amd64.whl", hash = "sha256:4fc888c59b3c0bef905ce7eb7e2106a07712015ea1c8234b703a088d46110e8e"},
@@ -3573,7 +3573,7 @@ description = "A (partial) reimplementation of pywin32 using ctypes/cffi"
 optional = false
 python-versions = ">=3.6"
 groups = ["build"]
-markers = "(platform_machine != \"ppc64le\" and platform_machine != \"s390x\" or python_version < \"3.9\") and sys_platform == \"win32\" and (python_version <= \"3.11\" or python_version >= \"3.12\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Linux\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"aarch64\" or python_version >= \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Darwin\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"arm64\" or python_version >= \"3.9\")"
+markers = "(python_version <= \"3.11\" or python_version >= \"3.12\") and sys_platform == \"win32\" and (platform_machine != \"ppc64le\" and platform_machine != \"s390x\" or python_version < \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Linux\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"aarch64\" or python_version >= \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Darwin\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"arm64\" or python_version >= \"3.9\")"
 files = [
     {file = "pywin32-ctypes-0.2.3.tar.gz", hash = "sha256:d162dc04946d704503b2edc4d55f3dba5c1d539ead017afa00142c38b9885755"},
     {file = "pywin32_ctypes-0.2.3-py3-none-any.whl", hash = "sha256:8a1513379d709975552d202d942d9837758905c8d01eb82b8bcc30918929e7b8"},
@@ -4311,7 +4311,7 @@ description = "Python bindings to FreeDesktop.org Secret Service API"
 optional = false
 python-versions = ">=3.6"
 groups = ["build"]
-markers = "(platform_machine != \"ppc64le\" and platform_machine != \"s390x\" or python_version < \"3.9\") and sys_platform == \"linux\" and (python_version <= \"3.11\" or python_version >= \"3.12\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Linux\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"aarch64\" or python_version >= \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Darwin\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"arm64\" or python_version >= \"3.9\")"
+markers = "(python_version <= \"3.11\" or python_version >= \"3.12\") and sys_platform == \"linux\" and (platform_machine != \"ppc64le\" and platform_machine != \"s390x\" or python_version < \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Linux\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"aarch64\" or python_version >= \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Darwin\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"arm64\" or python_version >= \"3.9\")"
 files = [
     {file = "SecretStorage-3.3.3-py3-none-any.whl", hash = "sha256:f356e6628222568e3af06f2eba8df495efa13b3b63081dafd4f7d9a7b7bc9f99"},
     {file = "SecretStorage-3.3.3.tar.gz", hash = "sha256:2403533ef369eca6d2ba81718576c5e0f564d5cca1b58f73a8b23e7d4eeebd77"},
@@ -4917,4 +4917,4 @@ metrics = ["pandas"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.8"
-content-hash = "8b6c92aa09b176d5a87df38dcb6be69e298a321756eaf07af171e381bc0ab40e"
+content-hash = "3200aa271750cb9a5b4518ecd9a72e7244f2137a861f416cfa437e4ae133d216"
