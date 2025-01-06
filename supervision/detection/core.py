@@ -1203,7 +1203,7 @@ class Detections:
         if isinstance(index, str):
             return self.data.get(index)
         if self.is_empty():
-            return Detections.empty()
+            return self
         if isinstance(index, int):
             index = [index]
         return Detections(
