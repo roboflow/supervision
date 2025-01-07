@@ -173,9 +173,13 @@ def load_yolo_annotations(
         w, h = image.size
         resolution_wh = (w, h)
         if image.mode != "RGB":
-            raise ValueError(
-                f"Images must be 'RGB', but {image_path} is '{image.mode}'."
-            )
+            if image.mode == "L":
+                image = image.convert("RGB")
+            else:
+                raise ValueError(
+                    f"Images must be 'RGB' or 'grayscale', \
+                    but {image_path} mode is '{image.mode}'."
+                )
 
         with_masks = _with_mask(lines=lines)
         with_masks = force_masks if force_masks else with_masks
