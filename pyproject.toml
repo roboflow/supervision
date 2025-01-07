@@ -50,7 +50,6 @@ dependencies = [
     "pillow>=9.4",
     "requests>=2.26.0",
     "tqdm>=4.62.3",
-    "pandas>=2.0.0",
     "opencv-python>=4.5.5.64"
 ]
 
@@ -60,7 +59,10 @@ Repository = "https://github.com/roboflow/supervision"
 Documentation = "https://supervision.roboflow.com/latest/"
 
 [project.optional-dependencies]
-metrics = ["pandas"]
+metrics = [
+    "pandas>=2.0.0; python_version < '3.13'",
+    "pandas>=2.2.3; python_version >= '3.13'"
+]
 
 [tool.poetry]
 # Keep version here since it's dynamic
