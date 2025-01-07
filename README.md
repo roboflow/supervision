@@ -21,7 +21,7 @@
 [![python-version](https://img.shields.io/pypi/pyversions/supervision)](https://badge.fury.io/py/supervision)
 [![colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/roboflow/supervision/blob/main/demo.ipynb)
 [![gradio](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/Roboflow/Annotators)
-[![discord](https://img.shields.io/discord/1159501506232451173)](https://discord.gg/GbfgXGJ8Bk)
+[![discord](https://img.shields.io/discord/1159501506232451173?logo=discord&label=discord&labelColor=fff&color=5865f2&link=https%3A%2F%2Fdiscord.gg%2FGbfgXGJ8Bk)](https://discord.gg/GbfgXGJ8Bk)
 [![built-with-material-for-mkdocs](https://img.shields.io/badge/Material_for_MkDocs-526CFE?logo=MaterialForMkDocs&logoColor=white)](https://squidfunk.github.io/mkdocs-material/)
 
   <div align="center">
@@ -33,8 +33,6 @@
 ## 👋 hello
 
 **We write your reusable computer vision tools.** Whether you need to load your dataset from your hard drive, draw detections on an image or video, or count how many detections are in a zone. You can count on us! 🤝
-
-[![supervision-hackfest](https://media.roboflow.com/supervision/supervision-hacktoberfest-banner-2024.png)](https://github.com/roboflow/supervision/issues?q=is%3Aissue+is%3Aopen+label%3Ahacktoberfest)
 
 ## 💻 install
 
@@ -137,88 +135,88 @@ for path, image, annotation in ds:
 
 - load
 
-    ```python
-    dataset = sv.DetectionDataset.from_yolo(
-        images_directory_path=...,
-        annotations_directory_path=...,
-        data_yaml_path=...
-    )
+  ```python
+  dataset = sv.DetectionDataset.from_yolo(
+      images_directory_path=...,
+      annotations_directory_path=...,
+      data_yaml_path=...
+  )
 
-    dataset = sv.DetectionDataset.from_pascal_voc(
-        images_directory_path=...,
-        annotations_directory_path=...
-    )
+  dataset = sv.DetectionDataset.from_pascal_voc(
+      images_directory_path=...,
+      annotations_directory_path=...
+  )
 
-    dataset = sv.DetectionDataset.from_coco(
-        images_directory_path=...,
-        annotations_path=...
-    )
-    ```
+  dataset = sv.DetectionDataset.from_coco(
+      images_directory_path=...,
+      annotations_path=...
+  )
+  ```
 
 - split
 
-    ```python
-    train_dataset, test_dataset = dataset.split(split_ratio=0.7)
-    test_dataset, valid_dataset = test_dataset.split(split_ratio=0.5)
+  ```python
+  train_dataset, test_dataset = dataset.split(split_ratio=0.7)
+  test_dataset, valid_dataset = test_dataset.split(split_ratio=0.5)
 
-    len(train_dataset), len(test_dataset), len(valid_dataset)
-    # (700, 150, 150)
-    ```
+  len(train_dataset), len(test_dataset), len(valid_dataset)
+  # (700, 150, 150)
+  ```
 
 - merge
 
-    ```python
-    ds_1 = sv.DetectionDataset(...)
-    len(ds_1)
-    # 100
-    ds_1.classes
-    # ['dog', 'person']
+  ```python
+  ds_1 = sv.DetectionDataset(...)
+  len(ds_1)
+  # 100
+  ds_1.classes
+  # ['dog', 'person']
 
-    ds_2 = sv.DetectionDataset(...)
-    len(ds_2)
-    # 200
-    ds_2.classes
-    # ['cat']
+  ds_2 = sv.DetectionDataset(...)
+  len(ds_2)
+  # 200
+  ds_2.classes
+  # ['cat']
 
-    ds_merged = sv.DetectionDataset.merge([ds_1, ds_2])
-    len(ds_merged)
-    # 300
-    ds_merged.classes
-    # ['cat', 'dog', 'person']
-    ```
+  ds_merged = sv.DetectionDataset.merge([ds_1, ds_2])
+  len(ds_merged)
+  # 300
+  ds_merged.classes
+  # ['cat', 'dog', 'person']
+  ```
 
 - save
 
-    ```python
-    dataset.as_yolo(
-        images_directory_path=...,
-        annotations_directory_path=...,
-        data_yaml_path=...
-    )
+  ```python
+  dataset.as_yolo(
+      images_directory_path=...,
+      annotations_directory_path=...,
+      data_yaml_path=...
+  )
 
-    dataset.as_pascal_voc(
-        images_directory_path=...,
-        annotations_directory_path=...
-    )
+  dataset.as_pascal_voc(
+      images_directory_path=...,
+      annotations_directory_path=...
+  )
 
-    dataset.as_coco(
-        images_directory_path=...,
-        annotations_path=...
-    )
-    ```
+  dataset.as_coco(
+      images_directory_path=...,
+      annotations_path=...
+  )
+  ```
 
 - convert
 
-    ```python
-    sv.DetectionDataset.from_yolo(
-        images_directory_path=...,
-        annotations_directory_path=...,
-        data_yaml_path=...
-    ).as_pascal_voc(
-        images_directory_path=...,
-        annotations_directory_path=...
-    )
-    ```
+  ```python
+  sv.DetectionDataset.from_yolo(
+      images_directory_path=...,
+      annotations_directory_path=...,
+      data_yaml_path=...
+  ).as_pascal_voc(
+      images_directory_path=...,
+      annotations_directory_path=...
+  )
+  ```
 
 </details>
 

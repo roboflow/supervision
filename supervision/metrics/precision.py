@@ -9,7 +9,11 @@ from matplotlib import pyplot as plt
 
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
-from supervision.detection.utils import box_iou_batch, mask_iou_batch
+from supervision.detection.utils import (
+    box_iou_batch,
+    mask_iou_batch,
+    oriented_box_iou_batch,
+)
 from supervision.draw.color import LEGACY_COLOR_PALETTE
 from supervision.metrics.core import AveragingMethod, Metric, MetricTarget
 from supervision.metrics.utils.object_size import (
@@ -46,10 +50,30 @@ class Precision(Metric):
         precision_metric = Precision()
         precision_result = precision_metric.update(predictions, targets).compute()
 
-        print(precision_result)
         print(precision_result.precision_at_50)
+        # 0.8099
+
+        print(precision_result)
+        # PrecisionResult:
+        # Metric target:  MetricTarget.BOXES
+        # Averaging method: AveragingMethod.WEIGHTED
+        # P @ 50:     0.8099
+        # P @ 75:     0.7969
+        # P @ thresh: [0.80992  0.80905  0.80905  ...]
+        # IoU thresh: [0.5  0.55  0.6  ...]
+        # Precision per class:
+        # 0: [0.64706  0.64706  0.64706   ...]
+        # ...
+        # Small objects: ...
+        # Medium objects: ...
+        # Large objects: ...
+
         print(precision_result.small_objects.precision_at_50)
         ```
+
+    ![example_plot](\
+        https://media.roboflow.com/supervision-docs/metrics/precision_plot_example.png\
+        ){ align=center width="800" }
     """
 
     def __init__(
@@ -66,13 +90,8 @@ class Precision(Metric):
                 precision. Determines how the precision is aggregated across classes.
         """
         self._metric_target = metric_target
-        if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
-            raise NotImplementedError(
-                "Precision is not implemented for oriented bounding boxes."
-            )
-
-        self._metric_target = metric_target
         self.averaging_method = averaging_method
+
         self._predictions_list: List[Detections] = []
         self._targets_list: List[Detections] = []
 
@@ -169,8 +188,12 @@ class Precision(Metric):
                         iou = box_iou_batch(target_contents, prediction_contents)
                     elif self._metric_target == MetricTarget.MASKS:
                         iou = mask_iou_batch(target_contents, prediction_contents)
+                    elif self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
+                        iou = oriented_box_iou_batch(
+                            target_contents, prediction_contents
+                        )
                     else:
-                        raise NotImplementedError(
+                        raise ValueError(
                             "Unsupported metric target for IoU calculation"
                         )
 
@@ -369,12 +392,22 @@ class Precision(Metric):
             return (
                 detections.mask
                 if detections.mask is not None
-                else np.empty((0, 0, 0), dtype=bool)
+                else self._make_empty_content()
             )
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
-            if obb := detections.data.get(ORIENTED_BOX_COORDINATES):
-                return np.ndarray(obb, dtype=np.float32)
-            return np.empty((0, 8), dtype=np.float32)
+            obb = detections.data.get(ORIENTED_BOX_COORDINATES)
+            if obb is not None and len(obb) > 0:
+                return np.array(obb, dtype=np.float32)
+            return self._make_empty_content()
+        raise ValueError(f"Invalid metric target: {self._metric_target}")
+
+    def _make_empty_content(self) -> np.ndarray:
+        if self._metric_target == MetricTarget.BOXES:
+            return np.empty((0, 4), dtype=np.float32)
+        if self._metric_target == MetricTarget.MASKS:
+            return np.empty((0, 0, 0), dtype=bool)
+        if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
+            return np.empty((0, 4, 2), dtype=np.float32)
         raise ValueError(f"Invalid metric target: {self._metric_target}")
 
     def _filter_detections_by_size(
@@ -446,11 +479,11 @@ class PrecisionResult:
         matched_classes (np.ndarray): the class IDs of all matched classes.
             Corresponds to the rows of `precision_per_class`.
         small_objects (Optional[PrecisionResult]): the Precision metric results
-            for small objects.
+            for small objects (area < 32²).
         medium_objects (Optional[PrecisionResult]): the Precision metric results
-            for medium objects.
+            for medium objects (32² ≤ area < 96²).
         large_objects (Optional[PrecisionResult]): the Precision metric results
-            for large objects.
+            for large objects (area ≥ 96²).
     """
 
     metric_target: MetricTarget
@@ -480,6 +513,19 @@ class PrecisionResult:
         Example:
             ```python
             print(precision_result)
+            # PrecisionResult:
+            # Metric target:  MetricTarget.BOXES
+            # Averaging method: AveragingMethod.WEIGHTED
+            # P @ 50:     0.8099
+            # P @ 75:     0.7969
+            # P @ thresh: [0.80992  0.80905  0.80905  ...]
+            # IoU thresh: [0.5  0.55  0.6  ...]
+            # Precision per class:
+            # 0: [0.64706  0.64706  0.64706   ...]
+            # ...
+            # Small objects: ...
+            # Medium objects: ...
+            # Large objects: ...
             ```
         """
         out_str = (
@@ -545,6 +591,10 @@ class PrecisionResult:
     def plot(self):
         """
         Plot the precision results.
+
+        ![example_plot](\
+            https://media.roboflow.com/supervision-docs/metrics/precision_plot_example.png\
+            ){ align=center width="800" }
         """
 
         labels = ["Precision@50", "Precision@75"]

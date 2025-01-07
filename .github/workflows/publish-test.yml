@@ -2,9 +2,9 @@ name: Publish Supervision Pre-Releases to PyPI and TestPyPI
 on:
   push:
     tags:
-      - '[0-9]+.[0-9]+[0-9]+.[0-9]+a[0-9]'
-      - '[0-9]+.[0-9]+[0-9]+.[0-9]+b[0-9]'
-      - '[0-9]+.[0-9]+[0-9]+.[0-9]+rc[0-9]'
+      - "[0-9]+.[0-9]+[0-9]+.[0-9]+a[0-9]"
+      - "[0-9]+.[0-9]+[0-9]+.[0-9]+b[0-9]"
+      - "[0-9]+.[0-9]+[0-9]+.[0-9]+rc[0-9]"
 
   workflow_dispatch:
 
@@ -12,6 +12,7 @@ jobs:
   build-and-publish-pre-release-pypi:
     name: Build and publish to PyPI
     runs-on: ubuntu-latest
+    environment: test
     permissions:
       id-token: write
     strategy:

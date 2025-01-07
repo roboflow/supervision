@@ -9,7 +9,11 @@ from matplotlib import pyplot as plt
 
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
-from supervision.detection.utils import box_iou_batch, mask_iou_batch
+from supervision.detection.utils import (
+    box_iou_batch,
+    mask_iou_batch,
+    oriented_box_iou_batch,
+)
 from supervision.draw.color import LEGACY_COLOR_PALETTE
 from supervision.metrics.core import AveragingMethod, Metric, MetricTarget
 from supervision.metrics.utils.object_size import (
@@ -46,10 +50,31 @@ class Recall(Metric):
         recall_metric = Recall()
         recall_result = recall_metric.update(predictions, targets).compute()
 
-        print(recall_result)
         print(recall_result.recall_at_50)
-        print(recall_result.small_objects.recall_at_50)
+        # 0.7615
+
+        print(recall_result)
+        # RecallResult:
+        # Metric target:    MetricTarget.BOXES
+        # Averaging method: AveragingMethod.WEIGHTED
+        # R @ 50:     0.7615
+        # R @ 75:     0.7462
+        # R @ thresh: [0.76151  0.76011  0.76011  0.75732  ...]
+        # IoU thresh: [0.5  0.55  0.6  ...]
+        # Recall per class:
+        # 0: [0.78571  0.78571  0.78571  ...]
+        # ...
+        # Small objects: ...
+        # Medium objects: ...
+        # Large objects: ...
+
+        recall_result.plot()
+
         ```
+
+    ![example_plot](\
+        https://media.roboflow.com/supervision-docs/metrics/recall_plot_example.png\
+        ){ align=center width="800" }
     """
 
     def __init__(
@@ -66,13 +91,8 @@ class Recall(Metric):
                 recall. Determines how the recall is aggregated across classes.
         """
         self._metric_target = metric_target
-        if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
-            raise NotImplementedError(
-                "Recall is not implemented for oriented bounding boxes."
-            )
-
-        self._metric_target = metric_target
         self.averaging_method = averaging_method
+
         self._predictions_list: List[Detections] = []
         self._targets_list: List[Detections] = []
 
@@ -116,11 +136,11 @@ class Recall(Metric):
 
     def compute(self) -> RecallResult:
         """
-        Calculate the precision metric based on the stored predictions and ground-truth
+        Calculate the recall metric based on the stored predictions and ground-truth
         data, at different IoU thresholds.
 
         Returns:
-            (RecallResult): The precision metric result.
+            (RecallResult): The recall metric result.
         """
         result = self._compute(self._predictions_list, self._targets_list)
 
@@ -169,8 +189,12 @@ class Recall(Metric):
                         iou = box_iou_batch(target_contents, prediction_contents)
                     elif self._metric_target == MetricTarget.MASKS:
                         iou = mask_iou_batch(target_contents, prediction_contents)
+                    elif self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
+                        iou = oriented_box_iou_batch(
+                            target_contents, prediction_contents
+                        )
                     else:
-                        raise NotImplementedError(
+                        raise ValueError(
                             "Unsupported metric target for IoU calculation"
                         )
 
@@ -367,12 +391,22 @@ class Recall(Metric):
             return (
                 detections.mask
                 if detections.mask is not None
-                else np.empty((0, 0, 0), dtype=bool)
+                else self._make_empty_content()
             )
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
-            if obb := detections.data.get(ORIENTED_BOX_COORDINATES):
-                return np.ndarray(obb, dtype=np.float32)
-            return np.empty((0, 8), dtype=np.float32)
+            obb = detections.data.get(ORIENTED_BOX_COORDINATES)
+            if obb is not None and len(obb) > 0:
+                return np.array(obb, dtype=np.float32)
+            return self._make_empty_content()
+        raise ValueError(f"Invalid metric target: {self._metric_target}")
+
+    def _make_empty_content(self) -> np.ndarray:
+        if self._metric_target == MetricTarget.BOXES:
+            return np.empty((0, 4), dtype=np.float32)
+        if self._metric_target == MetricTarget.MASKS:
+            return np.empty((0, 0, 0), dtype=bool)
+        if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
+            return np.empty((0, 4, 2), dtype=np.float32)
         raise ValueError(f"Invalid metric target: {self._metric_target}")
 
     def _filter_detections_by_size(
@@ -444,11 +478,11 @@ class RecallResult:
         matched_classes (np.ndarray): the class IDs of all matched classes.
             Corresponds to the rows of `recall_per_class`.
         small_objects (Optional[RecallResult]): the Recall metric results
-            for small objects.
+            for small objects (area < 32²).
         medium_objects (Optional[RecallResult]): the Recall metric results
-            for medium objects.
+            for medium objects (32² ≤ area < 96²).
         large_objects (Optional[RecallResult]): the Recall metric results
-            for large objects.
+            for large objects (area ≥ 96²).
     """
 
     metric_target: MetricTarget
@@ -478,6 +512,19 @@ class RecallResult:
         Example:
             ```python
             print(recall_result)
+            # RecallResult:
+            # Metric target:    MetricTarget.BOXES
+            # Averaging method: AveragingMethod.WEIGHTED
+            # R @ 50:     0.7615
+            # R @ 75:     0.7462
+            # R @ thresh: [0.76151  0.76011  0.76011  0.75732  ...]
+            # IoU thresh: [0.5  0.55  0.6  ...]
+            # Recall per class:
+            # 0: [0.78571  0.78571  0.78571  ...]
+            # ...
+            # Small objects: ...
+            # Medium objects: ...
+            # Large objects: ...
             ```
         """
         out_str = (
@@ -543,6 +590,10 @@ class RecallResult:
     def plot(self):
         """
         Plot the recall results.
+
+        ![example_plot](\
+            https://media.roboflow.com/supervision-docs/metrics/recall_plot_example.png\
+            ){ align=center width="800" }
         """
 
         labels = ["Recall@50", "Recall@75"]

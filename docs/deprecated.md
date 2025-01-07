@@ -19,6 +19,10 @@ These features are phased out due to better alternatives or potential issues in 
 
 # Removed
 
+### 0.25.0
+
+No removals in this version!
+
 ### 0.24.0
 
 - The `frame_resolution_wh ` parameter in [`sv.PolygonZone`](detection/tools/polygon_zone.md/#supervision.detection.tools.polygon_zone.PolygonZone) has been removed.
