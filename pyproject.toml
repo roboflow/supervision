@@ -38,7 +38,9 @@ classifiers = [
     'Operating System :: MacOS',
 ]
 dependencies = [
-    "numpy>=1.21.2",
+    "numpy>=1.21.2,<1.26.0; python_version < '3.12'",
+    "numpy>=1.26.0,<2.1.0; python_version >= '3.12' and python_version < '3.13'",
+    "numpy>=2.1.0; python_version >= '3.13'",
     "scipy (==1.10.0); python_version < '3.9'",
     "scipy (>=1.10.0,<1.14.1) ; python_version >= '3.9' and python_version < '3.13'",
     "scipy (>=1.14.1); python_version >= '3.13'",
@@ -67,27 +69,23 @@ packages = [{ include = "supervision" }, { include = "supervision/py.typed" }]
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=7.2.2,<9.0.0"
-pre-commit = "^3.3.3"
-tox = "^4.11.4"
+tox = ">=4.11.4"
 notebook = ">=6.5.3,<8.0.0"
-ipywidgets = "^8.1.1"
-jupytext = "^1.16.1"
-nbconvert = "^7.14.2"
-docutils = [
-    { version = "^0.20.1", python = "<3.9" },
-    { version = "^0.21.1", python = ">=3.9" },
-]
+ipywidgets = ">=8.1.1"
+jupytext = ">=1.16.1"
+nbconvert = ">=7.14.2"
+docutils = "!=0.21"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs-material = { extras = ["imaging"], version = "^9.5.5" }
 mkdocstrings = ">=0.25.2,<0.27.0"
-mkdocstrings-python = "^1.10.9"
-mike = "^2.0.0"
+mkdocstrings-python = ">=1.10.9"
+mike = ">=2.0.0"
 # For Documentation Development use Python 3.10 or above
 # Use Latest mkdocs-jupyter min 0.24.6 for Jupyter Notebook Theme support
-mkdocs-jupyter = "^0.24.3"
-mkdocs-git-committers-plugin-2 = { version = "^2.4.1", python = ">=3.8,<4" }
-mkdocs-git-revision-date-localized-plugin = "^1.2.4"
+mkdocs-jupyter = ">=0.24.3"
+mkdocs-git-committers-plugin-2 = { version = ">=2.4.1", python = ">=3.8,<4" }
+mkdocs-git-revision-date-localized-plugin = ">=1.2.4"
 
 [tool.poetry.group.build.dependencies]
 twine = ">=5.1.1,<7.0.0"

@@ -31,7 +31,7 @@ description = "Disable App Nap on macOS >= 10.9"
 optional = false
 python-versions = ">=3.6"
 groups = ["dev", "docs"]
-markers = "(python_version <= \"3.11\" or python_version >= \"3.12\") and (sys_platform == \"darwin\" or platform_system == \"Darwin\")"
+markers = "(python_version <= \"3.11\" or python_version >= \"3.12\") and (platform_system == \"Darwin\" or sys_platform == \"darwin\")"
 files = [
     {file = "appnope-0.1.4-py2.py3-none-any.whl", hash = "sha256:502575ee11cd7a28c0205f379b525beefebab9d161b7c964670864014ed7213c"},
     {file = "appnope-0.1.4.tar.gz", hash = "sha256:1de3860566df9caf38f01f86f65e0e13e379af54f9e4bee1e66b48f2efffd1ee"},
@@ -229,7 +229,7 @@ description = "Backport of CPython tarfile module"
 optional = false
 python-versions = ">=3.8"
 groups = ["build"]
-markers = "python_version <= \"3.11\" and (python_version < \"3.9\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Linux\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"aarch64\" or python_version >= \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Darwin\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"arm64\" or python_version >= \"3.9\")"
+markers = "python_version <= \"3.11\" and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Darwin\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"arm64\" or python_version >= \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Linux\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"aarch64\" or python_version >= \"3.9\")"
 files = [
     {file = "backports.tarfile-1.2.0-py3-none-any.whl", hash = "sha256:77e284d754527b01fb1e6fa8a1afe577858ebe4e9dad8919e34c862cb399bc34"},
     {file = "backports_tarfile-1.2.0.tar.gz", hash = "sha256:d75e02c268746e1b8144c278978b6e98e85de6ad16f8e4b0844a154557eca991"},
@@ -457,23 +457,10 @@ files = [
     {file = "cffi-1.17.1-cp39-cp39-win_amd64.whl", hash = "sha256:d016c76bdd850f3c626af19b0542c9677ba156e4ee4fccfdd7848803533ef662"},
     {file = "cffi-1.17.1.tar.gz", hash = "sha256:1c39c6016c32bc48dd54561950ebd6836e1670f2ae46128f67cf49e789c52824"},
 ]
-markers = {build = "(python_version <= \"3.11\" or python_version >= \"3.12\") and sys_platform == \"linux\" and platform_python_implementation != \"PyPy\" and (platform_machine != \"ppc64le\" and platform_machine != \"s390x\" or python_version < \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Linux\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"aarch64\" or python_version >= \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Darwin\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"arm64\" or python_version >= \"3.9\")", dev = "python_version <= \"3.11\" or python_version >= \"3.12\"", docs = "python_version <= \"3.11\" or python_version >= \"3.12\""}
+markers = {build = "sys_platform == \"linux\" and (platform_machine != \"ppc64le\" and platform_machine != \"s390x\" or python_version <= \"3.11\") and platform_python_implementation != \"PyPy\" and (python_version <= \"3.11\" or python_version >= \"3.12\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Darwin\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"arm64\" or python_version >= \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Linux\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"aarch64\" or python_version >= \"3.9\")", dev = "python_version <= \"3.11\" or python_version >= \"3.12\"", docs = "python_version <= \"3.11\" or python_version >= \"3.12\""}
 
 [package.dependencies]
 pycparser = "*"
-
-[[package]]
-name = "cfgv"
-version = "3.4.0"
-description = "Validate configuration and produce human readable error messages."
-optional = false
-python-versions = ">=3.8"
-groups = ["dev"]
-markers = "python_version <= \"3.11\" or python_version >= \"3.12\""
-files = [
-    {file = "cfgv-3.4.0-py2.py3-none-any.whl", hash = "sha256:b7265b1f29fd3316bfcd2b330d63d024f2bfd8bcb8b0272f8e19a504856c48f9"},
-    {file = "cfgv-3.4.0.tar.gz", hash = "sha256:e52591d4c5f5dead8e0f673fb16db7949d2cfb3f7da4582893288f0ded8fe560"},
-]
 
 [[package]]
 name = "chardet"
@@ -646,7 +633,7 @@ description = "Python library for calculating contours of 2D quadrilateral grids
 optional = false
 python-versions = ">=3.8"
 groups = ["main"]
-markers = "python_version >= \"3.12\""
+markers = "python_version >= \"3.13\""
 files = [
     {file = "contourpy-1.1.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:89f06eff3ce2f4b3eb24c1055a26981bffe4e7264acd86f15b97e40530b794bc"},
     {file = "contourpy-1.1.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:dffcc2ddec1782dd2f2ce1ef16f070861af4fb78c69862ce0aab801495dda6a3"},
@@ -710,7 +697,7 @@ description = "Python library for calculating contours of 2D quadrilateral grids
 optional = false
 python-versions = ">=3.8"
 groups = ["main"]
-markers = "python_version <= \"3.11\""
+markers = "python_version <= \"3.11\" or python_version >= \"3.12\" and python_version < \"3.13\""
 files = [
     {file = "contourpy-1.1.1-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:46e24f5412c948d81736509377e255f6040e94216bf1a9b5ea1eaa9d29f6ec1b"},
     {file = "contourpy-1.1.1-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:0e48694d6a9c5a26ee85b10130c77a011a4fedf50a7279fa0bdaf44bafb4299d"},
@@ -767,7 +754,10 @@ files = [
 ]
 
 [package.dependencies]
-numpy = {version = ">=1.16,<2.0", markers = "python_version <= \"3.11\""}
+numpy = [
+    {version = ">=1.16,<2.0", markers = "python_version <= \"3.11\""},
+    {version = ">=1.26.0rc1,<2.0", markers = "python_version >= \"3.12\""},
+]
 
 [package.extras]
 bokeh = ["bokeh", "selenium"]
@@ -783,7 +773,7 @@ description = "cryptography is a package which provides cryptographic recipes an
 optional = false
 python-versions = ">=3.7"
 groups = ["build"]
-markers = "(python_version <= \"3.11\" or python_version >= \"3.12\") and sys_platform == \"linux\" and (platform_machine != \"ppc64le\" and platform_machine != \"s390x\" or python_version < \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Linux\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"aarch64\" or python_version >= \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Darwin\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"arm64\" or python_version >= \"3.9\")"
+markers = "sys_platform == \"linux\" and (platform_machine != \"ppc64le\" and platform_machine != \"s390x\" or python_version <= \"3.11\") and (python_version <= \"3.11\" or python_version >= \"3.12\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Darwin\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"arm64\" or python_version >= \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Linux\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"aarch64\" or python_version >= \"3.9\")"
 files = [
     {file = "cryptography-43.0.3-cp37-abi3-macosx_10_9_universal2.whl", hash = "sha256:bf7a1932ac4176486eab36a19ed4c0492da5d97123f1406cf15e41b05e787d2e"},
     {file = "cryptography-43.0.3-cp37-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:63efa177ff54aec6e1c0aefaa1a241232dcd37413835a9b674b6e3f0ae2bfd3e"},
@@ -948,23 +938,10 @@ description = "Docutils -- Python Documentation Utilities"
 optional = false
 python-versions = ">=3.7"
 groups = ["build", "dev"]
-markers = "python_version < \"3.9\""
+markers = "python_version <= \"3.11\" or python_version >= \"3.12\""
 files = [
     {file = "docutils-0.20.1-py3-none-any.whl", hash = "sha256:96f387a2c5562db4476f09f13bbab2192e764cac08ebbf3a34a95d9b1e4a59d6"},
     {file = "docutils-0.20.1.tar.gz", hash = "sha256:f08a4e276c3a1583a86dce3e34aba3fe04d02bba2dd51ed16106244e8a923e3b"},
-]
-
-[[package]]
-name = "docutils"
-version = "0.21.2"
-description = "Docutils -- Python Documentation Utilities"
-optional = false
-python-versions = ">=3.9"
-groups = ["build", "dev"]
-markers = "python_version >= \"3.9\" and python_version <= \"3.11\" or python_version >= \"3.12\""
-files = [
-    {file = "docutils-0.21.2-py3-none-any.whl", hash = "sha256:dafca5b9e384f0e419294eb4d2ff9fa826435bf15f15b7bd45723e8ad76811b2"},
-    {file = "docutils-0.21.2.tar.gz", hash = "sha256:3a6b18732edf182daa3cd12775bbb338cf5691468f91eeeb109deff6ebfa986f"},
 ]
 
 [[package]]
@@ -1256,22 +1233,6 @@ socks = ["socksio (==1.*)"]
 zstd = ["zstandard (>=0.18.0)"]
 
 [[package]]
-name = "identify"
-version = "2.6.1"
-description = "File identification library for Python"
-optional = false
-python-versions = ">=3.8"
-groups = ["dev"]
-markers = "python_version <= \"3.11\" or python_version >= \"3.12\""
-files = [
-    {file = "identify-2.6.1-py2.py3-none-any.whl", hash = "sha256:53863bcac7caf8d2ed85bd20312ea5dcfc22226800f6d6881f232d861db5a8f0"},
-    {file = "identify-2.6.1.tar.gz", hash = "sha256:91478c5fb7c3aac5ff7bf9b4344f803843dc586832d5f110d672b19aa1984c98"},
-]
-
-[package.extras]
-license = ["ukkonen"]
-
-[[package]]
 name = "idna"
 version = "3.10"
 description = "Internationalized Domain Names in Applications (IDNA)"
@@ -1323,7 +1284,7 @@ files = [
     {file = "importlib_resources-6.4.5-py3-none-any.whl", hash = "sha256:ac29d5f956f01d5e4bb63102a5a19957f1b9175e45649977264a1416783bb717"},
     {file = "importlib_resources-6.4.5.tar.gz", hash = "sha256:980862a1d16c9e147a59603677fa2aa5fd82b87f223b6cb870695bcfce830065"},
 ]
-markers = {main = "python_version < \"3.10\"", build = "python_version < \"3.9\" and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Linux\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"aarch64\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Darwin\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"arm64\")", dev = "python_version < \"3.9\"", docs = "python_version <= \"3.11\" or python_version >= \"3.12\""}
+markers = {main = "python_version < \"3.10\"", build = "python_version < \"3.9\" and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Darwin\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"arm64\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Linux\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"aarch64\")", dev = "python_version < \"3.9\"", docs = "python_version <= \"3.11\" or python_version >= \"3.12\""}
 
 [package.dependencies]
 zipp = {version = ">=3.1.0", markers = "python_version < \"3.10\""}
@@ -1471,7 +1432,7 @@ description = "Utility functions for Python class constructs"
 optional = false
 python-versions = ">=3.8"
 groups = ["build"]
-markers = "(python_version <= \"3.11\" or python_version >= \"3.12\") and (platform_machine != \"ppc64le\" and platform_machine != \"s390x\" or python_version < \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Linux\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"aarch64\" or python_version >= \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Darwin\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"arm64\" or python_version >= \"3.9\")"
+markers = "(platform_machine != \"ppc64le\" and platform_machine != \"s390x\" or python_version <= \"3.11\") and (python_version <= \"3.11\" or python_version >= \"3.12\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Darwin\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"arm64\" or python_version >= \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Linux\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"aarch64\" or python_version >= \"3.9\")"
 files = [
     {file = "jaraco.classes-3.4.0-py3-none-any.whl", hash = "sha256:f662826b6bed8cace05e7ff873ce0f9283b5c924470fe664fff1c2f00f581790"},
     {file = "jaraco.classes-3.4.0.tar.gz", hash = "sha256:47a024b51d0239c0dd8c8540c6c7f484be3b8fcf0b2d85c13825780d3b3f3acd"},
@@ -1491,7 +1452,7 @@ description = "Useful decorators and context managers"
 optional = false
 python-versions = ">=3.8"
 groups = ["build"]
-markers = "(python_version <= \"3.11\" or python_version >= \"3.12\") and (platform_machine != \"ppc64le\" and platform_machine != \"s390x\" or python_version < \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Linux\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"aarch64\" or python_version >= \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Darwin\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"arm64\" or python_version >= \"3.9\")"
+markers = "(platform_machine != \"ppc64le\" and platform_machine != \"s390x\" or python_version <= \"3.11\") and (python_version <= \"3.11\" or python_version >= \"3.12\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Darwin\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"arm64\" or python_version >= \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Linux\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"aarch64\" or python_version >= \"3.9\")"
 files = [
     {file = "jaraco.context-6.0.1-py3-none-any.whl", hash = "sha256:f797fc481b490edb305122c9181830a3a5b76d84ef6d1aef2fb9b47ab956f9e4"},
     {file = "jaraco_context-6.0.1.tar.gz", hash = "sha256:9bae4ea555cf0b14938dc0aee7c9f32ed303aa20a3b73e7dc80111628792d1b3"},
@@ -1511,7 +1472,7 @@ description = "Functools like those found in stdlib"
 optional = false
 python-versions = ">=3.8"
 groups = ["build"]
-markers = "(python_version <= \"3.11\" or python_version >= \"3.12\") and (platform_machine != \"ppc64le\" and platform_machine != \"s390x\" or python_version < \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Linux\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"aarch64\" or python_version >= \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Darwin\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"arm64\" or python_version >= \"3.9\")"
+markers = "(platform_machine != \"ppc64le\" and platform_machine != \"s390x\" or python_version <= \"3.11\") and (python_version <= \"3.11\" or python_version >= \"3.12\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Darwin\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"arm64\" or python_version >= \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Linux\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"aarch64\" or python_version >= \"3.9\")"
 files = [
     {file = "jaraco.functools-4.1.0-py3-none-any.whl", hash = "sha256:ad159f13428bc4acbf5541ad6dec511f91573b90fba04df61dafa2a1231cf649"},
     {file = "jaraco_functools-4.1.0.tar.gz", hash = "sha256:70f7e0e2ae076498e212562325e805204fc092d7b4c17e0e86c959e249701a9d"},
@@ -1556,7 +1517,7 @@ description = "Low-level, pure Python DBus protocol wrapper."
 optional = false
 python-versions = ">=3.7"
 groups = ["build"]
-markers = "(python_version <= \"3.11\" or python_version >= \"3.12\") and sys_platform == \"linux\" and (platform_machine != \"ppc64le\" and platform_machine != \"s390x\" or python_version < \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Linux\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"aarch64\" or python_version >= \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Darwin\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"arm64\" or python_version >= \"3.9\")"
+markers = "sys_platform == \"linux\" and (platform_machine != \"ppc64le\" and platform_machine != \"s390x\" or python_version <= \"3.11\") and (python_version <= \"3.11\" or python_version >= \"3.12\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Darwin\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"arm64\" or python_version >= \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Linux\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"aarch64\" or python_version >= \"3.9\")"
 files = [
     {file = "jeepney-0.8.0-py3-none-any.whl", hash = "sha256:c0a454ad016ca575060802ee4d590dd912e35c122fa04e70306de3d076cce755"},
     {file = "jeepney-0.8.0.tar.gz", hash = "sha256:5efe48d255973902f6badc3ce55e2aa6c5c3b3bc642059ef3a91247bcfcc5806"},
@@ -1944,7 +1905,7 @@ description = "Store and access your passwords safely."
 optional = false
 python-versions = ">=3.8"
 groups = ["build"]
-markers = "(python_version <= \"3.11\" or python_version >= \"3.12\") and (platform_machine != \"ppc64le\" and platform_machine != \"s390x\" or python_version < \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Linux\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"aarch64\" or python_version >= \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Darwin\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"arm64\" or python_version >= \"3.9\")"
+markers = "(platform_machine != \"ppc64le\" and platform_machine != \"s390x\" or python_version <= \"3.11\") and (python_version <= \"3.11\" or python_version >= \"3.12\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Darwin\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"arm64\" or python_version >= \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Linux\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"aarch64\" or python_version >= \"3.9\")"
 files = [
     {file = "keyring-25.5.0-py3-none-any.whl", hash = "sha256:e67f8ac32b04be4714b42fe84ce7dad9c40985b9ca827c592cc303e7c26d9741"},
     {file = "keyring-25.5.0.tar.gz", hash = "sha256:4c753b3ec91717fe713c4edd522d625889d8973a349b0e582622f49766de58e6"},
@@ -2213,12 +2174,76 @@ files = [
 
 [[package]]
 name = "matplotlib"
+version = "3.7.2"
+description = "Python plotting package"
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+markers = "python_version >= \"3.13\""
+files = [
+    {file = "matplotlib-3.7.2-cp310-cp310-macosx_10_12_universal2.whl", hash = "sha256:2699f7e73a76d4c110f4f25be9d2496d6ab4f17345307738557d345f099e07de"},
+    {file = "matplotlib-3.7.2-cp310-cp310-macosx_10_12_x86_64.whl", hash = "sha256:a8035ba590658bae7562786c9cc6ea1a84aa49d3afab157e414c9e2ea74f496d"},
+    {file = "matplotlib-3.7.2-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:2f8e4a49493add46ad4a8c92f63e19d548b2b6ebbed75c6b4c7f46f57d36cdd1"},
+    {file = "matplotlib-3.7.2-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:71667eb2ccca4c3537d9414b1bc00554cb7f91527c17ee4ec38027201f8f1603"},
+    {file = "matplotlib-3.7.2-cp310-cp310-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:152ee0b569a37630d8628534c628456b28686e085d51394da6b71ef84c4da201"},
+    {file = "matplotlib-3.7.2-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:070f8dddd1f5939e60aacb8fa08f19551f4b0140fab16a3669d5cd6e9cb28fc8"},
+    {file = "matplotlib-3.7.2-cp310-cp310-win32.whl", hash = "sha256:fdbb46fad4fb47443b5b8ac76904b2e7a66556844f33370861b4788db0f8816a"},
+    {file = "matplotlib-3.7.2-cp310-cp310-win_amd64.whl", hash = "sha256:23fb1750934e5f0128f9423db27c474aa32534cec21f7b2153262b066a581fd1"},
+    {file = "matplotlib-3.7.2-cp311-cp311-macosx_10_12_universal2.whl", hash = "sha256:30e1409b857aa8a747c5d4f85f63a79e479835f8dffc52992ac1f3f25837b544"},
+    {file = "matplotlib-3.7.2-cp311-cp311-macosx_10_12_x86_64.whl", hash = "sha256:50e0a55ec74bf2d7a0ebf50ac580a209582c2dd0f7ab51bc270f1b4a0027454e"},
+    {file = "matplotlib-3.7.2-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:ac60daa1dc83e8821eed155796b0f7888b6b916cf61d620a4ddd8200ac70cd64"},
+    {file = "matplotlib-3.7.2-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:305e3da477dc8607336ba10bac96986d6308d614706cae2efe7d3ffa60465b24"},
+    {file = "matplotlib-3.7.2-cp311-cp311-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:1c308b255efb9b06b23874236ec0f10f026673ad6515f602027cc8ac7805352d"},
+    {file = "matplotlib-3.7.2-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:60c521e21031632aa0d87ca5ba0c1c05f3daacadb34c093585a0be6780f698e4"},
+    {file = "matplotlib-3.7.2-cp311-cp311-win32.whl", hash = "sha256:26bede320d77e469fdf1bde212de0ec889169b04f7f1179b8930d66f82b30cbc"},
+    {file = "matplotlib-3.7.2-cp311-cp311-win_amd64.whl", hash = "sha256:af4860132c8c05261a5f5f8467f1b269bf1c7c23902d75f2be57c4a7f2394b3e"},
+    {file = "matplotlib-3.7.2-cp38-cp38-macosx_10_12_universal2.whl", hash = "sha256:a1733b8e84e7e40a9853e505fe68cc54339f97273bdfe6f3ed980095f769ddc7"},
+    {file = "matplotlib-3.7.2-cp38-cp38-macosx_10_12_x86_64.whl", hash = "sha256:d9881356dc48e58910c53af82b57183879129fa30492be69058c5b0d9fddf391"},
+    {file = "matplotlib-3.7.2-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:f081c03f413f59390a80b3e351cc2b2ea0205839714dbc364519bcf51f4b56ca"},
+    {file = "matplotlib-3.7.2-cp38-cp38-manylinux_2_12_i686.manylinux2010_i686.whl", hash = "sha256:1cd120fca3407a225168238b790bd5c528f0fafde6172b140a2f3ab7a4ea63e9"},
+    {file = "matplotlib-3.7.2-cp38-cp38-manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:a2c1590b90aa7bd741b54c62b78de05d4186271e34e2377e0289d943b3522273"},
+    {file = "matplotlib-3.7.2-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:6d2ff3c984b8a569bc1383cd468fc06b70d7b59d5c2854ca39f1436ae8394117"},
+    {file = "matplotlib-3.7.2-cp38-cp38-win32.whl", hash = "sha256:5dea00b62d28654b71ca92463656d80646675628d0828e08a5f3b57e12869e13"},
+    {file = "matplotlib-3.7.2-cp38-cp38-win_amd64.whl", hash = "sha256:0f506a1776ee94f9e131af1ac6efa6e5bc7cb606a3e389b0ccb6e657f60bb676"},
+    {file = "matplotlib-3.7.2-cp39-cp39-macosx_10_12_universal2.whl", hash = "sha256:6515e878f91894c2e4340d81f0911857998ccaf04dbc1bba781e3d89cbf70608"},
+    {file = "matplotlib-3.7.2-cp39-cp39-macosx_10_12_x86_64.whl", hash = "sha256:71f7a8c6b124e904db550f5b9fe483d28b896d4135e45c4ea381ad3b8a0e3256"},
+    {file = "matplotlib-3.7.2-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:12f01b92ecd518e0697da4d97d163b2b3aa55eb3eb4e2c98235b3396d7dad55f"},
+    {file = "matplotlib-3.7.2-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a7e28d6396563955f7af437894a36bf2b279462239a41028323e04b85179058b"},
+    {file = "matplotlib-3.7.2-cp39-cp39-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:dbcf59334ff645e6a67cd5f78b4b2cdb76384cdf587fa0d2dc85f634a72e1a3e"},
+    {file = "matplotlib-3.7.2-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:318c89edde72ff95d8df67d82aca03861240512994a597a435a1011ba18dbc7f"},
+    {file = "matplotlib-3.7.2-cp39-cp39-win32.whl", hash = "sha256:ce55289d5659b5b12b3db4dc9b7075b70cef5631e56530f14b2945e8836f2d20"},
+    {file = "matplotlib-3.7.2-cp39-cp39-win_amd64.whl", hash = "sha256:2ecb5be2b2815431c81dc115667e33da0f5a1bcf6143980d180d09a717c4a12e"},
+    {file = "matplotlib-3.7.2-pp38-pypy38_pp73-macosx_10_12_x86_64.whl", hash = "sha256:fdcd28360dbb6203fb5219b1a5658df226ac9bebc2542a9e8f457de959d713d0"},
+    {file = "matplotlib-3.7.2-pp38-pypy38_pp73-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:0c3cca3e842b11b55b52c6fb8bd6a4088693829acbfcdb3e815fa9b7d5c92c1b"},
+    {file = "matplotlib-3.7.2-pp38-pypy38_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ebf577c7a6744e9e1bd3fee45fc74a02710b214f94e2bde344912d85e0c9af7c"},
+    {file = "matplotlib-3.7.2-pp38-pypy38_pp73-win_amd64.whl", hash = "sha256:936bba394682049919dda062d33435b3be211dc3dcaa011e09634f060ec878b2"},
+    {file = "matplotlib-3.7.2-pp39-pypy39_pp73-macosx_10_12_x86_64.whl", hash = "sha256:bc221ffbc2150458b1cd71cdd9ddd5bb37962b036e41b8be258280b5b01da1dd"},
+    {file = "matplotlib-3.7.2-pp39-pypy39_pp73-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:35d74ebdb3f71f112b36c2629cf32323adfbf42679e2751252acd468f5001c07"},
+    {file = "matplotlib-3.7.2-pp39-pypy39_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:717157e61b3a71d3d26ad4e1770dc85156c9af435659a25ee6407dc866cb258d"},
+    {file = "matplotlib-3.7.2-pp39-pypy39_pp73-win_amd64.whl", hash = "sha256:20f844d6be031948148ba49605c8b96dfe7d3711d1b63592830d650622458c11"},
+    {file = "matplotlib-3.7.2.tar.gz", hash = "sha256:a8cdb91dddb04436bd2f098b8fdf4b81352e68cf4d2c6756fcc414791076569b"},
+]
+
+[package.dependencies]
+contourpy = ">=1.0.1"
+cycler = ">=0.10"
+fonttools = ">=4.22.0"
+importlib-resources = {version = ">=3.2.0", markers = "python_version < \"3.10\""}
+kiwisolver = ">=1.0.1"
+numpy = ">=1.20"
+packaging = ">=20.0"
+pillow = ">=6.2.0"
+pyparsing = ">=2.3.1,<3.1"
+python-dateutil = ">=2.7"
+
+[[package]]
+name = "matplotlib"
 version = "3.7.5"
 description = "Python plotting package"
 optional = false
 python-versions = ">=3.8"
 groups = ["main"]
-markers = "python_version <= \"3.11\" or python_version >= \"3.12\""
+markers = "python_version <= \"3.11\" or python_version >= \"3.12\" and python_version < \"3.13\""
 files = [
     {file = "matplotlib-3.7.5-cp310-cp310-macosx_10_12_universal2.whl", hash = "sha256:4a87b69cb1cb20943010f63feb0b2901c17a3b435f75349fd9865713bfa63925"},
     {file = "matplotlib-3.7.5-cp310-cp310-macosx_10_12_x86_64.whl", hash = "sha256:d3ce45010fefb028359accebb852ca0c21bd77ec0f281952831d235228f15810"},
@@ -2621,7 +2646,7 @@ description = "More routines for operating on iterables, beyond itertools"
 optional = false
 python-versions = ">=3.8"
 groups = ["build"]
-markers = "(python_version <= \"3.11\" or python_version >= \"3.12\") and (platform_machine != \"ppc64le\" and platform_machine != \"s390x\" or python_version < \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Linux\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"aarch64\" or python_version >= \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Darwin\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"arm64\" or python_version >= \"3.9\")"
+markers = "(platform_machine != \"ppc64le\" and platform_machine != \"s390x\" or python_version <= \"3.11\") and (python_version <= \"3.11\" or python_version >= \"3.12\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Darwin\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"arm64\" or python_version >= \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Linux\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"aarch64\" or python_version >= \"3.9\")"
 files = [
     {file = "more-itertools-10.5.0.tar.gz", hash = "sha256:5482bfef7849c25dc3c6dd53a6173ae4795da2a41a80faea6700d9f5846c5da6"},
     {file = "more_itertools-10.5.0-py3-none-any.whl", hash = "sha256:037b0d3203ce90cca8ab1defbbdac29d5f993fc20131f3664dc8d6acfa872aef"},
@@ -2762,19 +2787,6 @@ files = [
 ]
 
 [[package]]
-name = "nodeenv"
-version = "1.9.1"
-description = "Node.js virtual environment builder"
-optional = false
-python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*,!=3.6.*,>=2.7"
-groups = ["dev"]
-markers = "python_version <= \"3.11\" or python_version >= \"3.12\""
-files = [
-    {file = "nodeenv-1.9.1-py2.py3-none-any.whl", hash = "sha256:ba11c9782d29c27c70ffbdda2d7415098754709be8a7056d79a737cd901155c9"},
-    {file = "nodeenv-1.9.1.tar.gz", hash = "sha256:6ec12890a2dab7946721edbfbcd91f3319c6ccc9aec47be7c7e6b7011ee6645f"},
-]
-
-[[package]]
 name = "notebook"
 version = "7.3.2"
 description = "Jupyter Notebook - A web-based notebook environment for interactive computing"
@@ -2825,7 +2837,7 @@ description = "Fundamental package for array computing in Python"
 optional = false
 python-versions = ">=3.8"
 groups = ["main"]
-markers = "python_version <= \"3.11\" or python_version >= \"3.12\""
+markers = "python_version <= \"3.11\""
 files = [
     {file = "numpy-1.24.4-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:c0bfb52d2169d58c1cdb8cc1f16989101639b34c7d3ce60ed70b19c63eba0b64"},
     {file = "numpy-1.24.4-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:ed094d4f0c177b1b8e7aa9cba7d6ceed51c0e569a5318ac0ca9a090680a6a1b1"},
@@ -2858,25 +2870,117 @@ files = [
 ]
 
 [[package]]
-name = "opencv-python"
-version = "4.8.1.78"
-description = "Wrapper package for OpenCV python bindings."
+name = "numpy"
+version = "1.26.4"
+description = "Fundamental package for array computing in Python"
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.9"
 groups = ["main"]
-markers = "python_version >= \"3.12\""
+markers = "python_version >= \"3.12\" and python_version < \"3.13\""
 files = [
-    {file = "opencv-python-4.8.1.78.tar.gz", hash = "sha256:cc7adbbcd1112877a39274106cb2752e04984bc01a031162952e97450d6117f6"},
-    {file = "opencv_python-4.8.1.78-cp37-abi3-macosx_10_16_x86_64.whl", hash = "sha256:91d5f6f5209dc2635d496f6b8ca6573ecdad051a09e6b5de4c399b8e673c60da"},
-    {file = "opencv_python-4.8.1.78-cp37-abi3-macosx_11_0_arm64.whl", hash = "sha256:bc31f47e05447da8b3089faa0a07ffe80e114c91ce0b171e6424f9badbd1c5cd"},
-    {file = "opencv_python-4.8.1.78-cp37-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:9814beca408d3a0eca1bae7e3e5be68b07c17ecceb392b94170881216e09b319"},
-    {file = "opencv_python-4.8.1.78-cp37-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:c4c406bdb41eb21ea51b4e90dfbc989c002786c3f601c236a99c59a54670a394"},
-    {file = "opencv_python-4.8.1.78-cp37-abi3-win32.whl", hash = "sha256:a7aac3900fbacf55b551e7b53626c3dad4c71ce85643645c43e91fcb19045e47"},
-    {file = "opencv_python-4.8.1.78-cp37-abi3-win_amd64.whl", hash = "sha256:b983197f97cfa6fcb74e1da1802c7497a6f94ed561aba6980f1f33123f904956"},
+    {file = "numpy-1.26.4-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:9ff0f4f29c51e2803569d7a51c2304de5554655a60c5d776e35b4a41413830d0"},
+    {file = "numpy-1.26.4-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:2e4ee3380d6de9c9ec04745830fd9e2eccb3e6cf790d39d7b98ffd19b0dd754a"},
+    {file = "numpy-1.26.4-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:d209d8969599b27ad20994c8e41936ee0964e6da07478d6c35016bc386b66ad4"},
+    {file = "numpy-1.26.4-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ffa75af20b44f8dba823498024771d5ac50620e6915abac414251bd971b4529f"},
+    {file = "numpy-1.26.4-cp310-cp310-musllinux_1_1_aarch64.whl", hash = "sha256:62b8e4b1e28009ef2846b4c7852046736bab361f7aeadeb6a5b89ebec3c7055a"},
+    {file = "numpy-1.26.4-cp310-cp310-musllinux_1_1_x86_64.whl", hash = "sha256:a4abb4f9001ad2858e7ac189089c42178fcce737e4169dc61321660f1a96c7d2"},
+    {file = "numpy-1.26.4-cp310-cp310-win32.whl", hash = "sha256:bfe25acf8b437eb2a8b2d49d443800a5f18508cd811fea3181723922a8a82b07"},
+    {file = "numpy-1.26.4-cp310-cp310-win_amd64.whl", hash = "sha256:b97fe8060236edf3662adfc2c633f56a08ae30560c56310562cb4f95500022d5"},
+    {file = "numpy-1.26.4-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:4c66707fabe114439db9068ee468c26bbdf909cac0fb58686a42a24de1760c71"},
+    {file = "numpy-1.26.4-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:edd8b5fe47dab091176d21bb6de568acdd906d1887a4584a15a9a96a1dca06ef"},
+    {file = "numpy-1.26.4-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:7ab55401287bfec946ced39700c053796e7cc0e3acbef09993a9ad2adba6ca6e"},
+    {file = "numpy-1.26.4-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:666dbfb6ec68962c033a450943ded891bed2d54e6755e35e5835d63f4f6931d5"},
+    {file = "numpy-1.26.4-cp311-cp311-musllinux_1_1_aarch64.whl", hash = "sha256:96ff0b2ad353d8f990b63294c8986f1ec3cb19d749234014f4e7eb0112ceba5a"},
+    {file = "numpy-1.26.4-cp311-cp311-musllinux_1_1_x86_64.whl", hash = "sha256:60dedbb91afcbfdc9bc0b1f3f402804070deed7392c23eb7a7f07fa857868e8a"},
+    {file = "numpy-1.26.4-cp311-cp311-win32.whl", hash = "sha256:1af303d6b2210eb850fcf03064d364652b7120803a0b872f5211f5234b399f20"},
+    {file = "numpy-1.26.4-cp311-cp311-win_amd64.whl", hash = "sha256:cd25bcecc4974d09257ffcd1f098ee778f7834c3ad767fe5db785be9a4aa9cb2"},
+    {file = "numpy-1.26.4-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:b3ce300f3644fb06443ee2222c2201dd3a89ea6040541412b8fa189341847218"},
+    {file = "numpy-1.26.4-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:03a8c78d01d9781b28a6989f6fa1bb2c4f2d51201cf99d3dd875df6fbd96b23b"},
+    {file = "numpy-1.26.4-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:9fad7dcb1aac3c7f0584a5a8133e3a43eeb2fe127f47e3632d43d677c66c102b"},
+    {file = "numpy-1.26.4-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:675d61ffbfa78604709862923189bad94014bef562cc35cf61d3a07bba02a7ed"},
+    {file = "numpy-1.26.4-cp312-cp312-musllinux_1_1_aarch64.whl", hash = "sha256:ab47dbe5cc8210f55aa58e4805fe224dac469cde56b9f731a4c098b91917159a"},
+    {file = "numpy-1.26.4-cp312-cp312-musllinux_1_1_x86_64.whl", hash = "sha256:1dda2e7b4ec9dd512f84935c5f126c8bd8b9f2fc001e9f54af255e8c5f16b0e0"},
+    {file = "numpy-1.26.4-cp312-cp312-win32.whl", hash = "sha256:50193e430acfc1346175fcbdaa28ffec49947a06918b7b92130744e81e640110"},
+    {file = "numpy-1.26.4-cp312-cp312-win_amd64.whl", hash = "sha256:08beddf13648eb95f8d867350f6a018a4be2e5ad54c8d8caed89ebca558b2818"},
+    {file = "numpy-1.26.4-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:7349ab0fa0c429c82442a27a9673fc802ffdb7c7775fad780226cb234965e53c"},
+    {file = "numpy-1.26.4-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:52b8b60467cd7dd1e9ed082188b4e6bb35aa5cdd01777621a1658910745b90be"},
+    {file = "numpy-1.26.4-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:d5241e0a80d808d70546c697135da2c613f30e28251ff8307eb72ba696945764"},
+    {file = "numpy-1.26.4-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:f870204a840a60da0b12273ef34f7051e98c3b5961b61b0c2c1be6dfd64fbcd3"},
+    {file = "numpy-1.26.4-cp39-cp39-musllinux_1_1_aarch64.whl", hash = "sha256:679b0076f67ecc0138fd2ede3a8fd196dddc2ad3254069bcb9faf9a79b1cebcd"},
+    {file = "numpy-1.26.4-cp39-cp39-musllinux_1_1_x86_64.whl", hash = "sha256:47711010ad8555514b434df65f7d7b076bb8261df1ca9bb78f53d3b2db02e95c"},
+    {file = "numpy-1.26.4-cp39-cp39-win32.whl", hash = "sha256:a354325ee03388678242a4d7ebcd08b5c727033fcff3b2f536aea978e15ee9e6"},
+    {file = "numpy-1.26.4-cp39-cp39-win_amd64.whl", hash = "sha256:3373d5d70a5fe74a2c1bb6d2cfd9609ecf686d47a2d7b1d37a8f3b6bf6003aea"},
+    {file = "numpy-1.26.4-pp39-pypy39_pp73-macosx_10_9_x86_64.whl", hash = "sha256:afedb719a9dcfc7eaf2287b839d8198e06dcd4cb5d276a3df279231138e83d30"},
+    {file = "numpy-1.26.4-pp39-pypy39_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:95a7476c59002f2f6c590b9b7b998306fba6a5aa646b1e22ddfeaf8f78c3a29c"},
+    {file = "numpy-1.26.4-pp39-pypy39_pp73-win_amd64.whl", hash = "sha256:7e50d0a0cc3189f9cb0aeb3a6a6af18c16f59f004b866cd2be1c14b36134a4a0"},
+    {file = "numpy-1.26.4.tar.gz", hash = "sha256:2a02aba9ed12e4ac4eb3ea9421c420301a0c6460d9830d74a9df87efa4912010"},
 ]
 
-[package.dependencies]
-numpy = {version = ">=1.23.5", markers = "python_version >= \"3.11\""}
+[[package]]
+name = "numpy"
+version = "2.2.1"
+description = "Fundamental package for array computing in Python"
+optional = false
+python-versions = ">=3.10"
+groups = ["main"]
+markers = "python_version >= \"3.13\""
+files = [
+    {file = "numpy-2.2.1-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:5edb4e4caf751c1518e6a26a83501fda79bff41cc59dac48d70e6d65d4ec4440"},
+    {file = "numpy-2.2.1-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:aa3017c40d513ccac9621a2364f939d39e550c542eb2a894b4c8da92b38896ab"},
+    {file = "numpy-2.2.1-cp310-cp310-macosx_14_0_arm64.whl", hash = "sha256:61048b4a49b1c93fe13426e04e04fdf5a03f456616f6e98c7576144677598675"},
+    {file = "numpy-2.2.1-cp310-cp310-macosx_14_0_x86_64.whl", hash = "sha256:7671dc19c7019103ca44e8d94917eba8534c76133523ca8406822efdd19c9308"},
+    {file = "numpy-2.2.1-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:4250888bcb96617e00bfa28ac24850a83c9f3a16db471eca2ee1f1714df0f957"},
+    {file = "numpy-2.2.1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a7746f235c47abc72b102d3bce9977714c2444bdfaea7888d241b4c4bb6a78bf"},
+    {file = "numpy-2.2.1-cp310-cp310-musllinux_1_2_aarch64.whl", hash = "sha256:059e6a747ae84fce488c3ee397cee7e5f905fd1bda5fb18c66bc41807ff119b2"},
+    {file = "numpy-2.2.1-cp310-cp310-musllinux_1_2_x86_64.whl", hash = "sha256:f62aa6ee4eb43b024b0e5a01cf65a0bb078ef8c395e8713c6e8a12a697144528"},
+    {file = "numpy-2.2.1-cp310-cp310-win32.whl", hash = "sha256:48fd472630715e1c1c89bf1feab55c29098cb403cc184b4859f9c86d4fcb6a95"},
+    {file = "numpy-2.2.1-cp310-cp310-win_amd64.whl", hash = "sha256:b541032178a718c165a49638d28272b771053f628382d5e9d1c93df23ff58dbf"},
+    {file = "numpy-2.2.1-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:40f9e544c1c56ba8f1cf7686a8c9b5bb249e665d40d626a23899ba6d5d9e1484"},
+    {file = "numpy-2.2.1-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:f9b57eaa3b0cd8db52049ed0330747b0364e899e8a606a624813452b8203d5f7"},
+    {file = "numpy-2.2.1-cp311-cp311-macosx_14_0_arm64.whl", hash = "sha256:bc8a37ad5b22c08e2dbd27df2b3ef7e5c0864235805b1e718a235bcb200cf1cb"},
+    {file = "numpy-2.2.1-cp311-cp311-macosx_14_0_x86_64.whl", hash = "sha256:9036d6365d13b6cbe8f27a0eaf73ddcc070cae584e5ff94bb45e3e9d729feab5"},
+    {file = "numpy-2.2.1-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:51faf345324db860b515d3f364eaa93d0e0551a88d6218a7d61286554d190d73"},
+    {file = "numpy-2.2.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:38efc1e56b73cc9b182fe55e56e63b044dd26a72128fd2fbd502f75555d92591"},
+    {file = "numpy-2.2.1-cp311-cp311-musllinux_1_2_aarch64.whl", hash = "sha256:31b89fa67a8042e96715c68e071a1200c4e172f93b0fbe01a14c0ff3ff820fc8"},
+    {file = "numpy-2.2.1-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:4c86e2a209199ead7ee0af65e1d9992d1dce7e1f63c4b9a616500f93820658d0"},
+    {file = "numpy-2.2.1-cp311-cp311-win32.whl", hash = "sha256:b34d87e8a3090ea626003f87f9392b3929a7bbf4104a05b6667348b6bd4bf1cd"},
+    {file = "numpy-2.2.1-cp311-cp311-win_amd64.whl", hash = "sha256:360137f8fb1b753c5cde3ac388597ad680eccbbbb3865ab65efea062c4a1fd16"},
+    {file = "numpy-2.2.1-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:694f9e921a0c8f252980e85bce61ebbd07ed2b7d4fa72d0e4246f2f8aa6642ab"},
+    {file = "numpy-2.2.1-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:3683a8d166f2692664262fd4900f207791d005fb088d7fdb973cc8d663626faa"},
+    {file = "numpy-2.2.1-cp312-cp312-macosx_14_0_arm64.whl", hash = "sha256:780077d95eafc2ccc3ced969db22377b3864e5b9a0ea5eb347cc93b3ea900315"},
+    {file = "numpy-2.2.1-cp312-cp312-macosx_14_0_x86_64.whl", hash = "sha256:55ba24ebe208344aa7a00e4482f65742969a039c2acfcb910bc6fcd776eb4355"},
+    {file = "numpy-2.2.1-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:9b1d07b53b78bf84a96898c1bc139ad7f10fda7423f5fd158fd0f47ec5e01ac7"},
+    {file = "numpy-2.2.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:5062dc1a4e32a10dc2b8b13cedd58988261416e811c1dc4dbdea4f57eea61b0d"},
+    {file = "numpy-2.2.1-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:fce4f615f8ca31b2e61aa0eb5865a21e14f5629515c9151850aa936c02a1ee51"},
+    {file = "numpy-2.2.1-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:67d4cda6fa6ffa073b08c8372aa5fa767ceb10c9a0587c707505a6d426f4e046"},
+    {file = "numpy-2.2.1-cp312-cp312-win32.whl", hash = "sha256:32cb94448be47c500d2c7a95f93e2f21a01f1fd05dd2beea1ccd049bb6001cd2"},
+    {file = "numpy-2.2.1-cp312-cp312-win_amd64.whl", hash = "sha256:ba5511d8f31c033a5fcbda22dd5c813630af98c70b2661f2d2c654ae3cdfcfc8"},
+    {file = "numpy-2.2.1-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:f1d09e520217618e76396377c81fba6f290d5f926f50c35f3a5f72b01a0da780"},
+    {file = "numpy-2.2.1-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:3ecc47cd7f6ea0336042be87d9e7da378e5c7e9b3c8ad0f7c966f714fc10d821"},
+    {file = "numpy-2.2.1-cp313-cp313-macosx_14_0_arm64.whl", hash = "sha256:f419290bc8968a46c4933158c91a0012b7a99bb2e465d5ef5293879742f8797e"},
+    {file = "numpy-2.2.1-cp313-cp313-macosx_14_0_x86_64.whl", hash = "sha256:5b6c390bfaef8c45a260554888966618328d30e72173697e5cabe6b285fb2348"},
+    {file = "numpy-2.2.1-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:526fc406ab991a340744aad7e25251dd47a6720a685fa3331e5c59fef5282a59"},
+    {file = "numpy-2.2.1-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:f74e6fdeb9a265624ec3a3918430205dff1df7e95a230779746a6af78bc615af"},
+    {file = "numpy-2.2.1-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:53c09385ff0b72ba79d8715683c1168c12e0b6e84fb0372e97553d1ea91efe51"},
+    {file = "numpy-2.2.1-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:f3eac17d9ec51be534685ba877b6ab5edc3ab7ec95c8f163e5d7b39859524716"},
+    {file = "numpy-2.2.1-cp313-cp313-win32.whl", hash = "sha256:9ad014faa93dbb52c80d8f4d3dcf855865c876c9660cb9bd7553843dd03a4b1e"},
+    {file = "numpy-2.2.1-cp313-cp313-win_amd64.whl", hash = "sha256:164a829b6aacf79ca47ba4814b130c4020b202522a93d7bff2202bfb33b61c60"},
+    {file = "numpy-2.2.1-cp313-cp313t-macosx_10_13_x86_64.whl", hash = "sha256:4dfda918a13cc4f81e9118dea249e192ab167a0bb1966272d5503e39234d694e"},
+    {file = "numpy-2.2.1-cp313-cp313t-macosx_11_0_arm64.whl", hash = "sha256:733585f9f4b62e9b3528dd1070ec4f52b8acf64215b60a845fa13ebd73cd0712"},
+    {file = "numpy-2.2.1-cp313-cp313t-macosx_14_0_arm64.whl", hash = "sha256:89b16a18e7bba224ce5114db863e7029803c179979e1af6ad6a6b11f70545008"},
+    {file = "numpy-2.2.1-cp313-cp313t-macosx_14_0_x86_64.whl", hash = "sha256:676f4eebf6b2d430300f1f4f4c2461685f8269f94c89698d832cdf9277f30b84"},
+    {file = "numpy-2.2.1-cp313-cp313t-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:27f5cdf9f493b35f7e41e8368e7d7b4bbafaf9660cba53fb21d2cd174ec09631"},
+    {file = "numpy-2.2.1-cp313-cp313t-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:c1ad395cf254c4fbb5b2132fee391f361a6e8c1adbd28f2cd8e79308a615fe9d"},
+    {file = "numpy-2.2.1-cp313-cp313t-musllinux_1_2_aarch64.whl", hash = "sha256:08ef779aed40dbc52729d6ffe7dd51df85796a702afbf68a4f4e41fafdc8bda5"},
+    {file = "numpy-2.2.1-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:26c9c4382b19fcfbbed3238a14abf7ff223890ea1936b8890f058e7ba35e8d71"},
+    {file = "numpy-2.2.1-cp313-cp313t-win32.whl", hash = "sha256:93cf4e045bae74c90ca833cba583c14b62cb4ba2cba0abd2b141ab52548247e2"},
+    {file = "numpy-2.2.1-cp313-cp313t-win_amd64.whl", hash = "sha256:bff7d8ec20f5f42607599f9994770fa65d76edca264a87b5e4ea5629bce12268"},
+    {file = "numpy-2.2.1-pp310-pypy310_pp73-macosx_10_15_x86_64.whl", hash = "sha256:7ba9cc93a91d86365a5d270dee221fdc04fb68d7478e6bf6af650de78a8339e3"},
+    {file = "numpy-2.2.1-pp310-pypy310_pp73-macosx_14_0_x86_64.whl", hash = "sha256:3d03883435a19794e41f147612a77a8f56d4e52822337844fff3d4040a142964"},
+    {file = "numpy-2.2.1-pp310-pypy310_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4511d9e6071452b944207c8ce46ad2f897307910b402ea5fa975da32e0102800"},
+    {file = "numpy-2.2.1-pp310-pypy310_pp73-win_amd64.whl", hash = "sha256:5c5cc0cbabe9452038ed984d05ac87910f89370b9242371bd9079cb4af61811e"},
+    {file = "numpy-2.2.1.tar.gz", hash = "sha256:45681fd7128c8ad1c379f0ca0776a8b0c6583d2f69889ddac01559dfe4390918"},
+]
 
 [[package]]
 name = "opencv-python"
@@ -2885,7 +2989,7 @@ description = "Wrapper package for OpenCV python bindings."
 optional = false
 python-versions = ">=3.6"
 groups = ["main"]
-markers = "python_version <= \"3.11\""
+markers = "python_version <= \"3.11\" or python_version >= \"3.12\""
 files = [
     {file = "opencv-python-4.10.0.84.tar.gz", hash = "sha256:72d234e4582e9658ffea8e9cae5b63d488ad06994ef12d81dc303b17472f3526"},
     {file = "opencv_python-4.10.0.84-cp37-abi3-macosx_11_0_arm64.whl", hash = "sha256:fc182f8f4cda51b45f01c64e4cbedfc2f00aff799debebc305d8d0210c43f251"},
@@ -2904,6 +3008,7 @@ numpy = [
     {version = ">=1.21.4", markers = "python_version >= \"3.10\" and platform_system == \"Darwin\" and python_version < \"3.11\""},
     {version = ">=1.21.2", markers = "platform_system != \"Darwin\" and python_version >= \"3.10\" and python_version < \"3.11\""},
     {version = ">=1.23.5", markers = "python_version >= \"3.11\" and python_version < \"3.12\""},
+    {version = ">=1.26.0", markers = "python_version >= \"3.12\""},
 ]
 
 [[package]]
@@ -3254,26 +3359,6 @@ dev = ["pre-commit", "tox"]
 testing = ["pytest", "pytest-benchmark"]
 
 [[package]]
-name = "pre-commit"
-version = "3.5.0"
-description = "A framework for managing and maintaining multi-language pre-commit hooks."
-optional = false
-python-versions = ">=3.8"
-groups = ["dev"]
-markers = "python_version <= \"3.11\" or python_version >= \"3.12\""
-files = [
-    {file = "pre_commit-3.5.0-py2.py3-none-any.whl", hash = "sha256:841dc9aef25daba9a0238cd27984041fa0467b4199fc4852e27950664919f660"},
-    {file = "pre_commit-3.5.0.tar.gz", hash = "sha256:5804465c675b659b0862f07907f96295d490822a450c4c40e747d0b1c6ebcb32"},
-]
-
-[package.dependencies]
-cfgv = ">=2.0.0"
-identify = ">=1.0.0"
-nodeenv = ">=0.11.1"
-pyyaml = ">=5.1"
-virtualenv = ">=20.10.0"
-
-[[package]]
 name = "prometheus-client"
 version = "0.21.1"
 description = "Python client for the Prometheus monitoring system."
@@ -3377,7 +3462,7 @@ files = [
     {file = "pycparser-2.22-py3-none-any.whl", hash = "sha256:c3702b6d3dd8c7abc1afa565d7e63d53a1d0bd86cdc24edd75470f4de499cfcc"},
     {file = "pycparser-2.22.tar.gz", hash = "sha256:491c8be9c040f5390f5bf44a5b07752bd07f56edf992381b05c701439eec10f6"},
 ]
-markers = {build = "(python_version <= \"3.11\" or python_version >= \"3.12\") and sys_platform == \"linux\" and platform_python_implementation != \"PyPy\" and (platform_machine != \"ppc64le\" and platform_machine != \"s390x\" or python_version < \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Linux\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"aarch64\" or python_version >= \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Darwin\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"arm64\" or python_version >= \"3.9\")", dev = "python_version <= \"3.11\" or python_version >= \"3.12\"", docs = "python_version <= \"3.11\" or python_version >= \"3.12\""}
+markers = {build = "sys_platform == \"linux\" and (platform_machine != \"ppc64le\" and platform_machine != \"s390x\" or python_version <= \"3.11\") and platform_python_implementation != \"PyPy\" and (python_version <= \"3.11\" or python_version >= \"3.12\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Darwin\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"arm64\" or python_version >= \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Linux\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"aarch64\" or python_version >= \"3.9\")", dev = "python_version <= \"3.11\" or python_version >= \"3.12\"", docs = "python_version <= \"3.11\" or python_version >= \"3.12\""}
 
 [[package]]
 name = "pygments"
@@ -3417,12 +3502,28 @@ extra = ["pygments (>=2.12)"]
 
 [[package]]
 name = "pyparsing"
+version = "3.0.9"
+description = "pyparsing module - Classes and methods to define and execute parsing grammars"
+optional = false
+python-versions = ">=3.6.8"
+groups = ["main", "docs"]
+markers = "python_version >= \"3.13\""
+files = [
+    {file = "pyparsing-3.0.9-py3-none-any.whl", hash = "sha256:5026bae9a10eeaefb61dab2f09052b9f4307d44aee4eda64b309723d8d206bbc"},
+    {file = "pyparsing-3.0.9.tar.gz", hash = "sha256:2b020ecf7d21b687f219b71ecad3631f644a47f01403fa1d1036b0c6416d70fb"},
+]
+
+[package.extras]
+diagrams = ["jinja2", "railroad-diagrams"]
+
+[[package]]
+name = "pyparsing"
 version = "3.1.4"
 description = "pyparsing module - Classes and methods to define and execute parsing grammars"
 optional = false
 python-versions = ">=3.6.8"
 groups = ["main", "docs"]
-markers = "python_version <= \"3.11\" or python_version >= \"3.12\""
+markers = "python_version <= \"3.11\" or python_version >= \"3.12\" and python_version < \"3.13\""
 files = [
     {file = "pyparsing-3.1.4-py3-none-any.whl", hash = "sha256:a6a7ee4235a3f944aa1fa2249307708f893fe5717dc603503c6c7969c070fb7c"},
     {file = "pyparsing-3.1.4.tar.gz", hash = "sha256:f86ec8d1a83f11977c9a6ea7598e8c27fc5cddfa5b07ea2241edbbde1d7bc032"},
@@ -3573,7 +3674,7 @@ description = "A (partial) reimplementation of pywin32 using ctypes/cffi"
 optional = false
 python-versions = ">=3.6"
 groups = ["build"]
-markers = "(python_version <= \"3.11\" or python_version >= \"3.12\") and sys_platform == \"win32\" and (platform_machine != \"ppc64le\" and platform_machine != \"s390x\" or python_version < \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Linux\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"aarch64\" or python_version >= \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Darwin\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"arm64\" or python_version >= \"3.9\")"
+markers = "sys_platform == \"win32\" and (platform_machine != \"ppc64le\" and platform_machine != \"s390x\" or python_version <= \"3.11\") and (python_version <= \"3.11\" or python_version >= \"3.12\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Darwin\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"arm64\" or python_version >= \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Linux\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"aarch64\" or python_version >= \"3.9\")"
 files = [
     {file = "pywin32-ctypes-0.2.3.tar.gz", hash = "sha256:d162dc04946d704503b2edc4d55f3dba5c1d539ead017afa00142c38b9885755"},
     {file = "pywin32_ctypes-0.2.3-py3-none-any.whl", hash = "sha256:8a1513379d709975552d202d942d9837758905c8d01eb82b8bcc30918929e7b8"},
@@ -4311,7 +4412,7 @@ description = "Python bindings to FreeDesktop.org Secret Service API"
 optional = false
 python-versions = ">=3.6"
 groups = ["build"]
-markers = "(python_version <= \"3.11\" or python_version >= \"3.12\") and sys_platform == \"linux\" and (platform_machine != \"ppc64le\" and platform_machine != \"s390x\" or python_version < \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Linux\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"aarch64\" or python_version >= \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Darwin\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"arm64\" or python_version >= \"3.9\")"
+markers = "sys_platform == \"linux\" and (platform_machine != \"ppc64le\" and platform_machine != \"s390x\" or python_version <= \"3.11\") and (python_version <= \"3.11\" or python_version >= \"3.12\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Darwin\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"arm64\" or python_version >= \"3.9\") and (platform_machine == \"arm64\" or platform_machine == \"aarch64\" or platform_system != \"Linux\" or platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and platform_machine != \"aarch64\" or python_version >= \"3.9\")"
 files = [
     {file = "SecretStorage-3.3.3-py3-none-any.whl", hash = "sha256:f356e6628222568e3af06f2eba8df495efa13b3b63081dafd4f7d9a7b7bc9f99"},
     {file = "SecretStorage-3.3.3.tar.gz", hash = "sha256:2403533ef369eca6d2ba81718576c5e0f564d5cca1b58f73a8b23e7d4eeebd77"},
@@ -4917,4 +5018,4 @@ metrics = ["pandas"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.8"
-content-hash = "3200aa271750cb9a5b4518ecd9a72e7244f2137a861f416cfa437e4ae133d216"
+content-hash = "98f7b50524f3a498de5f7e661977d148ae4341f59803a7147ff132e49d065899"
