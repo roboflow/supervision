@@ -113,18 +113,19 @@ You can install `supervision` in a
         pip install -e "."
         ```
 
-    === "poetry"
+    === "uv"
         ```bash
         # clone repository and navigate to root directory
         git clone --depth 1 -b develop https://github.com/roboflow/supervision.git
         cd supervision
 
         # setup python environment and activate it
-        poetry env use python3.10
-        poetry shell
+        uv venv
+        source .venv/bin/activate
 
         # installation
-        poetry install
+        uv pip install -r pyproject.toml -e . --all-extras
+
         ```
 
 ## 🚀 Quickstart
