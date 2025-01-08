@@ -41,8 +41,18 @@ jobs:
       - name: 📜 Setup Poetry
         uses: abatilo/actions-poetry@3765cf608f2d4a72178a9fc5b918668e542b89b1 # v4.0.0
 
+      - name: 🔑 Create GitHub App token (mkdocs)
+        id: mkdocs_token
+        uses: actions/create-github-app-token@c1a285145b9d317df6ced56c09f525b5c2b6f755 # v1.11.1
+        with:
+          app-id: ${{ secrets.MKDOCS_APP_ID }}
+          private-key: ${{ secrets.MKDOCS_PEM }}
+          owner: roboflow
+          repositories: mkdocs-material-insiders
+
       - name: 📦 Install dependencies
         run: |
+          poetry config http-basic.github.com roboflow ${steps.mkdocs_token.outputs.token}
           poetry install --with=docs
 
       - name: ⚙️ Configure git for github-actions
