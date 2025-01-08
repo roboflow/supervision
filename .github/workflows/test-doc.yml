@@ -28,8 +28,21 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: 🔑 Create GitHub App token (mkdocs)
+        id: mkdocs_token
+        uses: actions/create-github-app-token@c1a285145b9d317df6ced56c09f525b5c2b6f755 # v1.11.1
+        with:
+          app-id: ${{ secrets.MKDOCS_APP_ID }}
+          private-key: ${{ secrets.MKDOCS_PEM }}
+          owner: roboflow
+          repositories: mkdocs-material-insiders
+
       - name: 🏗️ Install dependencies
-        run: uv pip install -r pyproject.toml --extra docs
+        run: |
+          uv pip install -r pyproject.toml --extra docs
+          # Install mkdocs-material-insiders using the GitHub App token
+          uv pip install "git+https://roboflow:${{ steps.mkdocs_token.outputs.token }}@github.com/roboflow/mkdocs-material-insiders.git@9.5.49-insiders-4.53.14#egg=mkdocs-material[imaging]"
+
 
       - name: 🧪 Test Docs Build
         run: uv run mkdocs build --verbose
