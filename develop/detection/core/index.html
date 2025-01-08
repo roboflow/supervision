@@ -22,7 +22,7 @@
       
       
       <link rel="icon" href="../../assets/supervision-lenny.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.48">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.49">
     
     
       
@@ -2661,9 +2661,9 @@ integration with Supervision <a href="/trackers/">trackers</a>, <a href="/latest
 <div class="tabbed-block">
 <p>Use <a href="/detection/core/#supervision.detection.core.Detections.from_inference"><code>sv.Detections.from_inference</code></a>
 method, which accepts model results from both detection and segmentation models.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span> <span class="nn">cv2</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span> <span class="nn">inference</span> <span class="kn">import</span> <span class="n">get_model</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">inference</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_model</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">model</span> <span class="o">=</span> <span class="n">get_model</span><span class="p">(</span><span class="n">model_id</span><span class="o">=</span><span class="s2">&quot;yolov8n-640&quot;</span><span class="p">)</span>
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="o">&lt;</span><span class="n">SOURCE_IMAGE_PATH</span><span class="o">&gt;</span><span class="p">)</span>
@@ -2674,9 +2674,9 @@ method, which accepts model results from both detection and segmentation models.
 <div class="tabbed-block">
 <p>Use <a href="/detection/core/#supervision.detection.core.Detections.from_ultralytics"><code>sv.Detections.from_ultralytics</code></a>
 method, which accepts model results from both detection and segmentation models.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">import</span> <span class="nn">cv2</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="kn">from</span> <span class="nn">ultralytics</span> <span class="kn">import</span> <span class="n">YOLO</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">ultralytics</span><span class="w"> </span><span class="kn">import</span> <span class="n">YOLO</span>
 <a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
 <a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">model</span> <span class="o">=</span> <span class="n">YOLO</span><span class="p">(</span><span class="s2">&quot;yolov8n.pt&quot;</span><span class="p">)</span>
 <a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="o">&lt;</span><span class="n">SOURCE_IMAGE_PATH</span><span class="o">&gt;</span><span class="p">)</span>
@@ -2687,10 +2687,10 @@ method, which accepts model results from both detection and segmentation models.
 <div class="tabbed-block">
 <p>Use <a href="/detection/core/#supervision.detection.core.Detections.from_transformers"><code>sv.Detections.from_transformers</code></a>
 method, which accepts model results from both detection and segmentation models.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">import</span> <span class="nn">torch</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="kn">from</span> <span class="nn">PIL</span> <span class="kn">import</span> <span class="n">Image</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="kn">from</span> <span class="nn">transformers</span> <span class="kn">import</span> <span class="n">DetrImageProcessor</span><span class="p">,</span> <span class="n">DetrForObjectDetection</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">PIL</span><span class="w"> </span><span class="kn">import</span> <span class="n">Image</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">transformers</span><span class="w"> </span><span class="kn">import</span> <span class="n">DetrImageProcessor</span><span class="p">,</span> <span class="n">DetrForObjectDetection</span>
 <a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
 <a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="n">processor</span> <span class="o">=</span> <span class="n">DetrImageProcessor</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="s2">&quot;facebook/detr-resnet-50&quot;</span><span class="p">)</span>
 <a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="n">model</span> <span class="o">=</span> <span class="n">DetrForObjectDetection</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="s2">&quot;facebook/detr-resnet-50&quot;</span><span class="p">)</span>
@@ -4166,7 +4166,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 <span class="normal"><a href="#__codelineno-0-1394">1394</a></span>
 <span class="normal"><a href="#__codelineno-0-1395">1395</a></span>
 <span class="normal"><a href="#__codelineno-0-1396">1396</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-46" name="__codelineno-0-46"></a><span class="nd">@dataclass</span>
-<a id="__codelineno-0-47" name="__codelineno-0-47"></a><span class="k">class</span> <span class="nc">Detections</span><span class="p">:</span>
+<a id="__codelineno-0-47" name="__codelineno-0-47"></a><span class="k">class</span><span class="w"> </span><span class="nc">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-48" name="__codelineno-0-48"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-49" name="__codelineno-0-49"></a><span class="sd">    The `sv.Detections` class in the Supervision library standardizes results from</span>
 <a id="__codelineno-0-50" name="__codelineno-0-50"></a><span class="sd">    various object detection and segmentation models into a consistent format. This</span>
@@ -4261,7 +4261,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 <a id="__codelineno-0-139" name="__codelineno-0-139"></a>    <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">List</span><span class="p">]]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
 <a id="__codelineno-0-140" name="__codelineno-0-140"></a>    <span class="n">metadata</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
 <a id="__codelineno-0-141" name="__codelineno-0-141"></a>
-<a id="__codelineno-0-142" name="__codelineno-0-142"></a>    <span class="k">def</span> <span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-0-142" name="__codelineno-0-142"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <a id="__codelineno-0-143" name="__codelineno-0-143"></a>        <span class="n">validate_detections_fields</span><span class="p">(</span>
 <a id="__codelineno-0-144" name="__codelineno-0-144"></a>            <span class="n">xyxy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">,</span>
 <a id="__codelineno-0-145" name="__codelineno-0-145"></a>            <span class="n">mask</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span>
@@ -4271,13 +4271,13 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 <a id="__codelineno-0-149" name="__codelineno-0-149"></a>            <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
 <a id="__codelineno-0-150" name="__codelineno-0-150"></a>        <span class="p">)</span>
 <a id="__codelineno-0-151" name="__codelineno-0-151"></a>
-<a id="__codelineno-0-152" name="__codelineno-0-152"></a>    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-0-152" name="__codelineno-0-152"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <a id="__codelineno-0-153" name="__codelineno-0-153"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-154" name="__codelineno-0-154"></a><span class="sd">        Returns the number of detections in the Detections object.</span>
 <a id="__codelineno-0-155" name="__codelineno-0-155"></a><span class="sd">        &quot;&quot;&quot;</span>
 <a id="__codelineno-0-156" name="__codelineno-0-156"></a>        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">)</span>
 <a id="__codelineno-0-157" name="__codelineno-0-157"></a>
-<a id="__codelineno-0-158" name="__codelineno-0-158"></a>    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span>
+<a id="__codelineno-0-158" name="__codelineno-0-158"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__iter__</span><span class="p">(</span>
 <a id="__codelineno-0-159" name="__codelineno-0-159"></a>        <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-160" name="__codelineno-0-160"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span>
 <a id="__codelineno-0-161" name="__codelineno-0-161"></a>        <span class="n">Tuple</span><span class="p">[</span>
@@ -4303,7 +4303,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 <a id="__codelineno-0-181" name="__codelineno-0-181"></a>                <span class="n">get_data_item</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span>
 <a id="__codelineno-0-182" name="__codelineno-0-182"></a>            <span class="p">)</span>
 <a id="__codelineno-0-183" name="__codelineno-0-183"></a>
-<a id="__codelineno-0-184" name="__codelineno-0-184"></a>    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Detections</span><span class="p">):</span>
+<a id="__codelineno-0-184" name="__codelineno-0-184"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Detections</span><span class="p">):</span>
 <a id="__codelineno-0-185" name="__codelineno-0-185"></a>        <span class="k">return</span> <span class="nb">all</span><span class="p">(</span>
 <a id="__codelineno-0-186" name="__codelineno-0-186"></a>            <span class="p">[</span>
 <a id="__codelineno-0-187" name="__codelineno-0-187"></a>                <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">xyxy</span><span class="p">),</span>
@@ -4317,7 +4317,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 <a id="__codelineno-0-195" name="__codelineno-0-195"></a>        <span class="p">)</span>
 <a id="__codelineno-0-196" name="__codelineno-0-196"></a>
 <a id="__codelineno-0-197" name="__codelineno-0-197"></a>    <span class="nd">@classmethod</span>
-<a id="__codelineno-0-198" name="__codelineno-0-198"></a>    <span class="k">def</span> <span class="nf">from_yolov5</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">yolov5_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+<a id="__codelineno-0-198" name="__codelineno-0-198"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">from_yolov5</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">yolov5_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-199" name="__codelineno-0-199"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-200" name="__codelineno-0-200"></a><span class="sd">        Creates a Detections instance from a</span>
 <a id="__codelineno-0-201" name="__codelineno-0-201"></a><span class="sd">        [YOLOv5](https://github.com/ultralytics/yolov5) inference result.</span>
@@ -4350,7 +4350,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 <a id="__codelineno-0-228" name="__codelineno-0-228"></a>        <span class="p">)</span>
 <a id="__codelineno-0-229" name="__codelineno-0-229"></a>
 <a id="__codelineno-0-230" name="__codelineno-0-230"></a>    <span class="nd">@classmethod</span>
-<a id="__codelineno-0-231" name="__codelineno-0-231"></a>    <span class="k">def</span> <span class="nf">from_ultralytics</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">ultralytics_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+<a id="__codelineno-0-231" name="__codelineno-0-231"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">from_ultralytics</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">ultralytics_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-232" name="__codelineno-0-232"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-233" name="__codelineno-0-233"></a><span class="sd">        Creates a `sv.Detections` instance from a</span>
 <a id="__codelineno-0-234" name="__codelineno-0-234"></a><span class="sd">        [YOLOv8](https://github.com/ultralytics/ultralytics) inference result.</span>
@@ -4421,7 +4421,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 <a id="__codelineno-0-299" name="__codelineno-0-299"></a>        <span class="p">)</span>
 <a id="__codelineno-0-300" name="__codelineno-0-300"></a>
 <a id="__codelineno-0-301" name="__codelineno-0-301"></a>    <span class="nd">@classmethod</span>
-<a id="__codelineno-0-302" name="__codelineno-0-302"></a>    <span class="k">def</span> <span class="nf">from_yolo_nas</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">yolo_nas_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+<a id="__codelineno-0-302" name="__codelineno-0-302"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">from_yolo_nas</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">yolo_nas_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-303" name="__codelineno-0-303"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-304" name="__codelineno-0-304"></a><span class="sd">        Creates a Detections instance from a</span>
 <a id="__codelineno-0-305" name="__codelineno-0-305"></a><span class="sd">        [YOLO-NAS](https://github.com/Deci-AI/super-gradients/blob/master/YOLONAS.md)</span>
@@ -4459,7 +4459,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 <a id="__codelineno-0-337" name="__codelineno-0-337"></a>        <span class="p">)</span>
 <a id="__codelineno-0-338" name="__codelineno-0-338"></a>
 <a id="__codelineno-0-339" name="__codelineno-0-339"></a>    <span class="nd">@classmethod</span>
-<a id="__codelineno-0-340" name="__codelineno-0-340"></a>    <span class="k">def</span> <span class="nf">from_tensorflow</span><span class="p">(</span>
+<a id="__codelineno-0-340" name="__codelineno-0-340"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">from_tensorflow</span><span class="p">(</span>
 <a id="__codelineno-0-341" name="__codelineno-0-341"></a>        <span class="bp">cls</span><span class="p">,</span> <span class="n">tensorflow_results</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">resolution_wh</span><span class="p">:</span> <span class="nb">tuple</span>
 <a id="__codelineno-0-342" name="__codelineno-0-342"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-343" name="__codelineno-0-343"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -4500,7 +4500,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 <a id="__codelineno-0-378" name="__codelineno-0-378"></a>        <span class="p">)</span>
 <a id="__codelineno-0-379" name="__codelineno-0-379"></a>
 <a id="__codelineno-0-380" name="__codelineno-0-380"></a>    <span class="nd">@classmethod</span>
-<a id="__codelineno-0-381" name="__codelineno-0-381"></a>    <span class="k">def</span> <span class="nf">from_deepsparse</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">deepsparse_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+<a id="__codelineno-0-381" name="__codelineno-0-381"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">from_deepsparse</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">deepsparse_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-382" name="__codelineno-0-382"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-383" name="__codelineno-0-383"></a><span class="sd">        Creates a Detections instance from a</span>
 <a id="__codelineno-0-384" name="__codelineno-0-384"></a><span class="sd">        [DeepSparse](https://github.com/neuralmagic/deepsparse)</span>
@@ -4537,7 +4537,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 <a id="__codelineno-0-415" name="__codelineno-0-415"></a>        <span class="p">)</span>
 <a id="__codelineno-0-416" name="__codelineno-0-416"></a>
 <a id="__codelineno-0-417" name="__codelineno-0-417"></a>    <span class="nd">@classmethod</span>
-<a id="__codelineno-0-418" name="__codelineno-0-418"></a>    <span class="k">def</span> <span class="nf">from_mmdetection</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">mmdet_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+<a id="__codelineno-0-418" name="__codelineno-0-418"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">from_mmdetection</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">mmdet_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-419" name="__codelineno-0-419"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-420" name="__codelineno-0-420"></a><span class="sd">        Creates a Detections instance from a</span>
 <a id="__codelineno-0-421" name="__codelineno-0-421"></a><span class="sd">        [mmdetection](https://github.com/open-mmlab/mmdetection) and</span>
@@ -4574,7 +4574,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 <a id="__codelineno-0-452" name="__codelineno-0-452"></a>        <span class="p">)</span>
 <a id="__codelineno-0-453" name="__codelineno-0-453"></a>
 <a id="__codelineno-0-454" name="__codelineno-0-454"></a>    <span class="nd">@classmethod</span>
-<a id="__codelineno-0-455" name="__codelineno-0-455"></a>    <span class="k">def</span> <span class="nf">from_transformers</span><span class="p">(</span>
+<a id="__codelineno-0-455" name="__codelineno-0-455"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">from_transformers</span><span class="p">(</span>
 <a id="__codelineno-0-456" name="__codelineno-0-456"></a>        <span class="bp">cls</span><span class="p">,</span> <span class="n">transformers_results</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">id2label</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
 <a id="__codelineno-0-457" name="__codelineno-0-457"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-458" name="__codelineno-0-458"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -4653,7 +4653,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 <a id="__codelineno-0-531" name="__codelineno-0-531"></a>            <span class="p">)</span>
 <a id="__codelineno-0-532" name="__codelineno-0-532"></a>
 <a id="__codelineno-0-533" name="__codelineno-0-533"></a>    <span class="nd">@classmethod</span>
-<a id="__codelineno-0-534" name="__codelineno-0-534"></a>    <span class="k">def</span> <span class="nf">from_detectron2</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">detectron2_results</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+<a id="__codelineno-0-534" name="__codelineno-0-534"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">from_detectron2</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">detectron2_results</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-535" name="__codelineno-0-535"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-536" name="__codelineno-0-536"></a><span class="sd">        Create a Detections object from the</span>
 <a id="__codelineno-0-537" name="__codelineno-0-537"></a><span class="sd">        [Detectron2](https://github.com/facebookresearch/detectron2) inference result.</span>
@@ -4698,7 +4698,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 <a id="__codelineno-0-576" name="__codelineno-0-576"></a>        <span class="p">)</span>
 <a id="__codelineno-0-577" name="__codelineno-0-577"></a>
 <a id="__codelineno-0-578" name="__codelineno-0-578"></a>    <span class="nd">@classmethod</span>
-<a id="__codelineno-0-579" name="__codelineno-0-579"></a>    <span class="k">def</span> <span class="nf">from_inference</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">roboflow_result</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+<a id="__codelineno-0-579" name="__codelineno-0-579"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">from_inference</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">roboflow_result</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-580" name="__codelineno-0-580"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-581" name="__codelineno-0-581"></a><span class="sd">        Create a `sv.Detections` object from the [Roboflow](https://roboflow.com/)</span>
 <a id="__codelineno-0-582" name="__codelineno-0-582"></a><span class="sd">        API inference result or the [Inference](https://inference.roboflow.com/)</span>
@@ -4750,7 +4750,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 <a id="__codelineno-0-628" name="__codelineno-0-628"></a>        <span class="p">)</span>
 <a id="__codelineno-0-629" name="__codelineno-0-629"></a>
 <a id="__codelineno-0-630" name="__codelineno-0-630"></a>    <span class="nd">@classmethod</span>
-<a id="__codelineno-0-631" name="__codelineno-0-631"></a>    <span class="k">def</span> <span class="nf">from_sam</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">sam_result</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+<a id="__codelineno-0-631" name="__codelineno-0-631"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">from_sam</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">sam_result</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-632" name="__codelineno-0-632"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-633" name="__codelineno-0-633"></a><span class="sd">        Creates a Detections instance from</span>
 <a id="__codelineno-0-634" name="__codelineno-0-634"></a><span class="sd">        [Segment Anything Model](https://github.com/facebookresearch/segment-anything)</span>
@@ -4792,7 +4792,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 <a id="__codelineno-0-670" name="__codelineno-0-670"></a>        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">xyxy</span><span class="o">=</span><span class="n">xyxy</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span>
 <a id="__codelineno-0-671" name="__codelineno-0-671"></a>
 <a id="__codelineno-0-672" name="__codelineno-0-672"></a>    <span class="nd">@classmethod</span>
-<a id="__codelineno-0-673" name="__codelineno-0-673"></a>    <span class="k">def</span> <span class="nf">from_azure_analyze_image</span><span class="p">(</span>
+<a id="__codelineno-0-673" name="__codelineno-0-673"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">from_azure_analyze_image</span><span class="p">(</span>
 <a id="__codelineno-0-674" name="__codelineno-0-674"></a>        <span class="bp">cls</span><span class="p">,</span> <span class="n">azure_result</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">class_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
 <a id="__codelineno-0-675" name="__codelineno-0-675"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-676" name="__codelineno-0-676"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -4879,7 +4879,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 <a id="__codelineno-0-757" name="__codelineno-0-757"></a>        <span class="p">)</span>
 <a id="__codelineno-0-758" name="__codelineno-0-758"></a>
 <a id="__codelineno-0-759" name="__codelineno-0-759"></a>    <span class="nd">@classmethod</span>
-<a id="__codelineno-0-760" name="__codelineno-0-760"></a>    <span class="k">def</span> <span class="nf">from_paddledet</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">paddledet_result</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+<a id="__codelineno-0-760" name="__codelineno-0-760"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">from_paddledet</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">paddledet_result</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-761" name="__codelineno-0-761"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-762" name="__codelineno-0-762"></a><span class="sd">        Creates a Detections instance from</span>
 <a id="__codelineno-0-763" name="__codelineno-0-763"></a><span class="sd">            [PaddleDetection](https://github.com/PaddlePaddle/PaddleDetection)</span>
@@ -4921,7 +4921,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 <a id="__codelineno-0-799" name="__codelineno-0-799"></a>        <span class="p">)</span>
 <a id="__codelineno-0-800" name="__codelineno-0-800"></a>
 <a id="__codelineno-0-801" name="__codelineno-0-801"></a>    <span class="nd">@classmethod</span>
-<a id="__codelineno-0-802" name="__codelineno-0-802"></a>    <span class="k">def</span> <span class="nf">from_lmm</span><span class="p">(</span>
+<a id="__codelineno-0-802" name="__codelineno-0-802"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">from_lmm</span><span class="p">(</span>
 <a id="__codelineno-0-803" name="__codelineno-0-803"></a>        <span class="bp">cls</span><span class="p">,</span> <span class="n">lmm</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">LMM</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">result</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
 <a id="__codelineno-0-804" name="__codelineno-0-804"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-805" name="__codelineno-0-805"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -4984,7 +4984,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 <a id="__codelineno-0-862" name="__codelineno-0-862"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported LMM: </span><span class="si">{</span><span class="n">lmm</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 <a id="__codelineno-0-863" name="__codelineno-0-863"></a>
 <a id="__codelineno-0-864" name="__codelineno-0-864"></a>    <span class="nd">@classmethod</span>
-<a id="__codelineno-0-865" name="__codelineno-0-865"></a>    <span class="k">def</span> <span class="nf">from_easyocr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">easyocr_results</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+<a id="__codelineno-0-865" name="__codelineno-0-865"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">from_easyocr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">easyocr_results</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-866" name="__codelineno-0-866"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-867" name="__codelineno-0-867"></a><span class="sd">        Create a Detections object from the</span>
 <a id="__codelineno-0-868" name="__codelineno-0-868"></a><span class="sd">        [EasyOCR](https://github.com/JaidedAI/EasyOCR) result.</span>
@@ -5030,7 +5030,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 <a id="__codelineno-0-908" name="__codelineno-0-908"></a>        <span class="p">)</span>
 <a id="__codelineno-0-909" name="__codelineno-0-909"></a>
 <a id="__codelineno-0-910" name="__codelineno-0-910"></a>    <span class="nd">@classmethod</span>
-<a id="__codelineno-0-911" name="__codelineno-0-911"></a>    <span class="k">def</span> <span class="nf">from_ncnn</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">ncnn_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+<a id="__codelineno-0-911" name="__codelineno-0-911"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">from_ncnn</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">ncnn_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-912" name="__codelineno-0-912"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-913" name="__codelineno-0-913"></a><span class="sd">        Creates a Detections instance from the</span>
 <a id="__codelineno-0-914" name="__codelineno-0-914"></a><span class="sd">        [ncnn](https://github.com/Tencent/ncnn) inference result.</span>
@@ -5088,7 +5088,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 <a id="__codelineno-0-966" name="__codelineno-0-966"></a>        <span class="p">)</span>
 <a id="__codelineno-0-967" name="__codelineno-0-967"></a>
 <a id="__codelineno-0-968" name="__codelineno-0-968"></a>    <span class="nd">@classmethod</span>
-<a id="__codelineno-0-969" name="__codelineno-0-969"></a>    <span class="k">def</span> <span class="nf">empty</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+<a id="__codelineno-0-969" name="__codelineno-0-969"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">empty</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-970" name="__codelineno-0-970"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-971" name="__codelineno-0-971"></a><span class="sd">        Create an empty Detections object with no bounding boxes,</span>
 <a id="__codelineno-0-972" name="__codelineno-0-972"></a><span class="sd">            confidences, or class IDs.</span>
@@ -5109,7 +5109,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 <a id="__codelineno-0-987" name="__codelineno-0-987"></a>            <span class="n">class_id</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">),</span>
 <a id="__codelineno-0-988" name="__codelineno-0-988"></a>        <span class="p">)</span>
 <a id="__codelineno-0-989" name="__codelineno-0-989"></a>
-<a id="__codelineno-0-990" name="__codelineno-0-990"></a>    <span class="k">def</span> <span class="nf">is_empty</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<a id="__codelineno-0-990" name="__codelineno-0-990"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">is_empty</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <a id="__codelineno-0-991" name="__codelineno-0-991"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-992" name="__codelineno-0-992"></a><span class="sd">        Returns `True` if the `Detections` object is considered empty.</span>
 <a id="__codelineno-0-993" name="__codelineno-0-993"></a><span class="sd">        &quot;&quot;&quot;</span>
@@ -5119,7 +5119,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 <a id="__codelineno-0-997" name="__codelineno-0-997"></a>        <span class="k">return</span> <span class="bp">self</span> <span class="o">==</span> <span class="n">empty_detections</span>
 <a id="__codelineno-0-998" name="__codelineno-0-998"></a>
 <a id="__codelineno-0-999" name="__codelineno-0-999"></a>    <span class="nd">@classmethod</span>
-<a id="__codelineno-0-1000" name="__codelineno-0-1000"></a>    <span class="k">def</span> <span class="nf">merge</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">detections_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Detections</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+<a id="__codelineno-0-1000" name="__codelineno-0-1000"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">merge</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">detections_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Detections</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-1001" name="__codelineno-0-1001"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-1002" name="__codelineno-0-1002"></a><span class="sd">        Merge a list of Detections objects into a single Detections object.</span>
 <a id="__codelineno-0-1003" name="__codelineno-0-1003"></a>
@@ -5191,7 +5191,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 <a id="__codelineno-0-1069" name="__codelineno-0-1069"></a>
 <a id="__codelineno-0-1070" name="__codelineno-0-1070"></a>        <span class="n">xyxy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">d</span><span class="o">.</span><span class="n">xyxy</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">detections_list</span><span class="p">])</span>
 <a id="__codelineno-0-1071" name="__codelineno-0-1071"></a>
-<a id="__codelineno-0-1072" name="__codelineno-0-1072"></a>        <span class="k">def</span> <span class="nf">stack_or_none</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<a id="__codelineno-0-1072" name="__codelineno-0-1072"></a>        <span class="k">def</span><span class="w"> </span><span class="nf">stack_or_none</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
 <a id="__codelineno-0-1073" name="__codelineno-0-1073"></a>            <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">detections_list</span><span class="p">):</span>
 <a id="__codelineno-0-1074" name="__codelineno-0-1074"></a>                <span class="k">return</span> <span class="kc">None</span>
 <a id="__codelineno-0-1075" name="__codelineno-0-1075"></a>            <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">detections_list</span><span class="p">):</span>
@@ -5222,7 +5222,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 <a id="__codelineno-0-1100" name="__codelineno-0-1100"></a>            <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">,</span>
 <a id="__codelineno-0-1101" name="__codelineno-0-1101"></a>        <span class="p">)</span>
 <a id="__codelineno-0-1102" name="__codelineno-0-1102"></a>
-<a id="__codelineno-0-1103" name="__codelineno-0-1103"></a>    <span class="k">def</span> <span class="nf">get_anchors_coordinates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">anchor</span><span class="p">:</span> <span class="n">Position</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a id="__codelineno-0-1103" name="__codelineno-0-1103"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_anchors_coordinates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">anchor</span><span class="p">:</span> <span class="n">Position</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <a id="__codelineno-0-1104" name="__codelineno-0-1104"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-1105" name="__codelineno-0-1105"></a><span class="sd">        Calculates and returns the coordinates of a specific anchor point</span>
 <a id="__codelineno-0-1106" name="__codelineno-0-1106"></a><span class="sd">        within the bounding boxes defined by the `xyxy` attribute. The anchor</span>
@@ -5288,7 +5288,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 <a id="__codelineno-0-1166" name="__codelineno-0-1166"></a>
 <a id="__codelineno-0-1167" name="__codelineno-0-1167"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">anchor</span><span class="si">}</span><span class="s2"> is not supported.&quot;</span><span class="p">)</span>
 <a id="__codelineno-0-1168" name="__codelineno-0-1168"></a>
-<a id="__codelineno-0-1169" name="__codelineno-0-1169"></a>    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span>
+<a id="__codelineno-0-1169" name="__codelineno-0-1169"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span>
 <a id="__codelineno-0-1170" name="__codelineno-0-1170"></a>        <span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">slice</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
 <a id="__codelineno-0-1171" name="__codelineno-0-1171"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Detections</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
 <a id="__codelineno-0-1172" name="__codelineno-0-1172"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -5338,7 +5338,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 <a id="__codelineno-0-1216" name="__codelineno-0-1216"></a>            <span class="n">metadata</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">,</span>
 <a id="__codelineno-0-1217" name="__codelineno-0-1217"></a>        <span class="p">)</span>
 <a id="__codelineno-0-1218" name="__codelineno-0-1218"></a>
-<a id="__codelineno-0-1219" name="__codelineno-0-1219"></a>    <span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">List</span><span class="p">]):</span>
+<a id="__codelineno-0-1219" name="__codelineno-0-1219"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">List</span><span class="p">]):</span>
 <a id="__codelineno-0-1220" name="__codelineno-0-1220"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-1221" name="__codelineno-0-1221"></a><span class="sd">        Set a value in the data dictionary of the Detections object.</span>
 <a id="__codelineno-0-1222" name="__codelineno-0-1222"></a>
@@ -5374,7 +5374,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 <a id="__codelineno-0-1252" name="__codelineno-0-1252"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
 <a id="__codelineno-0-1253" name="__codelineno-0-1253"></a>
 <a id="__codelineno-0-1254" name="__codelineno-0-1254"></a>    <span class="nd">@property</span>
-<a id="__codelineno-0-1255" name="__codelineno-0-1255"></a>    <span class="k">def</span> <span class="nf">area</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a id="__codelineno-0-1255" name="__codelineno-0-1255"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">area</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <a id="__codelineno-0-1256" name="__codelineno-0-1256"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-1257" name="__codelineno-0-1257"></a><span class="sd">        Calculate the area of each detection in the set of object detections.</span>
 <a id="__codelineno-0-1258" name="__codelineno-0-1258"></a><span class="sd">        If masks field is defined property returns are of each mask.</span>
@@ -5391,7 +5391,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 <a id="__codelineno-0-1269" name="__codelineno-0-1269"></a>            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">box_area</span>
 <a id="__codelineno-0-1270" name="__codelineno-0-1270"></a>
 <a id="__codelineno-0-1271" name="__codelineno-0-1271"></a>    <span class="nd">@property</span>
-<a id="__codelineno-0-1272" name="__codelineno-0-1272"></a>    <span class="k">def</span> <span class="nf">box_area</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a id="__codelineno-0-1272" name="__codelineno-0-1272"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">box_area</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <a id="__codelineno-0-1273" name="__codelineno-0-1273"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-1274" name="__codelineno-0-1274"></a><span class="sd">        Calculate the area of each bounding box in the set of object detections.</span>
 <a id="__codelineno-0-1275" name="__codelineno-0-1275"></a>
@@ -5402,7 +5402,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 <a id="__codelineno-0-1280" name="__codelineno-0-1280"></a><span class="sd">        &quot;&quot;&quot;</span>
 <a id="__codelineno-0-1281" name="__codelineno-0-1281"></a>        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>
 <a id="__codelineno-0-1282" name="__codelineno-0-1282"></a>
-<a id="__codelineno-0-1283" name="__codelineno-0-1283"></a>    <span class="k">def</span> <span class="nf">with_nms</span><span class="p">(</span>
+<a id="__codelineno-0-1283" name="__codelineno-0-1283"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">with_nms</span><span class="p">(</span>
 <a id="__codelineno-0-1284" name="__codelineno-0-1284"></a>        <span class="bp">self</span><span class="p">,</span> <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">class_agnostic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 <a id="__codelineno-0-1285" name="__codelineno-0-1285"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-1286" name="__codelineno-0-1286"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -5458,7 +5458,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 <a id="__codelineno-0-1336" name="__codelineno-0-1336"></a>
 <a id="__codelineno-0-1337" name="__codelineno-0-1337"></a>        <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="n">indices</span><span class="p">]</span>
 <a id="__codelineno-0-1338" name="__codelineno-0-1338"></a>
-<a id="__codelineno-0-1339" name="__codelineno-0-1339"></a>    <span class="k">def</span> <span class="nf">with_nmm</span><span class="p">(</span>
+<a id="__codelineno-0-1339" name="__codelineno-0-1339"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">with_nmm</span><span class="p">(</span>
 <a id="__codelineno-0-1340" name="__codelineno-0-1340"></a>        <span class="bp">self</span><span class="p">,</span> <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">class_agnostic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 <a id="__codelineno-0-1341" name="__codelineno-0-1341"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-1342" name="__codelineno-0-1342"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -5699,7 +5699,7 @@ the data field.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="p">()</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
@@ -5762,7 +5762,7 @@ the data field.</p>
 <span class="normal"><a href="#__codelineno-0-1214">1214</a></span>
 <span class="normal"><a href="#__codelineno-0-1215">1215</a></span>
 <span class="normal"><a href="#__codelineno-0-1216">1216</a></span>
-<span class="normal"><a href="#__codelineno-0-1217">1217</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-1169" name="__codelineno-0-1169"></a><span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span>
+<span class="normal"><a href="#__codelineno-0-1217">1217</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-1169" name="__codelineno-0-1169"></a><span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span>
 <a id="__codelineno-0-1170" name="__codelineno-0-1170"></a>    <span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">slice</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
 <a id="__codelineno-0-1171" name="__codelineno-0-1171"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Detections</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
 <a id="__codelineno-0-1172" name="__codelineno-0-1172"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -5857,7 +5857,7 @@ the data field.</p>
 <span class="normal"><a href="#__codelineno-0-179">179</a></span>
 <span class="normal"><a href="#__codelineno-0-180">180</a></span>
 <span class="normal"><a href="#__codelineno-0-181">181</a></span>
-<span class="normal"><a href="#__codelineno-0-182">182</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-158" name="__codelineno-0-158"></a><span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span>
+<span class="normal"><a href="#__codelineno-0-182">182</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-158" name="__codelineno-0-158"></a><span class="k">def</span><span class="w"> </span><span class="fm">__iter__</span><span class="p">(</span>
 <a id="__codelineno-0-159" name="__codelineno-0-159"></a>    <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-160" name="__codelineno-0-160"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span>
 <a id="__codelineno-0-161" name="__codelineno-0-161"></a>    <span class="n">Tuple</span><span class="p">[</span>
@@ -5907,7 +5907,7 @@ the data field.</p>
 <span class="normal"><a href="#__codelineno-0-153">153</a></span>
 <span class="normal"><a href="#__codelineno-0-154">154</a></span>
 <span class="normal"><a href="#__codelineno-0-155">155</a></span>
-<span class="normal"><a href="#__codelineno-0-156">156</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-152" name="__codelineno-0-152"></a><span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal"><a href="#__codelineno-0-156">156</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-152" name="__codelineno-0-152"></a><span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <a id="__codelineno-0-153" name="__codelineno-0-153"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-154" name="__codelineno-0-154"></a><span class="sd">    Returns the number of detections in the Detections object.</span>
 <a id="__codelineno-0-155" name="__codelineno-0-155"></a><span class="sd">    &quot;&quot;&quot;</span>
@@ -5977,9 +5977,9 @@ the data field.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span> <span class="nn">cv2</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span> <span class="nn">ultralytics</span> <span class="kn">import</span> <span class="n">YOLO</span>
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">ultralytics</span><span class="w"> </span><span class="kn">import</span> <span class="n">YOLO</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="o">&lt;</span><span class="n">SOURCE_IMAGE_PATH</span><span class="o">&gt;</span><span class="p">)</span>
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">model</span> <span class="o">=</span> <span class="n">YOLO</span><span class="p">(</span><span class="s1">&#39;yolov8s.pt&#39;</span><span class="p">)</span>
@@ -6029,7 +6029,7 @@ the data field.</p>
 <span class="normal"><a href="#__codelineno-0-1249">1249</a></span>
 <span class="normal"><a href="#__codelineno-0-1250">1250</a></span>
 <span class="normal"><a href="#__codelineno-0-1251">1251</a></span>
-<span class="normal"><a href="#__codelineno-0-1252">1252</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-1219" name="__codelineno-0-1219"></a><span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">List</span><span class="p">]):</span>
+<span class="normal"><a href="#__codelineno-0-1252">1252</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-1219" name="__codelineno-0-1219"></a><span class="k">def</span><span class="w"> </span><span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">List</span><span class="p">]):</span>
 <a id="__codelineno-0-1220" name="__codelineno-0-1220"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-1221" name="__codelineno-0-1221"></a><span class="sd">    Set a value in the data dictionary of the Detections object.</span>
 <a id="__codelineno-0-1222" name="__codelineno-0-1222"></a>
@@ -6113,7 +6113,7 @@ the data field.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span> <span class="nn">supervision</span> <span class="kn">import</span> <span class="n">Detections</span>
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="kn">import</span> <span class="n">Detections</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">empty_detections</span> <span class="o">=</span> <span class="n">Detections</span><span class="o">.</span><span class="n">empty</span><span class="p">()</span>
 </code></pre></div>
@@ -6141,7 +6141,7 @@ the data field.</p>
 <span class="normal"><a href="#__codelineno-0-986">986</a></span>
 <span class="normal"><a href="#__codelineno-0-987">987</a></span>
 <span class="normal"><a href="#__codelineno-0-988">988</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-968" name="__codelineno-0-968"></a><span class="nd">@classmethod</span>
-<a id="__codelineno-0-969" name="__codelineno-0-969"></a><span class="k">def</span> <span class="nf">empty</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+<a id="__codelineno-0-969" name="__codelineno-0-969"></a><span class="k">def</span><span class="w"> </span><span class="nf">empty</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-970" name="__codelineno-0-970"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-971" name="__codelineno-0-971"></a><span class="sd">    Create an empty Detections object with no bounding boxes,</span>
 <a id="__codelineno-0-972" name="__codelineno-0-972"></a><span class="sd">        confidences, or class IDs.</span>
@@ -6256,8 +6256,8 @@ names (str). If None, a new mapping is created dynamically.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span> <span class="nn">requests</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">image</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
@@ -6365,7 +6365,7 @@ names (str). If None, a new mapping is created dynamically.</p>
 <span class="normal"><a href="#__codelineno-0-755">755</a></span>
 <span class="normal"><a href="#__codelineno-0-756">756</a></span>
 <span class="normal"><a href="#__codelineno-0-757">757</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-672" name="__codelineno-0-672"></a><span class="nd">@classmethod</span>
-<a id="__codelineno-0-673" name="__codelineno-0-673"></a><span class="k">def</span> <span class="nf">from_azure_analyze_image</span><span class="p">(</span>
+<a id="__codelineno-0-673" name="__codelineno-0-673"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_azure_analyze_image</span><span class="p">(</span>
 <a id="__codelineno-0-674" name="__codelineno-0-674"></a>    <span class="bp">cls</span><span class="p">,</span> <span class="n">azure_result</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">class_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
 <a id="__codelineno-0-675" name="__codelineno-0-675"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-676" name="__codelineno-0-676"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -6530,8 +6530,8 @@ inference result.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span> <span class="nn">deepsparse</span> <span class="kn">import</span> <span class="n">Pipeline</span>
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">deepsparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pipeline</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">yolo_pipeline</span> <span class="o">=</span> <span class="n">Pipeline</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">task</span><span class="o">=</span><span class="s2">&quot;yolo&quot;</span><span class="p">,</span>
@@ -6579,7 +6579,7 @@ inference result.</p>
 <span class="normal"><a href="#__codelineno-0-413">413</a></span>
 <span class="normal"><a href="#__codelineno-0-414">414</a></span>
 <span class="normal"><a href="#__codelineno-0-415">415</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-380" name="__codelineno-0-380"></a><span class="nd">@classmethod</span>
-<a id="__codelineno-0-381" name="__codelineno-0-381"></a><span class="k">def</span> <span class="nf">from_deepsparse</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">deepsparse_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+<a id="__codelineno-0-381" name="__codelineno-0-381"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_deepsparse</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">deepsparse_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-382" name="__codelineno-0-382"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-383" name="__codelineno-0-383"></a><span class="sd">    Creates a Detections instance from a</span>
 <a id="__codelineno-0-384" name="__codelineno-0-384"></a><span class="sd">    [DeepSparse](https://github.com/neuralmagic/deepsparse)</span>
@@ -6695,10 +6695,10 @@ class IDs, and confidences of the predictions.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span> <span class="nn">cv2</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span> <span class="nn">detectron2.engine</span> <span class="kn">import</span> <span class="n">DefaultPredictor</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="kn">from</span> <span class="nn">detectron2.config</span> <span class="kn">import</span> <span class="n">get_cfg</span>
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">detectron2.engine</span><span class="w"> </span><span class="kn">import</span> <span class="n">DefaultPredictor</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">detectron2.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_cfg</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
 <a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="o">&lt;</span><span class="n">SOURCE_IMAGE_PATH</span><span class="o">&gt;</span><span class="p">)</span>
@@ -6757,7 +6757,7 @@ class IDs, and confidences of the predictions.</p>
 <span class="normal"><a href="#__codelineno-0-574">574</a></span>
 <span class="normal"><a href="#__codelineno-0-575">575</a></span>
 <span class="normal"><a href="#__codelineno-0-576">576</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-533" name="__codelineno-0-533"></a><span class="nd">@classmethod</span>
-<a id="__codelineno-0-534" name="__codelineno-0-534"></a><span class="k">def</span> <span class="nf">from_detectron2</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">detectron2_results</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+<a id="__codelineno-0-534" name="__codelineno-0-534"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_detectron2</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">detectron2_results</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-535" name="__codelineno-0-535"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-536" name="__codelineno-0-536"></a><span class="sd">    Create a Detections object from the</span>
 <a id="__codelineno-0-537" name="__codelineno-0-537"></a><span class="sd">    [Detectron2](https://github.com/facebookresearch/detectron2) inference result.</span>
@@ -6880,8 +6880,8 @@ class IDs, and confidences of the predictions.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span> <span class="nn">easyocr</span>
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">easyocr</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">reader</span> <span class="o">=</span> <span class="n">easyocr</span><span class="o">.</span><span class="n">Reader</span><span class="p">([</span><span class="s1">&#39;en&#39;</span><span class="p">])</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">results</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">readtext</span><span class="p">(</span><span class="o">&lt;</span><span class="n">SOURCE_IMAGE_PATH</span><span class="o">&gt;</span><span class="p">)</span>
@@ -6936,7 +6936,7 @@ class IDs, and confidences of the predictions.</p>
 <span class="normal"><a href="#__codelineno-0-906">906</a></span>
 <span class="normal"><a href="#__codelineno-0-907">907</a></span>
 <span class="normal"><a href="#__codelineno-0-908">908</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-864" name="__codelineno-0-864"></a><span class="nd">@classmethod</span>
-<a id="__codelineno-0-865" name="__codelineno-0-865"></a><span class="k">def</span> <span class="nf">from_easyocr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">easyocr_results</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+<a id="__codelineno-0-865" name="__codelineno-0-865"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_easyocr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">easyocr_results</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-866" name="__codelineno-0-866"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-867" name="__codelineno-0-867"></a><span class="sd">    Create a Detections object from the</span>
 <a id="__codelineno-0-868" name="__codelineno-0-868"></a><span class="sd">    [EasyOCR](https://github.com/JaidedAI/EasyOCR) result.</span>
@@ -7064,9 +7064,9 @@ and confidences of the predictions.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span> <span class="nn">cv2</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span> <span class="nn">inference</span> <span class="kn">import</span> <span class="n">get_model</span>
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">inference</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_model</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="o">&lt;</span><span class="n">SOURCE_IMAGE_PATH</span><span class="o">&gt;</span><span class="p">)</span>
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">model</span> <span class="o">=</span> <span class="n">get_model</span><span class="p">(</span><span class="n">model_id</span><span class="o">=</span><span class="s2">&quot;yolov8s-640&quot;</span><span class="p">)</span>
@@ -7128,7 +7128,7 @@ and confidences of the predictions.</p>
 <span class="normal"><a href="#__codelineno-0-626">626</a></span>
 <span class="normal"><a href="#__codelineno-0-627">627</a></span>
 <span class="normal"><a href="#__codelineno-0-628">628</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-578" name="__codelineno-0-578"></a><span class="nd">@classmethod</span>
-<a id="__codelineno-0-579" name="__codelineno-0-579"></a><span class="k">def</span> <span class="nf">from_inference</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">roboflow_result</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+<a id="__codelineno-0-579" name="__codelineno-0-579"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_inference</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">roboflow_result</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-580" name="__codelineno-0-580"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-581" name="__codelineno-0-581"></a><span class="sd">    Create a `sv.Detections` object from the [Roboflow](https://roboflow.com/)</span>
 <a id="__codelineno-0-582" name="__codelineno-0-582"></a><span class="sd">    API inference result or the [Inference](https://inference.roboflow.com/)</span>
@@ -7318,7 +7318,7 @@ disallowed arguments are provided.</p>
 
 
 <p><span class="doc-section-title">Examples:</span></p>
-    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">paligemma_result</span> <span class="o">=</span> <span class="s2">&quot;&lt;loc0256&gt;&lt;loc0256&gt;&lt;loc0768&gt;&lt;loc0768&gt; cat&quot;</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_lmm</span><span class="p">(</span>
@@ -7398,7 +7398,7 @@ disallowed arguments are provided.</p>
 <span class="normal"><a href="#__codelineno-0-860">860</a></span>
 <span class="normal"><a href="#__codelineno-0-861">861</a></span>
 <span class="normal"><a href="#__codelineno-0-862">862</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-801" name="__codelineno-0-801"></a><span class="nd">@classmethod</span>
-<a id="__codelineno-0-802" name="__codelineno-0-802"></a><span class="k">def</span> <span class="nf">from_lmm</span><span class="p">(</span>
+<a id="__codelineno-0-802" name="__codelineno-0-802"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_lmm</span><span class="p">(</span>
 <a id="__codelineno-0-803" name="__codelineno-0-803"></a>    <span class="bp">cls</span><span class="p">,</span> <span class="n">lmm</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">LMM</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">result</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
 <a id="__codelineno-0-804" name="__codelineno-0-804"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-805" name="__codelineno-0-805"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -7539,9 +7539,9 @@ disallowed arguments are provided.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span> <span class="nn">cv2</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span> <span class="nn">mmdet.apis</span> <span class="kn">import</span> <span class="n">init_detector</span><span class="p">,</span> <span class="n">inference_detector</span>
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">mmdet.apis</span><span class="w"> </span><span class="kn">import</span> <span class="n">init_detector</span><span class="p">,</span> <span class="n">inference_detector</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="o">&lt;</span><span class="n">SOURCE_IMAGE_PATH</span><span class="o">&gt;</span><span class="p">)</span>
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">model</span> <span class="o">=</span> <span class="n">init_detector</span><span class="p">(</span><span class="o">&lt;</span><span class="n">CONFIG_PATH</span><span class="o">&gt;</span><span class="p">,</span> <span class="o">&lt;</span><span class="n">WEIGHTS_PATH</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">device</span><span class="o">=&lt;</span><span class="n">DEVICE</span><span class="o">&gt;</span><span class="p">)</span>
@@ -7588,7 +7588,7 @@ disallowed arguments are provided.</p>
 <span class="normal"><a href="#__codelineno-0-450">450</a></span>
 <span class="normal"><a href="#__codelineno-0-451">451</a></span>
 <span class="normal"><a href="#__codelineno-0-452">452</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-417" name="__codelineno-0-417"></a><span class="nd">@classmethod</span>
-<a id="__codelineno-0-418" name="__codelineno-0-418"></a><span class="k">def</span> <span class="nf">from_mmdetection</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">mmdet_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+<a id="__codelineno-0-418" name="__codelineno-0-418"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_mmdetection</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">mmdet_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-419" name="__codelineno-0-419"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-420" name="__codelineno-0-420"></a><span class="sd">    Creates a Detections instance from a</span>
 <a id="__codelineno-0-421" name="__codelineno-0-421"></a><span class="sd">    [mmdetection](https://github.com/open-mmlab/mmdetection) and</span>
@@ -7703,9 +7703,9 @@ Supports object detection models.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span> <span class="nn">cv2</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span> <span class="nn">ncnn.model_zoo</span> <span class="kn">import</span> <span class="n">get_model</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">ncnn.model_zoo</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_model</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="o">&lt;</span><span class="n">SOURCE_IMAGE_PATH</span><span class="o">&gt;</span><span class="p">)</span>
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">model</span> <span class="o">=</span> <span class="n">get_model</span><span class="p">(</span>
@@ -7779,7 +7779,7 @@ Supports object detection models.</p>
 <span class="normal"><a href="#__codelineno-0-964">964</a></span>
 <span class="normal"><a href="#__codelineno-0-965">965</a></span>
 <span class="normal"><a href="#__codelineno-0-966">966</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-910" name="__codelineno-0-910"></a><span class="nd">@classmethod</span>
-<a id="__codelineno-0-911" name="__codelineno-0-911"></a><span class="k">def</span> <span class="nf">from_ncnn</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">ncnn_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+<a id="__codelineno-0-911" name="__codelineno-0-911"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_ncnn</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">ncnn_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-912" name="__codelineno-0-912"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-913" name="__codelineno-0-913"></a><span class="sd">    Creates a Detections instance from the</span>
 <a id="__codelineno-0-914" name="__codelineno-0-914"></a><span class="sd">    [ncnn](https://github.com/Tencent/ncnn) inference result.</span>
@@ -7915,10 +7915,10 @@ Supports object detection models.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span> <span class="nn">paddle</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span> <span class="nn">ppdet.engine</span> <span class="kn">import</span> <span class="n">Trainer</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="kn">from</span> <span class="nn">ppdet.core.workspace</span> <span class="kn">import</span> <span class="n">load_config</span>
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">paddle</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">ppdet.engine</span><span class="w"> </span><span class="kn">import</span> <span class="n">Trainer</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">ppdet.core.workspace</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_config</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">weights</span> <span class="o">=</span> <span class="p">()</span>
 <a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">config</span> <span class="o">=</span> <span class="p">()</span>
@@ -7975,7 +7975,7 @@ Supports object detection models.</p>
 <span class="normal"><a href="#__codelineno-0-797">797</a></span>
 <span class="normal"><a href="#__codelineno-0-798">798</a></span>
 <span class="normal"><a href="#__codelineno-0-799">799</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-759" name="__codelineno-0-759"></a><span class="nd">@classmethod</span>
-<a id="__codelineno-0-760" name="__codelineno-0-760"></a><span class="k">def</span> <span class="nf">from_paddledet</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">paddledet_result</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+<a id="__codelineno-0-760" name="__codelineno-0-760"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_paddledet</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">paddledet_result</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-761" name="__codelineno-0-761"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-762" name="__codelineno-0-762"></a><span class="sd">    Creates a Detections instance from</span>
 <a id="__codelineno-0-763" name="__codelineno-0-763"></a><span class="sd">        [PaddleDetection](https://github.com/PaddlePaddle/PaddleDetection)</span>
@@ -8095,8 +8095,8 @@ inference result.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span> <span class="nn">segment_anything</span> <span class="kn">import</span> <span class="p">(</span>
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">segment_anything</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">sam_model_registry</span><span class="p">,</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">SamAutomaticMaskGenerator</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a> <span class="p">)</span>
@@ -8151,7 +8151,7 @@ inference result.</p>
 <span class="normal"><a href="#__codelineno-0-668">668</a></span>
 <span class="normal"><a href="#__codelineno-0-669">669</a></span>
 <span class="normal"><a href="#__codelineno-0-670">670</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-630" name="__codelineno-0-630"></a><span class="nd">@classmethod</span>
-<a id="__codelineno-0-631" name="__codelineno-0-631"></a><span class="k">def</span> <span class="nf">from_sam</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">sam_result</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+<a id="__codelineno-0-631" name="__codelineno-0-631"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_sam</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">sam_result</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-632" name="__codelineno-0-632"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-633" name="__codelineno-0-633"></a><span class="sd">    Creates a Detections instance from</span>
 <a id="__codelineno-0-634" name="__codelineno-0-634"></a><span class="sd">    [Segment Anything Model](https://github.com/facebookresearch/segment-anything)</span>
@@ -8271,10 +8271,10 @@ inference result.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span> <span class="nn">tensorflow_hub</span> <span class="k">as</span> <span class="nn">hub</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="kn">import</span> <span class="nn">cv2</span>
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">tensorflow</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">tf</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">tensorflow_hub</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">hub</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">module_handle</span> <span class="o">=</span> <span class="s2">&quot;https://tfhub.dev/tensorflow/centernet/hourglass_512x512_kpts/1&quot;</span>
 <a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">model</span> <span class="o">=</span> <span class="n">hub</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">module_handle</span><span class="p">)</span>
@@ -8325,7 +8325,7 @@ inference result.</p>
 <span class="normal"><a href="#__codelineno-0-376">376</a></span>
 <span class="normal"><a href="#__codelineno-0-377">377</a></span>
 <span class="normal"><a href="#__codelineno-0-378">378</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-339" name="__codelineno-0-339"></a><span class="nd">@classmethod</span>
-<a id="__codelineno-0-340" name="__codelineno-0-340"></a><span class="k">def</span> <span class="nf">from_tensorflow</span><span class="p">(</span>
+<a id="__codelineno-0-340" name="__codelineno-0-340"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_tensorflow</span><span class="p">(</span>
 <a id="__codelineno-0-341" name="__codelineno-0-341"></a>    <span class="bp">cls</span><span class="p">,</span> <span class="n">tensorflow_results</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">resolution_wh</span><span class="p">:</span> <span class="nb">tuple</span>
 <a id="__codelineno-0-342" name="__codelineno-0-342"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-343" name="__codelineno-0-343"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -8464,10 +8464,10 @@ provided, the resulting dictionary will include class names.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span> <span class="nn">torch</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span> <span class="nn">PIL</span> <span class="kn">import</span> <span class="n">Image</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="kn">from</span> <span class="nn">transformers</span> <span class="kn">import</span> <span class="n">DetrImageProcessor</span><span class="p">,</span> <span class="n">DetrForObjectDetection</span>
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">PIL</span><span class="w"> </span><span class="kn">import</span> <span class="n">Image</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">transformers</span><span class="w"> </span><span class="kn">import</span> <span class="n">DetrImageProcessor</span><span class="p">,</span> <span class="n">DetrForObjectDetection</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">processor</span> <span class="o">=</span> <span class="n">DetrImageProcessor</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="s2">&quot;facebook/detr-resnet-50&quot;</span><span class="p">)</span>
 <a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">model</span> <span class="o">=</span> <span class="n">DetrForObjectDetection</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="s2">&quot;facebook/detr-resnet-50&quot;</span><span class="p">)</span>
@@ -8569,7 +8569,7 @@ provided, the resulting dictionary will include class names.</p>
 <span class="normal"><a href="#__codelineno-0-529">529</a></span>
 <span class="normal"><a href="#__codelineno-0-530">530</a></span>
 <span class="normal"><a href="#__codelineno-0-531">531</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-454" name="__codelineno-0-454"></a><span class="nd">@classmethod</span>
-<a id="__codelineno-0-455" name="__codelineno-0-455"></a><span class="k">def</span> <span class="nf">from_transformers</span><span class="p">(</span>
+<a id="__codelineno-0-455" name="__codelineno-0-455"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_transformers</span><span class="p">(</span>
 <a id="__codelineno-0-456" name="__codelineno-0-456"></a>    <span class="bp">cls</span><span class="p">,</span> <span class="n">transformers_results</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">id2label</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
 <a id="__codelineno-0-457" name="__codelineno-0-457"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-458" name="__codelineno-0-458"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -8732,9 +8732,9 @@ provided, the resulting dictionary will include class names.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span> <span class="nn">cv2</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span> <span class="nn">ultralytics</span> <span class="kn">import</span> <span class="n">YOLO</span>
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">ultralytics</span><span class="w"> </span><span class="kn">import</span> <span class="n">YOLO</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="o">&lt;</span><span class="n">SOURCE_IMAGE_PATH</span><span class="o">&gt;</span><span class="p">)</span>
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">model</span> <span class="o">=</span> <span class="n">YOLO</span><span class="p">(</span><span class="s1">&#39;yolov8s.pt&#39;</span><span class="p">)</span>
@@ -8814,7 +8814,7 @@ provided, the resulting dictionary will include class names.</p>
 <span class="normal"><a href="#__codelineno-0-297">297</a></span>
 <span class="normal"><a href="#__codelineno-0-298">298</a></span>
 <span class="normal"><a href="#__codelineno-0-299">299</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-230" name="__codelineno-0-230"></a><span class="nd">@classmethod</span>
-<a id="__codelineno-0-231" name="__codelineno-0-231"></a><span class="k">def</span> <span class="nf">from_ultralytics</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">ultralytics_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+<a id="__codelineno-0-231" name="__codelineno-0-231"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_ultralytics</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">ultralytics_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-232" name="__codelineno-0-232"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-233" name="__codelineno-0-233"></a><span class="sd">    Creates a `sv.Detections` instance from a</span>
 <a id="__codelineno-0-234" name="__codelineno-0-234"></a><span class="sd">    [YOLOv8](https://github.com/ultralytics/ultralytics) inference result.</span>
@@ -8965,9 +8965,9 @@ ImageDetectionPrediction is coming from
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span> <span class="nn">cv2</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span> <span class="nn">super_gradients.training</span> <span class="kn">import</span> <span class="n">models</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">super_gradients.training</span><span class="w"> </span><span class="kn">import</span> <span class="n">models</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="o">&lt;</span><span class="n">SOURCE_IMAGE_PATH</span><span class="o">&gt;</span><span class="p">)</span>
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">model</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;yolo_nas_l&#39;</span><span class="p">,</span> <span class="n">pretrained_weights</span><span class="o">=</span><span class="s2">&quot;coco&quot;</span><span class="p">)</span>
@@ -9015,7 +9015,7 @@ ImageDetectionPrediction is coming from
 <span class="normal"><a href="#__codelineno-0-335">335</a></span>
 <span class="normal"><a href="#__codelineno-0-336">336</a></span>
 <span class="normal"><a href="#__codelineno-0-337">337</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-301" name="__codelineno-0-301"></a><span class="nd">@classmethod</span>
-<a id="__codelineno-0-302" name="__codelineno-0-302"></a><span class="k">def</span> <span class="nf">from_yolo_nas</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">yolo_nas_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+<a id="__codelineno-0-302" name="__codelineno-0-302"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_yolo_nas</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">yolo_nas_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-303" name="__codelineno-0-303"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-304" name="__codelineno-0-304"></a><span class="sd">    Creates a Detections instance from a</span>
 <a id="__codelineno-0-305" name="__codelineno-0-305"></a><span class="sd">    [YOLO-NAS](https://github.com/Deci-AI/super-gradients/blob/master/YOLONAS.md)</span>
@@ -9130,9 +9130,9 @@ ImageDetectionPrediction is coming from
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span> <span class="nn">cv2</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span> <span class="nn">torch</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="o">&lt;</span><span class="n">SOURCE_IMAGE_PATH</span><span class="o">&gt;</span><span class="p">)</span>
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">model</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">hub</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;ultralytics/yolov5&#39;</span><span class="p">,</span> <span class="s1">&#39;yolov5s&#39;</span><span class="p">)</span>
@@ -9174,7 +9174,7 @@ ImageDetectionPrediction is coming from
 <span class="normal"><a href="#__codelineno-0-226">226</a></span>
 <span class="normal"><a href="#__codelineno-0-227">227</a></span>
 <span class="normal"><a href="#__codelineno-0-228">228</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-197" name="__codelineno-0-197"></a><span class="nd">@classmethod</span>
-<a id="__codelineno-0-198" name="__codelineno-0-198"></a><span class="k">def</span> <span class="nf">from_yolov5</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">yolov5_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+<a id="__codelineno-0-198" name="__codelineno-0-198"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_yolov5</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">yolov5_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-199" name="__codelineno-0-199"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-200" name="__codelineno-0-200"></a><span class="sd">    Creates a Detections instance from a</span>
 <a id="__codelineno-0-201" name="__codelineno-0-201"></a><span class="sd">    [YOLOv5](https://github.com/ultralytics/yolov5) inference result.</span>
@@ -9372,7 +9372,7 @@ anchor point for the corresponding bounding box.</p>
 <span class="normal"><a href="#__codelineno-0-1164">1164</a></span>
 <span class="normal"><a href="#__codelineno-0-1165">1165</a></span>
 <span class="normal"><a href="#__codelineno-0-1166">1166</a></span>
-<span class="normal"><a href="#__codelineno-0-1167">1167</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-1103" name="__codelineno-0-1103"></a><span class="k">def</span> <span class="nf">get_anchors_coordinates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">anchor</span><span class="p">:</span> <span class="n">Position</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="normal"><a href="#__codelineno-0-1167">1167</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-1103" name="__codelineno-0-1103"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_anchors_coordinates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">anchor</span><span class="p">:</span> <span class="n">Position</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <a id="__codelineno-0-1104" name="__codelineno-0-1104"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-1105" name="__codelineno-0-1105"></a><span class="sd">    Calculates and returns the coordinates of a specific anchor point</span>
 <a id="__codelineno-0-1106" name="__codelineno-0-1106"></a><span class="sd">    within the bounding boxes defined by the `xyxy` attribute. The anchor</span>
@@ -9465,7 +9465,7 @@ anchor point for the corresponding bounding box.</p>
 <span class="normal"><a href="#__codelineno-0-994">994</a></span>
 <span class="normal"><a href="#__codelineno-0-995">995</a></span>
 <span class="normal"><a href="#__codelineno-0-996">996</a></span>
-<span class="normal"><a href="#__codelineno-0-997">997</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-990" name="__codelineno-0-990"></a><span class="k">def</span> <span class="nf">is_empty</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="normal"><a href="#__codelineno-0-997">997</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-990" name="__codelineno-0-990"></a><span class="k">def</span><span class="w"> </span><span class="nf">is_empty</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <a id="__codelineno-0-991" name="__codelineno-0-991"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-992" name="__codelineno-0-992"></a><span class="sd">    Returns `True` if the `Detections` object is considered empty.</span>
 <a id="__codelineno-0-993" name="__codelineno-0-993"></a><span class="sd">    &quot;&quot;&quot;</span>
@@ -9561,8 +9561,8 @@ the merged data from the input list.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">detections_1</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="p">(</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">xyxy</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">15</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">],</span> <span class="p">[</span><span class="mi">200</span><span class="p">,</span> <span class="mi">200</span><span class="p">,</span> <span class="mi">300</span><span class="p">,</span> <span class="mi">300</span><span class="p">]]),</span>
@@ -9695,7 +9695,7 @@ the merged data from the input list.</p>
 <span class="normal"><a href="#__codelineno-0-1099">1099</a></span>
 <span class="normal"><a href="#__codelineno-0-1100">1100</a></span>
 <span class="normal"><a href="#__codelineno-0-1101">1101</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-999" name="__codelineno-0-999"></a><span class="nd">@classmethod</span>
-<a id="__codelineno-0-1000" name="__codelineno-0-1000"></a><span class="k">def</span> <span class="nf">merge</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">detections_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Detections</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+<a id="__codelineno-0-1000" name="__codelineno-0-1000"></a><span class="k">def</span><span class="w"> </span><span class="nf">merge</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">detections_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Detections</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-1001" name="__codelineno-0-1001"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-1002" name="__codelineno-0-1002"></a><span class="sd">    Merge a list of Detections objects into a single Detections object.</span>
 <a id="__codelineno-0-1003" name="__codelineno-0-1003"></a>
@@ -9767,7 +9767,7 @@ the merged data from the input list.</p>
 <a id="__codelineno-0-1069" name="__codelineno-0-1069"></a>
 <a id="__codelineno-0-1070" name="__codelineno-0-1070"></a>    <span class="n">xyxy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">d</span><span class="o">.</span><span class="n">xyxy</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">detections_list</span><span class="p">])</span>
 <a id="__codelineno-0-1071" name="__codelineno-0-1071"></a>
-<a id="__codelineno-0-1072" name="__codelineno-0-1072"></a>    <span class="k">def</span> <span class="nf">stack_or_none</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<a id="__codelineno-0-1072" name="__codelineno-0-1072"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">stack_or_none</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
 <a id="__codelineno-0-1073" name="__codelineno-0-1073"></a>        <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">detections_list</span><span class="p">):</span>
 <a id="__codelineno-0-1074" name="__codelineno-0-1074"></a>            <span class="k">return</span> <span class="kc">None</span>
 <a id="__codelineno-0-1075" name="__codelineno-0-1075"></a>        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">detections_list</span><span class="p">):</span>
@@ -9970,7 +9970,7 @@ class_agnostic is False.</p>
 <span class="normal"><a href="#__codelineno-0-1393">1393</a></span>
 <span class="normal"><a href="#__codelineno-0-1394">1394</a></span>
 <span class="normal"><a href="#__codelineno-0-1395">1395</a></span>
-<span class="normal"><a href="#__codelineno-0-1396">1396</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-1339" name="__codelineno-0-1339"></a><span class="k">def</span> <span class="nf">with_nmm</span><span class="p">(</span>
+<span class="normal"><a href="#__codelineno-0-1396">1396</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-1339" name="__codelineno-0-1339"></a><span class="k">def</span><span class="w"> </span><span class="nf">with_nmm</span><span class="p">(</span>
 <a id="__codelineno-0-1340" name="__codelineno-0-1340"></a>    <span class="bp">self</span><span class="p">,</span> <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">class_agnostic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 <a id="__codelineno-0-1341" name="__codelineno-0-1341"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-1342" name="__codelineno-0-1342"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -10199,7 +10199,7 @@ If <code>class_id</code> is None and class_agnostic is False.</p>
 <span class="normal"><a href="#__codelineno-0-1334">1334</a></span>
 <span class="normal"><a href="#__codelineno-0-1335">1335</a></span>
 <span class="normal"><a href="#__codelineno-0-1336">1336</a></span>
-<span class="normal"><a href="#__codelineno-0-1337">1337</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-1283" name="__codelineno-0-1283"></a><span class="k">def</span> <span class="nf">with_nms</span><span class="p">(</span>
+<span class="normal"><a href="#__codelineno-0-1337">1337</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-1283" name="__codelineno-0-1283"></a><span class="k">def</span><span class="w"> </span><span class="nf">with_nms</span><span class="p">(</span>
 <a id="__codelineno-0-1284" name="__codelineno-0-1284"></a>    <span class="bp">self</span><span class="p">,</span> <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">class_agnostic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 <a id="__codelineno-0-1285" name="__codelineno-0-1285"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-1286" name="__codelineno-0-1286"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -10514,7 +10514,7 @@ If <code>class_id</code> is None and class_agnostic is False.</p>
     <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.tracking", "content.code.copy", "content.action.edit", "content.tooltips", "content.code.annotate", "navigation.tabs"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.83f73b43.min.js"></script>
+      <script src="../../assets/javascripts/bundle.88dd0f4e.min.js"></script>
       
         <script src="../../javascripts/init_kapa_widget.js"></script>
       

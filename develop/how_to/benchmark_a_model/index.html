@@ -22,7 +22,7 @@
       
       
       <link rel="icon" href="../../assets/supervision-lenny.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.48">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.49">
     
     
       
@@ -2317,7 +2317,7 @@
 <p>We're updating <code>inference</code> at the moment. Please install it as shown above.</p>
 </div>
 <p>Here's how you can download a dataset:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span> <span class="nn">roboflow</span> <span class="kn">import</span> <span class="n">Roboflow</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">roboflow</span><span class="w"> </span><span class="kn">import</span> <span class="n">Roboflow</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">rf</span> <span class="o">=</span> <span class="n">Roboflow</span><span class="p">(</span><span class="n">api_key</span><span class="o">=</span><span class="s2">&quot;&lt;YOUR_API_KEY&gt;&quot;</span><span class="p">)</span>
 <a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">project</span> <span class="o">=</span> <span class="n">rf</span><span class="o">.</span><span class="n">workspace</span><span class="p">(</span><span class="s2">&quot;&lt;WORKSPACE_NAME&gt;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">project</span><span class="p">(</span><span class="s2">&quot;&lt;PROJECT_NAME&gt;&quot;</span><span class="p">)</span>
@@ -2326,7 +2326,7 @@
 <p>If your dataset is from Universe, go to <code>Dataset</code> &gt; <code>Download Dataset</code> &gt; select the format (e.g. <code>YOLOv11</code>) &gt; <code>Show download code</code>.</p>
 <p>If labeling your own data, go to the <a href="https://app.roboflow.com/">dashboard</a> and check this <a href="https://docs.roboflow.com/api-reference/workspace-and-project-ids">guide</a> to find your workspace and project IDs.</p>
 <p>In this guide, we shall use a small <a href="https://universe.roboflow.com/model-examples/segmented-animals-basic">Corgi v2</a> dataset. It is well-labeled and comes with a test set.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span> <span class="nn">roboflow</span> <span class="kn">import</span> <span class="n">Roboflow</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">roboflow</span><span class="w"> </span><span class="kn">import</span> <span class="n">Roboflow</span>
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">rf</span> <span class="o">=</span> <span class="n">Roboflow</span><span class="p">(</span><span class="n">api_key</span><span class="o">=</span><span class="s2">&quot;&lt;YOUR_API_KEY&gt;&quot;</span><span class="p">)</span>
 <a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">project</span> <span class="o">=</span> <span class="n">rf</span><span class="o">.</span><span class="n">workspace</span><span class="p">(</span><span class="s2">&quot;fbamse1-gm2os&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">project</span><span class="p">(</span><span class="s2">&quot;corgi-v2&quot;</span><span class="p">)</span>
@@ -2340,7 +2340,7 @@
 <div class="tabbed-block">
 <p>Roboflow supports a range of state-of-the-art <a href="https://inference.roboflow.com/quickstart/aliases/">pre-trained models</a> for object detection, instance segmentation, and pose tracking. You don't even need an API key!</p>
 <p>Let's load such a model with inference <a href="https://inference.roboflow.com/"><code>inference</code></a>.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span> <span class="nn">inference</span> <span class="kn">import</span> <span class="n">get_model</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">inference</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_model</span>
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">get_model</span><span class="p">(</span><span class="n">model_id</span><span class="o">=</span><span class="s2">&quot;yolov11s-seg-640&quot;</span><span class="p">)</span>
 </code></pre></div>
@@ -2348,7 +2348,7 @@
 <div class="tabbed-block">
 <p>You can train and deploy a model without leaving the Roboflow platform. See this <a href="https://docs.roboflow.com/train/train/train-from-scratch">guide</a> for more details.</p>
 <p>To load a model, you can use inference:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span> <span class="nn">inference</span> <span class="kn">import</span> <span class="n">get_model</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">inference</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_model</span>
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
 <a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">model_id</span> <span class="o">=</span> <span class="s2">&quot;&lt;PROJECT_NAME&gt;/&lt;MODEL_VERSION&gt;&quot;</span>
 <a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">model</span> <span class="o">=</span> <span class="n">get_model</span><span class="p">(</span><span class="n">model_id</span><span class="o">=</span><span class="n">model_id</span><span class="p">)</span>
@@ -2358,7 +2358,7 @@
 <p>Similarly to Inference, Ultralytics allows you to run a variety of models.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;ultralytics&lt;=8.3.40&quot;</span>
 </code></pre></div>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span> <span class="nn">ultralytics</span> <span class="kn">import</span> <span class="n">YOLO</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">ultralytics</span><span class="w"> </span><span class="kn">import</span> <span class="n">YOLO</span>
 <a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
 <a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">YOLO</span><span class="p">(</span><span class="s2">&quot;yolo11s-seg.pt&quot;</span><span class="p">)</span>
 </code></pre></div>
@@ -2392,7 +2392,7 @@ We'll use <code>supervision</code> to create a dataset iterator, and then run th
 <div class="tabbed-set tabbed-alternate" data-tabs="2:2"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">Inference</label><label for="__tabbed_2_2">Ultralytics</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 <a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
 <a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">test_set</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">DetectionDataset</span><span class="o">.</span><span class="n">from_yolo</span><span class="p">(</span>
 <a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>    <span class="n">images_directory_path</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">dataset</span><span class="o">.</span><span class="n">location</span><span class="si">}</span><span class="s2">/test/images&quot;</span><span class="p">,</span>
@@ -2414,7 +2414,7 @@ We'll use <code>supervision</code> to create a dataset iterator, and then run th
 </code></pre></div>
 </div>
 <div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 <a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
 <a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="n">test_set</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">DetectionDataset</span><span class="o">.</span><span class="n">from_yolo</span><span class="p">(</span>
 <a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>    <span class="n">images_directory_path</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">dataset</span><span class="o">.</span><span class="n">location</span><span class="si">}</span><span class="s2">/test/images&quot;</span><span class="p">,</span>
@@ -2441,7 +2441,7 @@ We'll use <code>supervision</code> to create a dataset iterator, and then run th
 <p>Did you notice an issue in the above logic?
 Since we're using an unrelated dataset, the class names and IDs may be different from what the model was trained on.</p>
 <p>We need to remap them to match the dataset classes. Here's how to do it:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="k">def</span> <span class="nf">remap_classes</span><span class="p">(</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">remap_classes</span><span class="p">(</span>
 <a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    <span class="n">detections</span><span class="p">:</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="p">,</span>
 <a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>    <span class="n">class_ids_from_to</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
 <a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    <span class="n">class_names_from_to</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
@@ -2459,7 +2459,7 @@ Since we're using an unrelated dataset, the class names and IDs may be different
 <div class="tabbed-content">
 <div class="tabbed-block">
 <p>Dataset class names and IDs can be found in the <code>data.yaml</code> file, or by printing <code>dataset.classes</code>.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 <a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
 <a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="n">test_set</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">DetectionDataset</span><span class="o">.</span><span class="n">from_yolo</span><span class="p">(</span>
 <a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>    <span class="n">images_directory_path</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">dataset</span><span class="o">.</span><span class="n">location</span><span class="si">}</span><span class="s2">/test/images&quot;</span><span class="p">,</span>
@@ -2493,7 +2493,7 @@ Since we're using an unrelated dataset, the class names and IDs may be different
 <p>Dataset class names and IDs can be found in the <code>data.yaml</code> file, or by printing <code>dataset.classes</code>.</p>
 <p>Each model will have a different class mapping, so make sure to check the model's documentation. In this case, the model was trained on the COCO dataset, with a class
 configuration found <a href="https://github.com/ultralytics/ultralytics/blob/main/ultralytics/cfg/datasets/coco8.yaml">here</a>.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 <a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>
 <a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="n">test_set</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">DetectionDataset</span><span class="o">.</span><span class="n">from_yolo</span><span class="p">(</span>
 <a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>    <span class="n">images_directory_path</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">dataset</span><span class="o">.</span><span class="n">location</span><span class="si">}</span><span class="s2">/test/images&quot;</span><span class="p">,</span>
@@ -2528,7 +2528,7 @@ configuration found <a href="https://github.com/ultralytics/ultralytics/blob/mai
 <h2 id="visualizing-predictions">Visualizing Predictions<a class="headerlink" href="#visualizing-predictions" title="Permanent link">&para;</a></h2>
 <p>The first step in evaluating your model’s performance is to visualize its predictions.
 This gives an intuitive sense of how well your model is detecting objects and where it might be failing.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 <a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>
 <a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="n">N</span> <span class="o">=</span> <span class="mi">9</span>
 <a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="n">GRID_SIZE</span> <span class="o">=</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
@@ -2562,7 +2562,7 @@ This gives an intuitive sense of how well your model is detecting objects and wh
 <p>For a thorough explanation, check out our <a href="https://blog.roboflow.com/mean-average-precision/">blog</a> and <a href="https://www.youtube.com/watch?v=oqXDdxF_Wuw">Youtube video</a>.</p>
 <p>Here, the most popular value is <code>mAP 50:95</code>. It represents the average precision across all classes and IoU thresholds (<code>0.5</code> to <code>0.95</code>), whereas other values such as <code>mAP 50</code> or <code>mAP 75</code> only consider a single IoU threshold (<code>0.5</code> and <code>0.75</code> respectively).</p>
 <p>Let's compute the mAP:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kn">from</span> <span class="nn">supervision.metrics</span> <span class="kn">import</span> <span class="n">MeanAveragePrecision</span><span class="p">,</span> <span class="n">MetricTarget</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">supervision.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">MeanAveragePrecision</span><span class="p">,</span> <span class="n">MetricTarget</span>
 <a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>
 <a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="n">map_metric</span> <span class="o">=</span> <span class="n">MeanAveragePrecision</span><span class="p">(</span><span class="n">metric_target</span><span class="o">=</span><span class="n">MetricTarget</span><span class="o">.</span><span class="n">MASKS</span><span class="p">)</span>
 <a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="n">map_result</span> <span class="o">=</span> <span class="n">map_metric</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">predictions_list</span><span class="p">,</span> <span class="n">targets_list</span><span class="p">)</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span>
@@ -2593,7 +2593,7 @@ This gives an intuitive sense of how well your model is detecting objects and wh
 <h3 id="f1-score">F1 Score<a class="headerlink" href="#f1-score" title="Permanent link">&para;</a></h3>
 <p>The <a href="https://supervision.roboflow.com/latest/metrics/f1_score/">F1 Score</a> is another useful metric, especially when dealing with an imbalance between false positives and false negatives. It’s the harmonic mean of <strong>precision</strong> (how many predictions are correct) and <strong>recall</strong> (how many actual instances were detected).</p>
 <p>Here's how you can compute the F1 score:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="kn">from</span> <span class="nn">supervision.metrics</span> <span class="kn">import</span> <span class="n">F1Score</span><span class="p">,</span> <span class="n">MetricTarget</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">supervision.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">F1Score</span><span class="p">,</span> <span class="n">MetricTarget</span>
 <a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>
 <a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="n">f1_metric</span> <span class="o">=</span> <span class="n">F1Score</span><span class="p">(</span><span class="n">metric_target</span><span class="o">=</span><span class="n">MetricTarget</span><span class="o">.</span><span class="n">MASKS</span><span class="p">)</span>
 <a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="n">f1_result</span> <span class="o">=</span> <span class="n">f1_metric</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">predictions_list</span><span class="p">,</span> <span class="n">targets_list</span><span class="p">)</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span>
@@ -2871,7 +2871,7 @@ This gives an intuitive sense of how well your model is detecting objects and wh
     <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.tracking", "content.code.copy", "content.action.edit", "content.tooltips", "content.code.annotate", "navigation.tabs"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.83f73b43.min.js"></script>
+      <script src="../../assets/javascripts/bundle.88dd0f4e.min.js"></script>
       
         <script src="../../javascripts/init_kapa_widget.js"></script>
       

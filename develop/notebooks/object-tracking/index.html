@@ -18,7 +18,7 @@
       
       
       <link rel="icon" href="../../assets/supervision-lenny.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.48">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.49">
     
     
       
@@ -2314,6 +2314,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
                     processEnvironments: true
                 },
                 displayAlign: 'center',
+                messageStyle: 'none',
                 CommonHTML: {
                     linebreaks: {
                     automatic: true
@@ -2662,7 +2663,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span> <span class="nn">supervision.assets</span> <span class="kn">import</span> <span class="n">download_assets</span><span class="p">,</span> <span class="n">VideoAssets</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">supervision.assets</span><span class="w"> </span><span class="kn">import</span> <span class="n">download_assets</span><span class="p">,</span> <span class="n">VideoAssets</span>
 
 <span class="c1"># Download a supervision video asset</span>
 <span class="n">path_to_video</span> <span class="o">=</span> <span class="n">download_assets</span><span class="p">(</span><span class="n">VideoAssets</span><span class="o">.</span><span class="n">PEOPLE_WALKING</span><span class="p">)</span>
@@ -2721,8 +2722,8 @@ path_to_video = download_assets(VideoAssets.PEOPLE_WALKING)</div>
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
-<span class="kn">from</span> <span class="nn">inference.models.utils</span> <span class="kn">import</span> <span class="n">get_roboflow_model</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">inference.models.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_roboflow_model</span>
 
 <span class="c1"># Load a pre trained yolov8 nano model from Roboflow Inference.</span>
 <span class="n">model</span> <span class="o">=</span> <span class="n">get_roboflow_model</span><span class="p">(</span><span class="s1">'yolov8n-640'</span><span class="p">)</span>
@@ -2845,7 +2846,7 @@ sv.plot_image(annotated_frame)</div>
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span> <span class="nn">tqdm</span> <span class="kn">import</span> <span class="n">tqdm</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tqdm</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
 
 <span class="c1"># Load a pre trained yolov8 nano model from Roboflow Inference.</span>
 <span class="n">model</span> <span class="o">=</span> <span class="n">get_roboflow_model</span><span class="p">(</span><span class="s1">'yolov8n-640'</span><span class="p">)</span>
@@ -3168,7 +3169,7 @@ with sv.VideoSink(target_path="output.mp4", video_info=video_info) as sink:
     <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.tracking", "content.code.copy", "content.action.edit", "content.tooltips", "content.code.annotate", "navigation.tabs"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.83f73b43.min.js"></script>
+      <script src="../../assets/javascripts/bundle.88dd0f4e.min.js"></script>
       
         <script src="../../javascripts/init_kapa_widget.js"></script>
       

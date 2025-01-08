@@ -22,7 +22,7 @@
       
       
       <link rel="icon" href="../../assets/supervision-lenny.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.48">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.49">
     
     
       
@@ -2833,7 +2833,7 @@ Detections with lower IoU will be classified as <code>FP</code>.</p>
 <span class="normal"><a href="#__codelineno-0-491">491</a></span>
 <span class="normal"><a href="#__codelineno-0-492">492</a></span>
 <span class="normal"><a href="#__codelineno-0-493">493</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-72" name="__codelineno-0-72"></a><span class="nd">@dataclass</span>
-<a id="__codelineno-0-73" name="__codelineno-0-73"></a><span class="k">class</span> <span class="nc">ConfusionMatrix</span><span class="p">:</span>
+<a id="__codelineno-0-73" name="__codelineno-0-73"></a><span class="k">class</span><span class="w"> </span><span class="nc">ConfusionMatrix</span><span class="p">:</span>
 <a id="__codelineno-0-74" name="__codelineno-0-74"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-75" name="__codelineno-0-75"></a><span class="sd">    Confusion matrix for object detection tasks.</span>
 <a id="__codelineno-0-76" name="__codelineno-0-76"></a>
@@ -2854,7 +2854,7 @@ Detections with lower IoU will be classified as <code>FP</code>.</p>
 <a id="__codelineno-0-91" name="__codelineno-0-91"></a>    <span class="n">iou_threshold</span><span class="p">:</span> <span class="nb">float</span>
 <a id="__codelineno-0-92" name="__codelineno-0-92"></a>
 <a id="__codelineno-0-93" name="__codelineno-0-93"></a>    <span class="nd">@classmethod</span>
-<a id="__codelineno-0-94" name="__codelineno-0-94"></a>    <span class="k">def</span> <span class="nf">from_detections</span><span class="p">(</span>
+<a id="__codelineno-0-94" name="__codelineno-0-94"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">from_detections</span><span class="p">(</span>
 <a id="__codelineno-0-95" name="__codelineno-0-95"></a>        <span class="bp">cls</span><span class="p">,</span>
 <a id="__codelineno-0-96" name="__codelineno-0-96"></a>        <span class="n">predictions</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Detections</span><span class="p">],</span>
 <a id="__codelineno-0-97" name="__codelineno-0-97"></a>        <span class="n">targets</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Detections</span><span class="p">],</span>
@@ -2923,7 +2923,7 @@ Detections with lower IoU will be classified as <code>FP</code>.</p>
 <a id="__codelineno-0-160" name="__codelineno-0-160"></a>        <span class="p">)</span>
 <a id="__codelineno-0-161" name="__codelineno-0-161"></a>
 <a id="__codelineno-0-162" name="__codelineno-0-162"></a>    <span class="nd">@classmethod</span>
-<a id="__codelineno-0-163" name="__codelineno-0-163"></a>    <span class="k">def</span> <span class="nf">from_tensors</span><span class="p">(</span>
+<a id="__codelineno-0-163" name="__codelineno-0-163"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">from_tensors</span><span class="p">(</span>
 <a id="__codelineno-0-164" name="__codelineno-0-164"></a>        <span class="bp">cls</span><span class="p">,</span>
 <a id="__codelineno-0-165" name="__codelineno-0-165"></a>        <span class="n">predictions</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
 <a id="__codelineno-0-166" name="__codelineno-0-166"></a>        <span class="n">targets</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
@@ -3017,7 +3017,7 @@ Detections with lower IoU will be classified as <code>FP</code>.</p>
 <a id="__codelineno-0-254" name="__codelineno-0-254"></a>        <span class="p">)</span>
 <a id="__codelineno-0-255" name="__codelineno-0-255"></a>
 <a id="__codelineno-0-256" name="__codelineno-0-256"></a>    <span class="nd">@staticmethod</span>
-<a id="__codelineno-0-257" name="__codelineno-0-257"></a>    <span class="k">def</span> <span class="nf">evaluate_detection_batch</span><span class="p">(</span>
+<a id="__codelineno-0-257" name="__codelineno-0-257"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">evaluate_detection_batch</span><span class="p">(</span>
 <a id="__codelineno-0-258" name="__codelineno-0-258"></a>        <span class="n">predictions</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
 <a id="__codelineno-0-259" name="__codelineno-0-259"></a>        <span class="n">targets</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
 <a id="__codelineno-0-260" name="__codelineno-0-260"></a>        <span class="n">num_classes</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -3092,7 +3092,7 @@ Detections with lower IoU will be classified as <code>FP</code>.</p>
 <a id="__codelineno-0-329" name="__codelineno-0-329"></a>        <span class="k">return</span> <span class="n">result_matrix</span>
 <a id="__codelineno-0-330" name="__codelineno-0-330"></a>
 <a id="__codelineno-0-331" name="__codelineno-0-331"></a>    <span class="nd">@staticmethod</span>
-<a id="__codelineno-0-332" name="__codelineno-0-332"></a>    <span class="k">def</span> <span class="nf">_drop_extra_matches</span><span class="p">(</span><span class="n">matches</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a id="__codelineno-0-332" name="__codelineno-0-332"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_drop_extra_matches</span><span class="p">(</span><span class="n">matches</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <a id="__codelineno-0-333" name="__codelineno-0-333"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-334" name="__codelineno-0-334"></a><span class="sd">        Deduplicate matches. If there are multiple matches for the same true or</span>
 <a id="__codelineno-0-335" name="__codelineno-0-335"></a><span class="sd">        predicted box, only the one with the highest IoU is kept.</span>
@@ -3105,7 +3105,7 @@ Detections with lower IoU will be classified as <code>FP</code>.</p>
 <a id="__codelineno-0-342" name="__codelineno-0-342"></a>        <span class="k">return</span> <span class="n">matches</span>
 <a id="__codelineno-0-343" name="__codelineno-0-343"></a>
 <a id="__codelineno-0-344" name="__codelineno-0-344"></a>    <span class="nd">@classmethod</span>
-<a id="__codelineno-0-345" name="__codelineno-0-345"></a>    <span class="k">def</span> <span class="nf">benchmark</span><span class="p">(</span>
+<a id="__codelineno-0-345" name="__codelineno-0-345"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">benchmark</span><span class="p">(</span>
 <a id="__codelineno-0-346" name="__codelineno-0-346"></a>        <span class="bp">cls</span><span class="p">,</span>
 <a id="__codelineno-0-347" name="__codelineno-0-347"></a>        <span class="n">dataset</span><span class="p">:</span> <span class="n">DetectionDataset</span><span class="p">,</span>
 <a id="__codelineno-0-348" name="__codelineno-0-348"></a>        <span class="n">callback</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> <span class="n">Detections</span><span class="p">],</span>
@@ -3166,7 +3166,7 @@ Detections with lower IoU will be classified as <code>FP</code>.</p>
 <a id="__codelineno-0-403" name="__codelineno-0-403"></a>            <span class="n">iou_threshold</span><span class="o">=</span><span class="n">iou_threshold</span><span class="p">,</span>
 <a id="__codelineno-0-404" name="__codelineno-0-404"></a>        <span class="p">)</span>
 <a id="__codelineno-0-405" name="__codelineno-0-405"></a>
-<a id="__codelineno-0-406" name="__codelineno-0-406"></a>    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span>
+<a id="__codelineno-0-406" name="__codelineno-0-406"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">plot</span><span class="p">(</span>
 <a id="__codelineno-0-407" name="__codelineno-0-407"></a>        <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-408" name="__codelineno-0-408"></a>        <span class="n">save_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <a id="__codelineno-0-409" name="__codelineno-0-409"></a>        <span class="n">title</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -3386,13 +3386,13 @@ Detections with lower IoU will be classified as <code>FP</code>.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span> <span class="nn">ultralytics</span> <span class="kn">import</span> <span class="n">YOLO</span>
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">ultralytics</span><span class="w"> </span><span class="kn">import</span> <span class="n">YOLO</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">dataset</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">DetectionDataset</span><span class="o">.</span><span class="n">from_yolo</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">model</span> <span class="o">=</span> <span class="n">YOLO</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="k">def</span> <span class="nf">callback</span><span class="p">(</span><span class="n">image</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="p">:</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="k">def</span><span class="w"> </span><span class="nf">callback</span><span class="p">(</span><span class="n">image</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">result</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">image</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 <a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="k">return</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_ultralytics</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 <a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>
@@ -3473,7 +3473,7 @@ Detections with lower IoU will be classified as <code>FP</code>.</p>
 <span class="normal"><a href="#__codelineno-0-402">402</a></span>
 <span class="normal"><a href="#__codelineno-0-403">403</a></span>
 <span class="normal"><a href="#__codelineno-0-404">404</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-344" name="__codelineno-0-344"></a><span class="nd">@classmethod</span>
-<a id="__codelineno-0-345" name="__codelineno-0-345"></a><span class="k">def</span> <span class="nf">benchmark</span><span class="p">(</span>
+<a id="__codelineno-0-345" name="__codelineno-0-345"></a><span class="k">def</span><span class="w"> </span><span class="nf">benchmark</span><span class="p">(</span>
 <a id="__codelineno-0-346" name="__codelineno-0-346"></a>    <span class="bp">cls</span><span class="p">,</span>
 <a id="__codelineno-0-347" name="__codelineno-0-347"></a>    <span class="n">dataset</span><span class="p">:</span> <span class="n">DetectionDataset</span><span class="p">,</span>
 <a id="__codelineno-0-348" name="__codelineno-0-348"></a>    <span class="n">callback</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> <span class="n">Detections</span><span class="p">],</span>
@@ -3748,7 +3748,7 @@ Detections with lower iou will be classified as <code>FP</code>.</p>
 <span class="normal"><a href="#__codelineno-0-327">327</a></span>
 <span class="normal"><a href="#__codelineno-0-328">328</a></span>
 <span class="normal"><a href="#__codelineno-0-329">329</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-256" name="__codelineno-0-256"></a><span class="nd">@staticmethod</span>
-<a id="__codelineno-0-257" name="__codelineno-0-257"></a><span class="k">def</span> <span class="nf">evaluate_detection_batch</span><span class="p">(</span>
+<a id="__codelineno-0-257" name="__codelineno-0-257"></a><span class="k">def</span><span class="w"> </span><span class="nf">evaluate_detection_batch</span><span class="p">(</span>
 <a id="__codelineno-0-258" name="__codelineno-0-258"></a>    <span class="n">predictions</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
 <a id="__codelineno-0-259" name="__codelineno-0-259"></a>    <span class="n">targets</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
 <a id="__codelineno-0-260" name="__codelineno-0-260"></a>    <span class="n">num_classes</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -3957,7 +3957,7 @@ Detections with lower IoU will be classified as <code>FP</code>.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">targets</span> <span class="o">=</span> <span class="p">[</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="p">(</span><span class="o">...</span><span class="p">),</span>
@@ -4054,7 +4054,7 @@ Detections with lower IoU will be classified as <code>FP</code>.</p>
 <span class="normal"><a href="#__codelineno-0-158">158</a></span>
 <span class="normal"><a href="#__codelineno-0-159">159</a></span>
 <span class="normal"><a href="#__codelineno-0-160">160</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-93" name="__codelineno-0-93"></a><span class="nd">@classmethod</span>
-<a id="__codelineno-0-94" name="__codelineno-0-94"></a><span class="k">def</span> <span class="nf">from_detections</span><span class="p">(</span>
+<a id="__codelineno-0-94" name="__codelineno-0-94"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_detections</span><span class="p">(</span>
 <a id="__codelineno-0-95" name="__codelineno-0-95"></a>    <span class="bp">cls</span><span class="p">,</span>
 <a id="__codelineno-0-96" name="__codelineno-0-96"></a>    <span class="n">predictions</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Detections</span><span class="p">],</span>
 <a id="__codelineno-0-97" name="__codelineno-0-97"></a>    <span class="n">targets</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Detections</span><span class="p">],</span>
@@ -4263,8 +4263,8 @@ Detections with lower iou will be classified as <code>FP</code>.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">targets</span> <span class="o">=</span> <span class="p">(</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="p">[</span>
@@ -4401,7 +4401,7 @@ Detections with lower iou will be classified as <code>FP</code>.</p>
 <span class="normal"><a href="#__codelineno-0-252">252</a></span>
 <span class="normal"><a href="#__codelineno-0-253">253</a></span>
 <span class="normal"><a href="#__codelineno-0-254">254</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-162" name="__codelineno-0-162"></a><span class="nd">@classmethod</span>
-<a id="__codelineno-0-163" name="__codelineno-0-163"></a><span class="k">def</span> <span class="nf">from_tensors</span><span class="p">(</span>
+<a id="__codelineno-0-163" name="__codelineno-0-163"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_tensors</span><span class="p">(</span>
 <a id="__codelineno-0-164" name="__codelineno-0-164"></a>    <span class="bp">cls</span><span class="p">,</span>
 <a id="__codelineno-0-165" name="__codelineno-0-165"></a>    <span class="n">predictions</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
 <a id="__codelineno-0-166" name="__codelineno-0-166"></a>    <span class="n">targets</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
@@ -4711,7 +4711,7 @@ If not provided, all classes will be displayed.</p>
 <span class="normal"><a href="#__codelineno-0-490">490</a></span>
 <span class="normal"><a href="#__codelineno-0-491">491</a></span>
 <span class="normal"><a href="#__codelineno-0-492">492</a></span>
-<span class="normal"><a href="#__codelineno-0-493">493</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-406" name="__codelineno-0-406"></a><span class="k">def</span> <span class="nf">plot</span><span class="p">(</span>
+<span class="normal"><a href="#__codelineno-0-493">493</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-406" name="__codelineno-0-406"></a><span class="k">def</span><span class="w"> </span><span class="nf">plot</span><span class="p">(</span>
 <a id="__codelineno-0-407" name="__codelineno-0-407"></a>    <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-408" name="__codelineno-0-408"></a>    <span class="n">save_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <a id="__codelineno-0-409" name="__codelineno-0-409"></a>    <span class="n">title</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -5240,7 +5240,7 @@ provided for each individual class.</p>
 <span class="normal"><a href="#__codelineno-0-841">841</a></span>
 <span class="normal"><a href="#__codelineno-0-842">842</a></span>
 <span class="normal"><a href="#__codelineno-0-843">843</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-496" name="__codelineno-0-496"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<a id="__codelineno-0-497" name="__codelineno-0-497"></a><span class="k">class</span> <span class="nc">MeanAveragePrecision</span><span class="p">:</span>
+<a id="__codelineno-0-497" name="__codelineno-0-497"></a><span class="k">class</span><span class="w"> </span><span class="nc">MeanAveragePrecision</span><span class="p">:</span>
 <a id="__codelineno-0-498" name="__codelineno-0-498"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-499" name="__codelineno-0-499"></a><span class="sd">    Mean Average Precision for object detection tasks.</span>
 <a id="__codelineno-0-500" name="__codelineno-0-500"></a>
@@ -5262,7 +5262,7 @@ provided for each individual class.</p>
 <a id="__codelineno-0-516" name="__codelineno-0-516"></a>    <span class="n">per_class_ap50_95</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
 <a id="__codelineno-0-517" name="__codelineno-0-517"></a>
 <a id="__codelineno-0-518" name="__codelineno-0-518"></a>    <span class="nd">@classmethod</span>
-<a id="__codelineno-0-519" name="__codelineno-0-519"></a>    <span class="k">def</span> <span class="nf">from_detections</span><span class="p">(</span>
+<a id="__codelineno-0-519" name="__codelineno-0-519"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">from_detections</span><span class="p">(</span>
 <a id="__codelineno-0-520" name="__codelineno-0-520"></a>        <span class="bp">cls</span><span class="p">,</span>
 <a id="__codelineno-0-521" name="__codelineno-0-521"></a>        <span class="n">predictions</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Detections</span><span class="p">],</span>
 <a id="__codelineno-0-522" name="__codelineno-0-522"></a>        <span class="n">targets</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Detections</span><span class="p">],</span>
@@ -5312,7 +5312,7 @@ provided for each individual class.</p>
 <a id="__codelineno-0-566" name="__codelineno-0-566"></a>        <span class="p">)</span>
 <a id="__codelineno-0-567" name="__codelineno-0-567"></a>
 <a id="__codelineno-0-568" name="__codelineno-0-568"></a>    <span class="nd">@classmethod</span>
-<a id="__codelineno-0-569" name="__codelineno-0-569"></a>    <span class="k">def</span> <span class="nf">benchmark</span><span class="p">(</span>
+<a id="__codelineno-0-569" name="__codelineno-0-569"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">benchmark</span><span class="p">(</span>
 <a id="__codelineno-0-570" name="__codelineno-0-570"></a>        <span class="bp">cls</span><span class="p">,</span>
 <a id="__codelineno-0-571" name="__codelineno-0-571"></a>        <span class="n">dataset</span><span class="p">:</span> <span class="n">DetectionDataset</span><span class="p">,</span>
 <a id="__codelineno-0-572" name="__codelineno-0-572"></a>        <span class="n">callback</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> <span class="n">Detections</span><span class="p">],</span>
@@ -5359,7 +5359,7 @@ provided for each individual class.</p>
 <a id="__codelineno-0-613" name="__codelineno-0-613"></a>        <span class="p">)</span>
 <a id="__codelineno-0-614" name="__codelineno-0-614"></a>
 <a id="__codelineno-0-615" name="__codelineno-0-615"></a>    <span class="nd">@classmethod</span>
-<a id="__codelineno-0-616" name="__codelineno-0-616"></a>    <span class="k">def</span> <span class="nf">from_tensors</span><span class="p">(</span>
+<a id="__codelineno-0-616" name="__codelineno-0-616"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">from_tensors</span><span class="p">(</span>
 <a id="__codelineno-0-617" name="__codelineno-0-617"></a>        <span class="bp">cls</span><span class="p">,</span>
 <a id="__codelineno-0-618" name="__codelineno-0-618"></a>        <span class="n">predictions</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
 <a id="__codelineno-0-619" name="__codelineno-0-619"></a>        <span class="n">targets</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
@@ -5468,7 +5468,7 @@ provided for each individual class.</p>
 <a id="__codelineno-0-722" name="__codelineno-0-722"></a>        <span class="p">)</span>
 <a id="__codelineno-0-723" name="__codelineno-0-723"></a>
 <a id="__codelineno-0-724" name="__codelineno-0-724"></a>    <span class="nd">@staticmethod</span>
-<a id="__codelineno-0-725" name="__codelineno-0-725"></a>    <span class="k">def</span> <span class="nf">compute_average_precision</span><span class="p">(</span><span class="n">recall</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">precision</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<a id="__codelineno-0-725" name="__codelineno-0-725"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">compute_average_precision</span><span class="p">(</span><span class="n">recall</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">precision</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <a id="__codelineno-0-726" name="__codelineno-0-726"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-727" name="__codelineno-0-727"></a><span class="sd">        Compute the average precision using 101-point interpolation (COCO), given</span>
 <a id="__codelineno-0-728" name="__codelineno-0-728"></a><span class="sd">            the recall and precision curves.</span>
@@ -5493,7 +5493,7 @@ provided for each individual class.</p>
 <a id="__codelineno-0-747" name="__codelineno-0-747"></a>        <span class="k">return</span> <span class="n">average_precision</span>
 <a id="__codelineno-0-748" name="__codelineno-0-748"></a>
 <a id="__codelineno-0-749" name="__codelineno-0-749"></a>    <span class="nd">@staticmethod</span>
-<a id="__codelineno-0-750" name="__codelineno-0-750"></a>    <span class="k">def</span> <span class="nf">_match_detection_batch</span><span class="p">(</span>
+<a id="__codelineno-0-750" name="__codelineno-0-750"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_match_detection_batch</span><span class="p">(</span>
 <a id="__codelineno-0-751" name="__codelineno-0-751"></a>        <span class="n">predictions</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">iou_thresholds</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
 <a id="__codelineno-0-752" name="__codelineno-0-752"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <a id="__codelineno-0-753" name="__codelineno-0-753"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -5536,7 +5536,7 @@ provided for each individual class.</p>
 <a id="__codelineno-0-790" name="__codelineno-0-790"></a>        <span class="k">return</span> <span class="n">correct</span>
 <a id="__codelineno-0-791" name="__codelineno-0-791"></a>
 <a id="__codelineno-0-792" name="__codelineno-0-792"></a>    <span class="nd">@staticmethod</span>
-<a id="__codelineno-0-793" name="__codelineno-0-793"></a>    <span class="k">def</span> <span class="nf">_average_precisions_per_class</span><span class="p">(</span>
+<a id="__codelineno-0-793" name="__codelineno-0-793"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_average_precisions_per_class</span><span class="p">(</span>
 <a id="__codelineno-0-794" name="__codelineno-0-794"></a>        <span class="n">matches</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
 <a id="__codelineno-0-795" name="__codelineno-0-795"></a>        <span class="n">prediction_confidence</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
 <a id="__codelineno-0-796" name="__codelineno-0-796"></a>        <span class="n">prediction_class_ids</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
@@ -5668,13 +5668,13 @@ an image as input and returns Detections object.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span> <span class="nn">ultralytics</span> <span class="kn">import</span> <span class="n">YOLO</span>
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">ultralytics</span><span class="w"> </span><span class="kn">import</span> <span class="n">YOLO</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">dataset</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">DetectionDataset</span><span class="o">.</span><span class="n">from_yolo</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">model</span> <span class="o">=</span> <span class="n">YOLO</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="k">def</span> <span class="nf">callback</span><span class="p">(</span><span class="n">image</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="p">:</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="k">def</span><span class="w"> </span><span class="nf">callback</span><span class="p">(</span><span class="n">image</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">result</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">image</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 <a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="k">return</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_ultralytics</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 <a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>
@@ -5735,7 +5735,7 @@ an image as input and returns Detections object.</p>
 <span class="normal"><a href="#__codelineno-0-611">611</a></span>
 <span class="normal"><a href="#__codelineno-0-612">612</a></span>
 <span class="normal"><a href="#__codelineno-0-613">613</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-568" name="__codelineno-0-568"></a><span class="nd">@classmethod</span>
-<a id="__codelineno-0-569" name="__codelineno-0-569"></a><span class="k">def</span> <span class="nf">benchmark</span><span class="p">(</span>
+<a id="__codelineno-0-569" name="__codelineno-0-569"></a><span class="k">def</span><span class="w"> </span><span class="nf">benchmark</span><span class="p">(</span>
 <a id="__codelineno-0-570" name="__codelineno-0-570"></a>    <span class="bp">cls</span><span class="p">,</span>
 <a id="__codelineno-0-571" name="__codelineno-0-571"></a>    <span class="n">dataset</span><span class="p">:</span> <span class="n">DetectionDataset</span><span class="p">,</span>
 <a id="__codelineno-0-572" name="__codelineno-0-572"></a>    <span class="n">callback</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> <span class="n">Detections</span><span class="p">],</span>
@@ -5896,7 +5896,7 @@ an image as input and returns Detections object.</p>
 <span class="normal"><a href="#__codelineno-0-745">745</a></span>
 <span class="normal"><a href="#__codelineno-0-746">746</a></span>
 <span class="normal"><a href="#__codelineno-0-747">747</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-724" name="__codelineno-0-724"></a><span class="nd">@staticmethod</span>
-<a id="__codelineno-0-725" name="__codelineno-0-725"></a><span class="k">def</span> <span class="nf">compute_average_precision</span><span class="p">(</span><span class="n">recall</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">precision</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<a id="__codelineno-0-725" name="__codelineno-0-725"></a><span class="k">def</span><span class="w"> </span><span class="nf">compute_average_precision</span><span class="p">(</span><span class="n">recall</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">precision</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <a id="__codelineno-0-726" name="__codelineno-0-726"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-727" name="__codelineno-0-727"></a><span class="sd">    Compute the average precision using 101-point interpolation (COCO), given</span>
 <a id="__codelineno-0-728" name="__codelineno-0-728"></a><span class="sd">        the recall and precision curves.</span>
@@ -5990,7 +5990,7 @@ an image as input and returns Detections object.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">targets</span> <span class="o">=</span> <span class="p">[</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="p">(</span><span class="o">...</span><span class="p">),</span>
@@ -6062,7 +6062,7 @@ an image as input and returns Detections object.</p>
 <span class="normal"><a href="#__codelineno-0-564">564</a></span>
 <span class="normal"><a href="#__codelineno-0-565">565</a></span>
 <span class="normal"><a href="#__codelineno-0-566">566</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-518" name="__codelineno-0-518"></a><span class="nd">@classmethod</span>
-<a id="__codelineno-0-519" name="__codelineno-0-519"></a><span class="k">def</span> <span class="nf">from_detections</span><span class="p">(</span>
+<a id="__codelineno-0-519" name="__codelineno-0-519"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_detections</span><span class="p">(</span>
 <a id="__codelineno-0-520" name="__codelineno-0-520"></a>    <span class="bp">cls</span><span class="p">,</span>
 <a id="__codelineno-0-521" name="__codelineno-0-521"></a>    <span class="n">predictions</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Detections</span><span class="p">],</span>
 <a id="__codelineno-0-522" name="__codelineno-0-522"></a>    <span class="n">targets</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Detections</span><span class="p">],</span>
@@ -6188,8 +6188,8 @@ number of ground-truth objects. Each row is expected to be in
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">targets</span> <span class="o">=</span> <span class="p">(</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="p">[</span>
@@ -6335,7 +6335,7 @@ number of ground-truth objects. Each row is expected to be in
 <span class="normal"><a href="#__codelineno-0-720">720</a></span>
 <span class="normal"><a href="#__codelineno-0-721">721</a></span>
 <span class="normal"><a href="#__codelineno-0-722">722</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-615" name="__codelineno-0-615"></a><span class="nd">@classmethod</span>
-<a id="__codelineno-0-616" name="__codelineno-0-616"></a><span class="k">def</span> <span class="nf">from_tensors</span><span class="p">(</span>
+<a id="__codelineno-0-616" name="__codelineno-0-616"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_tensors</span><span class="p">(</span>
 <a id="__codelineno-0-617" name="__codelineno-0-617"></a>    <span class="bp">cls</span><span class="p">,</span>
 <a id="__codelineno-0-618" name="__codelineno-0-618"></a>    <span class="n">predictions</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
 <a id="__codelineno-0-619" name="__codelineno-0-619"></a>    <span class="n">targets</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
@@ -6702,7 +6702,7 @@ number of ground-truth objects. Each row is expected to be in
     <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.tracking", "content.code.copy", "content.action.edit", "content.tooltips", "content.code.annotate", "navigation.tabs"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.83f73b43.min.js"></script>
+      <script src="../../assets/javascripts/bundle.88dd0f4e.min.js"></script>
       
         <script src="../../javascripts/init_kapa_widget.js"></script>
       

@@ -22,7 +22,7 @@
       
       
       <link rel="icon" href="../../assets/supervision-lenny.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.48">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.49">
     
     
       
@@ -2328,8 +2328,8 @@ confidence detection for each class.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span> <span class="nn">supervision.metrics</span> <span class="kn">import</span> <span class="n">MeanAverageRecall</span>
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">supervision.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">MeanAverageRecall</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">predictions</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">targets</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
@@ -2791,7 +2791,7 @@ confidence detection for each class.</p>
 <span class="normal"><a href="#__codelineno-0-456">456</a></span>
 <span class="normal"><a href="#__codelineno-0-457">457</a></span>
 <span class="normal"><a href="#__codelineno-0-458">458</a></span>
-<span class="normal"><a href="#__codelineno-0-459">459</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-29" name="__codelineno-0-29"></a><span class="k">class</span> <span class="nc">MeanAverageRecall</span><span class="p">(</span><span class="n">Metric</span><span class="p">):</span>
+<span class="normal"><a href="#__codelineno-0-459">459</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-29" name="__codelineno-0-29"></a><span class="k">class</span><span class="w"> </span><span class="nc">MeanAverageRecall</span><span class="p">(</span><span class="n">Metric</span><span class="p">):</span>
 <a id="__codelineno-0-30" name="__codelineno-0-30"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-31" name="__codelineno-0-31"></a><span class="sd">    Mean Average Recall (mAR) measures how well the model detects</span>
 <a id="__codelineno-0-32" name="__codelineno-0-32"></a><span class="sd">    and retrieves relevant objects by averaging recall over multiple</span>
@@ -2840,7 +2840,7 @@ confidence detection for each class.</p>
 <a id="__codelineno-0-75" name="__codelineno-0-75"></a><span class="sd">        ){ align=center width=&quot;800&quot; }</span>
 <a id="__codelineno-0-76" name="__codelineno-0-76"></a><span class="sd">    &quot;&quot;&quot;</span>
 <a id="__codelineno-0-77" name="__codelineno-0-77"></a>
-<a id="__codelineno-0-78" name="__codelineno-0-78"></a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<a id="__codelineno-0-78" name="__codelineno-0-78"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
 <a id="__codelineno-0-79" name="__codelineno-0-79"></a>        <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-80" name="__codelineno-0-80"></a>        <span class="n">metric_target</span><span class="p">:</span> <span class="n">MetricTarget</span> <span class="o">=</span> <span class="n">MetricTarget</span><span class="o">.</span><span class="n">BOXES</span><span class="p">,</span>
 <a id="__codelineno-0-81" name="__codelineno-0-81"></a>    <span class="p">):</span>
@@ -2857,14 +2857,14 @@ confidence detection for each class.</p>
 <a id="__codelineno-0-92" name="__codelineno-0-92"></a>
 <a id="__codelineno-0-93" name="__codelineno-0-93"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">max_detections</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">100</span><span class="p">])</span>
 <a id="__codelineno-0-94" name="__codelineno-0-94"></a>
-<a id="__codelineno-0-95" name="__codelineno-0-95"></a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-95" name="__codelineno-0-95"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <a id="__codelineno-0-96" name="__codelineno-0-96"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-97" name="__codelineno-0-97"></a><span class="sd">        Reset the metric to its initial state, clearing all stored data.</span>
 <a id="__codelineno-0-98" name="__codelineno-0-98"></a><span class="sd">        &quot;&quot;&quot;</span>
 <a id="__codelineno-0-99" name="__codelineno-0-99"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_predictions_list</span> <span class="o">=</span> <span class="p">[]</span>
 <a id="__codelineno-0-100" name="__codelineno-0-100"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_targets_list</span> <span class="o">=</span> <span class="p">[]</span>
 <a id="__codelineno-0-101" name="__codelineno-0-101"></a>
-<a id="__codelineno-0-102" name="__codelineno-0-102"></a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span>
+<a id="__codelineno-0-102" name="__codelineno-0-102"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span>
 <a id="__codelineno-0-103" name="__codelineno-0-103"></a>        <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-104" name="__codelineno-0-104"></a>        <span class="n">predictions</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Detections</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Detections</span><span class="p">]],</span>
 <a id="__codelineno-0-105" name="__codelineno-0-105"></a>        <span class="n">targets</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Detections</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Detections</span><span class="p">]],</span>
@@ -2895,7 +2895,7 @@ confidence detection for each class.</p>
 <a id="__codelineno-0-130" name="__codelineno-0-130"></a>
 <a id="__codelineno-0-131" name="__codelineno-0-131"></a>        <span class="k">return</span> <span class="bp">self</span>
 <a id="__codelineno-0-132" name="__codelineno-0-132"></a>
-<a id="__codelineno-0-133" name="__codelineno-0-133"></a>    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MeanAverageRecallResult</span><span class="p">:</span>
+<a id="__codelineno-0-133" name="__codelineno-0-133"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MeanAverageRecallResult</span><span class="p">:</span>
 <a id="__codelineno-0-134" name="__codelineno-0-134"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-135" name="__codelineno-0-135"></a><span class="sd">        Calculate the Mean Average Recall metric based on the stored predictions</span>
 <a id="__codelineno-0-136" name="__codelineno-0-136"></a><span class="sd">        and ground-truth, at different IoU thresholds and maximum detection counts.</span>
@@ -2924,7 +2924,7 @@ confidence detection for each class.</p>
 <a id="__codelineno-0-159" name="__codelineno-0-159"></a>
 <a id="__codelineno-0-160" name="__codelineno-0-160"></a>        <span class="k">return</span> <span class="n">result</span>
 <a id="__codelineno-0-161" name="__codelineno-0-161"></a>
-<a id="__codelineno-0-162" name="__codelineno-0-162"></a>    <span class="k">def</span> <span class="nf">_compute</span><span class="p">(</span>
+<a id="__codelineno-0-162" name="__codelineno-0-162"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_compute</span><span class="p">(</span>
 <a id="__codelineno-0-163" name="__codelineno-0-163"></a>        <span class="bp">self</span><span class="p">,</span> <span class="n">predictions_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Detections</span><span class="p">],</span> <span class="n">targets_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Detections</span><span class="p">]</span>
 <a id="__codelineno-0-164" name="__codelineno-0-164"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MeanAverageRecallResult</span><span class="p">:</span>
 <a id="__codelineno-0-165" name="__codelineno-0-165"></a>        <span class="n">iou_thresholds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.95</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
@@ -3001,7 +3001,7 @@ confidence detection for each class.</p>
 <a id="__codelineno-0-236" name="__codelineno-0-236"></a>            <span class="n">large_objects</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <a id="__codelineno-0-237" name="__codelineno-0-237"></a>        <span class="p">)</span>
 <a id="__codelineno-0-238" name="__codelineno-0-238"></a>
-<a id="__codelineno-0-239" name="__codelineno-0-239"></a>    <span class="k">def</span> <span class="nf">_compute_average_recall_for_classes</span><span class="p">(</span>
+<a id="__codelineno-0-239" name="__codelineno-0-239"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_compute_average_recall_for_classes</span><span class="p">(</span>
 <a id="__codelineno-0-240" name="__codelineno-0-240"></a>        <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-241" name="__codelineno-0-241"></a>        <span class="n">matches</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
 <a id="__codelineno-0-242" name="__codelineno-0-242"></a>        <span class="n">prediction_confidence</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
@@ -3038,7 +3038,7 @@ confidence detection for each class.</p>
 <a id="__codelineno-0-273" name="__codelineno-0-273"></a>        <span class="k">return</span> <span class="n">recall_scores</span><span class="p">,</span> <span class="n">recall_per_class</span><span class="p">,</span> <span class="n">unique_classes</span>
 <a id="__codelineno-0-274" name="__codelineno-0-274"></a>
 <a id="__codelineno-0-275" name="__codelineno-0-275"></a>    <span class="nd">@staticmethod</span>
-<a id="__codelineno-0-276" name="__codelineno-0-276"></a>    <span class="k">def</span> <span class="nf">_match_detection_batch</span><span class="p">(</span>
+<a id="__codelineno-0-276" name="__codelineno-0-276"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_match_detection_batch</span><span class="p">(</span>
 <a id="__codelineno-0-277" name="__codelineno-0-277"></a>        <span class="n">predictions_classes</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
 <a id="__codelineno-0-278" name="__codelineno-0-278"></a>        <span class="n">target_classes</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
 <a id="__codelineno-0-279" name="__codelineno-0-279"></a>        <span class="n">iou</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
@@ -3069,7 +3069,7 @@ confidence detection for each class.</p>
 <a id="__codelineno-0-304" name="__codelineno-0-304"></a>        <span class="k">return</span> <span class="n">correct</span>
 <a id="__codelineno-0-305" name="__codelineno-0-305"></a>
 <a id="__codelineno-0-306" name="__codelineno-0-306"></a>    <span class="nd">@staticmethod</span>
-<a id="__codelineno-0-307" name="__codelineno-0-307"></a>    <span class="k">def</span> <span class="nf">_compute_confusion_matrix</span><span class="p">(</span>
+<a id="__codelineno-0-307" name="__codelineno-0-307"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_compute_confusion_matrix</span><span class="p">(</span>
 <a id="__codelineno-0-308" name="__codelineno-0-308"></a>        <span class="n">sorted_matches</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
 <a id="__codelineno-0-309" name="__codelineno-0-309"></a>        <span class="n">sorted_prediction_class_ids</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
 <a id="__codelineno-0-310" name="__codelineno-0-310"></a>        <span class="n">unique_classes</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
@@ -3130,7 +3130,7 @@ confidence detection for each class.</p>
 <a id="__codelineno-0-365" name="__codelineno-0-365"></a>        <span class="k">return</span> <span class="n">confusion_matrix</span>
 <a id="__codelineno-0-366" name="__codelineno-0-366"></a>
 <a id="__codelineno-0-367" name="__codelineno-0-367"></a>    <span class="nd">@staticmethod</span>
-<a id="__codelineno-0-368" name="__codelineno-0-368"></a>    <span class="k">def</span> <span class="nf">_compute_recall</span><span class="p">(</span><span class="n">confusion_matrix</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a id="__codelineno-0-368" name="__codelineno-0-368"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_compute_recall</span><span class="p">(</span><span class="n">confusion_matrix</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <a id="__codelineno-0-369" name="__codelineno-0-369"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-370" name="__codelineno-0-370"></a><span class="sd">        Broadcastable function, computing the recall from the confusion matrix.</span>
 <a id="__codelineno-0-371" name="__codelineno-0-371"></a>
@@ -3154,7 +3154,7 @@ confidence detection for each class.</p>
 <a id="__codelineno-0-389" name="__codelineno-0-389"></a>
 <a id="__codelineno-0-390" name="__codelineno-0-390"></a>        <span class="k">return</span> <span class="n">recall</span>
 <a id="__codelineno-0-391" name="__codelineno-0-391"></a>
-<a id="__codelineno-0-392" name="__codelineno-0-392"></a>    <span class="k">def</span> <span class="nf">_detections_content</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a id="__codelineno-0-392" name="__codelineno-0-392"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_detections_content</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <a id="__codelineno-0-393" name="__codelineno-0-393"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Return boxes, masks or oriented bounding boxes from detections.&quot;&quot;&quot;</span>
 <a id="__codelineno-0-394" name="__codelineno-0-394"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metric_target</span> <span class="o">==</span> <span class="n">MetricTarget</span><span class="o">.</span><span class="n">BOXES</span><span class="p">:</span>
 <a id="__codelineno-0-395" name="__codelineno-0-395"></a>            <span class="k">return</span> <span class="n">detections</span><span class="o">.</span><span class="n">xyxy</span>
@@ -3171,7 +3171,7 @@ confidence detection for each class.</p>
 <a id="__codelineno-0-406" name="__codelineno-0-406"></a>            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_empty_content</span><span class="p">()</span>
 <a id="__codelineno-0-407" name="__codelineno-0-407"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid metric target: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_metric_target</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 <a id="__codelineno-0-408" name="__codelineno-0-408"></a>
-<a id="__codelineno-0-409" name="__codelineno-0-409"></a>    <span class="k">def</span> <span class="nf">_make_empty_content</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a id="__codelineno-0-409" name="__codelineno-0-409"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_make_empty_content</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <a id="__codelineno-0-410" name="__codelineno-0-410"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metric_target</span> <span class="o">==</span> <span class="n">MetricTarget</span><span class="o">.</span><span class="n">BOXES</span><span class="p">:</span>
 <a id="__codelineno-0-411" name="__codelineno-0-411"></a>            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
 <a id="__codelineno-0-412" name="__codelineno-0-412"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metric_target</span> <span class="o">==</span> <span class="n">MetricTarget</span><span class="o">.</span><span class="n">MASKS</span><span class="p">:</span>
@@ -3180,7 +3180,7 @@ confidence detection for each class.</p>
 <a id="__codelineno-0-415" name="__codelineno-0-415"></a>            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
 <a id="__codelineno-0-416" name="__codelineno-0-416"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid metric target: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_metric_target</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 <a id="__codelineno-0-417" name="__codelineno-0-417"></a>
-<a id="__codelineno-0-418" name="__codelineno-0-418"></a>    <span class="k">def</span> <span class="nf">_filter_detections_by_size</span><span class="p">(</span>
+<a id="__codelineno-0-418" name="__codelineno-0-418"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_filter_detections_by_size</span><span class="p">(</span>
 <a id="__codelineno-0-419" name="__codelineno-0-419"></a>        <span class="bp">self</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">,</span> <span class="n">size_category</span><span class="p">:</span> <span class="n">ObjectSizeCategory</span>
 <a id="__codelineno-0-420" name="__codelineno-0-420"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-421" name="__codelineno-0-421"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a copy of detections with contents filtered by object size.&quot;&quot;&quot;</span>
@@ -3206,7 +3206,7 @@ confidence detection for each class.</p>
 <a id="__codelineno-0-441" name="__codelineno-0-441"></a>
 <a id="__codelineno-0-442" name="__codelineno-0-442"></a>        <span class="k">return</span> <span class="n">new_detections</span>
 <a id="__codelineno-0-443" name="__codelineno-0-443"></a>
-<a id="__codelineno-0-444" name="__codelineno-0-444"></a>    <span class="k">def</span> <span class="nf">_filter_predictions_and_targets_by_size</span><span class="p">(</span>
+<a id="__codelineno-0-444" name="__codelineno-0-444"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_filter_predictions_and_targets_by_size</span><span class="p">(</span>
 <a id="__codelineno-0-445" name="__codelineno-0-445"></a>        <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-446" name="__codelineno-0-446"></a>        <span class="n">predictions_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Detections</span><span class="p">],</span>
 <a id="__codelineno-0-447" name="__codelineno-0-447"></a>        <span class="n">targets_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Detections</span><span class="p">],</span>
@@ -3296,7 +3296,7 @@ confidence detection for each class.</p>
 <span class="normal"><a href="#__codelineno-0-90">90</a></span>
 <span class="normal"><a href="#__codelineno-0-91">91</a></span>
 <span class="normal"><a href="#__codelineno-0-92">92</a></span>
-<span class="normal"><a href="#__codelineno-0-93">93</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-78" name="__codelineno-0-78"></a><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<span class="normal"><a href="#__codelineno-0-93">93</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-78" name="__codelineno-0-78"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
 <a id="__codelineno-0-79" name="__codelineno-0-79"></a>    <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-80" name="__codelineno-0-80"></a>    <span class="n">metric_target</span><span class="p">:</span> <span class="n">MetricTarget</span> <span class="o">=</span> <span class="n">MetricTarget</span><span class="o">.</span><span class="n">BOXES</span><span class="p">,</span>
 <a id="__codelineno-0-81" name="__codelineno-0-81"></a><span class="p">):</span>
@@ -3384,7 +3384,7 @@ and ground-truth, at different IoU thresholds and maximum detection counts.</p>
 <span class="normal"><a href="#__codelineno-0-157">157</a></span>
 <span class="normal"><a href="#__codelineno-0-158">158</a></span>
 <span class="normal"><a href="#__codelineno-0-159">159</a></span>
-<span class="normal"><a href="#__codelineno-0-160">160</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-133" name="__codelineno-0-133"></a><span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MeanAverageRecallResult</span><span class="p">:</span>
+<span class="normal"><a href="#__codelineno-0-160">160</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-133" name="__codelineno-0-133"></a><span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MeanAverageRecallResult</span><span class="p">:</span>
 <a id="__codelineno-0-134" name="__codelineno-0-134"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-135" name="__codelineno-0-135"></a><span class="sd">    Calculate the Mean Average Recall metric based on the stored predictions</span>
 <a id="__codelineno-0-136" name="__codelineno-0-136"></a><span class="sd">    and ground-truth, at different IoU thresholds and maximum detection counts.</span>
@@ -3438,7 +3438,7 @@ and ground-truth, at different IoU thresholds and maximum detection counts.</p>
 <span class="normal"><a href="#__codelineno-0-97"> 97</a></span>
 <span class="normal"><a href="#__codelineno-0-98"> 98</a></span>
 <span class="normal"><a href="#__codelineno-0-99"> 99</a></span>
-<span class="normal"><a href="#__codelineno-0-100">100</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-95" name="__codelineno-0-95"></a><span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="normal"><a href="#__codelineno-0-100">100</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-95" name="__codelineno-0-95"></a><span class="k">def</span><span class="w"> </span><span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <a id="__codelineno-0-96" name="__codelineno-0-96"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-97" name="__codelineno-0-97"></a><span class="sd">    Reset the metric to its initial state, clearing all stored data.</span>
 <a id="__codelineno-0-98" name="__codelineno-0-98"></a><span class="sd">    &quot;&quot;&quot;</span>
@@ -3560,7 +3560,7 @@ and ground-truth, at different IoU thresholds and maximum detection counts.</p>
 <span class="normal"><a href="#__codelineno-0-128">128</a></span>
 <span class="normal"><a href="#__codelineno-0-129">129</a></span>
 <span class="normal"><a href="#__codelineno-0-130">130</a></span>
-<span class="normal"><a href="#__codelineno-0-131">131</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-102" name="__codelineno-0-102"></a><span class="k">def</span> <span class="nf">update</span><span class="p">(</span>
+<span class="normal"><a href="#__codelineno-0-131">131</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-102" name="__codelineno-0-102"></a><span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span>
 <a id="__codelineno-0-103" name="__codelineno-0-103"></a>    <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-104" name="__codelineno-0-104"></a>    <span class="n">predictions</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Detections</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Detections</span><span class="p">]],</span>
 <a id="__codelineno-0-105" name="__codelineno-0-105"></a>    <span class="n">targets</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Detections</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Detections</span><span class="p">]],</span>
@@ -4002,7 +4002,7 @@ metric results for large objects (area ≥ 96²).</p>
 <span class="normal"><a href="#__codelineno-0-695">695</a></span>
 <span class="normal"><a href="#__codelineno-0-696">696</a></span>
 <span class="normal"><a href="#__codelineno-0-697">697</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-462" name="__codelineno-0-462"></a><span class="nd">@dataclass</span>
-<a id="__codelineno-0-463" name="__codelineno-0-463"></a><span class="k">class</span> <span class="nc">MeanAverageRecallResult</span><span class="p">:</span>
+<a id="__codelineno-0-463" name="__codelineno-0-463"></a><span class="k">class</span><span class="w"> </span><span class="nc">MeanAverageRecallResult</span><span class="p">:</span>
 <a id="__codelineno-0-464" name="__codelineno-0-464"></a>    <span class="c1"># &quot;&quot;&quot;</span>
 <a id="__codelineno-0-465" name="__codelineno-0-465"></a>    <span class="c1"># The results of the recall metric calculation.</span>
 <a id="__codelineno-0-466" name="__codelineno-0-466"></a>
@@ -4061,15 +4061,15 @@ metric results for large objects (area ≥ 96²).</p>
 <a id="__codelineno-0-519" name="__codelineno-0-519"></a>    <span class="n">metric_target</span><span class="p">:</span> <span class="n">MetricTarget</span>
 <a id="__codelineno-0-520" name="__codelineno-0-520"></a>
 <a id="__codelineno-0-521" name="__codelineno-0-521"></a>    <span class="nd">@property</span>
-<a id="__codelineno-0-522" name="__codelineno-0-522"></a>    <span class="k">def</span> <span class="nf">mAR_at_1</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<a id="__codelineno-0-522" name="__codelineno-0-522"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">mAR_at_1</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <a id="__codelineno-0-523" name="__codelineno-0-523"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">recall_scores</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 <a id="__codelineno-0-524" name="__codelineno-0-524"></a>
 <a id="__codelineno-0-525" name="__codelineno-0-525"></a>    <span class="nd">@property</span>
-<a id="__codelineno-0-526" name="__codelineno-0-526"></a>    <span class="k">def</span> <span class="nf">mAR_at_10</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<a id="__codelineno-0-526" name="__codelineno-0-526"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">mAR_at_10</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <a id="__codelineno-0-527" name="__codelineno-0-527"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">recall_scores</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
 <a id="__codelineno-0-528" name="__codelineno-0-528"></a>
 <a id="__codelineno-0-529" name="__codelineno-0-529"></a>    <span class="nd">@property</span>
-<a id="__codelineno-0-530" name="__codelineno-0-530"></a>    <span class="k">def</span> <span class="nf">mAR_at_100</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<a id="__codelineno-0-530" name="__codelineno-0-530"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">mAR_at_100</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <a id="__codelineno-0-531" name="__codelineno-0-531"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">recall_scores</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
 <a id="__codelineno-0-532" name="__codelineno-0-532"></a>
 <a id="__codelineno-0-533" name="__codelineno-0-533"></a>    <span class="n">recall_scores</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
@@ -4082,7 +4082,7 @@ metric results for large objects (area ≥ 96²).</p>
 <a id="__codelineno-0-540" name="__codelineno-0-540"></a>    <span class="n">medium_objects</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">MeanAverageRecallResult</span><span class="p">]</span>
 <a id="__codelineno-0-541" name="__codelineno-0-541"></a>    <span class="n">large_objects</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">MeanAverageRecallResult</span><span class="p">]</span>
 <a id="__codelineno-0-542" name="__codelineno-0-542"></a>
-<a id="__codelineno-0-543" name="__codelineno-0-543"></a>    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<a id="__codelineno-0-543" name="__codelineno-0-543"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <a id="__codelineno-0-544" name="__codelineno-0-544"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-545" name="__codelineno-0-545"></a><span class="sd">        Format as a pretty string.</span>
 <a id="__codelineno-0-546" name="__codelineno-0-546"></a>
@@ -4133,7 +4133,7 @@ metric results for large objects (area ≥ 96²).</p>
 <a id="__codelineno-0-591" name="__codelineno-0-591"></a>
 <a id="__codelineno-0-592" name="__codelineno-0-592"></a>        <span class="k">return</span> <span class="n">out_str</span>
 <a id="__codelineno-0-593" name="__codelineno-0-593"></a>
-<a id="__codelineno-0-594" name="__codelineno-0-594"></a>    <span class="k">def</span> <span class="nf">to_pandas</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;pd.DataFrame&quot;</span><span class="p">:</span>
+<a id="__codelineno-0-594" name="__codelineno-0-594"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">to_pandas</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;pd.DataFrame&quot;</span><span class="p">:</span>
 <a id="__codelineno-0-595" name="__codelineno-0-595"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-596" name="__codelineno-0-596"></a><span class="sd">        Convert the result to a pandas DataFrame.</span>
 <a id="__codelineno-0-597" name="__codelineno-0-597"></a>
@@ -4141,7 +4141,7 @@ metric results for large objects (area ≥ 96²).</p>
 <a id="__codelineno-0-599" name="__codelineno-0-599"></a><span class="sd">            (pd.DataFrame): The result as a DataFrame.</span>
 <a id="__codelineno-0-600" name="__codelineno-0-600"></a><span class="sd">        &quot;&quot;&quot;</span>
 <a id="__codelineno-0-601" name="__codelineno-0-601"></a>        <span class="n">ensure_pandas_installed</span><span class="p">()</span>
-<a id="__codelineno-0-602" name="__codelineno-0-602"></a>        <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<a id="__codelineno-0-602" name="__codelineno-0-602"></a>        <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 <a id="__codelineno-0-603" name="__codelineno-0-603"></a>
 <a id="__codelineno-0-604" name="__codelineno-0-604"></a>        <span class="n">pandas_data</span> <span class="o">=</span> <span class="p">{</span>
 <a id="__codelineno-0-605" name="__codelineno-0-605"></a>            <span class="s2">&quot;mAR @ 1&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">mAR_at_1</span><span class="p">,</span>
@@ -4164,7 +4164,7 @@ metric results for large objects (area ≥ 96²).</p>
 <a id="__codelineno-0-622" name="__codelineno-0-622"></a>
 <a id="__codelineno-0-623" name="__codelineno-0-623"></a>        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">pandas_data</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 <a id="__codelineno-0-624" name="__codelineno-0-624"></a>
-<a id="__codelineno-0-625" name="__codelineno-0-625"></a>    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-0-625" name="__codelineno-0-625"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <a id="__codelineno-0-626" name="__codelineno-0-626"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-627" name="__codelineno-0-627"></a><span class="sd">        Plot the Mean Average Recall results.</span>
 <a id="__codelineno-0-628" name="__codelineno-0-628"></a>
@@ -4334,7 +4334,7 @@ metric results for large objects (area ≥ 96²).</p>
 <span class="normal"><a href="#__codelineno-0-589">589</a></span>
 <span class="normal"><a href="#__codelineno-0-590">590</a></span>
 <span class="normal"><a href="#__codelineno-0-591">591</a></span>
-<span class="normal"><a href="#__codelineno-0-592">592</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-543" name="__codelineno-0-543"></a><span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="normal"><a href="#__codelineno-0-592">592</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-543" name="__codelineno-0-543"></a><span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <a id="__codelineno-0-544" name="__codelineno-0-544"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-545" name="__codelineno-0-545"></a><span class="sd">    Format as a pretty string.</span>
 <a id="__codelineno-0-546" name="__codelineno-0-546"></a>
@@ -4478,7 +4478,7 @@ metric results for large objects (area ≥ 96²).</p>
 <span class="normal"><a href="#__codelineno-0-694">694</a></span>
 <span class="normal"><a href="#__codelineno-0-695">695</a></span>
 <span class="normal"><a href="#__codelineno-0-696">696</a></span>
-<span class="normal"><a href="#__codelineno-0-697">697</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-625" name="__codelineno-0-625"></a><span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal"><a href="#__codelineno-0-697">697</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-625" name="__codelineno-0-625"></a><span class="k">def</span><span class="w"> </span><span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <a id="__codelineno-0-626" name="__codelineno-0-626"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-627" name="__codelineno-0-627"></a><span class="sd">    Plot the Mean Average Recall results.</span>
 <a id="__codelineno-0-628" name="__codelineno-0-628"></a>
@@ -4624,7 +4624,7 @@ metric results for large objects (area ≥ 96²).</p>
 <span class="normal"><a href="#__codelineno-0-620">620</a></span>
 <span class="normal"><a href="#__codelineno-0-621">621</a></span>
 <span class="normal"><a href="#__codelineno-0-622">622</a></span>
-<span class="normal"><a href="#__codelineno-0-623">623</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-594" name="__codelineno-0-594"></a><span class="k">def</span> <span class="nf">to_pandas</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;pd.DataFrame&quot;</span><span class="p">:</span>
+<span class="normal"><a href="#__codelineno-0-623">623</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-594" name="__codelineno-0-594"></a><span class="k">def</span><span class="w"> </span><span class="nf">to_pandas</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;pd.DataFrame&quot;</span><span class="p">:</span>
 <a id="__codelineno-0-595" name="__codelineno-0-595"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-596" name="__codelineno-0-596"></a><span class="sd">    Convert the result to a pandas DataFrame.</span>
 <a id="__codelineno-0-597" name="__codelineno-0-597"></a>
@@ -4632,7 +4632,7 @@ metric results for large objects (area ≥ 96²).</p>
 <a id="__codelineno-0-599" name="__codelineno-0-599"></a><span class="sd">        (pd.DataFrame): The result as a DataFrame.</span>
 <a id="__codelineno-0-600" name="__codelineno-0-600"></a><span class="sd">    &quot;&quot;&quot;</span>
 <a id="__codelineno-0-601" name="__codelineno-0-601"></a>    <span class="n">ensure_pandas_installed</span><span class="p">()</span>
-<a id="__codelineno-0-602" name="__codelineno-0-602"></a>    <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<a id="__codelineno-0-602" name="__codelineno-0-602"></a>    <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 <a id="__codelineno-0-603" name="__codelineno-0-603"></a>
 <a id="__codelineno-0-604" name="__codelineno-0-604"></a>    <span class="n">pandas_data</span> <span class="o">=</span> <span class="p">{</span>
 <a id="__codelineno-0-605" name="__codelineno-0-605"></a>        <span class="s2">&quot;mAR @ 1&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">mAR_at_1</span><span class="p">,</span>
@@ -4909,7 +4909,7 @@ metric results for large objects (area ≥ 96²).</p>
     <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.tracking", "content.code.copy", "content.action.edit", "content.tooltips", "content.code.annotate", "navigation.tabs"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.83f73b43.min.js"></script>
+      <script src="../../assets/javascripts/bundle.88dd0f4e.min.js"></script>
       
         <script src="../../javascripts/init_kapa_widget.js"></script>
       

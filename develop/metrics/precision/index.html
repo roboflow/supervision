@@ -22,7 +22,7 @@
       
       
       <link rel="icon" href="../../assets/supervision-lenny.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.48">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.49">
     
     
       
@@ -2327,8 +2327,8 @@ number of false positive detections (detected, but incorrectly).</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span> <span class="nn">supervision.metrics</span> <span class="kn">import</span> <span class="n">Precision</span>
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">supervision.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">Precision</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">predictions</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">targets</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
@@ -2788,7 +2788,7 @@ number of false positive detections (detected, but incorrectly).</p>
 <span class="normal"><a href="#__codelineno-0-454">454</a></span>
 <span class="normal"><a href="#__codelineno-0-455">455</a></span>
 <span class="normal"><a href="#__codelineno-0-456">456</a></span>
-<span class="normal"><a href="#__codelineno-0-457">457</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-29" name="__codelineno-0-29"></a><span class="k">class</span> <span class="nc">Precision</span><span class="p">(</span><span class="n">Metric</span><span class="p">):</span>
+<span class="normal"><a href="#__codelineno-0-457">457</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-29" name="__codelineno-0-29"></a><span class="k">class</span><span class="w"> </span><span class="nc">Precision</span><span class="p">(</span><span class="n">Metric</span><span class="p">):</span>
 <a id="__codelineno-0-30" name="__codelineno-0-30"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-31" name="__codelineno-0-31"></a><span class="sd">    Precision is a metric used to evaluate object detection models. It is the ratio of</span>
 <a id="__codelineno-0-32" name="__codelineno-0-32"></a><span class="sd">    true positive detections to the total number of predicted detections. We calculate</span>
@@ -2838,7 +2838,7 @@ number of false positive detections (detected, but incorrectly).</p>
 <a id="__codelineno-0-76" name="__codelineno-0-76"></a><span class="sd">        ){ align=center width=&quot;800&quot; }</span>
 <a id="__codelineno-0-77" name="__codelineno-0-77"></a><span class="sd">    &quot;&quot;&quot;</span>
 <a id="__codelineno-0-78" name="__codelineno-0-78"></a>
-<a id="__codelineno-0-79" name="__codelineno-0-79"></a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<a id="__codelineno-0-79" name="__codelineno-0-79"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
 <a id="__codelineno-0-80" name="__codelineno-0-80"></a>        <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-81" name="__codelineno-0-81"></a>        <span class="n">metric_target</span><span class="p">:</span> <span class="n">MetricTarget</span> <span class="o">=</span> <span class="n">MetricTarget</span><span class="o">.</span><span class="n">BOXES</span><span class="p">,</span>
 <a id="__codelineno-0-82" name="__codelineno-0-82"></a>        <span class="n">averaging_method</span><span class="p">:</span> <span class="n">AveragingMethod</span> <span class="o">=</span> <span class="n">AveragingMethod</span><span class="o">.</span><span class="n">WEIGHTED</span><span class="p">,</span>
@@ -2857,14 +2857,14 @@ number of false positive detections (detected, but incorrectly).</p>
 <a id="__codelineno-0-95" name="__codelineno-0-95"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_predictions_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Detections</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
 <a id="__codelineno-0-96" name="__codelineno-0-96"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_targets_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Detections</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
 <a id="__codelineno-0-97" name="__codelineno-0-97"></a>
-<a id="__codelineno-0-98" name="__codelineno-0-98"></a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-98" name="__codelineno-0-98"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <a id="__codelineno-0-99" name="__codelineno-0-99"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-100" name="__codelineno-0-100"></a><span class="sd">        Reset the metric to its initial state, clearing all stored data.</span>
 <a id="__codelineno-0-101" name="__codelineno-0-101"></a><span class="sd">        &quot;&quot;&quot;</span>
 <a id="__codelineno-0-102" name="__codelineno-0-102"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_predictions_list</span> <span class="o">=</span> <span class="p">[]</span>
 <a id="__codelineno-0-103" name="__codelineno-0-103"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_targets_list</span> <span class="o">=</span> <span class="p">[]</span>
 <a id="__codelineno-0-104" name="__codelineno-0-104"></a>
-<a id="__codelineno-0-105" name="__codelineno-0-105"></a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span>
+<a id="__codelineno-0-105" name="__codelineno-0-105"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span>
 <a id="__codelineno-0-106" name="__codelineno-0-106"></a>        <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-107" name="__codelineno-0-107"></a>        <span class="n">predictions</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Detections</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Detections</span><span class="p">]],</span>
 <a id="__codelineno-0-108" name="__codelineno-0-108"></a>        <span class="n">targets</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Detections</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Detections</span><span class="p">]],</span>
@@ -2895,7 +2895,7 @@ number of false positive detections (detected, but incorrectly).</p>
 <a id="__codelineno-0-133" name="__codelineno-0-133"></a>
 <a id="__codelineno-0-134" name="__codelineno-0-134"></a>        <span class="k">return</span> <span class="bp">self</span>
 <a id="__codelineno-0-135" name="__codelineno-0-135"></a>
-<a id="__codelineno-0-136" name="__codelineno-0-136"></a>    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PrecisionResult</span><span class="p">:</span>
+<a id="__codelineno-0-136" name="__codelineno-0-136"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PrecisionResult</span><span class="p">:</span>
 <a id="__codelineno-0-137" name="__codelineno-0-137"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-138" name="__codelineno-0-138"></a><span class="sd">        Calculate the precision metric based on the stored predictions and ground-truth</span>
 <a id="__codelineno-0-139" name="__codelineno-0-139"></a><span class="sd">        data, at different IoU thresholds.</span>
@@ -2924,7 +2924,7 @@ number of false positive detections (detected, but incorrectly).</p>
 <a id="__codelineno-0-162" name="__codelineno-0-162"></a>
 <a id="__codelineno-0-163" name="__codelineno-0-163"></a>        <span class="k">return</span> <span class="n">result</span>
 <a id="__codelineno-0-164" name="__codelineno-0-164"></a>
-<a id="__codelineno-0-165" name="__codelineno-0-165"></a>    <span class="k">def</span> <span class="nf">_compute</span><span class="p">(</span>
+<a id="__codelineno-0-165" name="__codelineno-0-165"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_compute</span><span class="p">(</span>
 <a id="__codelineno-0-166" name="__codelineno-0-166"></a>        <span class="bp">self</span><span class="p">,</span> <span class="n">predictions_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Detections</span><span class="p">],</span> <span class="n">targets_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Detections</span><span class="p">]</span>
 <a id="__codelineno-0-167" name="__codelineno-0-167"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PrecisionResult</span><span class="p">:</span>
 <a id="__codelineno-0-168" name="__codelineno-0-168"></a>        <span class="n">iou_thresholds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.95</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
@@ -3001,7 +3001,7 @@ number of false positive detections (detected, but incorrectly).</p>
 <a id="__codelineno-0-239" name="__codelineno-0-239"></a>            <span class="n">large_objects</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <a id="__codelineno-0-240" name="__codelineno-0-240"></a>        <span class="p">)</span>
 <a id="__codelineno-0-241" name="__codelineno-0-241"></a>
-<a id="__codelineno-0-242" name="__codelineno-0-242"></a>    <span class="k">def</span> <span class="nf">_compute_precision_for_classes</span><span class="p">(</span>
+<a id="__codelineno-0-242" name="__codelineno-0-242"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_compute_precision_for_classes</span><span class="p">(</span>
 <a id="__codelineno-0-243" name="__codelineno-0-243"></a>        <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-244" name="__codelineno-0-244"></a>        <span class="n">matches</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
 <a id="__codelineno-0-245" name="__codelineno-0-245"></a>        <span class="n">prediction_confidence</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
@@ -3036,7 +3036,7 @@ number of false positive detections (detected, but incorrectly).</p>
 <a id="__codelineno-0-274" name="__codelineno-0-274"></a>        <span class="k">return</span> <span class="n">precision_scores</span><span class="p">,</span> <span class="n">precision_per_class</span><span class="p">,</span> <span class="n">unique_classes</span>
 <a id="__codelineno-0-275" name="__codelineno-0-275"></a>
 <a id="__codelineno-0-276" name="__codelineno-0-276"></a>    <span class="nd">@staticmethod</span>
-<a id="__codelineno-0-277" name="__codelineno-0-277"></a>    <span class="k">def</span> <span class="nf">_match_detection_batch</span><span class="p">(</span>
+<a id="__codelineno-0-277" name="__codelineno-0-277"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_match_detection_batch</span><span class="p">(</span>
 <a id="__codelineno-0-278" name="__codelineno-0-278"></a>        <span class="n">predictions_classes</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
 <a id="__codelineno-0-279" name="__codelineno-0-279"></a>        <span class="n">target_classes</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
 <a id="__codelineno-0-280" name="__codelineno-0-280"></a>        <span class="n">iou</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
@@ -3067,7 +3067,7 @@ number of false positive detections (detected, but incorrectly).</p>
 <a id="__codelineno-0-305" name="__codelineno-0-305"></a>        <span class="k">return</span> <span class="n">correct</span>
 <a id="__codelineno-0-306" name="__codelineno-0-306"></a>
 <a id="__codelineno-0-307" name="__codelineno-0-307"></a>    <span class="nd">@staticmethod</span>
-<a id="__codelineno-0-308" name="__codelineno-0-308"></a>    <span class="k">def</span> <span class="nf">_compute_confusion_matrix</span><span class="p">(</span>
+<a id="__codelineno-0-308" name="__codelineno-0-308"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_compute_confusion_matrix</span><span class="p">(</span>
 <a id="__codelineno-0-309" name="__codelineno-0-309"></a>        <span class="n">sorted_matches</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
 <a id="__codelineno-0-310" name="__codelineno-0-310"></a>        <span class="n">sorted_prediction_class_ids</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
 <a id="__codelineno-0-311" name="__codelineno-0-311"></a>        <span class="n">unique_classes</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
@@ -3122,7 +3122,7 @@ number of false positive detections (detected, but incorrectly).</p>
 <a id="__codelineno-0-360" name="__codelineno-0-360"></a>        <span class="k">return</span> <span class="n">confusion_matrix</span>
 <a id="__codelineno-0-361" name="__codelineno-0-361"></a>
 <a id="__codelineno-0-362" name="__codelineno-0-362"></a>    <span class="nd">@staticmethod</span>
-<a id="__codelineno-0-363" name="__codelineno-0-363"></a>    <span class="k">def</span> <span class="nf">_compute_precision</span><span class="p">(</span><span class="n">confusion_matrix</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a id="__codelineno-0-363" name="__codelineno-0-363"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_compute_precision</span><span class="p">(</span><span class="n">confusion_matrix</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <a id="__codelineno-0-364" name="__codelineno-0-364"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-365" name="__codelineno-0-365"></a><span class="sd">        Broadcastable function, computing the precision from the confusion matrix.</span>
 <a id="__codelineno-0-366" name="__codelineno-0-366"></a>
@@ -3146,7 +3146,7 @@ number of false positive detections (detected, but incorrectly).</p>
 <a id="__codelineno-0-384" name="__codelineno-0-384"></a>
 <a id="__codelineno-0-385" name="__codelineno-0-385"></a>        <span class="k">return</span> <span class="n">precision</span>
 <a id="__codelineno-0-386" name="__codelineno-0-386"></a>
-<a id="__codelineno-0-387" name="__codelineno-0-387"></a>    <span class="k">def</span> <span class="nf">_detections_content</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a id="__codelineno-0-387" name="__codelineno-0-387"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_detections_content</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <a id="__codelineno-0-388" name="__codelineno-0-388"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Return boxes, masks or oriented bounding boxes from detections.&quot;&quot;&quot;</span>
 <a id="__codelineno-0-389" name="__codelineno-0-389"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metric_target</span> <span class="o">==</span> <span class="n">MetricTarget</span><span class="o">.</span><span class="n">BOXES</span><span class="p">:</span>
 <a id="__codelineno-0-390" name="__codelineno-0-390"></a>            <span class="k">return</span> <span class="n">detections</span><span class="o">.</span><span class="n">xyxy</span>
@@ -3163,7 +3163,7 @@ number of false positive detections (detected, but incorrectly).</p>
 <a id="__codelineno-0-401" name="__codelineno-0-401"></a>            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_empty_content</span><span class="p">()</span>
 <a id="__codelineno-0-402" name="__codelineno-0-402"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid metric target: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_metric_target</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 <a id="__codelineno-0-403" name="__codelineno-0-403"></a>
-<a id="__codelineno-0-404" name="__codelineno-0-404"></a>    <span class="k">def</span> <span class="nf">_make_empty_content</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a id="__codelineno-0-404" name="__codelineno-0-404"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_make_empty_content</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <a id="__codelineno-0-405" name="__codelineno-0-405"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metric_target</span> <span class="o">==</span> <span class="n">MetricTarget</span><span class="o">.</span><span class="n">BOXES</span><span class="p">:</span>
 <a id="__codelineno-0-406" name="__codelineno-0-406"></a>            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
 <a id="__codelineno-0-407" name="__codelineno-0-407"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metric_target</span> <span class="o">==</span> <span class="n">MetricTarget</span><span class="o">.</span><span class="n">MASKS</span><span class="p">:</span>
@@ -3172,7 +3172,7 @@ number of false positive detections (detected, but incorrectly).</p>
 <a id="__codelineno-0-410" name="__codelineno-0-410"></a>            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
 <a id="__codelineno-0-411" name="__codelineno-0-411"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid metric target: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_metric_target</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 <a id="__codelineno-0-412" name="__codelineno-0-412"></a>
-<a id="__codelineno-0-413" name="__codelineno-0-413"></a>    <span class="k">def</span> <span class="nf">_filter_detections_by_size</span><span class="p">(</span>
+<a id="__codelineno-0-413" name="__codelineno-0-413"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_filter_detections_by_size</span><span class="p">(</span>
 <a id="__codelineno-0-414" name="__codelineno-0-414"></a>        <span class="bp">self</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">,</span> <span class="n">size_category</span><span class="p">:</span> <span class="n">ObjectSizeCategory</span>
 <a id="__codelineno-0-415" name="__codelineno-0-415"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-416" name="__codelineno-0-416"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a copy of detections with contents filtered by object size.&quot;&quot;&quot;</span>
@@ -3198,7 +3198,7 @@ number of false positive detections (detected, but incorrectly).</p>
 <a id="__codelineno-0-436" name="__codelineno-0-436"></a>
 <a id="__codelineno-0-437" name="__codelineno-0-437"></a>        <span class="k">return</span> <span class="n">new_detections</span>
 <a id="__codelineno-0-438" name="__codelineno-0-438"></a>
-<a id="__codelineno-0-439" name="__codelineno-0-439"></a>    <span class="k">def</span> <span class="nf">_filter_predictions_and_targets_by_size</span><span class="p">(</span>
+<a id="__codelineno-0-439" name="__codelineno-0-439"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_filter_predictions_and_targets_by_size</span><span class="p">(</span>
 <a id="__codelineno-0-440" name="__codelineno-0-440"></a>        <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-441" name="__codelineno-0-441"></a>        <span class="n">predictions_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Detections</span><span class="p">],</span>
 <a id="__codelineno-0-442" name="__codelineno-0-442"></a>        <span class="n">targets_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Detections</span><span class="p">],</span>
@@ -3308,7 +3308,7 @@ precision. Determines how the precision is aggregated across classes.</p>
 <span class="normal"><a href="#__codelineno-0-93">93</a></span>
 <span class="normal"><a href="#__codelineno-0-94">94</a></span>
 <span class="normal"><a href="#__codelineno-0-95">95</a></span>
-<span class="normal"><a href="#__codelineno-0-96">96</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-79" name="__codelineno-0-79"></a><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<span class="normal"><a href="#__codelineno-0-96">96</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-79" name="__codelineno-0-79"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
 <a id="__codelineno-0-80" name="__codelineno-0-80"></a>    <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-81" name="__codelineno-0-81"></a>    <span class="n">metric_target</span><span class="p">:</span> <span class="n">MetricTarget</span> <span class="o">=</span> <span class="n">MetricTarget</span><span class="o">.</span><span class="n">BOXES</span><span class="p">,</span>
 <a id="__codelineno-0-82" name="__codelineno-0-82"></a>    <span class="n">averaging_method</span><span class="p">:</span> <span class="n">AveragingMethod</span> <span class="o">=</span> <span class="n">AveragingMethod</span><span class="o">.</span><span class="n">WEIGHTED</span><span class="p">,</span>
@@ -3398,7 +3398,7 @@ data, at different IoU thresholds.</p>
 <span class="normal"><a href="#__codelineno-0-160">160</a></span>
 <span class="normal"><a href="#__codelineno-0-161">161</a></span>
 <span class="normal"><a href="#__codelineno-0-162">162</a></span>
-<span class="normal"><a href="#__codelineno-0-163">163</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-136" name="__codelineno-0-136"></a><span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PrecisionResult</span><span class="p">:</span>
+<span class="normal"><a href="#__codelineno-0-163">163</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-136" name="__codelineno-0-136"></a><span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PrecisionResult</span><span class="p">:</span>
 <a id="__codelineno-0-137" name="__codelineno-0-137"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-138" name="__codelineno-0-138"></a><span class="sd">    Calculate the precision metric based on the stored predictions and ground-truth</span>
 <a id="__codelineno-0-139" name="__codelineno-0-139"></a><span class="sd">    data, at different IoU thresholds.</span>
@@ -3452,7 +3452,7 @@ data, at different IoU thresholds.</p>
 <span class="normal"><a href="#__codelineno-0-100">100</a></span>
 <span class="normal"><a href="#__codelineno-0-101">101</a></span>
 <span class="normal"><a href="#__codelineno-0-102">102</a></span>
-<span class="normal"><a href="#__codelineno-0-103">103</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-98" name="__codelineno-0-98"></a><span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="normal"><a href="#__codelineno-0-103">103</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-98" name="__codelineno-0-98"></a><span class="k">def</span><span class="w"> </span><span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <a id="__codelineno-0-99" name="__codelineno-0-99"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-100" name="__codelineno-0-100"></a><span class="sd">    Reset the metric to its initial state, clearing all stored data.</span>
 <a id="__codelineno-0-101" name="__codelineno-0-101"></a><span class="sd">    &quot;&quot;&quot;</span>
@@ -3574,7 +3574,7 @@ data, at different IoU thresholds.</p>
 <span class="normal"><a href="#__codelineno-0-131">131</a></span>
 <span class="normal"><a href="#__codelineno-0-132">132</a></span>
 <span class="normal"><a href="#__codelineno-0-133">133</a></span>
-<span class="normal"><a href="#__codelineno-0-134">134</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-105" name="__codelineno-0-105"></a><span class="k">def</span> <span class="nf">update</span><span class="p">(</span>
+<span class="normal"><a href="#__codelineno-0-134">134</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-105" name="__codelineno-0-105"></a><span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span>
 <a id="__codelineno-0-106" name="__codelineno-0-106"></a>    <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-107" name="__codelineno-0-107"></a>    <span class="n">predictions</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Detections</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Detections</span><span class="p">]],</span>
 <a id="__codelineno-0-108" name="__codelineno-0-108"></a>    <span class="n">targets</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Detections</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Detections</span><span class="p">]],</span>
@@ -3972,7 +3972,7 @@ for large objects (area ≥ 96²).</p>
 <span class="normal"><a href="#__codelineno-0-651">651</a></span>
 <span class="normal"><a href="#__codelineno-0-652">652</a></span>
 <span class="normal"><a href="#__codelineno-0-653">653</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-460" name="__codelineno-0-460"></a><span class="nd">@dataclass</span>
-<a id="__codelineno-0-461" name="__codelineno-0-461"></a><span class="k">class</span> <span class="nc">PrecisionResult</span><span class="p">:</span>
+<a id="__codelineno-0-461" name="__codelineno-0-461"></a><span class="k">class</span><span class="w"> </span><span class="nc">PrecisionResult</span><span class="p">:</span>
 <a id="__codelineno-0-462" name="__codelineno-0-462"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-463" name="__codelineno-0-463"></a><span class="sd">    The results of the precision metric calculation.</span>
 <a id="__codelineno-0-464" name="__codelineno-0-464"></a>
@@ -4004,11 +4004,11 @@ for large objects (area ≥ 96²).</p>
 <a id="__codelineno-0-490" name="__codelineno-0-490"></a>    <span class="n">averaging_method</span><span class="p">:</span> <span class="n">AveragingMethod</span>
 <a id="__codelineno-0-491" name="__codelineno-0-491"></a>
 <a id="__codelineno-0-492" name="__codelineno-0-492"></a>    <span class="nd">@property</span>
-<a id="__codelineno-0-493" name="__codelineno-0-493"></a>    <span class="k">def</span> <span class="nf">precision_at_50</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<a id="__codelineno-0-493" name="__codelineno-0-493"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">precision_at_50</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <a id="__codelineno-0-494" name="__codelineno-0-494"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">precision_scores</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 <a id="__codelineno-0-495" name="__codelineno-0-495"></a>
 <a id="__codelineno-0-496" name="__codelineno-0-496"></a>    <span class="nd">@property</span>
-<a id="__codelineno-0-497" name="__codelineno-0-497"></a>    <span class="k">def</span> <span class="nf">precision_at_75</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<a id="__codelineno-0-497" name="__codelineno-0-497"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">precision_at_75</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <a id="__codelineno-0-498" name="__codelineno-0-498"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">precision_scores</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
 <a id="__codelineno-0-499" name="__codelineno-0-499"></a>
 <a id="__codelineno-0-500" name="__codelineno-0-500"></a>    <span class="n">precision_scores</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
@@ -4020,7 +4020,7 @@ for large objects (area ≥ 96²).</p>
 <a id="__codelineno-0-506" name="__codelineno-0-506"></a>    <span class="n">medium_objects</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">PrecisionResult</span><span class="p">]</span>
 <a id="__codelineno-0-507" name="__codelineno-0-507"></a>    <span class="n">large_objects</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">PrecisionResult</span><span class="p">]</span>
 <a id="__codelineno-0-508" name="__codelineno-0-508"></a>
-<a id="__codelineno-0-509" name="__codelineno-0-509"></a>    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<a id="__codelineno-0-509" name="__codelineno-0-509"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <a id="__codelineno-0-510" name="__codelineno-0-510"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-511" name="__codelineno-0-511"></a><span class="sd">        Format as a pretty string.</span>
 <a id="__codelineno-0-512" name="__codelineno-0-512"></a>
@@ -4072,7 +4072,7 @@ for large objects (area ≥ 96²).</p>
 <a id="__codelineno-0-558" name="__codelineno-0-558"></a>
 <a id="__codelineno-0-559" name="__codelineno-0-559"></a>        <span class="k">return</span> <span class="n">out_str</span>
 <a id="__codelineno-0-560" name="__codelineno-0-560"></a>
-<a id="__codelineno-0-561" name="__codelineno-0-561"></a>    <span class="k">def</span> <span class="nf">to_pandas</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;pd.DataFrame&quot;</span><span class="p">:</span>
+<a id="__codelineno-0-561" name="__codelineno-0-561"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">to_pandas</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;pd.DataFrame&quot;</span><span class="p">:</span>
 <a id="__codelineno-0-562" name="__codelineno-0-562"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-563" name="__codelineno-0-563"></a><span class="sd">        Convert the result to a pandas DataFrame.</span>
 <a id="__codelineno-0-564" name="__codelineno-0-564"></a>
@@ -4080,7 +4080,7 @@ for large objects (area ≥ 96²).</p>
 <a id="__codelineno-0-566" name="__codelineno-0-566"></a><span class="sd">            (pd.DataFrame): The result as a DataFrame.</span>
 <a id="__codelineno-0-567" name="__codelineno-0-567"></a><span class="sd">        &quot;&quot;&quot;</span>
 <a id="__codelineno-0-568" name="__codelineno-0-568"></a>        <span class="n">ensure_pandas_installed</span><span class="p">()</span>
-<a id="__codelineno-0-569" name="__codelineno-0-569"></a>        <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<a id="__codelineno-0-569" name="__codelineno-0-569"></a>        <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 <a id="__codelineno-0-570" name="__codelineno-0-570"></a>
 <a id="__codelineno-0-571" name="__codelineno-0-571"></a>        <span class="n">pandas_data</span> <span class="o">=</span> <span class="p">{</span>
 <a id="__codelineno-0-572" name="__codelineno-0-572"></a>            <span class="s2">&quot;P@50&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">precision_at_50</span><span class="p">,</span>
@@ -4102,7 +4102,7 @@ for large objects (area ≥ 96²).</p>
 <a id="__codelineno-0-588" name="__codelineno-0-588"></a>
 <a id="__codelineno-0-589" name="__codelineno-0-589"></a>        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">pandas_data</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 <a id="__codelineno-0-590" name="__codelineno-0-590"></a>
-<a id="__codelineno-0-591" name="__codelineno-0-591"></a>    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-0-591" name="__codelineno-0-591"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <a id="__codelineno-0-592" name="__codelineno-0-592"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-593" name="__codelineno-0-593"></a><span class="sd">        Plot the precision results.</span>
 <a id="__codelineno-0-594" name="__codelineno-0-594"></a>
@@ -4264,7 +4264,7 @@ for large objects (area ≥ 96²).</p>
 <span class="normal"><a href="#__codelineno-0-556">556</a></span>
 <span class="normal"><a href="#__codelineno-0-557">557</a></span>
 <span class="normal"><a href="#__codelineno-0-558">558</a></span>
-<span class="normal"><a href="#__codelineno-0-559">559</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-509" name="__codelineno-0-509"></a><span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="normal"><a href="#__codelineno-0-559">559</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-509" name="__codelineno-0-509"></a><span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <a id="__codelineno-0-510" name="__codelineno-0-510"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-511" name="__codelineno-0-511"></a><span class="sd">    Format as a pretty string.</span>
 <a id="__codelineno-0-512" name="__codelineno-0-512"></a>
@@ -4399,7 +4399,7 @@ for large objects (area ≥ 96²).</p>
 <span class="normal"><a href="#__codelineno-0-650">650</a></span>
 <span class="normal"><a href="#__codelineno-0-651">651</a></span>
 <span class="normal"><a href="#__codelineno-0-652">652</a></span>
-<span class="normal"><a href="#__codelineno-0-653">653</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-591" name="__codelineno-0-591"></a><span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal"><a href="#__codelineno-0-653">653</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-591" name="__codelineno-0-591"></a><span class="k">def</span><span class="w"> </span><span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <a id="__codelineno-0-592" name="__codelineno-0-592"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-593" name="__codelineno-0-593"></a><span class="sd">    Plot the precision results.</span>
 <a id="__codelineno-0-594" name="__codelineno-0-594"></a>
@@ -4534,7 +4534,7 @@ for large objects (area ≥ 96²).</p>
 <span class="normal"><a href="#__codelineno-0-586">586</a></span>
 <span class="normal"><a href="#__codelineno-0-587">587</a></span>
 <span class="normal"><a href="#__codelineno-0-588">588</a></span>
-<span class="normal"><a href="#__codelineno-0-589">589</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-561" name="__codelineno-0-561"></a><span class="k">def</span> <span class="nf">to_pandas</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;pd.DataFrame&quot;</span><span class="p">:</span>
+<span class="normal"><a href="#__codelineno-0-589">589</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-561" name="__codelineno-0-561"></a><span class="k">def</span><span class="w"> </span><span class="nf">to_pandas</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;pd.DataFrame&quot;</span><span class="p">:</span>
 <a id="__codelineno-0-562" name="__codelineno-0-562"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-563" name="__codelineno-0-563"></a><span class="sd">    Convert the result to a pandas DataFrame.</span>
 <a id="__codelineno-0-564" name="__codelineno-0-564"></a>
@@ -4542,7 +4542,7 @@ for large objects (area ≥ 96²).</p>
 <a id="__codelineno-0-566" name="__codelineno-0-566"></a><span class="sd">        (pd.DataFrame): The result as a DataFrame.</span>
 <a id="__codelineno-0-567" name="__codelineno-0-567"></a><span class="sd">    &quot;&quot;&quot;</span>
 <a id="__codelineno-0-568" name="__codelineno-0-568"></a>    <span class="n">ensure_pandas_installed</span><span class="p">()</span>
-<a id="__codelineno-0-569" name="__codelineno-0-569"></a>    <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<a id="__codelineno-0-569" name="__codelineno-0-569"></a>    <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 <a id="__codelineno-0-570" name="__codelineno-0-570"></a>
 <a id="__codelineno-0-571" name="__codelineno-0-571"></a>    <span class="n">pandas_data</span> <span class="o">=</span> <span class="p">{</span>
 <a id="__codelineno-0-572" name="__codelineno-0-572"></a>        <span class="s2">&quot;P@50&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">precision_at_50</span><span class="p">,</span>
@@ -4818,7 +4818,7 @@ for large objects (area ≥ 96²).</p>
     <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.tracking", "content.code.copy", "content.action.edit", "content.tooltips", "content.code.annotate", "navigation.tabs"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.83f73b43.min.js"></script>
+      <script src="../../assets/javascripts/bundle.88dd0f4e.min.js"></script>
       
         <script src="../../javascripts/init_kapa_widget.js"></script>
       

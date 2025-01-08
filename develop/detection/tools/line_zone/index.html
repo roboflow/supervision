@@ -22,7 +22,7 @@
       
       
       <link rel="icon" href="../../../assets/supervision-lenny.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.48">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.49">
     
     
       
@@ -2419,8 +2419,8 @@ crossed the line from inside to outside.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span> <span class="nn">ultralytics</span> <span class="kn">import</span> <span class="n">YOLO</span>
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">ultralytics</span><span class="w"> </span><span class="kn">import</span> <span class="n">YOLO</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">model</span> <span class="o">=</span> <span class="n">YOLO</span><span class="p">(</span><span class="o">&lt;</span><span class="n">SOURCE_MODEL_PATH</span><span class="o">&gt;</span><span class="p">)</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">tracker</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">ByteTrack</span><span class="p">()</span>
@@ -2731,7 +2731,7 @@ crossed the line from inside to outside.</p>
 <span class="normal"><a href="#__codelineno-0-311">311</a></span>
 <span class="normal"><a href="#__codelineno-0-312">312</a></span>
 <span class="normal"><a href="#__codelineno-0-313">313</a></span>
-<span class="normal"><a href="#__codelineno-0-314">314</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-23" name="__codelineno-0-23"></a><span class="k">class</span> <span class="nc">LineZone</span><span class="p">:</span>
+<span class="normal"><a href="#__codelineno-0-314">314</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-23" name="__codelineno-0-23"></a><span class="k">class</span><span class="w"> </span><span class="nc">LineZone</span><span class="p">:</span>
 <a id="__codelineno-0-24" name="__codelineno-0-24"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-25" name="__codelineno-0-25"></a><span class="sd">    This class is responsible for counting the number of objects that cross a</span>
 <a id="__codelineno-0-26" name="__codelineno-0-26"></a><span class="sd">    predefined line.</span>
@@ -2780,7 +2780,7 @@ crossed the line from inside to outside.</p>
 <a id="__codelineno-0-69" name="__codelineno-0-69"></a><span class="sd">        ```</span>
 <a id="__codelineno-0-70" name="__codelineno-0-70"></a><span class="sd">    &quot;&quot;&quot;</span>
 <a id="__codelineno-0-71" name="__codelineno-0-71"></a>
-<a id="__codelineno-0-72" name="__codelineno-0-72"></a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<a id="__codelineno-0-72" name="__codelineno-0-72"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
 <a id="__codelineno-0-73" name="__codelineno-0-73"></a>        <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-74" name="__codelineno-0-74"></a>        <span class="n">start</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span>
 <a id="__codelineno-0-75" name="__codelineno-0-75"></a>        <span class="n">end</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span>
@@ -2821,22 +2821,22 @@ crossed the line from inside to outside.</p>
 <a id="__codelineno-0-110" name="__codelineno-0-110"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">class_id_to_name</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
 <a id="__codelineno-0-111" name="__codelineno-0-111"></a>
 <a id="__codelineno-0-112" name="__codelineno-0-112"></a>    <span class="nd">@property</span>
-<a id="__codelineno-0-113" name="__codelineno-0-113"></a>    <span class="k">def</span> <span class="nf">in_count</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<a id="__codelineno-0-113" name="__codelineno-0-113"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">in_count</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <a id="__codelineno-0-114" name="__codelineno-0-114"></a>        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_in_count_per_class</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
 <a id="__codelineno-0-115" name="__codelineno-0-115"></a>
 <a id="__codelineno-0-116" name="__codelineno-0-116"></a>    <span class="nd">@property</span>
-<a id="__codelineno-0-117" name="__codelineno-0-117"></a>    <span class="k">def</span> <span class="nf">out_count</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<a id="__codelineno-0-117" name="__codelineno-0-117"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">out_count</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <a id="__codelineno-0-118" name="__codelineno-0-118"></a>        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_out_count_per_class</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
 <a id="__codelineno-0-119" name="__codelineno-0-119"></a>
 <a id="__codelineno-0-120" name="__codelineno-0-120"></a>    <span class="nd">@property</span>
-<a id="__codelineno-0-121" name="__codelineno-0-121"></a>    <span class="k">def</span> <span class="nf">in_count_per_class</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<a id="__codelineno-0-121" name="__codelineno-0-121"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">in_count_per_class</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
 <a id="__codelineno-0-122" name="__codelineno-0-122"></a>        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_in_count_per_class</span><span class="p">)</span>
 <a id="__codelineno-0-123" name="__codelineno-0-123"></a>
 <a id="__codelineno-0-124" name="__codelineno-0-124"></a>    <span class="nd">@property</span>
-<a id="__codelineno-0-125" name="__codelineno-0-125"></a>    <span class="k">def</span> <span class="nf">out_count_per_class</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<a id="__codelineno-0-125" name="__codelineno-0-125"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">out_count_per_class</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
 <a id="__codelineno-0-126" name="__codelineno-0-126"></a>        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_out_count_per_class</span><span class="p">)</span>
 <a id="__codelineno-0-127" name="__codelineno-0-127"></a>
-<a id="__codelineno-0-128" name="__codelineno-0-128"></a>    <span class="k">def</span> <span class="nf">trigger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<a id="__codelineno-0-128" name="__codelineno-0-128"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">trigger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
 <a id="__codelineno-0-129" name="__codelineno-0-129"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-130" name="__codelineno-0-130"></a><span class="sd">        Update the `in_count` and `out_count` based on the objects that cross the line.</span>
 <a id="__codelineno-0-131" name="__codelineno-0-131"></a>
@@ -2911,7 +2911,7 @@ crossed the line from inside to outside.</p>
 <a id="__codelineno-0-200" name="__codelineno-0-200"></a>        <span class="k">return</span> <span class="n">crossed_in</span><span class="p">,</span> <span class="n">crossed_out</span>
 <a id="__codelineno-0-201" name="__codelineno-0-201"></a>
 <a id="__codelineno-0-202" name="__codelineno-0-202"></a>    <span class="nd">@staticmethod</span>
-<a id="__codelineno-0-203" name="__codelineno-0-203"></a>    <span class="k">def</span> <span class="nf">_calculate_region_of_interest_limits</span><span class="p">(</span><span class="n">vector</span><span class="p">:</span> <span class="n">Vector</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Vector</span><span class="p">,</span> <span class="n">Vector</span><span class="p">]:</span>
+<a id="__codelineno-0-203" name="__codelineno-0-203"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_calculate_region_of_interest_limits</span><span class="p">(</span><span class="n">vector</span><span class="p">:</span> <span class="n">Vector</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Vector</span><span class="p">,</span> <span class="n">Vector</span><span class="p">]:</span>
 <a id="__codelineno-0-204" name="__codelineno-0-204"></a>        <span class="n">magnitude</span> <span class="o">=</span> <span class="n">vector</span><span class="o">.</span><span class="n">magnitude</span>
 <a id="__codelineno-0-205" name="__codelineno-0-205"></a>
 <a id="__codelineno-0-206" name="__codelineno-0-206"></a>        <span class="k">if</span> <span class="n">magnitude</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
@@ -2942,7 +2942,7 @@ crossed the line from inside to outside.</p>
 <a id="__codelineno-0-231" name="__codelineno-0-231"></a>        <span class="p">)</span>
 <a id="__codelineno-0-232" name="__codelineno-0-232"></a>        <span class="k">return</span> <span class="n">start_region_limit</span><span class="p">,</span> <span class="n">end_region_limit</span>
 <a id="__codelineno-0-233" name="__codelineno-0-233"></a>
-<a id="__codelineno-0-234" name="__codelineno-0-234"></a>    <span class="k">def</span> <span class="nf">_compute_anchor_sides</span><span class="p">(</span>
+<a id="__codelineno-0-234" name="__codelineno-0-234"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_compute_anchor_sides</span><span class="p">(</span>
 <a id="__codelineno-0-235" name="__codelineno-0-235"></a>        <span class="bp">self</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span>
 <a id="__codelineno-0-236" name="__codelineno-0-236"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">],</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">],</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">]]:</span>
 <a id="__codelineno-0-237" name="__codelineno-0-237"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -3002,7 +3002,7 @@ crossed the line from inside to outside.</p>
 <a id="__codelineno-0-291" name="__codelineno-0-291"></a>
 <a id="__codelineno-0-292" name="__codelineno-0-292"></a>        <span class="k">return</span> <span class="n">in_limits</span><span class="p">,</span> <span class="n">has_any_left_trigger</span><span class="p">,</span> <span class="n">has_any_right_trigger</span>
 <a id="__codelineno-0-293" name="__codelineno-0-293"></a>
-<a id="__codelineno-0-294" name="__codelineno-0-294"></a>    <span class="k">def</span> <span class="nf">_update_class_id_to_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-294" name="__codelineno-0-294"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_update_class_id_to_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <a id="__codelineno-0-295" name="__codelineno-0-295"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-296" name="__codelineno-0-296"></a><span class="sd">        Update the attribute keeping track of which class</span>
 <a id="__codelineno-0-297" name="__codelineno-0-297"></a><span class="sd">        IDs correspond to which class names.</span>
@@ -3169,7 +3169,7 @@ may linger on the line.</p>
 <span class="normal"><a href="#__codelineno-0-107">107</a></span>
 <span class="normal"><a href="#__codelineno-0-108">108</a></span>
 <span class="normal"><a href="#__codelineno-0-109">109</a></span>
-<span class="normal"><a href="#__codelineno-0-110">110</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-72" name="__codelineno-0-72"></a><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<span class="normal"><a href="#__codelineno-0-110">110</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-72" name="__codelineno-0-72"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
 <a id="__codelineno-0-73" name="__codelineno-0-73"></a>    <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-74" name="__codelineno-0-74"></a>    <span class="n">start</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span>
 <a id="__codelineno-0-75" name="__codelineno-0-75"></a>    <span class="n">end</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span>
@@ -3357,7 +3357,7 @@ outside.</p>
 <span class="normal"><a href="#__codelineno-0-197">197</a></span>
 <span class="normal"><a href="#__codelineno-0-198">198</a></span>
 <span class="normal"><a href="#__codelineno-0-199">199</a></span>
-<span class="normal"><a href="#__codelineno-0-200">200</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-128" name="__codelineno-0-128"></a><span class="k">def</span> <span class="nf">trigger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="normal"><a href="#__codelineno-0-200">200</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-128" name="__codelineno-0-128"></a><span class="k">def</span><span class="w"> </span><span class="nf">trigger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
 <a id="__codelineno-0-129" name="__codelineno-0-129"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-130" name="__codelineno-0-130"></a><span class="sd">    Update the `in_count` and `out_count` based on the objects that cross the line.</span>
 <a id="__codelineno-0-131" name="__codelineno-0-131"></a>
@@ -3838,8 +3838,8 @@ outside.</p>
 <span class="normal"><a href="#__codelineno-0-694">694</a></span>
 <span class="normal"><a href="#__codelineno-0-695">695</a></span>
 <span class="normal"><a href="#__codelineno-0-696">696</a></span>
-<span class="normal"><a href="#__codelineno-0-697">697</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-317" name="__codelineno-0-317"></a><span class="k">class</span> <span class="nc">LineZoneAnnotator</span><span class="p">:</span>
-<a id="__codelineno-0-318" name="__codelineno-0-318"></a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<span class="normal"><a href="#__codelineno-0-697">697</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-317" name="__codelineno-0-317"></a><span class="k">class</span><span class="w"> </span><span class="nc">LineZoneAnnotator</span><span class="p">:</span>
+<a id="__codelineno-0-318" name="__codelineno-0-318"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
 <a id="__codelineno-0-319" name="__codelineno-0-319"></a>        <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-320" name="__codelineno-0-320"></a>        <span class="n">thickness</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
 <a id="__codelineno-0-321" name="__codelineno-0-321"></a>        <span class="n">color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">=</span> <span class="n">Color</span><span class="o">.</span><span class="n">WHITE</span><span class="p">,</span>
@@ -3894,7 +3894,7 @@ outside.</p>
 <a id="__codelineno-0-370" name="__codelineno-0-370"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">text_orient_to_line</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">text_orient_to_line</span>
 <a id="__codelineno-0-371" name="__codelineno-0-371"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">text_centered</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">text_centered</span>
 <a id="__codelineno-0-372" name="__codelineno-0-372"></a>
-<a id="__codelineno-0-373" name="__codelineno-0-373"></a>    <span class="k">def</span> <span class="nf">annotate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">frame</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">line_counter</span><span class="p">:</span> <span class="n">LineZone</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a id="__codelineno-0-373" name="__codelineno-0-373"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">annotate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">frame</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">line_counter</span><span class="p">:</span> <span class="n">LineZone</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <a id="__codelineno-0-374" name="__codelineno-0-374"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-375" name="__codelineno-0-375"></a><span class="sd">        Draws the line on the frame using the line zone provided.</span>
 <a id="__codelineno-0-376" name="__codelineno-0-376"></a>
@@ -3963,7 +3963,7 @@ outside.</p>
 <a id="__codelineno-0-439" name="__codelineno-0-439"></a>
 <a id="__codelineno-0-440" name="__codelineno-0-440"></a>        <span class="k">return</span> <span class="n">frame</span>
 <a id="__codelineno-0-441" name="__codelineno-0-441"></a>
-<a id="__codelineno-0-442" name="__codelineno-0-442"></a>    <span class="k">def</span> <span class="nf">_get_line_angle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">line_zone</span><span class="p">:</span> <span class="n">LineZone</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<a id="__codelineno-0-442" name="__codelineno-0-442"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_get_line_angle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">line_zone</span><span class="p">:</span> <span class="n">LineZone</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <a id="__codelineno-0-443" name="__codelineno-0-443"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-444" name="__codelineno-0-444"></a><span class="sd">        Calculate the line counter angle (in degrees).</span>
 <a id="__codelineno-0-445" name="__codelineno-0-445"></a>
@@ -3988,7 +3988,7 @@ outside.</p>
 <a id="__codelineno-0-464" name="__codelineno-0-464"></a>
 <a id="__codelineno-0-465" name="__codelineno-0-465"></a>        <span class="k">return</span> <span class="n">line_angle</span>
 <a id="__codelineno-0-466" name="__codelineno-0-466"></a>
-<a id="__codelineno-0-467" name="__codelineno-0-467"></a>    <span class="k">def</span> <span class="nf">_calculate_anchor_in_frame</span><span class="p">(</span>
+<a id="__codelineno-0-467" name="__codelineno-0-467"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_calculate_anchor_in_frame</span><span class="p">(</span>
 <a id="__codelineno-0-468" name="__codelineno-0-468"></a>        <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-469" name="__codelineno-0-469"></a>        <span class="n">line_zone</span><span class="p">:</span> <span class="n">LineZone</span><span class="p">,</span>
 <a id="__codelineno-0-470" name="__codelineno-0-470"></a>        <span class="n">text_width</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -4052,7 +4052,7 @@ outside.</p>
 <a id="__codelineno-0-528" name="__codelineno-0-528"></a>
 <a id="__codelineno-0-529" name="__codelineno-0-529"></a>        <span class="k">return</span> <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span>
 <a id="__codelineno-0-530" name="__codelineno-0-530"></a>
-<a id="__codelineno-0-531" name="__codelineno-0-531"></a>    <span class="k">def</span> <span class="nf">_draw_basic_label</span><span class="p">(</span>
+<a id="__codelineno-0-531" name="__codelineno-0-531"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_draw_basic_label</span><span class="p">(</span>
 <a id="__codelineno-0-532" name="__codelineno-0-532"></a>        <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-533" name="__codelineno-0-533"></a>        <span class="n">frame</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
 <a id="__codelineno-0-534" name="__codelineno-0-534"></a>        <span class="n">line_center</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span>
@@ -4095,7 +4095,7 @@ outside.</p>
 <a id="__codelineno-0-571" name="__codelineno-0-571"></a>
 <a id="__codelineno-0-572" name="__codelineno-0-572"></a>        <span class="k">return</span> <span class="n">frame</span>
 <a id="__codelineno-0-573" name="__codelineno-0-573"></a>
-<a id="__codelineno-0-574" name="__codelineno-0-574"></a>    <span class="k">def</span> <span class="nf">_draw_oriented_label</span><span class="p">(</span>
+<a id="__codelineno-0-574" name="__codelineno-0-574"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_draw_oriented_label</span><span class="p">(</span>
 <a id="__codelineno-0-575" name="__codelineno-0-575"></a>        <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-576" name="__codelineno-0-576"></a>        <span class="n">frame</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
 <a id="__codelineno-0-577" name="__codelineno-0-577"></a>        <span class="n">line_zone</span><span class="p">:</span> <span class="n">LineZone</span><span class="p">,</span>
@@ -4149,7 +4149,7 @@ outside.</p>
 <a id="__codelineno-0-625" name="__codelineno-0-625"></a>
 <a id="__codelineno-0-626" name="__codelineno-0-626"></a>    <span class="nd">@staticmethod</span>
 <a id="__codelineno-0-627" name="__codelineno-0-627"></a>    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="mi">32</span><span class="p">)</span>
-<a id="__codelineno-0-628" name="__codelineno-0-628"></a>    <span class="k">def</span> <span class="nf">_make_label_image</span><span class="p">(</span>
+<a id="__codelineno-0-628" name="__codelineno-0-628"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_make_label_image</span><span class="p">(</span>
 <a id="__codelineno-0-629" name="__codelineno-0-629"></a>        <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
 <a id="__codelineno-0-630" name="__codelineno-0-630"></a>        <span class="o">*</span><span class="p">,</span>
 <a id="__codelineno-0-631" name="__codelineno-0-631"></a>        <span class="n">text_scale</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
@@ -4473,7 +4473,7 @@ when the label overlaps something important.</p>
 <span class="normal"><a href="#__codelineno-0-368">368</a></span>
 <span class="normal"><a href="#__codelineno-0-369">369</a></span>
 <span class="normal"><a href="#__codelineno-0-370">370</a></span>
-<span class="normal"><a href="#__codelineno-0-371">371</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-318" name="__codelineno-0-318"></a><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<span class="normal"><a href="#__codelineno-0-371">371</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-318" name="__codelineno-0-318"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
 <a id="__codelineno-0-319" name="__codelineno-0-319"></a>    <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-320" name="__codelineno-0-320"></a>    <span class="n">thickness</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
 <a id="__codelineno-0-321" name="__codelineno-0-321"></a>    <span class="n">color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">=</span> <span class="n">Color</span><span class="o">.</span><span class="n">WHITE</span><span class="p">,</span>
@@ -4675,7 +4675,7 @@ that will be used to draw the line.</p>
 <span class="normal"><a href="#__codelineno-0-437">437</a></span>
 <span class="normal"><a href="#__codelineno-0-438">438</a></span>
 <span class="normal"><a href="#__codelineno-0-439">439</a></span>
-<span class="normal"><a href="#__codelineno-0-440">440</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-373" name="__codelineno-0-373"></a><span class="k">def</span> <span class="nf">annotate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">frame</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">line_counter</span><span class="p">:</span> <span class="n">LineZone</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="normal"><a href="#__codelineno-0-440">440</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-373" name="__codelineno-0-373"></a><span class="k">def</span><span class="w"> </span><span class="nf">annotate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">frame</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">line_counter</span><span class="p">:</span> <span class="n">LineZone</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <a id="__codelineno-0-374" name="__codelineno-0-374"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-375" name="__codelineno-0-375"></a><span class="sd">    Draws the line on the frame using the line zone provided.</span>
 <a id="__codelineno-0-376" name="__codelineno-0-376"></a>
@@ -4930,8 +4930,8 @@ that will be used to draw the line.</p>
 <span class="normal"><a href="#__codelineno-0-856">856</a></span>
 <span class="normal"><a href="#__codelineno-0-857">857</a></span>
 <span class="normal"><a href="#__codelineno-0-858">858</a></span>
-<span class="normal"><a href="#__codelineno-0-859">859</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-700" name="__codelineno-0-700"></a><span class="k">class</span> <span class="nc">LineZoneAnnotatorMulticlass</span><span class="p">:</span>
-<a id="__codelineno-0-701" name="__codelineno-0-701"></a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<span class="normal"><a href="#__codelineno-0-859">859</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-700" name="__codelineno-0-700"></a><span class="k">class</span><span class="w"> </span><span class="nc">LineZoneAnnotatorMulticlass</span><span class="p">:</span>
+<a id="__codelineno-0-701" name="__codelineno-0-701"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
 <a id="__codelineno-0-702" name="__codelineno-0-702"></a>        <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-703" name="__codelineno-0-703"></a>        <span class="o">*</span><span class="p">,</span>
 <a id="__codelineno-0-704" name="__codelineno-0-704"></a>        <span class="n">table_position</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span>
@@ -4986,7 +4986,7 @@ that will be used to draw the line.</p>
 <a id="__codelineno-0-753" name="__codelineno-0-753"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">text_thickness</span> <span class="o">=</span> <span class="n">text_thickness</span>
 <a id="__codelineno-0-754" name="__codelineno-0-754"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">force_draw_class_ids</span> <span class="o">=</span> <span class="n">force_draw_class_ids</span>
 <a id="__codelineno-0-755" name="__codelineno-0-755"></a>
-<a id="__codelineno-0-756" name="__codelineno-0-756"></a>    <span class="k">def</span> <span class="nf">annotate</span><span class="p">(</span>
+<a id="__codelineno-0-756" name="__codelineno-0-756"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">annotate</span><span class="p">(</span>
 <a id="__codelineno-0-757" name="__codelineno-0-757"></a>        <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-758" name="__codelineno-0-758"></a>        <span class="n">frame</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
 <a id="__codelineno-0-759" name="__codelineno-0-759"></a>        <span class="n">line_zones</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LineZone</span><span class="p">],</span>
@@ -5316,7 +5316,7 @@ write <code>0: 6</code>.</p>
 <span class="normal"><a href="#__codelineno-0-751">751</a></span>
 <span class="normal"><a href="#__codelineno-0-752">752</a></span>
 <span class="normal"><a href="#__codelineno-0-753">753</a></span>
-<span class="normal"><a href="#__codelineno-0-754">754</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-701" name="__codelineno-0-701"></a><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<span class="normal"><a href="#__codelineno-0-754">754</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-701" name="__codelineno-0-701"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
 <a id="__codelineno-0-702" name="__codelineno-0-702"></a>    <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-703" name="__codelineno-0-703"></a>    <span class="o">*</span><span class="p">,</span>
 <a id="__codelineno-0-704" name="__codelineno-0-704"></a>    <span class="n">table_position</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span>
@@ -5565,7 +5565,7 @@ line zone. If not provided, the default labels will be used.</p>
 <span class="normal"><a href="#__codelineno-0-856">856</a></span>
 <span class="normal"><a href="#__codelineno-0-857">857</a></span>
 <span class="normal"><a href="#__codelineno-0-858">858</a></span>
-<span class="normal"><a href="#__codelineno-0-859">859</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-756" name="__codelineno-0-756"></a><span class="k">def</span> <span class="nf">annotate</span><span class="p">(</span>
+<span class="normal"><a href="#__codelineno-0-859">859</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-756" name="__codelineno-0-756"></a><span class="k">def</span><span class="w"> </span><span class="nf">annotate</span><span class="p">(</span>
 <a id="__codelineno-0-757" name="__codelineno-0-757"></a>    <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-758" name="__codelineno-0-758"></a>    <span class="n">frame</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
 <a id="__codelineno-0-759" name="__codelineno-0-759"></a>    <span class="n">line_zones</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LineZone</span><span class="p">],</span>
@@ -5939,7 +5939,7 @@ line zone. If not provided, the default labels will be used.</p>
     <script id="__config" type="application/json">{"base": "../../..", "features": ["navigation.tracking", "content.code.copy", "content.action.edit", "content.tooltips", "content.code.annotate", "navigation.tabs"], "search": "../../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.83f73b43.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.88dd0f4e.min.js"></script>
       
         <script src="../../../javascripts/init_kapa_widget.js"></script>
       

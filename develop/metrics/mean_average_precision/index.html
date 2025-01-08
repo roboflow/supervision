@@ -22,7 +22,7 @@
       
       
       <link rel="icon" href="../../assets/supervision-lenny.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.48">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.49">
     
     
       
@@ -2322,8 +2322,8 @@ It is the average of the precision-recall curves at different IoU thresholds.</p
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span> <span class="nn">supervision</span> <span class="k">as</span> <span class="nn">sv</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span> <span class="nn">supervision.metrics</span> <span class="kn">import</span> <span class="n">MeanAveragePrecision</span>
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">supervision.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">MeanAveragePrecision</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">predictions</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">targets</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
@@ -2744,7 +2744,7 @@ It is the average of the precision-recall curves at different IoU thresholds.</p
 <span class="normal"><a href="#__codelineno-0-414">414</a></span>
 <span class="normal"><a href="#__codelineno-0-415">415</a></span>
 <span class="normal"><a href="#__codelineno-0-416">416</a></span>
-<span class="normal"><a href="#__codelineno-0-417">417</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-29" name="__codelineno-0-29"></a><span class="k">class</span> <span class="nc">MeanAveragePrecision</span><span class="p">(</span><span class="n">Metric</span><span class="p">):</span>
+<span class="normal"><a href="#__codelineno-0-417">417</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-29" name="__codelineno-0-29"></a><span class="k">class</span><span class="w"> </span><span class="nc">MeanAveragePrecision</span><span class="p">(</span><span class="n">Metric</span><span class="p">):</span>
 <a id="__codelineno-0-30" name="__codelineno-0-30"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-31" name="__codelineno-0-31"></a><span class="sd">    Mean Average Precision (mAP) is a metric used to evaluate object detection models.</span>
 <a id="__codelineno-0-32" name="__codelineno-0-32"></a><span class="sd">    It is the average of the precision-recall curves at different IoU thresholds.</span>
@@ -2787,7 +2787,7 @@ It is the average of the precision-recall curves at different IoU thresholds.</p
 <a id="__codelineno-0-69" name="__codelineno-0-69"></a><span class="sd">        ){ align=center width=&quot;800&quot; }</span>
 <a id="__codelineno-0-70" name="__codelineno-0-70"></a><span class="sd">    &quot;&quot;&quot;</span>
 <a id="__codelineno-0-71" name="__codelineno-0-71"></a>
-<a id="__codelineno-0-72" name="__codelineno-0-72"></a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<a id="__codelineno-0-72" name="__codelineno-0-72"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
 <a id="__codelineno-0-73" name="__codelineno-0-73"></a>        <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-74" name="__codelineno-0-74"></a>        <span class="n">metric_target</span><span class="p">:</span> <span class="n">MetricTarget</span> <span class="o">=</span> <span class="n">MetricTarget</span><span class="o">.</span><span class="n">BOXES</span><span class="p">,</span>
 <a id="__codelineno-0-75" name="__codelineno-0-75"></a>        <span class="n">class_agnostic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -2805,14 +2805,14 @@ It is the average of the precision-recall curves at different IoU thresholds.</p
 <a id="__codelineno-0-87" name="__codelineno-0-87"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_predictions_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Detections</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
 <a id="__codelineno-0-88" name="__codelineno-0-88"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_targets_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Detections</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
 <a id="__codelineno-0-89" name="__codelineno-0-89"></a>
-<a id="__codelineno-0-90" name="__codelineno-0-90"></a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-90" name="__codelineno-0-90"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <a id="__codelineno-0-91" name="__codelineno-0-91"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-92" name="__codelineno-0-92"></a><span class="sd">        Reset the metric to its initial state, clearing all stored data.</span>
 <a id="__codelineno-0-93" name="__codelineno-0-93"></a><span class="sd">        &quot;&quot;&quot;</span>
 <a id="__codelineno-0-94" name="__codelineno-0-94"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_predictions_list</span> <span class="o">=</span> <span class="p">[]</span>
 <a id="__codelineno-0-95" name="__codelineno-0-95"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_targets_list</span> <span class="o">=</span> <span class="p">[]</span>
 <a id="__codelineno-0-96" name="__codelineno-0-96"></a>
-<a id="__codelineno-0-97" name="__codelineno-0-97"></a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span>
+<a id="__codelineno-0-97" name="__codelineno-0-97"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span>
 <a id="__codelineno-0-98" name="__codelineno-0-98"></a>        <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-99" name="__codelineno-0-99"></a>        <span class="n">predictions</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Detections</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Detections</span><span class="p">]],</span>
 <a id="__codelineno-0-100" name="__codelineno-0-100"></a>        <span class="n">targets</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Detections</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Detections</span><span class="p">]],</span>
@@ -2852,7 +2852,7 @@ It is the average of the precision-recall curves at different IoU thresholds.</p
 <a id="__codelineno-0-134" name="__codelineno-0-134"></a>
 <a id="__codelineno-0-135" name="__codelineno-0-135"></a>        <span class="k">return</span> <span class="bp">self</span>
 <a id="__codelineno-0-136" name="__codelineno-0-136"></a>
-<a id="__codelineno-0-137" name="__codelineno-0-137"></a>    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+<a id="__codelineno-0-137" name="__codelineno-0-137"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
 <a id="__codelineno-0-138" name="__codelineno-0-138"></a>        <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-139" name="__codelineno-0-139"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MeanAveragePrecisionResult</span><span class="p">:</span>
 <a id="__codelineno-0-140" name="__codelineno-0-140"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -2899,7 +2899,7 @@ It is the average of the precision-recall curves at different IoU thresholds.</p
 <a id="__codelineno-0-181" name="__codelineno-0-181"></a>
 <a id="__codelineno-0-182" name="__codelineno-0-182"></a>        <span class="k">return</span> <span class="n">result</span>
 <a id="__codelineno-0-183" name="__codelineno-0-183"></a>
-<a id="__codelineno-0-184" name="__codelineno-0-184"></a>    <span class="k">def</span> <span class="nf">_compute</span><span class="p">(</span>
+<a id="__codelineno-0-184" name="__codelineno-0-184"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_compute</span><span class="p">(</span>
 <a id="__codelineno-0-185" name="__codelineno-0-185"></a>        <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-186" name="__codelineno-0-186"></a>        <span class="n">predictions_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Detections</span><span class="p">],</span>
 <a id="__codelineno-0-187" name="__codelineno-0-187"></a>        <span class="n">targets_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Detections</span><span class="p">],</span>
@@ -2971,7 +2971,7 @@ It is the average of the precision-recall curves at different IoU thresholds.</p
 <a id="__codelineno-0-253" name="__codelineno-0-253"></a>        <span class="p">)</span>
 <a id="__codelineno-0-254" name="__codelineno-0-254"></a>
 <a id="__codelineno-0-255" name="__codelineno-0-255"></a>    <span class="nd">@staticmethod</span>
-<a id="__codelineno-0-256" name="__codelineno-0-256"></a>    <span class="k">def</span> <span class="nf">_compute_average_precision</span><span class="p">(</span><span class="n">recall</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">precision</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<a id="__codelineno-0-256" name="__codelineno-0-256"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_compute_average_precision</span><span class="p">(</span><span class="n">recall</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">precision</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <a id="__codelineno-0-257" name="__codelineno-0-257"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-258" name="__codelineno-0-258"></a><span class="sd">        Compute the average precision using 101-point interpolation (COCO), given</span>
 <a id="__codelineno-0-259" name="__codelineno-0-259"></a><span class="sd">            the recall and precision curves.</span>
@@ -2995,7 +2995,7 @@ It is the average of the precision-recall curves at different IoU thresholds.</p
 <a id="__codelineno-0-277" name="__codelineno-0-277"></a>        <span class="k">return</span> <span class="n">average_precision</span>
 <a id="__codelineno-0-278" name="__codelineno-0-278"></a>
 <a id="__codelineno-0-279" name="__codelineno-0-279"></a>    <span class="nd">@staticmethod</span>
-<a id="__codelineno-0-280" name="__codelineno-0-280"></a>    <span class="k">def</span> <span class="nf">_match_detection_batch</span><span class="p">(</span>
+<a id="__codelineno-0-280" name="__codelineno-0-280"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_match_detection_batch</span><span class="p">(</span>
 <a id="__codelineno-0-281" name="__codelineno-0-281"></a>        <span class="n">predictions_classes</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
 <a id="__codelineno-0-282" name="__codelineno-0-282"></a>        <span class="n">target_classes</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
 <a id="__codelineno-0-283" name="__codelineno-0-283"></a>        <span class="n">iou</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
@@ -3026,7 +3026,7 @@ It is the average of the precision-recall curves at different IoU thresholds.</p
 <a id="__codelineno-0-308" name="__codelineno-0-308"></a>        <span class="k">return</span> <span class="n">correct</span>
 <a id="__codelineno-0-309" name="__codelineno-0-309"></a>
 <a id="__codelineno-0-310" name="__codelineno-0-310"></a>    <span class="nd">@staticmethod</span>
-<a id="__codelineno-0-311" name="__codelineno-0-311"></a>    <span class="k">def</span> <span class="nf">_average_precisions_per_class</span><span class="p">(</span>
+<a id="__codelineno-0-311" name="__codelineno-0-311"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_average_precisions_per_class</span><span class="p">(</span>
 <a id="__codelineno-0-312" name="__codelineno-0-312"></a>        <span class="n">matches</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
 <a id="__codelineno-0-313" name="__codelineno-0-313"></a>        <span class="n">prediction_confidence</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
 <a id="__codelineno-0-314" name="__codelineno-0-314"></a>        <span class="n">prediction_class_ids</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
@@ -3082,7 +3082,7 @@ It is the average of the precision-recall curves at different IoU thresholds.</p
 <a id="__codelineno-0-364" name="__codelineno-0-364"></a>
 <a id="__codelineno-0-365" name="__codelineno-0-365"></a>        <span class="k">return</span> <span class="n">average_precisions</span><span class="p">,</span> <span class="n">unique_classes</span>
 <a id="__codelineno-0-366" name="__codelineno-0-366"></a>
-<a id="__codelineno-0-367" name="__codelineno-0-367"></a>    <span class="k">def</span> <span class="nf">_detections_content</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a id="__codelineno-0-367" name="__codelineno-0-367"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_detections_content</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <a id="__codelineno-0-368" name="__codelineno-0-368"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Return boxes, masks or oriented bounding boxes from detections.&quot;&quot;&quot;</span>
 <a id="__codelineno-0-369" name="__codelineno-0-369"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metric_target</span> <span class="o">==</span> <span class="n">MetricTarget</span><span class="o">.</span><span class="n">BOXES</span><span class="p">:</span>
 <a id="__codelineno-0-370" name="__codelineno-0-370"></a>            <span class="k">return</span> <span class="n">detections</span><span class="o">.</span><span class="n">xyxy</span>
@@ -3099,7 +3099,7 @@ It is the average of the precision-recall curves at different IoU thresholds.</p
 <a id="__codelineno-0-381" name="__codelineno-0-381"></a>            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_empty_content</span><span class="p">()</span>
 <a id="__codelineno-0-382" name="__codelineno-0-382"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid metric target: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_metric_target</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 <a id="__codelineno-0-383" name="__codelineno-0-383"></a>
-<a id="__codelineno-0-384" name="__codelineno-0-384"></a>    <span class="k">def</span> <span class="nf">_make_empty_content</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a id="__codelineno-0-384" name="__codelineno-0-384"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_make_empty_content</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <a id="__codelineno-0-385" name="__codelineno-0-385"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metric_target</span> <span class="o">==</span> <span class="n">MetricTarget</span><span class="o">.</span><span class="n">BOXES</span><span class="p">:</span>
 <a id="__codelineno-0-386" name="__codelineno-0-386"></a>            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
 <a id="__codelineno-0-387" name="__codelineno-0-387"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metric_target</span> <span class="o">==</span> <span class="n">MetricTarget</span><span class="o">.</span><span class="n">MASKS</span><span class="p">:</span>
@@ -3108,7 +3108,7 @@ It is the average of the precision-recall curves at different IoU thresholds.</p
 <a id="__codelineno-0-390" name="__codelineno-0-390"></a>            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
 <a id="__codelineno-0-391" name="__codelineno-0-391"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid metric target: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_metric_target</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 <a id="__codelineno-0-392" name="__codelineno-0-392"></a>
-<a id="__codelineno-0-393" name="__codelineno-0-393"></a>    <span class="k">def</span> <span class="nf">_filter_detections_by_size</span><span class="p">(</span>
+<a id="__codelineno-0-393" name="__codelineno-0-393"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_filter_detections_by_size</span><span class="p">(</span>
 <a id="__codelineno-0-394" name="__codelineno-0-394"></a>        <span class="bp">self</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">,</span> <span class="n">size_category</span><span class="p">:</span> <span class="n">ObjectSizeCategory</span>
 <a id="__codelineno-0-395" name="__codelineno-0-395"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 <a id="__codelineno-0-396" name="__codelineno-0-396"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a copy of detections with contents filtered by object size.&quot;&quot;&quot;</span>
@@ -3222,7 +3222,7 @@ It is the average of the precision-recall curves at different IoU thresholds.</p
 <span class="normal"><a href="#__codelineno-0-85">85</a></span>
 <span class="normal"><a href="#__codelineno-0-86">86</a></span>
 <span class="normal"><a href="#__codelineno-0-87">87</a></span>
-<span class="normal"><a href="#__codelineno-0-88">88</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-72" name="__codelineno-0-72"></a><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<span class="normal"><a href="#__codelineno-0-88">88</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-72" name="__codelineno-0-72"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
 <a id="__codelineno-0-73" name="__codelineno-0-73"></a>    <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-74" name="__codelineno-0-74"></a>    <span class="n">metric_target</span><span class="p">:</span> <span class="n">MetricTarget</span> <span class="o">=</span> <span class="n">MetricTarget</span><span class="o">.</span><span class="n">BOXES</span><span class="p">,</span>
 <a id="__codelineno-0-75" name="__codelineno-0-75"></a>    <span class="n">class_agnostic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -3329,7 +3329,7 @@ detections at different thresholds.</p>
 <span class="normal"><a href="#__codelineno-0-179">179</a></span>
 <span class="normal"><a href="#__codelineno-0-180">180</a></span>
 <span class="normal"><a href="#__codelineno-0-181">181</a></span>
-<span class="normal"><a href="#__codelineno-0-182">182</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-137" name="__codelineno-0-137"></a><span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+<span class="normal"><a href="#__codelineno-0-182">182</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-137" name="__codelineno-0-137"></a><span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
 <a id="__codelineno-0-138" name="__codelineno-0-138"></a>    <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-139" name="__codelineno-0-139"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MeanAveragePrecisionResult</span><span class="p">:</span>
 <a id="__codelineno-0-140" name="__codelineno-0-140"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -3401,7 +3401,7 @@ detections at different thresholds.</p>
 <span class="normal"><a href="#__codelineno-0-92">92</a></span>
 <span class="normal"><a href="#__codelineno-0-93">93</a></span>
 <span class="normal"><a href="#__codelineno-0-94">94</a></span>
-<span class="normal"><a href="#__codelineno-0-95">95</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-90" name="__codelineno-0-90"></a><span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="normal"><a href="#__codelineno-0-95">95</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-90" name="__codelineno-0-90"></a><span class="k">def</span><span class="w"> </span><span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <a id="__codelineno-0-91" name="__codelineno-0-91"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-92" name="__codelineno-0-92"></a><span class="sd">    Reset the metric to its initial state, clearing all stored data.</span>
 <a id="__codelineno-0-93" name="__codelineno-0-93"></a><span class="sd">    &quot;&quot;&quot;</span>
@@ -3532,7 +3532,7 @@ detections at different thresholds.</p>
 <span class="normal"><a href="#__codelineno-0-132">132</a></span>
 <span class="normal"><a href="#__codelineno-0-133">133</a></span>
 <span class="normal"><a href="#__codelineno-0-134">134</a></span>
-<span class="normal"><a href="#__codelineno-0-135">135</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-97" name="__codelineno-0-97"></a><span class="k">def</span> <span class="nf">update</span><span class="p">(</span>
+<span class="normal"><a href="#__codelineno-0-135">135</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-97" name="__codelineno-0-97"></a><span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span>
 <a id="__codelineno-0-98" name="__codelineno-0-98"></a>    <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-99" name="__codelineno-0-99"></a>    <span class="n">predictions</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Detections</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Detections</span><span class="p">]],</span>
 <a id="__codelineno-0-100" name="__codelineno-0-100"></a>    <span class="n">targets</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Detections</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Detections</span><span class="p">]],</span>
@@ -3965,7 +3965,7 @@ for large objects (area ≥ 96²).</p>
 <span class="normal"><a href="#__codelineno-0-626">626</a></span>
 <span class="normal"><a href="#__codelineno-0-627">627</a></span>
 <span class="normal"><a href="#__codelineno-0-628">628</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-420" name="__codelineno-0-420"></a><span class="nd">@dataclass</span>
-<a id="__codelineno-0-421" name="__codelineno-0-421"></a><span class="k">class</span> <span class="nc">MeanAveragePrecisionResult</span><span class="p">:</span>
+<a id="__codelineno-0-421" name="__codelineno-0-421"></a><span class="k">class</span><span class="w"> </span><span class="nc">MeanAveragePrecisionResult</span><span class="p">:</span>
 <a id="__codelineno-0-422" name="__codelineno-0-422"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-423" name="__codelineno-0-423"></a><span class="sd">    The result of the Mean Average Precision calculation.</span>
 <a id="__codelineno-0-424" name="__codelineno-0-424"></a>
@@ -3998,15 +3998,15 @@ for large objects (area ≥ 96²).</p>
 <a id="__codelineno-0-451" name="__codelineno-0-451"></a>    <span class="n">is_class_agnostic</span><span class="p">:</span> <span class="nb">bool</span>
 <a id="__codelineno-0-452" name="__codelineno-0-452"></a>
 <a id="__codelineno-0-453" name="__codelineno-0-453"></a>    <span class="nd">@property</span>
-<a id="__codelineno-0-454" name="__codelineno-0-454"></a>    <span class="k">def</span> <span class="nf">map50_95</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<a id="__codelineno-0-454" name="__codelineno-0-454"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">map50_95</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <a id="__codelineno-0-455" name="__codelineno-0-455"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mAP_scores</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
 <a id="__codelineno-0-456" name="__codelineno-0-456"></a>
 <a id="__codelineno-0-457" name="__codelineno-0-457"></a>    <span class="nd">@property</span>
-<a id="__codelineno-0-458" name="__codelineno-0-458"></a>    <span class="k">def</span> <span class="nf">map50</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<a id="__codelineno-0-458" name="__codelineno-0-458"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">map50</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <a id="__codelineno-0-459" name="__codelineno-0-459"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mAP_scores</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 <a id="__codelineno-0-460" name="__codelineno-0-460"></a>
 <a id="__codelineno-0-461" name="__codelineno-0-461"></a>    <span class="nd">@property</span>
-<a id="__codelineno-0-462" name="__codelineno-0-462"></a>    <span class="k">def</span> <span class="nf">map75</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<a id="__codelineno-0-462" name="__codelineno-0-462"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">map75</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <a id="__codelineno-0-463" name="__codelineno-0-463"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mAP_scores</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
 <a id="__codelineno-0-464" name="__codelineno-0-464"></a>
 <a id="__codelineno-0-465" name="__codelineno-0-465"></a>    <span class="n">mAP_scores</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
@@ -4017,7 +4017,7 @@ for large objects (area ≥ 96²).</p>
 <a id="__codelineno-0-470" name="__codelineno-0-470"></a>    <span class="n">medium_objects</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">MeanAveragePrecisionResult</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 <a id="__codelineno-0-471" name="__codelineno-0-471"></a>    <span class="n">large_objects</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">MeanAveragePrecisionResult</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 <a id="__codelineno-0-472" name="__codelineno-0-472"></a>
-<a id="__codelineno-0-473" name="__codelineno-0-473"></a>    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<a id="__codelineno-0-473" name="__codelineno-0-473"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <a id="__codelineno-0-474" name="__codelineno-0-474"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-475" name="__codelineno-0-475"></a><span class="sd">        Format as a pretty string.</span>
 <a id="__codelineno-0-476" name="__codelineno-0-476"></a>
@@ -4070,7 +4070,7 @@ for large objects (area ≥ 96²).</p>
 <a id="__codelineno-0-523" name="__codelineno-0-523"></a>
 <a id="__codelineno-0-524" name="__codelineno-0-524"></a>        <span class="k">return</span> <span class="n">out_str</span>
 <a id="__codelineno-0-525" name="__codelineno-0-525"></a>
-<a id="__codelineno-0-526" name="__codelineno-0-526"></a>    <span class="k">def</span> <span class="nf">to_pandas</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;pd.DataFrame&quot;</span><span class="p">:</span>
+<a id="__codelineno-0-526" name="__codelineno-0-526"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">to_pandas</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;pd.DataFrame&quot;</span><span class="p">:</span>
 <a id="__codelineno-0-527" name="__codelineno-0-527"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-528" name="__codelineno-0-528"></a><span class="sd">        Convert the result to a pandas DataFrame.</span>
 <a id="__codelineno-0-529" name="__codelineno-0-529"></a>
@@ -4078,7 +4078,7 @@ for large objects (area ≥ 96²).</p>
 <a id="__codelineno-0-531" name="__codelineno-0-531"></a><span class="sd">            (pd.DataFrame): The result as a DataFrame.</span>
 <a id="__codelineno-0-532" name="__codelineno-0-532"></a><span class="sd">        &quot;&quot;&quot;</span>
 <a id="__codelineno-0-533" name="__codelineno-0-533"></a>        <span class="n">ensure_pandas_installed</span><span class="p">()</span>
-<a id="__codelineno-0-534" name="__codelineno-0-534"></a>        <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<a id="__codelineno-0-534" name="__codelineno-0-534"></a>        <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 <a id="__codelineno-0-535" name="__codelineno-0-535"></a>
 <a id="__codelineno-0-536" name="__codelineno-0-536"></a>        <span class="n">pandas_data</span> <span class="o">=</span> <span class="p">{</span>
 <a id="__codelineno-0-537" name="__codelineno-0-537"></a>            <span class="s2">&quot;mAP@50:95&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">map50_95</span><span class="p">,</span>
@@ -4106,7 +4106,7 @@ for large objects (area ≥ 96²).</p>
 <a id="__codelineno-0-559" name="__codelineno-0-559"></a>            <span class="n">index</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
 <a id="__codelineno-0-560" name="__codelineno-0-560"></a>        <span class="p">)</span>
 <a id="__codelineno-0-561" name="__codelineno-0-561"></a>
-<a id="__codelineno-0-562" name="__codelineno-0-562"></a>    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-0-562" name="__codelineno-0-562"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <a id="__codelineno-0-563" name="__codelineno-0-563"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-564" name="__codelineno-0-564"></a><span class="sd">        Plot the mAP results.</span>
 <a id="__codelineno-0-565" name="__codelineno-0-565"></a>
@@ -4274,7 +4274,7 @@ for large objects (area ≥ 96²).</p>
 <span class="normal"><a href="#__codelineno-0-521">521</a></span>
 <span class="normal"><a href="#__codelineno-0-522">522</a></span>
 <span class="normal"><a href="#__codelineno-0-523">523</a></span>
-<span class="normal"><a href="#__codelineno-0-524">524</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-473" name="__codelineno-0-473"></a><span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="normal"><a href="#__codelineno-0-524">524</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-473" name="__codelineno-0-473"></a><span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <a id="__codelineno-0-474" name="__codelineno-0-474"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-475" name="__codelineno-0-475"></a><span class="sd">    Format as a pretty string.</span>
 <a id="__codelineno-0-476" name="__codelineno-0-476"></a>
@@ -4414,7 +4414,7 @@ for large objects (area ≥ 96²).</p>
 <span class="normal"><a href="#__codelineno-0-625">625</a></span>
 <span class="normal"><a href="#__codelineno-0-626">626</a></span>
 <span class="normal"><a href="#__codelineno-0-627">627</a></span>
-<span class="normal"><a href="#__codelineno-0-628">628</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-562" name="__codelineno-0-562"></a><span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal"><a href="#__codelineno-0-628">628</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-562" name="__codelineno-0-562"></a><span class="k">def</span><span class="w"> </span><span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <a id="__codelineno-0-563" name="__codelineno-0-563"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-564" name="__codelineno-0-564"></a><span class="sd">    Plot the mAP results.</span>
 <a id="__codelineno-0-565" name="__codelineno-0-565"></a>
@@ -4559,7 +4559,7 @@ for large objects (area ≥ 96²).</p>
 <span class="normal"><a href="#__codelineno-0-557">557</a></span>
 <span class="normal"><a href="#__codelineno-0-558">558</a></span>
 <span class="normal"><a href="#__codelineno-0-559">559</a></span>
-<span class="normal"><a href="#__codelineno-0-560">560</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-526" name="__codelineno-0-526"></a><span class="k">def</span> <span class="nf">to_pandas</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;pd.DataFrame&quot;</span><span class="p">:</span>
+<span class="normal"><a href="#__codelineno-0-560">560</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-526" name="__codelineno-0-526"></a><span class="k">def</span><span class="w"> </span><span class="nf">to_pandas</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;pd.DataFrame&quot;</span><span class="p">:</span>
 <a id="__codelineno-0-527" name="__codelineno-0-527"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-528" name="__codelineno-0-528"></a><span class="sd">    Convert the result to a pandas DataFrame.</span>
 <a id="__codelineno-0-529" name="__codelineno-0-529"></a>
@@ -4567,7 +4567,7 @@ for large objects (area ≥ 96²).</p>
 <a id="__codelineno-0-531" name="__codelineno-0-531"></a><span class="sd">        (pd.DataFrame): The result as a DataFrame.</span>
 <a id="__codelineno-0-532" name="__codelineno-0-532"></a><span class="sd">    &quot;&quot;&quot;</span>
 <a id="__codelineno-0-533" name="__codelineno-0-533"></a>    <span class="n">ensure_pandas_installed</span><span class="p">()</span>
-<a id="__codelineno-0-534" name="__codelineno-0-534"></a>    <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<a id="__codelineno-0-534" name="__codelineno-0-534"></a>    <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 <a id="__codelineno-0-535" name="__codelineno-0-535"></a>
 <a id="__codelineno-0-536" name="__codelineno-0-536"></a>    <span class="n">pandas_data</span> <span class="o">=</span> <span class="p">{</span>
 <a id="__codelineno-0-537" name="__codelineno-0-537"></a>        <span class="s2">&quot;mAP@50:95&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">map50_95</span><span class="p">,</span>
@@ -4849,7 +4849,7 @@ for large objects (area ≥ 96²).</p>
     <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.tracking", "content.code.copy", "content.action.edit", "content.tooltips", "content.code.annotate", "navigation.tabs"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.83f73b43.min.js"></script>
+      <script src="../../assets/javascripts/bundle.88dd0f4e.min.js"></script>
       
         <script src="../../javascripts/init_kapa_widget.js"></script>
       
