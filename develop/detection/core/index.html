@@ -5325,7 +5325,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 <a id="__codelineno-0-1203" name="__codelineno-0-1203"></a>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
 <a id="__codelineno-0-1204" name="__codelineno-0-1204"></a>            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
 <a id="__codelineno-0-1205" name="__codelineno-0-1205"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_empty</span><span class="p">():</span>
-<a id="__codelineno-0-1206" name="__codelineno-0-1206"></a>            <span class="k">return</span> <span class="n">Detections</span><span class="o">.</span><span class="n">empty</span><span class="p">()</span>
+<a id="__codelineno-0-1206" name="__codelineno-0-1206"></a>            <span class="k">return</span> <span class="bp">self</span>
 <a id="__codelineno-0-1207" name="__codelineno-0-1207"></a>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
 <a id="__codelineno-0-1208" name="__codelineno-0-1208"></a>            <span class="n">index</span> <span class="o">=</span> <span class="p">[</span><span class="n">index</span><span class="p">]</span>
 <a id="__codelineno-0-1209" name="__codelineno-0-1209"></a>        <span class="k">return</span> <span class="n">Detections</span><span class="p">(</span>
@@ -5799,7 +5799,7 @@ the data field.</p>
 <a id="__codelineno-0-1203" name="__codelineno-0-1203"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
 <a id="__codelineno-0-1204" name="__codelineno-0-1204"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
 <a id="__codelineno-0-1205" name="__codelineno-0-1205"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_empty</span><span class="p">():</span>
-<a id="__codelineno-0-1206" name="__codelineno-0-1206"></a>        <span class="k">return</span> <span class="n">Detections</span><span class="o">.</span><span class="n">empty</span><span class="p">()</span>
+<a id="__codelineno-0-1206" name="__codelineno-0-1206"></a>        <span class="k">return</span> <span class="bp">self</span>
 <a id="__codelineno-0-1207" name="__codelineno-0-1207"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
 <a id="__codelineno-0-1208" name="__codelineno-0-1208"></a>        <span class="n">index</span> <span class="o">=</span> <span class="p">[</span><span class="n">index</span><span class="p">]</span>
 <a id="__codelineno-0-1209" name="__codelineno-0-1209"></a>    <span class="k">return</span> <span class="n">Detections</span><span class="p">(</span>
