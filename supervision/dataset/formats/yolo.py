@@ -153,7 +153,18 @@ def load_yolo_annotations(
     image_paths = [
         str(path)
         for path in list_files_with_extensions(
-            directory=images_directory_path, extensions=["*"]
+            directory=images_directory_path,
+            extensions=[
+                "bmp",
+                "dng",
+                "jpg",
+                "jpeg",
+                "mpo",
+                "png",
+                "tif",
+                "tiff",
+                "webp",
+            ],
         )
     ]
 
@@ -172,14 +183,11 @@ def load_yolo_annotations(
         lines = read_txt_file(file_path=annotation_path, skip_empty=True)
         w, h = image.size
         resolution_wh = (w, h)
-        if image.mode != "RGB":
-            if image.mode == "L":
-                image = image.convert("RGB")
-            else:
-                raise ValueError(
-                    f"Images must be 'RGB' or 'grayscale', \
-                    but {image_path} mode is '{image.mode}'."
-                )
+        if image.mode not in ("RGB", "L"):
+            raise ValueError(
+                f"Images must be 'RGB' or 'grayscale', \
+                but {image_path} mode is '{image.mode}'."
+            )
 
         with_masks = _with_mask(lines=lines)
         with_masks = force_masks if force_masks else with_masks
