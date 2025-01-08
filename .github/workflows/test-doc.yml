@@ -23,18 +23,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: 🐍 Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+      - name: 🐍 Install uv and set Python ${{ matrix.python-version }}
+        uses: astral-sh/setup-uv@v5
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: 📜 Setup Poetry
-        uses: abatilo/actions-poetry@3765cf608f2d4a72178a9fc5b918668e542b89b1 # v4.0.0
-
       - name: 🏗️ Install dependencies
-        run: |
-          poetry install --with=docs
+        run: uv pip install -r pyproject.toml --extra docs
 
       - name: 🧪 Test Docs Build
-        run: |
-          poetry run mkdocs build --verbose
+        run: uv run mkdocs build --verbose
