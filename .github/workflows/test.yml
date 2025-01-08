@@ -4,26 +4,37 @@ on:
   pull_request:
     branches: [main, develop]
 
+permissions:
+  contents: read
+  checks: write # Required for test reporting
+  pull-requests: write # Required for PR comments
+
 jobs:
-  build-dev-test:
-    runs-on: ubuntu-latest
+  pytest:
+    name: PyTest
+    timeout-minutes: 10
     strategy:
       matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
+      fail-fast: false # Continue with other versions if one fails
+    runs-on: ${{ matrix.os }}
     steps:
-      - name: 🛎️ Checkout
-        uses: actions/checkout@v4
+      - name: 📥 Checkout the repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
       - name: 🐍 Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
         with:
           python-version: ${{ matrix.python-version }}
-          check-latest: true
+
+      - name: 📜 Setup Poetry
+        uses: abatilo/actions-poetry@3765cf608f2d4a72178a9fc5b918668e542b89b1 # v4.0.0
 
       - name: 📦 Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install .
-          pip install pytest
+          poetry install --with=test
 
-      - name: 🧪 Test
-        run: "python -m pytest ./test"
+      - name: 🧪 Run pytest
+        run: |
+            poetry run pytest
