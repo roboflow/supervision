@@ -1,4 +1,4 @@
-name: 🔧 Uv Checks and Test Workflow
+name: 🔧 Test Workflow
 on:
   push:
     paths:
@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  poetry-tests:
+  tests:
     name: Uv install and check
     timeout-minutes: 10
     strategy:
@@ -25,7 +25,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: 🐍 Install uv and set Python version ${{ matrix.python-version }}
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@887a942a15af3a7626099df99e897a18d9e5ab3a # v5.1.0
         with:
           python-version: ${{ matrix.python-version }}
 
