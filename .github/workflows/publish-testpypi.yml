@@ -1,21 +1,16 @@
-name: Publish Supervision Pre-Releases to PyPI
+name: Publish Supervision Releases to TestPyPI
 
 on:
-  push:
-    tags:
-      - "[0-9]+.[0-9]+[0-9]+.[0-9]+a[0-9]"
-      - "[0-9]+.[0-9]+[0-9]+.[0-9]+b[0-9]"
-      - "[0-9]+.[0-9]+[0-9]+.[0-9]+rc[0-9]"
   workflow_dispatch:
 
 permissions: {} # Explicitly remove all permissions by default
 
 jobs:
-  publish-pre-release:
-    name: Publish Pre-release Package
+  publish-testpypi:
+    name: Publish Release Package
     runs-on: ubuntu-latest
     environment:
-      name: test
+      name: release
       url: https://pypi.org/project/supervision/
     timeout-minutes: 10
     permissions:
@@ -39,7 +34,8 @@ jobs:
           uv build
           uv run twine check --strict dist/*
 
-      - name: 🚀 Publish to PyPi
+      - name: 🚀 Publish to Test-PyPi
         uses: pypa/gh-action-pypi-publish@67339c736fd9354cd4f8cb0b744f2b82a74b5c70 # v1.12.3
         with:
+          repository-url: https://test.pypi.org/legacy/
           attestations: true

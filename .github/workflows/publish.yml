@@ -1,4 +1,4 @@
-name: Publish Supervision Releases to PyPI and TestPyPI
+name: Publish Supervision Releases to PyPI
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
 permissions: {} # Explicitly remove all permissions by default
 
 jobs:
-  build-and-publish-release:
+  publish-release:
     name: Publish Release Package
     runs-on: ubuntu-latest
     environment:
@@ -40,10 +40,4 @@ jobs:
       - name: 🚀 Publish to PyPi
         uses: pypa/gh-action-pypi-publish@67339c736fd9354cd4f8cb0b744f2b82a74b5c70 # v1.12.3
         with:
-          attestations: true
-
-      - name: 🚀 Publish to Test-PyPi
-        uses: pypa/gh-action-pypi-publish@67339c736fd9354cd4f8cb0b744f2b82a74b5c70 # v1.12.3
-        with:
-          repository-url: https://test.pypi.org/legacy/
           attestations: true
