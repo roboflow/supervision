@@ -1,0 +1,39 @@
+name: 🔧 Uv Checks and Test Workflow
+on:
+  push:
+    paths:
+      - "uv.lock"
+      - "pyproject.toml"
+  pull_request:
+    paths:
+      - "uv.lock"
+      - "pyproject.toml"
+  workflow_dispatch:
+
+jobs:
+  poetry-tests:
+    name: Uv install and check
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: 📥 Checkout the repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: 🐍 Install uv and set Python version ${{ matrix.python-version }}
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: 🚀 Install Packages
+        run: uv pip install -r pyproject.toml --extra dev --extra docs --extra metrics
+
+      - name: 🧪 Run the Import test
+        run: uv run python -c "import supervision; from supervision import assets; from supervision import metrics; print(supervision.__version__)"
+
+      - name: 🧪 Run the Test
+        run: uv run pytest
