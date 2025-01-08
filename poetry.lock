@@ -5107,4 +5107,4 @@ metrics = ["pandas", "pandas"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.8"
-content-hash = "5f3b79b1abace707199d369bede2820f4438b80bed18a1c1e165b3103d1182e3"
+content-hash = "d47160f903210fd29e15d3eb43b663f0c40004b1a5853395de597b68f9bb56ab"

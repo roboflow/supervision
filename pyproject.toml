@@ -79,7 +79,7 @@ nbconvert = ">=7.14.2"
 docutils = "!=0.21"
 
 [tool.poetry.group.docs.dependencies]
-mkdocs-material = { git = "https://github.com/roboflow/mkdocs-material-insiders.git", rev = "9.5.49-insiders-4.53.14", extras = ["imaging"]}
+mkdocs-material = { extras = ["imaging"], version = "^9.5.5" }
 mkdocstrings = ">=0.25.2,<0.27.0"
 mkdocstrings-python = ">=1.10.9"
 mike = ">=2.0.0"
