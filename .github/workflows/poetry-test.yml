@@ -1,4 +1,4 @@
-name: 🔧 Poetry Check and Installation Test Workflow
+name: 🔧 Poetry Checks and Test Workflow
 on:
   push:
     paths:
@@ -40,3 +40,6 @@ jobs:
 
       - name: 🧪 Run the Import test
         run: poetry run python -c "import supervision; from supervision import assets; from supervision import metrics; print(supervision.__version__)"
+
+      - name: 🧪 Run the Test
+        run: poetry run pytest
