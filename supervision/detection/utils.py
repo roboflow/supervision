@@ -48,7 +48,9 @@ def polygon_to_mask(polygon: np.ndarray, resolution_wh: Tuple[int, int]) -> np.n
     return mask
 
 
-def box_iou_batch(boxes_true: np.ndarray, boxes_detection: np.ndarray, match_metric: str = "IOU") -> np.ndarray:
+def box_iou_batch(
+    boxes_true: np.ndarray, boxes_detection: np.ndarray, match_metric: str = "IOU"
+) -> np.ndarray:
     """
     Compute Intersection over Union (IoU) of two sets of bounding boxes -
         `boxes_true` and `boxes_detection`. Both sets
@@ -96,7 +98,9 @@ def box_iou_batch(boxes_true: np.ndarray, boxes_detection: np.ndarray, match_met
             where=small_area != 0,
         )
     else:
-        raise ValueError(f"match_metric {match_metric} is not supported, only 'IOU' and 'IOS' are supported")
+        raise ValueError(
+            f"match_metric {match_metric} is not supported, only 'IOU' and 'IOS' are supported"
+        )
 
     ious = np.nan_to_num(ious)
     return ious
@@ -143,7 +147,9 @@ def _mask_iou_batch_split(
             where=small_area != 0,
         )
     else:
-        raise ValueError(f"match_metric {match_metric} is not supported, only 'IOU' and 'IOS' are supported")
+        raise ValueError(
+            f"match_metric {match_metric} is not supported, only 'IOU' and 'IOS' are supported"
+        )
 
     ious = np.nan_to_num(ious)
     return ious
@@ -193,7 +199,11 @@ def mask_iou_batch(
         1,
     )
     for i in range(0, masks_true.shape[0], step):
-        ious.append(_mask_iou_batch_split(masks_true[i : i + step], masks_detection, match_metric))
+        ious.append(
+            _mask_iou_batch_split(
+                masks_true[i : i + step], masks_detection, match_metric
+            )
+        )
 
     return np.vstack(ious)
 

@@ -153,7 +153,9 @@ def box_non_max_suppression(
 
 
 def group_overlapping_boxes(
-    predictions: npt.NDArray[np.float64], iou_threshold: float = 0.5, match_metric: str = "IOU"
+    predictions: npt.NDArray[np.float64],
+    iou_threshold: float = 0.5,
+    match_metric: str = "IOU",
 ) -> List[List[int]]:
     """
     Apply greedy version of non-maximum merging to avoid detecting too many
@@ -186,7 +188,9 @@ def group_overlapping_boxes(
             break
 
         merge_candidate = np.expand_dims(predictions[idx], axis=0)
-        ious = box_iou_batch(predictions[order][:, :4], merge_candidate[:, :4], match_metric)
+        ious = box_iou_batch(
+            predictions[order][:, :4], merge_candidate[:, :4], match_metric
+        )
         ious = ious.flatten()
 
         above_threshold = ious >= iou_threshold
@@ -231,14 +235,19 @@ def mask_non_max_merge(
     """
     masks_resized = resize_masks(masks, mask_dimension)
     if predictions.shape[1] == 5:
-        return group_overlapping_masks(predictions, masks_resized, iou_threshold, match_metric)
+        return group_overlapping_masks(
+            predictions, masks_resized, iou_threshold, match_metric
+        )
 
     category_ids = predictions[:, 5]
     merge_groups = []
     for category_id in np.unique(category_ids):
         curr_indices = np.where(category_ids == category_id)[0]
         merge_class_groups = group_overlapping_masks(
-            predictions[curr_indices], masks_resized[curr_indices], iou_threshold, match_metric
+            predictions[curr_indices],
+            masks_resized[curr_indices],
+            iou_threshold,
+            match_metric,
         )
 
         for merge_class_group in merge_class_groups:

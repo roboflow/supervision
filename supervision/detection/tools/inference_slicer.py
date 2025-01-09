@@ -169,9 +169,13 @@ class InferenceSlicer:
         if self.overlap_filter == OverlapFilter.NONE:
             return merged
         elif self.overlap_filter == OverlapFilter.NON_MAX_SUPPRESSION:
-            return merged.with_nms(threshold=self.iou_threshold, match_metric=self.match_metric)
+            return merged.with_nms(
+                threshold=self.iou_threshold, match_metric=self.match_metric
+            )
         elif self.overlap_filter == OverlapFilter.NON_MAX_MERGE:
-            return merged.with_nmm(threshold=self.iou_threshold, match_metric=self.match_metric)
+            return merged.with_nmm(
+                threshold=self.iou_threshold, match_metric=self.match_metric
+            )
         else:
             warnings.warn(
                 f"Invalid overlap filter strategy: {self.overlap_filter}",

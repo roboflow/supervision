@@ -17,8 +17,8 @@ from supervision.detection.lmm import (
 )
 from supervision.detection.overlap_filter import (
     box_non_max_merge,
-    mask_non_max_merge,
     box_non_max_suppression,
+    mask_non_max_merge,
     mask_non_max_suppression,
 )
 from supervision.detection.tools.transformers import (
@@ -28,12 +28,12 @@ from supervision.detection.tools.transformers import (
 )
 from supervision.detection.utils import (
     box_iou_batch,
-    mask_iou_batch,
     calculate_masks_centroids,
     extract_ultralytics_masks,
     get_data_item,
     is_data_equal,
     is_metadata_equal,
+    mask_iou_batch,
     mask_to_xyxy,
     merge_data,
     merge_metadata,
@@ -1283,7 +1283,10 @@ class Detections:
         return (self.xyxy[:, 3] - self.xyxy[:, 1]) * (self.xyxy[:, 2] - self.xyxy[:, 0])
 
     def with_nms(
-        self, threshold: float = 0.5, class_agnostic: bool = False, match_metric: str = "IOU"
+        self,
+        threshold: float = 0.5,
+        class_agnostic: bool = False,
+        match_metric: str = "IOU",
     ) -> Detections:
         """
         Performs non-max suppression on detection set. If the detections result
@@ -1331,17 +1334,25 @@ class Detections:
 
         if self.mask is not None:
             indices = mask_non_max_suppression(
-                predictions=predictions, masks=self.mask, iou_threshold=threshold, match_metric=match_metric
+                predictions=predictions,
+                masks=self.mask,
+                iou_threshold=threshold,
+                match_metric=match_metric,
             )
         else:
             indices = box_non_max_suppression(
-                predictions=predictions, iou_threshold=threshold, match_metric=match_metric
+                predictions=predictions,
+                iou_threshold=threshold,
+                match_metric=match_metric,
             )
 
         return self[indices]
 
     def with_nmm(
-        self, threshold: float = 0.5, class_agnostic: bool = False, match_metric: str = "IOU"
+        self,
+        threshold: float = 0.5,
+        class_agnostic: bool = False,
+        match_metric: str = "IOU",
     ) -> Detections:
         """
         Perform non-maximum merging on the current set of object detections.
@@ -1389,11 +1400,16 @@ class Detections:
 
         if self.mask is not None:
             merge_groups = mask_non_max_merge(
-                predictions=predictions, masks=self.mask, iou_threshold=threshold, match_metric=match_metric
+                predictions=predictions,
+                masks=self.mask,
+                iou_threshold=threshold,
+                match_metric=match_metric,
             )
         else:
             merge_groups = box_non_max_merge(
-                predictions=predictions, iou_threshold=threshold, match_metric=match_metric
+                predictions=predictions,
+                iou_threshold=threshold,
+                match_metric=match_metric,
             )
 
         result = []
