@@ -1029,13 +1029,13 @@ class Detections:
                 class_id=np.array([1, 2]),
                 data={'feature_vector': np.array([0.1, 0.2])}
             )
-            
+
             detections_2 = sv.Detections(
                 xyxy=np.array([[30, 30, 120, 120]]),
                 class_id=np.array([1]),
                 data={'feature_vector': np.array([0.3])}
             )
-            
+
             merged_detections = sv.Detections.merge([detections_1, detections_2])
 
             merged_detections.xyxy
