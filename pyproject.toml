@@ -224,7 +224,7 @@ quiet-level = 3
 ignore-words-list = "STrack,sTrack,strack"
 
 [tool.setuptools]
-include-package-data = true
+include-package-data = false
 
 [tool.setuptools.packages.find]
 include = ["supervision*"]
