@@ -1,18 +1,12 @@
 name: 🔧 Test Workflow
+
 on:
-  push:
-    paths:
-      - "uv.lock"
-      - "pyproject.toml"
   pull_request:
-    paths:
-      - "uv.lock"
-      - "pyproject.toml"
-  workflow_dispatch:
+    branches: [main, develop]
 
 jobs:
-  tests:
-    name: Uv install and check
+  run-tests:
+    name: Import Test and Pytest Run
     timeout-minutes: 10
     strategy:
       fail-fast: false
