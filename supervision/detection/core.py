@@ -17,6 +17,7 @@ from supervision.detection.lmm import (
 )
 from supervision.detection.overlap_filter import (
     box_non_max_merge,
+    mask_non_max_merge,
     box_non_max_suppression,
     mask_non_max_suppression,
 )
@@ -27,6 +28,7 @@ from supervision.detection.tools.transformers import (
 )
 from supervision.detection.utils import (
     box_iou_batch,
+    mask_iou_batch,
     calculate_masks_centroids,
     extract_ultralytics_masks,
     get_data_item,
@@ -1281,7 +1283,7 @@ class Detections:
         return (self.xyxy[:, 3] - self.xyxy[:, 1]) * (self.xyxy[:, 2] - self.xyxy[:, 0])
 
     def with_nms(
-        self, threshold: float = 0.5, class_agnostic: bool = False
+        self, threshold: float = 0.5, class_agnostic: bool = False, match_metric: str = "IOU"
     ) -> Detections:
         """
         Performs non-max suppression on detection set. If the detections result
@@ -1294,6 +1296,8 @@ class Detections:
             class_agnostic (bool): Whether to perform class-agnostic
                 non-maximum suppression. If True, the class_id of each detection
                 will be ignored. Defaults to False.
+            match_metric (str): Metric used for matching detections in slices.
+                "IOU" or "IOS". Defaults "IOU".
 
         Returns:
             Detections: A new Detections object containing the subset of detections
@@ -1327,17 +1331,17 @@ class Detections:
 
         if self.mask is not None:
             indices = mask_non_max_suppression(
-                predictions=predictions, masks=self.mask, iou_threshold=threshold
+                predictions=predictions, masks=self.mask, iou_threshold=threshold, match_metric=match_metric
             )
         else:
             indices = box_non_max_suppression(
-                predictions=predictions, iou_threshold=threshold
+                predictions=predictions, iou_threshold=threshold, match_metric=match_metric
             )
 
         return self[indices]
 
     def with_nmm(
-        self, threshold: float = 0.5, class_agnostic: bool = False
+        self, threshold: float = 0.5, class_agnostic: bool = False, match_metric: str = "IOU"
     ) -> Detections:
         """
         Perform non-maximum merging on the current set of object detections.
@@ -1348,6 +1352,8 @@ class Detections:
             class_agnostic (bool): Whether to perform class-agnostic
                 non-maximum merging. If True, the class_id of each detection
                 will be ignored. Defaults to False.
+            match_metric (str): Metric used for matching detections in slices.
+                "IOU" or "IOS". Defaults "IOU".
 
         Returns:
             Detections: A new Detections object containing the subset of detections
@@ -1381,15 +1387,20 @@ class Detections:
                 )
             )
 
-        merge_groups = box_non_max_merge(
-            predictions=predictions, iou_threshold=threshold
-        )
+        if self.mask is not None:
+            merge_groups = mask_non_max_merge(
+                predictions=predictions, masks=self.mask, iou_threshold=threshold, match_metric=match_metric
+            )
+        else:
+            merge_groups = box_non_max_merge(
+                predictions=predictions, iou_threshold=threshold, match_metric=match_metric
+            )
 
         result = []
         for merge_group in merge_groups:
             unmerged_detections = [self[i] for i in merge_group]
             merged_detections = merge_inner_detections_objects(
-                unmerged_detections, threshold
+                unmerged_detections, threshold, match_metric
             )
             result.append(merged_detections)
 
@@ -1489,7 +1500,7 @@ def merge_inner_detection_object_pair(
 
 
 def merge_inner_detections_objects(
-    detections: List[Detections], threshold=0.5
+    detections: List[Detections], threshold=0.5, match_metric: str = "IOU"
 ) -> Detections:
     """
     Given N detections each of length 1 (exactly one object inside), combine them into a
@@ -1501,8 +1512,11 @@ def merge_inner_detections_objects(
     """
     detections_1 = detections[0]
     for detections_2 in detections[1:]:
-        box_iou = box_iou_batch(detections_1.xyxy, detections_2.xyxy)[0]
-        if box_iou < threshold:
+        if detections_1.mask is not None and detections_2.mask is not None:
+            iou = mask_iou_batch(detections_1.mask, detections_2.mask, match_metric)[0]
+        else:
+            iou = box_iou_batch(detections_1.xyxy, detections_2.xyxy, match_metric)[0]
+        if iou < threshold:
             break
         detections_1 = merge_inner_detection_object_pair(detections_1, detections_2)
     return detections_1

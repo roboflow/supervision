@@ -48,7 +48,7 @@ def polygon_to_mask(polygon: np.ndarray, resolution_wh: Tuple[int, int]) -> np.n
     return mask
 
 
-def box_iou_batch(boxes_true: np.ndarray, boxes_detection: np.ndarray) -> np.ndarray:
+def box_iou_batch(boxes_true: np.ndarray, boxes_detection: np.ndarray, match_metric: str = "IOU") -> np.ndarray:
     """
     Compute Intersection over Union (IoU) of two sets of bounding boxes -
         `boxes_true` and `boxes_detection`. Both sets
@@ -59,6 +59,8 @@ def box_iou_batch(boxes_true: np.ndarray, boxes_detection: np.ndarray) -> np.nda
             `shape = (N, 4)` where `N` is number of true objects.
         boxes_detection (np.ndarray): 2D `np.ndarray` representing detection boxes.
             `shape = (M, 4)` where `M` is number of detected objects.
+        match_metric (str): Metric used for matching detections in slices.
+            "IOU" or "IOS". Defaults "IOU".
 
     Returns:
         np.ndarray: Pairwise IoU of boxes from `boxes_true` and `boxes_detection`.
@@ -76,13 +78,32 @@ def box_iou_batch(boxes_true: np.ndarray, boxes_detection: np.ndarray) -> np.nda
     bottom_right = np.minimum(boxes_true[:, None, 2:], boxes_detection[:, 2:])
 
     area_inter = np.prod(np.clip(bottom_right - top_left, a_min=0, a_max=None), 2)
-    ious = area_inter / (area_true[:, None] + area_detection - area_inter)
+
+    if match_metric.upper() == "IOU":
+        union_area = area_true[:, None] + area_detection - area_inter
+        ious = np.divide(
+            area_inter,
+            union_area,
+            out=np.zeros_like(area_inter, dtype=float),
+            where=union_area != 0,
+        )
+    elif match_metric.upper() == "IOS":
+        small_area = np.minimum(area_true[:, None], area_detection)
+        ious = np.divide(
+            area_inter,
+            small_area,
+            out=np.zeros_like(area_inter, dtype=float),
+            where=small_area != 0,
+        )
+    else:
+        raise ValueError(f"match_metric {match_metric} is not supported, only 'IOU' and 'IOS' are supported")
+
     ious = np.nan_to_num(ious)
     return ious
 
 
 def _mask_iou_batch_split(
-    masks_true: np.ndarray, masks_detection: np.ndarray
+    masks_true: np.ndarray, masks_detection: np.ndarray, match_metric: str = "IOU"
 ) -> np.ndarray:
     """
     Internal function.
@@ -92,6 +113,8 @@ def _mask_iou_batch_split(
     Args:
         masks_true (np.ndarray): 3D `np.ndarray` representing ground-truth masks.
         masks_detection (np.ndarray): 3D `np.ndarray` representing detection masks.
+        match_metric (str): Metric used for matching detections in slices.
+            "IOU" or "IOS". Defaults "IOU".
 
     Returns:
         np.ndarray: Pairwise IoU of masks from `masks_true` and `masks_detection`.
@@ -102,19 +125,34 @@ def _mask_iou_batch_split(
 
     masks_true_area = masks_true.sum(axis=(1, 2))
     masks_detection_area = masks_detection.sum(axis=(1, 2))
-    union_area = masks_true_area[:, None] + masks_detection_area - intersection_area
 
-    return np.divide(
-        intersection_area,
-        union_area,
-        out=np.zeros_like(intersection_area, dtype=float),
-        where=union_area != 0,
-    )
+    if match_metric.upper() == "IOU":
+        union_area = masks_true_area[:, None] + masks_detection_area - intersection_area
+        ious = np.divide(
+            intersection_area,
+            union_area,
+            out=np.zeros_like(intersection_area, dtype=float),
+            where=union_area != 0,
+        )
+    elif match_metric.upper() == "IOS":
+        small_area = np.minimum(intersection_area, masks_detection_area)
+        ious = np.divide(
+            intersection_area,
+            small_area,
+            out=np.zeros_like(intersection_area, dtype=float),
+            where=small_area != 0,
+        )
+    else:
+        raise ValueError(f"match_metric {match_metric} is not supported, only 'IOU' and 'IOS' are supported")
+
+    ious = np.nan_to_num(ious)
+    return ious
 
 
 def mask_iou_batch(
     masks_true: np.ndarray,
     masks_detection: np.ndarray,
+    match_metric: str = "IOU",
     memory_limit: int = 1024 * 5,
 ) -> np.ndarray:
     """
@@ -124,6 +162,8 @@ def mask_iou_batch(
     Args:
         masks_true (np.ndarray): 3D `np.ndarray` representing ground-truth masks.
         masks_detection (np.ndarray): 3D `np.ndarray` representing detection masks.
+        match_metric (str): Metric used for matching detections in slices.
+            "IOU" or "IOS". Defaults "IOU".
         memory_limit (int): memory limit in MB, default is 1024 * 5 MB (5GB).
 
     Returns:
@@ -138,7 +178,7 @@ def mask_iou_batch(
         / 1024
     )
     if memory <= memory_limit:
-        return _mask_iou_batch_split(masks_true, masks_detection)
+        return _mask_iou_batch_split(masks_true, masks_detection, match_metric)
 
     ious = []
     step = max(
@@ -153,7 +193,7 @@ def mask_iou_batch(
         1,
     )
     for i in range(0, masks_true.shape[0], step):
-        ious.append(_mask_iou_batch_split(masks_true[i : i + step], masks_detection))
+        ious.append(_mask_iou_batch_split(masks_true[i : i + step], masks_detection, match_metric))
 
     return np.vstack(ious)
 
