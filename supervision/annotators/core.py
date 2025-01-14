@@ -104,23 +104,24 @@ class BoxAnnotator(BaseAnnotator):
         supervision-annotator-examples/bounding-box-annotator-example-purple.png)
         """
         assert isinstance(scene, np.ndarray)
-        for detection_idx in range(len(detections)):
-            x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
-            color = resolve_color(
+        # Precompute colors for all detections
+        color_lookup = self.color_lookup if custom_color_lookup is None else custom_color_lookup
+        precomputed_colors = [
+            resolve_color(
                 color=self.color,
                 detections=detections,
-                detection_idx=detection_idx,
-                color_lookup=self.color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
+                detection_idx=i,
+                color_lookup=color_lookup,
             )
-            cv2.rectangle(
-                img=scene,
-                pt1=(x1, y1),
-                pt2=(x2, y2),
-                color=color.as_bgr(),
-                thickness=self.thickness,
-            )
+            for i in range(len(detections))
+        ]
+        
+        # Use NumPy to handle bounding box coordinates
+        bounding_boxes = detections.xyxy.astype(int)
+        
+        # Draw all bounding boxes
+        for (x1, y1, x2, y2), color in zip(bounding_boxes, precomputed_colors):
+            cv2.rectangle(scene, (x1, y1), (x2, y2), color.as_bgr(), self.thickness)
         return scene
 
 
