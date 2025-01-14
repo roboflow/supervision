@@ -105,7 +105,9 @@ class BoxAnnotator(BaseAnnotator):
         """
         assert isinstance(scene, np.ndarray)
         # Precompute colors for all detections
-        color_lookup = self.color_lookup if custom_color_lookup is None else custom_color_lookup
+        color_lookup = (
+            self.color_lookup if custom_color_lookup is None else custom_color_lookup
+        )
         precomputed_colors = [
             resolve_color(
                 color=self.color,
@@ -115,10 +117,10 @@ class BoxAnnotator(BaseAnnotator):
             )
             for i in range(len(detections))
         ]
-        
+
         # Use NumPy to handle bounding box coordinates
         bounding_boxes = detections.xyxy.astype(int)
-        
+
         # Draw all bounding boxes
         for (x1, y1, x2, y2), color in zip(bounding_boxes, precomputed_colors):
             cv2.rectangle(scene, (x1, y1), (x2, y2), color.as_bgr(), self.thickness)
