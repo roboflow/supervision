@@ -1530,3 +1530,62 @@ def validate_fields_both_defined_or_none(
                 f"Field '{attribute}' should be consistently None or not None in both "
                 "Detections."
             )
+
+
+def transform(self, dataset, class_mapping: Optional[Dict[str, str]] = None) -> Detections:
+    """
+    Transform detections to match the dataset's class names and IDs.
+
+    Args:
+        dataset: The dataset object containing class names and IDs.
+        class_mapping (Optional[Dict[str, str]]): A dictionary to map model class names
+            to dataset class names. If None, no remapping is performed.
+
+    Returns:
+        Detections: A new Detections object with transformed class names and IDs.
+
+    Raises:
+        ValueError: If the dataset does not contain the required class names.
+    """
+    if self.is_empty():
+        return self
+
+    if class_mapping is not None:
+        if self.class_id is None or self.data.get(CLASS_NAME_DATA_FIELD) is None:
+            raise ValueError("Class names must be available in the data field for remapping.")
+
+        current_class_names = self.data[CLASS_NAME_DATA_FIELD]
+
+        remapped_class_names = np.array([
+            class_mapping.get(name, name) for name in current_class_names
+        ])
+
+        if not all(name in dataset.classes for name in np.unique(remapped_class_names)):
+            raise ValueError("All mapped class names must be in the dataset's classes.")
+
+        self.data[CLASS_NAME_DATA_FIELD] = remapped_class_names
+
+    if self.class_id is not None and self.data.get(CLASS_NAME_DATA_FIELD) is not None:
+
+        class_names = self.data[CLASS_NAME_DATA_FIELD]
+
+        mask = np.isin(class_names, dataset.classes)
+
+        self.xyxy = self.xyxy[mask]
+        self.mask = self.mask[mask] if self.mask is not None else None
+        self.confidence = self.confidence[mask] if self.confidence is not None else None
+        self.class_id = self.class_id[mask] if self.class_id is not None else None
+        self.tracker_id = self.tracker_id[mask] if self.tracker_id is not None else None
+
+        for key, value in self.data.items():
+            if isinstance(value, np.ndarray):
+                self.data[key] = value[mask]
+            elif isinstance(value, list):
+                self.data[key] = [value[i] for i in np.where(mask)[0]]
+
+    if self.class_id is not None and self.data.get(CLASS_NAME_DATA_FIELD) is not None:
+        class_names = self.data[CLASS_NAME_DATA_FIELD]
+
+        self.class_id = np.array([dataset.classes.index(name) for name in class_names])
+
+    return self
