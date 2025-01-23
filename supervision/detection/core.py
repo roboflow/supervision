@@ -1532,7 +1532,9 @@ def validate_fields_both_defined_or_none(
             )
 
 
-def transform(self, dataset, class_mapping: Optional[Dict[str, str]] = None) -> Detections:
+def transform(
+    self, dataset, class_mapping: Optional[Dict[str, str]] = None
+) -> Detections:
     """
     Transform detections to match the dataset's class names and IDs.
 
@@ -1552,13 +1554,15 @@ def transform(self, dataset, class_mapping: Optional[Dict[str, str]] = None) -> 
 
     if class_mapping is not None:
         if self.class_id is None or self.data.get(CLASS_NAME_DATA_FIELD) is None:
-            raise ValueError("Class names must be available in the data field for remapping.")
+            raise ValueError(
+                "Class names must be available in the data field for remapping."
+            )
 
         current_class_names = self.data[CLASS_NAME_DATA_FIELD]
 
-        remapped_class_names = np.array([
-            class_mapping.get(name, name) for name in current_class_names
-        ])
+        remapped_class_names = np.array(
+            [class_mapping.get(name, name) for name in current_class_names]
+        )
 
         if not all(name in dataset.classes for name in np.unique(remapped_class_names)):
             raise ValueError("All mapped class names must be in the dataset's classes.")
@@ -1566,7 +1570,6 @@ def transform(self, dataset, class_mapping: Optional[Dict[str, str]] = None) -> 
         self.data[CLASS_NAME_DATA_FIELD] = remapped_class_names
 
     if self.class_id is not None and self.data.get(CLASS_NAME_DATA_FIELD) is not None:
-
         class_names = self.data[CLASS_NAME_DATA_FIELD]
 
         mask = np.isin(class_names, dataset.classes)
