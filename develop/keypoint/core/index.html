@@ -2444,18 +2444,6 @@ sets of keypoints, where each point is <code>[x, y]</code>.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code><span title="supervision.keypoint.core.KeyPoints.confidence">confidence</span></code></td>
-            <td>
-                  <code><span title="typing.Optional">Optional</span>[<span title="numpy.ndarray">ndarray</span>]</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>An array of shape
-<code>(n, m)</code> containing the confidence scores of each keypoint.</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
             <td><code><span title="supervision.keypoint.core.KeyPoints.class_id">class_id</span></code></td>
             <td>
                   <code><span title="typing.Optional">Optional</span>[<span title="numpy.ndarray">ndarray</span>]</code>
@@ -2464,6 +2452,18 @@ sets of keypoints, where each point is <code>[x, y]</code>.</p>
               <div class="doc-md-description">
                 <p>An array of shape
 <code>(n,)</code> containing the class ids of the detected objects.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="supervision.keypoint.core.KeyPoints.confidence">confidence</span></code></td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="numpy.ndarray">ndarray</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>An array of shape
+<code>(n, m)</code> containing the confidence scores of each keypoint.</p>
               </div>
             </td>
           </tr>
@@ -3237,10 +3237,10 @@ is either a NumPy array or a list of corresponding data of length <code>n</code>
 <a id="__codelineno-0-91" name="__codelineno-0-91"></a><span class="sd">        xy (np.ndarray): An array of shape `(n, m, 2)` containing</span>
 <a id="__codelineno-0-92" name="__codelineno-0-92"></a><span class="sd">            `n` detected objects, each composed of `m` equally-sized</span>
 <a id="__codelineno-0-93" name="__codelineno-0-93"></a><span class="sd">            sets of keypoints, where each point is `[x, y]`.</span>
-<a id="__codelineno-0-94" name="__codelineno-0-94"></a><span class="sd">        confidence (Optional[np.ndarray]): An array of shape</span>
-<a id="__codelineno-0-95" name="__codelineno-0-95"></a><span class="sd">            `(n, m)` containing the confidence scores of each keypoint.</span>
-<a id="__codelineno-0-96" name="__codelineno-0-96"></a><span class="sd">        class_id (Optional[np.ndarray]): An array of shape</span>
-<a id="__codelineno-0-97" name="__codelineno-0-97"></a><span class="sd">            `(n,)` containing the class ids of the detected objects.</span>
+<a id="__codelineno-0-94" name="__codelineno-0-94"></a><span class="sd">        class_id (Optional[np.ndarray]): An array of shape</span>
+<a id="__codelineno-0-95" name="__codelineno-0-95"></a><span class="sd">            `(n,)` containing the class ids of the detected objects.</span>
+<a id="__codelineno-0-96" name="__codelineno-0-96"></a><span class="sd">        confidence (Optional[np.ndarray]): An array of shape</span>
+<a id="__codelineno-0-97" name="__codelineno-0-97"></a><span class="sd">            `(n, m)` containing the confidence scores of each keypoint.</span>
 <a id="__codelineno-0-98" name="__codelineno-0-98"></a><span class="sd">        data (Dict[str, Union[np.ndarray, List]]): A dictionary containing additional</span>
 <a id="__codelineno-0-99" name="__codelineno-0-99"></a><span class="sd">            data where each key is a string representing the data type, and the value</span>
 <a id="__codelineno-0-100" name="__codelineno-0-100"></a><span class="sd">            is either a NumPy array or a list of corresponding data of length `n`</span>
