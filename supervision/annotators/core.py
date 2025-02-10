@@ -1944,11 +1944,9 @@ class HeatMapAnnotator(BaseAnnotator):
         temp = temp.astype(np.uint8)
         if self.kernel_size is not None:
             temp = cv2.blur(temp, (self.kernel_size, self.kernel_size))
-        hsv = np.zeros(scene.shape)
+        hsv = np.full(scene.shape, 255, dtype=np.uint8)
         hsv[..., 0] = temp
-        hsv[..., 1] = 255
-        hsv[..., 2] = 255
-        temp = cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2BGR)
+        temp = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
         mask = cv2.cvtColor(self.heat_mask.astype(np.uint8), cv2.COLOR_GRAY2BGR) > 0
         scene[mask] = cv2.addWeighted(temp, self.opacity, scene, 1 - self.opacity, 0)[
             mask
