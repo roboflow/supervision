@@ -510,6 +510,95 @@ class KeyPoints:
         else:
             return cls.empty()
 
+    @classmethod
+    def from_transformers(cls, transfomers_results: Any) -> KeyPoints:
+        """
+        Create a `sv.KeyPoints` object from the
+        [Transformers](https://github.com/huggingface/transformers) inference result.
+
+        Args:
+            transfomers_results (Any): The output of a
+                Transformers model containing instances with prediction data.
+
+        Returns:
+            A `sv.KeyPoints` object containing the keypoint coordinates, class IDs,
+                and class names, and confidences of each keypoint.
+
+        Example:
+            ```python
+            import requests
+            import torch
+            from PIL import Image
+            from transformers import (
+                AutoProcessor,
+                RTDetrForObjectDetection,
+                VitPoseForPoseEstimation,
+            )
+
+            import supervision as sv
+
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            image = Image.open(<SOURCE_IMAGE_PATH>)
+
+            person_image_processor = AutoProcessor.from_pretrained("PekingU/rtdetr_r50vd_coco_o365")
+            person_model = RTDetrForObjectDetection.from_pretrained("PekingU/rtdetr_r50vd_coco_o365", device_map=device)
+
+            inputs = person_image_processor(images=image, return_tensors="pt").to(device)
+
+            with torch.no_grad():
+                outputs = person_model(**inputs)
+
+            results = person_image_processor.post_process_object_detection(
+                outputs, target_sizes=torch.tensor([(image.height, image.width)]), threshold=0.3
+            )
+            result = results[0]  # take first image results
+            detections = sv.Detections.from_transformers(result)
+            person_detections_xywh = sv.xyxy_xywh(detections[detections.class_id == 0].xyxy)
+
+            image_processor = AutoProcessor.from_pretrained("usyd-community/vitpose-base-simple")
+            model = VitPoseForPoseEstimation.from_pretrained(
+                "usyd-community/vitpose-base-simple", device_map=device
+            )
+
+            inputs = image_processor(image, boxes=[person_detections_xywh], return_tensors="pt").to(
+                device
+            )
+
+            with torch.no_grad():
+                outputs = model(**inputs)
+
+            pose_results = image_processor.post_process_pose_estimation(
+                outputs, boxes=[person_detections_xywh]
+            )[0]
+
+            keypoints = sv.KeyPoints.from_transformers(pose_results)
+
+
+            ```
+        """  # noqa: E501 // docs
+
+        if "keypoints" in transfomers_results[0]:
+            if transfomers_results[0]["keypoints"].cpu().numpy().size == 0:
+                return cls.empty()
+
+            result_data = [
+                (
+                    result["keypoints"].cpu().numpy(),
+                    result["scores"].cpu().numpy(),
+                )
+                for result in transfomers_results
+            ]
+
+            xy, scores = zip(*result_data)
+
+            return cls(
+                xy=np.stack(xy).astype(np.float32),
+                confidence=np.stack(scores).astype(np.float32),
+                class_id=np.arange(len(xy)).astype(int),
+            )
+        else:
+            return cls.empty()
+
     def __getitem__(
         self, index: Union[int, slice, List[int], np.ndarray, str]
     ) -> Union[KeyPoints, List, np.ndarray, None]:

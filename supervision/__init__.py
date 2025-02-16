@@ -78,6 +78,7 @@ from supervision.detection.utils import (
     xcycwh_to_xyxy,
     xywh_to_xyxy,
     xyxy_to_polygons,
+    xyxy_xywh,
 )
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import (
@@ -226,4 +227,5 @@ __all__ = [
     "xcycwh_to_xyxy",
     "xywh_to_xyxy",
     "xyxy_to_polygons",
+    "xyxy_xywh",
 ]
