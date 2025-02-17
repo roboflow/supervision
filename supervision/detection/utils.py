@@ -321,7 +321,7 @@ def xywh_to_xyxy(xywh: np.ndarray) -> np.ndarray:
     return xyxy
 
 
-def xyxy_xywh(xyxy: np.ndarray) -> np.ndarray:
+def xyxy_to_xywh(xyxy: np.ndarray) -> np.ndarray:
     """
     Converts bounding box coordinates from `(x_min, y_min, x_max, y_max)`
     format to `(x, y, width, height)` format.
@@ -345,7 +345,7 @@ def xyxy_xywh(xyxy: np.ndarray) -> np.ndarray:
             [15, 25, 50, 70]
         ])
 
-        sv.xyxy_xywh(xyxy=xyxy)
+        sv.xyxy_to_xywh(xyxy=xyxy)
         # array([
         #     [10, 20, 30, 40],
         #     [15, 25, 35, 45]

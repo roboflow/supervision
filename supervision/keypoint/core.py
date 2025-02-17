@@ -526,53 +526,49 @@ class KeyPoints:
 
         Example:
             ```python
-            import requests
-            import torch
             from PIL import Image
+            import requests
+            import supervision as sv
+            import torch
             from transformers import (
                 AutoProcessor,
                 RTDetrForObjectDetection,
                 VitPoseForPoseEstimation,
             )
 
-            import supervision as sv
-
             device = "cuda" if torch.cuda.is_available() else "cpu"
             image = Image.open(<SOURCE_IMAGE_PATH>)
 
-            person_image_processor = AutoProcessor.from_pretrained("PekingU/rtdetr_r50vd_coco_o365")
-            person_model = RTDetrForObjectDetection.from_pretrained("PekingU/rtdetr_r50vd_coco_o365", device_map=device)
+            DETECTION_MODEL_ID = "PekingU/rtdetr_r50vd_coco_o365"
 
-            inputs = person_image_processor(images=image, return_tensors="pt").to(device)
+            detection_processor = AutoProcessor.from_pretrained(DETECTION_MODEL_ID, use_fast=True)
+            detection_model = RTDetrForObjectDetection.from_pretrained(DETECTION_MODEL_ID, device_map=DEVICE)
 
-            with torch.no_grad():
-                outputs = person_model(**inputs)
-
-            results = person_image_processor.post_process_object_detection(
-                outputs, target_sizes=torch.tensor([(image.height, image.width)]), threshold=0.3
-            )
-            result = results[0]  # take first image results
-            detections = sv.Detections.from_transformers(result)
-            person_detections_xywh = sv.xyxy_xywh(detections[detections.class_id == 0].xyxy)
-
-            image_processor = AutoProcessor.from_pretrained("usyd-community/vitpose-base-simple")
-            model = VitPoseForPoseEstimation.from_pretrained(
-                "usyd-community/vitpose-base-simple", device_map=device
-            )
-
-            inputs = image_processor(image, boxes=[person_detections_xywh], return_tensors="pt").to(
-                device
-            )
+            inputs = detection_processor(images=frame, return_tensors="pt").to(DEVICE)
 
             with torch.no_grad():
-                outputs = model(**inputs)
+                outputs = detection_model(**inputs)
 
-            pose_results = image_processor.post_process_pose_estimation(
-                outputs, boxes=[person_detections_xywh]
-            )[0]
+            target_size = torch.tensor([(frame.height, frame.width)])
+            results = detection_processor.post_process_object_detection(
+                outputs, target_sizes=target_size, threshold=0.3)
 
-            keypoints = sv.KeyPoints.from_transformers(pose_results)
+            detections = sv.Detections.from_transformers(results[0])
+            boxes = sv.xyxy_to_xywh(detections[detections.class_id == 0].xyxy)
 
+            POSE_ESTIMATION_MODEL_ID = "usyd-community/vitpose-base-simple"
+
+            pose_estimation_processor = AutoProcessor.from_pretrained(POSE_ESTIMATION_MODEL_ID)
+            pose_estimation_model = VitPoseForPoseEstimation.from_pretrained(
+                POSE_ESTIMATION_MODEL_ID, device_map=DEVICE)
+
+            inputs = pose_estimation_processor(frame, boxes=[boxes], return_tensors="pt").to(DEVICE)
+
+            with torch.no_grad():
+                outputs = pose_estimation_model(**inputs)
+
+            results = pose_estimation_processor.post_process_pose_estimation(outputs, boxes=[boxes])
+            key_point = sv.KeyPoints.from_transformers(results[0])
 
             ```
         """  # noqa: E501 // docs
