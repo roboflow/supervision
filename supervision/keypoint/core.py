@@ -61,6 +61,7 @@ class KeyPoints:
         method, which accepts [MediaPipe](https://github.com/google-ai-edge/mediapipe)
         pose result.
 
+
         ```python
         import cv2
         import mediapipe as mp
@@ -314,6 +315,7 @@ class KeyPoints:
             key_points = sv.KeyPoints.from_mediapipe(
                 face_landmarker_result, (image_width, image_height))
             ```
+
         """  # noqa: E501 // docs
         if hasattr(mediapipe_results, "pose_landmarks"):
             results = mediapipe_results.pose_landmarks
@@ -473,7 +475,7 @@ class KeyPoints:
             A `sv.KeyPoints` object containing the keypoint coordinates, class IDs,
                 and class names, and confidences of each keypoint.
 
-        Example:
+        Examples:
             ```python
             import cv2
             import supervision as sv
@@ -524,7 +526,7 @@ class KeyPoints:
             A `sv.KeyPoints` object containing the keypoint coordinates, class IDs,
                 and class names, and confidences of each keypoint.
 
-        Example:
+        Examples:
             ```python
             from PIL import Image
             import requests
@@ -569,8 +571,8 @@ class KeyPoints:
 
             results = pose_estimation_processor.post_process_pose_estimation(outputs, boxes=[boxes])
             key_point = sv.KeyPoints.from_transformers(results[0])
-
             ```
+
         """  # noqa: E501 // docs
 
         if "keypoints" in transfomers_results[0]:
@@ -724,7 +726,7 @@ class KeyPoints:
         Returns:
             detections (Detections): The converted detections object.
 
-        Example:
+        Examples:
             ```python
             keypoints = sv.KeyPoints.from_inference(...)
             detections = keypoints.as_detections()
