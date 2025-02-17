@@ -90,6 +90,12 @@ status: new
 :::supervision.detection.utils.xywh_to_xyxy
 
 <div class="md-typeset">
+  <h2><a href="#supervision.detection.utils.xyxy_to_xywh">xyxy_to_xywh</a></h2>
+</div>
+
+:::supervision.detection.utils.xyxy_to_xywh
+
+<div class="md-typeset">
   <h2><a href="#supervision.detection.utils.xcycwh_to_xyxy">xcycwh_to_xyxy</a></h2>
 </div>
 
