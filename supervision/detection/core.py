@@ -13,7 +13,7 @@ from supervision.detection.vlm import (
     LMM,
     from_florence_2,
     from_paligemma,
-    validate_vlm_parameters, VLM,
+    validate_vlm_parameters, VLM, from_qwen_2_5_vl,
 )
 from supervision.detection.overlap_filter import (
     box_non_max_merge,
@@ -848,18 +848,18 @@ class Detections:
             LMM.QWEN_2_5_VL: VLM.QWEN_2_5_VL
         }
 
-        if isinstance(lmm, LMM):
+        if lmm in LMM:
             vlm = lmm_to_vlm[lmm]
 
         elif isinstance(lmm, str):
             try:
-                lmm_parsed = LMM(lmm.lower())
+                lmm_enum = LMM(lmm.lower())
             except ValueError:
                 raise ValueError(
                     f"Invalid LMM string '{lmm}'. Must be one of "
                     f"{[m.value for m in LMM]}"
                 )
-            vlm = lmm_to_vlm[lmm_parsed]
+            vlm = lmm_to_vlm[lmm_enum]
 
         else:
             raise ValueError(
@@ -878,7 +878,7 @@ class Detections:
             return cls(xyxy=xyxy, class_id=class_id, data=data)
 
         if vlm == VLM.QWEN_2_5_VL:
-            xyxy, class_id, class_name = from_paligemma(result, **kwargs)
+            xyxy, class_id, class_name = from_qwen_2_5_vl(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             return cls(xyxy=xyxy, class_id=class_id, data=data)
 
