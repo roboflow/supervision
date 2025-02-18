@@ -76,9 +76,7 @@ def validate_lmm_parameters(
 
 
 def from_paligemma(
-    result: str,
-    resolution_wh: Tuple[int, int],
-    classes: Optional[List[str]] = None
+    result: str, resolution_wh: Tuple[int, int], classes: Optional[List[str]] = None
 ) -> Tuple[np.ndarray, Optional[np.ndarray], np.ndarray]:
     """
     Parse bounding boxes from paligemma-formatted text, scale them to the specified resolution,

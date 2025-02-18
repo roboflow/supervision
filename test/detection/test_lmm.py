@@ -17,7 +17,6 @@ from supervision.detection.lmm import from_paligemma, from_qwen_2_5_vl
             None,
             (np.empty((0, 4)), None, np.empty(0).astype(str)),
         ),  # empty text
-
         (
             does_not_raise(),
             "",
@@ -25,7 +24,6 @@ from supervision.detection.lmm import from_paligemma, from_qwen_2_5_vl
             ["cat", "dog"],
             (np.empty((0, 4)), None, np.empty(0).astype(str)),
         ),  # empty text, classes
-
         (
             does_not_raise(),
             "\n",
@@ -33,7 +31,6 @@ from supervision.detection.lmm import from_paligemma, from_qwen_2_5_vl
             None,
             (np.empty((0, 4)), None, np.empty(0).astype(str)),
         ),  # newline only
-
         (
             does_not_raise(),
             "the quick brown fox jumps over the lazy dog.",
@@ -41,7 +38,6 @@ from supervision.detection.lmm import from_paligemma, from_qwen_2_5_vl
             None,
             (np.empty((0, 4)), None, np.empty(0).astype(str)),
         ),  # random text, no location
-
         (
             does_not_raise(),
             "<loc0256><loc0768><loc0768> cat",
@@ -49,7 +45,6 @@ from supervision.detection.lmm import from_paligemma, from_qwen_2_5_vl
             None,
             (np.empty((0, 4)), None, np.empty(0).astype(str)),
         ),  # partial location
-
         (
             does_not_raise(),
             "<loc0256><loc0256><loc0768><loc0768><loc0768> cat",
@@ -57,7 +52,6 @@ from supervision.detection.lmm import from_paligemma, from_qwen_2_5_vl
             None,
             (np.empty((0, 4)), None, np.empty(0).astype(str)),
         ),  # extra loc
-
         (
             does_not_raise(),
             "<loc0256><loc0256><loc0768><loc0768>",
@@ -65,7 +59,6 @@ from supervision.detection.lmm import from_paligemma, from_qwen_2_5_vl
             None,
             (np.empty((0, 4)), None, np.empty(0).astype(str)),
         ),  # no class
-
         (
             does_not_raise(),
             "<loc0256><loc0256><loc0768><loc0768> catt",
@@ -73,7 +66,6 @@ from supervision.detection.lmm import from_paligemma, from_qwen_2_5_vl
             ["cat", "dog"],
             (np.empty((0, 4)), np.empty(0), np.empty(0).astype(str)),
         ),  # invalid class
-
         (
             does_not_raise(),
             "<loc0256><loc0256><loc0768><loc0768> cat",
@@ -85,7 +77,6 @@ from supervision.detection.lmm import from_paligemma, from_qwen_2_5_vl
                 np.array(["cat"]).astype(str),
             ),
         ),  # single box, no classes
-
         (
             does_not_raise(),
             "<loc0256><loc0256><loc0768><loc0768> black cat",
@@ -97,7 +88,6 @@ from supervision.detection.lmm import from_paligemma, from_qwen_2_5_vl
                 np.array(["black cat"]).astype(np.dtype("U")),
             ),
         ),  # class with space
-
         (
             does_not_raise(),
             "<loc0256><loc0256><loc0768><loc0768> black-cat",
@@ -109,7 +99,6 @@ from supervision.detection.lmm import from_paligemma, from_qwen_2_5_vl
                 np.array(["black-cat"]).astype(np.dtype("U")),
             ),
         ),  # class with hyphen
-
         (
             does_not_raise(),
             "<loc0256><loc0256><loc0768><loc0768> black_cat",
@@ -121,7 +110,6 @@ from supervision.detection.lmm import from_paligemma, from_qwen_2_5_vl
                 np.array(["black_cat"]).astype(np.dtype("U")),
             ),
         ),  # class with underscore
-
         (
             does_not_raise(),
             "<loc0256><loc0256><loc0768><loc0768> cat ;",
@@ -133,22 +121,17 @@ from supervision.detection.lmm import from_paligemma, from_qwen_2_5_vl
                 np.array(["cat"]).astype(str),
             ),
         ),  # correct class filter
-
         (
             does_not_raise(),
             "<loc0256><loc0256><loc0768><loc0768> cat ; <loc0256><loc0256><loc0768><loc0768> dog",
             (1000, 1000),
             ["cat", "dog"],
             (
-                np.array([
-                    [250.0, 250.0, 750.0, 750.0],
-                    [250.0, 250.0, 750.0, 750.0]
-                ]),
+                np.array([[250.0, 250.0, 750.0, 750.0], [250.0, 250.0, 750.0, 750.0]]),
                 np.array([0, 1]),
                 np.array(["cat", "dog"]).astype(np.dtype("U")),
             ),
         ),  # multiple correct boxes, classes
-
         (
             does_not_raise(),
             "<loc0256><loc0256><loc0768><loc0768> cat ; <loc0256><loc0256><loc0768> cat",
@@ -160,7 +143,6 @@ from supervision.detection.lmm import from_paligemma, from_qwen_2_5_vl
                 np.array(["cat"]).astype(str),
             ),
         ),  # partial valid boxes
-
         (
             does_not_raise(),
             "<loc0256><loc0256><loc0768><loc0768> cat ; <loc0256><loc0256><loc0768><loc0768><loc0768> cat",
@@ -172,7 +154,6 @@ from supervision.detection.lmm import from_paligemma, from_qwen_2_5_vl
                 np.array(["cat"]).astype(str),
             ),
         ),  # partial valid again
-
         (
             pytest.raises(ValueError),
             "<loc0256><loc0256><loc0768><loc0768> cat",
@@ -180,7 +161,6 @@ from supervision.detection.lmm import from_paligemma, from_qwen_2_5_vl
             None,
             None,
         ),  # zero width -> ValueError
-
         (
             pytest.raises(ValueError),
             "<loc0256><loc0256><loc0768><loc0768> dog",
@@ -198,7 +178,9 @@ def test_from_paligemma(
     expected_results: Tuple[np.ndarray, Optional[np.ndarray], np.ndarray],
 ) -> None:
     with exception:
-        result = from_paligemma(result=result, resolution_wh=resolution_wh, classes=classes)
+        result = from_paligemma(
+            result=result, resolution_wh=resolution_wh, classes=classes
+        )
         np.testing.assert_array_equal(result[0], expected_results[0])
         np.testing.assert_array_equal(result[1], expected_results[1])
         np.testing.assert_array_equal(result[2], expected_results[2])
