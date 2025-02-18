@@ -273,11 +273,7 @@ def test_from_paligemma(
             (640, 640),
             (1280, 720),
             ["cat", "dog"],
-            (
-                    np.empty((0, 4)),
-                    np.empty(0, dtype=int),
-                    np.empty(0, dtype=str)
-            ),
+            (np.empty((0, 4)), np.empty(0, dtype=int), np.empty(0, dtype=str)),
         ),  # class mismatch
         (
             does_not_raise(),
