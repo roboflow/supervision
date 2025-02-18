@@ -87,24 +87,24 @@ def validate_vlm_parameters(
 
 
 def from_paligemma(
-    result: str,
-    resolution_wh: Tuple[int, int],
-    classes: Optional[List[str]] = None
+    result: str, resolution_wh: Tuple[int, int], classes: Optional[List[str]] = None
 ) -> Tuple[np.ndarray, Optional[np.ndarray], np.ndarray]:
     """
-    Parse bounding boxes from paligemma-formatted text, scale them to the specified resolution,
-    and optionally filter by classes.
+    Parse bounding boxes from paligemma-formatted text, scale them to the specified
+    resolution, and optionally filter by classes.
 
     Args:
         result: String containing paligemma-formatted locations and labels.
         resolution_wh: Tuple (width, height) to which we scale the box coordinates.
-        classes: Optional list of valid class names. If provided, boxes and labels not in this list are filtered out.
+        classes: Optional list of valid class names. If provided, boxes and labels not
+            in this list are filtered out.
 
     Returns:
         xyxy (np.ndarray): An array of shape `(n, 4)` containing
             the bounding boxes coordinates in format `[x1, y1, x2, y2]`.
         class_id (Optional[np.ndarray]): An array of shape `(n,)` containing
-            the class indices for each bounding box (or `None` if classes is not provided).
+            the class indices for each bounding box (or `None` if classes is not
+            provided).
         class_name (np.ndarray): An array of shape `(n,)` containing
             the class labels for each bounding box.
     """
@@ -157,7 +157,8 @@ def from_qwen_2_5_vl(
 
     Args:
         result: String containing the JSON snippet enclosed by triple backticks.
-        input_wh: (input_width, input_height) describing the original bounding box scale.
+        input_wh: (input_width, input_height) describing the original bounding box
+            scale.
         resolution_wh: (output_width, output_height) to which we rescale the boxes.
         classes: Optional list of valid class names. If provided, returned boxes/labels
             are filtered to only those classes found here.
@@ -166,7 +167,8 @@ def from_qwen_2_5_vl(
         xyxy (np.ndarray): An array of shape `(n, 4)` containing
             the bounding boxes coordinates in format `[x1, y1, x2, y2]`
         class_id (Optional[np.ndarray]): An array of shape `(n,)` containing
-            the class indices for each bounding box (or None if `classes` is not provided)
+            the class indices for each bounding box (or None if `classes` is not
+            provided)
         class_name (np.ndarray): An array of shape `(n,)` containing
             the class labels for each bounding box
     """
