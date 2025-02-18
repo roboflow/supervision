@@ -38,12 +38,8 @@ classifiers = [
     'Operating System :: MacOS',
 ]
 dependencies = [
-    "numpy>=1.21.2,<1.26.0; python_version < '3.12'",
-    "numpy>=1.26.0,<2.1.0; python_version >= '3.12' and python_version < '3.13'",
-    "numpy>=2.1.0; python_version >= '3.13'",
-    "scipy (==1.10.0); python_version < '3.9'",
-    "scipy (>=1.10.0,<1.14.1) ; python_version >= '3.9' and python_version < '3.13'",
-    "scipy (>=1.14.1); python_version >= '3.13'",
+    "numpy>=1.21.2",
+    "scipy>=1.10.0",
     "matplotlib>=3.6.0",
     "pyyaml>=5.3",
     "defusedxml>=0.7.1",
@@ -60,48 +56,39 @@ Documentation = "https://supervision.roboflow.com/latest/"
 
 [project.optional-dependencies]
 metrics = [
-    "pandas>=2.0.0; python_version < '3.13'",
-    "pandas>=2.2.3; python_version >= '3.13'"
+    "pandas>=2.0.0",
 ]
-
-[tool.poetry]
-# Keep version here since it's dynamic
-packages = [{ include = "supervision" }, { include = "supervision/py.typed" }]
-
-
-[tool.poetry.group.dev.dependencies]
-pytest = ">=7.2.2,<9.0.0"
-tox = ">=4.11.4"
-notebook = ">=6.5.3,<8.0.0"
-ipywidgets = ">=8.1.1"
-jupytext = ">=1.16.1"
-nbconvert = ">=7.14.2"
-docutils = "!=0.21"
-
-[tool.poetry.group.docs.dependencies]
-mkdocs-material = { extras = ["imaging"], version = "^9.5.5" }
-mkdocstrings = ">=0.25.2,<0.27.0"
-mkdocstrings-python = ">=1.10.9"
-mike = ">=2.0.0"
-# For Documentation Development use Python 3.10 or above
-# Use Latest mkdocs-jupyter min 0.24.6 for Jupyter Notebook Theme support
-mkdocs-jupyter = ">=0.24.3"
-mkdocs-git-committers-plugin-2 = { version = ">=2.4.1", python = ">=3.8,<4" }
-mkdocs-git-revision-date-localized-plugin = ">=1.2.4"
-
-[tool.poetry.group.build.dependencies]
-twine = ">=5.1.1,<7.0.0"
-wheel = ">=0.40,<0.46"
-build = ">=0.10,<1.3"
+dev = [
+    "pytest>=7.2.2,<9.0.0",
+    "tox>=4.11.4",
+    "notebook>=6.5.3,<8.0.0",
+    "ipywidgets>=8.1.1",
+    "jupytext>=1.16.1",
+    "nbconvert>=7.14.2",
+    "docutils!=0.21"
+]
+docs = [
+    "mkdocs-material[imaging]>=9.5.5",
+    "mkdocstrings>=0.25.2,<0.27.0",
+    "mkdocstrings-python>=1.10.9",
+    "mike>=2.0.0",
+    "mkdocs-jupyter>=0.24.3",
+    "mkdocs-git-committers-plugin-2>=2.4.1; python_version >= '3.8' and python_version < '4'",
+    "mkdocs-git-revision-date-localized-plugin>=1.2.4"
+]
+build = [
+    "twine>=5.1.1,<7.0.0",
+    "wheel>=0.40,<0.46",
+    "build>=0.10,<1.3"
+]
 
 [tool.bandit]
 target = ["test", "supervision"]
-tests = ["B201", "B301", "B318", "B314", "B303", "B413", "B412", "B410"]
+tests = ["B201", "B301", "B318", "B314", "B303", "B413", "B412"]
 
 [tool.autoflake]
 check = true
 imports = ["cv2", "supervision"]
-
 
 [tool.ruff]
 target-version = "py38"
@@ -226,7 +213,7 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 
 [tool.codespell]
-skip = "*.ipynb,poetry.lock"
+skip = "*.ipynb"
 count = true
 quiet-level = 3
 ignore-words-list = "STrack,sTrack,strack"
@@ -235,8 +222,12 @@ ignore-words-list = "STrack,sTrack,strack"
 include-package-data = false
 
 [tool.setuptools.packages.find]
+include = ["supervision*"]
 exclude = ["docs*", "test*", "examples*"]
 
+[tool.setuptools.package-data]
+supervision = ["py.typed"]
+
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
