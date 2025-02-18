@@ -26,20 +26,33 @@
   float: right;
 }
 
+/* Parameter headings must be inline, not blocks. */
+.doc-heading-parameter {
+  display: inline;
+}
+
+/* Prefer space on the right, not the left of parameter permalinks. */
+.doc-heading-parameter .headerlink {
+  margin-left: 0 !important;
+  margin-right: 0.2rem;
+}
+
 /* Backward-compatibility: docstring section titles in bold. */
 .doc-section-title {
   font-weight: bold;
 }
 
 /* Symbols in Navigation and ToC. */
-:root,
+:root, :host,
 [data-md-color-scheme="default"] {
+  --doc-symbol-parameter-fg-color: #df50af;
   --doc-symbol-attribute-fg-color: #953800;
   --doc-symbol-function-fg-color: #8250df;
   --doc-symbol-method-fg-color: #8250df;
   --doc-symbol-class-fg-color: #0550ae;
   --doc-symbol-module-fg-color: #5cad0f;
 
+  --doc-symbol-parameter-bg-color: #df50af1a;
   --doc-symbol-attribute-bg-color: #9538001a;
   --doc-symbol-function-bg-color: #8250df1a;
   --doc-symbol-method-bg-color: #8250df1a;
@@ -48,12 +61,14 @@
 }
 
 [data-md-color-scheme="slate"] {
+  --doc-symbol-parameter-fg-color: #ffa8cc;
   --doc-symbol-attribute-fg-color: #ffa657;
   --doc-symbol-function-fg-color: #d2a8ff;
   --doc-symbol-method-fg-color: #d2a8ff;
   --doc-symbol-class-fg-color: #79c0ff;
   --doc-symbol-module-fg-color: #baff79;
 
+  --doc-symbol-parameter-bg-color: #ffa8cc1a;
   --doc-symbol-attribute-bg-color: #ffa6571a;
   --doc-symbol-function-bg-color: #d2a8ff1a;
   --doc-symbol-method-bg-color: #d2a8ff1a;
@@ -66,6 +81,15 @@ code.doc-symbol {
   font-size: .85em;
   padding: 0 .3em;
   font-weight: bold;
+}
+
+code.doc-symbol-parameter {
+  color: var(--doc-symbol-parameter-fg-color);
+  background-color: var(--doc-symbol-parameter-bg-color);
+}
+
+code.doc-symbol-parameter::after {
+  content: "param";
 }
 
 code.doc-symbol-attribute {
