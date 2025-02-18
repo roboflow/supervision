@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
@@ -8,12 +9,6 @@ import numpy as np
 from supervision.config import (
     CLASS_NAME_DATA_FIELD,
     ORIENTED_BOX_COORDINATES,
-)
-from supervision.detection.vlm import (
-    LMM,
-    from_florence_2,
-    from_paligemma,
-    validate_vlm_parameters, VLM, from_qwen_2_5_vl,
 )
 from supervision.detection.overlap_filter import (
     box_non_max_merge,
@@ -37,6 +32,12 @@ from supervision.detection.utils import (
     merge_metadata,
     process_roboflow_result,
     xywh_to_xyxy,
+)
+from supervision.detection.vlm import (
+    LMM,
+    from_florence_2,
+    from_paligemma,
+    validate_vlm_parameters, VLM, from_qwen_2_5_vl,
 )
 from supervision.geometry.core import Position
 from supervision.utils.internal import get_instance_variables, deprecated
@@ -848,7 +849,8 @@ class Detections:
             LMM.QWEN_2_5_VL: VLM.QWEN_2_5_VL
         }
 
-        if lmm in LMM:
+        # (this works even if the LMM enum is wrapped by @deprecated)
+        if isinstance(lmm, Enum) and lmm.__class__.__name__ == "LMM":
             vlm = lmm_to_vlm[lmm]
 
         elif isinstance(lmm, str):
