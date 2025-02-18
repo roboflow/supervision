@@ -5,5 +5,6 @@ def ensure_pandas_installed():
         raise ImportError(
             "`metrics` extra is required to run the function."
             " Run `pip install 'supervision[metrics]'` or"
-            " `poetry add supervision -E metrics`"
+            " `poetry add supervision -E metrics` or"
+            " `uv pip install 'supervision[metrics]'`"
         )

@@ -1,18 +1,17 @@
-name: Publish Supervision Releases to PyPI and TestPyPI
+name: Publish Supervision Releases to TestPyPI
 
 on:
-  push:
-    tags:
-      - "[0-9]+.[0-9]+[0-9]+.[0-9]"
   workflow_dispatch:
 
 permissions: {} # Explicitly remove all permissions by default
 
 jobs:
-  build-and-publish-pre-release:
+  publish-testpypi:
     name: Publish Release Package
     runs-on: ubuntu-latest
-    environment: release
+    environment:
+      name: release
+      url: https://pypi.org/project/supervision/
     timeout-minutes: 10
     permissions:
       id-token: write # Required for PyPI publishing
@@ -24,24 +23,16 @@ jobs:
       - name: 📥 Checkout the repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: 🐍 Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+      - name: 🐍 Install uv and set Python version ${{ matrix.python-version }}
+        uses: astral-sh/setup-uv@4db96194c378173c656ce18a155ffc14a9fc4355 # v5.2.2
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: 📜 Setup Poetry
-        uses: abatilo/actions-poetry@3765cf608f2d4a72178a9fc5b918668e542b89b1 # v4.0.0
-
       - name: 🏗️ Build source and wheel distributions
         run: |
-          poetry install --with=build
-          poetry build
-          poetry run twine check --strict dist/*
-
-      - name: 🚀 Publish to PyPi
-        uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc # v1.12.4
-        with:
-          attestations: true
+          uv pip install -r pyproject.toml --extra build
+          uv build
+          uv run twine check --strict dist/*
 
       - name: 🚀 Publish to Test-PyPi
         uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc # v1.12.4

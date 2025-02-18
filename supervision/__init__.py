@@ -76,6 +76,7 @@ from supervision.detection.utils import (
     xcycwh_to_xyxy,
     xywh_to_xyxy,
     xyxy_to_polygons,
+    xyxy_to_xywh,
 )
 from supervision.detection.vlm import LMM, VLM
 from supervision.draw.color import Color, ColorPalette
@@ -224,4 +225,5 @@ __all__ = [
     "xcycwh_to_xyxy",
     "xywh_to_xyxy",
     "xyxy_to_polygons",
+    "xyxy_to_xywh",
 ]
