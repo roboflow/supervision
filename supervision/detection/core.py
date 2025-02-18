@@ -9,11 +9,11 @@ from supervision.config import (
     CLASS_NAME_DATA_FIELD,
     ORIENTED_BOX_COORDINATES,
 )
-from supervision.detection.lmm import (
+from supervision.detection.vlm import (
     LMM,
     from_florence_2,
     from_paligemma,
-    validate_lmm_parameters,
+    validate_vlm_parameters, VLM,
 )
 from supervision.detection.overlap_filter import (
     box_non_max_merge,
@@ -39,7 +39,7 @@ from supervision.detection.utils import (
     xywh_to_xyxy,
 )
 from supervision.geometry.core import Position
-from supervision.utils.internal import get_instance_variables
+from supervision.utils.internal import get_instance_variables, deprecated
 from supervision.validators import validate_detections_fields
 
 
@@ -799,6 +799,10 @@ class Detections:
         )
 
     @classmethod
+    @deprecated(
+        "`Detections.from_lmm` property is deprecated and will be removed in "
+        "`supervision-0.31.0`. Use Detections.from_vlm instead."
+    )
     def from_lmm(
         cls, lmm: Union[LMM, str], result: Union[str, dict], **kwargs: Any
     ) -> Detections:
@@ -837,19 +841,48 @@ class Detections:
             # array([0])
             ```
         """
-        lmm = validate_lmm_parameters(lmm, result, kwargs)
+        # filler logic mapping old from_lmm to new from_vlm
+        lmm_to_vlm = {
+            LMM.PALIGEMMA: VLM.PALIGEMMA,
+            LMM.FLORENCE_2: VLM.FLORENCE_2,
+            LMM.QWEN_2_5_VL: VLM.QWEN_2_5_VL
+        }
 
-        if lmm == LMM.PALIGEMMA:
+        if isinstance(lmm, LMM):
+            vlm = lmm_to_vlm[lmm]
+
+        elif isinstance(lmm, str):
+            try:
+                lmm_parsed = LMM(lmm.lower())
+            except ValueError:
+                raise ValueError(
+                    f"Invalid LMM string '{lmm}'. Must be one of "
+                    f"{[m.value for m in LMM]}"
+                )
+            vlm = lmm_to_vlm[lmm_parsed]
+
+        else:
+            raise ValueError(
+                f"Invalid type for 'lmm': {type(lmm)}. Must be LMM or str."
+            )
+
+        return cls.from_vlm(vlm=vlm, result=result, **kwargs)
+
+    @classmethod
+    def from_vlm(cls, vlm: Union[VLM, str], result: Union[str, dict], **kwargs: Any) -> Detections:
+        vlm = validate_vlm_parameters(vlm, result, kwargs)
+
+        if vlm == VLM.PALIGEMMA:
             xyxy, class_id, class_name = from_paligemma(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             return cls(xyxy=xyxy, class_id=class_id, data=data)
 
-        if lmm == LMM.QWEN_2_5_VL:
+        if vlm == VLM.QWEN_2_5_VL:
             xyxy, class_id, class_name = from_paligemma(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             return cls(xyxy=xyxy, class_id=class_id, data=data)
 
-        if lmm == LMM.FLORENCE_2:
+        if vlm == VLM.FLORENCE_2:
             xyxy, labels, mask, xyxyxyxy = from_florence_2(result, **kwargs)
             if len(xyxy) == 0:
                 return cls.empty()
@@ -861,8 +894,6 @@ class Detections:
                 data[ORIENTED_BOX_COORDINATES] = xyxyxyxy
 
             return cls(xyxy=xyxy, mask=mask, data=data)
-
-        raise ValueError(f"Unsupported LMM: {lmm}")
 
     @classmethod
     def from_easyocr(cls, easyocr_results: list) -> Detections:

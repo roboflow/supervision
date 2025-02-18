@@ -4,7 +4,7 @@ from typing import List, Optional, Tuple
 import numpy as np
 import pytest
 
-from supervision.detection.lmm import from_paligemma, from_qwen_2_5_vl
+from supervision.detection.vlm import from_paligemma, from_qwen_2_5_vl
 
 
 @pytest.mark.parametrize(

@@ -705,28 +705,6 @@ class ClassificationDataset(BaseDataset):
                 "a list of paths `List[str]` instead."
             )
 
-    @property
-    @deprecated(
-        "`DetectionDataset.images` property is deprecated and will be removed in "
-        "`supervision-0.26.0`. Iterate with `for path, image, annotation in dataset:` "
-        "instead."
-    )
-    def images(self) -> Dict[str, np.ndarray]:
-        """
-        Load all images to memory and return them as a dictionary.
-
-        !!! warning
-
-            Only use this when you need all images at once.
-            It is much more memory-efficient to initialize dataset with
-            image paths and use `for path, image, annotation in dataset:`.
-        """
-        if self._images_in_memory:
-            return self._images_in_memory
-
-        images = {image_path: cv2.imread(image_path) for image_path in self.image_paths}
-        return images
-
     def _get_image(self, image_path: str) -> np.ndarray:
         """Assumes that image is in dataset"""
         if self._images_in_memory:

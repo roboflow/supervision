@@ -9,7 +9,6 @@ except importlib_metadata.PackageNotFoundError:
 from supervision.annotators.core import (
     BackgroundOverlayAnnotator,
     BlurAnnotator,
-    BoundingBoxAnnotator,
     BoxAnnotator,
     BoxCornerAnnotator,
     CircleAnnotator,
@@ -46,7 +45,7 @@ from supervision.detection.line_zone import (
     LineZoneAnnotator,
     LineZoneAnnotatorMulticlass,
 )
-from supervision.detection.lmm import LMM
+from supervision.detection.vlm import LMM, VLM
 from supervision.detection.overlap_filter import (
     OverlapFilter,
     box_non_max_merge,
@@ -126,7 +125,6 @@ __all__ = [
     "BackgroundOverlayAnnotator",
     "BaseDataset",
     "BlurAnnotator",
-    "BoundingBoxAnnotator",
     "BoxAnnotator",
     "BoxCornerAnnotator",
     "ByteTrack",
