@@ -123,7 +123,8 @@ from supervision.detection.lmm import from_paligemma, from_qwen_2_5_vl
         ),  # correct class filter
         (
             does_not_raise(),
-            "<loc0256><loc0256><loc0768><loc0768> cat ; <loc0256><loc0256><loc0768><loc0768> dog",
+            "<loc0256><loc0256><loc0768><loc0768> cat ; "
+            "<loc0256><loc0256><loc0768><loc0768> dog",
             (1000, 1000),
             ["cat", "dog"],
             (
@@ -134,7 +135,8 @@ from supervision.detection.lmm import from_paligemma, from_qwen_2_5_vl
         ),  # multiple correct boxes, classes
         (
             does_not_raise(),
-            "<loc0256><loc0256><loc0768><loc0768> cat ; <loc0256><loc0256><loc0768> cat",
+            "<loc0256><loc0256><loc0768><loc0768> cat ; "
+            "<loc0256><loc0256><loc0768> cat",
             (1000, 1000),
             ["cat", "dog"],
             (
@@ -145,7 +147,8 @@ from supervision.detection.lmm import from_paligemma, from_qwen_2_5_vl
         ),  # partial valid boxes
         (
             does_not_raise(),
-            "<loc0256><loc0256><loc0768><loc0768> cat ; <loc0256><loc0256><loc0768><loc0768><loc0768> cat",
+            "<loc0256><loc0256><loc0768><loc0768> cat ; "
+            "<loc0256><loc0256><loc0768><loc0768><loc0768> cat",
             (1000, 1000),
             ["cat", "dog"],
             (
@@ -270,7 +273,11 @@ def test_from_paligemma(
             (640, 640),
             (1280, 720),
             ["cat", "dog"],
-            (np.empty((0, 4)), np.empty(0, dtype=int), np.empty(0, dtype=str)),
+            (
+                    np.empty((0, 4)),
+                    np.empty(0, dtype=int),
+                    np.empty(0, dtype=str)
+            ),
         ),  # class mismatch
         (
             does_not_raise(),
