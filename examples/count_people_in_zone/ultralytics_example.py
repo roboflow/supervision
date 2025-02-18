@@ -33,9 +33,7 @@ def load_zones_config(file_path: str) -> List[np.ndarray]:
 
 def initiate_annotators(
     polygons: List[np.ndarray], resolution_wh: Tuple[int, int]
-) -> Tuple[
-    List[sv.PolygonZone], List[sv.PolygonZoneAnnotator], List[sv.BoxAnnotator]
-]:
+) -> Tuple[List[sv.PolygonZone], List[sv.PolygonZoneAnnotator], List[sv.BoxAnnotator]]:
     line_thickness = sv.calculate_optimal_line_thickness(resolution_wh=resolution_wh)
     text_scale = sv.calculate_optimal_text_scale(resolution_wh=resolution_wh)
 

@@ -36,7 +36,6 @@ from supervision.utils.image import (
     overlay_image,
     scale_image,
 )
-from supervision.utils.internal import deprecated
 
 CV2_FONT = cv2.FONT_HERSHEY_SIMPLEX
 
