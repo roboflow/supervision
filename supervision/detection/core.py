@@ -840,13 +840,16 @@ class Detections:
         lmm = validate_lmm_parameters(lmm, result, kwargs)
 
         if lmm == LMM.PALIGEMMA:
-            assert isinstance(result, str)
+            xyxy, class_id, class_name = from_paligemma(result, **kwargs)
+            data = {CLASS_NAME_DATA_FIELD: class_name}
+            return cls(xyxy=xyxy, class_id=class_id, data=data)
+
+        if lmm == LMM.QWEN_2_5_VL:
             xyxy, class_id, class_name = from_paligemma(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             return cls(xyxy=xyxy, class_id=class_id, data=data)
 
         if lmm == LMM.FLORENCE_2:
-            assert isinstance(result, dict)
             xyxy, labels, mask, xyxyxyxy = from_florence_2(result, **kwargs)
             if len(xyxy) == 0:
                 return cls.empty()
