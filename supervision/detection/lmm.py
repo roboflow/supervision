@@ -76,14 +76,42 @@ def validate_lmm_parameters(
 
 
 def from_paligemma(
-    result: str, resolution_wh: Tuple[int, int], classes: Optional[List[str]] = None
+    result: str,
+    resolution_wh: Tuple[int, int],
+    classes: Optional[List[str]] = None
 ) -> Tuple[np.ndarray, Optional[np.ndarray], np.ndarray]:
+    """
+    Parse bounding boxes from paligemma-formatted text, scale them to the specified resolution,
+    and optionally filter by classes.
+
+    Args:
+        result: String containing paligemma-formatted locations and labels.
+        resolution_wh: Tuple (width, height) to which we scale the box coordinates.
+        classes: Optional list of valid class names. If provided, boxes and labels not in this list are filtered out.
+
+    Returns:
+        xyxy (np.ndarray): An array of shape `(n, 4)` containing
+            the bounding boxes coordinates in format `[x1, y1, x2, y2]`.
+        class_id (Optional[np.ndarray]): An array of shape `(n,)` containing
+            the class indices for each bounding box (or `None` if classes is not provided).
+        class_name (np.ndarray): An array of shape `(n,)` containing
+            the class labels for each bounding box.
+    """
+
     w, h = resolution_wh
+    if w <= 0 or h <= 0:
+        raise ValueError(
+            f"Both dimensions in resolution_wh must be positive. Got ({w}, {h})."
+        )
+
     pattern = re.compile(
         r"(?<!<loc\d{4}>)<loc(\d{4})><loc(\d{4})><loc(\d{4})><loc(\d{4})> ([\w\s\-]+)"
     )
     matches = pattern.findall(result)
     matches = np.array(matches) if matches else np.empty((0, 5))
+
+    if matches.shape[0] == 0:
+        return np.empty((0, 4)), None, np.empty(0, dtype=str)
 
     xyxy, class_name = matches[:, [1, 0, 3, 2]], matches[:, 4]
     xyxy = xyxy.astype(int) / 1024 * np.array([w, h, w, h])
@@ -91,8 +119,9 @@ def from_paligemma(
     class_id = None
 
     if classes is not None:
-        mask = np.array([name in classes for name in class_name]).astype(bool)
-        xyxy, class_name = xyxy[mask], class_name[mask]
+        mask = np.array([name in classes for name in class_name], dtype=bool)
+        xyxy = xyxy[mask]
+        class_name = class_name[mask]
         class_id = np.array([classes.index(name) for name in class_name])
 
     return xyxy, class_id, class_name
@@ -105,7 +134,7 @@ def from_qwen_2_5_vl(
     classes: Optional[List[str]] = None,
 ) -> Tuple[np.ndarray, Optional[np.ndarray], np.ndarray]:
     """
-    Parse and scale bounding boxes from QWen 2.5 style JSON output.
+    Parse and scale bounding boxes from Qwen-2.5-VL style JSON output.
 
     The JSON is expected to be enclosed in triple backticks with the format:
       ```json
