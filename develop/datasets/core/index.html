@@ -2060,34 +2060,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#supervision.dataset.core.ClassificationDataset-attributes" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Attributes
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Attributes">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#supervision.dataset.core.ClassificationDataset.images" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;images
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#supervision.dataset.core.ClassificationDataset-functions" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3735,34 +3707,6 @@
       
     </span>
   </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#supervision.dataset.core.ClassificationDataset-attributes" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Attributes
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Attributes">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#supervision.dataset.core.ClassificationDataset.images" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;images
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -7523,7 +7467,7 @@ loading, dataset splitting.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code><a class="autorefs autorefs-internal" title="supervision.dataset.core.ClassificationDataset.images" href="#supervision.dataset.core.ClassificationDataset.images">images</a></code></td>
+            <td><code><span title="supervision.dataset.core.ClassificationDataset.images">images</span></code></td>
             <td>
                   <code><span title="typing.Union">Union</span>[<span title="typing.List">List</span>[str], <span title="typing.Dict">Dict</span>[str, <span title="numpy.ndarray">ndarray</span>]]</code>
             </td>
@@ -7784,29 +7728,7 @@ image name to annotations.</p>
 <span class="normal"><a href="#__codelineno-0-894">894</a></span>
 <span class="normal"><a href="#__codelineno-0-895">895</a></span>
 <span class="normal"><a href="#__codelineno-0-896">896</a></span>
-<span class="normal"><a href="#__codelineno-0-897">897</a></span>
-<span class="normal"><a href="#__codelineno-0-898">898</a></span>
-<span class="normal"><a href="#__codelineno-0-899">899</a></span>
-<span class="normal"><a href="#__codelineno-0-900">900</a></span>
-<span class="normal"><a href="#__codelineno-0-901">901</a></span>
-<span class="normal"><a href="#__codelineno-0-902">902</a></span>
-<span class="normal"><a href="#__codelineno-0-903">903</a></span>
-<span class="normal"><a href="#__codelineno-0-904">904</a></span>
-<span class="normal"><a href="#__codelineno-0-905">905</a></span>
-<span class="normal"><a href="#__codelineno-0-906">906</a></span>
-<span class="normal"><a href="#__codelineno-0-907">907</a></span>
-<span class="normal"><a href="#__codelineno-0-908">908</a></span>
-<span class="normal"><a href="#__codelineno-0-909">909</a></span>
-<span class="normal"><a href="#__codelineno-0-910">910</a></span>
-<span class="normal"><a href="#__codelineno-0-911">911</a></span>
-<span class="normal"><a href="#__codelineno-0-912">912</a></span>
-<span class="normal"><a href="#__codelineno-0-913">913</a></span>
-<span class="normal"><a href="#__codelineno-0-914">914</a></span>
-<span class="normal"><a href="#__codelineno-0-915">915</a></span>
-<span class="normal"><a href="#__codelineno-0-916">916</a></span>
-<span class="normal"><a href="#__codelineno-0-917">917</a></span>
-<span class="normal"><a href="#__codelineno-0-918">918</a></span>
-<span class="normal"><a href="#__codelineno-0-919">919</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-668" name="__codelineno-0-668"></a><span class="nd">@dataclass</span>
+<span class="normal"><a href="#__codelineno-0-897">897</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-668" name="__codelineno-0-668"></a><span class="nd">@dataclass</span>
 <a id="__codelineno-0-669" name="__codelineno-0-669"></a><span class="k">class</span><span class="w"> </span><span class="nc">ClassificationDataset</span><span class="p">(</span><span class="n">BaseDataset</span><span class="p">):</span>
 <a id="__codelineno-0-670" name="__codelineno-0-670"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-671" name="__codelineno-0-671"></a><span class="sd">    Contains information about a classification dataset, handles lazy image</span>
@@ -7846,218 +7768,196 @@ image name to annotations.</p>
 <a id="__codelineno-0-705" name="__codelineno-0-705"></a>                <span class="s2">&quot;a list of paths `List[str]` instead.&quot;</span>
 <a id="__codelineno-0-706" name="__codelineno-0-706"></a>            <span class="p">)</span>
 <a id="__codelineno-0-707" name="__codelineno-0-707"></a>
-<a id="__codelineno-0-708" name="__codelineno-0-708"></a>    <span class="nd">@property</span>
-<a id="__codelineno-0-709" name="__codelineno-0-709"></a>    <span class="nd">@deprecated</span><span class="p">(</span>
-<a id="__codelineno-0-710" name="__codelineno-0-710"></a>        <span class="s2">&quot;`DetectionDataset.images` property is deprecated and will be removed in &quot;</span>
-<a id="__codelineno-0-711" name="__codelineno-0-711"></a>        <span class="s2">&quot;`supervision-0.26.0`. Iterate with `for path, image, annotation in dataset:` &quot;</span>
-<a id="__codelineno-0-712" name="__codelineno-0-712"></a>        <span class="s2">&quot;instead.&quot;</span>
-<a id="__codelineno-0-713" name="__codelineno-0-713"></a>    <span class="p">)</span>
-<a id="__codelineno-0-714" name="__codelineno-0-714"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">images</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
-<a id="__codelineno-0-715" name="__codelineno-0-715"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-716" name="__codelineno-0-716"></a><span class="sd">        Load all images to memory and return them as a dictionary.</span>
-<a id="__codelineno-0-717" name="__codelineno-0-717"></a>
-<a id="__codelineno-0-718" name="__codelineno-0-718"></a><span class="sd">        !!! warning</span>
-<a id="__codelineno-0-719" name="__codelineno-0-719"></a>
-<a id="__codelineno-0-720" name="__codelineno-0-720"></a><span class="sd">            Only use this when you need all images at once.</span>
-<a id="__codelineno-0-721" name="__codelineno-0-721"></a><span class="sd">            It is much more memory-efficient to initialize dataset with</span>
-<a id="__codelineno-0-722" name="__codelineno-0-722"></a><span class="sd">            image paths and use `for path, image, annotation in dataset:`.</span>
-<a id="__codelineno-0-723" name="__codelineno-0-723"></a><span class="sd">        &quot;&quot;&quot;</span>
-<a id="__codelineno-0-724" name="__codelineno-0-724"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_images_in_memory</span><span class="p">:</span>
-<a id="__codelineno-0-725" name="__codelineno-0-725"></a>            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_images_in_memory</span>
-<a id="__codelineno-0-726" name="__codelineno-0-726"></a>
-<a id="__codelineno-0-727" name="__codelineno-0-727"></a>        <span class="n">images</span> <span class="o">=</span> <span class="p">{</span><span class="n">image_path</span><span class="p">:</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="n">image_path</span><span class="p">)</span> <span class="k">for</span> <span class="n">image_path</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_paths</span><span class="p">}</span>
-<a id="__codelineno-0-728" name="__codelineno-0-728"></a>        <span class="k">return</span> <span class="n">images</span>
-<a id="__codelineno-0-729" name="__codelineno-0-729"></a>
-<a id="__codelineno-0-730" name="__codelineno-0-730"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_get_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<a id="__codelineno-0-731" name="__codelineno-0-731"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Assumes that image is in dataset&quot;&quot;&quot;</span>
-<a id="__codelineno-0-732" name="__codelineno-0-732"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_images_in_memory</span><span class="p">:</span>
-<a id="__codelineno-0-733" name="__codelineno-0-733"></a>            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_images_in_memory</span><span class="p">[</span><span class="n">image_path</span><span class="p">]</span>
-<a id="__codelineno-0-734" name="__codelineno-0-734"></a>        <span class="k">return</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="n">image_path</span><span class="p">)</span>
-<a id="__codelineno-0-735" name="__codelineno-0-735"></a>
-<a id="__codelineno-0-736" name="__codelineno-0-736"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-<a id="__codelineno-0-737" name="__codelineno-0-737"></a>        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_images_in_memory</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image_paths</span><span class="p">)</span>
-<a id="__codelineno-0-738" name="__codelineno-0-738"></a>
-<a id="__codelineno-0-739" name="__codelineno-0-739"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">Classifications</span><span class="p">]:</span>
-<a id="__codelineno-0-740" name="__codelineno-0-740"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-741" name="__codelineno-0-741"></a><span class="sd">        Returns:</span>
-<a id="__codelineno-0-742" name="__codelineno-0-742"></a><span class="sd">            Tuple[str, np.ndarray, Classifications]: The image path, image data,</span>
-<a id="__codelineno-0-743" name="__codelineno-0-743"></a><span class="sd">                and its corresponding annotation at index i.</span>
-<a id="__codelineno-0-744" name="__codelineno-0-744"></a><span class="sd">        &quot;&quot;&quot;</span>
-<a id="__codelineno-0-745" name="__codelineno-0-745"></a>        <span class="n">image_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_paths</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-<a id="__codelineno-0-746" name="__codelineno-0-746"></a>        <span class="n">image</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_image</span><span class="p">(</span><span class="n">image_path</span><span class="p">)</span>
-<a id="__codelineno-0-747" name="__codelineno-0-747"></a>        <span class="n">annotation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">annotations</span><span class="p">[</span><span class="n">image_path</span><span class="p">]</span>
-<a id="__codelineno-0-748" name="__codelineno-0-748"></a>        <span class="k">return</span> <span class="n">image_path</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">annotation</span>
-<a id="__codelineno-0-749" name="__codelineno-0-749"></a>
-<a id="__codelineno-0-750" name="__codelineno-0-750"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">Classifications</span><span class="p">]]:</span>
-<a id="__codelineno-0-751" name="__codelineno-0-751"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-752" name="__codelineno-0-752"></a><span class="sd">        Iterate over the images and annotations in the dataset.</span>
-<a id="__codelineno-0-753" name="__codelineno-0-753"></a>
-<a id="__codelineno-0-754" name="__codelineno-0-754"></a><span class="sd">        Yields:</span>
-<a id="__codelineno-0-755" name="__codelineno-0-755"></a><span class="sd">            Iterator[Tuple[str, np.ndarray, Detections]]:</span>
-<a id="__codelineno-0-756" name="__codelineno-0-756"></a><span class="sd">                An iterator that yields tuples containing the image path,</span>
-<a id="__codelineno-0-757" name="__codelineno-0-757"></a><span class="sd">                the image data, and its corresponding annotation.</span>
-<a id="__codelineno-0-758" name="__codelineno-0-758"></a><span class="sd">        &quot;&quot;&quot;</span>
-<a id="__codelineno-0-759" name="__codelineno-0-759"></a>        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)):</span>
-<a id="__codelineno-0-760" name="__codelineno-0-760"></a>            <span class="n">image_path</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">annotation</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-<a id="__codelineno-0-761" name="__codelineno-0-761"></a>            <span class="k">yield</span> <span class="n">image_path</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">annotation</span>
+<a id="__codelineno-0-708" name="__codelineno-0-708"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_get_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a id="__codelineno-0-709" name="__codelineno-0-709"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Assumes that image is in dataset&quot;&quot;&quot;</span>
+<a id="__codelineno-0-710" name="__codelineno-0-710"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_images_in_memory</span><span class="p">:</span>
+<a id="__codelineno-0-711" name="__codelineno-0-711"></a>            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_images_in_memory</span><span class="p">[</span><span class="n">image_path</span><span class="p">]</span>
+<a id="__codelineno-0-712" name="__codelineno-0-712"></a>        <span class="k">return</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="n">image_path</span><span class="p">)</span>
+<a id="__codelineno-0-713" name="__codelineno-0-713"></a>
+<a id="__codelineno-0-714" name="__codelineno-0-714"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<a id="__codelineno-0-715" name="__codelineno-0-715"></a>        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_images_in_memory</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image_paths</span><span class="p">)</span>
+<a id="__codelineno-0-716" name="__codelineno-0-716"></a>
+<a id="__codelineno-0-717" name="__codelineno-0-717"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">Classifications</span><span class="p">]:</span>
+<a id="__codelineno-0-718" name="__codelineno-0-718"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-719" name="__codelineno-0-719"></a><span class="sd">        Returns:</span>
+<a id="__codelineno-0-720" name="__codelineno-0-720"></a><span class="sd">            Tuple[str, np.ndarray, Classifications]: The image path, image data,</span>
+<a id="__codelineno-0-721" name="__codelineno-0-721"></a><span class="sd">                and its corresponding annotation at index i.</span>
+<a id="__codelineno-0-722" name="__codelineno-0-722"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-723" name="__codelineno-0-723"></a>        <span class="n">image_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_paths</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+<a id="__codelineno-0-724" name="__codelineno-0-724"></a>        <span class="n">image</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_image</span><span class="p">(</span><span class="n">image_path</span><span class="p">)</span>
+<a id="__codelineno-0-725" name="__codelineno-0-725"></a>        <span class="n">annotation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">annotations</span><span class="p">[</span><span class="n">image_path</span><span class="p">]</span>
+<a id="__codelineno-0-726" name="__codelineno-0-726"></a>        <span class="k">return</span> <span class="n">image_path</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">annotation</span>
+<a id="__codelineno-0-727" name="__codelineno-0-727"></a>
+<a id="__codelineno-0-728" name="__codelineno-0-728"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">Classifications</span><span class="p">]]:</span>
+<a id="__codelineno-0-729" name="__codelineno-0-729"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-730" name="__codelineno-0-730"></a><span class="sd">        Iterate over the images and annotations in the dataset.</span>
+<a id="__codelineno-0-731" name="__codelineno-0-731"></a>
+<a id="__codelineno-0-732" name="__codelineno-0-732"></a><span class="sd">        Yields:</span>
+<a id="__codelineno-0-733" name="__codelineno-0-733"></a><span class="sd">            Iterator[Tuple[str, np.ndarray, Detections]]:</span>
+<a id="__codelineno-0-734" name="__codelineno-0-734"></a><span class="sd">                An iterator that yields tuples containing the image path,</span>
+<a id="__codelineno-0-735" name="__codelineno-0-735"></a><span class="sd">                the image data, and its corresponding annotation.</span>
+<a id="__codelineno-0-736" name="__codelineno-0-736"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-737" name="__codelineno-0-737"></a>        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)):</span>
+<a id="__codelineno-0-738" name="__codelineno-0-738"></a>            <span class="n">image_path</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">annotation</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+<a id="__codelineno-0-739" name="__codelineno-0-739"></a>            <span class="k">yield</span> <span class="n">image_path</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">annotation</span>
+<a id="__codelineno-0-740" name="__codelineno-0-740"></a>
+<a id="__codelineno-0-741" name="__codelineno-0-741"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<a id="__codelineno-0-742" name="__codelineno-0-742"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">ClassificationDataset</span><span class="p">):</span>
+<a id="__codelineno-0-743" name="__codelineno-0-743"></a>            <span class="k">return</span> <span class="kc">False</span>
+<a id="__codelineno-0-744" name="__codelineno-0-744"></a>
+<a id="__codelineno-0-745" name="__codelineno-0-745"></a>        <span class="k">if</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">classes</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">set</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">classes</span><span class="p">):</span>
+<a id="__codelineno-0-746" name="__codelineno-0-746"></a>            <span class="k">return</span> <span class="kc">False</span>
+<a id="__codelineno-0-747" name="__codelineno-0-747"></a>
+<a id="__codelineno-0-748" name="__codelineno-0-748"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_paths</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="n">image_paths</span><span class="p">:</span>
+<a id="__codelineno-0-749" name="__codelineno-0-749"></a>            <span class="k">return</span> <span class="kc">False</span>
+<a id="__codelineno-0-750" name="__codelineno-0-750"></a>
+<a id="__codelineno-0-751" name="__codelineno-0-751"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_images_in_memory</span> <span class="ow">or</span> <span class="n">other</span><span class="o">.</span><span class="n">_images_in_memory</span><span class="p">:</span>
+<a id="__codelineno-0-752" name="__codelineno-0-752"></a>            <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span>
+<a id="__codelineno-0-753" name="__codelineno-0-753"></a>                <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_images_in_memory</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span>
+<a id="__codelineno-0-754" name="__codelineno-0-754"></a>                <span class="nb">list</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">_images_in_memory</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span>
+<a id="__codelineno-0-755" name="__codelineno-0-755"></a>            <span class="p">):</span>
+<a id="__codelineno-0-756" name="__codelineno-0-756"></a>                <span class="k">return</span> <span class="kc">False</span>
+<a id="__codelineno-0-757" name="__codelineno-0-757"></a>
+<a id="__codelineno-0-758" name="__codelineno-0-758"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">annotations</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="n">annotations</span><span class="p">:</span>
+<a id="__codelineno-0-759" name="__codelineno-0-759"></a>            <span class="k">return</span> <span class="kc">False</span>
+<a id="__codelineno-0-760" name="__codelineno-0-760"></a>
+<a id="__codelineno-0-761" name="__codelineno-0-761"></a>        <span class="k">return</span> <span class="kc">True</span>
 <a id="__codelineno-0-762" name="__codelineno-0-762"></a>
-<a id="__codelineno-0-763" name="__codelineno-0-763"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<a id="__codelineno-0-764" name="__codelineno-0-764"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">ClassificationDataset</span><span class="p">):</span>
-<a id="__codelineno-0-765" name="__codelineno-0-765"></a>            <span class="k">return</span> <span class="kc">False</span>
-<a id="__codelineno-0-766" name="__codelineno-0-766"></a>
-<a id="__codelineno-0-767" name="__codelineno-0-767"></a>        <span class="k">if</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">classes</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">set</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">classes</span><span class="p">):</span>
-<a id="__codelineno-0-768" name="__codelineno-0-768"></a>            <span class="k">return</span> <span class="kc">False</span>
-<a id="__codelineno-0-769" name="__codelineno-0-769"></a>
-<a id="__codelineno-0-770" name="__codelineno-0-770"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_paths</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="n">image_paths</span><span class="p">:</span>
-<a id="__codelineno-0-771" name="__codelineno-0-771"></a>            <span class="k">return</span> <span class="kc">False</span>
+<a id="__codelineno-0-763" name="__codelineno-0-763"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">split</span><span class="p">(</span>
+<a id="__codelineno-0-764" name="__codelineno-0-764"></a>        <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-0-765" name="__codelineno-0-765"></a>        <span class="n">split_ratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span>
+<a id="__codelineno-0-766" name="__codelineno-0-766"></a>        <span class="n">random_state</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-767" name="__codelineno-0-767"></a>        <span class="n">shuffle</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-0-768" name="__codelineno-0-768"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">ClassificationDataset</span><span class="p">,</span> <span class="n">ClassificationDataset</span><span class="p">]:</span>
+<a id="__codelineno-0-769" name="__codelineno-0-769"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-770" name="__codelineno-0-770"></a><span class="sd">        Splits the dataset into two parts (training and testing)</span>
+<a id="__codelineno-0-771" name="__codelineno-0-771"></a><span class="sd">            using the provided split_ratio.</span>
 <a id="__codelineno-0-772" name="__codelineno-0-772"></a>
-<a id="__codelineno-0-773" name="__codelineno-0-773"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_images_in_memory</span> <span class="ow">or</span> <span class="n">other</span><span class="o">.</span><span class="n">_images_in_memory</span><span class="p">:</span>
-<a id="__codelineno-0-774" name="__codelineno-0-774"></a>            <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span>
-<a id="__codelineno-0-775" name="__codelineno-0-775"></a>                <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_images_in_memory</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span>
-<a id="__codelineno-0-776" name="__codelineno-0-776"></a>                <span class="nb">list</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">_images_in_memory</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span>
-<a id="__codelineno-0-777" name="__codelineno-0-777"></a>            <span class="p">):</span>
-<a id="__codelineno-0-778" name="__codelineno-0-778"></a>                <span class="k">return</span> <span class="kc">False</span>
+<a id="__codelineno-0-773" name="__codelineno-0-773"></a><span class="sd">        Args:</span>
+<a id="__codelineno-0-774" name="__codelineno-0-774"></a><span class="sd">            split_ratio (float): The ratio of the training</span>
+<a id="__codelineno-0-775" name="__codelineno-0-775"></a><span class="sd">                set to the entire dataset.</span>
+<a id="__codelineno-0-776" name="__codelineno-0-776"></a><span class="sd">            random_state (Optional[int]): The seed for the</span>
+<a id="__codelineno-0-777" name="__codelineno-0-777"></a><span class="sd">                random number generator. This is used for reproducibility.</span>
+<a id="__codelineno-0-778" name="__codelineno-0-778"></a><span class="sd">            shuffle (bool): Whether to shuffle the data before splitting.</span>
 <a id="__codelineno-0-779" name="__codelineno-0-779"></a>
-<a id="__codelineno-0-780" name="__codelineno-0-780"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">annotations</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="n">annotations</span><span class="p">:</span>
-<a id="__codelineno-0-781" name="__codelineno-0-781"></a>            <span class="k">return</span> <span class="kc">False</span>
-<a id="__codelineno-0-782" name="__codelineno-0-782"></a>
-<a id="__codelineno-0-783" name="__codelineno-0-783"></a>        <span class="k">return</span> <span class="kc">True</span>
-<a id="__codelineno-0-784" name="__codelineno-0-784"></a>
-<a id="__codelineno-0-785" name="__codelineno-0-785"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">split</span><span class="p">(</span>
-<a id="__codelineno-0-786" name="__codelineno-0-786"></a>        <span class="bp">self</span><span class="p">,</span>
-<a id="__codelineno-0-787" name="__codelineno-0-787"></a>        <span class="n">split_ratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span>
-<a id="__codelineno-0-788" name="__codelineno-0-788"></a>        <span class="n">random_state</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-789" name="__codelineno-0-789"></a>        <span class="n">shuffle</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-0-790" name="__codelineno-0-790"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">ClassificationDataset</span><span class="p">,</span> <span class="n">ClassificationDataset</span><span class="p">]:</span>
-<a id="__codelineno-0-791" name="__codelineno-0-791"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-792" name="__codelineno-0-792"></a><span class="sd">        Splits the dataset into two parts (training and testing)</span>
-<a id="__codelineno-0-793" name="__codelineno-0-793"></a><span class="sd">            using the provided split_ratio.</span>
-<a id="__codelineno-0-794" name="__codelineno-0-794"></a>
-<a id="__codelineno-0-795" name="__codelineno-0-795"></a><span class="sd">        Args:</span>
-<a id="__codelineno-0-796" name="__codelineno-0-796"></a><span class="sd">            split_ratio (float): The ratio of the training</span>
-<a id="__codelineno-0-797" name="__codelineno-0-797"></a><span class="sd">                set to the entire dataset.</span>
-<a id="__codelineno-0-798" name="__codelineno-0-798"></a><span class="sd">            random_state (Optional[int]): The seed for the</span>
-<a id="__codelineno-0-799" name="__codelineno-0-799"></a><span class="sd">                random number generator. This is used for reproducibility.</span>
-<a id="__codelineno-0-800" name="__codelineno-0-800"></a><span class="sd">            shuffle (bool): Whether to shuffle the data before splitting.</span>
-<a id="__codelineno-0-801" name="__codelineno-0-801"></a>
-<a id="__codelineno-0-802" name="__codelineno-0-802"></a><span class="sd">        Returns:</span>
-<a id="__codelineno-0-803" name="__codelineno-0-803"></a><span class="sd">            Tuple[ClassificationDataset, ClassificationDataset]: A tuple containing</span>
-<a id="__codelineno-0-804" name="__codelineno-0-804"></a><span class="sd">            the training and testing datasets.</span>
-<a id="__codelineno-0-805" name="__codelineno-0-805"></a>
-<a id="__codelineno-0-806" name="__codelineno-0-806"></a><span class="sd">        Examples:</span>
-<a id="__codelineno-0-807" name="__codelineno-0-807"></a><span class="sd">            ```python</span>
-<a id="__codelineno-0-808" name="__codelineno-0-808"></a><span class="sd">            import supervision as sv</span>
-<a id="__codelineno-0-809" name="__codelineno-0-809"></a>
-<a id="__codelineno-0-810" name="__codelineno-0-810"></a><span class="sd">            cd = sv.ClassificationDataset(...)</span>
-<a id="__codelineno-0-811" name="__codelineno-0-811"></a><span class="sd">            train_cd,test_cd = cd.split(split_ratio=0.7, random_state=42,shuffle=True)</span>
-<a id="__codelineno-0-812" name="__codelineno-0-812"></a><span class="sd">            len(train_cd), len(test_cd)</span>
-<a id="__codelineno-0-813" name="__codelineno-0-813"></a><span class="sd">            # (700, 300)</span>
-<a id="__codelineno-0-814" name="__codelineno-0-814"></a><span class="sd">            ```</span>
-<a id="__codelineno-0-815" name="__codelineno-0-815"></a><span class="sd">        &quot;&quot;&quot;</span>
-<a id="__codelineno-0-816" name="__codelineno-0-816"></a>        <span class="n">train_paths</span><span class="p">,</span> <span class="n">test_paths</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span>
-<a id="__codelineno-0-817" name="__codelineno-0-817"></a>            <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">image_paths</span><span class="p">,</span>
-<a id="__codelineno-0-818" name="__codelineno-0-818"></a>            <span class="n">train_ratio</span><span class="o">=</span><span class="n">split_ratio</span><span class="p">,</span>
-<a id="__codelineno-0-819" name="__codelineno-0-819"></a>            <span class="n">random_state</span><span class="o">=</span><span class="n">random_state</span><span class="p">,</span>
-<a id="__codelineno-0-820" name="__codelineno-0-820"></a>            <span class="n">shuffle</span><span class="o">=</span><span class="n">shuffle</span><span class="p">,</span>
+<a id="__codelineno-0-780" name="__codelineno-0-780"></a><span class="sd">        Returns:</span>
+<a id="__codelineno-0-781" name="__codelineno-0-781"></a><span class="sd">            Tuple[ClassificationDataset, ClassificationDataset]: A tuple containing</span>
+<a id="__codelineno-0-782" name="__codelineno-0-782"></a><span class="sd">            the training and testing datasets.</span>
+<a id="__codelineno-0-783" name="__codelineno-0-783"></a>
+<a id="__codelineno-0-784" name="__codelineno-0-784"></a><span class="sd">        Examples:</span>
+<a id="__codelineno-0-785" name="__codelineno-0-785"></a><span class="sd">            ```python</span>
+<a id="__codelineno-0-786" name="__codelineno-0-786"></a><span class="sd">            import supervision as sv</span>
+<a id="__codelineno-0-787" name="__codelineno-0-787"></a>
+<a id="__codelineno-0-788" name="__codelineno-0-788"></a><span class="sd">            cd = sv.ClassificationDataset(...)</span>
+<a id="__codelineno-0-789" name="__codelineno-0-789"></a><span class="sd">            train_cd,test_cd = cd.split(split_ratio=0.7, random_state=42,shuffle=True)</span>
+<a id="__codelineno-0-790" name="__codelineno-0-790"></a><span class="sd">            len(train_cd), len(test_cd)</span>
+<a id="__codelineno-0-791" name="__codelineno-0-791"></a><span class="sd">            # (700, 300)</span>
+<a id="__codelineno-0-792" name="__codelineno-0-792"></a><span class="sd">            ```</span>
+<a id="__codelineno-0-793" name="__codelineno-0-793"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-794" name="__codelineno-0-794"></a>        <span class="n">train_paths</span><span class="p">,</span> <span class="n">test_paths</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span>
+<a id="__codelineno-0-795" name="__codelineno-0-795"></a>            <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">image_paths</span><span class="p">,</span>
+<a id="__codelineno-0-796" name="__codelineno-0-796"></a>            <span class="n">train_ratio</span><span class="o">=</span><span class="n">split_ratio</span><span class="p">,</span>
+<a id="__codelineno-0-797" name="__codelineno-0-797"></a>            <span class="n">random_state</span><span class="o">=</span><span class="n">random_state</span><span class="p">,</span>
+<a id="__codelineno-0-798" name="__codelineno-0-798"></a>            <span class="n">shuffle</span><span class="o">=</span><span class="n">shuffle</span><span class="p">,</span>
+<a id="__codelineno-0-799" name="__codelineno-0-799"></a>        <span class="p">)</span>
+<a id="__codelineno-0-800" name="__codelineno-0-800"></a>
+<a id="__codelineno-0-801" name="__codelineno-0-801"></a>        <span class="n">train_input</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]</span>
+<a id="__codelineno-0-802" name="__codelineno-0-802"></a>        <span class="n">test_input</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]</span>
+<a id="__codelineno-0-803" name="__codelineno-0-803"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_images_in_memory</span><span class="p">:</span>
+<a id="__codelineno-0-804" name="__codelineno-0-804"></a>            <span class="n">train_input</span> <span class="o">=</span> <span class="p">{</span><span class="n">path</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_images_in_memory</span><span class="p">[</span><span class="n">path</span><span class="p">]</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">train_paths</span><span class="p">}</span>
+<a id="__codelineno-0-805" name="__codelineno-0-805"></a>            <span class="n">test_input</span> <span class="o">=</span> <span class="p">{</span><span class="n">path</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_images_in_memory</span><span class="p">[</span><span class="n">path</span><span class="p">]</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">test_paths</span><span class="p">}</span>
+<a id="__codelineno-0-806" name="__codelineno-0-806"></a>        <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-0-807" name="__codelineno-0-807"></a>            <span class="n">train_input</span> <span class="o">=</span> <span class="n">train_paths</span>
+<a id="__codelineno-0-808" name="__codelineno-0-808"></a>            <span class="n">test_input</span> <span class="o">=</span> <span class="n">test_paths</span>
+<a id="__codelineno-0-809" name="__codelineno-0-809"></a>        <span class="n">train_annotations</span> <span class="o">=</span> <span class="p">{</span><span class="n">path</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">annotations</span><span class="p">[</span><span class="n">path</span><span class="p">]</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">train_paths</span><span class="p">}</span>
+<a id="__codelineno-0-810" name="__codelineno-0-810"></a>        <span class="n">test_annotations</span> <span class="o">=</span> <span class="p">{</span><span class="n">path</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">annotations</span><span class="p">[</span><span class="n">path</span><span class="p">]</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">test_paths</span><span class="p">}</span>
+<a id="__codelineno-0-811" name="__codelineno-0-811"></a>
+<a id="__codelineno-0-812" name="__codelineno-0-812"></a>        <span class="n">train_dataset</span> <span class="o">=</span> <span class="n">ClassificationDataset</span><span class="p">(</span>
+<a id="__codelineno-0-813" name="__codelineno-0-813"></a>            <span class="n">classes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">classes</span><span class="p">,</span>
+<a id="__codelineno-0-814" name="__codelineno-0-814"></a>            <span class="n">images</span><span class="o">=</span><span class="n">train_input</span><span class="p">,</span>
+<a id="__codelineno-0-815" name="__codelineno-0-815"></a>            <span class="n">annotations</span><span class="o">=</span><span class="n">train_annotations</span><span class="p">,</span>
+<a id="__codelineno-0-816" name="__codelineno-0-816"></a>        <span class="p">)</span>
+<a id="__codelineno-0-817" name="__codelineno-0-817"></a>        <span class="n">test_dataset</span> <span class="o">=</span> <span class="n">ClassificationDataset</span><span class="p">(</span>
+<a id="__codelineno-0-818" name="__codelineno-0-818"></a>            <span class="n">classes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">classes</span><span class="p">,</span>
+<a id="__codelineno-0-819" name="__codelineno-0-819"></a>            <span class="n">images</span><span class="o">=</span><span class="n">test_input</span><span class="p">,</span>
+<a id="__codelineno-0-820" name="__codelineno-0-820"></a>            <span class="n">annotations</span><span class="o">=</span><span class="n">test_annotations</span><span class="p">,</span>
 <a id="__codelineno-0-821" name="__codelineno-0-821"></a>        <span class="p">)</span>
 <a id="__codelineno-0-822" name="__codelineno-0-822"></a>
-<a id="__codelineno-0-823" name="__codelineno-0-823"></a>        <span class="n">train_input</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]</span>
-<a id="__codelineno-0-824" name="__codelineno-0-824"></a>        <span class="n">test_input</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]</span>
-<a id="__codelineno-0-825" name="__codelineno-0-825"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_images_in_memory</span><span class="p">:</span>
-<a id="__codelineno-0-826" name="__codelineno-0-826"></a>            <span class="n">train_input</span> <span class="o">=</span> <span class="p">{</span><span class="n">path</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_images_in_memory</span><span class="p">[</span><span class="n">path</span><span class="p">]</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">train_paths</span><span class="p">}</span>
-<a id="__codelineno-0-827" name="__codelineno-0-827"></a>            <span class="n">test_input</span> <span class="o">=</span> <span class="p">{</span><span class="n">path</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_images_in_memory</span><span class="p">[</span><span class="n">path</span><span class="p">]</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">test_paths</span><span class="p">}</span>
-<a id="__codelineno-0-828" name="__codelineno-0-828"></a>        <span class="k">else</span><span class="p">:</span>
-<a id="__codelineno-0-829" name="__codelineno-0-829"></a>            <span class="n">train_input</span> <span class="o">=</span> <span class="n">train_paths</span>
-<a id="__codelineno-0-830" name="__codelineno-0-830"></a>            <span class="n">test_input</span> <span class="o">=</span> <span class="n">test_paths</span>
-<a id="__codelineno-0-831" name="__codelineno-0-831"></a>        <span class="n">train_annotations</span> <span class="o">=</span> <span class="p">{</span><span class="n">path</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">annotations</span><span class="p">[</span><span class="n">path</span><span class="p">]</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">train_paths</span><span class="p">}</span>
-<a id="__codelineno-0-832" name="__codelineno-0-832"></a>        <span class="n">test_annotations</span> <span class="o">=</span> <span class="p">{</span><span class="n">path</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">annotations</span><span class="p">[</span><span class="n">path</span><span class="p">]</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">test_paths</span><span class="p">}</span>
-<a id="__codelineno-0-833" name="__codelineno-0-833"></a>
-<a id="__codelineno-0-834" name="__codelineno-0-834"></a>        <span class="n">train_dataset</span> <span class="o">=</span> <span class="n">ClassificationDataset</span><span class="p">(</span>
-<a id="__codelineno-0-835" name="__codelineno-0-835"></a>            <span class="n">classes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">classes</span><span class="p">,</span>
-<a id="__codelineno-0-836" name="__codelineno-0-836"></a>            <span class="n">images</span><span class="o">=</span><span class="n">train_input</span><span class="p">,</span>
-<a id="__codelineno-0-837" name="__codelineno-0-837"></a>            <span class="n">annotations</span><span class="o">=</span><span class="n">train_annotations</span><span class="p">,</span>
-<a id="__codelineno-0-838" name="__codelineno-0-838"></a>        <span class="p">)</span>
-<a id="__codelineno-0-839" name="__codelineno-0-839"></a>        <span class="n">test_dataset</span> <span class="o">=</span> <span class="n">ClassificationDataset</span><span class="p">(</span>
-<a id="__codelineno-0-840" name="__codelineno-0-840"></a>            <span class="n">classes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">classes</span><span class="p">,</span>
-<a id="__codelineno-0-841" name="__codelineno-0-841"></a>            <span class="n">images</span><span class="o">=</span><span class="n">test_input</span><span class="p">,</span>
-<a id="__codelineno-0-842" name="__codelineno-0-842"></a>            <span class="n">annotations</span><span class="o">=</span><span class="n">test_annotations</span><span class="p">,</span>
-<a id="__codelineno-0-843" name="__codelineno-0-843"></a>        <span class="p">)</span>
-<a id="__codelineno-0-844" name="__codelineno-0-844"></a>
-<a id="__codelineno-0-845" name="__codelineno-0-845"></a>        <span class="k">return</span> <span class="n">train_dataset</span><span class="p">,</span> <span class="n">test_dataset</span>
-<a id="__codelineno-0-846" name="__codelineno-0-846"></a>
-<a id="__codelineno-0-847" name="__codelineno-0-847"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">as_folder_structure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">root_directory_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-848" name="__codelineno-0-848"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-849" name="__codelineno-0-849"></a><span class="sd">        Saves the dataset as a multi-class folder structure.</span>
-<a id="__codelineno-0-850" name="__codelineno-0-850"></a>
-<a id="__codelineno-0-851" name="__codelineno-0-851"></a><span class="sd">        Args:</span>
-<a id="__codelineno-0-852" name="__codelineno-0-852"></a><span class="sd">            root_directory_path (str): The path to the directory</span>
-<a id="__codelineno-0-853" name="__codelineno-0-853"></a><span class="sd">                where the dataset will be saved.</span>
-<a id="__codelineno-0-854" name="__codelineno-0-854"></a><span class="sd">        &quot;&quot;&quot;</span>
-<a id="__codelineno-0-855" name="__codelineno-0-855"></a>        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">root_directory_path</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-0-823" name="__codelineno-0-823"></a>        <span class="k">return</span> <span class="n">train_dataset</span><span class="p">,</span> <span class="n">test_dataset</span>
+<a id="__codelineno-0-824" name="__codelineno-0-824"></a>
+<a id="__codelineno-0-825" name="__codelineno-0-825"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">as_folder_structure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">root_directory_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-826" name="__codelineno-0-826"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-827" name="__codelineno-0-827"></a><span class="sd">        Saves the dataset as a multi-class folder structure.</span>
+<a id="__codelineno-0-828" name="__codelineno-0-828"></a>
+<a id="__codelineno-0-829" name="__codelineno-0-829"></a><span class="sd">        Args:</span>
+<a id="__codelineno-0-830" name="__codelineno-0-830"></a><span class="sd">            root_directory_path (str): The path to the directory</span>
+<a id="__codelineno-0-831" name="__codelineno-0-831"></a><span class="sd">                where the dataset will be saved.</span>
+<a id="__codelineno-0-832" name="__codelineno-0-832"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-833" name="__codelineno-0-833"></a>        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">root_directory_path</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-0-834" name="__codelineno-0-834"></a>
+<a id="__codelineno-0-835" name="__codelineno-0-835"></a>        <span class="k">for</span> <span class="n">class_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">classes</span><span class="p">:</span>
+<a id="__codelineno-0-836" name="__codelineno-0-836"></a>            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root_directory_path</span><span class="p">,</span> <span class="n">class_name</span><span class="p">),</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-0-837" name="__codelineno-0-837"></a>
+<a id="__codelineno-0-838" name="__codelineno-0-838"></a>        <span class="k">for</span> <span class="n">image_save_path</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">annotation</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+<a id="__codelineno-0-839" name="__codelineno-0-839"></a>            <span class="n">image_name</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">image_save_path</span><span class="p">)</span><span class="o">.</span><span class="n">name</span>
+<a id="__codelineno-0-840" name="__codelineno-0-840"></a>            <span class="n">class_id</span> <span class="o">=</span> <span class="p">(</span>
+<a id="__codelineno-0-841" name="__codelineno-0-841"></a>                <span class="n">annotation</span><span class="o">.</span><span class="n">class_id</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<a id="__codelineno-0-842" name="__codelineno-0-842"></a>                <span class="k">if</span> <span class="n">annotation</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="kc">None</span>
+<a id="__codelineno-0-843" name="__codelineno-0-843"></a>                <span class="k">else</span> <span class="n">annotation</span><span class="o">.</span><span class="n">get_top_k</span><span class="p">(</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+<a id="__codelineno-0-844" name="__codelineno-0-844"></a>            <span class="p">)</span>
+<a id="__codelineno-0-845" name="__codelineno-0-845"></a>            <span class="n">class_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">classes</span><span class="p">[</span><span class="n">class_id</span><span class="p">]</span>
+<a id="__codelineno-0-846" name="__codelineno-0-846"></a>            <span class="n">image_save_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root_directory_path</span><span class="p">,</span> <span class="n">class_name</span><span class="p">,</span> <span class="n">image_name</span><span class="p">)</span>
+<a id="__codelineno-0-847" name="__codelineno-0-847"></a>            <span class="n">cv2</span><span class="o">.</span><span class="n">imwrite</span><span class="p">(</span><span class="n">image_save_path</span><span class="p">,</span> <span class="n">image</span><span class="p">)</span>
+<a id="__codelineno-0-848" name="__codelineno-0-848"></a>
+<a id="__codelineno-0-849" name="__codelineno-0-849"></a>    <span class="nd">@classmethod</span>
+<a id="__codelineno-0-850" name="__codelineno-0-850"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">from_folder_structure</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">root_directory_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ClassificationDataset</span><span class="p">:</span>
+<a id="__codelineno-0-851" name="__codelineno-0-851"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-852" name="__codelineno-0-852"></a><span class="sd">        Load data from a multiclass folder structure into a ClassificationDataset.</span>
+<a id="__codelineno-0-853" name="__codelineno-0-853"></a>
+<a id="__codelineno-0-854" name="__codelineno-0-854"></a><span class="sd">        Args:</span>
+<a id="__codelineno-0-855" name="__codelineno-0-855"></a><span class="sd">            root_directory_path (str): The path to the dataset directory.</span>
 <a id="__codelineno-0-856" name="__codelineno-0-856"></a>
-<a id="__codelineno-0-857" name="__codelineno-0-857"></a>        <span class="k">for</span> <span class="n">class_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">classes</span><span class="p">:</span>
-<a id="__codelineno-0-858" name="__codelineno-0-858"></a>            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root_directory_path</span><span class="p">,</span> <span class="n">class_name</span><span class="p">),</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-0-857" name="__codelineno-0-857"></a><span class="sd">        Returns:</span>
+<a id="__codelineno-0-858" name="__codelineno-0-858"></a><span class="sd">            ClassificationDataset: The dataset.</span>
 <a id="__codelineno-0-859" name="__codelineno-0-859"></a>
-<a id="__codelineno-0-860" name="__codelineno-0-860"></a>        <span class="k">for</span> <span class="n">image_save_path</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">annotation</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
-<a id="__codelineno-0-861" name="__codelineno-0-861"></a>            <span class="n">image_name</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">image_save_path</span><span class="p">)</span><span class="o">.</span><span class="n">name</span>
-<a id="__codelineno-0-862" name="__codelineno-0-862"></a>            <span class="n">class_id</span> <span class="o">=</span> <span class="p">(</span>
-<a id="__codelineno-0-863" name="__codelineno-0-863"></a>                <span class="n">annotation</span><span class="o">.</span><span class="n">class_id</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-<a id="__codelineno-0-864" name="__codelineno-0-864"></a>                <span class="k">if</span> <span class="n">annotation</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="kc">None</span>
-<a id="__codelineno-0-865" name="__codelineno-0-865"></a>                <span class="k">else</span> <span class="n">annotation</span><span class="o">.</span><span class="n">get_top_k</span><span class="p">(</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-<a id="__codelineno-0-866" name="__codelineno-0-866"></a>            <span class="p">)</span>
-<a id="__codelineno-0-867" name="__codelineno-0-867"></a>            <span class="n">class_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">classes</span><span class="p">[</span><span class="n">class_id</span><span class="p">]</span>
-<a id="__codelineno-0-868" name="__codelineno-0-868"></a>            <span class="n">image_save_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root_directory_path</span><span class="p">,</span> <span class="n">class_name</span><span class="p">,</span> <span class="n">image_name</span><span class="p">)</span>
-<a id="__codelineno-0-869" name="__codelineno-0-869"></a>            <span class="n">cv2</span><span class="o">.</span><span class="n">imwrite</span><span class="p">(</span><span class="n">image_save_path</span><span class="p">,</span> <span class="n">image</span><span class="p">)</span>
-<a id="__codelineno-0-870" name="__codelineno-0-870"></a>
-<a id="__codelineno-0-871" name="__codelineno-0-871"></a>    <span class="nd">@classmethod</span>
-<a id="__codelineno-0-872" name="__codelineno-0-872"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">from_folder_structure</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">root_directory_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ClassificationDataset</span><span class="p">:</span>
-<a id="__codelineno-0-873" name="__codelineno-0-873"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-874" name="__codelineno-0-874"></a><span class="sd">        Load data from a multiclass folder structure into a ClassificationDataset.</span>
-<a id="__codelineno-0-875" name="__codelineno-0-875"></a>
-<a id="__codelineno-0-876" name="__codelineno-0-876"></a><span class="sd">        Args:</span>
-<a id="__codelineno-0-877" name="__codelineno-0-877"></a><span class="sd">            root_directory_path (str): The path to the dataset directory.</span>
-<a id="__codelineno-0-878" name="__codelineno-0-878"></a>
-<a id="__codelineno-0-879" name="__codelineno-0-879"></a><span class="sd">        Returns:</span>
-<a id="__codelineno-0-880" name="__codelineno-0-880"></a><span class="sd">            ClassificationDataset: The dataset.</span>
-<a id="__codelineno-0-881" name="__codelineno-0-881"></a>
-<a id="__codelineno-0-882" name="__codelineno-0-882"></a><span class="sd">        Examples:</span>
-<a id="__codelineno-0-883" name="__codelineno-0-883"></a><span class="sd">            ```python</span>
-<a id="__codelineno-0-884" name="__codelineno-0-884"></a><span class="sd">            import roboflow</span>
-<a id="__codelineno-0-885" name="__codelineno-0-885"></a><span class="sd">            from roboflow import Roboflow</span>
-<a id="__codelineno-0-886" name="__codelineno-0-886"></a><span class="sd">            import supervision as sv</span>
-<a id="__codelineno-0-887" name="__codelineno-0-887"></a>
-<a id="__codelineno-0-888" name="__codelineno-0-888"></a><span class="sd">            roboflow.login()</span>
-<a id="__codelineno-0-889" name="__codelineno-0-889"></a><span class="sd">            rf = Roboflow()</span>
-<a id="__codelineno-0-890" name="__codelineno-0-890"></a>
-<a id="__codelineno-0-891" name="__codelineno-0-891"></a><span class="sd">            project = rf.workspace(WORKSPACE_ID).project(PROJECT_ID)</span>
-<a id="__codelineno-0-892" name="__codelineno-0-892"></a><span class="sd">            dataset = project.version(PROJECT_VERSION).download(&quot;folder&quot;)</span>
-<a id="__codelineno-0-893" name="__codelineno-0-893"></a>
-<a id="__codelineno-0-894" name="__codelineno-0-894"></a><span class="sd">            cd = sv.ClassificationDataset.from_folder_structure(</span>
-<a id="__codelineno-0-895" name="__codelineno-0-895"></a><span class="sd">                root_directory_path=f&quot;{dataset.location}/train&quot;</span>
-<a id="__codelineno-0-896" name="__codelineno-0-896"></a><span class="sd">            )</span>
-<a id="__codelineno-0-897" name="__codelineno-0-897"></a><span class="sd">            ```</span>
-<a id="__codelineno-0-898" name="__codelineno-0-898"></a><span class="sd">        &quot;&quot;&quot;</span>
-<a id="__codelineno-0-899" name="__codelineno-0-899"></a>        <span class="n">classes</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">root_directory_path</span><span class="p">)</span>
-<a id="__codelineno-0-900" name="__codelineno-0-900"></a>        <span class="n">classes</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">classes</span><span class="p">))</span>
-<a id="__codelineno-0-901" name="__codelineno-0-901"></a>
-<a id="__codelineno-0-902" name="__codelineno-0-902"></a>        <span class="n">image_paths</span> <span class="o">=</span> <span class="p">[]</span>
-<a id="__codelineno-0-903" name="__codelineno-0-903"></a>        <span class="n">annotations</span> <span class="o">=</span> <span class="p">{}</span>
-<a id="__codelineno-0-904" name="__codelineno-0-904"></a>
-<a id="__codelineno-0-905" name="__codelineno-0-905"></a>        <span class="k">for</span> <span class="n">class_name</span> <span class="ow">in</span> <span class="n">classes</span><span class="p">:</span>
-<a id="__codelineno-0-906" name="__codelineno-0-906"></a>            <span class="n">class_id</span> <span class="o">=</span> <span class="n">classes</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">class_name</span><span class="p">)</span>
-<a id="__codelineno-0-907" name="__codelineno-0-907"></a>
-<a id="__codelineno-0-908" name="__codelineno-0-908"></a>            <span class="k">for</span> <span class="n">image</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root_directory_path</span><span class="p">,</span> <span class="n">class_name</span><span class="p">)):</span>
-<a id="__codelineno-0-909" name="__codelineno-0-909"></a>                <span class="n">image_path</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root_directory_path</span><span class="p">,</span> <span class="n">class_name</span><span class="p">,</span> <span class="n">image</span><span class="p">))</span>
-<a id="__codelineno-0-910" name="__codelineno-0-910"></a>                <span class="n">image_paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">image_path</span><span class="p">)</span>
-<a id="__codelineno-0-911" name="__codelineno-0-911"></a>                <span class="n">annotations</span><span class="p">[</span><span class="n">image_path</span><span class="p">]</span> <span class="o">=</span> <span class="n">Classifications</span><span class="p">(</span>
-<a id="__codelineno-0-912" name="__codelineno-0-912"></a>                    <span class="n">class_id</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">class_id</span><span class="p">]),</span>
-<a id="__codelineno-0-913" name="__codelineno-0-913"></a>                <span class="p">)</span>
-<a id="__codelineno-0-914" name="__codelineno-0-914"></a>
-<a id="__codelineno-0-915" name="__codelineno-0-915"></a>        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
-<a id="__codelineno-0-916" name="__codelineno-0-916"></a>            <span class="n">classes</span><span class="o">=</span><span class="n">classes</span><span class="p">,</span>
-<a id="__codelineno-0-917" name="__codelineno-0-917"></a>            <span class="n">images</span><span class="o">=</span><span class="n">image_paths</span><span class="p">,</span>
-<a id="__codelineno-0-918" name="__codelineno-0-918"></a>            <span class="n">annotations</span><span class="o">=</span><span class="n">annotations</span><span class="p">,</span>
-<a id="__codelineno-0-919" name="__codelineno-0-919"></a>        <span class="p">)</span>
+<a id="__codelineno-0-860" name="__codelineno-0-860"></a><span class="sd">        Examples:</span>
+<a id="__codelineno-0-861" name="__codelineno-0-861"></a><span class="sd">            ```python</span>
+<a id="__codelineno-0-862" name="__codelineno-0-862"></a><span class="sd">            import roboflow</span>
+<a id="__codelineno-0-863" name="__codelineno-0-863"></a><span class="sd">            from roboflow import Roboflow</span>
+<a id="__codelineno-0-864" name="__codelineno-0-864"></a><span class="sd">            import supervision as sv</span>
+<a id="__codelineno-0-865" name="__codelineno-0-865"></a>
+<a id="__codelineno-0-866" name="__codelineno-0-866"></a><span class="sd">            roboflow.login()</span>
+<a id="__codelineno-0-867" name="__codelineno-0-867"></a><span class="sd">            rf = Roboflow()</span>
+<a id="__codelineno-0-868" name="__codelineno-0-868"></a>
+<a id="__codelineno-0-869" name="__codelineno-0-869"></a><span class="sd">            project = rf.workspace(WORKSPACE_ID).project(PROJECT_ID)</span>
+<a id="__codelineno-0-870" name="__codelineno-0-870"></a><span class="sd">            dataset = project.version(PROJECT_VERSION).download(&quot;folder&quot;)</span>
+<a id="__codelineno-0-871" name="__codelineno-0-871"></a>
+<a id="__codelineno-0-872" name="__codelineno-0-872"></a><span class="sd">            cd = sv.ClassificationDataset.from_folder_structure(</span>
+<a id="__codelineno-0-873" name="__codelineno-0-873"></a><span class="sd">                root_directory_path=f&quot;{dataset.location}/train&quot;</span>
+<a id="__codelineno-0-874" name="__codelineno-0-874"></a><span class="sd">            )</span>
+<a id="__codelineno-0-875" name="__codelineno-0-875"></a><span class="sd">            ```</span>
+<a id="__codelineno-0-876" name="__codelineno-0-876"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-877" name="__codelineno-0-877"></a>        <span class="n">classes</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">root_directory_path</span><span class="p">)</span>
+<a id="__codelineno-0-878" name="__codelineno-0-878"></a>        <span class="n">classes</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">classes</span><span class="p">))</span>
+<a id="__codelineno-0-879" name="__codelineno-0-879"></a>
+<a id="__codelineno-0-880" name="__codelineno-0-880"></a>        <span class="n">image_paths</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="__codelineno-0-881" name="__codelineno-0-881"></a>        <span class="n">annotations</span> <span class="o">=</span> <span class="p">{}</span>
+<a id="__codelineno-0-882" name="__codelineno-0-882"></a>
+<a id="__codelineno-0-883" name="__codelineno-0-883"></a>        <span class="k">for</span> <span class="n">class_name</span> <span class="ow">in</span> <span class="n">classes</span><span class="p">:</span>
+<a id="__codelineno-0-884" name="__codelineno-0-884"></a>            <span class="n">class_id</span> <span class="o">=</span> <span class="n">classes</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">class_name</span><span class="p">)</span>
+<a id="__codelineno-0-885" name="__codelineno-0-885"></a>
+<a id="__codelineno-0-886" name="__codelineno-0-886"></a>            <span class="k">for</span> <span class="n">image</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root_directory_path</span><span class="p">,</span> <span class="n">class_name</span><span class="p">)):</span>
+<a id="__codelineno-0-887" name="__codelineno-0-887"></a>                <span class="n">image_path</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root_directory_path</span><span class="p">,</span> <span class="n">class_name</span><span class="p">,</span> <span class="n">image</span><span class="p">))</span>
+<a id="__codelineno-0-888" name="__codelineno-0-888"></a>                <span class="n">image_paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">image_path</span><span class="p">)</span>
+<a id="__codelineno-0-889" name="__codelineno-0-889"></a>                <span class="n">annotations</span><span class="p">[</span><span class="n">image_path</span><span class="p">]</span> <span class="o">=</span> <span class="n">Classifications</span><span class="p">(</span>
+<a id="__codelineno-0-890" name="__codelineno-0-890"></a>                    <span class="n">class_id</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">class_id</span><span class="p">]),</span>
+<a id="__codelineno-0-891" name="__codelineno-0-891"></a>                <span class="p">)</span>
+<a id="__codelineno-0-892" name="__codelineno-0-892"></a>
+<a id="__codelineno-0-893" name="__codelineno-0-893"></a>        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+<a id="__codelineno-0-894" name="__codelineno-0-894"></a>            <span class="n">classes</span><span class="o">=</span><span class="n">classes</span><span class="p">,</span>
+<a id="__codelineno-0-895" name="__codelineno-0-895"></a>            <span class="n">images</span><span class="o">=</span><span class="n">image_paths</span><span class="p">,</span>
+<a id="__codelineno-0-896" name="__codelineno-0-896"></a>            <span class="n">annotations</span><span class="o">=</span><span class="n">annotations</span><span class="p">,</span>
+<a id="__codelineno-0-897" name="__codelineno-0-897"></a>        <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
               </details>
 
@@ -8069,34 +7969,7 @@ image name to annotations.</p>
 
 
 
-<h2 id="supervision.dataset.core.ClassificationDataset-attributes">Attributes<a href="#supervision.dataset.core.ClassificationDataset-attributes" class="headerlink" title="Permanent link">&para;</a></h2>
 
-<div class="doc doc-object doc-attribute">
-
-
-
-<h3 id="supervision.dataset.core.ClassificationDataset.images" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <code class="highlight language-python"><span class="n">images</span></code>
-
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-property"><code>property</code></small>
-  </span>
-
-<a href="#supervision.dataset.core.ClassificationDataset.images" class="headerlink" title="Permanent link">&para;</a></h3>
-
-
-    <div class="doc doc-contents ">
-
-        <p>Load all images to memory and return them as a dictionary.</p>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>Only use this when you need all images at once.
-It is much more memory-efficient to initialize dataset with
-image paths and use <code>for path, image, annotation in dataset:</code>.</p>
-</div>
-    </div>
-
-</div>
 
 <h2 id="supervision.dataset.core.ClassificationDataset-functions">Functions<a href="#supervision.dataset.core.ClassificationDataset-functions" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -8138,25 +8011,25 @@ and its corresponding annotation at index i.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/dataset/core.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-739">739</a></span>
-<span class="normal"><a href="#__codelineno-0-740">740</a></span>
-<span class="normal"><a href="#__codelineno-0-741">741</a></span>
-<span class="normal"><a href="#__codelineno-0-742">742</a></span>
-<span class="normal"><a href="#__codelineno-0-743">743</a></span>
-<span class="normal"><a href="#__codelineno-0-744">744</a></span>
-<span class="normal"><a href="#__codelineno-0-745">745</a></span>
-<span class="normal"><a href="#__codelineno-0-746">746</a></span>
-<span class="normal"><a href="#__codelineno-0-747">747</a></span>
-<span class="normal"><a href="#__codelineno-0-748">748</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-739" name="__codelineno-0-739"></a><span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">Classifications</span><span class="p">]:</span>
-<a id="__codelineno-0-740" name="__codelineno-0-740"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-741" name="__codelineno-0-741"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-742" name="__codelineno-0-742"></a><span class="sd">        Tuple[str, np.ndarray, Classifications]: The image path, image data,</span>
-<a id="__codelineno-0-743" name="__codelineno-0-743"></a><span class="sd">            and its corresponding annotation at index i.</span>
-<a id="__codelineno-0-744" name="__codelineno-0-744"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-745" name="__codelineno-0-745"></a>    <span class="n">image_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_paths</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-<a id="__codelineno-0-746" name="__codelineno-0-746"></a>    <span class="n">image</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_image</span><span class="p">(</span><span class="n">image_path</span><span class="p">)</span>
-<a id="__codelineno-0-747" name="__codelineno-0-747"></a>    <span class="n">annotation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">annotations</span><span class="p">[</span><span class="n">image_path</span><span class="p">]</span>
-<a id="__codelineno-0-748" name="__codelineno-0-748"></a>    <span class="k">return</span> <span class="n">image_path</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">annotation</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-717">717</a></span>
+<span class="normal"><a href="#__codelineno-0-718">718</a></span>
+<span class="normal"><a href="#__codelineno-0-719">719</a></span>
+<span class="normal"><a href="#__codelineno-0-720">720</a></span>
+<span class="normal"><a href="#__codelineno-0-721">721</a></span>
+<span class="normal"><a href="#__codelineno-0-722">722</a></span>
+<span class="normal"><a href="#__codelineno-0-723">723</a></span>
+<span class="normal"><a href="#__codelineno-0-724">724</a></span>
+<span class="normal"><a href="#__codelineno-0-725">725</a></span>
+<span class="normal"><a href="#__codelineno-0-726">726</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-717" name="__codelineno-0-717"></a><span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">Classifications</span><span class="p">]:</span>
+<a id="__codelineno-0-718" name="__codelineno-0-718"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-719" name="__codelineno-0-719"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-720" name="__codelineno-0-720"></a><span class="sd">        Tuple[str, np.ndarray, Classifications]: The image path, image data,</span>
+<a id="__codelineno-0-721" name="__codelineno-0-721"></a><span class="sd">            and its corresponding annotation at index i.</span>
+<a id="__codelineno-0-722" name="__codelineno-0-722"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-723" name="__codelineno-0-723"></a>    <span class="n">image_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_paths</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+<a id="__codelineno-0-724" name="__codelineno-0-724"></a>    <span class="n">image</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_image</span><span class="p">(</span><span class="n">image_path</span><span class="p">)</span>
+<a id="__codelineno-0-725" name="__codelineno-0-725"></a>    <span class="n">annotation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">annotations</span><span class="p">[</span><span class="n">image_path</span><span class="p">]</span>
+<a id="__codelineno-0-726" name="__codelineno-0-726"></a>    <span class="k">return</span> <span class="n">image_path</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">annotation</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -8203,29 +8076,29 @@ the image data, and its corresponding annotation.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/dataset/core.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-750">750</a></span>
-<span class="normal"><a href="#__codelineno-0-751">751</a></span>
-<span class="normal"><a href="#__codelineno-0-752">752</a></span>
-<span class="normal"><a href="#__codelineno-0-753">753</a></span>
-<span class="normal"><a href="#__codelineno-0-754">754</a></span>
-<span class="normal"><a href="#__codelineno-0-755">755</a></span>
-<span class="normal"><a href="#__codelineno-0-756">756</a></span>
-<span class="normal"><a href="#__codelineno-0-757">757</a></span>
-<span class="normal"><a href="#__codelineno-0-758">758</a></span>
-<span class="normal"><a href="#__codelineno-0-759">759</a></span>
-<span class="normal"><a href="#__codelineno-0-760">760</a></span>
-<span class="normal"><a href="#__codelineno-0-761">761</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-750" name="__codelineno-0-750"></a><span class="k">def</span><span class="w"> </span><span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">Classifications</span><span class="p">]]:</span>
-<a id="__codelineno-0-751" name="__codelineno-0-751"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-752" name="__codelineno-0-752"></a><span class="sd">    Iterate over the images and annotations in the dataset.</span>
-<a id="__codelineno-0-753" name="__codelineno-0-753"></a>
-<a id="__codelineno-0-754" name="__codelineno-0-754"></a><span class="sd">    Yields:</span>
-<a id="__codelineno-0-755" name="__codelineno-0-755"></a><span class="sd">        Iterator[Tuple[str, np.ndarray, Detections]]:</span>
-<a id="__codelineno-0-756" name="__codelineno-0-756"></a><span class="sd">            An iterator that yields tuples containing the image path,</span>
-<a id="__codelineno-0-757" name="__codelineno-0-757"></a><span class="sd">            the image data, and its corresponding annotation.</span>
-<a id="__codelineno-0-758" name="__codelineno-0-758"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-759" name="__codelineno-0-759"></a>    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)):</span>
-<a id="__codelineno-0-760" name="__codelineno-0-760"></a>        <span class="n">image_path</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">annotation</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-<a id="__codelineno-0-761" name="__codelineno-0-761"></a>        <span class="k">yield</span> <span class="n">image_path</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">annotation</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-728">728</a></span>
+<span class="normal"><a href="#__codelineno-0-729">729</a></span>
+<span class="normal"><a href="#__codelineno-0-730">730</a></span>
+<span class="normal"><a href="#__codelineno-0-731">731</a></span>
+<span class="normal"><a href="#__codelineno-0-732">732</a></span>
+<span class="normal"><a href="#__codelineno-0-733">733</a></span>
+<span class="normal"><a href="#__codelineno-0-734">734</a></span>
+<span class="normal"><a href="#__codelineno-0-735">735</a></span>
+<span class="normal"><a href="#__codelineno-0-736">736</a></span>
+<span class="normal"><a href="#__codelineno-0-737">737</a></span>
+<span class="normal"><a href="#__codelineno-0-738">738</a></span>
+<span class="normal"><a href="#__codelineno-0-739">739</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-728" name="__codelineno-0-728"></a><span class="k">def</span><span class="w"> </span><span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">Classifications</span><span class="p">]]:</span>
+<a id="__codelineno-0-729" name="__codelineno-0-729"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-730" name="__codelineno-0-730"></a><span class="sd">    Iterate over the images and annotations in the dataset.</span>
+<a id="__codelineno-0-731" name="__codelineno-0-731"></a>
+<a id="__codelineno-0-732" name="__codelineno-0-732"></a><span class="sd">    Yields:</span>
+<a id="__codelineno-0-733" name="__codelineno-0-733"></a><span class="sd">        Iterator[Tuple[str, np.ndarray, Detections]]:</span>
+<a id="__codelineno-0-734" name="__codelineno-0-734"></a><span class="sd">            An iterator that yields tuples containing the image path,</span>
+<a id="__codelineno-0-735" name="__codelineno-0-735"></a><span class="sd">            the image data, and its corresponding annotation.</span>
+<a id="__codelineno-0-736" name="__codelineno-0-736"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-737" name="__codelineno-0-737"></a>    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)):</span>
+<a id="__codelineno-0-738" name="__codelineno-0-738"></a>        <span class="n">image_path</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">annotation</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+<a id="__codelineno-0-739" name="__codelineno-0-739"></a>        <span class="k">yield</span> <span class="n">image_path</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">annotation</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -8279,51 +8152,51 @@ where the dataset will be saved.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/dataset/core.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-847">847</a></span>
-<span class="normal"><a href="#__codelineno-0-848">848</a></span>
-<span class="normal"><a href="#__codelineno-0-849">849</a></span>
-<span class="normal"><a href="#__codelineno-0-850">850</a></span>
-<span class="normal"><a href="#__codelineno-0-851">851</a></span>
-<span class="normal"><a href="#__codelineno-0-852">852</a></span>
-<span class="normal"><a href="#__codelineno-0-853">853</a></span>
-<span class="normal"><a href="#__codelineno-0-854">854</a></span>
-<span class="normal"><a href="#__codelineno-0-855">855</a></span>
-<span class="normal"><a href="#__codelineno-0-856">856</a></span>
-<span class="normal"><a href="#__codelineno-0-857">857</a></span>
-<span class="normal"><a href="#__codelineno-0-858">858</a></span>
-<span class="normal"><a href="#__codelineno-0-859">859</a></span>
-<span class="normal"><a href="#__codelineno-0-860">860</a></span>
-<span class="normal"><a href="#__codelineno-0-861">861</a></span>
-<span class="normal"><a href="#__codelineno-0-862">862</a></span>
-<span class="normal"><a href="#__codelineno-0-863">863</a></span>
-<span class="normal"><a href="#__codelineno-0-864">864</a></span>
-<span class="normal"><a href="#__codelineno-0-865">865</a></span>
-<span class="normal"><a href="#__codelineno-0-866">866</a></span>
-<span class="normal"><a href="#__codelineno-0-867">867</a></span>
-<span class="normal"><a href="#__codelineno-0-868">868</a></span>
-<span class="normal"><a href="#__codelineno-0-869">869</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-847" name="__codelineno-0-847"></a><span class="k">def</span><span class="w"> </span><span class="nf">as_folder_structure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">root_directory_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-848" name="__codelineno-0-848"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-849" name="__codelineno-0-849"></a><span class="sd">    Saves the dataset as a multi-class folder structure.</span>
-<a id="__codelineno-0-850" name="__codelineno-0-850"></a>
-<a id="__codelineno-0-851" name="__codelineno-0-851"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-852" name="__codelineno-0-852"></a><span class="sd">        root_directory_path (str): The path to the directory</span>
-<a id="__codelineno-0-853" name="__codelineno-0-853"></a><span class="sd">            where the dataset will be saved.</span>
-<a id="__codelineno-0-854" name="__codelineno-0-854"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-855" name="__codelineno-0-855"></a>    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">root_directory_path</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<a id="__codelineno-0-856" name="__codelineno-0-856"></a>
-<a id="__codelineno-0-857" name="__codelineno-0-857"></a>    <span class="k">for</span> <span class="n">class_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">classes</span><span class="p">:</span>
-<a id="__codelineno-0-858" name="__codelineno-0-858"></a>        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root_directory_path</span><span class="p">,</span> <span class="n">class_name</span><span class="p">),</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<a id="__codelineno-0-859" name="__codelineno-0-859"></a>
-<a id="__codelineno-0-860" name="__codelineno-0-860"></a>    <span class="k">for</span> <span class="n">image_save_path</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">annotation</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
-<a id="__codelineno-0-861" name="__codelineno-0-861"></a>        <span class="n">image_name</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">image_save_path</span><span class="p">)</span><span class="o">.</span><span class="n">name</span>
-<a id="__codelineno-0-862" name="__codelineno-0-862"></a>        <span class="n">class_id</span> <span class="o">=</span> <span class="p">(</span>
-<a id="__codelineno-0-863" name="__codelineno-0-863"></a>            <span class="n">annotation</span><span class="o">.</span><span class="n">class_id</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-<a id="__codelineno-0-864" name="__codelineno-0-864"></a>            <span class="k">if</span> <span class="n">annotation</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="kc">None</span>
-<a id="__codelineno-0-865" name="__codelineno-0-865"></a>            <span class="k">else</span> <span class="n">annotation</span><span class="o">.</span><span class="n">get_top_k</span><span class="p">(</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-<a id="__codelineno-0-866" name="__codelineno-0-866"></a>        <span class="p">)</span>
-<a id="__codelineno-0-867" name="__codelineno-0-867"></a>        <span class="n">class_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">classes</span><span class="p">[</span><span class="n">class_id</span><span class="p">]</span>
-<a id="__codelineno-0-868" name="__codelineno-0-868"></a>        <span class="n">image_save_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root_directory_path</span><span class="p">,</span> <span class="n">class_name</span><span class="p">,</span> <span class="n">image_name</span><span class="p">)</span>
-<a id="__codelineno-0-869" name="__codelineno-0-869"></a>        <span class="n">cv2</span><span class="o">.</span><span class="n">imwrite</span><span class="p">(</span><span class="n">image_save_path</span><span class="p">,</span> <span class="n">image</span><span class="p">)</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-825">825</a></span>
+<span class="normal"><a href="#__codelineno-0-826">826</a></span>
+<span class="normal"><a href="#__codelineno-0-827">827</a></span>
+<span class="normal"><a href="#__codelineno-0-828">828</a></span>
+<span class="normal"><a href="#__codelineno-0-829">829</a></span>
+<span class="normal"><a href="#__codelineno-0-830">830</a></span>
+<span class="normal"><a href="#__codelineno-0-831">831</a></span>
+<span class="normal"><a href="#__codelineno-0-832">832</a></span>
+<span class="normal"><a href="#__codelineno-0-833">833</a></span>
+<span class="normal"><a href="#__codelineno-0-834">834</a></span>
+<span class="normal"><a href="#__codelineno-0-835">835</a></span>
+<span class="normal"><a href="#__codelineno-0-836">836</a></span>
+<span class="normal"><a href="#__codelineno-0-837">837</a></span>
+<span class="normal"><a href="#__codelineno-0-838">838</a></span>
+<span class="normal"><a href="#__codelineno-0-839">839</a></span>
+<span class="normal"><a href="#__codelineno-0-840">840</a></span>
+<span class="normal"><a href="#__codelineno-0-841">841</a></span>
+<span class="normal"><a href="#__codelineno-0-842">842</a></span>
+<span class="normal"><a href="#__codelineno-0-843">843</a></span>
+<span class="normal"><a href="#__codelineno-0-844">844</a></span>
+<span class="normal"><a href="#__codelineno-0-845">845</a></span>
+<span class="normal"><a href="#__codelineno-0-846">846</a></span>
+<span class="normal"><a href="#__codelineno-0-847">847</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-825" name="__codelineno-0-825"></a><span class="k">def</span><span class="w"> </span><span class="nf">as_folder_structure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">root_directory_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-826" name="__codelineno-0-826"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-827" name="__codelineno-0-827"></a><span class="sd">    Saves the dataset as a multi-class folder structure.</span>
+<a id="__codelineno-0-828" name="__codelineno-0-828"></a>
+<a id="__codelineno-0-829" name="__codelineno-0-829"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-830" name="__codelineno-0-830"></a><span class="sd">        root_directory_path (str): The path to the directory</span>
+<a id="__codelineno-0-831" name="__codelineno-0-831"></a><span class="sd">            where the dataset will be saved.</span>
+<a id="__codelineno-0-832" name="__codelineno-0-832"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-833" name="__codelineno-0-833"></a>    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">root_directory_path</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-0-834" name="__codelineno-0-834"></a>
+<a id="__codelineno-0-835" name="__codelineno-0-835"></a>    <span class="k">for</span> <span class="n">class_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">classes</span><span class="p">:</span>
+<a id="__codelineno-0-836" name="__codelineno-0-836"></a>        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root_directory_path</span><span class="p">,</span> <span class="n">class_name</span><span class="p">),</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-0-837" name="__codelineno-0-837"></a>
+<a id="__codelineno-0-838" name="__codelineno-0-838"></a>    <span class="k">for</span> <span class="n">image_save_path</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">annotation</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+<a id="__codelineno-0-839" name="__codelineno-0-839"></a>        <span class="n">image_name</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">image_save_path</span><span class="p">)</span><span class="o">.</span><span class="n">name</span>
+<a id="__codelineno-0-840" name="__codelineno-0-840"></a>        <span class="n">class_id</span> <span class="o">=</span> <span class="p">(</span>
+<a id="__codelineno-0-841" name="__codelineno-0-841"></a>            <span class="n">annotation</span><span class="o">.</span><span class="n">class_id</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<a id="__codelineno-0-842" name="__codelineno-0-842"></a>            <span class="k">if</span> <span class="n">annotation</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="kc">None</span>
+<a id="__codelineno-0-843" name="__codelineno-0-843"></a>            <span class="k">else</span> <span class="n">annotation</span><span class="o">.</span><span class="n">get_top_k</span><span class="p">(</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+<a id="__codelineno-0-844" name="__codelineno-0-844"></a>        <span class="p">)</span>
+<a id="__codelineno-0-845" name="__codelineno-0-845"></a>        <span class="n">class_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">classes</span><span class="p">[</span><span class="n">class_id</span><span class="p">]</span>
+<a id="__codelineno-0-846" name="__codelineno-0-846"></a>        <span class="n">image_save_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root_directory_path</span><span class="p">,</span> <span class="n">class_name</span><span class="p">,</span> <span class="n">image_name</span><span class="p">)</span>
+<a id="__codelineno-0-847" name="__codelineno-0-847"></a>        <span class="n">cv2</span><span class="o">.</span><span class="n">imwrite</span><span class="p">(</span><span class="n">image_save_path</span><span class="p">,</span> <span class="n">image</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -8420,7 +8293,29 @@ where the dataset will be saved.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/dataset/core.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-871">871</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-849">849</a></span>
+<span class="normal"><a href="#__codelineno-0-850">850</a></span>
+<span class="normal"><a href="#__codelineno-0-851">851</a></span>
+<span class="normal"><a href="#__codelineno-0-852">852</a></span>
+<span class="normal"><a href="#__codelineno-0-853">853</a></span>
+<span class="normal"><a href="#__codelineno-0-854">854</a></span>
+<span class="normal"><a href="#__codelineno-0-855">855</a></span>
+<span class="normal"><a href="#__codelineno-0-856">856</a></span>
+<span class="normal"><a href="#__codelineno-0-857">857</a></span>
+<span class="normal"><a href="#__codelineno-0-858">858</a></span>
+<span class="normal"><a href="#__codelineno-0-859">859</a></span>
+<span class="normal"><a href="#__codelineno-0-860">860</a></span>
+<span class="normal"><a href="#__codelineno-0-861">861</a></span>
+<span class="normal"><a href="#__codelineno-0-862">862</a></span>
+<span class="normal"><a href="#__codelineno-0-863">863</a></span>
+<span class="normal"><a href="#__codelineno-0-864">864</a></span>
+<span class="normal"><a href="#__codelineno-0-865">865</a></span>
+<span class="normal"><a href="#__codelineno-0-866">866</a></span>
+<span class="normal"><a href="#__codelineno-0-867">867</a></span>
+<span class="normal"><a href="#__codelineno-0-868">868</a></span>
+<span class="normal"><a href="#__codelineno-0-869">869</a></span>
+<span class="normal"><a href="#__codelineno-0-870">870</a></span>
+<span class="normal"><a href="#__codelineno-0-871">871</a></span>
 <span class="normal"><a href="#__codelineno-0-872">872</a></span>
 <span class="normal"><a href="#__codelineno-0-873">873</a></span>
 <span class="normal"><a href="#__codelineno-0-874">874</a></span>
@@ -8446,77 +8341,55 @@ where the dataset will be saved.</p>
 <span class="normal"><a href="#__codelineno-0-894">894</a></span>
 <span class="normal"><a href="#__codelineno-0-895">895</a></span>
 <span class="normal"><a href="#__codelineno-0-896">896</a></span>
-<span class="normal"><a href="#__codelineno-0-897">897</a></span>
-<span class="normal"><a href="#__codelineno-0-898">898</a></span>
-<span class="normal"><a href="#__codelineno-0-899">899</a></span>
-<span class="normal"><a href="#__codelineno-0-900">900</a></span>
-<span class="normal"><a href="#__codelineno-0-901">901</a></span>
-<span class="normal"><a href="#__codelineno-0-902">902</a></span>
-<span class="normal"><a href="#__codelineno-0-903">903</a></span>
-<span class="normal"><a href="#__codelineno-0-904">904</a></span>
-<span class="normal"><a href="#__codelineno-0-905">905</a></span>
-<span class="normal"><a href="#__codelineno-0-906">906</a></span>
-<span class="normal"><a href="#__codelineno-0-907">907</a></span>
-<span class="normal"><a href="#__codelineno-0-908">908</a></span>
-<span class="normal"><a href="#__codelineno-0-909">909</a></span>
-<span class="normal"><a href="#__codelineno-0-910">910</a></span>
-<span class="normal"><a href="#__codelineno-0-911">911</a></span>
-<span class="normal"><a href="#__codelineno-0-912">912</a></span>
-<span class="normal"><a href="#__codelineno-0-913">913</a></span>
-<span class="normal"><a href="#__codelineno-0-914">914</a></span>
-<span class="normal"><a href="#__codelineno-0-915">915</a></span>
-<span class="normal"><a href="#__codelineno-0-916">916</a></span>
-<span class="normal"><a href="#__codelineno-0-917">917</a></span>
-<span class="normal"><a href="#__codelineno-0-918">918</a></span>
-<span class="normal"><a href="#__codelineno-0-919">919</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-871" name="__codelineno-0-871"></a><span class="nd">@classmethod</span>
-<a id="__codelineno-0-872" name="__codelineno-0-872"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_folder_structure</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">root_directory_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ClassificationDataset</span><span class="p">:</span>
-<a id="__codelineno-0-873" name="__codelineno-0-873"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-874" name="__codelineno-0-874"></a><span class="sd">    Load data from a multiclass folder structure into a ClassificationDataset.</span>
-<a id="__codelineno-0-875" name="__codelineno-0-875"></a>
-<a id="__codelineno-0-876" name="__codelineno-0-876"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-877" name="__codelineno-0-877"></a><span class="sd">        root_directory_path (str): The path to the dataset directory.</span>
-<a id="__codelineno-0-878" name="__codelineno-0-878"></a>
-<a id="__codelineno-0-879" name="__codelineno-0-879"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-880" name="__codelineno-0-880"></a><span class="sd">        ClassificationDataset: The dataset.</span>
-<a id="__codelineno-0-881" name="__codelineno-0-881"></a>
-<a id="__codelineno-0-882" name="__codelineno-0-882"></a><span class="sd">    Examples:</span>
-<a id="__codelineno-0-883" name="__codelineno-0-883"></a><span class="sd">        ```python</span>
-<a id="__codelineno-0-884" name="__codelineno-0-884"></a><span class="sd">        import roboflow</span>
-<a id="__codelineno-0-885" name="__codelineno-0-885"></a><span class="sd">        from roboflow import Roboflow</span>
-<a id="__codelineno-0-886" name="__codelineno-0-886"></a><span class="sd">        import supervision as sv</span>
-<a id="__codelineno-0-887" name="__codelineno-0-887"></a>
-<a id="__codelineno-0-888" name="__codelineno-0-888"></a><span class="sd">        roboflow.login()</span>
-<a id="__codelineno-0-889" name="__codelineno-0-889"></a><span class="sd">        rf = Roboflow()</span>
-<a id="__codelineno-0-890" name="__codelineno-0-890"></a>
-<a id="__codelineno-0-891" name="__codelineno-0-891"></a><span class="sd">        project = rf.workspace(WORKSPACE_ID).project(PROJECT_ID)</span>
-<a id="__codelineno-0-892" name="__codelineno-0-892"></a><span class="sd">        dataset = project.version(PROJECT_VERSION).download(&quot;folder&quot;)</span>
-<a id="__codelineno-0-893" name="__codelineno-0-893"></a>
-<a id="__codelineno-0-894" name="__codelineno-0-894"></a><span class="sd">        cd = sv.ClassificationDataset.from_folder_structure(</span>
-<a id="__codelineno-0-895" name="__codelineno-0-895"></a><span class="sd">            root_directory_path=f&quot;{dataset.location}/train&quot;</span>
-<a id="__codelineno-0-896" name="__codelineno-0-896"></a><span class="sd">        )</span>
-<a id="__codelineno-0-897" name="__codelineno-0-897"></a><span class="sd">        ```</span>
-<a id="__codelineno-0-898" name="__codelineno-0-898"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-899" name="__codelineno-0-899"></a>    <span class="n">classes</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">root_directory_path</span><span class="p">)</span>
-<a id="__codelineno-0-900" name="__codelineno-0-900"></a>    <span class="n">classes</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">classes</span><span class="p">))</span>
-<a id="__codelineno-0-901" name="__codelineno-0-901"></a>
-<a id="__codelineno-0-902" name="__codelineno-0-902"></a>    <span class="n">image_paths</span> <span class="o">=</span> <span class="p">[]</span>
-<a id="__codelineno-0-903" name="__codelineno-0-903"></a>    <span class="n">annotations</span> <span class="o">=</span> <span class="p">{}</span>
-<a id="__codelineno-0-904" name="__codelineno-0-904"></a>
-<a id="__codelineno-0-905" name="__codelineno-0-905"></a>    <span class="k">for</span> <span class="n">class_name</span> <span class="ow">in</span> <span class="n">classes</span><span class="p">:</span>
-<a id="__codelineno-0-906" name="__codelineno-0-906"></a>        <span class="n">class_id</span> <span class="o">=</span> <span class="n">classes</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">class_name</span><span class="p">)</span>
-<a id="__codelineno-0-907" name="__codelineno-0-907"></a>
-<a id="__codelineno-0-908" name="__codelineno-0-908"></a>        <span class="k">for</span> <span class="n">image</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root_directory_path</span><span class="p">,</span> <span class="n">class_name</span><span class="p">)):</span>
-<a id="__codelineno-0-909" name="__codelineno-0-909"></a>            <span class="n">image_path</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root_directory_path</span><span class="p">,</span> <span class="n">class_name</span><span class="p">,</span> <span class="n">image</span><span class="p">))</span>
-<a id="__codelineno-0-910" name="__codelineno-0-910"></a>            <span class="n">image_paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">image_path</span><span class="p">)</span>
-<a id="__codelineno-0-911" name="__codelineno-0-911"></a>            <span class="n">annotations</span><span class="p">[</span><span class="n">image_path</span><span class="p">]</span> <span class="o">=</span> <span class="n">Classifications</span><span class="p">(</span>
-<a id="__codelineno-0-912" name="__codelineno-0-912"></a>                <span class="n">class_id</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">class_id</span><span class="p">]),</span>
-<a id="__codelineno-0-913" name="__codelineno-0-913"></a>            <span class="p">)</span>
-<a id="__codelineno-0-914" name="__codelineno-0-914"></a>
-<a id="__codelineno-0-915" name="__codelineno-0-915"></a>    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
-<a id="__codelineno-0-916" name="__codelineno-0-916"></a>        <span class="n">classes</span><span class="o">=</span><span class="n">classes</span><span class="p">,</span>
-<a id="__codelineno-0-917" name="__codelineno-0-917"></a>        <span class="n">images</span><span class="o">=</span><span class="n">image_paths</span><span class="p">,</span>
-<a id="__codelineno-0-918" name="__codelineno-0-918"></a>        <span class="n">annotations</span><span class="o">=</span><span class="n">annotations</span><span class="p">,</span>
-<a id="__codelineno-0-919" name="__codelineno-0-919"></a>    <span class="p">)</span>
+<span class="normal"><a href="#__codelineno-0-897">897</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-849" name="__codelineno-0-849"></a><span class="nd">@classmethod</span>
+<a id="__codelineno-0-850" name="__codelineno-0-850"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_folder_structure</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">root_directory_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ClassificationDataset</span><span class="p">:</span>
+<a id="__codelineno-0-851" name="__codelineno-0-851"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-852" name="__codelineno-0-852"></a><span class="sd">    Load data from a multiclass folder structure into a ClassificationDataset.</span>
+<a id="__codelineno-0-853" name="__codelineno-0-853"></a>
+<a id="__codelineno-0-854" name="__codelineno-0-854"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-855" name="__codelineno-0-855"></a><span class="sd">        root_directory_path (str): The path to the dataset directory.</span>
+<a id="__codelineno-0-856" name="__codelineno-0-856"></a>
+<a id="__codelineno-0-857" name="__codelineno-0-857"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-858" name="__codelineno-0-858"></a><span class="sd">        ClassificationDataset: The dataset.</span>
+<a id="__codelineno-0-859" name="__codelineno-0-859"></a>
+<a id="__codelineno-0-860" name="__codelineno-0-860"></a><span class="sd">    Examples:</span>
+<a id="__codelineno-0-861" name="__codelineno-0-861"></a><span class="sd">        ```python</span>
+<a id="__codelineno-0-862" name="__codelineno-0-862"></a><span class="sd">        import roboflow</span>
+<a id="__codelineno-0-863" name="__codelineno-0-863"></a><span class="sd">        from roboflow import Roboflow</span>
+<a id="__codelineno-0-864" name="__codelineno-0-864"></a><span class="sd">        import supervision as sv</span>
+<a id="__codelineno-0-865" name="__codelineno-0-865"></a>
+<a id="__codelineno-0-866" name="__codelineno-0-866"></a><span class="sd">        roboflow.login()</span>
+<a id="__codelineno-0-867" name="__codelineno-0-867"></a><span class="sd">        rf = Roboflow()</span>
+<a id="__codelineno-0-868" name="__codelineno-0-868"></a>
+<a id="__codelineno-0-869" name="__codelineno-0-869"></a><span class="sd">        project = rf.workspace(WORKSPACE_ID).project(PROJECT_ID)</span>
+<a id="__codelineno-0-870" name="__codelineno-0-870"></a><span class="sd">        dataset = project.version(PROJECT_VERSION).download(&quot;folder&quot;)</span>
+<a id="__codelineno-0-871" name="__codelineno-0-871"></a>
+<a id="__codelineno-0-872" name="__codelineno-0-872"></a><span class="sd">        cd = sv.ClassificationDataset.from_folder_structure(</span>
+<a id="__codelineno-0-873" name="__codelineno-0-873"></a><span class="sd">            root_directory_path=f&quot;{dataset.location}/train&quot;</span>
+<a id="__codelineno-0-874" name="__codelineno-0-874"></a><span class="sd">        )</span>
+<a id="__codelineno-0-875" name="__codelineno-0-875"></a><span class="sd">        ```</span>
+<a id="__codelineno-0-876" name="__codelineno-0-876"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-877" name="__codelineno-0-877"></a>    <span class="n">classes</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">root_directory_path</span><span class="p">)</span>
+<a id="__codelineno-0-878" name="__codelineno-0-878"></a>    <span class="n">classes</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">classes</span><span class="p">))</span>
+<a id="__codelineno-0-879" name="__codelineno-0-879"></a>
+<a id="__codelineno-0-880" name="__codelineno-0-880"></a>    <span class="n">image_paths</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="__codelineno-0-881" name="__codelineno-0-881"></a>    <span class="n">annotations</span> <span class="o">=</span> <span class="p">{}</span>
+<a id="__codelineno-0-882" name="__codelineno-0-882"></a>
+<a id="__codelineno-0-883" name="__codelineno-0-883"></a>    <span class="k">for</span> <span class="n">class_name</span> <span class="ow">in</span> <span class="n">classes</span><span class="p">:</span>
+<a id="__codelineno-0-884" name="__codelineno-0-884"></a>        <span class="n">class_id</span> <span class="o">=</span> <span class="n">classes</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">class_name</span><span class="p">)</span>
+<a id="__codelineno-0-885" name="__codelineno-0-885"></a>
+<a id="__codelineno-0-886" name="__codelineno-0-886"></a>        <span class="k">for</span> <span class="n">image</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root_directory_path</span><span class="p">,</span> <span class="n">class_name</span><span class="p">)):</span>
+<a id="__codelineno-0-887" name="__codelineno-0-887"></a>            <span class="n">image_path</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root_directory_path</span><span class="p">,</span> <span class="n">class_name</span><span class="p">,</span> <span class="n">image</span><span class="p">))</span>
+<a id="__codelineno-0-888" name="__codelineno-0-888"></a>            <span class="n">image_paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">image_path</span><span class="p">)</span>
+<a id="__codelineno-0-889" name="__codelineno-0-889"></a>            <span class="n">annotations</span><span class="p">[</span><span class="n">image_path</span><span class="p">]</span> <span class="o">=</span> <span class="n">Classifications</span><span class="p">(</span>
+<a id="__codelineno-0-890" name="__codelineno-0-890"></a>                <span class="n">class_id</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">class_id</span><span class="p">]),</span>
+<a id="__codelineno-0-891" name="__codelineno-0-891"></a>            <span class="p">)</span>
+<a id="__codelineno-0-892" name="__codelineno-0-892"></a>
+<a id="__codelineno-0-893" name="__codelineno-0-893"></a>    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+<a id="__codelineno-0-894" name="__codelineno-0-894"></a>        <span class="n">classes</span><span class="o">=</span><span class="n">classes</span><span class="p">,</span>
+<a id="__codelineno-0-895" name="__codelineno-0-895"></a>        <span class="n">images</span><span class="o">=</span><span class="n">image_paths</span><span class="p">,</span>
+<a id="__codelineno-0-896" name="__codelineno-0-896"></a>        <span class="n">annotations</span><span class="o">=</span><span class="n">annotations</span><span class="p">,</span>
+<a id="__codelineno-0-897" name="__codelineno-0-897"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -8647,7 +8520,29 @@ random number generator. This is used for reproducibility.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/dataset/core.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-785">785</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-763">763</a></span>
+<span class="normal"><a href="#__codelineno-0-764">764</a></span>
+<span class="normal"><a href="#__codelineno-0-765">765</a></span>
+<span class="normal"><a href="#__codelineno-0-766">766</a></span>
+<span class="normal"><a href="#__codelineno-0-767">767</a></span>
+<span class="normal"><a href="#__codelineno-0-768">768</a></span>
+<span class="normal"><a href="#__codelineno-0-769">769</a></span>
+<span class="normal"><a href="#__codelineno-0-770">770</a></span>
+<span class="normal"><a href="#__codelineno-0-771">771</a></span>
+<span class="normal"><a href="#__codelineno-0-772">772</a></span>
+<span class="normal"><a href="#__codelineno-0-773">773</a></span>
+<span class="normal"><a href="#__codelineno-0-774">774</a></span>
+<span class="normal"><a href="#__codelineno-0-775">775</a></span>
+<span class="normal"><a href="#__codelineno-0-776">776</a></span>
+<span class="normal"><a href="#__codelineno-0-777">777</a></span>
+<span class="normal"><a href="#__codelineno-0-778">778</a></span>
+<span class="normal"><a href="#__codelineno-0-779">779</a></span>
+<span class="normal"><a href="#__codelineno-0-780">780</a></span>
+<span class="normal"><a href="#__codelineno-0-781">781</a></span>
+<span class="normal"><a href="#__codelineno-0-782">782</a></span>
+<span class="normal"><a href="#__codelineno-0-783">783</a></span>
+<span class="normal"><a href="#__codelineno-0-784">784</a></span>
+<span class="normal"><a href="#__codelineno-0-785">785</a></span>
 <span class="normal"><a href="#__codelineno-0-786">786</a></span>
 <span class="normal"><a href="#__codelineno-0-787">787</a></span>
 <span class="normal"><a href="#__codelineno-0-788">788</a></span>
@@ -8685,89 +8580,67 @@ random number generator. This is used for reproducibility.</p>
 <span class="normal"><a href="#__codelineno-0-820">820</a></span>
 <span class="normal"><a href="#__codelineno-0-821">821</a></span>
 <span class="normal"><a href="#__codelineno-0-822">822</a></span>
-<span class="normal"><a href="#__codelineno-0-823">823</a></span>
-<span class="normal"><a href="#__codelineno-0-824">824</a></span>
-<span class="normal"><a href="#__codelineno-0-825">825</a></span>
-<span class="normal"><a href="#__codelineno-0-826">826</a></span>
-<span class="normal"><a href="#__codelineno-0-827">827</a></span>
-<span class="normal"><a href="#__codelineno-0-828">828</a></span>
-<span class="normal"><a href="#__codelineno-0-829">829</a></span>
-<span class="normal"><a href="#__codelineno-0-830">830</a></span>
-<span class="normal"><a href="#__codelineno-0-831">831</a></span>
-<span class="normal"><a href="#__codelineno-0-832">832</a></span>
-<span class="normal"><a href="#__codelineno-0-833">833</a></span>
-<span class="normal"><a href="#__codelineno-0-834">834</a></span>
-<span class="normal"><a href="#__codelineno-0-835">835</a></span>
-<span class="normal"><a href="#__codelineno-0-836">836</a></span>
-<span class="normal"><a href="#__codelineno-0-837">837</a></span>
-<span class="normal"><a href="#__codelineno-0-838">838</a></span>
-<span class="normal"><a href="#__codelineno-0-839">839</a></span>
-<span class="normal"><a href="#__codelineno-0-840">840</a></span>
-<span class="normal"><a href="#__codelineno-0-841">841</a></span>
-<span class="normal"><a href="#__codelineno-0-842">842</a></span>
-<span class="normal"><a href="#__codelineno-0-843">843</a></span>
-<span class="normal"><a href="#__codelineno-0-844">844</a></span>
-<span class="normal"><a href="#__codelineno-0-845">845</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-785" name="__codelineno-0-785"></a><span class="k">def</span><span class="w"> </span><span class="nf">split</span><span class="p">(</span>
-<a id="__codelineno-0-786" name="__codelineno-0-786"></a>    <span class="bp">self</span><span class="p">,</span>
-<a id="__codelineno-0-787" name="__codelineno-0-787"></a>    <span class="n">split_ratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span>
-<a id="__codelineno-0-788" name="__codelineno-0-788"></a>    <span class="n">random_state</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-789" name="__codelineno-0-789"></a>    <span class="n">shuffle</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-0-790" name="__codelineno-0-790"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">ClassificationDataset</span><span class="p">,</span> <span class="n">ClassificationDataset</span><span class="p">]:</span>
-<a id="__codelineno-0-791" name="__codelineno-0-791"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-792" name="__codelineno-0-792"></a><span class="sd">    Splits the dataset into two parts (training and testing)</span>
-<a id="__codelineno-0-793" name="__codelineno-0-793"></a><span class="sd">        using the provided split_ratio.</span>
-<a id="__codelineno-0-794" name="__codelineno-0-794"></a>
-<a id="__codelineno-0-795" name="__codelineno-0-795"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-796" name="__codelineno-0-796"></a><span class="sd">        split_ratio (float): The ratio of the training</span>
-<a id="__codelineno-0-797" name="__codelineno-0-797"></a><span class="sd">            set to the entire dataset.</span>
-<a id="__codelineno-0-798" name="__codelineno-0-798"></a><span class="sd">        random_state (Optional[int]): The seed for the</span>
-<a id="__codelineno-0-799" name="__codelineno-0-799"></a><span class="sd">            random number generator. This is used for reproducibility.</span>
-<a id="__codelineno-0-800" name="__codelineno-0-800"></a><span class="sd">        shuffle (bool): Whether to shuffle the data before splitting.</span>
-<a id="__codelineno-0-801" name="__codelineno-0-801"></a>
-<a id="__codelineno-0-802" name="__codelineno-0-802"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-803" name="__codelineno-0-803"></a><span class="sd">        Tuple[ClassificationDataset, ClassificationDataset]: A tuple containing</span>
-<a id="__codelineno-0-804" name="__codelineno-0-804"></a><span class="sd">        the training and testing datasets.</span>
-<a id="__codelineno-0-805" name="__codelineno-0-805"></a>
-<a id="__codelineno-0-806" name="__codelineno-0-806"></a><span class="sd">    Examples:</span>
-<a id="__codelineno-0-807" name="__codelineno-0-807"></a><span class="sd">        ```python</span>
-<a id="__codelineno-0-808" name="__codelineno-0-808"></a><span class="sd">        import supervision as sv</span>
-<a id="__codelineno-0-809" name="__codelineno-0-809"></a>
-<a id="__codelineno-0-810" name="__codelineno-0-810"></a><span class="sd">        cd = sv.ClassificationDataset(...)</span>
-<a id="__codelineno-0-811" name="__codelineno-0-811"></a><span class="sd">        train_cd,test_cd = cd.split(split_ratio=0.7, random_state=42,shuffle=True)</span>
-<a id="__codelineno-0-812" name="__codelineno-0-812"></a><span class="sd">        len(train_cd), len(test_cd)</span>
-<a id="__codelineno-0-813" name="__codelineno-0-813"></a><span class="sd">        # (700, 300)</span>
-<a id="__codelineno-0-814" name="__codelineno-0-814"></a><span class="sd">        ```</span>
-<a id="__codelineno-0-815" name="__codelineno-0-815"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-816" name="__codelineno-0-816"></a>    <span class="n">train_paths</span><span class="p">,</span> <span class="n">test_paths</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span>
-<a id="__codelineno-0-817" name="__codelineno-0-817"></a>        <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">image_paths</span><span class="p">,</span>
-<a id="__codelineno-0-818" name="__codelineno-0-818"></a>        <span class="n">train_ratio</span><span class="o">=</span><span class="n">split_ratio</span><span class="p">,</span>
-<a id="__codelineno-0-819" name="__codelineno-0-819"></a>        <span class="n">random_state</span><span class="o">=</span><span class="n">random_state</span><span class="p">,</span>
-<a id="__codelineno-0-820" name="__codelineno-0-820"></a>        <span class="n">shuffle</span><span class="o">=</span><span class="n">shuffle</span><span class="p">,</span>
+<span class="normal"><a href="#__codelineno-0-823">823</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-763" name="__codelineno-0-763"></a><span class="k">def</span><span class="w"> </span><span class="nf">split</span><span class="p">(</span>
+<a id="__codelineno-0-764" name="__codelineno-0-764"></a>    <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-0-765" name="__codelineno-0-765"></a>    <span class="n">split_ratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span>
+<a id="__codelineno-0-766" name="__codelineno-0-766"></a>    <span class="n">random_state</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-767" name="__codelineno-0-767"></a>    <span class="n">shuffle</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-0-768" name="__codelineno-0-768"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">ClassificationDataset</span><span class="p">,</span> <span class="n">ClassificationDataset</span><span class="p">]:</span>
+<a id="__codelineno-0-769" name="__codelineno-0-769"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-770" name="__codelineno-0-770"></a><span class="sd">    Splits the dataset into two parts (training and testing)</span>
+<a id="__codelineno-0-771" name="__codelineno-0-771"></a><span class="sd">        using the provided split_ratio.</span>
+<a id="__codelineno-0-772" name="__codelineno-0-772"></a>
+<a id="__codelineno-0-773" name="__codelineno-0-773"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-774" name="__codelineno-0-774"></a><span class="sd">        split_ratio (float): The ratio of the training</span>
+<a id="__codelineno-0-775" name="__codelineno-0-775"></a><span class="sd">            set to the entire dataset.</span>
+<a id="__codelineno-0-776" name="__codelineno-0-776"></a><span class="sd">        random_state (Optional[int]): The seed for the</span>
+<a id="__codelineno-0-777" name="__codelineno-0-777"></a><span class="sd">            random number generator. This is used for reproducibility.</span>
+<a id="__codelineno-0-778" name="__codelineno-0-778"></a><span class="sd">        shuffle (bool): Whether to shuffle the data before splitting.</span>
+<a id="__codelineno-0-779" name="__codelineno-0-779"></a>
+<a id="__codelineno-0-780" name="__codelineno-0-780"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-781" name="__codelineno-0-781"></a><span class="sd">        Tuple[ClassificationDataset, ClassificationDataset]: A tuple containing</span>
+<a id="__codelineno-0-782" name="__codelineno-0-782"></a><span class="sd">        the training and testing datasets.</span>
+<a id="__codelineno-0-783" name="__codelineno-0-783"></a>
+<a id="__codelineno-0-784" name="__codelineno-0-784"></a><span class="sd">    Examples:</span>
+<a id="__codelineno-0-785" name="__codelineno-0-785"></a><span class="sd">        ```python</span>
+<a id="__codelineno-0-786" name="__codelineno-0-786"></a><span class="sd">        import supervision as sv</span>
+<a id="__codelineno-0-787" name="__codelineno-0-787"></a>
+<a id="__codelineno-0-788" name="__codelineno-0-788"></a><span class="sd">        cd = sv.ClassificationDataset(...)</span>
+<a id="__codelineno-0-789" name="__codelineno-0-789"></a><span class="sd">        train_cd,test_cd = cd.split(split_ratio=0.7, random_state=42,shuffle=True)</span>
+<a id="__codelineno-0-790" name="__codelineno-0-790"></a><span class="sd">        len(train_cd), len(test_cd)</span>
+<a id="__codelineno-0-791" name="__codelineno-0-791"></a><span class="sd">        # (700, 300)</span>
+<a id="__codelineno-0-792" name="__codelineno-0-792"></a><span class="sd">        ```</span>
+<a id="__codelineno-0-793" name="__codelineno-0-793"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-794" name="__codelineno-0-794"></a>    <span class="n">train_paths</span><span class="p">,</span> <span class="n">test_paths</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span>
+<a id="__codelineno-0-795" name="__codelineno-0-795"></a>        <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">image_paths</span><span class="p">,</span>
+<a id="__codelineno-0-796" name="__codelineno-0-796"></a>        <span class="n">train_ratio</span><span class="o">=</span><span class="n">split_ratio</span><span class="p">,</span>
+<a id="__codelineno-0-797" name="__codelineno-0-797"></a>        <span class="n">random_state</span><span class="o">=</span><span class="n">random_state</span><span class="p">,</span>
+<a id="__codelineno-0-798" name="__codelineno-0-798"></a>        <span class="n">shuffle</span><span class="o">=</span><span class="n">shuffle</span><span class="p">,</span>
+<a id="__codelineno-0-799" name="__codelineno-0-799"></a>    <span class="p">)</span>
+<a id="__codelineno-0-800" name="__codelineno-0-800"></a>
+<a id="__codelineno-0-801" name="__codelineno-0-801"></a>    <span class="n">train_input</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]</span>
+<a id="__codelineno-0-802" name="__codelineno-0-802"></a>    <span class="n">test_input</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]</span>
+<a id="__codelineno-0-803" name="__codelineno-0-803"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_images_in_memory</span><span class="p">:</span>
+<a id="__codelineno-0-804" name="__codelineno-0-804"></a>        <span class="n">train_input</span> <span class="o">=</span> <span class="p">{</span><span class="n">path</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_images_in_memory</span><span class="p">[</span><span class="n">path</span><span class="p">]</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">train_paths</span><span class="p">}</span>
+<a id="__codelineno-0-805" name="__codelineno-0-805"></a>        <span class="n">test_input</span> <span class="o">=</span> <span class="p">{</span><span class="n">path</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_images_in_memory</span><span class="p">[</span><span class="n">path</span><span class="p">]</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">test_paths</span><span class="p">}</span>
+<a id="__codelineno-0-806" name="__codelineno-0-806"></a>    <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-0-807" name="__codelineno-0-807"></a>        <span class="n">train_input</span> <span class="o">=</span> <span class="n">train_paths</span>
+<a id="__codelineno-0-808" name="__codelineno-0-808"></a>        <span class="n">test_input</span> <span class="o">=</span> <span class="n">test_paths</span>
+<a id="__codelineno-0-809" name="__codelineno-0-809"></a>    <span class="n">train_annotations</span> <span class="o">=</span> <span class="p">{</span><span class="n">path</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">annotations</span><span class="p">[</span><span class="n">path</span><span class="p">]</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">train_paths</span><span class="p">}</span>
+<a id="__codelineno-0-810" name="__codelineno-0-810"></a>    <span class="n">test_annotations</span> <span class="o">=</span> <span class="p">{</span><span class="n">path</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">annotations</span><span class="p">[</span><span class="n">path</span><span class="p">]</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">test_paths</span><span class="p">}</span>
+<a id="__codelineno-0-811" name="__codelineno-0-811"></a>
+<a id="__codelineno-0-812" name="__codelineno-0-812"></a>    <span class="n">train_dataset</span> <span class="o">=</span> <span class="n">ClassificationDataset</span><span class="p">(</span>
+<a id="__codelineno-0-813" name="__codelineno-0-813"></a>        <span class="n">classes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">classes</span><span class="p">,</span>
+<a id="__codelineno-0-814" name="__codelineno-0-814"></a>        <span class="n">images</span><span class="o">=</span><span class="n">train_input</span><span class="p">,</span>
+<a id="__codelineno-0-815" name="__codelineno-0-815"></a>        <span class="n">annotations</span><span class="o">=</span><span class="n">train_annotations</span><span class="p">,</span>
+<a id="__codelineno-0-816" name="__codelineno-0-816"></a>    <span class="p">)</span>
+<a id="__codelineno-0-817" name="__codelineno-0-817"></a>    <span class="n">test_dataset</span> <span class="o">=</span> <span class="n">ClassificationDataset</span><span class="p">(</span>
+<a id="__codelineno-0-818" name="__codelineno-0-818"></a>        <span class="n">classes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">classes</span><span class="p">,</span>
+<a id="__codelineno-0-819" name="__codelineno-0-819"></a>        <span class="n">images</span><span class="o">=</span><span class="n">test_input</span><span class="p">,</span>
+<a id="__codelineno-0-820" name="__codelineno-0-820"></a>        <span class="n">annotations</span><span class="o">=</span><span class="n">test_annotations</span><span class="p">,</span>
 <a id="__codelineno-0-821" name="__codelineno-0-821"></a>    <span class="p">)</span>
 <a id="__codelineno-0-822" name="__codelineno-0-822"></a>
-<a id="__codelineno-0-823" name="__codelineno-0-823"></a>    <span class="n">train_input</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]</span>
-<a id="__codelineno-0-824" name="__codelineno-0-824"></a>    <span class="n">test_input</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]</span>
-<a id="__codelineno-0-825" name="__codelineno-0-825"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_images_in_memory</span><span class="p">:</span>
-<a id="__codelineno-0-826" name="__codelineno-0-826"></a>        <span class="n">train_input</span> <span class="o">=</span> <span class="p">{</span><span class="n">path</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_images_in_memory</span><span class="p">[</span><span class="n">path</span><span class="p">]</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">train_paths</span><span class="p">}</span>
-<a id="__codelineno-0-827" name="__codelineno-0-827"></a>        <span class="n">test_input</span> <span class="o">=</span> <span class="p">{</span><span class="n">path</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_images_in_memory</span><span class="p">[</span><span class="n">path</span><span class="p">]</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">test_paths</span><span class="p">}</span>
-<a id="__codelineno-0-828" name="__codelineno-0-828"></a>    <span class="k">else</span><span class="p">:</span>
-<a id="__codelineno-0-829" name="__codelineno-0-829"></a>        <span class="n">train_input</span> <span class="o">=</span> <span class="n">train_paths</span>
-<a id="__codelineno-0-830" name="__codelineno-0-830"></a>        <span class="n">test_input</span> <span class="o">=</span> <span class="n">test_paths</span>
-<a id="__codelineno-0-831" name="__codelineno-0-831"></a>    <span class="n">train_annotations</span> <span class="o">=</span> <span class="p">{</span><span class="n">path</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">annotations</span><span class="p">[</span><span class="n">path</span><span class="p">]</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">train_paths</span><span class="p">}</span>
-<a id="__codelineno-0-832" name="__codelineno-0-832"></a>    <span class="n">test_annotations</span> <span class="o">=</span> <span class="p">{</span><span class="n">path</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">annotations</span><span class="p">[</span><span class="n">path</span><span class="p">]</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">test_paths</span><span class="p">}</span>
-<a id="__codelineno-0-833" name="__codelineno-0-833"></a>
-<a id="__codelineno-0-834" name="__codelineno-0-834"></a>    <span class="n">train_dataset</span> <span class="o">=</span> <span class="n">ClassificationDataset</span><span class="p">(</span>
-<a id="__codelineno-0-835" name="__codelineno-0-835"></a>        <span class="n">classes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">classes</span><span class="p">,</span>
-<a id="__codelineno-0-836" name="__codelineno-0-836"></a>        <span class="n">images</span><span class="o">=</span><span class="n">train_input</span><span class="p">,</span>
-<a id="__codelineno-0-837" name="__codelineno-0-837"></a>        <span class="n">annotations</span><span class="o">=</span><span class="n">train_annotations</span><span class="p">,</span>
-<a id="__codelineno-0-838" name="__codelineno-0-838"></a>    <span class="p">)</span>
-<a id="__codelineno-0-839" name="__codelineno-0-839"></a>    <span class="n">test_dataset</span> <span class="o">=</span> <span class="n">ClassificationDataset</span><span class="p">(</span>
-<a id="__codelineno-0-840" name="__codelineno-0-840"></a>        <span class="n">classes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">classes</span><span class="p">,</span>
-<a id="__codelineno-0-841" name="__codelineno-0-841"></a>        <span class="n">images</span><span class="o">=</span><span class="n">test_input</span><span class="p">,</span>
-<a id="__codelineno-0-842" name="__codelineno-0-842"></a>        <span class="n">annotations</span><span class="o">=</span><span class="n">test_annotations</span><span class="p">,</span>
-<a id="__codelineno-0-843" name="__codelineno-0-843"></a>    <span class="p">)</span>
-<a id="__codelineno-0-844" name="__codelineno-0-844"></a>
-<a id="__codelineno-0-845" name="__codelineno-0-845"></a>    <span class="k">return</span> <span class="n">train_dataset</span><span class="p">,</span> <span class="n">test_dataset</span>
+<a id="__codelineno-0-823" name="__codelineno-0-823"></a>    <span class="k">return</span> <span class="n">train_dataset</span><span class="p">,</span> <span class="n">test_dataset</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
