@@ -35,9 +35,7 @@ def load_zones_config(file_path: str) -> List[np.ndarray]:
 
 def initiate_annotators(
     polygons: List[np.ndarray], resolution_wh: Tuple[int, int]
-) -> Tuple[
-    List[sv.PolygonZone], List[sv.PolygonZoneAnnotator], List[sv.BoundingBoxAnnotator]
-]:
+) -> Tuple[List[sv.PolygonZone], List[sv.PolygonZoneAnnotator], List[sv.BoxAnnotator]]:
     line_thickness = sv.calculate_optimal_line_thickness(resolution_wh=resolution_wh)
     text_scale = sv.calculate_optimal_text_scale(resolution_wh=resolution_wh)
 
@@ -54,7 +52,7 @@ def initiate_annotators(
             text_thickness=line_thickness * 2,
             text_scale=text_scale * 2,
         )
-        box_annotator = sv.BoundingBoxAnnotator(
+        box_annotator = sv.BoxAnnotator(
             color=COLORS.by_idx(index), thickness=line_thickness
         )
         zones.append(zone)
@@ -97,7 +95,7 @@ def annotate(
     frame: np.ndarray,
     zones: List[sv.PolygonZone],
     zone_annotators: List[sv.PolygonZoneAnnotator],
-    box_annotators: List[sv.BoundingBoxAnnotator],
+    box_annotators: List[sv.BoxAnnotator],
     detections: sv.Detections,
 ) -> np.ndarray:
     """
@@ -108,7 +106,7 @@ def annotate(
         zones (List[sv.PolygonZone]): A list of polygon zones used for detection.
         zone_annotators (List[sv.PolygonZoneAnnotator]): A list of annotators for
             drawing zone annotations.
-        box_annotators (List[sv.BoundingBoxAnnotator]): A list of annotators for
+        box_annotators (List[sv.BoxAnnotator]): A list of annotators for
             drawing box annotations.
         detections (sv.Detections): Detections to be used for annotation.
 

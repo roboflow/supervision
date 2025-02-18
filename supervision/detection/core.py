@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
@@ -8,12 +9,6 @@ import numpy as np
 from supervision.config import (
     CLASS_NAME_DATA_FIELD,
     ORIENTED_BOX_COORDINATES,
-)
-from supervision.detection.lmm import (
-    LMM,
-    from_florence_2,
-    from_paligemma,
-    validate_lmm_parameters,
 )
 from supervision.detection.overlap_filter import (
     box_non_max_merge,
@@ -38,8 +33,16 @@ from supervision.detection.utils import (
     process_roboflow_result,
     xywh_to_xyxy,
 )
+from supervision.detection.vlm import (
+    LMM,
+    VLM,
+    from_florence_2,
+    from_paligemma,
+    from_qwen_2_5_vl,
+    validate_vlm_parameters,
+)
 from supervision.geometry.core import Position
-from supervision.utils.internal import get_instance_variables
+from supervision.utils.internal import deprecated, get_instance_variables
 from supervision.validators import validate_detections_fields
 
 
@@ -799,6 +802,10 @@ class Detections:
         )
 
     @classmethod
+    @deprecated(
+        "`Detections.from_lmm` property is deprecated and will be removed in "
+        "`supervision-0.31.0`. Use Detections.from_vlm instead."
+    )
     def from_lmm(
         cls, lmm: Union[LMM, str], result: Union[str, dict], **kwargs: Any
     ) -> Detections:
@@ -837,16 +844,51 @@ class Detections:
             # array([0])
             ```
         """
-        lmm = validate_lmm_parameters(lmm, result, kwargs)
+        # filler logic mapping old from_lmm to new from_vlm
+        lmm_to_vlm = {
+            LMM.PALIGEMMA: VLM.PALIGEMMA,
+            LMM.FLORENCE_2: VLM.FLORENCE_2,
+            LMM.QWEN_2_5_VL: VLM.QWEN_2_5_VL,
+        }
 
-        if lmm == LMM.PALIGEMMA:
-            assert isinstance(result, str)
+        # (this works even if the LMM enum is wrapped by @deprecated)
+        if isinstance(lmm, Enum) and lmm.__class__.__name__ == "LMM":
+            vlm = lmm_to_vlm[lmm]
+
+        elif isinstance(lmm, str):
+            try:
+                lmm_enum = LMM(lmm.lower())
+            except ValueError:
+                raise ValueError(
+                    f"Invalid LMM string '{lmm}'. Must be one of "
+                    f"{[m.value for m in LMM]}"
+                )
+            vlm = lmm_to_vlm[lmm_enum]
+
+        else:
+            raise ValueError(
+                f"Invalid type for 'lmm': {type(lmm)}. Must be LMM or str."
+            )
+
+        return cls.from_vlm(vlm=vlm, result=result, **kwargs)
+
+    @classmethod
+    def from_vlm(
+        cls, vlm: Union[VLM, str], result: Union[str, dict], **kwargs: Any
+    ) -> Detections:
+        vlm = validate_vlm_parameters(vlm, result, kwargs)
+
+        if vlm == VLM.PALIGEMMA:
             xyxy, class_id, class_name = from_paligemma(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             return cls(xyxy=xyxy, class_id=class_id, data=data)
 
-        if lmm == LMM.FLORENCE_2:
-            assert isinstance(result, dict)
+        if vlm == VLM.QWEN_2_5_VL:
+            xyxy, class_id, class_name = from_qwen_2_5_vl(result, **kwargs)
+            data = {CLASS_NAME_DATA_FIELD: class_name}
+            return cls(xyxy=xyxy, class_id=class_id, data=data)
+
+        if vlm == VLM.FLORENCE_2:
             xyxy, labels, mask, xyxyxyxy = from_florence_2(result, **kwargs)
             if len(xyxy) == 0:
                 return cls.empty()
@@ -858,8 +900,6 @@ class Detections:
                 data[ORIENTED_BOX_COORDINATES] = xyxyxyxy
 
             return cls(xyxy=xyxy, mask=mask, data=data)
-
-        raise ValueError(f"Unsupported LMM: {lmm}")
 
     @classmethod
     def from_easyocr(cls, easyocr_results: list) -> Detections:
