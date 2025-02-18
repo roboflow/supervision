@@ -9,12 +9,6 @@ from supervision.config import (
     CLASS_NAME_DATA_FIELD,
     ORIENTED_BOX_COORDINATES,
 )
-from supervision.detection.vlm import (
-    LMM,
-    from_florence_2,
-    from_paligemma,
-    validate_vlm_parameters, VLM,
-)
 from supervision.detection.overlap_filter import (
     box_non_max_merge,
     box_non_max_suppression,
@@ -38,8 +32,15 @@ from supervision.detection.utils import (
     process_roboflow_result,
     xywh_to_xyxy,
 )
+from supervision.detection.vlm import (
+    LMM,
+    VLM,
+    from_florence_2,
+    from_paligemma,
+    validate_vlm_parameters,
+)
 from supervision.geometry.core import Position
-from supervision.utils.internal import get_instance_variables, deprecated
+from supervision.utils.internal import deprecated, get_instance_variables
 from supervision.validators import validate_detections_fields
 
 
@@ -845,7 +846,7 @@ class Detections:
         lmm_to_vlm = {
             LMM.PALIGEMMA: VLM.PALIGEMMA,
             LMM.FLORENCE_2: VLM.FLORENCE_2,
-            LMM.QWEN_2_5_VL: VLM.QWEN_2_5_VL
+            LMM.QWEN_2_5_VL: VLM.QWEN_2_5_VL,
         }
 
         if isinstance(lmm, LMM):
@@ -869,7 +870,9 @@ class Detections:
         return cls.from_vlm(vlm=vlm, result=result, **kwargs)
 
     @classmethod
-    def from_vlm(cls, vlm: Union[VLM, str], result: Union[str, dict], **kwargs: Any) -> Detections:
+    def from_vlm(
+        cls, vlm: Union[VLM, str], result: Union[str, dict], **kwargs: Any
+    ) -> Detections:
         vlm = validate_vlm_parameters(vlm, result, kwargs)
 
         if vlm == VLM.PALIGEMMA:
