@@ -6,10 +6,10 @@ version = "0.26.0rc3"
 readme = "README.md"
 requires-python = ">=3.8"
 authors = [
-    { name = "Piotr Skalski", email = "piotr@roboflow.com" }
+    { name = "Piotr Skalski", email = "piotr.skalski92@gmail.com" }
 ]
 maintainers = [
-    { name = "Piotr Skalski", email = "piotr@roboflow.com" },
+    { name = "Piotr Skalski", email = "piotr.skalski92@gmail.com" },
 ]
 keywords = [
     "machine-learning",
