@@ -250,10 +250,7 @@ def test_from_paligemma(
             (640, 480),
             ["cat", "dog"],
             (
-                np.array([
-                    [10.0, 15.0, 110.0, 90.0],
-                    [50.0, 75.0, 150.0, 150.0]
-                ]),
+                np.array([[10.0, 15.0, 110.0, 90.0], [50.0, 75.0, 150.0, 150.0]]),
                 np.array([0, 1], dtype=int),
                 np.array(["cat", "dog"], dtype=str),
             ),

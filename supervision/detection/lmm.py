@@ -14,18 +14,22 @@ class LMM(Enum):
     QWEN_2_5_VL = "qwen_2_5_vl"
 
 
-RESULT_TYPES: Dict[LMM, type] = {LMM.PALIGEMMA: str, LMM.FLORENCE_2: dict, LMM.QWEN_2_5_VL: str}
+RESULT_TYPES: Dict[LMM, type] = {
+    LMM.PALIGEMMA: str,
+    LMM.FLORENCE_2: dict,
+    LMM.QWEN_2_5_VL: str,
+}
 
 REQUIRED_ARGUMENTS: Dict[LMM, List[str]] = {
     LMM.PALIGEMMA: ["resolution_wh"],
     LMM.FLORENCE_2: ["resolution_wh"],
-    LMM.QWEN_2_5_VL: ["input_wh", "resolution_wh"]
+    LMM.QWEN_2_5_VL: ["input_wh", "resolution_wh"],
 }
 
 ALLOWED_ARGUMENTS: Dict[LMM, List[str]] = {
     LMM.PALIGEMMA: ["resolution_wh", "classes"],
     LMM.FLORENCE_2: ["resolution_wh"],
-    LMM.QWEN_2_5_VL: ["input_wh", "resolution_wh", "classes"]
+    LMM.QWEN_2_5_VL: ["input_wh", "resolution_wh", "classes"],
 }
 
 SUPPORTED_TASKS_FLORENCE_2 = [
@@ -98,7 +102,7 @@ def from_qwen_2_5_vl(
     result: str,
     input_wh: Tuple[int, int],
     resolution_wh: Tuple[int, int],
-    classes: Optional[List[str]] = None
+    classes: Optional[List[str]] = None,
 ) -> Tuple[np.ndarray, Optional[np.ndarray], np.ndarray]:
     """
     Parse and scale bounding boxes from QWen 2.5 style JSON output.
