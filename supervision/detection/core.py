@@ -37,6 +37,7 @@ from supervision.detection.vlm import (
     LMM,
     VLM,
     from_florence_2,
+    from_google_gemini,
     from_paligemma,
     from_qwen_2_5_vl,
     validate_vlm_parameters,
@@ -715,7 +716,7 @@ class Detections:
         """
         if "error" in azure_result:
             raise ValueError(
-                f'Azure API returned an error {azure_result["error"]["message"]}'
+                f"Azure API returned an error {azure_result['error']['message']}"
             )
 
         xyxy, confidences, class_ids = [], [], []
@@ -843,12 +844,63 @@ class Detections:
             detections.class_id
             # array([0])
             ```
-        """
+
+        Examples:
+            ```python
+            from google import genai
+            from google.genai import types
+            import supervision as sv
+            from PIL import Image
+
+            image = Image.open(<SOURCE_IMAGE_PATH>)
+            client = genai.Client(api_key=<API_KEY>)
+
+            system_instructions = '''
+                Return bounding boxes as a JSON array with labels and ids. Never return masks or code fencing. Limit to 25 objects.
+                If an object is present multiple times, name them according to their unique characteristic (colors, size, position, unique characteristics, etc..).
+                '''
+
+            safety_settings = [
+                types.SafetySetting(
+                    category="HARM_CATEGORY_DANGEROUS_CONTENT",
+                    threshold="BLOCK_ONLY_HIGH",
+                ),
+            ]
+
+            response = client.models.generate_content(
+                model="gemini-2.0-flash-exp",
+                contents=[prompt, im],
+                config = types.GenerateContentConfig(
+                    system_instruction=system_instructions,
+                    temperature=0.5,
+                    safety_settings=safety_settings,
+                )
+            )
+
+            detections = sv.Detections.from_lmm(
+                sv.LMM.GOOGLE_GEMINI_2_0,
+                response,
+                resolution_wh=(1000, 1000),
+                classes=['cat', 'dog'],
+            )
+
+            detections.xyxy
+            # array([[250., 250., 750., 750.]])
+            detections.class_id
+            # array([0])
+            detections.data
+            # {'class_name': ['cat', 'dog']}
+
+            ```
+
+        """  # noqa: E501 // docs
+
         # filler logic mapping old from_lmm to new from_vlm
         lmm_to_vlm = {
             LMM.PALIGEMMA: VLM.PALIGEMMA,
             LMM.FLORENCE_2: VLM.FLORENCE_2,
             LMM.QWEN_2_5_VL: VLM.QWEN_2_5_VL,
+            LMM.GOOGLE_GEMINI_2_0: VLM.GOOGLE_GEMINI_2_0,
         }
 
         # (this works even if the LMM enum is wrapped by @deprecated)
@@ -900,6 +952,11 @@ class Detections:
                 data[ORIENTED_BOX_COORDINATES] = xyxyxyxy
 
             return cls(xyxy=xyxy, mask=mask, data=data)
+
+        if vlm == VLM.GOOGLE_GEMINI_2_0:
+            xyxy, class_name = from_google_gemini(result, **kwargs)
+            data = {CLASS_NAME_DATA_FIELD: class_name}
+            return cls(xyxy=xyxy, data=data)
 
     @classmethod
     def from_easyocr(cls, easyocr_results: list) -> Detections:
@@ -1346,9 +1403,9 @@ class Detections:
         if len(self) == 0:
             return self
 
-        assert (
-            self.confidence is not None
-        ), "Detections confidence must be given for NMS to be executed."
+        assert self.confidence is not None, (
+            "Detections confidence must be given for NMS to be executed."
+        )
 
         if class_agnostic:
             predictions = np.hstack((self.xyxy, self.confidence.reshape(-1, 1)))
@@ -1402,9 +1459,9 @@ class Detections:
         if len(self) == 0:
             return self
 
-        assert (
-            self.confidence is not None
-        ), "Detections confidence must be given for NMM to be executed."
+        assert self.confidence is not None, (
+            "Detections confidence must be given for NMM to be executed."
+        )
 
         if class_agnostic:
             predictions = np.hstack((self.xyxy, self.confidence.reshape(-1, 1)))

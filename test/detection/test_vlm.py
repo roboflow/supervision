@@ -4,7 +4,11 @@ from typing import List, Optional, Tuple
 import numpy as np
 import pytest
 
-from supervision.detection.vlm import from_paligemma, from_qwen_2_5_vl
+from supervision.detection.vlm import (
+    from_google_gemini,
+    from_paligemma,
+    from_qwen_2_5_vl,
+)
 
 
 @pytest.mark.parametrize(
@@ -353,3 +357,22 @@ def test_from_qwen_2_5_vl(
             np.testing.assert_array_equal(xyxy, expected_results[0])
             np.testing.assert_array_equal(class_id, expected_results[1])
             np.testing.assert_array_equal(class_name, expected_results[2])
+
+
+def test_from_google_gemini() -> None:
+    result = """```json
+    [
+        {"box_2d": [10, 20, 110, 120], "label": "cat"},
+        {"box_2d": [50, 100, 150, 200], "label": "dog"}
+    ]
+    ```"""
+    resolution_wh = (640, 480)
+    xyxy, class_name = from_google_gemini(
+        result=result,
+        resolution_wh=resolution_wh,
+    )
+    np.testing.assert_array_equal(
+        xyxy,
+        np.array([[12.0, 4.0, 76.0, 52.0], [64.0, 24.0, 128.0, 72.0]]),
+    )
+    np.testing.assert_array_equal(class_name, np.array(["cat", "dog"]))
