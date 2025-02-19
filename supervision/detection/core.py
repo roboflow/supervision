@@ -852,8 +852,8 @@ class Detections:
             import supervision as sv
             from PIL import Image
 
-            image = Image.open(<SOURCE_IMAGE_PATH>)
-            client = genai.Client(api_key=<API_KEY>)
+            IMAGE = Image.open(<SOURCE_IMAGE_PATH>)
+            GENAI_CLIENT = genai.Client(api_key=<API_KEY>)
 
             system_instructions = '''
                 Return bounding boxes as a JSON array with labels and ids. Never return masks or code fencing. Limit to 25 objects.
@@ -867,9 +867,9 @@ class Detections:
                 ),
             ]
 
-            response = client.models.generate_content(
+            response = GENAI_CLIENT.models.generate_content(
                 model="gemini-2.0-flash-exp",
-                contents=[prompt, im],
+                contents=[prompt, IMAGE],
                 config = types.GenerateContentConfig(
                     system_instruction=system_instructions,
                     temperature=0.5,
@@ -879,9 +879,8 @@ class Detections:
 
             detections = sv.Detections.from_lmm(
                 sv.LMM.GOOGLE_GEMINI_2_0,
-                response,
-                resolution_wh=(1000, 1000),
-                classes=['cat', 'dog'],
+                response.text,
+                resolution_wh=(IMAGE.size[0], IMAGE.size[1]),
             )
 
             detections.xyxy
@@ -890,7 +889,6 @@ class Detections:
             # array([0])
             detections.data
             # {'class_name': ['cat', 'dog']}
-
             ```
 
         """  # noqa: E501 // docs
