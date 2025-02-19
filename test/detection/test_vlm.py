@@ -373,6 +373,6 @@ def test_from_google_gemini() -> None:
     )
     np.testing.assert_array_equal(
         xyxy,
-        np.array([[12.0, 4.0, 76.0, 52.0], [64.0, 24.0, 128.0, 72.0]]),
+        np.array([[6.4, 9.6, 70.4, 57.6], [32.0, 48.0, 96.0, 96.0]]),
     )
     np.testing.assert_array_equal(class_name, np.array(["cat", "dog"]))

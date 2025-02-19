@@ -5,7 +5,11 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
-from supervision.detection.utils import polygon_to_mask, polygon_to_xyxy
+from supervision.detection.utils import (
+    normalized_xyxy_to_absolute_xyxy,
+    polygon_to_mask,
+    polygon_to_xyxy,
+)
 from supervision.utils.internal import deprecated
 
 
@@ -362,26 +366,21 @@ def from_google_gemini(
     except json.JSONDecodeError:
         return np.empty((0, 4)), np.empty((0,), dtype=str)
 
+    labels = []
     xyxy = []
-    labels_list = []
     for item in data:
         if "box_2d" not in item or "label" not in item:
             continue
-        labels_list.append(item["label"])
-        abs_y1 = int(item["box_2d"][0] / 1000 * resolution_wh[1])
-        abs_x1 = int(item["box_2d"][1] / 1000 * resolution_wh[0])
-        abs_y2 = int(item["box_2d"][2] / 1000 * resolution_wh[1])
-        abs_x2 = int(item["box_2d"][3] / 1000 * resolution_wh[0])
-
-        if abs_x1 > abs_x2:
-            abs_x1, abs_x2 = abs_x2, abs_x1
-
-        if abs_y1 > abs_y2:
-            abs_y1, abs_y2 = abs_y2, abs_y1
-
-        xyxy.append([abs_x1, abs_y1, abs_x2, abs_y2])
+        labels.append(item["label"])
+        xyxy.append(
+            normalized_xyxy_to_absolute_xyxy(
+                np.array(item["box_2d"]).astype(np.float64),
+                resolution_wh=(w, h),
+                normalization_factor=1000,
+            )
+        )
 
     if not xyxy:
         return np.empty((0, 4)), np.empty((0,), dtype=str)
 
-    return np.array(xyxy), np.array(labels_list)
+    return np.array(xyxy), np.array(labels)

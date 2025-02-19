@@ -1275,3 +1275,64 @@ def spread_out_boxes(
         xyxy_padded[:, [2, 3]] += force_vectors
 
     return pad_boxes(xyxy_padded, px=-1)
+
+
+def normalized_xyxy_to_absolute_xyxy(
+    normalized_xyxy: np.ndarray,
+    resolution_wh: Tuple[int, int],
+    normalization_factor: float = 1.0,
+) -> np.ndarray:
+    """
+    Convert normalized xyxy coordinates to absolute XYXY coordinates. By default, assumes
+    normalized values are between 0 and 1, but supports custom ranges via normalization_factor parameter.
+
+    Args:
+        normalized_xyxy (np.ndarray): A numpy array of shape `(N, 4)` where each row contains
+            normalized coordinates in format `(x1, y1, x2, y2)` with values between 0 and normalization_factor.
+        resolution_wh (Tuple[int, int]): A tuple of the form `(width, height)` representing
+            the target resolution.
+        normalization_factor (float): The maximum value of the normalization range. For example:
+            - normalization_factor=1.0 means input coordinates are normalized between 0 and 1
+            - normalization_factor=100.0 means input coordinates are normalized between 0 and 100
+            - normalization_factor=1000.0 means input coordinates are normalized between 0 and 1000
+
+    Returns:
+        np.ndarray: A numpy array of shape `(N, 4)` containing the absolute coordinates
+            in format `(x1, y1, x2, y2)`.
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        # Example with default normalization (0-1)
+        normalized_xyxy = np.array([
+            [0.1, 0.2, 0.5, 0.6],
+            [0.3, 0.4, 0.7, 0.8]
+        ])
+        resolution_wh = (100, 200)
+        sv.normalized_xyxy_to_absolute_xyxy(normalized_xyxy, resolution_wh)
+        # array([
+        #     [ 10.,  40.,  50., 120.],
+        #     [ 30.,  80.,  70., 160.]
+        # ])
+
+        # Example with custom normalization (0-100)
+        normalized_xyxy = np.array([
+            [10., 20., 50., 60.],
+            [30., 40., 70., 80.]
+        ])
+        sv.normalized_xyxy_to_absolute_xyxy(normalized_xyxy, resolution_wh, max_value=100.0)
+        # array([
+        #     [ 10.,  40.,  50., 120.],
+        #     [ 30.,  80.,  70., 160.]
+        # ])
+        ```
+    """  # noqa E501 // docs
+    width, height = resolution_wh
+    result = normalized_xyxy.copy()
+
+    result[[0, 2]] = (result[[0, 2]] * width) / normalization_factor
+    result[[1, 3]] = (result[[1, 3]] * height) / normalization_factor
+
+    return result
