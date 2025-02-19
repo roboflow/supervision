@@ -180,6 +180,6 @@ def test_generate_offset(
     )
 
     # Verify that the generated offsets match the expected offsets
-    assert np.array_equal(
-        offsets, expected_offsets
-    ), f"Expected {expected_offsets}, got {offsets}"
+    assert np.array_equal(offsets, expected_offsets), (
+        f"Expected {expected_offsets}, got {offsets}"
+    )
