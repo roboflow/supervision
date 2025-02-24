@@ -23,8 +23,8 @@ class KeyPoints:
     === "Ultralytics"
 
         Use [`sv.KeyPoints.from_ultralytics`](/latest/keypoint/core/#supervision.keypoint.core.KeyPoints.from_ultralytics)
-        method, which accepts [YOLOv8](https://github.com/ultralytics/ultralytics)
-        pose result.
+        method, which accepts [YOLOv8-pose](https://docs.ultralytics.com/models/yolov8/), [YOLO11-pose](https://docs.ultralytics.com/models/yolo11/)
+        [pose](https://docs.ultralytics.com/tasks/pose/) result.
 
         ```python
         import cv2
@@ -32,7 +32,7 @@ class KeyPoints:
         from ultralytics import YOLO
 
         image = cv2.imread(<SOURCE_IMAGE_PATH>)
-        model = YOLO('yolov8s-pose.pt')
+        model = YOLO('yolo11s-pose.pt')
 
         result = model(image)[0]
         key_points = sv.KeyPoints.from_ultralytics(result)
