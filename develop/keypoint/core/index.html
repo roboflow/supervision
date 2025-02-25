@@ -3178,14 +3178,14 @@ integration with Supervision <a href="/latest/keypoint/annotators">keypoints ann
 <div class="tabbed-content">
 <div class="tabbed-block">
 <p>Use <a href="/latest/keypoint/core/#supervision.keypoint.core.KeyPoints.from_ultralytics"><code>sv.KeyPoints.from_ultralytics</code></a>
-method, which accepts <a href="https://github.com/ultralytics/ultralytics">YOLOv8</a>
-pose result.</p>
+method, which accepts <a href="https://docs.ultralytics.com/models/yolov8/">YOLOv8-pose</a>, <a href="https://docs.ultralytics.com/models/yolo11/">YOLO11-pose</a>
+<a href="https://docs.ultralytics.com/tasks/pose/">pose</a> result.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">ultralytics</span><span class="w"> </span><span class="kn">import</span> <span class="n">YOLO</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="o">&lt;</span><span class="n">SOURCE_IMAGE_PATH</span><span class="o">&gt;</span><span class="p">)</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">model</span> <span class="o">=</span> <span class="n">YOLO</span><span class="p">(</span><span class="s1">&#39;yolov8s-pose.pt&#39;</span><span class="p">)</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">model</span> <span class="o">=</span> <span class="n">YOLO</span><span class="p">(</span><span class="s1">&#39;yolo11s-pose.pt&#39;</span><span class="p">)</span>
 <a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
 <a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">result</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">image</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 <a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">key_points</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">KeyPoints</span><span class="o">.</span><span class="n">from_ultralytics</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
@@ -3288,7 +3288,7 @@ sets of keypoints, where each point is <code>[x, y]</code>.</p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.keypoint.core.KeyPoints.data">data</span></code></td>
             <td>
-                  <code><span title="typing.Dict">Dict</span>[str, <span title="typing.Union">Union</span>[<span title="numpy.ndarray">ndarray</span>, <span title="typing.List">List</span>]]</code>
+                  <code><span title="typing.Dict">Dict</span>[<span title="str">str</span>, <span title="typing.Union">Union</span>[<span title="numpy.ndarray">ndarray</span>, <span title="typing.List">List</span>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4079,8 +4079,8 @@ is either a NumPy array or a list of corresponding data of length <code>n</code>
 <a id="__codelineno-0-23" name="__codelineno-0-23"></a><span class="sd">    === &quot;Ultralytics&quot;</span>
 <a id="__codelineno-0-24" name="__codelineno-0-24"></a>
 <a id="__codelineno-0-25" name="__codelineno-0-25"></a><span class="sd">        Use [`sv.KeyPoints.from_ultralytics`](/latest/keypoint/core/#supervision.keypoint.core.KeyPoints.from_ultralytics)</span>
-<a id="__codelineno-0-26" name="__codelineno-0-26"></a><span class="sd">        method, which accepts [YOLOv8](https://github.com/ultralytics/ultralytics)</span>
-<a id="__codelineno-0-27" name="__codelineno-0-27"></a><span class="sd">        pose result.</span>
+<a id="__codelineno-0-26" name="__codelineno-0-26"></a><span class="sd">        method, which accepts [YOLOv8-pose](https://docs.ultralytics.com/models/yolov8/), [YOLO11-pose](https://docs.ultralytics.com/models/yolo11/)</span>
+<a id="__codelineno-0-27" name="__codelineno-0-27"></a><span class="sd">        [pose](https://docs.ultralytics.com/tasks/pose/) result.</span>
 <a id="__codelineno-0-28" name="__codelineno-0-28"></a>
 <a id="__codelineno-0-29" name="__codelineno-0-29"></a><span class="sd">        ```python</span>
 <a id="__codelineno-0-30" name="__codelineno-0-30"></a><span class="sd">        import cv2</span>
@@ -4088,7 +4088,7 @@ is either a NumPy array or a list of corresponding data of length <code>n</code>
 <a id="__codelineno-0-32" name="__codelineno-0-32"></a><span class="sd">        from ultralytics import YOLO</span>
 <a id="__codelineno-0-33" name="__codelineno-0-33"></a>
 <a id="__codelineno-0-34" name="__codelineno-0-34"></a><span class="sd">        image = cv2.imread(&lt;SOURCE_IMAGE_PATH&gt;)</span>
-<a id="__codelineno-0-35" name="__codelineno-0-35"></a><span class="sd">        model = YOLO(&#39;yolov8s-pose.pt&#39;)</span>
+<a id="__codelineno-0-35" name="__codelineno-0-35"></a><span class="sd">        model = YOLO(&#39;yolo11s-pose.pt&#39;)</span>
 <a id="__codelineno-0-36" name="__codelineno-0-36"></a>
 <a id="__codelineno-0-37" name="__codelineno-0-37"></a><span class="sd">        result = model(image)[0]</span>
 <a id="__codelineno-0-38" name="__codelineno-0-38"></a><span class="sd">        key_points = sv.KeyPoints.from_ultralytics(result)</span>
@@ -4877,7 +4877,7 @@ corresponding item in the data dictionary.</p>
 <h4 id="supervision.keypoint.core.KeyPoints.__getitem__(index)" class="doc doc-heading doc-heading-parameter">                  <code>index</code>
 <a href="#supervision.keypoint.core.KeyPoints.__getitem__(index)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code><span title="typing.Union">Union</span>[int, slice, <span title="typing.List">List</span>[int], <span title="numpy.ndarray">ndarray</span>, str]</code>
+                  <code><span title="typing.Union">Union</span>[<span title="int">int</span>, <span title="slice">slice</span>, <span title="typing.List">List</span>[<span title="int">int</span>], <span title="numpy.ndarray">ndarray</span>, <span title="str">str</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4905,7 +4905,7 @@ data.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Union">Union</span>[<a class="autorefs autorefs-internal" title="supervision.keypoint.core.KeyPoints" href="#supervision.keypoint.core.KeyPoints">KeyPoints</a>, <span title="typing.List">List</span>, <span title="numpy.ndarray">ndarray</span>, None]</code>
+                  <code><span title="typing.Union">Union</span>[<a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.keypoint.core.KeyPoints&lt;/code&gt;" href="#supervision.keypoint.core.KeyPoints">KeyPoints</a>, <span title="typing.List">List</span>, <span title="numpy.ndarray">ndarray</span>, None]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5174,7 +5174,7 @@ data.</p>
 <h4 id="supervision.keypoint.core.KeyPoints.__setitem__(key)" class="doc doc-heading doc-heading-parameter">                  <code>key</code>
 <a href="#supervision.keypoint.core.KeyPoints.__setitem__(key)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>str</code>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5330,7 +5330,7 @@ taking the bounding box that fits all keypoints.</p>
 <h4 id="supervision.keypoint.core.KeyPoints.as_detections(selected_keypoint_indices)" class="doc doc-heading doc-heading-parameter">                  <code>selected_keypoint_indices</code>
 <a href="#supervision.keypoint.core.KeyPoints.as_detections(selected_keypoint_indices)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code><span title="typing.Optional">Optional</span>[<span title="typing.Iterable">Iterable</span>[int]]</code>
+                  <code><span title="typing.Optional">Optional</span>[<span title="typing.Iterable">Iterable</span>[<span title="int">int</span>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5359,7 +5359,7 @@ e.g. when some are occluded. Captures all keypoints by default.</p>
       <tbody>
           <tr class="doc-section-item">
 <td><code>detections</code></td>            <td>
-                  <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../../detection/core/#supervision.detection.core.Detections">Detections</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.detection.core.Detections&lt;/code&gt;" href="../../detection/core/#supervision.detection.core.Detections">Detections</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5538,7 +5538,7 @@ e.g. when some are occluded. Captures all keypoints by default.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-internal" title="supervision.keypoint.core.KeyPoints" href="#supervision.keypoint.core.KeyPoints">KeyPoints</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.keypoint.core.KeyPoints&lt;/code&gt;" href="#supervision.keypoint.core.KeyPoints">KeyPoints</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5657,7 +5657,7 @@ Detectron2 model containing instances with prediction data.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-internal" title="supervision.keypoint.core.KeyPoints" href="#supervision.keypoint.core.KeyPoints">KeyPoints</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.keypoint.core.KeyPoints&lt;/code&gt;" href="#supervision.keypoint.core.KeyPoints">KeyPoints</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5830,7 +5830,7 @@ package results.</p>
 <h4 id="supervision.keypoint.core.KeyPoints.from_inference(inference_result)" class="doc doc-heading doc-heading-parameter">                  <code>inference_result</code>
 <a href="#supervision.keypoint.core.KeyPoints.from_inference(inference_result)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>(dict, any)</code>
+                  <code>(<span title="dict">dict</span>, <span title="any">any</span>)</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5857,7 +5857,7 @@ Roboflow API or Inference package containing predictions with keypoints.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-internal" title="supervision.keypoint.core.KeyPoints" href="#supervision.keypoint.core.KeyPoints">KeyPoints</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.keypoint.core.KeyPoints&lt;/code&gt;" href="#supervision.keypoint.core.KeyPoints">KeyPoints</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6100,7 +6100,7 @@ pose landmark detection inference result.</p>
 <h4 id="supervision.keypoint.core.KeyPoints.from_mediapipe(mediapipe_results)" class="doc doc-heading doc-heading-parameter">                  <code>mediapipe_results</code>
 <a href="#supervision.keypoint.core.KeyPoints.from_mediapipe(mediapipe_results)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code><span title="typing.Union">Union</span>[PoseLandmarkerResult, FaceLandmarkerResult, SolutionOutputs]</code>
+                  <code><span title="typing.Union">Union</span>[<span title="PoseLandmarkerResult">PoseLandmarkerResult</span>, <span title="FaceLandmarkerResult">FaceLandmarkerResult</span>, <span title="SolutionOutputs">SolutionOutputs</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6118,7 +6118,7 @@ from <code>Pose</code> and <code>FaceMesh</code>.</p>
 <h4 id="supervision.keypoint.core.KeyPoints.from_mediapipe(resolution_wh)" class="doc doc-heading doc-heading-parameter">                  <code>resolution_wh</code>
 <a href="#supervision.keypoint.core.KeyPoints.from_mediapipe(resolution_wh)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code><span title="typing.Tuple">Tuple</span>[int, int]</code>
+                  <code><span title="typing.Tuple">Tuple</span>[<span title="int">int</span>, <span title="int">int</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6145,7 +6145,7 @@ representing the resolution of the frame.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-internal" title="supervision.keypoint.core.KeyPoints" href="#supervision.keypoint.core.KeyPoints">KeyPoints</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.keypoint.core.KeyPoints&lt;/code&gt;" href="#supervision.keypoint.core.KeyPoints">KeyPoints</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6535,7 +6535,7 @@ Transformers model containing instances with prediction data.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-internal" title="supervision.keypoint.core.KeyPoints" href="#supervision.keypoint.core.KeyPoints">KeyPoints</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.keypoint.core.KeyPoints&lt;/code&gt;" href="#supervision.keypoint.core.KeyPoints">KeyPoints</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6830,7 +6830,7 @@ and class names, and confidences of each keypoint.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-internal" title="supervision.keypoint.core.KeyPoints" href="#supervision.keypoint.core.KeyPoints">KeyPoints</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.keypoint.core.KeyPoints&lt;/code&gt;" href="#supervision.keypoint.core.KeyPoints">KeyPoints</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6971,7 +6971,7 @@ pose inference results.</p>
 <h4 id="supervision.keypoint.core.KeyPoints.from_yolo_nas(yolo_nas_results)" class="doc doc-heading doc-heading-parameter">                  <code>yolo_nas_results</code>
 <a href="#supervision.keypoint.core.KeyPoints.from_yolo_nas(yolo_nas_results)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>ImagePoseEstimationPrediction</code>
+                  <code><span title="ImagePoseEstimationPrediction">ImagePoseEstimationPrediction</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6998,7 +6998,7 @@ YOLO NAS.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-internal" title="supervision.keypoint.core.KeyPoints" href="#supervision.keypoint.core.KeyPoints">KeyPoints</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.keypoint.core.KeyPoints&lt;/code&gt;" href="#supervision.keypoint.core.KeyPoints">KeyPoints</a></code>
             </td>
             <td>
               <div class="doc-md-description">

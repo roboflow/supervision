@@ -3922,7 +3922,7 @@ formats.</p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.dataset.core.DetectionDataset.classes">classes</span></code></td>
             <td>
-                  <code><span title="typing.List">List</span>[str]</code>
+                  <code><span title="typing.List">List</span>[<span title="str">str</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3931,9 +3931,9 @@ formats.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code><a class="autorefs autorefs-internal" title="supervision.dataset.core.DetectionDataset.images" href="#supervision.dataset.core.DetectionDataset.images">images</a></code></td>
+            <td><code><a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.dataset.core.DetectionDataset.images&lt;/code&gt;" href="#supervision.dataset.core.DetectionDataset.images">images</a></code></td>
             <td>
-                  <code><span title="typing.Union">Union</span>[<span title="typing.List">List</span>[str], <span title="typing.Dict">Dict</span>[str, <span title="numpy.ndarray">ndarray</span>]]</code>
+                  <code><span title="typing.Union">Union</span>[<span title="typing.List">List</span>[<span title="str">str</span>], <span title="typing.Dict">Dict</span>[<span title="str">str</span>, <span title="numpy.ndarray">ndarray</span>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3946,7 +3946,7 @@ lazily load images on demand, which is much more memory-efficient.</p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.dataset.core.DetectionDataset.annotations">annotations</span></code></td>
             <td>
-                  <code><span title="typing.Dict">Dict</span>[str, <a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../../detection/core/#supervision.detection.core.Detections">Detections</a>]</code>
+                  <code><span title="typing.Dict">Dict</span>[<span title="str">str</span>, <a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.detection.core.Detections&lt;/code&gt;" href="../../detection/core/#supervision.detection.core.Detections">Detections</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5256,7 +5256,7 @@ image paths and use <code>for path, image, annotation in dataset:</code>.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Tuple">Tuple</span>[str, <span title="numpy.ndarray">ndarray</span>, <a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../../detection/core/#supervision.detection.core.Detections">Detections</a>]</code>
+                  <code><span title="typing.Tuple">Tuple</span>[<span title="str">str</span>, <span title="numpy.ndarray">ndarray</span>, <a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.detection.core.Detections&lt;/code&gt;" href="../../detection/core/#supervision.detection.core.Detections">Detections</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5320,7 +5320,7 @@ and its corresponding annotation at index i.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Tuple">Tuple</span>[str, <span title="numpy.ndarray">ndarray</span>, <a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="../../detection/core/#supervision.detection.core.Detections">Detections</a>]</code>
+                  <code><span title="typing.Tuple">Tuple</span>[<span title="str">str</span>, <span title="numpy.ndarray">ndarray</span>, <a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.detection.core.Detections&lt;/code&gt;" href="../../detection/core/#supervision.detection.core.Detections">Detections</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5409,7 +5409,7 @@ standards.</p>
 <h4 id="supervision.dataset.core.DetectionDataset.as_coco(images_directory_path)" class="doc doc-heading doc-heading-parameter">                  <code>images_directory_path</code>
 <a href="#supervision.dataset.core.DetectionDataset.as_coco(images_directory_path)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code><span title="typing.Optional">Optional</span>[str]</code>
+                  <code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5427,7 +5427,7 @@ If not provided, images will not be saved.</p>
 <h4 id="supervision.dataset.core.DetectionDataset.as_coco(annotations_path)" class="doc doc-heading doc-heading-parameter">                  <code>annotations_path</code>
 <a href="#supervision.dataset.core.DetectionDataset.as_coco(annotations_path)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code><span title="typing.Optional">Optional</span>[str]</code>
+                  <code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5443,7 +5443,7 @@ If not provided, images will not be saved.</p>
 <h4 id="supervision.dataset.core.DetectionDataset.as_coco(min_image_area_percentage)" class="doc doc-heading doc-heading-parameter">                  <code>min_image_area_percentage</code>
 <a href="#supervision.dataset.core.DetectionDataset.as_coco(min_image_area_percentage)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>float</code>
+                  <code><span title="float">float</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5462,7 +5462,7 @@ Argument is used only for segmentation datasets.</p>
 <h4 id="supervision.dataset.core.DetectionDataset.as_coco(max_image_area_percentage)" class="doc doc-heading doc-heading-parameter">                  <code>max_image_area_percentage</code>
 <a href="#supervision.dataset.core.DetectionDataset.as_coco(max_image_area_percentage)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>float</code>
+                  <code><span title="float">float</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5481,7 +5481,7 @@ Argument is used only for segmentation datasets.</p>
 <h4 id="supervision.dataset.core.DetectionDataset.as_coco(approximation_percentage)" class="doc doc-heading doc-heading-parameter">                  <code>approximation_percentage</code>
 <a href="#supervision.dataset.core.DetectionDataset.as_coco(approximation_percentage)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>float</code>
+                  <code><span title="float">float</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5648,7 +5648,7 @@ and their corresponding annotations in PASCAL VOC format.</p>
 <h4 id="supervision.dataset.core.DetectionDataset.as_pascal_voc(images_directory_path)" class="doc doc-heading doc-heading-parameter">                  <code>images_directory_path</code>
 <a href="#supervision.dataset.core.DetectionDataset.as_pascal_voc(images_directory_path)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code><span title="typing.Optional">Optional</span>[str]</code>
+                  <code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5666,7 +5666,7 @@ If not provided, images will not be saved.</p>
 <h4 id="supervision.dataset.core.DetectionDataset.as_pascal_voc(annotations_directory_path)" class="doc doc-heading doc-heading-parameter">                  <code>annotations_directory_path</code>
 <a href="#supervision.dataset.core.DetectionDataset.as_pascal_voc(annotations_directory_path)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code><span title="typing.Optional">Optional</span>[str]</code>
+                  <code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5684,7 +5684,7 @@ saved. If not provided, annotations will not be saved.</p>
 <h4 id="supervision.dataset.core.DetectionDataset.as_pascal_voc(min_image_area_percentage)" class="doc doc-heading doc-heading-parameter">                  <code>min_image_area_percentage</code>
 <a href="#supervision.dataset.core.DetectionDataset.as_pascal_voc(min_image_area_percentage)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>float</code>
+                  <code><span title="float">float</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5703,7 +5703,7 @@ Argument is used only for segmentation datasets.</p>
 <h4 id="supervision.dataset.core.DetectionDataset.as_pascal_voc(max_image_area_percentage)" class="doc doc-heading doc-heading-parameter">                  <code>max_image_area_percentage</code>
 <a href="#supervision.dataset.core.DetectionDataset.as_pascal_voc(max_image_area_percentage)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>float</code>
+                  <code><span title="float">float</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5722,7 +5722,7 @@ Argument is used only for segmentation datasets.</p>
 <h4 id="supervision.dataset.core.DetectionDataset.as_pascal_voc(approximation_percentage)" class="doc doc-heading doc-heading-parameter">                  <code>approximation_percentage</code>
 <a href="#supervision.dataset.core.DetectionDataset.as_pascal_voc(approximation_percentage)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>float</code>
+                  <code><span title="float">float</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5888,7 +5888,7 @@ images and their corresponding annotations in YOLO format.</p>
 <h4 id="supervision.dataset.core.DetectionDataset.as_yolo(images_directory_path)" class="doc doc-heading doc-heading-parameter">                  <code>images_directory_path</code>
 <a href="#supervision.dataset.core.DetectionDataset.as_yolo(images_directory_path)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code><span title="typing.Optional">Optional</span>[str]</code>
+                  <code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5906,7 +5906,7 @@ If not provided, images will not be saved.</p>
 <h4 id="supervision.dataset.core.DetectionDataset.as_yolo(annotations_directory_path)" class="doc doc-heading doc-heading-parameter">                  <code>annotations_directory_path</code>
 <a href="#supervision.dataset.core.DetectionDataset.as_yolo(annotations_directory_path)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code><span title="typing.Optional">Optional</span>[str]</code>
+                  <code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5925,7 +5925,7 @@ annotations will not be saved.</p>
 <h4 id="supervision.dataset.core.DetectionDataset.as_yolo(data_yaml_path)" class="doc doc-heading doc-heading-parameter">                  <code>data_yaml_path</code>
 <a href="#supervision.dataset.core.DetectionDataset.as_yolo(data_yaml_path)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code><span title="typing.Optional">Optional</span>[str]</code>
+                  <code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5943,7 +5943,7 @@ If not provided, the file will not be saved.</p>
 <h4 id="supervision.dataset.core.DetectionDataset.as_yolo(min_image_area_percentage)" class="doc doc-heading doc-heading-parameter">                  <code>min_image_area_percentage</code>
 <a href="#supervision.dataset.core.DetectionDataset.as_yolo(min_image_area_percentage)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>float</code>
+                  <code><span title="float">float</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5962,7 +5962,7 @@ Argument is used only for segmentation datasets.</p>
 <h4 id="supervision.dataset.core.DetectionDataset.as_yolo(max_image_area_percentage)" class="doc doc-heading doc-heading-parameter">                  <code>max_image_area_percentage</code>
 <a href="#supervision.dataset.core.DetectionDataset.as_yolo(max_image_area_percentage)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>float</code>
+                  <code><span title="float">float</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5981,7 +5981,7 @@ Argument is used only for segmentation datasets.</p>
 <h4 id="supervision.dataset.core.DetectionDataset.as_yolo(approximation_percentage)" class="doc doc-heading doc-heading-parameter">                  <code>approximation_percentage</code>
 <a href="#supervision.dataset.core.DetectionDataset.as_yolo(approximation_percentage)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>float</code>
+                  <code><span title="float">float</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6141,7 +6141,7 @@ Argument is used only for segmentation datasets.</p>
 <h4 id="supervision.dataset.core.DetectionDataset.from_coco(images_directory_path)" class="doc doc-heading doc-heading-parameter">                  <code>images_directory_path</code>
 <a href="#supervision.dataset.core.DetectionDataset.from_coco(images_directory_path)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>str</code>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6158,7 +6158,7 @@ directory containing the images.</p>
 <h4 id="supervision.dataset.core.DetectionDataset.from_coco(annotations_path)" class="doc doc-heading doc-heading-parameter">                  <code>annotations_path</code>
 <a href="#supervision.dataset.core.DetectionDataset.from_coco(annotations_path)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>str</code>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6174,7 +6174,7 @@ directory containing the images.</p>
 <h4 id="supervision.dataset.core.DetectionDataset.from_coco(force_masks)" class="doc doc-heading doc-heading-parameter">                  <code>force_masks</code>
 <a href="#supervision.dataset.core.DetectionDataset.from_coco(force_masks)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>bool</code>
+                  <code><span title="bool">bool</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6202,7 +6202,7 @@ regardless of whether they are present.</p>
       <tbody>
           <tr class="doc-section-item">
 <td><code>DetectionDataset</code></td>            <td>
-                  <code><a class="autorefs autorefs-internal" title="supervision.dataset.core.DetectionDataset" href="#supervision.dataset.core.DetectionDataset">DetectionDataset</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.dataset.core.DetectionDataset&lt;/code&gt;" href="#supervision.dataset.core.DetectionDataset">DetectionDataset</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6374,7 +6374,7 @@ the loaded images and annotations.</p>
 <h4 id="supervision.dataset.core.DetectionDataset.from_pascal_voc(images_directory_path)" class="doc doc-heading doc-heading-parameter">                  <code>images_directory_path</code>
 <a href="#supervision.dataset.core.DetectionDataset.from_pascal_voc(images_directory_path)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>str</code>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6390,7 +6390,7 @@ the loaded images and annotations.</p>
 <h4 id="supervision.dataset.core.DetectionDataset.from_pascal_voc(annotations_directory_path)" class="doc doc-heading doc-heading-parameter">                  <code>annotations_directory_path</code>
 <a href="#supervision.dataset.core.DetectionDataset.from_pascal_voc(annotations_directory_path)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>str</code>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6407,7 +6407,7 @@ containing the PASCAL VOC XML annotations.</p>
 <h4 id="supervision.dataset.core.DetectionDataset.from_pascal_voc(force_masks)" class="doc doc-heading doc-heading-parameter">                  <code>force_masks</code>
 <a href="#supervision.dataset.core.DetectionDataset.from_pascal_voc(force_masks)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>bool</code>
+                  <code><span title="bool">bool</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6434,7 +6434,7 @@ be loaded for all annotations, regardless of whether they are present.</p>
       <tbody>
           <tr class="doc-section-item">
 <td><code>DetectionDataset</code></td>            <td>
-                  <code><a class="autorefs autorefs-internal" title="supervision.dataset.core.DetectionDataset" href="#supervision.dataset.core.DetectionDataset">DetectionDataset</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.dataset.core.DetectionDataset&lt;/code&gt;" href="#supervision.dataset.core.DetectionDataset">DetectionDataset</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6615,7 +6615,7 @@ the loaded images and annotations.</p>
 <h4 id="supervision.dataset.core.DetectionDataset.from_yolo(images_directory_path)" class="doc doc-heading doc-heading-parameter">                  <code>images_directory_path</code>
 <a href="#supervision.dataset.core.DetectionDataset.from_yolo(images_directory_path)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>str</code>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6632,7 +6632,7 @@ directory containing the images.</p>
 <h4 id="supervision.dataset.core.DetectionDataset.from_yolo(annotations_directory_path)" class="doc doc-heading doc-heading-parameter">                  <code>annotations_directory_path</code>
 <a href="#supervision.dataset.core.DetectionDataset.from_yolo(annotations_directory_path)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>str</code>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6649,7 +6649,7 @@ containing the YOLO annotation files.</p>
 <h4 id="supervision.dataset.core.DetectionDataset.from_yolo(data_yaml_path)" class="doc doc-heading doc-heading-parameter">                  <code>data_yaml_path</code>
 <a href="#supervision.dataset.core.DetectionDataset.from_yolo(data_yaml_path)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>str</code>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6666,7 +6666,7 @@ YAML file containing class information.</p>
 <h4 id="supervision.dataset.core.DetectionDataset.from_yolo(force_masks)" class="doc doc-heading doc-heading-parameter">                  <code>force_masks</code>
 <a href="#supervision.dataset.core.DetectionDataset.from_yolo(force_masks)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>bool</code>
+                  <code><span title="bool">bool</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6684,7 +6684,7 @@ regardless of whether they are present.</p>
 <h4 id="supervision.dataset.core.DetectionDataset.from_yolo(is_obb)" class="doc doc-heading doc-heading-parameter">                  <code>is_obb</code>
 <a href="#supervision.dataset.core.DetectionDataset.from_yolo(is_obb)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>bool</code>
+                  <code><span title="bool">bool</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6712,7 +6712,7 @@ where pairs of [x, y] are box corners.</p>
       <tbody>
           <tr class="doc-section-item">
 <td><code>DetectionDataset</code></td>            <td>
-                  <code><a class="autorefs autorefs-internal" title="supervision.dataset.core.DetectionDataset" href="#supervision.dataset.core.DetectionDataset">DetectionDataset</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.dataset.core.DetectionDataset&lt;/code&gt;" href="#supervision.dataset.core.DetectionDataset">DetectionDataset</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6915,7 +6915,7 @@ their respective fields (<code>classes</code>, <code>images</code>,
 <h4 id="supervision.dataset.core.DetectionDataset.merge(dataset_list)" class="doc doc-heading doc-heading-parameter">                  <code>dataset_list</code>
 <a href="#supervision.dataset.core.DetectionDataset.merge(dataset_list)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="supervision.dataset.core.DetectionDataset" href="#supervision.dataset.core.DetectionDataset">DetectionDataset</a>]</code>
+                  <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.dataset.core.DetectionDataset&lt;/code&gt;" href="#supervision.dataset.core.DetectionDataset">DetectionDataset</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6942,7 +6942,7 @@ objects to merge.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-internal" title="supervision.dataset.core.DetectionDataset" href="#supervision.dataset.core.DetectionDataset">DetectionDataset</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.dataset.core.DetectionDataset&lt;/code&gt;" href="#supervision.dataset.core.DetectionDataset">DetectionDataset</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6952,7 +6952,7 @@ objects to merge.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-internal" title="supervision.dataset.core.DetectionDataset" href="#supervision.dataset.core.DetectionDataset">DetectionDataset</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.dataset.core.DetectionDataset&lt;/code&gt;" href="#supervision.dataset.core.DetectionDataset">DetectionDataset</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -7208,7 +7208,7 @@ objects to merge.</p>
 <h4 id="supervision.dataset.core.DetectionDataset.split(split_ratio)" class="doc doc-heading doc-heading-parameter">                  <code>split_ratio</code>
 <a href="#supervision.dataset.core.DetectionDataset.split(split_ratio)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>float</code>
+                  <code><span title="float">float</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -7225,7 +7225,7 @@ set to the entire dataset.</p>
 <h4 id="supervision.dataset.core.DetectionDataset.split(random_state)" class="doc doc-heading doc-heading-parameter">                  <code>random_state</code>
 <a href="#supervision.dataset.core.DetectionDataset.split(random_state)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code><span title="typing.Optional">Optional</span>[int]</code>
+                  <code><span title="typing.Optional">Optional</span>[<span title="int">int</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -7242,7 +7242,7 @@ This is used for reproducibility.</p>
 <h4 id="supervision.dataset.core.DetectionDataset.split(shuffle)" class="doc doc-heading doc-heading-parameter">                  <code>shuffle</code>
 <a href="#supervision.dataset.core.DetectionDataset.split(shuffle)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>bool</code>
+                  <code><span title="bool">bool</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -7268,7 +7268,7 @@ This is used for reproducibility.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Tuple">Tuple</span>[<a class="autorefs autorefs-internal" title="supervision.dataset.core.DetectionDataset" href="#supervision.dataset.core.DetectionDataset">DetectionDataset</a>, <a class="autorefs autorefs-internal" title="supervision.dataset.core.DetectionDataset" href="#supervision.dataset.core.DetectionDataset">DetectionDataset</a>]</code>
+                  <code><span title="typing.Tuple">Tuple</span>[<a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.dataset.core.DetectionDataset&lt;/code&gt;" href="#supervision.dataset.core.DetectionDataset">DetectionDataset</a>, <a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.dataset.core.DetectionDataset&lt;/code&gt;" href="#supervision.dataset.core.DetectionDataset">DetectionDataset</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -7458,7 +7458,7 @@ loading, dataset splitting.</p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.dataset.core.ClassificationDataset.classes">classes</span></code></td>
             <td>
-                  <code><span title="typing.List">List</span>[str]</code>
+                  <code><span title="typing.List">List</span>[<span title="str">str</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -7469,7 +7469,7 @@ loading, dataset splitting.</p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.dataset.core.ClassificationDataset.images">images</span></code></td>
             <td>
-                  <code><span title="typing.Union">Union</span>[<span title="typing.List">List</span>[str], <span title="typing.Dict">Dict</span>[str, <span title="numpy.ndarray">ndarray</span>]]</code>
+                  <code><span title="typing.Union">Union</span>[<span title="typing.List">List</span>[<span title="str">str</span>], <span title="typing.Dict">Dict</span>[<span title="str">str</span>, <span title="numpy.ndarray">ndarray</span>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -7480,7 +7480,7 @@ loading, dataset splitting.</p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.dataset.core.ClassificationDataset.annotations">annotations</span></code></td>
             <td>
-                  <code><span title="typing.Dict">Dict</span>[str, <a class="autorefs autorefs-internal" title="supervision.classification.core.Classifications" href="../../classification/core/#supervision.classification.core.Classifications">Classifications</a>]</code>
+                  <code><span title="typing.Dict">Dict</span>[<span title="str">str</span>, <a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.classification.core.Classifications&lt;/code&gt;" href="../../classification/core/#supervision.classification.core.Classifications">Classifications</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -7997,7 +7997,7 @@ image name to annotations.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Tuple">Tuple</span>[str, <span title="numpy.ndarray">ndarray</span>, <a class="autorefs autorefs-internal" title="supervision.classification.core.Classifications" href="../../classification/core/#supervision.classification.core.Classifications">Classifications</a>]</code>
+                  <code><span title="typing.Tuple">Tuple</span>[<span title="str">str</span>, <span title="numpy.ndarray">ndarray</span>, <a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.classification.core.Classifications&lt;/code&gt;" href="../../classification/core/#supervision.classification.core.Classifications">Classifications</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -8061,7 +8061,7 @@ and its corresponding annotation at index i.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Tuple">Tuple</span>[str, <span title="numpy.ndarray">ndarray</span>, <a class="autorefs autorefs-internal" title="supervision.classification.core.Classifications" href="../../classification/core/#supervision.classification.core.Classifications">Classifications</a>]</code>
+                  <code><span title="typing.Tuple">Tuple</span>[<span title="str">str</span>, <span title="numpy.ndarray">ndarray</span>, <a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.classification.core.Classifications&lt;/code&gt;" href="../../classification/core/#supervision.classification.core.Classifications">Classifications</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -8135,7 +8135,7 @@ the image data, and its corresponding annotation.</p>
 <h4 id="supervision.dataset.core.ClassificationDataset.as_folder_structure(root_directory_path)" class="doc doc-heading doc-heading-parameter">                  <code>root_directory_path</code>
 <a href="#supervision.dataset.core.ClassificationDataset.as_folder_structure(root_directory_path)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>str</code>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -8237,7 +8237,7 @@ where the dataset will be saved.</p>
 <h4 id="supervision.dataset.core.ClassificationDataset.from_folder_structure(root_directory_path)" class="doc doc-heading doc-heading-parameter">                  <code>root_directory_path</code>
 <a href="#supervision.dataset.core.ClassificationDataset.from_folder_structure(root_directory_path)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>str</code>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -8263,7 +8263,7 @@ where the dataset will be saved.</p>
       <tbody>
           <tr class="doc-section-item">
 <td><code>ClassificationDataset</code></td>            <td>
-                  <code><a class="autorefs autorefs-internal" title="supervision.dataset.core.ClassificationDataset" href="#supervision.dataset.core.ClassificationDataset">ClassificationDataset</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.dataset.core.ClassificationDataset&lt;/code&gt;" href="#supervision.dataset.core.ClassificationDataset">ClassificationDataset</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -8427,7 +8427,7 @@ where the dataset will be saved.</p>
 <h4 id="supervision.dataset.core.ClassificationDataset.split(split_ratio)" class="doc doc-heading doc-heading-parameter">                  <code>split_ratio</code>
 <a href="#supervision.dataset.core.ClassificationDataset.split(split_ratio)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>float</code>
+                  <code><span title="float">float</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -8444,7 +8444,7 @@ set to the entire dataset.</p>
 <h4 id="supervision.dataset.core.ClassificationDataset.split(random_state)" class="doc doc-heading doc-heading-parameter">                  <code>random_state</code>
 <a href="#supervision.dataset.core.ClassificationDataset.split(random_state)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code><span title="typing.Optional">Optional</span>[int]</code>
+                  <code><span title="typing.Optional">Optional</span>[<span title="int">int</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -8461,7 +8461,7 @@ random number generator. This is used for reproducibility.</p>
 <h4 id="supervision.dataset.core.ClassificationDataset.split(shuffle)" class="doc doc-heading doc-heading-parameter">                  <code>shuffle</code>
 <a href="#supervision.dataset.core.ClassificationDataset.split(shuffle)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>bool</code>
+                  <code><span title="bool">bool</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -8487,7 +8487,7 @@ random number generator. This is used for reproducibility.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-internal" title="supervision.dataset.core.ClassificationDataset" href="#supervision.dataset.core.ClassificationDataset">ClassificationDataset</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.dataset.core.ClassificationDataset&lt;/code&gt;" href="#supervision.dataset.core.ClassificationDataset">ClassificationDataset</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -8497,7 +8497,7 @@ random number generator. This is used for reproducibility.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-internal" title="supervision.dataset.core.ClassificationDataset" href="#supervision.dataset.core.ClassificationDataset">ClassificationDataset</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.dataset.core.ClassificationDataset&lt;/code&gt;" href="#supervision.dataset.core.ClassificationDataset">ClassificationDataset</a></code>
             </td>
             <td>
               <div class="doc-md-description">

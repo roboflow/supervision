@@ -4165,7 +4165,7 @@ the bounding boxes coordinates in format <code>[x1, y1, x2, y2]</code></p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.detection.core.Detections.data">data</span></code></td>
             <td>
-                  <code><span title="typing.Dict">Dict</span>[str, <span title="typing.Union">Union</span>[<span title="numpy.ndarray">ndarray</span>, <span title="typing.List">List</span>]]</code>
+                  <code><span title="typing.Dict">Dict</span>[<span title="str">str</span>, <span title="typing.Union">Union</span>[<span title="numpy.ndarray">ndarray</span>, <span title="typing.List">List</span>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4178,7 +4178,7 @@ is either a NumPy array or a list of corresponding data.</p>
           <tr class="doc-section-item">
             <td><code><span title="supervision.detection.core.Detections.metadata">metadata</span></code></td>
             <td>
-                  <code><span title="typing.Dict">Dict</span>[str, <span title="typing.Any">Any</span>]</code>
+                  <code><span title="typing.Dict">Dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -7116,7 +7116,7 @@ the data dictionary.</p>
 <h4 id="supervision.detection.core.Detections.__getitem__(index)" class="doc doc-heading doc-heading-parameter">                  <code>index</code>
 <a href="#supervision.detection.core.Detections.__getitem__(index)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code><span title="typing.Union">Union</span>[int, slice, <span title="typing.List">List</span>[int], <span title="numpy.ndarray">ndarray</span>, str]</code>
+                  <code><span title="typing.Union">Union</span>[<span title="int">int</span>, <span title="slice">slice</span>, <span title="typing.List">List</span>[<span title="int">int</span>], <span title="numpy.ndarray">ndarray</span>, <span title="str">str</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -7143,7 +7143,7 @@ or key to access a subset of the Detections or an item from the data.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Union">Union</span>[<a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a>, <span title="typing.List">List</span>, <span title="numpy.ndarray">ndarray</span>, None]</code>
+                  <code><span title="typing.Union">Union</span>[<a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.detection.core.Detections&lt;/code&gt;" href="#supervision.detection.core.Detections">Detections</a>, <span title="typing.List">List</span>, <span title="numpy.ndarray">ndarray</span>, None]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -7407,7 +7407,7 @@ the data field.</p>
 <h4 id="supervision.detection.core.Detections.__setitem__(key)" class="doc doc-heading doc-heading-parameter">                  <code>key</code>
 <a href="#supervision.detection.core.Detections.__setitem__(key)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>str</code>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -7562,7 +7562,7 @@ the data field.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.detection.core.Detections&lt;/code&gt;" href="#supervision.detection.core.Detections">Detections</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -7665,7 +7665,7 @@ concept-object-detection-40">Azure Image Analysis 4.0</a>.</p>
 <h4 id="supervision.detection.core.Detections.from_azure_analyze_image(azure_result)" class="doc doc-heading doc-heading-parameter">                  <code>azure_result</code>
 <a href="#supervision.detection.core.Detections.from_azure_analyze_image(azure_result)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>dict</code>
+                  <code><span title="dict">dict</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -7682,7 +7682,7 @@ contain detected objects and their bounding box coordinates.</p>
 <h4 id="supervision.detection.core.Detections.from_azure_analyze_image(class_map)" class="doc doc-heading doc-heading-parameter">                  <code>class_map</code>
 <a href="#supervision.detection.core.Detections.from_azure_analyze_image(class_map)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code><span title="typing.Optional">Optional</span>[<span title="typing.Dict">Dict</span>[int, str]]</code>
+                  <code><span title="typing.Optional">Optional</span>[<span title="typing.Dict">Dict</span>[<span title="int">int</span>, <span title="str">str</span>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -7709,7 +7709,7 @@ names (str). If None, a new mapping is created dynamically.</p>
       <tbody>
           <tr class="doc-section-item">
 <td><code>Detections</code></td>            <td>
-                  <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.detection.core.Detections&lt;/code&gt;" href="#supervision.detection.core.Detections">Detections</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -7985,7 +7985,7 @@ inference result.</p>
       <tbody>
           <tr class="doc-section-item">
 <td><code>Detections</code></td>            <td>
-                  <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.detection.core.Detections&lt;/code&gt;" href="#supervision.detection.core.Detections">Detections</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -8151,7 +8151,7 @@ Detectron2 model containing instances with prediction data.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.detection.core.Detections&lt;/code&gt;" href="#supervision.detection.core.Detections">Detections</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -8339,7 +8339,7 @@ class IDs, and confidences of the predictions.</p>
       <tbody>
           <tr class="doc-section-item">
 <td><code>Detections</code></td>            <td>
-                  <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.detection.core.Detections&lt;/code&gt;" href="#supervision.detection.core.Detections">Detections</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -8497,7 +8497,7 @@ them into a Detections object.</p>
 <h4 id="supervision.detection.core.Detections.from_inference(roboflow_result)" class="doc doc-heading doc-heading-parameter">                  <code>roboflow_result</code>
 <a href="#supervision.detection.core.Detections.from_inference(roboflow_result)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>(dict, any)</code>
+                  <code>(<span title="dict">dict</span>, <span title="any">any</span>)</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -8524,7 +8524,7 @@ Roboflow API or Inference package containing predictions.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.detection.core.Detections&lt;/code&gt;" href="#supervision.detection.core.Detections">Detections</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -8694,7 +8694,7 @@ Large Multimodal Model (LMM).</p>
 <h4 id="supervision.detection.core.Detections.from_lmm(lmm)" class="doc doc-heading doc-heading-parameter">                  <code>lmm</code>
 <a href="#supervision.detection.core.Detections.from_lmm(lmm)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code><span title="typing.Union">Union</span>[<span title="supervision.detection.vlm.LMM">LMM</span>, str]</code>
+                  <code><span title="typing.Union">Union</span>[<span title="supervision.detection.vlm.LMM">LMM</span>, <span title="str">str</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -8710,7 +8710,7 @@ Large Multimodal Model (LMM).</p>
 <h4 id="supervision.detection.core.Detections.from_lmm(result)" class="doc doc-heading doc-heading-parameter">                  <code>result</code>
 <a href="#supervision.detection.core.Detections.from_lmm(result)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>str</code>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -8752,7 +8752,7 @@ Large Multimodal Model (LMM).</p>
       <tbody>
           <tr class="doc-section-item">
 <td><code>Detections</code></td>            <td>
-                  <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.detection.core.Detections&lt;/code&gt;" href="#supervision.detection.core.Detections">Detections</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -8775,7 +8775,7 @@ Large Multimodal Model (LMM).</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>ValueError</code>
+                  <code><span title="ValueError">ValueError</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -8786,7 +8786,7 @@ disallowed arguments are provided.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                  <code>ValueError</code>
+                  <code><span title="ValueError">ValueError</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -9024,7 +9024,7 @@ disallowed arguments are provided.</p>
       <tbody>
           <tr class="doc-section-item">
 <td><code>Detections</code></td>            <td>
-                  <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.detection.core.Detections&lt;/code&gt;" href="#supervision.detection.core.Detections">Detections</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -9164,7 +9164,7 @@ Supports object detection models.</p>
 <h4 id="supervision.detection.core.Detections.from_ncnn(ncnn_results)" class="doc doc-heading doc-heading-parameter">                  <code>ncnn_results</code>
 <a href="#supervision.detection.core.Detections.from_ncnn(ncnn_results)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>dict</code>
+                  <code><span title="dict">dict</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -9190,7 +9190,7 @@ Supports object detection models.</p>
       <tbody>
           <tr class="doc-section-item">
 <td><code>Detections</code></td>            <td>
-                  <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.detection.core.Detections&lt;/code&gt;" href="#supervision.detection.core.Detections">Detections</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -9378,7 +9378,7 @@ Supports object detection models.</p>
 <h4 id="supervision.detection.core.Detections.from_paddledet(paddledet_result)" class="doc doc-heading doc-heading-parameter">                  <code>paddledet_result</code>
 <a href="#supervision.detection.core.Detections.from_paddledet(paddledet_result)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code><span title="typing.List">List</span>[dict]</code>
+                  <code><span title="typing.List">List</span>[<span title="dict">dict</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -9404,7 +9404,7 @@ Supports object detection models.</p>
       <tbody>
           <tr class="doc-section-item">
 <td><code>Detections</code></td>            <td>
-                  <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.detection.core.Detections&lt;/code&gt;" href="#supervision.detection.core.Detections">Detections</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -9560,7 +9560,7 @@ inference result.</p>
 <h4 id="supervision.detection.core.Detections.from_sam(sam_result)" class="doc doc-heading doc-heading-parameter">                  <code>sam_result</code>
 <a href="#supervision.detection.core.Detections.from_sam(sam_result)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code><span title="typing.List">List</span>[dict]</code>
+                  <code><span title="typing.List">List</span>[<span title="dict">dict</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -9586,7 +9586,7 @@ inference result.</p>
       <tbody>
           <tr class="doc-section-item">
 <td><code>Detections</code></td>            <td>
-                  <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.detection.core.Detections&lt;/code&gt;" href="#supervision.detection.core.Detections">Detections</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -9738,7 +9738,7 @@ inference result.</p>
 <h4 id="supervision.detection.core.Detections.from_tensorflow(tensorflow_results)" class="doc doc-heading doc-heading-parameter">                  <code>tensorflow_results</code>
 <a href="#supervision.detection.core.Detections.from_tensorflow(tensorflow_results)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>dict</code>
+                  <code><span title="dict">dict</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -9764,7 +9764,7 @@ inference result.</p>
       <tbody>
           <tr class="doc-section-item">
 <td><code>Detections</code></td>            <td>
-                  <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.detection.core.Detections&lt;/code&gt;" href="#supervision.detection.core.Detections">Detections</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -9913,7 +9913,7 @@ and instance segmentation
 <h4 id="supervision.detection.core.Detections.from_transformers(transformers_results)" class="doc doc-heading doc-heading-parameter">                  <code>transformers_results</code>
 <a href="#supervision.detection.core.Detections.from_transformers(transformers_results)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code><span title="typing.Union">Union</span>[dict, <span title="torch.Tensor">Tensor</span>]</code>
+                  <code><span title="typing.Union">Union</span>[<span title="dict">dict</span>, <span title="torch.Tensor">Tensor</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -9933,7 +9933,7 @@ segmentation map where values represent class IDs.</p>
 <h4 id="supervision.detection.core.Detections.from_transformers(id2label)" class="doc doc-heading doc-heading-parameter">                  <code>id2label</code>
 <a href="#supervision.detection.core.Detections.from_transformers(id2label)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code><span title="typing.Optional">Optional</span>[<span title="typing.Dict">Dict</span>[int, str]]</code>
+                  <code><span title="typing.Optional">Optional</span>[<span title="typing.Dict">Dict</span>[<span title="int">int</span>, <span title="str">str</span>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -9961,7 +9961,7 @@ provided, the resulting dictionary will include class names.</p>
       <tbody>
           <tr class="doc-section-item">
 <td><code>Detections</code></td>            <td>
-                  <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.detection.core.Detections&lt;/code&gt;" href="#supervision.detection.core.Detections">Detections</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -10231,7 +10231,7 @@ provided, the resulting dictionary will include class names.</p>
       <tbody>
           <tr class="doc-section-item">
 <td><code>Detections</code></td>            <td>
-                  <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.detection.core.Detections&lt;/code&gt;" href="#supervision.detection.core.Detections">Detections</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -10438,7 +10438,7 @@ inference result.</p>
 <h4 id="supervision.detection.core.Detections.from_yolo_nas(yolo_nas_results)" class="doc doc-heading doc-heading-parameter">                  <code>yolo_nas_results</code>
 <a href="#supervision.detection.core.Detections.from_yolo_nas(yolo_nas_results)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>ImageDetectionPrediction</code>
+                  <code><span title="ImageDetectionPrediction">ImageDetectionPrediction</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -10466,7 +10466,7 @@ ImageDetectionPrediction is coming from
       <tbody>
           <tr class="doc-section-item">
 <td><code>Detections</code></td>            <td>
-                  <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.detection.core.Detections&lt;/code&gt;" href="#supervision.detection.core.Detections">Detections</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -10633,7 +10633,7 @@ ImageDetectionPrediction is coming from
       <tbody>
           <tr class="doc-section-item">
 <td><code>Detections</code></td>            <td>
-                  <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.detection.core.Detections&lt;/code&gt;" href="#supervision.detection.core.Detections">Detections</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -10761,7 +10761,7 @@ such as <code>CENTER</code>, <code>CENTER_LEFT</code>, <code>BOTTOM_RIGHT</code>
 <h4 id="supervision.detection.core.Detections.get_anchors_coordinates(anchor)" class="doc doc-heading doc-heading-parameter">                  <code>anchor</code>
 <a href="#supervision.detection.core.Detections.get_anchors_coordinates(anchor)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="supervision.geometry.core.Position" href="../../utils/geometry/#supervision.geometry.core.Position">Position</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.geometry.core.Position&lt;/code&gt;" href="../../utils/geometry/#supervision.geometry.core.Position">Position</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -10814,7 +10814,7 @@ anchor point for the corresponding bounding box.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>ValueError</code>
+                  <code><span title="ValueError">ValueError</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -11041,7 +11041,7 @@ will return a Detections with 7 objects (7 entries in <code>xyxy</code>, <code>m
 <h4 id="supervision.detection.core.Detections.merge(detections_list)" class="doc doc-heading doc-heading-parameter">                  <code>detections_list</code>
 <a href="#supervision.detection.core.Detections.merge(detections_list)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a>]</code>
+                  <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.detection.core.Detections&lt;/code&gt;" href="#supervision.detection.core.Detections">Detections</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -11067,7 +11067,7 @@ will return a Detections with 7 objects (7 entries in <code>xyxy</code>, <code>m
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.detection.core.Detections&lt;/code&gt;" href="#supervision.detection.core.Detections">Detections</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -11354,7 +11354,7 @@ the merged data from the input list.</p>
 <h4 id="supervision.detection.core.Detections.with_nmm(threshold)" class="doc doc-heading doc-heading-parameter">                  <code>threshold</code>
 <a href="#supervision.detection.core.Detections.with_nmm(threshold)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>float</code>
+                  <code><span title="float">float</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -11371,7 +11371,7 @@ to use for non-maximum merging. Defaults to 0.5.</p>
 <h4 id="supervision.detection.core.Detections.with_nmm(class_agnostic)" class="doc doc-heading doc-heading-parameter">                  <code>class_agnostic</code>
 <a href="#supervision.detection.core.Detections.with_nmm(class_agnostic)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>bool</code>
+                  <code><span title="bool">bool</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -11399,7 +11399,7 @@ will be ignored. Defaults to False.</p>
       <tbody>
           <tr class="doc-section-item">
 <td><code>Detections</code></td>            <td>
-                  <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.detection.core.Detections&lt;/code&gt;" href="#supervision.detection.core.Detections">Detections</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -11423,7 +11423,7 @@ after non-maximum merging.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>AssertionError</code>
+                  <code><span title="AssertionError">AssertionError</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -11590,7 +11590,7 @@ from a segmentation model, the IoU mask is applied. Otherwise, box IoU is used.<
 <h4 id="supervision.detection.core.Detections.with_nms(threshold)" class="doc doc-heading doc-heading-parameter">                  <code>threshold</code>
 <a href="#supervision.detection.core.Detections.with_nms(threshold)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>float</code>
+                  <code><span title="float">float</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -11608,7 +11608,7 @@ restrictive the NMS becomes. Defaults to 0.5.</p>
 <h4 id="supervision.detection.core.Detections.with_nms(class_agnostic)" class="doc doc-heading doc-heading-parameter">                  <code>class_agnostic</code>
 <a href="#supervision.detection.core.Detections.with_nms(class_agnostic)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
             <td>
-                  <code>bool</code>
+                  <code><span title="bool">bool</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -11636,7 +11636,7 @@ will be ignored. Defaults to False.</p>
       <tbody>
           <tr class="doc-section-item">
 <td><code>Detections</code></td>            <td>
-                  <code><a class="autorefs autorefs-internal" title="supervision.detection.core.Detections" href="#supervision.detection.core.Detections">Detections</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.detection.core.Detections&lt;/code&gt;" href="#supervision.detection.core.Detections">Detections</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -11660,7 +11660,7 @@ after non-maximum suppression.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>AssertionError</code>
+                  <code><span title="AssertionError">AssertionError</span></code>
             </td>
             <td>
               <div class="doc-md-description">
