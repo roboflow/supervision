@@ -15,7 +15,7 @@ from supervision.detection.utils import (
     oriented_box_iou_batch,
 )
 from supervision.draw.color import LEGACY_COLOR_PALETTE
-from supervision.metrics.core import AveragingMethod, Metric, MetricTarget
+from supervision.metrics.core import AveragingMethod, Metric, MetricResult, MetricTarget
 from supervision.metrics.utils.object_size import (
     ObjectSizeCategory,
     get_detection_size_category,
@@ -458,7 +458,7 @@ class Precision(Metric):
 
 
 @dataclass
-class PrecisionResult:
+class PrecisionResult(MetricResult):
     """
     The results of the precision metric calculation.
 
@@ -588,15 +588,15 @@ class PrecisionResult:
 
         return pd.DataFrame(pandas_data, index=[0])
 
-    def plot(self):
+    def _get_plot_details(self) -> Tuple[List[str], List[float], str, List[str]]:
         """
-        Plot the precision results.
+        Obtain the metric details for plotting them.
 
-        ![example_plot](\
-            https://media.roboflow.com/supervision-docs/metrics/precision_plot_example.png\
-            ){ align=center width="800" }
+        Returns:
+            Tuple[List[str], List[float], str, List[str]]: The details for plotting the
+                metric. It is a tuple of four elements: a list of labels, a list of
+                values, the title of the plot and the bar colors.
         """
-
         labels = ["Precision@50", "Precision@75"]
         values = [self.precision_at_50, self.precision_at_75]
         colors = [LEGACY_COLOR_PALETTE[0]] * 2
@@ -619,16 +619,29 @@ class PrecisionResult:
             values += [large_objects.precision_at_50, large_objects.precision_at_75]
             colors += [LEGACY_COLOR_PALETTE[4]] * 2
 
-        plt.rcParams["font.family"] = "monospace"
-
-        _, ax = plt.subplots(figsize=(10, 6))
-        ax.set_ylim(0, 1)
-        ax.set_ylabel("Value", fontweight="bold")
         title = (
             f"Precision, by Object Size"
             f"\n(target: {self.metric_target.value},"
             f" averaging: {self.averaging_method.value})"
         )
+        return labels, values, title, colors
+
+    def plot(self):
+        """
+        Plot the precision results.
+
+        ![example_plot](\
+            https://media.roboflow.com/supervision-docs/metrics/precision_plot_example.png\
+            ){ align=center width="800" }
+        """
+
+        labels, values, title, colors = self._get_plot_details()
+
+        plt.rcParams["font.family"] = "monospace"
+
+        _, ax = plt.subplots(figsize=(10, 6))
+        ax.set_ylim(0, 1)
+        ax.set_ylabel("Value", fontweight="bold")
         ax.set_title(title, fontweight="bold")
 
         x_positions = range(len(labels))

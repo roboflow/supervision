@@ -33,6 +33,36 @@ class Metric(ABC):
         raise NotImplementedError
 
 
+class MetricResult(ABC):
+    """
+    Base class for all metric results.
+    """
+
+    @abstractmethod
+    def to_pandas():
+        """
+        Convert the result to a pandas DataFrame.
+
+        Returns:
+            (pd.DataFrame): The result as a DataFrame.
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def plot():
+        """
+        Plot the results.
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def _get_plot_details():
+        """
+        Get the metric details to be plotted.
+        """
+        raise NotImplementedError()
+
+
 class MetricTarget(Enum):
     """
     Specifies what type of detection is used to compute the metric.
