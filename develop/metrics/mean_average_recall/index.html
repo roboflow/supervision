@@ -4540,8 +4540,7 @@ metric results for large objects (area ≥ 96²).</p>
 <span class="normal"><a href="#__codelineno-0-693">693</a></span>
 <span class="normal"><a href="#__codelineno-0-694">694</a></span>
 <span class="normal"><a href="#__codelineno-0-695">695</a></span>
-<span class="normal"><a href="#__codelineno-0-696">696</a></span>
-<span class="normal"><a href="#__codelineno-0-697">697</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-462" name="__codelineno-0-462"></a><span class="nd">@dataclass</span>
+<span class="normal"><a href="#__codelineno-0-696">696</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-462" name="__codelineno-0-462"></a><span class="nd">@dataclass</span>
 <a id="__codelineno-0-463" name="__codelineno-0-463"></a><span class="k">class</span><span class="w"> </span><span class="nc">MeanAverageRecallResult</span><span class="p">:</span>
 <a id="__codelineno-0-464" name="__codelineno-0-464"></a>    <span class="c1"># &quot;&quot;&quot;</span>
 <a id="__codelineno-0-465" name="__codelineno-0-465"></a>    <span class="c1"># The results of the recall metric calculation.</span>
@@ -4752,31 +4751,30 @@ metric results for large objects (area ≥ 96²).</p>
 <a id="__codelineno-0-670" name="__codelineno-0-670"></a>        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 <a id="__codelineno-0-671" name="__codelineno-0-671"></a>        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Value&quot;</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s2">&quot;bold&quot;</span><span class="p">)</span>
 <a id="__codelineno-0-672" name="__codelineno-0-672"></a>        <span class="n">title</span> <span class="o">=</span> <span class="p">(</span>
-<a id="__codelineno-0-673" name="__codelineno-0-673"></a>            <span class="sa">f</span><span class="s2">&quot;Mean Average Recall, by Object Size&quot;</span>
-<a id="__codelineno-0-674" name="__codelineno-0-674"></a>            <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">(target: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">metric_target</span><span class="o">.</span><span class="n">value</span><span class="si">}</span><span class="s2">)&quot;</span>
-<a id="__codelineno-0-675" name="__codelineno-0-675"></a>        <span class="p">)</span>
-<a id="__codelineno-0-676" name="__codelineno-0-676"></a>        <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">title</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s2">&quot;bold&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-677" name="__codelineno-0-677"></a>
-<a id="__codelineno-0-678" name="__codelineno-0-678"></a>        <span class="n">x_positions</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">))</span>
-<a id="__codelineno-0-679" name="__codelineno-0-679"></a>        <span class="n">bars</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">bar</span><span class="p">(</span><span class="n">x_positions</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">colors</span><span class="p">,</span> <span class="n">align</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-680" name="__codelineno-0-680"></a>
-<a id="__codelineno-0-681" name="__codelineno-0-681"></a>        <span class="n">ax</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">(</span><span class="n">x_positions</span><span class="p">)</span>
-<a id="__codelineno-0-682" name="__codelineno-0-682"></a>        <span class="n">ax</span><span class="o">.</span><span class="n">set_xticklabels</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">rotation</span><span class="o">=</span><span class="mi">45</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s2">&quot;right&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-683" name="__codelineno-0-683"></a>
-<a id="__codelineno-0-684" name="__codelineno-0-684"></a>        <span class="k">for</span> <span class="n">bar</span> <span class="ow">in</span> <span class="n">bars</span><span class="p">:</span>
-<a id="__codelineno-0-685" name="__codelineno-0-685"></a>            <span class="n">y_value</span> <span class="o">=</span> <span class="n">bar</span><span class="o">.</span><span class="n">get_height</span><span class="p">()</span>
-<a id="__codelineno-0-686" name="__codelineno-0-686"></a>            <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span>
-<a id="__codelineno-0-687" name="__codelineno-0-687"></a>                <span class="n">bar</span><span class="o">.</span><span class="n">get_x</span><span class="p">()</span> <span class="o">+</span> <span class="n">bar</span><span class="o">.</span><span class="n">get_width</span><span class="p">()</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
-<a id="__codelineno-0-688" name="__codelineno-0-688"></a>                <span class="n">y_value</span> <span class="o">+</span> <span class="mf">0.02</span><span class="p">,</span>
-<a id="__codelineno-0-689" name="__codelineno-0-689"></a>                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">y_value</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-690" name="__codelineno-0-690"></a>                <span class="n">ha</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-691" name="__codelineno-0-691"></a>                <span class="n">va</span><span class="o">=</span><span class="s2">&quot;bottom&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-692" name="__codelineno-0-692"></a>            <span class="p">)</span>
-<a id="__codelineno-0-693" name="__codelineno-0-693"></a>
-<a id="__codelineno-0-694" name="__codelineno-0-694"></a>        <span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s2">&quot;font.family&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;sans-serif&quot;</span>
-<a id="__codelineno-0-695" name="__codelineno-0-695"></a>
-<a id="__codelineno-0-696" name="__codelineno-0-696"></a>        <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
-<a id="__codelineno-0-697" name="__codelineno-0-697"></a>        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+<a id="__codelineno-0-673" name="__codelineno-0-673"></a>            <span class="sa">f</span><span class="s2">&quot;Mean Average Recall, by Object Size</span><span class="se">\n</span><span class="s2">(target: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">metric_target</span><span class="o">.</span><span class="n">value</span><span class="si">}</span><span class="s2">)&quot;</span>
+<a id="__codelineno-0-674" name="__codelineno-0-674"></a>        <span class="p">)</span>
+<a id="__codelineno-0-675" name="__codelineno-0-675"></a>        <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">title</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s2">&quot;bold&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-676" name="__codelineno-0-676"></a>
+<a id="__codelineno-0-677" name="__codelineno-0-677"></a>        <span class="n">x_positions</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">))</span>
+<a id="__codelineno-0-678" name="__codelineno-0-678"></a>        <span class="n">bars</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">bar</span><span class="p">(</span><span class="n">x_positions</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">colors</span><span class="p">,</span> <span class="n">align</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-679" name="__codelineno-0-679"></a>
+<a id="__codelineno-0-680" name="__codelineno-0-680"></a>        <span class="n">ax</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">(</span><span class="n">x_positions</span><span class="p">)</span>
+<a id="__codelineno-0-681" name="__codelineno-0-681"></a>        <span class="n">ax</span><span class="o">.</span><span class="n">set_xticklabels</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">rotation</span><span class="o">=</span><span class="mi">45</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s2">&quot;right&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-682" name="__codelineno-0-682"></a>
+<a id="__codelineno-0-683" name="__codelineno-0-683"></a>        <span class="k">for</span> <span class="n">bar</span> <span class="ow">in</span> <span class="n">bars</span><span class="p">:</span>
+<a id="__codelineno-0-684" name="__codelineno-0-684"></a>            <span class="n">y_value</span> <span class="o">=</span> <span class="n">bar</span><span class="o">.</span><span class="n">get_height</span><span class="p">()</span>
+<a id="__codelineno-0-685" name="__codelineno-0-685"></a>            <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span>
+<a id="__codelineno-0-686" name="__codelineno-0-686"></a>                <span class="n">bar</span><span class="o">.</span><span class="n">get_x</span><span class="p">()</span> <span class="o">+</span> <span class="n">bar</span><span class="o">.</span><span class="n">get_width</span><span class="p">()</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
+<a id="__codelineno-0-687" name="__codelineno-0-687"></a>                <span class="n">y_value</span> <span class="o">+</span> <span class="mf">0.02</span><span class="p">,</span>
+<a id="__codelineno-0-688" name="__codelineno-0-688"></a>                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">y_value</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-689" name="__codelineno-0-689"></a>                <span class="n">ha</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-690" name="__codelineno-0-690"></a>                <span class="n">va</span><span class="o">=</span><span class="s2">&quot;bottom&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-691" name="__codelineno-0-691"></a>            <span class="p">)</span>
+<a id="__codelineno-0-692" name="__codelineno-0-692"></a>
+<a id="__codelineno-0-693" name="__codelineno-0-693"></a>        <span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s2">&quot;font.family&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;sans-serif&quot;</span>
+<a id="__codelineno-0-694" name="__codelineno-0-694"></a>
+<a id="__codelineno-0-695" name="__codelineno-0-695"></a>        <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<a id="__codelineno-0-696" name="__codelineno-0-696"></a>        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </code></pre></div></td></tr></table></div>
               </details>
 
@@ -5017,8 +5015,7 @@ metric results for large objects (area ≥ 96²).</p>
 <span class="normal"><a href="#__codelineno-0-693">693</a></span>
 <span class="normal"><a href="#__codelineno-0-694">694</a></span>
 <span class="normal"><a href="#__codelineno-0-695">695</a></span>
-<span class="normal"><a href="#__codelineno-0-696">696</a></span>
-<span class="normal"><a href="#__codelineno-0-697">697</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-625" name="__codelineno-0-625"></a><span class="k">def</span><span class="w"> </span><span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal"><a href="#__codelineno-0-696">696</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-625" name="__codelineno-0-625"></a><span class="k">def</span><span class="w"> </span><span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <a id="__codelineno-0-626" name="__codelineno-0-626"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-627" name="__codelineno-0-627"></a><span class="sd">    Plot the Mean Average Recall results.</span>
 <a id="__codelineno-0-628" name="__codelineno-0-628"></a>
@@ -5066,31 +5063,30 @@ metric results for large objects (area ≥ 96²).</p>
 <a id="__codelineno-0-670" name="__codelineno-0-670"></a>    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 <a id="__codelineno-0-671" name="__codelineno-0-671"></a>    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Value&quot;</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s2">&quot;bold&quot;</span><span class="p">)</span>
 <a id="__codelineno-0-672" name="__codelineno-0-672"></a>    <span class="n">title</span> <span class="o">=</span> <span class="p">(</span>
-<a id="__codelineno-0-673" name="__codelineno-0-673"></a>        <span class="sa">f</span><span class="s2">&quot;Mean Average Recall, by Object Size&quot;</span>
-<a id="__codelineno-0-674" name="__codelineno-0-674"></a>        <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">(target: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">metric_target</span><span class="o">.</span><span class="n">value</span><span class="si">}</span><span class="s2">)&quot;</span>
-<a id="__codelineno-0-675" name="__codelineno-0-675"></a>    <span class="p">)</span>
-<a id="__codelineno-0-676" name="__codelineno-0-676"></a>    <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">title</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s2">&quot;bold&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-677" name="__codelineno-0-677"></a>
-<a id="__codelineno-0-678" name="__codelineno-0-678"></a>    <span class="n">x_positions</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">))</span>
-<a id="__codelineno-0-679" name="__codelineno-0-679"></a>    <span class="n">bars</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">bar</span><span class="p">(</span><span class="n">x_positions</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">colors</span><span class="p">,</span> <span class="n">align</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-680" name="__codelineno-0-680"></a>
-<a id="__codelineno-0-681" name="__codelineno-0-681"></a>    <span class="n">ax</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">(</span><span class="n">x_positions</span><span class="p">)</span>
-<a id="__codelineno-0-682" name="__codelineno-0-682"></a>    <span class="n">ax</span><span class="o">.</span><span class="n">set_xticklabels</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">rotation</span><span class="o">=</span><span class="mi">45</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s2">&quot;right&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-683" name="__codelineno-0-683"></a>
-<a id="__codelineno-0-684" name="__codelineno-0-684"></a>    <span class="k">for</span> <span class="n">bar</span> <span class="ow">in</span> <span class="n">bars</span><span class="p">:</span>
-<a id="__codelineno-0-685" name="__codelineno-0-685"></a>        <span class="n">y_value</span> <span class="o">=</span> <span class="n">bar</span><span class="o">.</span><span class="n">get_height</span><span class="p">()</span>
-<a id="__codelineno-0-686" name="__codelineno-0-686"></a>        <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span>
-<a id="__codelineno-0-687" name="__codelineno-0-687"></a>            <span class="n">bar</span><span class="o">.</span><span class="n">get_x</span><span class="p">()</span> <span class="o">+</span> <span class="n">bar</span><span class="o">.</span><span class="n">get_width</span><span class="p">()</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
-<a id="__codelineno-0-688" name="__codelineno-0-688"></a>            <span class="n">y_value</span> <span class="o">+</span> <span class="mf">0.02</span><span class="p">,</span>
-<a id="__codelineno-0-689" name="__codelineno-0-689"></a>            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">y_value</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-690" name="__codelineno-0-690"></a>            <span class="n">ha</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-691" name="__codelineno-0-691"></a>            <span class="n">va</span><span class="o">=</span><span class="s2">&quot;bottom&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-692" name="__codelineno-0-692"></a>        <span class="p">)</span>
-<a id="__codelineno-0-693" name="__codelineno-0-693"></a>
-<a id="__codelineno-0-694" name="__codelineno-0-694"></a>    <span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s2">&quot;font.family&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;sans-serif&quot;</span>
-<a id="__codelineno-0-695" name="__codelineno-0-695"></a>
-<a id="__codelineno-0-696" name="__codelineno-0-696"></a>    <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
-<a id="__codelineno-0-697" name="__codelineno-0-697"></a>    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+<a id="__codelineno-0-673" name="__codelineno-0-673"></a>        <span class="sa">f</span><span class="s2">&quot;Mean Average Recall, by Object Size</span><span class="se">\n</span><span class="s2">(target: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">metric_target</span><span class="o">.</span><span class="n">value</span><span class="si">}</span><span class="s2">)&quot;</span>
+<a id="__codelineno-0-674" name="__codelineno-0-674"></a>    <span class="p">)</span>
+<a id="__codelineno-0-675" name="__codelineno-0-675"></a>    <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">title</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s2">&quot;bold&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-676" name="__codelineno-0-676"></a>
+<a id="__codelineno-0-677" name="__codelineno-0-677"></a>    <span class="n">x_positions</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">))</span>
+<a id="__codelineno-0-678" name="__codelineno-0-678"></a>    <span class="n">bars</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">bar</span><span class="p">(</span><span class="n">x_positions</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">colors</span><span class="p">,</span> <span class="n">align</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-679" name="__codelineno-0-679"></a>
+<a id="__codelineno-0-680" name="__codelineno-0-680"></a>    <span class="n">ax</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">(</span><span class="n">x_positions</span><span class="p">)</span>
+<a id="__codelineno-0-681" name="__codelineno-0-681"></a>    <span class="n">ax</span><span class="o">.</span><span class="n">set_xticklabels</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">rotation</span><span class="o">=</span><span class="mi">45</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s2">&quot;right&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-682" name="__codelineno-0-682"></a>
+<a id="__codelineno-0-683" name="__codelineno-0-683"></a>    <span class="k">for</span> <span class="n">bar</span> <span class="ow">in</span> <span class="n">bars</span><span class="p">:</span>
+<a id="__codelineno-0-684" name="__codelineno-0-684"></a>        <span class="n">y_value</span> <span class="o">=</span> <span class="n">bar</span><span class="o">.</span><span class="n">get_height</span><span class="p">()</span>
+<a id="__codelineno-0-685" name="__codelineno-0-685"></a>        <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span>
+<a id="__codelineno-0-686" name="__codelineno-0-686"></a>            <span class="n">bar</span><span class="o">.</span><span class="n">get_x</span><span class="p">()</span> <span class="o">+</span> <span class="n">bar</span><span class="o">.</span><span class="n">get_width</span><span class="p">()</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
+<a id="__codelineno-0-687" name="__codelineno-0-687"></a>            <span class="n">y_value</span> <span class="o">+</span> <span class="mf">0.02</span><span class="p">,</span>
+<a id="__codelineno-0-688" name="__codelineno-0-688"></a>            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">y_value</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-689" name="__codelineno-0-689"></a>            <span class="n">ha</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-690" name="__codelineno-0-690"></a>            <span class="n">va</span><span class="o">=</span><span class="s2">&quot;bottom&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-691" name="__codelineno-0-691"></a>        <span class="p">)</span>
+<a id="__codelineno-0-692" name="__codelineno-0-692"></a>
+<a id="__codelineno-0-693" name="__codelineno-0-693"></a>    <span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s2">&quot;font.family&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;sans-serif&quot;</span>
+<a id="__codelineno-0-694" name="__codelineno-0-694"></a>
+<a id="__codelineno-0-695" name="__codelineno-0-695"></a>    <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<a id="__codelineno-0-696" name="__codelineno-0-696"></a>    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>

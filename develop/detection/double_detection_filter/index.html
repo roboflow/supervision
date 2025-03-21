@@ -2798,7 +2798,8 @@ into a single detection.</p>
 
               <details class="quote">
                 <summary>Source code in <code>supervision/detection/overlap_filter.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-235">235</a></span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-234">234</a></span>
+<span class="normal"><a href="#__codelineno-0-235">235</a></span>
 <span class="normal"><a href="#__codelineno-0-236">236</a></span>
 <span class="normal"><a href="#__codelineno-0-237">237</a></span>
 <span class="normal"><a href="#__codelineno-0-238">238</a></span>
@@ -2832,43 +2833,42 @@ into a single detection.</p>
 <span class="normal"><a href="#__codelineno-0-266">266</a></span>
 <span class="normal"><a href="#__codelineno-0-267">267</a></span>
 <span class="normal"><a href="#__codelineno-0-268">268</a></span>
-<span class="normal"><a href="#__codelineno-0-269">269</a></span>
-<span class="normal"><a href="#__codelineno-0-270">270</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-235" name="__codelineno-0-235"></a><span class="k">class</span><span class="w"> </span><span class="nc">OverlapFilter</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
-<a id="__codelineno-0-236" name="__codelineno-0-236"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-237" name="__codelineno-0-237"></a><span class="sd">    Enum specifying the strategy for filtering overlapping detections.</span>
-<a id="__codelineno-0-238" name="__codelineno-0-238"></a>
-<a id="__codelineno-0-239" name="__codelineno-0-239"></a><span class="sd">    Attributes:</span>
-<a id="__codelineno-0-240" name="__codelineno-0-240"></a><span class="sd">        NONE: Do not filter detections based on overlap.</span>
-<a id="__codelineno-0-241" name="__codelineno-0-241"></a><span class="sd">        NON_MAX_SUPPRESSION: Filter detections using non-max suppression. This means,</span>
-<a id="__codelineno-0-242" name="__codelineno-0-242"></a><span class="sd">            detections that overlap by more than a set threshold will be discarded,</span>
-<a id="__codelineno-0-243" name="__codelineno-0-243"></a><span class="sd">            except for the one with the highest confidence.</span>
-<a id="__codelineno-0-244" name="__codelineno-0-244"></a><span class="sd">        NON_MAX_MERGE: Merge detections with non-max merging. This means,</span>
-<a id="__codelineno-0-245" name="__codelineno-0-245"></a><span class="sd">            detections that overlap by more than a set threshold will be merged</span>
-<a id="__codelineno-0-246" name="__codelineno-0-246"></a><span class="sd">            into a single detection.</span>
-<a id="__codelineno-0-247" name="__codelineno-0-247"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-248" name="__codelineno-0-248"></a>
-<a id="__codelineno-0-249" name="__codelineno-0-249"></a>    <span class="n">NONE</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span>
-<a id="__codelineno-0-250" name="__codelineno-0-250"></a>    <span class="n">NON_MAX_SUPPRESSION</span> <span class="o">=</span> <span class="s2">&quot;non_max_suppression&quot;</span>
-<a id="__codelineno-0-251" name="__codelineno-0-251"></a>    <span class="n">NON_MAX_MERGE</span> <span class="o">=</span> <span class="s2">&quot;non_max_merge&quot;</span>
-<a id="__codelineno-0-252" name="__codelineno-0-252"></a>
-<a id="__codelineno-0-253" name="__codelineno-0-253"></a>    <span class="nd">@classmethod</span>
-<a id="__codelineno-0-254" name="__codelineno-0-254"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">list</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-<a id="__codelineno-0-255" name="__codelineno-0-255"></a>        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">c</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="bp">cls</span><span class="p">))</span>
-<a id="__codelineno-0-256" name="__codelineno-0-256"></a>
-<a id="__codelineno-0-257" name="__codelineno-0-257"></a>    <span class="nd">@classmethod</span>
-<a id="__codelineno-0-258" name="__codelineno-0-258"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">from_value</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">OverlapFilter</span><span class="p">,</span> <span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">OverlapFilter</span><span class="p">:</span>
-<a id="__codelineno-0-259" name="__codelineno-0-259"></a>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="bp">cls</span><span class="p">):</span>
-<a id="__codelineno-0-260" name="__codelineno-0-260"></a>            <span class="k">return</span> <span class="n">value</span>
-<a id="__codelineno-0-261" name="__codelineno-0-261"></a>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-<a id="__codelineno-0-262" name="__codelineno-0-262"></a>            <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
-<a id="__codelineno-0-263" name="__codelineno-0-263"></a>            <span class="k">try</span><span class="p">:</span>
-<a id="__codelineno-0-264" name="__codelineno-0-264"></a>                <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
-<a id="__codelineno-0-265" name="__codelineno-0-265"></a>            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
-<a id="__codelineno-0-266" name="__codelineno-0-266"></a>                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid value: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">. Must be one of </span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="n">list</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-267" name="__codelineno-0-267"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-<a id="__codelineno-0-268" name="__codelineno-0-268"></a>            <span class="sa">f</span><span class="s2">&quot;Invalid value type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="si">}</span><span class="s2">. Must be an instance of &quot;</span>
-<a id="__codelineno-0-269" name="__codelineno-0-269"></a>            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> or str.&quot;</span>
-<a id="__codelineno-0-270" name="__codelineno-0-270"></a>        <span class="p">)</span>
+<span class="normal"><a href="#__codelineno-0-269">269</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-234" name="__codelineno-0-234"></a><span class="k">class</span><span class="w"> </span><span class="nc">OverlapFilter</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<a id="__codelineno-0-235" name="__codelineno-0-235"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-236" name="__codelineno-0-236"></a><span class="sd">    Enum specifying the strategy for filtering overlapping detections.</span>
+<a id="__codelineno-0-237" name="__codelineno-0-237"></a>
+<a id="__codelineno-0-238" name="__codelineno-0-238"></a><span class="sd">    Attributes:</span>
+<a id="__codelineno-0-239" name="__codelineno-0-239"></a><span class="sd">        NONE: Do not filter detections based on overlap.</span>
+<a id="__codelineno-0-240" name="__codelineno-0-240"></a><span class="sd">        NON_MAX_SUPPRESSION: Filter detections using non-max suppression. This means,</span>
+<a id="__codelineno-0-241" name="__codelineno-0-241"></a><span class="sd">            detections that overlap by more than a set threshold will be discarded,</span>
+<a id="__codelineno-0-242" name="__codelineno-0-242"></a><span class="sd">            except for the one with the highest confidence.</span>
+<a id="__codelineno-0-243" name="__codelineno-0-243"></a><span class="sd">        NON_MAX_MERGE: Merge detections with non-max merging. This means,</span>
+<a id="__codelineno-0-244" name="__codelineno-0-244"></a><span class="sd">            detections that overlap by more than a set threshold will be merged</span>
+<a id="__codelineno-0-245" name="__codelineno-0-245"></a><span class="sd">            into a single detection.</span>
+<a id="__codelineno-0-246" name="__codelineno-0-246"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-247" name="__codelineno-0-247"></a>
+<a id="__codelineno-0-248" name="__codelineno-0-248"></a>    <span class="n">NONE</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span>
+<a id="__codelineno-0-249" name="__codelineno-0-249"></a>    <span class="n">NON_MAX_SUPPRESSION</span> <span class="o">=</span> <span class="s2">&quot;non_max_suppression&quot;</span>
+<a id="__codelineno-0-250" name="__codelineno-0-250"></a>    <span class="n">NON_MAX_MERGE</span> <span class="o">=</span> <span class="s2">&quot;non_max_merge&quot;</span>
+<a id="__codelineno-0-251" name="__codelineno-0-251"></a>
+<a id="__codelineno-0-252" name="__codelineno-0-252"></a>    <span class="nd">@classmethod</span>
+<a id="__codelineno-0-253" name="__codelineno-0-253"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">list</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+<a id="__codelineno-0-254" name="__codelineno-0-254"></a>        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">c</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="bp">cls</span><span class="p">))</span>
+<a id="__codelineno-0-255" name="__codelineno-0-255"></a>
+<a id="__codelineno-0-256" name="__codelineno-0-256"></a>    <span class="nd">@classmethod</span>
+<a id="__codelineno-0-257" name="__codelineno-0-257"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">from_value</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">OverlapFilter</span><span class="p">,</span> <span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">OverlapFilter</span><span class="p">:</span>
+<a id="__codelineno-0-258" name="__codelineno-0-258"></a>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="bp">cls</span><span class="p">):</span>
+<a id="__codelineno-0-259" name="__codelineno-0-259"></a>            <span class="k">return</span> <span class="n">value</span>
+<a id="__codelineno-0-260" name="__codelineno-0-260"></a>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+<a id="__codelineno-0-261" name="__codelineno-0-261"></a>            <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+<a id="__codelineno-0-262" name="__codelineno-0-262"></a>            <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-0-263" name="__codelineno-0-263"></a>                <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+<a id="__codelineno-0-264" name="__codelineno-0-264"></a>            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+<a id="__codelineno-0-265" name="__codelineno-0-265"></a>                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid value: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">. Must be one of </span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="n">list</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-266" name="__codelineno-0-266"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+<a id="__codelineno-0-267" name="__codelineno-0-267"></a>            <span class="sa">f</span><span class="s2">&quot;Invalid value type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="si">}</span><span class="s2">. Must be an instance of &quot;</span>
+<a id="__codelineno-0-268" name="__codelineno-0-268"></a>            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> or str.&quot;</span>
+<a id="__codelineno-0-269" name="__codelineno-0-269"></a>        <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
               </details>
 
@@ -3504,8 +3504,7 @@ Each group may have 1 or more elements.</p>
 <span class="normal"><a href="#__codelineno-0-228">228</a></span>
 <span class="normal"><a href="#__codelineno-0-229">229</a></span>
 <span class="normal"><a href="#__codelineno-0-230">230</a></span>
-<span class="normal"><a href="#__codelineno-0-231">231</a></span>
-<span class="normal"><a href="#__codelineno-0-232">232</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-192" name="__codelineno-0-192"></a><span class="k">def</span><span class="w"> </span><span class="nf">box_non_max_merge</span><span class="p">(</span>
+<span class="normal"><a href="#__codelineno-0-231">231</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-192" name="__codelineno-0-192"></a><span class="k">def</span><span class="w"> </span><span class="nf">box_non_max_merge</span><span class="p">(</span>
 <a id="__codelineno-0-193" name="__codelineno-0-193"></a>    <span class="n">predictions</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">],</span>
 <a id="__codelineno-0-194" name="__codelineno-0-194"></a>    <span class="n">iou_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
 <a id="__codelineno-0-195" name="__codelineno-0-195"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
@@ -3542,10 +3541,9 @@ Each group may have 1 or more elements.</p>
 <a id="__codelineno-0-226" name="__codelineno-0-226"></a>    <span class="k">for</span> <span class="n">merge_group</span> <span class="ow">in</span> <span class="n">merge_groups</span><span class="p">:</span>
 <a id="__codelineno-0-227" name="__codelineno-0-227"></a>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">merge_group</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
 <a id="__codelineno-0-228" name="__codelineno-0-228"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-<a id="__codelineno-0-229" name="__codelineno-0-229"></a>                <span class="sa">f</span><span class="s2">&quot;Empty group detected when non-max-merging &quot;</span>
-<a id="__codelineno-0-230" name="__codelineno-0-230"></a>                <span class="sa">f</span><span class="s2">&quot;detections: </span><span class="si">{</span><span class="n">merge_groups</span><span class="si">}</span><span class="s2">&quot;</span>
-<a id="__codelineno-0-231" name="__codelineno-0-231"></a>            <span class="p">)</span>
-<a id="__codelineno-0-232" name="__codelineno-0-232"></a>    <span class="k">return</span> <span class="n">merge_groups</span>
+<a id="__codelineno-0-229" name="__codelineno-0-229"></a>                <span class="sa">f</span><span class="s2">&quot;Empty group detected when non-max-merging detections: </span><span class="si">{</span><span class="n">merge_groups</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-0-230" name="__codelineno-0-230"></a>            <span class="p">)</span>
+<a id="__codelineno-0-231" name="__codelineno-0-231"></a>    <span class="k">return</span> <span class="n">merge_groups</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>

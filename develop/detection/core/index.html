@@ -6254,7 +6254,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 <a id="__codelineno-0-715" name="__codelineno-0-715"></a><span class="sd">        &quot;&quot;&quot;</span>
 <a id="__codelineno-0-716" name="__codelineno-0-716"></a>        <span class="k">if</span> <span class="s2">&quot;error&quot;</span> <span class="ow">in</span> <span class="n">azure_result</span><span class="p">:</span>
 <a id="__codelineno-0-717" name="__codelineno-0-717"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-<a id="__codelineno-0-718" name="__codelineno-0-718"></a>                <span class="sa">f</span><span class="s1">&#39;Azure API returned an error </span><span class="si">{</span><span class="n">azure_result</span><span class="p">[</span><span class="s2">&quot;error&quot;</span><span class="p">][</span><span class="s2">&quot;message&quot;</span><span class="p">]</span><span class="si">}</span><span class="s1">&#39;</span>
+<a id="__codelineno-0-718" name="__codelineno-0-718"></a>                <span class="sa">f</span><span class="s2">&quot;Azure API returned an error </span><span class="si">{</span><span class="n">azure_result</span><span class="p">[</span><span class="s1">&#39;error&#39;</span><span class="p">][</span><span class="s1">&#39;message&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
 <a id="__codelineno-0-719" name="__codelineno-0-719"></a>            <span class="p">)</span>
 <a id="__codelineno-0-720" name="__codelineno-0-720"></a>
 <a id="__codelineno-0-721" name="__codelineno-0-721"></a>        <span class="n">xyxy</span><span class="p">,</span> <span class="n">confidences</span><span class="p">,</span> <span class="n">class_ids</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]</span>
@@ -6885,9 +6885,9 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 <a id="__codelineno-0-1346" name="__codelineno-0-1346"></a>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
 <a id="__codelineno-0-1347" name="__codelineno-0-1347"></a>            <span class="k">return</span> <span class="bp">self</span>
 <a id="__codelineno-0-1348" name="__codelineno-0-1348"></a>
-<a id="__codelineno-0-1349" name="__codelineno-0-1349"></a>        <span class="k">assert</span> <span class="p">(</span>
-<a id="__codelineno-0-1350" name="__codelineno-0-1350"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-<a id="__codelineno-0-1351" name="__codelineno-0-1351"></a>        <span class="p">),</span> <span class="s2">&quot;Detections confidence must be given for NMS to be executed.&quot;</span>
+<a id="__codelineno-0-1349" name="__codelineno-0-1349"></a>        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
+<a id="__codelineno-0-1350" name="__codelineno-0-1350"></a>            <span class="s2">&quot;Detections confidence must be given for NMS to be executed.&quot;</span>
+<a id="__codelineno-0-1351" name="__codelineno-0-1351"></a>        <span class="p">)</span>
 <a id="__codelineno-0-1352" name="__codelineno-0-1352"></a>
 <a id="__codelineno-0-1353" name="__codelineno-0-1353"></a>        <span class="k">if</span> <span class="n">class_agnostic</span><span class="p">:</span>
 <a id="__codelineno-0-1354" name="__codelineno-0-1354"></a>            <span class="n">predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
@@ -6941,9 +6941,9 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 <a id="__codelineno-0-1402" name="__codelineno-0-1402"></a>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
 <a id="__codelineno-0-1403" name="__codelineno-0-1403"></a>            <span class="k">return</span> <span class="bp">self</span>
 <a id="__codelineno-0-1404" name="__codelineno-0-1404"></a>
-<a id="__codelineno-0-1405" name="__codelineno-0-1405"></a>        <span class="k">assert</span> <span class="p">(</span>
-<a id="__codelineno-0-1406" name="__codelineno-0-1406"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-<a id="__codelineno-0-1407" name="__codelineno-0-1407"></a>        <span class="p">),</span> <span class="s2">&quot;Detections confidence must be given for NMM to be executed.&quot;</span>
+<a id="__codelineno-0-1405" name="__codelineno-0-1405"></a>        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
+<a id="__codelineno-0-1406" name="__codelineno-0-1406"></a>            <span class="s2">&quot;Detections confidence must be given for NMM to be executed.&quot;</span>
+<a id="__codelineno-0-1407" name="__codelineno-0-1407"></a>        <span class="p">)</span>
 <a id="__codelineno-0-1408" name="__codelineno-0-1408"></a>
 <a id="__codelineno-0-1409" name="__codelineno-0-1409"></a>        <span class="k">if</span> <span class="n">class_agnostic</span><span class="p">:</span>
 <a id="__codelineno-0-1410" name="__codelineno-0-1410"></a>            <span class="n">predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
@@ -7874,7 +7874,7 @@ names (str). If None, a new mapping is created dynamically.</p>
 <a id="__codelineno-0-715" name="__codelineno-0-715"></a><span class="sd">    &quot;&quot;&quot;</span>
 <a id="__codelineno-0-716" name="__codelineno-0-716"></a>    <span class="k">if</span> <span class="s2">&quot;error&quot;</span> <span class="ow">in</span> <span class="n">azure_result</span><span class="p">:</span>
 <a id="__codelineno-0-717" name="__codelineno-0-717"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-<a id="__codelineno-0-718" name="__codelineno-0-718"></a>            <span class="sa">f</span><span class="s1">&#39;Azure API returned an error </span><span class="si">{</span><span class="n">azure_result</span><span class="p">[</span><span class="s2">&quot;error&quot;</span><span class="p">][</span><span class="s2">&quot;message&quot;</span><span class="p">]</span><span class="si">}</span><span class="s1">&#39;</span>
+<a id="__codelineno-0-718" name="__codelineno-0-718"></a>            <span class="sa">f</span><span class="s2">&quot;Azure API returned an error </span><span class="si">{</span><span class="n">azure_result</span><span class="p">[</span><span class="s1">&#39;error&#39;</span><span class="p">][</span><span class="s1">&#39;message&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
 <a id="__codelineno-0-719" name="__codelineno-0-719"></a>        <span class="p">)</span>
 <a id="__codelineno-0-720" name="__codelineno-0-720"></a>
 <a id="__codelineno-0-721" name="__codelineno-0-721"></a>    <span class="n">xyxy</span><span class="p">,</span> <span class="n">confidences</span><span class="p">,</span> <span class="n">class_ids</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]</span>
@@ -11521,9 +11521,9 @@ class_agnostic is False.</p>
 <a id="__codelineno-0-1402" name="__codelineno-0-1402"></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
 <a id="__codelineno-0-1403" name="__codelineno-0-1403"></a>        <span class="k">return</span> <span class="bp">self</span>
 <a id="__codelineno-0-1404" name="__codelineno-0-1404"></a>
-<a id="__codelineno-0-1405" name="__codelineno-0-1405"></a>    <span class="k">assert</span> <span class="p">(</span>
-<a id="__codelineno-0-1406" name="__codelineno-0-1406"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-<a id="__codelineno-0-1407" name="__codelineno-0-1407"></a>    <span class="p">),</span> <span class="s2">&quot;Detections confidence must be given for NMM to be executed.&quot;</span>
+<a id="__codelineno-0-1405" name="__codelineno-0-1405"></a>    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
+<a id="__codelineno-0-1406" name="__codelineno-0-1406"></a>        <span class="s2">&quot;Detections confidence must be given for NMM to be executed.&quot;</span>
+<a id="__codelineno-0-1407" name="__codelineno-0-1407"></a>    <span class="p">)</span>
 <a id="__codelineno-0-1408" name="__codelineno-0-1408"></a>
 <a id="__codelineno-0-1409" name="__codelineno-0-1409"></a>    <span class="k">if</span> <span class="n">class_agnostic</span><span class="p">:</span>
 <a id="__codelineno-0-1410" name="__codelineno-0-1410"></a>        <span class="n">predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
@@ -11754,9 +11754,9 @@ If <code>class_id</code> is None and class_agnostic is False.</p>
 <a id="__codelineno-0-1346" name="__codelineno-0-1346"></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
 <a id="__codelineno-0-1347" name="__codelineno-0-1347"></a>        <span class="k">return</span> <span class="bp">self</span>
 <a id="__codelineno-0-1348" name="__codelineno-0-1348"></a>
-<a id="__codelineno-0-1349" name="__codelineno-0-1349"></a>    <span class="k">assert</span> <span class="p">(</span>
-<a id="__codelineno-0-1350" name="__codelineno-0-1350"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-<a id="__codelineno-0-1351" name="__codelineno-0-1351"></a>    <span class="p">),</span> <span class="s2">&quot;Detections confidence must be given for NMS to be executed.&quot;</span>
+<a id="__codelineno-0-1349" name="__codelineno-0-1349"></a>    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
+<a id="__codelineno-0-1350" name="__codelineno-0-1350"></a>        <span class="s2">&quot;Detections confidence must be given for NMS to be executed.&quot;</span>
+<a id="__codelineno-0-1351" name="__codelineno-0-1351"></a>    <span class="p">)</span>
 <a id="__codelineno-0-1352" name="__codelineno-0-1352"></a>
 <a id="__codelineno-0-1353" name="__codelineno-0-1353"></a>    <span class="k">if</span> <span class="n">class_agnostic</span><span class="p">:</span>
 <a id="__codelineno-0-1354" name="__codelineno-0-1354"></a>        <span class="n">predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
